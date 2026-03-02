@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useFinancials } from "@/hooks/useFinancials";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCSV, formatCurrencyCSV } from "@/lib/csv-export";
 import {
   DollarSign,
   TrendingUp,
@@ -12,6 +14,9 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { RevenueVsCostsChart } from "@/components/charts/RevenueVsCostsChart";
+import { MarginComparisonChart } from "@/components/charts/MarginComparisonChart";
+import { RevenueBreakdownChart } from "@/components/charts/RevenueBreakdownChart";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-AU", {
@@ -87,6 +92,33 @@ export default function FinancialsPage() {
   // Sort by total revenue descending
   const sortedData = [...latestData].sort((a, b) => b.totalRevenue - a.totalRevenue);
 
+  const handleExport = () => {
+    if (!data?.financials) return;
+    exportToCSV(
+      data.financials.map((f: any) => ({
+        centre: f.service.name,
+        state: f.service.state,
+        bscRevenue: f.bscRevenue,
+        ascRevenue: f.ascRevenue,
+        totalRevenue: f.totalRevenue,
+        totalCosts: f.totalCosts,
+        grossProfit: f.grossProfit,
+        margin: f.margin,
+      })),
+      `financials-${period}`,
+      [
+        { key: "centre", header: "Centre" },
+        { key: "state", header: "State" },
+        { key: "bscRevenue", header: "BSC Revenue", formatter: (v) => formatCurrencyCSV(v as number) },
+        { key: "ascRevenue", header: "ASC Revenue", formatter: (v) => formatCurrencyCSV(v as number) },
+        { key: "totalRevenue", header: "Total Revenue", formatter: (v) => formatCurrencyCSV(v as number) },
+        { key: "totalCosts", header: "Total Costs", formatter: (v) => formatCurrencyCSV(v as number) },
+        { key: "grossProfit", header: "Gross Profit", formatter: (v) => formatCurrencyCSV(v as number) },
+        { key: "margin", header: "Margin %", formatter: (v) => `${(v as number).toFixed(1)}%` },
+      ]
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -95,7 +127,9 @@ export default function FinancialsPage() {
           <h2 className="text-2xl font-bold text-gray-900">Financial Dashboard</h2>
           <p className="text-gray-500 mt-1">Revenue, costs, and profitability across all centres</p>
         </div>
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex items-center gap-3">
+          <ExportButton onClick={handleExport} disabled={!data?.financials || data.financials.length === 0} />
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
           {[
             { label: "Weekly", value: "weekly" },
             { label: "Monthly", value: "monthly" },
@@ -114,6 +148,7 @@ export default function FinancialsPage() {
               {opt.label}
             </button>
           ))}
+          </div>
         </div>
       </div>
 
@@ -177,6 +212,17 @@ export default function FinancialsPage() {
           <p className="text-3xl font-bold text-gray-900">{summary?.totalAscAttendance || 0}</p>
         </div>
       </div>
+
+      {/* Charts */}
+      {sortedData.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RevenueVsCostsChart data={sortedData} />
+            <MarginComparisonChart data={sortedData} />
+          </div>
+          <RevenueBreakdownChart data={sortedData} />
+        </>
+      )}
 
       {/* Revenue by Centre Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

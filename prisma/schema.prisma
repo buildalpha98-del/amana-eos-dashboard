@@ -112,6 +112,8 @@ model User {
   createdMeetings   Meeting[]         @relation("MeetingCreator")
   uploadedDocuments Document[]        @relation("DocumentUploader")
   uploadedAttachments Attachment[]    @relation("AttachmentUploader")
+  assignedTickets   SupportTicket[]   @relation("TicketAssignee")
+  sentMessages      TicketMessage[]   @relation("MessageSender")
 }
 
 model VisionTractionOrganiser {
@@ -336,6 +338,8 @@ model Service {
   financials FinancialPeriod[] @relation("ServiceFinancials")
   metrics    CentreMetrics[]   @relation("ServiceMetrics")
   documents  Document[] @relation("ServiceDocuments")
+  tickets    SupportTicket[]  @relation("ServiceTickets")
+  whatsappContacts WhatsAppContact[] @relation("ServiceContacts")
 
   @@index([status])
   @@index([managerId])
@@ -567,4 +571,115 @@ model CentreMetrics {
   
   @@index([serviceId])
   @@index([recordedAt])
+}
+
+// ============================================================
+// Support Ticket System (WhatsApp Integration)
+// ============================================================
+
+enum TicketStatus {
+  new
+  open
+  pending_parent
+  resolved
+  closed
+}
+
+enum TicketPriority {
+  urgent
+  high
+  normal
+  low
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+}
+
+enum MessageDeliveryStatus {
+  sent
+  delivered
+  read
+  failed
+}
+
+model WhatsAppContact {
+  id          String   @id @default(cuid())
+  waId        String   @unique
+  phoneNumber String
+  name        String?
+  parentName  String?
+  childName   String?
+  serviceId   String?
+  service     Service? @relation("ServiceContacts", fields: [serviceId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tickets SupportTicket[]
+
+  @@index([waId])
+  @@index([serviceId])
+}
+
+model SupportTicket {
+  id             String         @id @default(cuid())
+  ticketNumber   Int            @unique @default(autoincrement())
+  contactId      String
+  contact        WhatsAppContact @relation(fields: [contactId], references: [id])
+  subject        String?
+  status         TicketStatus   @default(new)
+  priority       TicketPriority @default(normal)
+  assignedToId   String?
+  assignedTo     User?          @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  serviceId      String?
+  service        Service?       @relation("ServiceTickets", fields: [serviceId], references: [id], onDelete: SetNull)
+  firstResponseAt DateTime?
+  resolvedAt     DateTime?
+  closedAt       DateTime?
+  lastInboundAt  DateTime?
+  tags           String[]
+  deleted        Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  messages TicketMessage[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([assignedToId])
+  @@index([contactId])
+  @@index([serviceId])
+  @@index([createdAt])
+}
+
+model TicketMessage {
+  id              String                @id @default(cuid())
+  ticketId        String
+  ticket          SupportTicket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  waMessageId     String?               @unique
+  direction       MessageDirection
+  senderName      String?
+  agentId         String?
+  agent           User?                 @relation("MessageSender", fields: [agentId], references: [id])
+  body            String                @db.Text
+  mediaUrl        String?
+  mediaType       String?
+  deliveryStatus  MessageDeliveryStatus @default(sent)
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  createdAt       DateTime              @default(now())
+
+  @@index([ticketId])
+  @@index([waMessageId])
+}
+
+model ResponseTemplate {
+  id        String   @id @default(cuid())
+  title     String
+  body      String   @db.Text
+  category  String?
+  shortcut  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

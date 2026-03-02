@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Plus, Search, Bell } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { getCurrentQuarter } from "@/lib/utils";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -52,12 +53,7 @@ export function TopBar() {
         </button>
 
         {/* Notifications */}
-        <button
-          className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors relative"
-          title="Notifications"
-        >
-          <Bell className="w-4 h-4" />
-        </button>
+        <NotificationDropdown />
       </div>
     </header>
   );

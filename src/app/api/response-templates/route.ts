@@ -1,0 +1,60 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/server-auth";
+
+const createTemplateSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  body: z.string().min(1, "Body is required"),
+  category: z.string().optional().nullable(),
+  shortcut: z.string().optional().nullable(),
+});
+
+// GET /api/response-templates — list all templates
+export async function GET(_req: NextRequest) {
+  const { error } = await requireAuth();
+  if (error) return error;
+
+  const templates = await prisma.responseTemplate.findMany({
+    orderBy: [{ category: "asc" }, { title: "asc" }],
+  });
+
+  return NextResponse.json(templates);
+}
+
+// POST /api/response-templates — create a new template
+export async function POST(req: NextRequest) {
+  const { session, error } = await requireAuth();
+  if (error) return error;
+
+  const body = await req.json();
+  const parsed = createTemplateSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+
+  const template = await prisma.responseTemplate.create({
+    data: {
+      title: parsed.data.title,
+      body: parsed.data.body,
+      category: parsed.data.category || null,
+      shortcut: parsed.data.shortcut || null,
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      userId: session!.user.id,
+      action: "create",
+      entityType: "ResponseTemplate",
+      entityId: template.id,
+      details: { title: template.title, category: template.category },
+    },
+  });
+
+  return NextResponse.json(template, { status: 201 });
+}

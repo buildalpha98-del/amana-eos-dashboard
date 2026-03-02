@@ -1,0 +1,184 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/server-auth";
+
+interface Notification {
+  id: string;
+  type:
+    | "overdue_todo"
+    | "overdue_rock"
+    | "unassigned_ticket"
+    | "critical_issue"
+    | "sla_warning"
+    | "low_compliance";
+  severity: "critical" | "warning" | "info";
+  title: string;
+  message: string;
+  link: string;
+  timestamp: string;
+  entityId: string;
+}
+
+export async function GET(req: NextRequest) {
+  const { error } = await requireAuth();
+  if (error) return error;
+
+  const now = new Date();
+  const notifications: Notification[] = [];
+
+  // 1. Overdue Todos: dueDate < today, status not complete/cancelled, deleted=false
+  const overdueTodos = await prisma.todo.findMany({
+    where: {
+      deleted: false,
+      status: { notIn: ["complete", "cancelled"] },
+      dueDate: { lt: now },
+    },
+    include: { assignee: { select: { name: true } } },
+    take: 20,
+    orderBy: { dueDate: "asc" },
+  });
+  overdueTodos.forEach((todo) => {
+    notifications.push({
+      id: `todo-${todo.id}`,
+      type: "overdue_todo",
+      severity: "warning",
+      title: "Overdue To-Do",
+      message: `"${todo.title}" assigned to ${todo.assignee.name} was due ${new Date(todo.dueDate).toLocaleDateString("en-AU")}`,
+      link: "/todos",
+      timestamp: todo.dueDate.toISOString(),
+      entityId: todo.id,
+    });
+  });
+
+  // 2. Overdue Rocks: quarter != current, status in [on_track, off_track]
+  const currentQuarter = `Q${Math.ceil((now.getMonth() + 1) / 3)}-${now.getFullYear()}`;
+  const overdueRocks = await prisma.rock.findMany({
+    where: {
+      deleted: false,
+      status: { in: ["on_track", "off_track"] },
+      quarter: { not: currentQuarter },
+    },
+    include: { owner: { select: { name: true } } },
+    take: 10,
+  });
+  overdueRocks.forEach((rock) => {
+    notifications.push({
+      id: `rock-${rock.id}`,
+      type: "overdue_rock",
+      severity: "warning",
+      title: "Overdue Rock",
+      message: `"${rock.title}" (${rock.quarter}) owned by ${rock.owner.name} is still ${rock.status.replace("_", " ")}`,
+      link: "/rocks",
+      timestamp: rock.updatedAt.toISOString(),
+      entityId: rock.id,
+    });
+  });
+
+  // 3. Unassigned tickets: assignedToId is null, status new/open
+  const unassignedTickets = await prisma.supportTicket.findMany({
+    where: {
+      deleted: false,
+      assignedToId: null,
+      status: { in: ["new", "open"] },
+    },
+    take: 10,
+    orderBy: { createdAt: "desc" },
+  });
+  unassignedTickets.forEach((ticket) => {
+    notifications.push({
+      id: `ticket-unassigned-${ticket.id}`,
+      type: "unassigned_ticket",
+      severity: "info",
+      title: "Unassigned Ticket",
+      message: `Ticket #${ticket.ticketNumber} "${ticket.subject || "No subject"}" needs assignment`,
+      link: "/tickets",
+      timestamp: ticket.createdAt.toISOString(),
+      entityId: ticket.id,
+    });
+  });
+
+  // 4. Critical issues: priority=critical, status=open
+  const criticalIssues = await prisma.issue.findMany({
+    where: { deleted: false, priority: "critical", status: "open" },
+    take: 10,
+    orderBy: { createdAt: "desc" },
+  });
+  criticalIssues.forEach((issue) => {
+    notifications.push({
+      id: `issue-${issue.id}`,
+      type: "critical_issue",
+      severity: "critical",
+      title: "Critical Issue",
+      message: `"${issue.title}" requires immediate attention`,
+      link: "/issues",
+      timestamp: issue.createdAt.toISOString(),
+      entityId: issue.id,
+    });
+  });
+
+  // 5. SLA Warning: lastInboundAt > 20 hours ago, not resolved/closed
+  const twentyHoursAgo = new Date(now.getTime() - 20 * 60 * 60 * 1000);
+  const slaTickets = await prisma.supportTicket.findMany({
+    where: {
+      deleted: false,
+      status: { notIn: ["resolved", "closed"] },
+      lastInboundAt: { lt: twentyHoursAgo, not: null },
+    },
+    take: 10,
+    orderBy: { lastInboundAt: "asc" },
+  });
+  slaTickets.forEach((ticket) => {
+    const hoursAgo = Math.round(
+      (now.getTime() - ticket.lastInboundAt!.getTime()) / (1000 * 60 * 60)
+    );
+    notifications.push({
+      id: `sla-${ticket.id}`,
+      type: "sla_warning",
+      severity: "critical",
+      title: "SLA Warning",
+      message: `Ticket #${ticket.ticketNumber} has had no response for ${hoursAgo}h (24h limit)`,
+      link: "/tickets",
+      timestamp: ticket.lastInboundAt!.toISOString(),
+      entityId: ticket.id,
+    });
+  });
+
+  // 6. Low compliance: overallCompliance < 80%
+  const lowComplianceCentres = await prisma.centreMetrics.findMany({
+    where: { overallCompliance: { lt: 80 } },
+    include: { service: { select: { name: true } } },
+    orderBy: { recordedAt: "desc" },
+    distinct: ["serviceId"],
+    take: 10,
+  });
+  lowComplianceCentres.forEach((metric) => {
+    notifications.push({
+      id: `compliance-${metric.id}`,
+      type: "low_compliance",
+      severity: "critical",
+      title: "Low Compliance",
+      message: `${metric.service.name} compliance is at ${metric.overallCompliance.toFixed(1)}% (below 80% threshold)`,
+      link: "/performance",
+      timestamp: metric.recordedAt.toISOString(),
+      entityId: metric.serviceId,
+    });
+  });
+
+  // Sort: critical first, then warning, then info; within each, newest first
+  const severityOrder: Record<string, number> = {
+    critical: 0,
+    warning: 1,
+    info: 2,
+  };
+  notifications.sort((a, b) => {
+    const sevDiff = severityOrder[a.severity] - severityOrder[b.severity];
+    if (sevDiff !== 0) return sevDiff;
+    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+  });
+
+  return NextResponse.json({
+    notifications,
+    total: notifications.length,
+    critical: notifications.filter((n) => n.severity === "critical").length,
+  });
+}

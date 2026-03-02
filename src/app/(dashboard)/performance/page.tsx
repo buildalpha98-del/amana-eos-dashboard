@@ -1,6 +1,8 @@
 "use client";
 
 import { usePerformance } from "@/hooks/usePerformance";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCSV, formatCurrencyCSV } from "@/lib/csv-export";
 import {
   Trophy,
   Building2,
@@ -13,6 +15,9 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ScoreDistributionChart } from "@/components/charts/ScoreDistributionChart";
+import { CentreRadarChart } from "@/components/charts/CentreRadarChart";
+import { OccupancyComparisonChart } from "@/components/charts/OccupancyComparisonChart";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-AU", {
@@ -59,14 +64,50 @@ export default function PerformancePage() {
     ? Math.round(centres.reduce((s, c) => s + c.score, 0) / centres.length)
     : 0;
 
+  const handleExport = () => {
+    if (!centres || centres.length === 0) return;
+    exportToCSV(
+      centres.map((c: any, index: number) => ({
+        rank: index + 1,
+        centre: c.name,
+        state: c.state || "",
+        score: c.score,
+        occupancy: c.metrics?.ascOccupancy ?? "",
+        revenue: c.financials?.totalRevenue ?? "",
+        margin: c.financials?.margin ?? "",
+        compliance: c.metrics?.overallCompliance ?? "",
+        nps: c.metrics?.parentNps ?? "",
+        staff: c.metrics?.totalEducators ?? "",
+        issues: c.openIssues,
+      })),
+      "centre-performance",
+      [
+        { key: "rank", header: "Rank" },
+        { key: "centre", header: "Centre" },
+        { key: "state", header: "State" },
+        { key: "score", header: "Score" },
+        { key: "occupancy", header: "Occupancy %", formatter: (v) => v !== "" ? `${(v as number).toFixed(1)}%` : "" },
+        { key: "revenue", header: "Revenue", formatter: (v) => v !== "" ? formatCurrencyCSV(v as number) : "" },
+        { key: "margin", header: "Margin %", formatter: (v) => v !== "" ? `${(v as number).toFixed(1)}%` : "" },
+        { key: "compliance", header: "Compliance %", formatter: (v) => v !== "" ? `${(v as number).toFixed(1)}%` : "" },
+        { key: "nps", header: "NPS" },
+        { key: "staff", header: "Staff" },
+        { key: "issues", header: "Issues" },
+      ]
+    );
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Centre Performance</h2>
-        <p className="text-gray-500 mt-1">
-          Rankings, KPIs, and operational health across all service centres
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Centre Performance</h2>
+          <p className="text-gray-500 mt-1">
+            Rankings, KPIs, and operational health across all service centres
+          </p>
+        </div>
+        <ExportButton onClick={handleExport} disabled={!centres || centres.length === 0} />
       </div>
 
       {/* Summary Cards */}
@@ -103,6 +144,17 @@ export default function PerformancePage() {
           <p className="text-sm text-gray-400 mt-1">centres below 60</p>
         </div>
       </div>
+
+      {/* Charts */}
+      {centres && centres.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ScoreDistributionChart centres={centres} />
+            <CentreRadarChart centres={centres} />
+          </div>
+          <OccupancyComparisonChart centres={centres} />
+        </>
+      )}
 
       {/* Performance League Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

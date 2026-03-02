@@ -660,6 +660,328 @@ async function main() {
     console.log("Centre metrics already exist, skipping");
   }
 
+  // ============================================================
+  // Support Tickets: Contacts, Tickets, Messages, Templates
+  // ============================================================
+
+  const existingContacts = await prisma.whatsAppContact.findFirst();
+  if (!existingContacts) {
+    // Get first few services for linking
+    const allServices = await prisma.service.findMany({ take: 5 });
+
+    // Create WhatsApp contacts (sample parents)
+    const contacts = await Promise.all([
+      prisma.whatsAppContact.create({
+        data: {
+          waId: "61412345678",
+          phoneNumber: "+61 412 345 678",
+          name: "Fatima Ahmed",
+          parentName: "Fatima Ahmed",
+          childName: "Yusuf Ahmed",
+          serviceId: allServices[0]?.id,
+        },
+      }),
+      prisma.whatsAppContact.create({
+        data: {
+          waId: "61423456789",
+          phoneNumber: "+61 423 456 789",
+          name: "Sarah Hassan",
+          parentName: "Sarah Hassan",
+          childName: "Amira Hassan",
+          serviceId: allServices[1]?.id,
+        },
+      }),
+      prisma.whatsAppContact.create({
+        data: {
+          waId: "61434567890",
+          phoneNumber: "+61 434 567 890",
+          name: "Omar Ibrahim",
+          parentName: "Omar Ibrahim",
+          childName: "Zahra Ibrahim",
+          serviceId: allServices[2]?.id,
+        },
+      }),
+      prisma.whatsAppContact.create({
+        data: {
+          waId: "61445678901",
+          phoneNumber: "+61 445 678 901",
+          name: "Aisha Khan",
+          parentName: "Aisha Khan",
+          childName: "Adam Khan",
+          serviceId: allServices[0]?.id,
+        },
+      }),
+      prisma.whatsAppContact.create({
+        data: {
+          waId: "61456789012",
+          phoneNumber: "+61 456 789 012",
+          name: "Mohammed Ali",
+          parentName: "Mohammed Ali",
+          childName: "Lina Ali",
+        },
+      }),
+    ]);
+
+    // Create support tickets
+    const now = new Date();
+    const hoursAgo = (h: number) => new Date(now.getTime() - h * 60 * 60 * 1000);
+    const daysAgo = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000);
+
+    const tickets = await Promise.all([
+      prisma.supportTicket.create({
+        data: {
+          contactId: contacts[0].id,
+          subject: "Pickup time change request",
+          status: "open",
+          priority: "normal",
+          assignedToId: admin.id,
+          serviceId: allServices[0]?.id,
+          lastInboundAt: hoursAgo(2),
+        },
+      }),
+      prisma.supportTicket.create({
+        data: {
+          contactId: contacts[1].id,
+          subject: "Allergy information update",
+          status: "new",
+          priority: "high",
+          serviceId: allServices[1]?.id,
+          lastInboundAt: hoursAgo(1),
+        },
+      }),
+      prisma.supportTicket.create({
+        data: {
+          contactId: contacts[2].id,
+          subject: "Vacation care enrolment enquiry",
+          status: "pending_parent",
+          priority: "normal",
+          assignedToId: admin.id,
+          serviceId: allServices[2]?.id,
+          firstResponseAt: daysAgo(1),
+          lastInboundAt: daysAgo(1),
+        },
+      }),
+      prisma.supportTicket.create({
+        data: {
+          contactId: contacts[3].id,
+          subject: "Invoice query for Term 1",
+          status: "resolved",
+          priority: "low",
+          assignedToId: admin.id,
+          serviceId: allServices[0]?.id,
+          firstResponseAt: daysAgo(3),
+          resolvedAt: daysAgo(1),
+          lastInboundAt: daysAgo(2),
+        },
+      }),
+      prisma.supportTicket.create({
+        data: {
+          contactId: contacts[4].id,
+          subject: "New enrolment for next term",
+          status: "open",
+          priority: "normal",
+          lastInboundAt: hoursAgo(5),
+        },
+      }),
+      prisma.supportTicket.create({
+        data: {
+          contactId: contacts[0].id,
+          subject: "Child feeling unwell yesterday",
+          status: "closed",
+          priority: "urgent",
+          assignedToId: admin.id,
+          serviceId: allServices[0]?.id,
+          firstResponseAt: daysAgo(5),
+          resolvedAt: daysAgo(4),
+          closedAt: daysAgo(3),
+          lastInboundAt: daysAgo(5),
+        },
+      }),
+    ]);
+
+    // Create messages for the first few tickets
+    await Promise.all([
+      // Ticket 1: Pickup time change
+      prisma.ticketMessage.create({
+        data: {
+          ticketId: tickets[0].id,
+          direction: "inbound",
+          senderName: "Fatima Ahmed",
+          body: "Assalamu alaikum, I need to change Yusuf's pickup time from 5:30 to 4:00 starting next week. Is that possible?",
+          deliveryStatus: "read",
+          createdAt: hoursAgo(3),
+        },
+      }),
+      prisma.ticketMessage.create({
+        data: {
+          ticketId: tickets[0].id,
+          direction: "outbound",
+          senderName: "Amana Admin",
+          agentId: admin.id,
+          body: "Wa alaikum assalam Fatima! Yes, we can absolutely change Yusuf's pickup time. I'll update the system for next week. Just to confirm - this is for every day?",
+          deliveryStatus: "read",
+          createdAt: hoursAgo(2.5),
+        },
+      }),
+      prisma.ticketMessage.create({
+        data: {
+          ticketId: tickets[0].id,
+          direction: "inbound",
+          senderName: "Fatima Ahmed",
+          body: "Yes please, Monday to Friday. JazakAllah khair!",
+          deliveryStatus: "read",
+          createdAt: hoursAgo(2),
+        },
+      }),
+
+      // Ticket 2: Allergy update
+      prisma.ticketMessage.create({
+        data: {
+          ticketId: tickets[1].id,
+          direction: "inbound",
+          senderName: "Sarah Hassan",
+          body: "Hi, Amira has been diagnosed with a tree nut allergy. Can you please update her records? The doctor's letter is attached.",
+          deliveryStatus: "delivered",
+          createdAt: hoursAgo(1),
+        },
+      }),
+
+      // Ticket 3: Vacation care
+      prisma.ticketMessage.create({
+        data: {
+          ticketId: tickets[2].id,
+          direction: "inbound",
+          senderName: "Omar Ibrahim",
+          body: "Salam, I'd like to enrol Zahra in the April vacation care program. What activities are planned?",
+          deliveryStatus: "read",
+          createdAt: daysAgo(2),
+        },
+      }),
+      prisma.ticketMessage.create({
+        data: {
+          ticketId: tickets[2].id,
+          direction: "outbound",
+          senderName: "Amana Admin",
+          agentId: admin.id,
+          body: "Wa alaikum assalam Omar! Great to hear you're interested in vacation care. We have excursions, sports, arts & crafts, and cooking workshops planned. I'll send through the full program schedule. Could you confirm which weeks you need?",
+          deliveryStatus: "read",
+          createdAt: daysAgo(1),
+        },
+      }),
+
+      // Ticket 4: Invoice query (resolved)
+      prisma.ticketMessage.create({
+        data: {
+          ticketId: tickets[3].id,
+          direction: "inbound",
+          senderName: "Aisha Khan",
+          body: "Hi, I noticed my Term 1 invoice shows 5 days per week but Adam only attends 3 days. Can you check?",
+          deliveryStatus: "read",
+          createdAt: daysAgo(4),
+        },
+      }),
+      prisma.ticketMessage.create({
+        data: {
+          ticketId: tickets[3].id,
+          direction: "outbound",
+          senderName: "Amana Admin",
+          agentId: admin.id,
+          body: "Hi Aisha, thank you for flagging this. I've checked and you're right - there was an error. I've corrected the invoice and a revised copy has been sent to your email. The difference will be credited to next term.",
+          deliveryStatus: "read",
+          createdAt: daysAgo(3),
+        },
+      }),
+      prisma.ticketMessage.create({
+        data: {
+          ticketId: tickets[3].id,
+          direction: "inbound",
+          senderName: "Aisha Khan",
+          body: "Thank you so much for sorting that out quickly!",
+          deliveryStatus: "read",
+          createdAt: daysAgo(2),
+        },
+      }),
+
+      // Ticket 5: New enrolment
+      prisma.ticketMessage.create({
+        data: {
+          ticketId: tickets[4].id,
+          direction: "inbound",
+          senderName: "Mohammed Ali",
+          body: "Hi, we're new to the area. I'd like to enrol my daughter Lina in the after-school care program for Term 2. She'll be starting Year 3 at the local school. What's the process?",
+          deliveryStatus: "delivered",
+          createdAt: hoursAgo(5),
+        },
+      }),
+    ]);
+
+    console.log(`Created ${contacts.length} WhatsApp contacts, ${tickets.length} support tickets with messages`);
+
+    // Create response templates
+    await Promise.all([
+      prisma.responseTemplate.create({
+        data: {
+          title: "Welcome Greeting",
+          body: "Assalamu alaikum! Thank you for contacting Amana OSHC. How can we help you today?",
+          category: "greeting",
+          shortcut: "/hello",
+        },
+      }),
+      prisma.responseTemplate.create({
+        data: {
+          title: "Absence Report Acknowledged",
+          body: "Thank you for letting us know. We've noted the absence in our records. We hope they feel better soon!",
+          category: "absence",
+          shortcut: "/absent",
+        },
+      }),
+      prisma.responseTemplate.create({
+        data: {
+          title: "Billing Enquiry",
+          body: "Thank you for your billing enquiry. I'll look into this and get back to you within 24 hours with the details.",
+          category: "billing",
+          shortcut: "/billing",
+        },
+      }),
+      prisma.responseTemplate.create({
+        data: {
+          title: "Pickup Change Confirmed",
+          body: "The pickup time change has been updated in our system. Please let us know if you need any further changes.",
+          category: "general",
+          shortcut: "/pickup",
+        },
+      }),
+      prisma.responseTemplate.create({
+        data: {
+          title: "Enrolment Info",
+          body: "Thank you for your interest in Amana OSHC! To enrol your child, please visit our website or I can send you the enrolment form directly. The key details we'll need are: child's full name, date of birth, school, emergency contacts, and any medical/dietary requirements.",
+          category: "enrolment",
+          shortcut: "/enrol",
+        },
+      }),
+      prisma.responseTemplate.create({
+        data: {
+          title: "Vacation Care Info",
+          body: "Our vacation care program runs during school holidays with exciting activities including excursions, sports, arts & crafts, and cooking. I'll send through the full schedule and booking form.",
+          category: "vacation",
+          shortcut: "/vaccare",
+        },
+      }),
+      prisma.responseTemplate.create({
+        data: {
+          title: "Closing Message",
+          body: "Is there anything else I can help you with? If not, I'll close this ticket. JazakAllah khair for contacting Amana OSHC!",
+          category: "closing",
+          shortcut: "/close",
+        },
+      }),
+    ]);
+
+    console.log("Created 7 response templates");
+  } else {
+    console.log("WhatsApp contacts already exist, skipping ticket seed data");
+  }
+
   console.log("\nSeed complete!");
 }
 

@@ -4,11 +4,58 @@ import { useState } from "react";
 import { useScorecard } from "@/hooks/useScorecard";
 import { ScorecardGrid } from "@/components/scorecard/ScorecardGrid";
 import { AddMeasurableModal } from "@/components/scorecard/AddMeasurableModal";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCSV } from "@/lib/csv-export";
 import { BarChart3, Plus } from "lucide-react";
 
 export default function ScorecardPage() {
   const { data: scorecard, isLoading, error } = useScorecard();
   const [showAddMeasurable, setShowAddMeasurable] = useState(false);
+
+  const handleExport = () => {
+    if (!scorecard?.measurables || scorecard.measurables.length === 0) return;
+
+    // Collect all unique weeks across all measurables, sorted
+    const allWeeks = Array.from(
+      new Set(
+        scorecard.measurables.flatMap((m) =>
+          m.entries.map((e) => e.weekOf)
+        )
+      )
+    ).sort();
+
+    // Build dynamic columns: Owner, Title, Goal, Unit, then one column per week
+    const columns = [
+      { key: "owner", header: "Owner" },
+      { key: "title", header: "Title" },
+      { key: "goal", header: "Goal" },
+      { key: "unit", header: "Unit" },
+      ...allWeeks.map((week) => ({
+        key: `week_${week}`,
+        header: new Date(week).toLocaleDateString("en-AU", {
+          day: "2-digit",
+          month: "2-digit",
+        }),
+      })),
+    ];
+
+    const rows = scorecard.measurables.map((m) => {
+      const row: Record<string, unknown> = {
+        owner: m.owner.name,
+        title: m.title,
+        goal: `${m.goalDirection === "above" ? ">=" : m.goalDirection === "below" ? "<=" : "="} ${m.goalValue}`,
+        unit: m.unit || "",
+      };
+      // Map entries by weekOf for quick lookup
+      const entryMap = new Map(m.entries.map((e) => [e.weekOf, e.value]));
+      allWeeks.forEach((week) => {
+        row[`week_${week}`] = entryMap.get(week) ?? "";
+      });
+      return row;
+    });
+
+    exportToCSV(rows, "scorecard-export", columns);
+  };
 
   return (
     <div className="max-w-full mx-auto">
@@ -20,13 +67,19 @@ export default function ScorecardPage() {
             Track your weekly measurables — trailing 13 weeks
           </p>
         </div>
-        <button
-          onClick={() => setShowAddMeasurable(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Measurable
-        </button>
+        <div className="flex items-center gap-3">
+          <ExportButton
+            onClick={handleExport}
+            disabled={!scorecard?.measurables || scorecard.measurables.length === 0}
+          />
+          <button
+            onClick={() => setShowAddMeasurable(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Measurable
+          </button>
+        </div>
       </div>
 
       {/* Content */}
