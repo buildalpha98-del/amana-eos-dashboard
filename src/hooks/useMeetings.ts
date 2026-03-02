@@ -21,6 +21,7 @@ export interface MeetingData {
   headlines: string | null;
   segueNotes: string | null;
   concludeNotes: string | null;
+  cascadeMessages: string | null;
   startedAt: string | null;
   completedAt: string | null;
   createdById: string;
@@ -95,6 +96,7 @@ export function useUpdateMeeting() {
       headlines?: string | null;
       segueNotes?: string | null;
       concludeNotes?: string | null;
+      cascadeMessages?: string | null;
     }) => {
       const res = await fetch(`/api/meetings/${id}`, {
         method: "PATCH",

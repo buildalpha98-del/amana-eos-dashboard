@@ -20,6 +20,7 @@ export interface TodoData {
   rock: { id: string; title: string } | null;
   issueId: string | null;
   issue: { id: string; title: string } | null;
+  isPrivate: boolean;
   dueDate: string;
   weekOf: string;
   status: TodoStatus;
@@ -61,6 +62,7 @@ export function useCreateTodo() {
       assigneeId: string;
       rockId?: string | null;
       issueId?: string | null;
+      isPrivate?: boolean;
       dueDate: string;
       weekOf: string;
     }) => {
@@ -97,6 +99,7 @@ export function useUpdateTodo() {
       weekOf?: string;
       rockId?: string | null;
       issueId?: string | null;
+      isPrivate?: boolean;
     }) => {
       const res = await fetch(`/api/todos/${id}`, {
         method: "PATCH",

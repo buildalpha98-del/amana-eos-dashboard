@@ -36,6 +36,8 @@ export interface FinancialPeriodData {
   bscAttendance: number;
   ascAttendance: number;
   vcAttendance: number;
+  budgetRevenue: number | null;
+  budgetCosts: number | null;
 }
 
 export interface FinancialSummary {
@@ -46,6 +48,8 @@ export interface FinancialSummary {
   centreCount: number;
   totalBscAttendance: number;
   totalAscAttendance: number;
+  totalBudgetRevenue: number;
+  totalBudgetCosts: number;
 }
 
 export function useFinancials(filters?: { period?: string; serviceId?: string }) {

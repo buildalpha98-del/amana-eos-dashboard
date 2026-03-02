@@ -114,6 +114,7 @@ model User {
   uploadedAttachments Attachment[]    @relation("AttachmentUploader")
   assignedTickets   SupportTicket[]   @relation("TicketAssignee")
   sentMessages      TicketMessage[]   @relation("MessageSender")
+  dismissedNotifications NotificationDismissal[]
 }
 
 model VisionTractionOrganiser {
@@ -202,6 +203,7 @@ model Todo {
   dueDate     DateTime
   status      TodoStatus @default(pending)
   weekOf      DateTime
+  isPrivate   Boolean    @default(false)
   deleted     Boolean    @default(false)
   createdAt   DateTime   @default(now())
   completedAt DateTime?
@@ -329,6 +331,9 @@ model Service {
   capacity    Int?
   operatingDays String?
   notes       String?       @db.Text
+  bscDailyRate  Float?
+  ascDailyRate  Float?
+  vcDailyRate   Float?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -410,8 +415,9 @@ model Meeting {
   notes         String?       @db.Text
   headlines     String?       @db.Text
   segueNotes    String?       @db.Text
-  concludeNotes String?       @db.Text
-  startedAt     DateTime?
+  concludeNotes   String?       @db.Text
+  cascadeMessages String?       @db.Text
+  startedAt       DateTime?
   completedAt   DateTime?
   createdById   String
   createdBy     User          @relation("MeetingCreator", fields: [createdById], references: [id])
@@ -454,6 +460,8 @@ model Document {
   uploadedBy  User             @relation("DocumentUploader", fields: [uploadedById], references: [id])
   version     Int              @default(1)
   tags        String[]
+  folderId    String?
+  folder      DocumentFolder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
   deleted     Boolean          @default(false)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
@@ -461,6 +469,20 @@ model Document {
   @@index([category])
   @@index([centreId])
   @@index([uploadedById])
+  @@index([folderId])
+}
+
+model DocumentFolder {
+  id        String           @id @default(cuid())
+  name      String
+  parentId  String?
+  parent    DocumentFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children  DocumentFolder[] @relation("FolderHierarchy")
+  documents Document[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([parentId])
 }
 
 model Attachment {
@@ -521,7 +543,11 @@ model FinancialPeriod {
   // Derived
   grossProfit   Float               @default(0)
   margin        Float               @default(0)
-  
+
+  // Budget
+  budgetRevenue Float?
+  budgetCosts   Float?
+
   // Attendance
   bscEnrolments Int                 @default(0)
   ascEnrolments Int                 @default(0)
@@ -682,4 +708,23 @@ model ResponseTemplate {
   shortcut  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model NotificationDismissal {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  notificationId String
+  dismissedAt    DateTime @default(now())
+
+  @@unique([userId, notificationId])
+  @@index([userId])
+}
+
+model OrgSettings {
+  id           String   @id @default("singleton")
+  name         String   @default("Amana OSHC")
+  primaryColor String   @default("#004E64")
+  accentColor  String   @default("#FECE00")
+  updatedAt    DateTime @updatedAt
 }

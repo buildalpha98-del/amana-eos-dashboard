@@ -12,10 +12,13 @@ import {
   Clock,
   ShieldAlert,
   Loader2,
+  X,
+  CheckCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useNotifications,
+  useDismissNotifications,
   type NotificationItem,
 } from "@/hooks/useNotifications";
 
@@ -57,6 +60,7 @@ export function NotificationDropdown() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { data, isLoading } = useNotifications();
+  const dismiss = useDismissNotifications();
 
   const total = data?.total ?? 0;
   const critical = data?.critical ?? 0;
@@ -65,6 +69,15 @@ export function NotificationDropdown() {
   const handleNotificationClick = (notification: NotificationItem) => {
     setOpen(false);
     router.push(notification.link);
+  };
+
+  const handleDismiss = (e: React.MouseEvent, notificationId: string) => {
+    e.stopPropagation();
+    dismiss.mutate([notificationId]);
+  };
+
+  const handleDismissAll = () => {
+    dismiss.mutate(notifications.map((n) => n.id));
   };
 
   return (
@@ -104,11 +117,24 @@ export function NotificationDropdown() {
                 {total}
               </span>
             </div>
-            {critical > 0 && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700">
-                {critical} critical
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {critical > 0 && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-100 text-red-700">
+                  {critical} critical
+                </span>
+              )}
+              {total > 0 && (
+                <button
+                  onClick={handleDismissAll}
+                  disabled={dismiss.isPending}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  title="Dismiss all"
+                >
+                  <CheckCheck className="w-3 h-3" />
+                  Clear all
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Content */}
@@ -136,13 +162,13 @@ export function NotificationDropdown() {
                   const Icon = config.icon;
 
                   return (
-                    <button
+                    <div
                       key={notification.id}
-                      onClick={() => handleNotificationClick(notification)}
                       className={cn(
-                        "w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-l-[3px]",
+                        "relative group w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-l-[3px] cursor-pointer",
                         severityBorder[notification.severity]
                       )}
+                      onClick={() => handleNotificationClick(notification)}
                     >
                       <div className="flex gap-3">
                         <div
@@ -166,8 +192,16 @@ export function NotificationDropdown() {
                             {notification.message}
                           </p>
                         </div>
+                        {/* Dismiss button */}
+                        <button
+                          onClick={(e) => handleDismiss(e, notification.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-300 hover:text-gray-600 hover:bg-gray-200 transition-all flex-shrink-0 self-center"
+                          title="Dismiss"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

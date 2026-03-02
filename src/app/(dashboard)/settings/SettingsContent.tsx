@@ -11,7 +11,14 @@ import {
   User,
   MoreVertical,
   X,
+  Activity,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Check,
+  Loader2,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
 
 interface UserData {
@@ -320,6 +327,403 @@ function UserRow({
   );
 }
 
+// ——— Activity Log ———
+
+interface ActivityLogEntry {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  details: Record<string, unknown> | null;
+  createdAt: string;
+  user: { id: string; name: string; email: string };
+}
+
+const entityTypeOptions = [
+  "All",
+  "Rock",
+  "Todo",
+  "Issue",
+  "Project",
+  "Meeting",
+  "Service",
+  "Document",
+  "SupportTicket",
+  "ProjectTemplate",
+  "User",
+];
+
+const actionBadge: Record<string, string> = {
+  create: "bg-emerald-50 text-emerald-700",
+  update: "bg-blue-50 text-blue-700",
+  delete: "bg-red-50 text-red-700",
+};
+
+function ActivityLogPanel() {
+  const [page, setPage] = useState(1);
+  const [entityType, setEntityType] = useState("");
+
+  const { data, isLoading } = useQuery<{
+    logs: ActivityLogEntry[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>({
+    queryKey: ["activity-log", page, entityType],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", "25");
+      if (entityType) params.set("entityType", entityType);
+      const res = await fetch(`/api/activity-log?${params}`);
+      if (!res.ok) throw new Error("Failed to fetch activity log");
+      return res.json();
+    },
+  });
+
+  const logs = data?.logs || [];
+  const totalPages = data?.totalPages || 1;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Activity className="w-5 h-5 text-gray-400" />
+          <h3 className="text-lg font-semibold text-gray-900">Activity Log</h3>
+          {data && (
+            <span className="text-xs text-gray-400">
+              {data.total} entries
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-gray-400" />
+          <select
+            value={entityType}
+            onChange={(e) => { setEntityType(e.target.value); setPage(1); }}
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+          >
+            {entityTypeOptions.map((t) => (
+              <option key={t} value={t === "All" ? "" : t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="py-8 text-center text-gray-500">Loading activity...</div>
+      ) : logs.length === 0 ? (
+        <div className="py-8 text-center text-gray-400">No activity recorded yet.</div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">When</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">User</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Action</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Type</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map((log) => {
+                  const details = log.details || {};
+                  const detailStr = Object.entries(details)
+                    .filter(([k]) => k !== "templateId")
+                    .map(([k, v]) => {
+                      if (typeof v === "object") return null;
+                      return `${k}: ${v}`;
+                    })
+                    .filter(Boolean)
+                    .join(", ");
+
+                  return (
+                    <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                      <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">
+                        {new Date(log.createdAt).toLocaleDateString("en-AU", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className="text-sm font-medium text-gray-900">
+                          {log.user.name}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span
+                          className={cn(
+                            "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize",
+                            actionBadge[log.action] || "bg-gray-100 text-gray-600"
+                          )}
+                        >
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-xs text-gray-600">
+                        {log.entityType}
+                      </td>
+                      <td className="py-2.5 px-3 text-xs text-gray-500 max-w-xs truncate">
+                        {detailStr || "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+              <span className="text-xs text-gray-500">
+                Page {page} of {totalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+interface OrgSettingsData {
+  id: string;
+  name: string;
+  primaryColor: string;
+  accentColor: string;
+  updatedAt: string;
+}
+
+function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
+  const queryClient = useQueryClient();
+  const [orgName, setOrgName] = useState("");
+  const [primaryColor, setPrimaryColor] = useState("#004E64");
+  const [accentColor, setAccentColor] = useState("#FECE00");
+  const [saved, setSaved] = useState(false);
+
+  const { data: orgSettings, isLoading: orgLoading } = useQuery<OrgSettingsData>({
+    queryKey: ["org-settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/org-settings");
+      if (!res.ok) throw new Error("Failed to fetch org settings");
+      return res.json();
+    },
+  });
+
+  // Sync local state when data loads
+  useState(() => {
+    if (orgSettings) {
+      setOrgName(orgSettings.name);
+      setPrimaryColor(orgSettings.primaryColor);
+      setAccentColor(orgSettings.accentColor);
+    }
+  });
+
+  // Update local state when query data changes
+  const [initialized, setInitialized] = useState(false);
+  if (orgSettings && !initialized) {
+    setOrgName(orgSettings.name);
+    setPrimaryColor(orgSettings.primaryColor);
+    setAccentColor(orgSettings.accentColor);
+    setInitialized(true);
+  }
+
+  const updateOrg = useMutation({
+    mutationFn: async (data: { name?: string; primaryColor?: string; accentColor?: string }) => {
+      const res = await fetch("/api/org-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["org-settings"] });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    },
+  });
+
+  const hasChanges = orgSettings
+    ? orgName !== orgSettings.name ||
+      primaryColor !== orgSettings.primaryColor ||
+      accentColor !== orgSettings.accentColor
+    : false;
+
+  const handleSave = () => {
+    updateOrg.mutate({ name: orgName, primaryColor, accentColor });
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Settings className="w-5 h-5 text-gray-400" />
+          <h3 className="text-lg font-semibold text-gray-900">
+            Organisation Settings
+          </h3>
+        </div>
+        {isOwner && (
+          <div className="flex items-center gap-2">
+            {saved && (
+              <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                <Check className="w-3.5 h-3.5" /> Saved
+              </span>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={!hasChanges || updateOrg.isPending}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                hasChanges
+                  ? "bg-[#004E64] text-white hover:bg-[#003D52]"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              )}
+            >
+              {updateOrg.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Save Changes
+            </button>
+          </div>
+        )}
+      </div>
+
+      {orgLoading ? (
+        <div className="py-4 text-center text-gray-400 text-sm">Loading...</div>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Organisation Name
+            </label>
+            <input
+              type="text"
+              value={orgName}
+              onChange={(e) => setOrgName(e.target.value)}
+              readOnly={!isOwner}
+              className={cn(
+                "w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent",
+                !isOwner && "bg-gray-50 cursor-not-allowed"
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4 max-w-md">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Primary Colour
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  disabled={!isOwner}
+                  className="w-8 h-8 rounded-md border border-gray-200 cursor-pointer disabled:cursor-not-allowed p-0"
+                />
+                <input
+                  type="text"
+                  value={primaryColor}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) setPrimaryColor(val);
+                  }}
+                  readOnly={!isOwner}
+                  className={cn(
+                    "w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]",
+                    !isOwner && "bg-gray-50 cursor-not-allowed"
+                  )}
+                  maxLength={7}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Accent Colour
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  disabled={!isOwner}
+                  className="w-8 h-8 rounded-md border border-gray-200 cursor-pointer disabled:cursor-not-allowed p-0"
+                />
+                <input
+                  type="text"
+                  value={accentColor}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) setAccentColor(val);
+                  }}
+                  readOnly={!isOwner}
+                  className={cn(
+                    "w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]",
+                    !isOwner && "bg-gray-50 cursor-not-allowed"
+                  )}
+                  maxLength={7}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-2">Preview</p>
+            <div className="flex items-center gap-3">
+              <div
+                className="px-4 py-2 rounded-lg text-white text-sm font-medium"
+                style={{ backgroundColor: primaryColor }}
+              >
+                Primary Button
+              </div>
+              <div
+                className="px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: accentColor, color: primaryColor }}
+              >
+                Accent Button
+              </div>
+              <div
+                className="h-8 w-1.5 rounded-full"
+                style={{ backgroundColor: primaryColor }}
+              />
+              <div
+                className="h-8 w-1.5 rounded-full"
+                style={{ backgroundColor: accentColor }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SettingsContent({ userRole }: { userRole: Role }) {
   const [showInvite, setShowInvite] = useState(false);
   const isOwner = userRole === "owner";
@@ -337,47 +741,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Organisation Settings */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Settings className="w-5 h-5 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900">
-            Organisation Settings
-          </h3>
-        </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Organisation Name
-            </label>
-            <input
-              type="text"
-              defaultValue="Amana OSHC"
-              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
-              readOnly
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4 max-w-md">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Primary Colour
-              </label>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-md bg-[#004E64] border border-gray-200" />
-                <span className="text-sm text-gray-500">#004E64</span>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Accent Colour
-              </label>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-md bg-[#FECE00] border border-gray-200" />
-                <span className="text-sm text-gray-500">#FECE00</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <OrgSettingsSection isOwner={isOwner} />
 
       {/* User Management (owner only) */}
       {isOwner && (
@@ -450,6 +814,9 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
           </p>
         </div>
       )}
+
+      {/* Activity Log (owner/admin) */}
+      {(userRole === "owner" || userRole === "admin") && <ActivityLogPanel />}
     </div>
   );
 }

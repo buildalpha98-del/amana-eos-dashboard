@@ -48,3 +48,19 @@ export function useCreateResponseTemplate() {
     },
   });
 }
+
+export function useDeleteResponseTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/response-templates/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete template");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["response-templates"] });
+    },
+  });
+}

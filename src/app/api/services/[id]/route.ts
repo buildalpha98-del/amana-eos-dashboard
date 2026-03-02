@@ -65,6 +65,7 @@ export async function PATCH(
   const fields = [
     "name", "code", "address", "suburb", "state", "postcode",
     "phone", "email", "status", "managerId", "capacity", "operatingDays", "notes",
+    "bscDailyRate", "ascDailyRate", "vcDailyRate",
   ];
 
   for (const f of fields) {

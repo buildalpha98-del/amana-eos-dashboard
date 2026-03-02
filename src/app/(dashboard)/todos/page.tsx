@@ -1,19 +1,25 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useTodos, type TodoData } from "@/hooks/useTodos";
+import { useState, useMemo, useCallback } from "react";
+import { useTodos, useUpdateTodo, useDeleteTodo, type TodoData } from "@/hooks/useTodos";
 import { useQuery } from "@tanstack/react-query";
 import { getWeekStart } from "@/lib/utils";
 import { WeekSelector } from "@/components/todos/WeekSelector";
 import { TodoListByPerson } from "@/components/todos/TodoListByPerson";
 import { TodoItem } from "@/components/todos/TodoItem";
 import { CreateTodoModal } from "@/components/todos/CreateTodoModal";
+import { TodoDetailPanel } from "@/components/todos/TodoDetailPanel";
 import {
   CheckSquare,
   Plus,
   Users,
   List,
   Filter,
+  ChevronDown,
+  ChevronRight,
+  ArrowRight,
+  Trash2,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,16 +31,40 @@ interface UserOption {
 export default function TodosPage() {
   const [weekOf, setWeekOf] = useState(() => getWeekStart());
   const [showCreate, setShowCreate] = useState(false);
+  const [selectedTodo, setSelectedTodo] = useState<TodoData | null>(null);
   const [groupBy, setGroupBy] = useState<"person" | "flat">("person");
   const [filterAssignee, setFilterAssignee] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showCarryForward, setShowCarryForward] = useState(true);
+
+  const updateTodo = useUpdateTodo();
+  const deleteTodo = useDeleteTodo();
 
   const { data: todos, isLoading } = useTodos({
     weekOf: weekOf.toISOString(),
     ...(filterAssignee ? { assigneeId: filterAssignee } : {}),
     ...(filterStatus ? { status: filterStatus } : {}),
   });
+
+  // Fetch prior week's incomplete todos for carry-forward
+  const prevWeek = useMemo(() => {
+    const d = new Date(weekOf);
+    d.setDate(d.getDate() - 7);
+    return d;
+  }, [weekOf]);
+
+  const { data: prevTodos } = useTodos({
+    weekOf: prevWeek.toISOString(),
+  });
+
+  const carryForwardTodos = useMemo(() => {
+    if (!prevTodos) return [];
+    return prevTodos.filter(
+      (t) => t.status !== "complete" && t.status !== "cancelled"
+    );
+  }, [prevTodos]);
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -66,6 +96,60 @@ export default function TodosPage() {
   }, [todos]);
 
   const hasActiveFilters = filterAssignee || filterStatus;
+
+  // Batch actions
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    if (!todos) return;
+    setSelectedIds(new Set(todos.map((t) => t.id)));
+  }, [todos]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleBatchComplete = useCallback(async () => {
+    const promises = Array.from(selectedIds).map((id) =>
+      updateTodo.mutateAsync({ id, status: "complete" })
+    );
+    await Promise.all(promises);
+    setSelectedIds(new Set());
+  }, [selectedIds, updateTodo]);
+
+  const handleBatchMoveToThisWeek = useCallback(async () => {
+    const promises = Array.from(selectedIds).map((id) =>
+      updateTodo.mutateAsync({ id, weekOf: weekOf.toISOString() })
+    );
+    await Promise.all(promises);
+    setSelectedIds(new Set());
+  }, [selectedIds, weekOf, updateTodo]);
+
+  const handleBatchDelete = useCallback(async () => {
+    const promises = Array.from(selectedIds).map((id) =>
+      deleteTodo.mutateAsync(id)
+    );
+    await Promise.all(promises);
+    setSelectedIds(new Set());
+  }, [selectedIds, deleteTodo]);
+
+  const handleCarryForward = useCallback(async (todoId: string) => {
+    await updateTodo.mutateAsync({ id: todoId, weekOf: weekOf.toISOString() });
+  }, [weekOf, updateTodo]);
+
+  const handleCarryForwardAll = useCallback(async () => {
+    const promises = carryForwardTodos.map((t) =>
+      updateTodo.mutateAsync({ id: t.id, weekOf: weekOf.toISOString() })
+    );
+    await Promise.all(promises);
+  }, [carryForwardTodos, weekOf, updateTodo]);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -178,6 +262,69 @@ export default function TodosPage() {
         </div>
       )}
 
+      {/* Carry Forward Section */}
+      {carryForwardTodos.length > 0 && (
+        <div className="mb-4 bg-amber-50/50 border border-amber-200 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setShowCarryForward(!showCarryForward)}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-amber-50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              {showCarryForward ? (
+                <ChevronDown className="w-4 h-4 text-amber-600" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-amber-600" />
+              )}
+              <span className="text-sm font-semibold text-amber-800">
+                Carried Forward
+              </span>
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 font-medium">
+                {carryForwardTodos.length}
+              </span>
+              <span className="text-xs text-amber-600">
+                incomplete from last week
+              </span>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCarryForwardAll();
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-md transition-colors"
+            >
+              <ArrowRight className="w-3 h-3" />
+              Move all to this week
+            </button>
+          </button>
+          {showCarryForward && (
+            <div className="px-4 pb-3 space-y-1.5">
+              {carryForwardTodos.map((todo) => (
+                <div
+                  key={todo.id}
+                  className="flex items-center gap-3 px-3 py-2 bg-white rounded-lg border border-amber-100"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {todo.title}
+                    </p>
+                    <span className="text-xs text-gray-400">
+                      {todo.assignee.name}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleCarryForward(todo.id)}
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#004E64] bg-[#004E64]/5 hover:bg-[#004E64]/10 rounded transition-colors"
+                  >
+                    <ArrowRight className="w-3 h-3" />
+                    Move
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Summary Bar */}
       {todos && todos.length > 0 && (
         <div className="flex items-center gap-4 mb-4 px-1">
@@ -212,11 +359,23 @@ export default function TodosPage() {
         </div>
       ) : todos && todos.length > 0 ? (
         groupBy === "person" ? (
-          <TodoListByPerson todos={todos} />
+          <TodoListByPerson
+            todos={todos}
+            onTodoClick={(todo) => setSelectedTodo(todo)}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+          />
         ) : (
           <div className="space-y-2">
             {todos.map((todo) => (
-              <TodoItem key={todo.id} todo={todo} />
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                onClick={() => setSelectedTodo(todo)}
+                selectable
+                selected={selectedIds.has(todo.id)}
+                onToggleSelect={() => toggleSelect(todo.id)}
+              />
             ))}
           </div>
         )
@@ -243,12 +402,58 @@ export default function TodosPage() {
         </div>
       )}
 
+      {/* Batch Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl">
+          <span className="text-sm font-medium">
+            {selectedIds.size} selected
+          </span>
+          <div className="w-px h-5 bg-gray-600" />
+          <button
+            onClick={handleBatchComplete}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+          >
+            <CheckSquare className="w-3.5 h-3.5" />
+            Complete
+          </button>
+          <button
+            onClick={handleBatchMoveToThisWeek}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-[#004E64] hover:bg-[#003D52] rounded-lg transition-colors"
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
+            Move to this week
+          </button>
+          <button
+            onClick={handleBatchDelete}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+          <button
+            onClick={clearSelection}
+            className="p-1.5 text-gray-400 hover:text-white transition-colors"
+            title="Clear selection"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Create Modal */}
       <CreateTodoModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
         weekOf={weekOf}
       />
+
+      {/* Detail Panel */}
+      {selectedTodo && (
+        <TodoDetailPanel
+          todo={selectedTodo}
+          onClose={() => setSelectedTodo(null)}
+        />
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useService, useUpdateService } from "@/hooks/useServices";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { WeeklyDataEntry } from "./WeeklyDataEntry";
 import {
   X,
   MapPin,
@@ -15,6 +16,8 @@ import {
   AlertCircle,
   FolderKanban,
   Edit3,
+  DollarSign,
+  BarChart3,
 } from "lucide-react";
 
 interface UserOption {
@@ -42,6 +45,7 @@ export function ServiceDetailPanel({
   const updateService = useUpdateService();
   const [editing, setEditing] = useState(false);
   const [notes, setNotes] = useState("");
+  const [activeTab, setActiveTab] = useState<"overview" | "weekly" | "financials">("overview");
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -80,8 +84,49 @@ export function ServiceDetailPanel({
           </button>
         </div>
 
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 px-6">
+          {([
+            { key: "overview", label: "Overview" },
+            { key: "weekly", label: "Weekly Data", icon: BarChart3 },
+            { key: "financials", label: "Financials", icon: DollarSign },
+          ] as const).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "px-3 py-2.5 text-xs font-medium border-b-2 transition-colors",
+                activeTab === tab.key
+                  ? "border-[#004E64] text-[#004E64]"
+                  : "border-transparent text-gray-400 hover:text-gray-600"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+          {/* Weekly Data Tab */}
+          {activeTab === "weekly" && (
+            <WeeklyDataEntry
+              serviceId={serviceId}
+              bscRate={service.bscDailyRate || 0}
+              ascRate={service.ascDailyRate || 0}
+              vcRate={service.vcDailyRate || 0}
+            />
+          )}
+
+          {/* Financials Tab */}
+          {activeTab === "financials" && (
+            <div className="text-center py-12 text-gray-400 text-sm">
+              Financial summary is available on the Financial Dashboard page filtered to this centre.
+            </div>
+          )}
+
+          {activeTab !== "overview" ? null : (
+          <>
           {/* Status */}
           <div>
             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
@@ -320,6 +365,63 @@ export function ServiceDetailPanel({
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Rate Configuration */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <DollarSign className="w-3.5 h-3.5 inline mr-1" />
+              Daily Rates (per child per day)
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">BSC</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  defaultValue={service.bscDailyRate ?? ""}
+                  onBlur={(e) => {
+                    const val = parseFloat(e.target.value);
+                    updateService.mutate({ id: serviceId, bscDailyRate: isNaN(val) ? null : val });
+                  }}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="$0"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">ASC</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  defaultValue={service.ascDailyRate ?? ""}
+                  onBlur={(e) => {
+                    const val = parseFloat(e.target.value);
+                    updateService.mutate({ id: serviceId, ascDailyRate: isNaN(val) ? null : val });
+                  }}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="$0"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">VC</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  defaultValue={service.vcDailyRate ?? ""}
+                  onBlur={(e) => {
+                    const val = parseFloat(e.target.value);
+                    updateService.mutate({ id: serviceId, vcDailyRate: isNaN(val) ? null : val });
+                  }}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="$0"
+                />
+              </div>
+            </div>
+          </div>
+          </>
           )}
         </div>
       </div>

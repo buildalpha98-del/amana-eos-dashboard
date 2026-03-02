@@ -64,6 +64,7 @@ export async function PATCH(
   if (body.weekOf !== undefined) data.weekOf = new Date(body.weekOf);
   if (body.rockId !== undefined) data.rockId = body.rockId || null;
   if (body.issueId !== undefined) data.issueId = body.issueId || null;
+  if (body.isPrivate !== undefined) data.isPrivate = body.isPrivate;
 
   const todo = await prisma.todo.update({
     where: { id },

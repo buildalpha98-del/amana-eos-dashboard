@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { ScoreDistributionChart } from "@/components/charts/ScoreDistributionChart";
 import { CentreRadarChart } from "@/components/charts/CentreRadarChart";
 import { OccupancyComparisonChart } from "@/components/charts/OccupancyComparisonChart";
+import { ScoreTrendChart } from "@/components/charts/ScoreTrendChart";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-AU", {
@@ -148,6 +149,7 @@ export default function PerformancePage() {
       {/* Charts */}
       {centres && centres.length > 0 && (
         <>
+          <ScoreTrendChart />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ScoreDistributionChart centres={centres} />
             <CentreRadarChart centres={centres} />

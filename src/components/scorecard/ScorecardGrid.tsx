@@ -6,10 +6,54 @@ import { DataEntryCell } from "./DataEntryCell";
 import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
+function Sparkline({ values, goalValue, width = 64, height = 20 }: { values: (number | null)[]; goalValue: number; width?: number; height?: number }) {
+  const nums = values.filter((v): v is number => v !== null);
+  if (nums.length < 2) return <span className="text-gray-300 text-[10px]">—</span>;
+
+  const min = Math.min(...nums, goalValue);
+  const max = Math.max(...nums, goalValue);
+  const range = max - min || 1;
+  const pad = 2;
+
+  // Reverse so oldest is on the left
+  const reversed = [...values].reverse();
+  const points: string[] = [];
+  let idx = 0;
+  for (let i = 0; i < reversed.length; i++) {
+    if (reversed[i] !== null) {
+      const x = pad + ((i / (reversed.length - 1)) * (width - pad * 2));
+      const y = pad + ((1 - (reversed[i]! - min) / range) * (height - pad * 2));
+      points.push(`${x},${y}`);
+      idx++;
+    }
+  }
+
+  const goalY = pad + ((1 - (goalValue - min) / range) * (height - pad * 2));
+  const lastVal = nums[nums.length - 1];
+  const trending = lastVal >= goalValue;
+
+  return (
+    <svg width={width} height={height} className="inline-block">
+      {/* Goal line */}
+      <line x1={pad} y1={goalY} x2={width - pad} y2={goalY} stroke="#9CA3AF" strokeWidth="0.5" strokeDasharray="2,2" />
+      {/* Trend line */}
+      <polyline
+        fill="none"
+        stroke={trending ? "#10B981" : "#EF4444"}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points.join(" ")}
+      />
+    </svg>
+  );
+}
+
 function getTrailing13Weeks(): Date[] {
   const weeks: Date[] = [];
   const current = getWeekStart();
-  for (let i = 12; i >= 0; i--) {
+  // Newest first — current week at index 0
+  for (let i = 0; i <= 12; i++) {
     const d = new Date(current);
     d.setDate(d.getDate() - i * 7);
     weeks.push(d);
@@ -63,6 +107,23 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
     }
     return lookup;
   }, [scorecard.measurables]);
+
+  // 13-week average per measurable
+  const avgLookup = useMemo(() => {
+    const avgs: Record<string, number | null> = {};
+    for (const m of scorecard.measurables) {
+      const entries = weeks
+        .map((w) => entryLookup[m.id]?.[w.toISOString().split("T")[0]])
+        .filter((e): e is MeasurableEntry => !!e);
+      if (entries.length > 0) {
+        const sum = entries.reduce((acc, e) => acc + e.value, 0);
+        avgs[m.id] = Math.round((sum / entries.length) * 10) / 10;
+      } else {
+        avgs[m.id] = null;
+      }
+    }
+    return avgs;
+  }, [scorecard.measurables, weeks, entryLookup]);
 
   // On-track stats for current week
   const currentWeekStats = useMemo(() => {
@@ -122,6 +183,12 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
               <th className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-[60px]">
                 Goal
               </th>
+              <th className="px-2 py-3 text-center text-xs font-semibold text-[#004E64] uppercase tracking-wider w-[70px] bg-[#004E64]/5">
+                13wk Avg
+              </th>
+              <th className="px-1 py-3 text-center text-[10px] font-medium text-gray-400 uppercase tracking-wider w-[72px]">
+                Trend
+              </th>
               {weeks.map((week) => {
                 const isCurrent = isCurrentWeek(week);
                 return (
@@ -151,7 +218,7 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
                 {/* Owner divider */}
                 <tr>
                   <td
-                    colSpan={weeks.length + 2}
+                    colSpan={weeks.length + 4}
                     className="sticky left-0 z-10 bg-gray-50 px-4 py-2"
                   >
                     <div className="flex items-center gap-2">
@@ -173,7 +240,23 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
                 </tr>
 
                 {/* Measurable rows */}
-                {group.measurables.map((m) => (
+                {group.measurables.map((m) => {
+                  const avg = avgLookup[m.id];
+                  const avgOnTrack = avg !== null && avg !== undefined
+                    ? m.goalDirection === "above"
+                      ? avg >= m.goalValue
+                      : m.goalDirection === "below"
+                      ? avg <= m.goalValue
+                      : avg === m.goalValue
+                    : false;
+
+                  const fmtVal = (val: number) => {
+                    if (m.unit === "$") return `$${val.toLocaleString()}`;
+                    if (m.unit === "%") return `${val}%`;
+                    return val.toLocaleString();
+                  };
+
+                  return (
                   <tr
                     key={m.id}
                     className="border-b border-gray-100 hover:bg-gray-50/50"
@@ -207,6 +290,33 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
                       </span>
                     </td>
 
+                    {/* 13-week Average */}
+                    <td
+                      className={cn(
+                        "px-2 py-2 text-center bg-[#004E64]/5",
+                        avg !== null && avg !== undefined
+                          ? avgOnTrack
+                            ? "text-emerald-700"
+                            : "text-red-700"
+                          : "text-gray-300"
+                      )}
+                    >
+                      <span className="text-xs font-semibold">
+                        {avg !== null && avg !== undefined ? fmtVal(avg) : "—"}
+                      </span>
+                    </td>
+
+                    {/* Sparkline */}
+                    <td className="px-1 py-2 text-center">
+                      <Sparkline
+                        values={weeks.map((w) => {
+                          const e = entryLookup[m.id]?.[w.toISOString().split("T")[0]];
+                          return e ? e.value : null;
+                        })}
+                        goalValue={m.goalValue}
+                      />
+                    </td>
+
                     {/* Week cells */}
                     {weeks.map((week) => {
                       const weekKey = week.toISOString().split("T")[0];
@@ -224,7 +334,8 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
                       );
                     })}
                   </tr>
-                ))}
+                  );
+                })}
               </Fragment>
             ))}
           </tbody>

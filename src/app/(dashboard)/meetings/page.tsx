@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   useMeetings,
@@ -9,8 +9,8 @@ import {
 } from "@/hooks/useMeetings";
 import { useScorecard } from "@/hooks/useScorecard";
 import { useRocks } from "@/hooks/useRocks";
-import { useTodos, useUpdateTodo } from "@/hooks/useTodos";
-import { useIssues, useUpdateIssue } from "@/hooks/useIssues";
+import { useTodos, useUpdateTodo, useCreateTodo } from "@/hooks/useTodos";
+import { useIssues, useUpdateIssue, useCreateIssue } from "@/hooks/useIssues";
 import type { MeetingData } from "@/hooks/useMeetings";
 import type { RockData } from "@/hooks/useRocks";
 import type { TodoData } from "@/hooks/useTodos";
@@ -41,6 +41,9 @@ import {
   Calendar,
   Pause,
   SkipForward,
+  Plus,
+  Search,
+  History,
 } from "lucide-react";
 
 // ============================================================
@@ -114,7 +117,62 @@ function MeetingListView({
   onStartNew: () => void;
   onSelect: (m: MeetingData) => void;
 }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "cancelled">("all");
+  const [visibleCount, setVisibleCount] = useState(10);
+
   const activeMeeting = meetings.find((m) => m.status === "in_progress");
+
+  // Stats from completed meetings
+  const stats = useMemo(() => {
+    const completed = meetings.filter((m) => m.status === "completed");
+    const rated = completed.filter((m) => m.rating !== null);
+    const avgRating = rated.length > 0
+      ? Math.round((rated.reduce((sum, m) => sum + (m.rating || 0), 0) / rated.length) * 10) / 10
+      : null;
+
+    // Streak: consecutive weeks with a completed meeting (newest first)
+    let streak = 0;
+    if (completed.length > 0) {
+      const sortedDates = completed
+        .map((m) => getWeekStart(new Date(m.date)).getTime())
+        .filter((v, i, arr) => arr.indexOf(v) === i)
+        .sort((a, b) => b - a);
+
+      const thisWeek = getWeekStart().getTime();
+      let expected = thisWeek;
+      for (const d of sortedDates) {
+        if (d === expected || d === expected - 7 * 86400000) {
+          streak++;
+          expected = d - 7 * 86400000;
+        } else if (d < expected) {
+          break;
+        }
+      }
+    }
+
+    return { total: completed.length, avgRating, streak };
+  }, [meetings]);
+
+  // Filtered meetings (exclude in_progress from history list)
+  const pastMeetings = useMemo(() => {
+    let filtered = meetings.filter((m) => m.status !== "in_progress");
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((m) => m.status === statusFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (m) =>
+          m.title.toLowerCase().includes(q) ||
+          m.createdBy.name.toLowerCase().includes(q)
+      );
+    }
+    return filtered;
+  }, [meetings, statusFilter, searchQuery]);
+
+  const visibleMeetings = pastMeetings.slice(0, visibleCount);
+  const hasMore = visibleCount < pastMeetings.length;
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -161,92 +219,199 @@ function MeetingListView({
         </button>
       )}
 
+      {/* Stats Cards */}
+      {stats.total > 0 && (
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+            <div className="text-xs text-gray-500 mt-0.5">Meetings Completed</div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+            <div className="flex items-center justify-center gap-1">
+              <Star className="w-5 h-5 text-[#FECE00] fill-[#FECE00]" />
+              <span className="text-2xl font-bold text-gray-900">
+                {stats.avgRating ?? "—"}
+              </span>
+            </div>
+            <div className="text-xs text-gray-500 mt-0.5">Avg Rating</div>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+            <div className="text-2xl font-bold text-[#004E64]">{stats.streak}</div>
+            <div className="text-xs text-gray-500 mt-0.5">Week Streak</div>
+          </div>
+        </div>
+      )}
+
       {/* Past Meetings */}
       {meetings.length > 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
-            <h3 className="text-sm font-medium text-gray-700">Meeting History</h3>
+          {/* History header with search + filter */}
+          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-gray-500" />
+                <h3 className="text-sm font-medium text-gray-700">
+                  Meeting History
+                </h3>
+                <span className="text-xs text-gray-400">
+                  ({pastMeetings.length})
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setVisibleCount(10);
+                  }}
+                  placeholder="Search meetings..."
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                />
+              </div>
+              {/* Status filter */}
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+                {(["all", "completed", "cancelled"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => {
+                      setStatusFilter(f);
+                      setVisibleCount(10);
+                    }}
+                    className={cn(
+                      "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                      statusFilter === f
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    )}
+                  >
+                    {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="divide-y divide-gray-100">
-            {meetings.map((meeting) => (
-              <button
-                key={meeting.id}
-                onClick={() => onSelect(meeting)}
-                className="w-full px-4 py-3 flex items-center gap-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                <div
-                  className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center",
-                    meeting.status === "completed"
-                      ? "bg-emerald-50"
-                      : meeting.status === "in_progress"
-                      ? "bg-[#004E64]/10"
-                      : "bg-gray-100"
-                  )}
+
+          {/* List */}
+          {visibleMeetings.length > 0 ? (
+            <div className="divide-y divide-gray-100">
+              {visibleMeetings.map((meeting) => (
+                <button
+                  key={meeting.id}
+                  onClick={() => onSelect(meeting)}
+                  className="w-full px-4 py-3 flex items-center gap-4 text-left hover:bg-gray-50 transition-colors"
                 >
-                  {meeting.status === "completed" ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  ) : meeting.status === "in_progress" ? (
-                    <Timer className="w-4 h-4 text-[#004E64]" />
-                  ) : (
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {meeting.title}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatDateAU(meeting.date)} &middot; {meeting.createdBy.name}
-                  </p>
-                </div>
-                {meeting.rating && (
-                  <div className="flex items-center gap-1">
-                    <Star
-                      className={cn(
-                        "w-3.5 h-3.5",
-                        meeting.rating >= 8
-                          ? "text-[#FECE00] fill-[#FECE00]"
-                          : meeting.rating >= 5
-                          ? "text-amber-400 fill-amber-400"
-                          : "text-gray-300 fill-gray-300"
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "text-sm font-semibold",
-                        meeting.rating >= 8
-                          ? "text-[#004E64]"
-                          : meeting.rating >= 5
-                          ? "text-amber-600"
-                          : "text-gray-400"
-                      )}
-                    >
-                      {meeting.rating}
-                    </span>
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center",
+                      meeting.status === "completed"
+                        ? "bg-emerald-50"
+                        : meeting.status === "in_progress"
+                        ? "bg-[#004E64]/10"
+                        : "bg-gray-100"
+                    )}
+                  >
+                    {meeting.status === "completed" ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    ) : meeting.status === "in_progress" ? (
+                      <Timer className="w-4 h-4 text-[#004E64]" />
+                    ) : meeting.status === "cancelled" ? (
+                      <XCircle className="w-4 h-4 text-red-400" />
+                    ) : (
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                    )}
                   </div>
-                )}
-                <div
-                  className={cn(
-                    "text-xs px-2 py-0.5 rounded-full font-medium",
-                    meeting.status === "completed"
-                      ? "bg-emerald-50 text-emerald-700"
-                      : meeting.status === "in_progress"
-                      ? "bg-[#004E64]/10 text-[#004E64]"
-                      : meeting.status === "cancelled"
-                      ? "bg-red-50 text-red-600"
-                      : "bg-gray-100 text-gray-600"
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {meeting.title}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatDateAU(meeting.date)} &middot;{" "}
+                      {meeting.createdBy.name}
+                      {meeting.completedAt && (
+                        <>
+                          {" "}&middot;{" "}
+                          {(() => {
+                            const start = new Date(meeting.startedAt || meeting.createdAt);
+                            const end = new Date(meeting.completedAt);
+                            const mins = Math.round(
+                              (end.getTime() - start.getTime()) / 60000
+                            );
+                            return `${mins}m`;
+                          })()}
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  {meeting.rating && (
+                    <div className="flex items-center gap-1">
+                      <Star
+                        className={cn(
+                          "w-3.5 h-3.5",
+                          meeting.rating >= 8
+                            ? "text-[#FECE00] fill-[#FECE00]"
+                            : meeting.rating >= 5
+                            ? "text-amber-400 fill-amber-400"
+                            : "text-gray-300 fill-gray-300"
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "text-sm font-semibold",
+                          meeting.rating >= 8
+                            ? "text-[#004E64]"
+                            : meeting.rating >= 5
+                            ? "text-amber-600"
+                            : "text-gray-400"
+                        )}
+                      >
+                        {meeting.rating}
+                      </span>
+                    </div>
                   )}
-                >
-                  {meeting.status === "in_progress"
-                    ? "In Progress"
-                    : meeting.status.charAt(0).toUpperCase() +
-                      meeting.status.slice(1)}
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-300" />
+                  <div
+                    className={cn(
+                      "text-xs px-2 py-0.5 rounded-full font-medium",
+                      meeting.status === "completed"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : meeting.status === "in_progress"
+                        ? "bg-[#004E64]/10 text-[#004E64]"
+                        : meeting.status === "cancelled"
+                        ? "bg-red-50 text-red-600"
+                        : "bg-gray-100 text-gray-600"
+                    )}
+                  >
+                    {meeting.status === "in_progress"
+                      ? "In Progress"
+                      : meeting.status.charAt(0).toUpperCase() +
+                        meeting.status.slice(1)}
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-300" />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-sm text-gray-400">
+              No meetings match your filters
+            </div>
+          )}
+
+          {/* Load more */}
+          {hasMore && (
+            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/30 text-center">
+              <button
+                onClick={() => setVisibleCount((c) => c + 10)}
+                className="text-sm text-[#004E64] font-medium hover:underline"
+              >
+                Show more ({pastMeetings.length - visibleCount} remaining)
               </button>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
@@ -305,9 +470,13 @@ function SegueSection({
   );
 }
 
-function ScorecardSection({ scorecard }: { scorecard: ScorecardData | undefined }) {
-  const weekStart = getWeekStart();
-
+function ScorecardSection({
+  scorecard,
+  onDropToIDS,
+}: {
+  scorecard: ScorecardData | undefined;
+  onDropToIDS?: (title: string) => void;
+}) {
   if (!scorecard) {
     return (
       <div className="text-center py-12 text-gray-400 text-sm">
@@ -324,17 +493,18 @@ function ScorecardSection({ scorecard }: { scorecard: ScorecardData | undefined 
         </h4>
         <p className="text-xs text-blue-600">
           Review whether each measurable hit its goal this week. Focus only on
-          off-track items.
+          off-track items — drop them to IDS.
         </p>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="grid grid-cols-[1fr,100px,80px,80px,60px] gap-px bg-gray-100 text-xs font-medium text-gray-600 px-4 py-2">
+        <div className="grid grid-cols-[1fr,100px,80px,80px,60px,60px] gap-px bg-gray-100 text-xs font-medium text-gray-600 px-4 py-2">
           <span>Measurable</span>
           <span className="text-center">Owner</span>
           <span className="text-center">Goal</span>
           <span className="text-center">Actual</span>
           <span className="text-center">Status</span>
+          <span className="text-center">Action</span>
         </div>
         <div className="divide-y divide-gray-100">
           {scorecard.measurables.map((m: MeasurableData) => {
@@ -345,7 +515,7 @@ function ScorecardSection({ scorecard }: { scorecard: ScorecardData | undefined 
               <div
                 key={m.id}
                 className={cn(
-                  "grid grid-cols-[1fr,100px,80px,80px,60px] gap-px px-4 py-2.5 items-center",
+                  "grid grid-cols-[1fr,100px,80px,80px,60px,60px] gap-px px-4 py-2.5 items-center",
                   !isOnTrack && latestEntry ? "bg-red-50/50" : ""
                 )}
               >
@@ -379,6 +549,18 @@ function ScorecardSection({ scorecard }: { scorecard: ScorecardData | undefined 
                     <TrendingUp className="w-4 h-4 text-emerald-500" />
                   ) : (
                     <TrendingDown className="w-4 h-4 text-red-500" />
+                  )}
+                </div>
+                <div className="flex justify-center">
+                  {!isOnTrack && latestEntry && onDropToIDS ? (
+                    <button
+                      onClick={() => onDropToIDS(`Off-track: ${m.title}`)}
+                      className="text-[10px] px-2 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors font-medium whitespace-nowrap"
+                    >
+                      → IDS
+                    </button>
+                  ) : (
+                    <span className="text-gray-200 text-xs">—</span>
                   )}
                 </div>
               </div>
@@ -620,26 +802,31 @@ function TodoReviewSection({
 function IDSSection({
   issues,
   onUpdateStatus,
+  onCreateIssue,
+  onCreateTodo,
+  users,
 }: {
   issues: IssueData[] | undefined;
   onUpdateStatus: (id: string, status: string) => void;
+  onCreateIssue: (title: string) => void;
+  onCreateTodo: (data: { title: string; assigneeId: string; issueId: string }) => void;
+  users: { id: string; name: string }[] | undefined;
 }) {
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
-
-  if (!issues || issues.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-400 text-sm">
-        No open issues. Great work!
-      </div>
-    );
-  }
+  const [showCreateIssue, setShowCreateIssue] = useState(false);
+  const [newIssueTitle, setNewIssueTitle] = useState("");
+  const [showCreateTodo, setShowCreateTodo] = useState<string | null>(null);
+  const [newTodoTitle, setNewTodoTitle] = useState("");
+  const [newTodoAssignee, setNewTodoAssignee] = useState("");
 
   const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-  const sortedIssues = [...issues].sort(
-    (a, b) =>
-      priorityOrder[a.priority as keyof typeof priorityOrder] -
-      priorityOrder[b.priority as keyof typeof priorityOrder]
-  );
+  const sortedIssues = issues
+    ? [...issues].sort(
+        (a, b) =>
+          priorityOrder[a.priority as keyof typeof priorityOrder] -
+          priorityOrder[b.priority as keyof typeof priorityOrder]
+      )
+    : [];
 
   return (
     <div className="space-y-4">
@@ -652,6 +839,62 @@ function IDSSection({
           issue, Discuss it openly, then Solve it with a to-do or decision.
         </p>
       </div>
+
+      {/* Create Issue Button / Form */}
+      {showCreateIssue ? (
+        <div className="p-3 border border-[#004E64]/20 bg-[#004E64]/5 rounded-lg space-y-2">
+          <input
+            autoFocus
+            value={newIssueTitle}
+            onChange={(e) => setNewIssueTitle(e.target.value)}
+            placeholder="Describe the issue..."
+            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && newIssueTitle.trim()) {
+                onCreateIssue(newIssueTitle.trim());
+                setNewIssueTitle("");
+                setShowCreateIssue(false);
+              }
+              if (e.key === "Escape") setShowCreateIssue(false);
+            }}
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                if (newIssueTitle.trim()) {
+                  onCreateIssue(newIssueTitle.trim());
+                  setNewIssueTitle("");
+                  setShowCreateIssue(false);
+                }
+              }}
+              disabled={!newIssueTitle.trim()}
+              className="text-xs px-3 py-1 bg-[#004E64] text-white rounded-md hover:bg-[#003D52] disabled:opacity-50"
+            >
+              Create Issue
+            </button>
+            <button
+              onClick={() => { setShowCreateIssue(false); setNewIssueTitle(""); }}
+              className="text-xs px-3 py-1 text-gray-500"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowCreateIssue(true)}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[#004E64] hover:text-[#004E64] transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add Issue
+        </button>
+      )}
+
+      {sortedIssues.length === 0 && !showCreateIssue && (
+        <div className="text-center py-8 text-gray-400 text-sm">
+          No open issues. Great work!
+        </div>
+      )}
 
       <div className="space-y-2">
         {sortedIssues.map((issue) => (
@@ -712,9 +955,9 @@ function IDSSection({
             </button>
 
             {selectedIssue === issue.id && (
-              <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+              <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
                 {issue.description && (
-                  <p className="text-sm text-gray-600 mb-3">
+                  <p className="text-sm text-gray-600">
                     {issue.description}
                   </p>
                 )}
@@ -739,6 +982,69 @@ function IDSSection({
                     </button>
                   )}
                 </div>
+
+                {/* Inline Create To-Do */}
+                {showCreateTodo === issue.id ? (
+                  <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2">
+                    <p className="text-[10px] font-medium text-emerald-700 uppercase tracking-wider">Create To-Do from Issue</p>
+                    <input
+                      autoFocus
+                      value={newTodoTitle}
+                      onChange={(e) => setNewTodoTitle(e.target.value)}
+                      placeholder="To-do title..."
+                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newTodoTitle.trim() && newTodoAssignee) {
+                          onCreateTodo({ title: newTodoTitle.trim(), assigneeId: newTodoAssignee, issueId: issue.id });
+                          setNewTodoTitle("");
+                          setNewTodoAssignee("");
+                          setShowCreateTodo(null);
+                        }
+                        if (e.key === "Escape") setShowCreateTodo(null);
+                      }}
+                    />
+                    <select
+                      value={newTodoAssignee}
+                      onChange={(e) => setNewTodoAssignee(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value="">Assign to...</option>
+                      {users?.map((u) => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                    </select>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          if (newTodoTitle.trim() && newTodoAssignee) {
+                            onCreateTodo({ title: newTodoTitle.trim(), assigneeId: newTodoAssignee, issueId: issue.id });
+                            setNewTodoTitle("");
+                            setNewTodoAssignee("");
+                            setShowCreateTodo(null);
+                          }
+                        }}
+                        disabled={!newTodoTitle.trim() || !newTodoAssignee}
+                        className="text-xs px-3 py-1 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        Create
+                      </button>
+                      <button
+                        onClick={() => { setShowCreateTodo(null); setNewTodoTitle(""); setNewTodoAssignee(""); }}
+                        className="text-xs px-3 py-1 text-gray-500"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowCreateTodo(issue.id)}
+                    className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-800 font-medium transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Create To-Do from this Issue
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -751,11 +1057,15 @@ function IDSSection({
 function ConcludeSection({
   notes,
   onUpdate,
+  cascadeMessages,
+  onUpdateCascade,
   rating,
   onRate,
 }: {
   notes: string;
   onUpdate: (val: string) => void;
+  cascadeMessages: string;
+  onUpdateCascade: (val: string) => void;
   rating: number | null;
   onRate: (val: number) => void;
 }) {
@@ -766,8 +1076,8 @@ function ConcludeSection({
           Conclude
         </h4>
         <p className="text-xs text-[#004E64]/70">
-          Recap to-dos created, confirm who does what by when. Then rate the
-          meeting 1-10.
+          Recap to-dos created, confirm who does what by when. Capture cascade
+          messages for the broader team. Then rate the meeting 1-10.
         </p>
       </div>
 
@@ -780,6 +1090,22 @@ function ConcludeSection({
           value={notes}
           onChange={(e) => onUpdate(e.target.value)}
           placeholder="Summary of action items, decisions made, and key takeaways..."
+          className="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+        />
+      </div>
+
+      {/* Cascade Messages */}
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+          Cascade Messages
+        </label>
+        <p className="text-xs text-gray-500 mb-2">
+          Key messages to share with the broader team after this meeting.
+        </p>
+        <textarea
+          value={cascadeMessages}
+          onChange={(e) => onUpdateCascade(e.target.value)}
+          placeholder="Messages to cascade to the team...&#10;&#10;Example:&#10;- New enrolment policy starts next Monday&#10;- Holiday program bookings open this Friday&#10;- Staff training day confirmed for March 15"
           className="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
         />
       </div>
@@ -822,6 +1148,89 @@ function ConcludeSection({
 }
 
 // ============================================================
+// Meeting Outcomes Panel (shown for completed meetings)
+// ============================================================
+
+function MeetingOutcomesPanel({
+  meeting,
+  rocks,
+  todos,
+  issues,
+}: {
+  meeting: MeetingData;
+  rocks: RockData[] | undefined;
+  todos: TodoData[] | undefined;
+  issues: IssueData[] | undefined;
+}) {
+  const todosDone = todos?.filter((t) => t.status === "complete").length ?? 0;
+  const todosTotal = todos?.length ?? 0;
+  const rocksOnTrack = rocks?.filter(
+    (r) => r.status === "on_track" || r.status === "complete"
+  ).length ?? 0;
+  const rocksTotal = rocks?.length ?? 0;
+  const solvedIssues = issues?.filter((i) => i.status === "solved" || i.status === "closed").length ?? 0;
+  const cascadeLines = meeting.cascadeMessages
+    ? meeting.cascadeMessages.split("\n").filter((l) => l.trim())
+    : [];
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-100 bg-emerald-50/50">
+        <h3 className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">
+          Meeting Outcomes
+        </h3>
+      </div>
+      <div className="p-4 space-y-4">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <p className="text-lg font-bold text-gray-900">{todosDone}/{todosTotal}</p>
+            <p className="text-[10px] text-gray-500 uppercase">To-Dos Done</p>
+          </div>
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <p className="text-lg font-bold text-gray-900">{rocksOnTrack}/{rocksTotal}</p>
+            <p className="text-[10px] text-gray-500 uppercase">Rocks On Track</p>
+          </div>
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <p className="text-lg font-bold text-gray-900">{solvedIssues}</p>
+            <p className="text-[10px] text-gray-500 uppercase">Issues Solved</p>
+          </div>
+          <div className="text-center p-2 bg-gray-50 rounded-lg">
+            <p className="text-lg font-bold text-[#FECE00]">{meeting.rating ?? "—"}<span className="text-xs text-gray-400">/10</span></p>
+            <p className="text-[10px] text-gray-500 uppercase">Rating</p>
+          </div>
+        </div>
+
+        {/* Conclude Notes */}
+        {meeting.concludeNotes && (
+          <div>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Recap</p>
+            <p className="text-xs text-gray-600 whitespace-pre-wrap">{meeting.concludeNotes}</p>
+          </div>
+        )}
+
+        {/* Cascade Messages */}
+        {cascadeLines.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold text-[#004E64] uppercase tracking-wider mb-1">
+              Cascade Messages
+            </p>
+            <div className="space-y-1">
+              {cascadeLines.map((line, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <ArrowRight className="w-3 h-3 text-[#004E64] mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-gray-700">{line.replace(/^[-•*]\s*/, "")}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // Active Meeting View
 // ============================================================
 
@@ -836,6 +1245,7 @@ function ActiveMeetingView({
   const [segueNotes, setSegueNotes] = useState(meeting.segueNotes || "");
   const [headlines, setHeadlines] = useState(meeting.headlines || "");
   const [concludeNotes, setConcludeNotes] = useState(meeting.concludeNotes || "");
+  const [cascadeMessages, setCascadeMessages] = useState(meeting.cascadeMessages || "");
   const [rating, setRating] = useState<number | null>(meeting.rating);
 
   const section = L10_SECTIONS[currentSection];
@@ -844,6 +1254,8 @@ function ActiveMeetingView({
   const updateMeeting = useUpdateMeeting();
   const updateTodo = useUpdateTodo();
   const updateIssue = useUpdateIssue();
+  const createIssue = useCreateIssue();
+  const createTodo = useCreateTodo();
 
   // Data hooks
   const { data: scorecard } = useScorecard();
@@ -852,6 +1264,14 @@ function ActiveMeetingView({
   const { data: todos } = useTodos({ weekOf: weekStart.toISOString() });
   const { data: issues } = useIssues({ status: "open" });
   const { data: discussingIssues } = useIssues({ status: "in_discussion" });
+  const { data: users } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["users-list"],
+    queryFn: async () => {
+      const res = await fetch("/api/users");
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
 
   // Merge open + discussing issues for IDS
   const allIDSIssues = [
@@ -867,9 +1287,10 @@ function ActiveMeetingView({
       segueNotes,
       headlines,
       concludeNotes,
+      cascadeMessages,
       rating,
     });
-  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, rating, updateMeeting]);
+  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, cascadeMessages, rating, updateMeeting]);
 
   // Save on section change
   const goToSection = useCallback(
@@ -901,9 +1322,10 @@ function ActiveMeetingView({
       segueNotes,
       headlines,
       concludeNotes,
+      cascadeMessages,
       rating,
     });
-  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, rating, updateMeeting]);
+  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, cascadeMessages, rating, updateMeeting]);
 
   const handleTodoToggle = useCallback(
     (id: string, done: boolean) => {
@@ -923,6 +1345,34 @@ function ActiveMeetingView({
       });
     },
     [updateIssue]
+  );
+
+  const handleCreateIssue = useCallback(
+    (title: string) => {
+      createIssue.mutate({ title });
+    },
+    [createIssue]
+  );
+
+  const handleCreateTodoFromIssue = useCallback(
+    (data: { title: string; assigneeId: string; issueId: string }) => {
+      const ws = getWeekStart();
+      createTodo.mutate({
+        title: data.title,
+        assigneeId: data.assigneeId,
+        issueId: data.issueId,
+        dueDate: new Date(ws.getTime() + 6 * 86400000).toISOString().split("T")[0],
+        weekOf: ws.toISOString(),
+      });
+    },
+    [createTodo]
+  );
+
+  const handleDropToIDS = useCallback(
+    (title: string) => {
+      createIssue.mutate({ title, priority: "high" });
+    },
+    [createIssue]
   );
 
   const isCompleted = meeting.status === "completed";
@@ -1096,7 +1546,7 @@ function ActiveMeetingView({
               <SegueSection notes={segueNotes} onUpdate={setSegueNotes} />
             )}
             {currentSection === 1 && (
-              <ScorecardSection scorecard={scorecard} />
+              <ScorecardSection scorecard={scorecard} onDropToIDS={handleDropToIDS} />
             )}
             {currentSection === 2 && (
               <RockReviewSection rocks={rocks} />
@@ -1114,12 +1564,17 @@ function ActiveMeetingView({
               <IDSSection
                 issues={allIDSIssues}
                 onUpdateStatus={handleIssueStatus}
+                onCreateIssue={handleCreateIssue}
+                onCreateTodo={handleCreateTodoFromIssue}
+                users={users}
               />
             )}
             {currentSection === 6 && (
               <ConcludeSection
                 notes={concludeNotes}
                 onUpdate={setConcludeNotes}
+                cascadeMessages={cascadeMessages}
+                onUpdateCascade={setCascadeMessages}
                 rating={rating}
                 onRate={setRating}
               />
@@ -1246,50 +1701,59 @@ function ActiveMeetingView({
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-            <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-              Quick Stats
-            </h3>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Rocks on track</span>
-                <span className="text-xs font-semibold text-gray-700">
-                  {rocks
-                    ? `${
-                        rocks.filter(
-                          (r) =>
-                            r.status === "on_track" ||
-                            r.status === "complete"
-                        ).length
-                      }/${rocks.length}`
-                    : "--"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">To-dos done</span>
-                <span className="text-xs font-semibold text-gray-700">
-                  {todos
-                    ? `${
-                        todos.filter((t) => t.status === "complete").length
-                      }/${todos.length}`
-                    : "--"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Open issues</span>
-                <span className="text-xs font-semibold text-gray-700">
-                  {allIDSIssues.length}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Scorecard items</span>
-                <span className="text-xs font-semibold text-gray-700">
-                  {scorecard ? scorecard.measurables.length : "--"}
-                </span>
+          {/* Outcomes (completed) or Quick Stats (in progress) */}
+          {isCompleted ? (
+            <MeetingOutcomesPanel
+              meeting={meeting}
+              rocks={rocks}
+              todos={todos}
+              issues={allIDSIssues}
+            />
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+              <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Quick Stats
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Rocks on track</span>
+                  <span className="text-xs font-semibold text-gray-700">
+                    {rocks
+                      ? `${
+                          rocks.filter(
+                            (r) =>
+                              r.status === "on_track" ||
+                              r.status === "complete"
+                          ).length
+                        }/${rocks.length}`
+                      : "--"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">To-dos done</span>
+                  <span className="text-xs font-semibold text-gray-700">
+                    {todos
+                      ? `${
+                          todos.filter((t) => t.status === "complete").length
+                        }/${todos.length}`
+                      : "--"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Open issues</span>
+                  <span className="text-xs font-semibold text-gray-700">
+                    {allIDSIssues.length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Scorecard items</span>
+                  <span className="text-xs font-semibold text-gray-700">
+                    {scorecard ? scorecard.measurables.length : "--"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -1303,7 +1767,7 @@ function ActiveMeetingView({
 export default function MeetingsPage() {
   const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null);
 
-  const { data: meetings, isLoading } = useMeetings();
+  const { data: meetings, isLoading } = useMeetings({ limit: 100 });
   const createMeeting = useCreateMeeting();
 
   const activeMeeting = meetings?.find((m) => m.id === activeMeetingId);

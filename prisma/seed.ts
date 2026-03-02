@@ -474,7 +474,54 @@ async function main() {
       },
     });
 
-    console.log("Created 8 project templates");
+    // School Sales Cycle
+    await prisma.projectTemplate.create({
+      data: {
+        name: "School Sales Cycle",
+        description: "End-to-end sales pipeline for pitching OSHC services to a new school partner.",
+        category: "Growth",
+        tasks: {
+          create: [
+            { title: "Research school demographics and current OSHC provider", category: "Research", sortOrder: 1, defaultDays: 7 },
+            { title: "Prepare tailored pitch deck for the school", category: "Preparation", sortOrder: 2, defaultDays: 10 },
+            { title: "Make initial contact with school principal / board", category: "Outreach", sortOrder: 3, defaultDays: 5 },
+            { title: "Schedule and conduct site visit at the school", category: "Meeting", sortOrder: 4, defaultDays: 14 },
+            { title: "Present OSHC service proposal to school leadership", category: "Meeting", sortOrder: 5, defaultDays: 7 },
+            { title: "Address questions and negotiate terms", category: "Negotiation", sortOrder: 6, defaultDays: 14 },
+            { title: "Draft and send Letter of Intent (LOI)", category: "Legal", sortOrder: 7, defaultDays: 7 },
+            { title: "Finalise licence or lease agreement", category: "Legal", sortOrder: 8, defaultDays: 21 },
+            { title: "Plan transition / launch timeline with school", category: "Planning", sortOrder: 9, defaultDays: 14 },
+            { title: "Announce new service to school community", category: "Communication", sortOrder: 10, defaultDays: 7 },
+          ],
+        },
+      },
+    });
+
+    // Tender Application
+    await prisma.projectTemplate.create({
+      data: {
+        name: "Tender Application",
+        description: "Structured workflow for preparing and submitting an OSHC tender once it is released.",
+        category: "Growth",
+        tasks: {
+          create: [
+            { title: "Review tender documents and mandatory criteria", category: "Review", sortOrder: 1, defaultDays: 3 },
+            { title: "Attend tender briefing session (if available)", category: "Meeting", sortOrder: 2, defaultDays: 7 },
+            { title: "Identify and assign response writers per section", category: "Planning", sortOrder: 3, defaultDays: 3 },
+            { title: "Draft executive summary and organisational overview", category: "Drafting", sortOrder: 4, defaultDays: 10 },
+            { title: "Prepare proposed service model and programming", category: "Drafting", sortOrder: 5, defaultDays: 10 },
+            { title: "Compile financial projections and fee schedule", category: "Finance", sortOrder: 6, defaultDays: 10 },
+            { title: "Gather compliance evidence (CCS approval, insurance, policies)", category: "Compliance", sortOrder: 7, defaultDays: 7 },
+            { title: "Collect referee statements and testimonials", category: "Evidence", sortOrder: 8, defaultDays: 10 },
+            { title: "Internal review and quality check of full submission", category: "Review", sortOrder: 9, defaultDays: 5 },
+            { title: "Format submission per tender requirements", category: "Formatting", sortOrder: 10, defaultDays: 3 },
+            { title: "Submit tender before deadline", category: "Submission", sortOrder: 11, defaultDays: 1 },
+          ],
+        },
+      },
+    });
+
+    console.log("Created 10 project templates");
   } else {
     console.log("Project templates already exist, skipping");
   }

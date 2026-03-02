@@ -26,6 +26,8 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { canAccessPage } from "@/lib/permissions";
+import type { Role } from "@prisma/client";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "EOS" },
@@ -80,9 +82,9 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-        {navItems.map((item, index) => {
+        {navItems.filter((item) => canAccessPage(session?.user?.role as Role | undefined, item.href)).map((item, index, filtered) => {
           const showSectionHeader =
-            index === 0 || navItems[index - 1].section !== item.section;
+            index === 0 || filtered[index - 1].section !== item.section;
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;

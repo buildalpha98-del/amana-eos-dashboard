@@ -46,11 +46,12 @@ export interface DashboardResponse {
   };
 }
 
-export function useDashboardData() {
+export function useDashboardData(period?: string) {
+  const params = period ? `?period=${encodeURIComponent(period)}` : "";
   return useQuery<DashboardResponse>({
-    queryKey: ["dashboard-command-centre"],
+    queryKey: ["dashboard-command-centre", period],
     queryFn: async () => {
-      const res = await fetch("/api/dashboard");
+      const res = await fetch(`/api/dashboard${params}`);
       if (!res.ok) throw new Error("Failed to fetch dashboard data");
       return res.json();
     },

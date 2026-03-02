@@ -12,6 +12,7 @@ const updateMeetingSchema = z.object({
   headlines: z.string().optional().nullable(),
   segueNotes: z.string().optional().nullable(),
   concludeNotes: z.string().optional().nullable(),
+  cascadeMessages: z.string().optional().nullable(),
 });
 
 // GET /api/meetings/:id — get a single meeting

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCreateTodo } from "@/hooks/useTodos";
 import { useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { X, Lock, Unlock } from "lucide-react";
 
 interface UserOption {
   id: string;
@@ -36,6 +36,7 @@ export function CreateTodoModal({
     end.setDate(end.getDate() + 6);
     return end.toISOString().split("T")[0];
   });
+  const [isPrivate, setIsPrivate] = useState(false);
   const [error, setError] = useState("");
 
   const { data: users } = useQuery<UserOption[]>({
@@ -74,6 +75,7 @@ export function CreateTodoModal({
         description: description || undefined,
         assigneeId,
         rockId: rockId || null,
+        isPrivate,
         dueDate,
         weekOf: weekOf.toISOString(),
       },
@@ -83,6 +85,7 @@ export function CreateTodoModal({
           setDescription("");
           setAssigneeId("");
           setRockId("");
+          setIsPrivate(false);
           onClose();
         },
         onError: (err: Error) => setError(err.message),
@@ -201,6 +204,33 @@ export function CreateTodoModal({
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Private Toggle */}
+          <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2">
+              {isPrivate ? (
+                <Lock className="w-4 h-4 text-amber-600" />
+              ) : (
+                <Unlock className="w-4 h-4 text-gray-400" />
+              )}
+              <span className="text-sm text-gray-700">
+                {isPrivate ? "Private" : "Public"} To-Do
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsPrivate(!isPrivate)}
+              className={`relative w-10 h-5 rounded-full transition-colors ${
+                isPrivate ? "bg-amber-500" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
+                  isPrivate ? "translate-x-5" : ""
+                }`}
+              />
+            </button>
           </div>
 
           <div className="flex gap-3 pt-2">

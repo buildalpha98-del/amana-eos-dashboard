@@ -20,11 +20,18 @@ interface Notification {
 }
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
+  const { session, error } = await requireAuth();
+  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const now = new Date();
   const notifications: Notification[] = [];
+
+  // Get dismissed notification IDs for this user
+  const dismissed = await prisma.notificationDismissal.findMany({
+    where: { userId: session.user.id },
+    select: { notificationId: true },
+  });
+  const dismissedIds = new Set(dismissed.map((d) => d.notificationId));
 
   // 1. Overdue Todos: dueDate < today, status not complete/cancelled, deleted=false
   const overdueTodos = await prisma.todo.findMany({
@@ -164,21 +171,24 @@ export async function GET(req: NextRequest) {
     });
   });
 
+  // Filter out dismissed notifications
+  const active = notifications.filter((n) => !dismissedIds.has(n.id));
+
   // Sort: critical first, then warning, then info; within each, newest first
   const severityOrder: Record<string, number> = {
     critical: 0,
     warning: 1,
     info: 2,
   };
-  notifications.sort((a, b) => {
+  active.sort((a, b) => {
     const sevDiff = severityOrder[a.severity] - severityOrder[b.severity];
     if (sevDiff !== 0) return sevDiff;
     return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
   });
 
   return NextResponse.json({
-    notifications,
-    total: notifications.length,
-    critical: notifications.filter((n) => n.severity === "critical").length,
+    notifications: active,
+    total: active.length,
+    critical: active.filter((n) => n.severity === "critical").length,
   });
 }

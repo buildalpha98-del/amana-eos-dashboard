@@ -461,26 +461,56 @@ function QuickAddRockModal({
 
 // ─── Main Dashboard Content ─────────────────────────────────
 
+function getPeriodOptions(): { value: string; label: string }[] {
+  const now = new Date();
+  const year = now.getFullYear();
+  const options = [];
+  for (let q = 1; q <= 4; q++) {
+    options.push({ value: `Q${q}-${year}`, label: `Q${q} ${year}` });
+  }
+  options.push({ value: `yearly-${year}`, label: `Full Year ${year}` });
+  return options;
+}
+
 export function DashboardContent() {
   const { data: session } = useSession();
   const quarter = getCurrentQuarter();
+  const [period, setPeriod] = useState(quarter);
   const [openTodoModal, setOpenTodoModal] = useState(false);
   const [openIssueModal, setOpenIssueModal] = useState(false);
   const [openRockModal, setOpenRockModal] = useState(false);
 
-  const { data, isLoading } = useDashboardData();
+  const periodOptions = getPeriodOptions();
+  const { data, isLoading } = useDashboardData(period);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Welcome Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">
-          Command Centre
-        </h2>
-        <p className="text-gray-500 mt-1">
-          Welcome back, {session?.user?.name?.split(" ")[0] || "there"} &mdash;{" "}
-          {quarter} overview across all centres.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Command Centre
+          </h2>
+          <p className="text-gray-500 mt-1">
+            Welcome back, {session?.user?.name?.split(" ")[0] || "there"} &mdash;{" "}
+            overview across all centres.
+          </p>
+        </div>
+        <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+          {periodOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setPeriod(opt.value)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                period === opt.value
+                  ? "bg-white text-[#004E64] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {isLoading ? (

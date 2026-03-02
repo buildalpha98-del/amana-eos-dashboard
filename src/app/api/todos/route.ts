@@ -9,6 +9,7 @@ const createTodoSchema = z.object({
   assigneeId: z.string().min(1, "Assignee is required"),
   rockId: z.string().optional().nullable(),
   issueId: z.string().optional().nullable(),
+  isPrivate: z.boolean().optional(),
   dueDate: z.string().min(1, "Due date is required"),
   weekOf: z.string().min(1, "Week is required"),
 });
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
       assigneeId: parsed.data.assigneeId,
       rockId: parsed.data.rockId || null,
       issueId: parsed.data.issueId || null,
+      isPrivate: parsed.data.isPrivate ?? false,
       dueDate: new Date(parsed.data.dueDate),
       weekOf: new Date(parsed.data.weekOf),
     },

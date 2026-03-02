@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useFinancials } from "@/hooks/useFinancials";
+import { useServices } from "@/hooks/useServices";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV, formatCurrencyCSV } from "@/lib/csv-export";
 import {
@@ -12,6 +14,8 @@ import {
   Building2,
   ArrowUpRight,
   ArrowDownRight,
+  Plus,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RevenueVsCostsChart } from "@/components/charts/RevenueVsCostsChart";
@@ -76,8 +80,177 @@ function StatCard({
   );
 }
 
+function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const { data: services } = useServices("active");
+  const [serviceId, setServiceId] = useState("");
+  const [periodType, setPeriodType] = useState<"monthly" | "quarterly">("monthly");
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const [bscRevenue, setBscRevenue] = useState(0);
+  const [ascRevenue, setAscRevenue] = useState(0);
+  const [vcRevenue, setVcRevenue] = useState(0);
+  const [otherRevenue, setOtherRevenue] = useState(0);
+  const [staffCosts, setStaffCosts] = useState(0);
+  const [foodCosts, setFoodCosts] = useState(0);
+  const [suppliesCosts, setSuppliesCosts] = useState(0);
+  const [rentCosts, setRentCosts] = useState(0);
+  const [adminCosts, setAdminCosts] = useState(0);
+  const [otherCosts, setOtherCosts] = useState(0);
+  const [budgetRevenue, setBudgetRevenue] = useState(0);
+  const [budgetCosts, setBudgetCosts] = useState(0);
+
+  const totalRev = bscRevenue + ascRevenue + vcRevenue + otherRevenue;
+  const totalCost = staffCosts + foodCosts + suppliesCosts + rentCosts + adminCosts + otherCosts;
+
+  const submit = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/financials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serviceId, periodType, periodStart, periodEnd,
+          bscRevenue, ascRevenue, vcRevenue, otherRevenue,
+          staffCosts, foodCosts, suppliesCosts, rentCosts, adminCosts, otherCosts,
+          ...(budgetRevenue > 0 && { budgetRevenue }),
+          ...(budgetCosts > 0 && { budgetCosts }),
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to submit");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["financials"] });
+      onClose();
+    },
+  });
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900">Enter Financial Data</h3>
+          <button onClick={onClose} className="p-1 rounded-md text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="px-6 py-4 space-y-4">
+          {/* Centre */}
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Centre</label>
+            <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]">
+              <option value="">Select centre...</option>
+              {services?.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
+            </select>
+          </div>
+          {/* Period */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">Period Type</label>
+              <select value={periodType} onChange={(e) => setPeriodType(e.target.value as "monthly" | "quarterly")} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]">
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">Start Date</label>
+              <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">End Date</label>
+              <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+            </div>
+          </div>
+          {/* Revenue */}
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Revenue ($)</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: "BSC", val: bscRevenue, set: setBscRevenue },
+                { label: "ASC", val: ascRevenue, set: setAscRevenue },
+                { label: "VC", val: vcRevenue, set: setVcRevenue },
+                { label: "Other", val: otherRevenue, set: setOtherRevenue },
+              ].map((f) => (
+                <div key={f.label}>
+                  <label className="text-[10px] text-gray-400">{f.label}</label>
+                  <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-[#004E64] font-medium mt-1">Total Revenue: {formatCurrency(totalRev)}</p>
+          </div>
+          {/* Costs */}
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Costs ($)</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: "Staff", val: staffCosts, set: setStaffCosts },
+                { label: "Food", val: foodCosts, set: setFoodCosts },
+                { label: "Supplies", val: suppliesCosts, set: setSuppliesCosts },
+                { label: "Rent", val: rentCosts, set: setRentCosts },
+                { label: "Admin", val: adminCosts, set: setAdminCosts },
+                { label: "Other", val: otherCosts, set: setOtherCosts },
+              ].map((f) => (
+                <div key={f.label}>
+                  <label className="text-[10px] text-gray-400">{f.label}</label>
+                  <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-red-600 font-medium mt-1">Total Costs: {formatCurrency(totalCost)}</p>
+          </div>
+          {/* Budget */}
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">Budget (optional)</label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-gray-400">Budget Revenue</label>
+                <input type="number" min={0} value={budgetRevenue || ""} onChange={(e) => setBudgetRevenue(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400">Budget Costs</label>
+                <input type="number" min={0} value={budgetCosts || ""} onChange={(e) => setBudgetCosts(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+              </div>
+            </div>
+          </div>
+          {/* Summary */}
+          <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-700">Gross Profit</span>
+              <span className={cn("text-sm font-bold", totalRev - totalCost >= 0 ? "text-emerald-600" : "text-red-600")}>
+                {formatCurrency(totalRev - totalCost)}
+              </span>
+            </div>
+            {budgetRevenue > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-500">Revenue vs Budget</span>
+                <span className={cn("text-sm font-semibold", totalRev >= budgetRevenue ? "text-emerald-600" : "text-amber-600")}>
+                  {formatCurrency(totalRev - budgetRevenue)} ({totalRev >= budgetRevenue ? "+" : ""}{((totalRev - budgetRevenue) / budgetRevenue * 100).toFixed(1)}%)
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+          <button
+            onClick={() => submit.mutate()}
+            disabled={!serviceId || !periodStart || !periodEnd || submit.isPending}
+            className="px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] disabled:opacity-50"
+          >
+            {submit.isPending ? "Saving..." : "Save Data"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FinancialsPage() {
   const [period, setPeriod] = useState<string>("monthly");
+  const [showEnterData, setShowEnterData] = useState(false);
   const { data, isLoading } = useFinancials({ period });
 
   const summary = data?.summary;
@@ -128,6 +301,13 @@ export default function FinancialsPage() {
           <p className="text-gray-500 mt-1">Revenue, costs, and profitability across all centres</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowEnterData(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Enter Data
+          </button>
           <ExportButton onClick={handleExport} disabled={!data?.financials || data.financials.length === 0} />
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
           {[
@@ -250,6 +430,8 @@ export default function FinancialsPage() {
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Costs</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Profit</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Margin</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Budget</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Variance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -282,6 +464,18 @@ export default function FinancialsPage() {
                       row.margin > 15 ? "text-emerald-600" : row.margin > 0 ? "text-amber-600" : "text-red-600"
                     )}>
                       {formatPercent(row.margin)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-gray-600">
+                      {row.budgetRevenue ? formatCurrency(row.budgetRevenue) : "—"}
+                    </td>
+                    <td className={cn(
+                      "px-4 py-3 text-right font-semibold",
+                      !row.budgetRevenue ? "text-gray-400" :
+                      row.totalRevenue >= row.budgetRevenue ? "text-emerald-600" : "text-red-600"
+                    )}>
+                      {row.budgetRevenue
+                        ? `${row.totalRevenue >= row.budgetRevenue ? "+" : ""}${formatPercent(((row.totalRevenue - row.budgetRevenue) / row.budgetRevenue) * 100)}`
+                        : "—"}
                     </td>
                   </tr>
                 ))}
@@ -316,12 +510,33 @@ export default function FinancialsPage() {
                         : 0
                     )}
                   </td>
+                  <td className="px-4 py-3 text-right text-gray-900">
+                    {(() => {
+                      const totalBudget = sortedData.reduce((s, r) => s + (r.budgetRevenue ?? 0), 0);
+                      return totalBudget > 0 ? formatCurrency(totalBudget) : "—";
+                    })()}
+                  </td>
+                  <td className={cn("px-4 py-3 text-right font-semibold", (() => {
+                    const totalBudget = sortedData.reduce((s, r) => s + (r.budgetRevenue ?? 0), 0);
+                    const totalActual = sortedData.reduce((s, r) => s + r.totalRevenue, 0);
+                    return totalBudget > 0 ? (totalActual >= totalBudget ? "text-emerald-600" : "text-red-600") : "text-gray-400";
+                  })())}>
+                    {(() => {
+                      const totalBudget = sortedData.reduce((s, r) => s + (r.budgetRevenue ?? 0), 0);
+                      const totalActual = sortedData.reduce((s, r) => s + r.totalRevenue, 0);
+                      if (totalBudget <= 0) return "—";
+                      const pct = ((totalActual - totalBudget) / totalBudget) * 100;
+                      return `${pct >= 0 ? "+" : ""}${formatPercent(pct)}`;
+                    })()}
+                  </td>
                 </tr>
               </tfoot>
             </table>
           </div>
         )}
       </div>
+
+      <EnterDataModal open={showEnterData} onClose={() => setShowEnterData(false)} />
     </div>
   );
 }

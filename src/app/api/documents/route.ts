@@ -12,6 +12,7 @@ const createDocumentSchema = z.object({
   fileSize: z.number().optional(),
   mimeType: z.string().optional(),
   centreId: z.string().optional().nullable(),
+  folderId: z.string().optional().nullable(),
   tags: z.array(z.string()).optional(),
 });
 
@@ -22,31 +23,48 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category");
   const centreId = searchParams.get("centreId");
+  const folderId = searchParams.get("folderId");
   const search = searchParams.get("search");
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 50));
 
-  const documents = await prisma.document.findMany({
-    where: {
-      deleted: false,
-      ...(category ? { category: category as any } : {}),
-      ...(centreId ? { centreId } : {}),
-      ...(search
-        ? {
-            OR: [
-              { title: { contains: search, mode: "insensitive" } },
-              { description: { contains: search, mode: "insensitive" } },
-              { tags: { hasSome: [search] } },
-            ],
-          }
-        : {}),
-    },
-    include: {
-      uploadedBy: { select: { id: true, name: true, email: true } },
-      centre: { select: { id: true, name: true, code: true } },
-    },
-    orderBy: { createdAt: "desc" },
+  const where = {
+    deleted: false,
+    ...(category ? { category: category as any } : {}),
+    ...(centreId ? { centreId } : {}),
+    ...(folderId === "root" ? { folderId: null } : folderId ? { folderId } : {}),
+    ...(search
+      ? {
+          OR: [
+            { title: { contains: search, mode: "insensitive" as const } },
+            { description: { contains: search, mode: "insensitive" as const } },
+            { tags: { hasSome: [search] } },
+          ],
+        }
+      : {}),
+  };
+
+  const [documents, total] = await Promise.all([
+    prisma.document.findMany({
+      where,
+      include: {
+        uploadedBy: { select: { id: true, name: true, email: true } },
+        centre: { select: { id: true, name: true, code: true } },
+        folder: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.document.count({ where }),
+  ]);
+
+  return NextResponse.json({
+    documents,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
   });
-
-  return NextResponse.json(documents);
 }
 
 export async function POST(req: NextRequest) {
@@ -72,6 +90,7 @@ export async function POST(req: NextRequest) {
     include: {
       uploadedBy: { select: { id: true, name: true, email: true } },
       centre: { select: { id: true, name: true, code: true } },
+      folder: { select: { id: true, name: true } },
     },
   });
 

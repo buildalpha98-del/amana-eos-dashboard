@@ -13,6 +13,7 @@ import {
   MessageSquare,
   CheckCircle2,
   XCircle,
+  Clock,
 } from "lucide-react";
 
 const priorityConfig = {
@@ -85,6 +86,11 @@ export function IssueCard({
   const PriorityIcon = p.icon;
   const StatusIcon = s.icon;
 
+  // Calculate days open
+  const daysOpen = issue.status !== "closed" && issue.status !== "solved"
+    ? Math.floor((Date.now() - new Date(issue.identifiedAt).getTime()) / 86400000)
+    : null;
+
   return (
     <button
       onClick={onClick}
@@ -150,6 +156,23 @@ export function IssueCard({
               <span className="inline-flex items-center gap-1 text-xs text-gray-500">
                 <CheckSquare className="w-3 h-3" />
                 {issue._count.spawnedTodos}
+              </span>
+            )}
+
+            {/* Days open badge */}
+            {daysOpen !== null && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-xs font-medium px-1.5 py-0.5 rounded-full",
+                  daysOpen >= 14
+                    ? "bg-red-100 text-red-700"
+                    : daysOpen >= 7
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-gray-100 text-gray-500"
+                )}
+              >
+                <Clock className="w-3 h-3" />
+                {daysOpen}d
               </span>
             )}
           </div>

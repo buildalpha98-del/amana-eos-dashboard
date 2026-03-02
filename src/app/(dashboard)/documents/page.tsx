@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useDocuments, useCreateDocument, useDeleteDocument, DocumentData } from "@/hooks/useDocuments";
+import {
+  useDocuments,
+  useCreateDocument,
+  useDeleteDocument,
+  useDocumentFolders,
+  useCreateFolder,
+  useDeleteFolder,
+  useMoveDocument,
+  DocumentData,
+  DocumentFolder,
+} from "@/hooks/useDocuments";
 import { useQuery } from "@tanstack/react-query";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV, formatDateCSV } from "@/lib/csv-export";
@@ -18,6 +28,14 @@ import {
   X,
   Plus,
   AlertCircle,
+  Folder,
+  FolderPlus,
+  ChevronRight,
+  Home,
+  FolderInput,
+  Upload,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,6 +65,13 @@ export default function DocumentsPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showModal, setShowModal] = useState(false);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [moveDocId, setMoveDocId] = useState<string | null>(null);
+  const [docPage, setDocPage] = useState(1);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<{ fileName: string; fileUrl: string; fileSize: number; mimeType: string } | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -57,11 +82,18 @@ export default function DocumentsPage() {
     tags: "",
   });
 
-  const { data: documents = [], isLoading } = useDocuments({
+  const { data: docResult, isLoading } = useDocuments({
     category: selectedCategory || undefined,
     centreId: selectedCentre || undefined,
+    folderId: searchTerm ? undefined : (currentFolderId || "root"),
     search: searchTerm || undefined,
+    page: docPage,
+    limit: 30,
   });
+  const documents = docResult?.documents ?? [];
+  const totalDocPages = docResult?.totalPages ?? 1;
+
+  const { data: folders = [] } = useDocumentFolders();
 
   const { data: services = [] } = useQuery<Service[]>({
     queryKey: ["services"],
@@ -74,11 +106,59 @@ export default function DocumentsPage() {
 
   const createDocument = useCreateDocument();
   const deleteDocument = useDeleteDocument();
+  const createFolder = useCreateFolder();
+  const deleteFolder = useDeleteFolder();
+  const moveDocument = useMoveDocument();
+
+  // Build breadcrumb path
+  const breadcrumbs = useMemo(() => {
+    if (!currentFolderId) return [];
+    const path: DocumentFolder[] = [];
+    let current = folders.find(f => f.id === currentFolderId);
+    while (current) {
+      path.unshift(current);
+      current = current.parentId ? folders.find(f => f.id === current!.parentId) : undefined;
+    }
+    return path;
+  }, [currentFolderId, folders]);
+
+  // Folders in current directory
+  const currentSubfolders = useMemo(() => {
+    return folders.filter(f =>
+      currentFolderId ? f.parentId === currentFolderId : !f.parentId
+    );
+  }, [folders, currentFolderId]);
+
+  const handleFileUpload = async (file: File) => {
+    setUploadingFile(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Upload failed");
+        return;
+      }
+      const result = await res.json();
+      setUploadedFile(result);
+      setFormData((prev) => ({
+        ...prev,
+        fileName: result.fileName,
+        fileUrl: result.fileUrl,
+        title: prev.title || result.fileName.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
+      }));
+    } catch {
+      alert("Upload failed. Please try again.");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.fileName || !formData.fileUrl) {
-      alert("Please fill in all required fields");
+      alert("Please upload a file and fill in the title");
       return;
     }
 
@@ -88,7 +168,10 @@ export default function DocumentsPage() {
       category: formData.category,
       fileName: formData.fileName,
       fileUrl: formData.fileUrl,
+      fileSize: uploadedFile?.fileSize,
+      mimeType: uploadedFile?.mimeType,
       centreId: formData.centreId || null,
+      folderId: currentFolderId || null,
       tags: formData.tags ? formData.tags.split(",").map(t => t.trim()) : [],
     });
 
@@ -101,6 +184,7 @@ export default function DocumentsPage() {
       centreId: "",
       tags: "",
     });
+    setUploadedFile(null);
     setShowModal(false);
   };
 
@@ -108,6 +192,31 @@ export default function DocumentsPage() {
     if (confirm("Are you sure you want to delete this document?")) {
       await deleteDocument.mutateAsync(id);
     }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    await createFolder.mutateAsync({
+      name: newFolderName.trim(),
+      parentId: currentFolderId || null,
+    });
+    setNewFolderName("");
+    setShowNewFolder(false);
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    if (confirm("Delete this folder? It must be empty.")) {
+      try {
+        await deleteFolder.mutateAsync(folderId);
+      } catch (err: any) {
+        alert(err.message);
+      }
+    }
+  };
+
+  const handleMoveDocument = async (docId: string, targetFolderId: string | null) => {
+    await moveDocument.mutateAsync({ id: docId, folderId: targetFolderId });
+    setMoveDocId(null);
   };
 
   const formatFileSize = (bytes: number | null): string => {
@@ -132,6 +241,7 @@ export default function DocumentsPage() {
         title: doc.title,
         category: doc.category,
         centre: doc.centre?.name || "",
+        folder: doc.folder?.name || "",
         uploadedBy: doc.uploadedBy.name,
         date: doc.createdAt,
         fileSize: doc.fileSize,
@@ -141,6 +251,7 @@ export default function DocumentsPage() {
         { key: "title", header: "Title" },
         { key: "category", header: "Category" },
         { key: "centre", header: "Centre" },
+        { key: "folder", header: "Folder" },
         { key: "uploadedBy", header: "Uploaded By" },
         { key: "date", header: "Date", formatter: (v) => v ? formatDateCSV(v as string) : "" },
         { key: "fileSize", header: "File Size", formatter: (v) => formatFileSize(v as number | null) },
@@ -170,6 +281,13 @@ export default function DocumentsPage() {
           <div className="flex items-center gap-3">
             <ExportButton onClick={handleExport} disabled={documents.length === 0} />
             <button
+              onClick={() => setShowNewFolder(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <FolderPlus className="w-4 h-4" />
+              New Folder
+            </button>
+            <button
               onClick={() => setShowModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
             >
@@ -178,6 +296,66 @@ export default function DocumentsPage() {
             </button>
           </div>
         </div>
+
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-1.5 text-sm">
+          <button
+            onClick={() => setCurrentFolderId(null)}
+            className={cn(
+              "flex items-center gap-1 px-2 py-1 rounded-md transition-colors",
+              !currentFolderId ? "text-[#004E64] font-medium" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+            )}
+          >
+            <Home className="w-3.5 h-3.5" />
+            All Documents
+          </button>
+          {breadcrumbs.map((folder) => (
+            <span key={folder.id} className="flex items-center gap-1.5">
+              <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+              <button
+                onClick={() => setCurrentFolderId(folder.id)}
+                className={cn(
+                  "px-2 py-1 rounded-md transition-colors",
+                  folder.id === currentFolderId ? "text-[#004E64] font-medium" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                )}
+              >
+                {folder.name}
+              </button>
+            </span>
+          ))}
+        </div>
+
+        {/* New Folder Inline Form */}
+        {showNewFolder && (
+          <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <Folder className="w-5 h-5 text-[#004E64]" />
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="Folder name..."
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreateFolder();
+                if (e.key === "Escape") { setShowNewFolder(false); setNewFolderName(""); }
+              }}
+              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            />
+            <button
+              onClick={handleCreateFolder}
+              disabled={!newFolderName.trim() || createFolder.isPending}
+              className="px-3 py-1.5 bg-[#004E64] text-white text-sm font-medium rounded-md hover:bg-[#003D52] disabled:opacity-50"
+            >
+              Create
+            </button>
+            <button
+              onClick={() => { setShowNewFolder(false); setNewFolderName(""); }}
+              className="p-1.5 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Search and Filters */}
         <div className="flex items-center gap-4">
@@ -193,7 +371,7 @@ export default function DocumentsPage() {
           </div>
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => { setSelectedCategory(e.target.value); setDocPage(1); }}
             className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
           >
             <option value="">All Categories</option>
@@ -237,14 +415,47 @@ export default function DocumentsPage() {
           </div>
         </div>
 
+        {/* Folder Cards */}
+        {!searchTerm && currentSubfolders.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {currentSubfolders.map((folder) => (
+              <div
+                key={folder.id}
+                className="group bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md hover:border-[#004E64]/30 transition-all cursor-pointer relative"
+                onClick={() => setCurrentFolderId(folder.id)}
+              >
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <Folder className="w-5 h-5 text-[#004E64]" />
+                  <span className="text-sm font-medium text-gray-900 truncate">{folder.name}</span>
+                </div>
+                <p className="text-xs text-gray-400">
+                  {folder._count.documents} doc{folder._count.documents !== 1 ? "s" : ""}
+                  {folder._count.children > 0 && `, ${folder._count.children} folder${folder._count.children !== 1 ? "s" : ""}`}
+                </p>
+                {folder._count.documents === 0 && folder._count.children === 0 && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder.id); }}
+                    className="absolute top-2 right-2 p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Delete empty folder"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Documents Grid/List */}
-        {documents.length === 0 ? (
+        {documents.length === 0 && currentSubfolders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <FileText className="w-16 h-16 text-gray-300 mb-4" />
             <p className="text-gray-500 text-lg">No documents found</p>
             <p className="text-gray-400 text-sm mt-1">
               {searchTerm || selectedCategory || selectedCentre
                 ? "Try adjusting your filters or search term."
+                : currentFolderId
+                ? "This folder is empty. Upload a document or create a subfolder."
                 : "Upload your first document to get started."}
             </p>
             {!searchTerm && !selectedCategory && !selectedCentre && (
@@ -257,7 +468,7 @@ export default function DocumentsPage() {
               </button>
             )}
           </div>
-        ) : viewMode === "grid" ? (
+        ) : documents.length === 0 ? null : viewMode === "grid" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {documents.map(doc => {
               const colors = CATEGORY_COLORS[doc.category] || CATEGORY_COLORS.other;
@@ -317,6 +528,13 @@ export default function DocumentsPage() {
                     >
                       <ExternalLink className="w-4 h-4" /> View
                     </a>
+                    <button
+                      onClick={() => setMoveDocId(doc.id)}
+                      className="px-3 py-2 rounded-lg text-sm text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+                      title="Move to folder"
+                    >
+                      <FolderInput className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => handleDelete(doc.id)}
                       disabled={deleteDocument.isPending}
@@ -389,6 +607,13 @@ export default function DocumentsPage() {
                               <ExternalLink className="w-4 h-4" />
                             </a>
                             <button
+                              onClick={() => setMoveDocId(doc.id)}
+                              className="text-gray-500 hover:text-gray-700 transition-colors"
+                              title="Move to folder"
+                            >
+                              <FolderInput className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleDelete(doc.id)}
                               disabled={deleteDocument.isPending}
                               className="text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
@@ -407,6 +632,66 @@ export default function DocumentsPage() {
           </div>
         )}
 
+      {/* Pagination */}
+      {totalDocPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-500">
+            Page {docPage} of {totalDocPages} ({docResult?.total ?? 0} documents)
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setDocPage((p) => Math.max(1, p - 1))}
+              disabled={docPage <= 1}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setDocPage((p) => Math.min(totalDocPages, p + 1))}
+              disabled={docPage >= totalDocPages}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Move to Folder Modal */}
+      {moveDocId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <h3 className="text-base font-semibold text-gray-900">Move to Folder</h3>
+              <button onClick={() => setMoveDocId(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-3 max-h-[300px] overflow-y-auto space-y-1">
+              <button
+                onClick={() => handleMoveDocument(moveDocId, null)}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-gray-100 transition-colors"
+              >
+                <Home className="w-4 h-4 text-gray-400" />
+                <span className="text-gray-700">Root (No Folder)</span>
+              </button>
+              {folders.map(folder => (
+                <button
+                  key={folder.id}
+                  onClick={() => handleMoveDocument(moveDocId, folder.id)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-gray-100 transition-colors"
+                  style={{ paddingLeft: folder.parentId ? "2rem" : undefined }}
+                >
+                  <Folder className="w-4 h-4 text-[#004E64]" />
+                  <span className="text-gray-700">{folder.name}</span>
+                  <span className="text-xs text-gray-400 ml-auto">{folder._count.documents}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Upload Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -414,7 +699,12 @@ export default function DocumentsPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Upload Document</h3>
-                <p className="text-sm text-gray-500 mt-0.5">Add a document link to the library</p>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Upload a file to the library
+                  {currentFolderId && breadcrumbs.length > 0 && (
+                    <span className="text-[#004E64]"> in {breadcrumbs[breadcrumbs.length - 1].name}</span>
+                  )}
+                </p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
@@ -489,32 +779,62 @@ export default function DocumentsPage() {
                 </div>
               </div>
 
+              {/* File Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  File Name *
+                  File *
                 </label>
-                <input
-                  type="text"
-                  value={formData.fileName}
-                  onChange={(e) => setFormData({ ...formData, fileName: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
-                  placeholder="E.g., staff-handbook-2025.pdf"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  File URL *
-                </label>
-                <input
-                  type="url"
-                  value={formData.fileUrl}
-                  onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
-                  placeholder="E.g., https://example.com/documents/handbook.pdf"
-                  required
-                />
+                {uploadedFile ? (
+                  <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{uploadedFile.fileName}</p>
+                      <p className="text-xs text-gray-500">{formatFileSize(uploadedFile.fileSize)} &middot; {uploadedFile.mimeType}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadedFile(null);
+                        setFormData((prev) => ({ ...prev, fileName: "", fileUrl: "" }));
+                      }}
+                      className="p-1 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : uploadingFile ? (
+                  <div className="flex items-center justify-center gap-2 p-6 border-2 border-dashed border-[#004E64]/30 rounded-lg bg-[#004E64]/5">
+                    <Loader2 className="w-5 h-5 text-[#004E64] animate-spin" />
+                    <span className="text-sm text-[#004E64] font-medium">Uploading...</span>
+                  </div>
+                ) : (
+                  <label
+                    className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#004E64] hover:bg-[#004E64]/5 transition-colors"
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const file = e.dataTransfer.files[0];
+                      if (file) handleFileUpload(file);
+                    }}
+                  >
+                    <Upload className="w-8 h-8 text-gray-400" />
+                    <div className="text-center">
+                      <span className="text-sm font-medium text-[#004E64]">Click to upload</span>
+                      <span className="text-sm text-gray-500"> or drag and drop</span>
+                    </div>
+                    <p className="text-xs text-gray-400">PDF, Word, Excel, PowerPoint, images up to 10MB</p>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.gif,.webp"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                      }}
+                    />
+                  </label>
+                )}
               </div>
 
               <div>
@@ -530,13 +850,6 @@ export default function DocumentsPage() {
                 />
               </div>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-800">
-                  Currently, file URLs are used as references. Full file upload storage integration can be added in the next phase.
-                </p>
-              </div>
-
               <div className="flex gap-3 pt-4 border-t border-gray-200 mt-2">
                 <button
                   type="button"
@@ -547,10 +860,10 @@ export default function DocumentsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={createDocument.isPending}
+                  disabled={createDocument.isPending || !uploadedFile}
                   className="flex-1 bg-[#004E64] hover:bg-[#003D52] text-white font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                 >
-                  {createDocument.isPending ? "Uploading..." : "Upload Document"}
+                  {createDocument.isPending ? "Saving..." : "Upload Document"}
                 </button>
               </div>
             </form>

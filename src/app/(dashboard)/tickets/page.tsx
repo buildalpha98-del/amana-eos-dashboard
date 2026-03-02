@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { TicketCard } from "@/components/tickets/TicketCard";
 import { TicketDetailPanel } from "@/components/tickets/TicketDetailPanel";
 import { CreateTicketModal } from "@/components/tickets/CreateTicketModal";
+import { ResponseTemplateManager } from "@/components/tickets/ResponseTemplateManager";
 import { TicketVolumeTrendChart } from "@/components/charts/TicketVolumeTrendChart";
 import { TicketPriorityChart } from "@/components/charts/TicketPriorityChart";
 import { AgentWorkloadChart } from "@/components/charts/AgentWorkloadChart";
@@ -25,6 +26,7 @@ import {
   CheckCircle,
   XCircle,
   BarChart3,
+  FileText,
 } from "lucide-react";
 
 interface UserOption {
@@ -49,6 +51,7 @@ const statusTabs = [
 
 export default function TicketsPage() {
   const [showCreate, setShowCreate] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
@@ -217,6 +220,15 @@ export default function TicketsPage() {
             )}
           >
             <Filter className="w-4 h-4" />
+          </button>
+
+          {/* Templates */}
+          <button
+            onClick={() => setShowTemplates(true)}
+            className="inline-flex items-center gap-2 px-3 py-2.5 border border-gray-300 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <FileText className="w-4 h-4" />
+            <span className="hidden sm:inline">Templates</span>
           </button>
 
           {/* Create */}
@@ -498,6 +510,7 @@ export default function TicketsPage() {
 
       {/* Create Modal */}
       <CreateTicketModal open={showCreate} onClose={() => setShowCreate(false)} />
+      <ResponseTemplateManager open={showTemplates} onClose={() => setShowTemplates(false)} />
 
       {/* Detail Panel */}
       {selectedId && (

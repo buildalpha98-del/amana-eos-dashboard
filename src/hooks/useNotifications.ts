@@ -1,5 +1,5 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface NotificationItem {
   id: string;
@@ -33,5 +33,23 @@ export function useNotifications() {
       return res.json();
     },
     refetchInterval: 30000,
+  });
+}
+
+export function useDismissNotifications() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (notificationIds: string[]) => {
+      const res = await fetch("/api/notifications/dismiss", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationIds }),
+      });
+      if (!res.ok) throw new Error("Failed to dismiss notifications");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 }

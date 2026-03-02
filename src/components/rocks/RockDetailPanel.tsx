@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRock, useUpdateRock, useDeleteRock } from "@/hooks/useRocks";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn, formatDateAU } from "@/lib/utils";
 import {
   X,
@@ -12,6 +13,7 @@ import {
   Target,
   Trash2,
   Save,
+  Plus,
 } from "lucide-react";
 import type { RockStatus, RockPriority } from "@prisma/client";
 
@@ -38,10 +40,66 @@ export function RockDetailPanel({
   const { data: rock, isLoading } = useRock(rockId);
   const updateRock = useUpdateRock();
   const deleteRock = useDeleteRock();
+  const queryClient = useQueryClient();
+  const { data: users } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["users-list"],
+    queryFn: async () => {
+      const res = await fetch("/api/users");
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showAddMilestone, setShowAddMilestone] = useState(false);
+  const [newMilestoneTitle, setNewMilestoneTitle] = useState("");
+  const [newMilestoneDue, setNewMilestoneDue] = useState("");
+
+  const addMilestone = useMutation({
+    mutationFn: async (data: { title: string; dueDate: string }) => {
+      const res = await fetch(`/api/rocks/${rockId}/milestones`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to add milestone");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
+      setNewMilestoneTitle("");
+      setNewMilestoneDue("");
+      setShowAddMilestone(false);
+    },
+  });
+
+  const toggleMilestone = useMutation({
+    mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
+      const res = await fetch(`/api/milestones/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed }),
+      });
+      if (!res.ok) throw new Error("Failed to update milestone");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
+    },
+  });
+
+  const deleteMilestone = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/milestones/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete milestone");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -232,24 +290,19 @@ export function RockDetailPanel({
             <User className="w-3.5 h-3.5 inline mr-1" />
             Owner
           </label>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-[#004E64]/10 flex items-center justify-center">
-              <span className="text-xs font-medium text-[#004E64]">
-                {rock.owner.name
-                  .split(" ")
-                  .map((n: string) => n[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2)}
-              </span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900">
-                {rock.owner.name}
-              </p>
-              <p className="text-xs text-gray-400">{rock.owner.email}</p>
-            </div>
-          </div>
+          <select
+            value={rock.ownerId}
+            onChange={(e) =>
+              updateRock.mutate({ id: rock.id, ownerId: e.target.value })
+            }
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+          >
+            {users?.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Description */}
@@ -284,13 +337,53 @@ export function RockDetailPanel({
         </div>
 
         {/* Milestones */}
-        {rock.milestones && rock.milestones.length > 0 && (
-          <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
               <Flag className="w-3.5 h-3.5 inline mr-1" />
-              Milestones
+              Milestones ({rock.milestones?.length || 0})
             </label>
-            <div className="space-y-2">
+            <button
+              onClick={() => setShowAddMilestone(!showAddMilestone)}
+              className="text-xs text-[#004E64] hover:text-[#003D52] font-medium flex items-center gap-0.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add
+            </button>
+          </div>
+
+          {showAddMilestone && (
+            <div className="flex items-end gap-2 mb-3 p-2 bg-gray-50 rounded-lg">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={newMilestoneTitle}
+                  onChange={(e) => setNewMilestoneTitle(e.target.value)}
+                  placeholder="Milestone title..."
+                  className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                />
+              </div>
+              <input
+                type="date"
+                value={newMilestoneDue}
+                onChange={(e) => setNewMilestoneDue(e.target.value)}
+                className="px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              />
+              <button
+                onClick={() => {
+                  if (newMilestoneTitle.trim() && newMilestoneDue)
+                    addMilestone.mutate({ title: newMilestoneTitle.trim(), dueDate: newMilestoneDue });
+                }}
+                disabled={!newMilestoneTitle.trim() || !newMilestoneDue || addMilestone.isPending}
+                className="px-3 py-1.5 text-sm bg-[#004E64] text-white rounded-md hover:bg-[#003D52] disabled:opacity-50"
+              >
+                {addMilestone.isPending ? "..." : "Add"}
+              </button>
+            </div>
+          )}
+
+          {rock.milestones && rock.milestones.length > 0 ? (
+            <div className="space-y-1">
               {rock.milestones.map(
                 (m: {
                   id: string;
@@ -300,36 +393,27 @@ export function RockDetailPanel({
                 }) => (
                   <div
                     key={m.id}
-                    className="flex items-center gap-3 py-1.5 px-2 rounded-md hover:bg-gray-50"
+                    className="flex items-center gap-3 py-1.5 px-2 rounded-md hover:bg-gray-50 group"
                   >
-                    <div
+                    <button
+                      onClick={() => toggleMilestone.mutate({ id: m.id, completed: !m.completed })}
                       className={cn(
-                        "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                        "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
                         m.completed
                           ? "border-[#004E64] bg-[#004E64]"
-                          : "border-gray-300"
+                          : "border-gray-300 hover:border-[#004E64]"
                       )}
                     >
                       {m.completed && (
-                        <svg
-                          className="w-2.5 h-2.5 text-white"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       )}
-                    </div>
+                    </button>
                     <span
                       className={cn(
                         "text-sm flex-1",
-                        m.completed
-                          ? "text-gray-400 line-through"
-                          : "text-gray-700"
+                        m.completed ? "text-gray-400 line-through" : "text-gray-700"
                       )}
                     >
                       {m.title}
@@ -337,12 +421,24 @@ export function RockDetailPanel({
                     <span className="text-xs text-gray-400">
                       {formatDateAU(m.dueDate)}
                     </span>
+                    <button
+                      onClick={() => deleteMilestone.mutate(m.id)}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
                 )
               )}
             </div>
-          </div>
-        )}
+          ) : (
+            !showAddMilestone && (
+              <p className="text-sm text-gray-400 italic">
+                No milestones yet — add milestones to track progress
+              </p>
+            )
+          )}
+        </div>
 
         {/* Linked To-Dos */}
         <div>

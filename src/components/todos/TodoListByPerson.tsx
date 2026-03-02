@@ -12,7 +12,17 @@ interface PersonGroup {
   totalCount: number;
 }
 
-export function TodoListByPerson({ todos }: { todos: TodoData[] }) {
+export function TodoListByPerson({
+  todos,
+  onTodoClick,
+  selectedIds,
+  onToggleSelect,
+}: {
+  todos: TodoData[];
+  onTodoClick?: (todo: TodoData) => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+}) {
   // Group by assignee
   const groups: Record<string, PersonGroup> = {};
 
@@ -39,13 +49,23 @@ export function TodoListByPerson({ todos }: { todos: TodoData[] }) {
   return (
     <div className="space-y-4">
       {sortedGroups.map((group) => (
-        <PersonSection key={group.assignee.id} group={group} />
+        <PersonSection key={group.assignee.id} group={group} onTodoClick={onTodoClick} selectedIds={selectedIds} onToggleSelect={onToggleSelect} />
       ))}
     </div>
   );
 }
 
-function PersonSection({ group }: { group: PersonGroup }) {
+function PersonSection({
+  group,
+  onTodoClick,
+  selectedIds,
+  onToggleSelect,
+}: {
+  group: PersonGroup;
+  onTodoClick?: (todo: TodoData) => void;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+}) {
   const [expanded, setExpanded] = useState(true);
   const allDone = group.completedCount === group.totalCount;
 
@@ -100,7 +120,14 @@ function PersonSection({ group }: { group: PersonGroup }) {
       {expanded && (
         <div className="px-3 pb-3 space-y-2">
           {group.todos.map((todo) => (
-            <TodoItem key={todo.id} todo={todo} />
+            <TodoItem
+              key={todo.id}
+              todo={todo}
+              onClick={onTodoClick ? () => onTodoClick(todo) : undefined}
+              selectable={!!onToggleSelect}
+              selected={selectedIds?.has(todo.id)}
+              onToggleSelect={() => onToggleSelect?.(todo.id)}
+            />
           ))}
         </div>
       )}
