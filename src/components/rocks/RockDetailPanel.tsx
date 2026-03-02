@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRock, useUpdateRock, useDeleteRock } from "@/hooks/useRocks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { cn, formatDateAU } from "@/lib/utils";
@@ -53,6 +53,14 @@ export function RockDetailPanel({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Sync local state when rock data loads or changes
+  useEffect(() => {
+    if (rock) {
+      setTitle(rock.title);
+      setDescription(rock.description || "");
+    }
+  }, [rock]);
   const [showAddMilestone, setShowAddMilestone] = useState(false);
   const [newMilestoneTitle, setNewMilestoneTitle] = useState("");
   const [newMilestoneDue, setNewMilestoneDue] = useState("");

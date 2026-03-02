@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Settings,
@@ -534,22 +534,13 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
   });
 
   // Sync local state when data loads
-  useState(() => {
+  useEffect(() => {
     if (orgSettings) {
       setOrgName(orgSettings.name);
       setPrimaryColor(orgSettings.primaryColor);
       setAccentColor(orgSettings.accentColor);
     }
-  });
-
-  // Update local state when query data changes
-  const [initialized, setInitialized] = useState(false);
-  if (orgSettings && !initialized) {
-    setOrgName(orgSettings.name);
-    setPrimaryColor(orgSettings.primaryColor);
-    setAccentColor(orgSettings.accentColor);
-    setInitialized(true);
-  }
+  }, [orgSettings]);
 
   const updateOrg = useMutation({
     mutationFn: async (data: { name?: string; primaryColor?: string; accentColor?: string }) => {

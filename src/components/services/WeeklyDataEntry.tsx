@@ -164,7 +164,7 @@ export function WeeklyDataEntry({
             <input
               type="number"
               min={0}
-              value={bscRecurring || ""}
+              value={bscRecurring === 0 ? "" : bscRecurring}
               onChange={(e) => setBscRecurring(Number(e.target.value) || 0)}
               className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
             />
@@ -174,7 +174,7 @@ export function WeeklyDataEntry({
             <input
               type="number"
               min={0}
-              value={bscCasual || ""}
+              value={bscCasual === 0 ? "" : bscCasual}
               onChange={(e) => setBscCasual(Number(e.target.value) || 0)}
               className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
             />
@@ -184,7 +184,7 @@ export function WeeklyDataEntry({
             <input
               type="number"
               min={0}
-              value={ascRecurring || ""}
+              value={ascRecurring === 0 ? "" : ascRecurring}
               onChange={(e) => setAscRecurring(Number(e.target.value) || 0)}
               className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
             />
@@ -194,7 +194,7 @@ export function WeeklyDataEntry({
             <input
               type="number"
               min={0}
-              value={ascCasual || ""}
+              value={ascCasual === 0 ? "" : ascCasual}
               onChange={(e) => setAscCasual(Number(e.target.value) || 0)}
               className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
             />
@@ -204,7 +204,7 @@ export function WeeklyDataEntry({
             <input
               type="number"
               min={0}
-              value={vcAttendance || ""}
+              value={vcAttendance === 0 ? "" : vcAttendance}
               onChange={(e) => setVcAttendance(Number(e.target.value) || 0)}
               className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
             />
@@ -223,7 +223,7 @@ export function WeeklyDataEntry({
             <input
               type="number"
               min={0}
-              value={staffCosts || ""}
+              value={staffCosts === 0 ? "" : staffCosts}
               onChange={(e) => setStaffCosts(Number(e.target.value) || 0)}
               className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
             />
@@ -233,7 +233,7 @@ export function WeeklyDataEntry({
             <input
               type="number"
               min={0}
-              value={foodCosts || ""}
+              value={foodCosts === 0 ? "" : foodCosts}
               onChange={(e) => setFoodCosts(Number(e.target.value) || 0)}
               className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
             />
@@ -243,7 +243,7 @@ export function WeeklyDataEntry({
             <input
               type="number"
               min={0}
-              value={suppliesCosts || ""}
+              value={suppliesCosts === 0 ? "" : suppliesCosts}
               onChange={(e) => setSuppliesCosts(Number(e.target.value) || 0)}
               className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
             />
@@ -253,7 +253,7 @@ export function WeeklyDataEntry({
             <input
               type="number"
               min={0}
-              value={otherCosts || ""}
+              value={otherCosts === 0 ? "" : otherCosts}
               onChange={(e) => setOtherCosts(Number(e.target.value) || 0)}
               className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
             />

@@ -59,7 +59,7 @@ export function useFinancials(filters?: { period?: string; serviceId?: string })
   const query = params.toString();
 
   return useQuery<{ financials: FinancialPeriodData[]; summary: FinancialSummary }>({
-    queryKey: ["financials", filters],
+    queryKey: ["financials", filters?.period ?? null, filters?.serviceId ?? null],
     queryFn: async () => {
       const res = await fetch(`/api/financials${query ? `?${query}` : ""}`);
       if (!res.ok) throw new Error("Failed to fetch financials");

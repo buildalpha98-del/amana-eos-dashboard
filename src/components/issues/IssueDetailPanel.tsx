@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useIssue, useUpdateIssue, useDeleteIssue } from "@/hooks/useIssues";
 import { useCreateTodo } from "@/hooks/useTodos";
 import { useRocks } from "@/hooks/useRocks";
@@ -56,6 +56,14 @@ export function IssueDetailPanel({
   const [newTodoAssignee, setNewTodoAssignee] = useState("");
   const [newTodoDueDate, setNewTodoDueDate] = useState("");
   const [showRockPicker, setShowRockPicker] = useState(false);
+
+  // Sync local state when issue data loads
+  useEffect(() => {
+    if (issue) {
+      setTitle(issue.title);
+      setResolution(issue.resolution || "");
+    }
+  }, [issue]);
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -309,7 +317,7 @@ export function IssueDetailPanel({
                 Resolution
               </label>
               <textarea
-                defaultValue={issue.resolution || ""}
+                value={resolution}
                 onChange={(e) => setResolution(e.target.value)}
                 onBlur={() =>
                   updateIssue.mutate({
