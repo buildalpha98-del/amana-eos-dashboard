@@ -1,0 +1,253 @@
+"use client";
+
+import { useState } from "react";
+import { useProjects } from "@/hooks/useProjects";
+import { ProjectCard } from "@/components/projects/ProjectCard";
+import { ProjectDetailPanel } from "@/components/projects/ProjectDetailPanel";
+import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
+import { cn } from "@/lib/utils";
+import {
+  FolderKanban,
+  Plus,
+  Search,
+  LayoutGrid,
+  List,
+} from "lucide-react";
+
+const statusTabs = [
+  { key: "", label: "All" },
+  { key: "not_started", label: "Not Started" },
+  { key: "in_progress", label: "In Progress" },
+  { key: "complete", label: "Complete" },
+  { key: "on_hold", label: "On Hold" },
+];
+
+export default function ProjectsPage() {
+  const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null
+  );
+  const [showCreate, setShowCreate] = useState(false);
+  const [view, setView] = useState<"grid" | "list">("grid");
+
+  const { data: projects, isLoading } = useProjects(
+    statusFilter ? { status: statusFilter } : undefined
+  );
+
+  const filtered = projects?.filter((p) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(q) ||
+      p.owner.name.toLowerCase().includes(q) ||
+      p.service?.name.toLowerCase().includes(q)
+    );
+  });
+
+  const counts = {
+    all: projects?.length || 0,
+    inProgress:
+      projects?.filter((p) => p.status === "in_progress").length || 0,
+    complete: projects?.filter((p) => p.status === "complete").length || 0,
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
+          <p className="text-gray-500 mt-1">
+            Track project progress across your centres
+          </p>
+        </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          New Project
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-sm text-gray-500">Total Projects</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{counts.all}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-sm text-gray-500">In Progress</p>
+          <p className="text-2xl font-bold text-blue-600 mt-1">
+            {counts.inProgress}
+          </p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <p className="text-sm text-gray-500">Completed</p>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">
+            {counts.complete}
+          </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          {statusTabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setStatusFilter(tab.key)}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                statusFilter === tab.key
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search projects..."
+            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+          />
+        </div>
+        <div className="flex items-center gap-1 ml-auto">
+          <button
+            onClick={() => setView("grid")}
+            className={cn(
+              "p-2 rounded-md",
+              view === "grid"
+                ? "bg-gray-200 text-gray-700"
+                : "text-gray-400 hover:text-gray-600"
+            )}
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setView("list")}
+            className={cn(
+              "p-2 rounded-md",
+              view === "list"
+                ? "bg-gray-200 text-gray-700"
+                : "text-gray-400 hover:text-gray-600"
+            )}
+          >
+            <List className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Project Grid/List */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full" />
+        </div>
+      ) : filtered && filtered.length > 0 ? (
+        view === "grid" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((project) => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onClick={() => setSelectedProjectId(project.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {filtered.map((project) => {
+              const status =
+                {
+                  not_started: { label: "Not Started", color: "text-gray-500 bg-gray-100" },
+                  in_progress: { label: "In Progress", color: "text-blue-700 bg-blue-100" },
+                  complete: { label: "Complete", color: "text-emerald-700 bg-emerald-100" },
+                  on_hold: { label: "On Hold", color: "text-amber-700 bg-amber-100" },
+                  cancelled: { label: "Cancelled", color: "text-red-700 bg-red-100" },
+                }[project.status] || { label: project.status, color: "text-gray-500 bg-gray-100" };
+
+              return (
+                <button
+                  key={project.id}
+                  onClick={() => setSelectedProjectId(project.id)}
+                  className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {project.name}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {project.owner.name}
+                      {project.service && ` • ${project.service.name}`}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      "px-2 py-0.5 text-[10px] font-medium rounded-full",
+                      status.color
+                    )}
+                  >
+                    {status.label}
+                  </span>
+                  <div className="w-24">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] text-gray-400">
+                        {project.progress.percent}%
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#1B4D3E] rounded-full"
+                        style={{ width: `${project.progress.percent}%` }}
+                      />
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <FolderKanban className="w-16 h-16 text-gray-300 mb-4" />
+          <p className="text-gray-500 text-lg">No projects found</p>
+          <p className="text-gray-400 text-sm mt-1">
+            {search
+              ? "Try adjusting your search"
+              : "Create your first project to get started"}
+          </p>
+          {!search && (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              New Project
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Detail Panel */}
+      {selectedProjectId && (
+        <ProjectDetailPanel
+          projectId={selectedProjectId}
+          onClose={() => setSelectedProjectId(null)}
+        />
+      )}
+
+      {/* Create Modal */}
+      <CreateProjectModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+      />
+    </div>
+  );
+}

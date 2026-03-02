@@ -18,6 +18,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Presentation,
+  Building2,
+  FolderKanban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +30,8 @@ const navItems = [
   { href: "/todos", label: "To-Dos", icon: CheckSquare },
   { href: "/issues", label: "Issues", icon: AlertCircle },
   { href: "/scorecard", label: "Scorecard", icon: BarChart3 },
+  { href: "/services", label: "Services", icon: Building2 },
+  { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/meetings", label: "Meetings", icon: Presentation },
   { href: "/team", label: "Team", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },

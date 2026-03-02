@@ -65,6 +65,21 @@ enum MeasurableFrequency {
   monthly
 }
 
+enum ServiceStatus {
+  active
+  onboarding
+  closing
+  closed
+}
+
+enum ProjectStatus {
+  not_started
+  in_progress
+  complete
+  on_hold
+  cancelled
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -78,12 +93,15 @@ model User {
 
   ownedRocks        Rock[]            @relation("RockOwner")
   assignedTodos     Todo[]            @relation("TodoAssignee")
+  createdTodos      Todo[]            @relation("TodoCreator")
   raisedIssues      Issue[]           @relation("IssueRaiser")
   ownedIssues       Issue[]           @relation("IssueOwner")
   ownedMeasurables  Measurable[]      @relation("MeasurableOwner")
   measurableEntries MeasurableEntry[] @relation("EntryCreator")
   activityLogs      ActivityLog[]
   vtoUpdates        VisionTractionOrganiser[] @relation("VTOUpdater")
+  managedServices   Service[]         @relation("ServiceManager")
+  ownedProjects     Project[]         @relation("ProjectOwner")
 }
 
 model VisionTractionOrganiser {
@@ -158,10 +176,16 @@ model Todo {
   description String?    @db.Text
   assigneeId  String
   assignee    User       @relation("TodoAssignee", fields: [assigneeId], references: [id])
+  createdById String?
+  createdBy   User?      @relation("TodoCreator", fields: [createdById], references: [id])
   rockId      String?
   rock        Rock?      @relation(fields: [rockId], references: [id], onDelete: SetNull)
   issueId     String?
   issue       Issue?     @relation(fields: [issueId], references: [id], onDelete: SetNull)
+  serviceId   String?
+  service     Service?   @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  projectId   String?
+  project     Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
   dueDate     DateTime
   status      TodoStatus @default(pending)
   weekOf      DateTime
@@ -174,6 +198,8 @@ model Todo {
   @@index([rockId])
   @@index([weekOf])
   @@index([status])
+  @@index([serviceId])
+  @@index([projectId])
 }
 
 model Issue {
@@ -186,6 +212,8 @@ model Issue {
   owner        User?         @relation("IssueOwner", fields: [ownerId], references: [id])
   rockId       String?
   rock         Rock?         @relation(fields: [rockId], references: [id], onDelete: SetNull)
+  serviceId    String?
+  service      Service?      @relation("ServiceIssues", fields: [serviceId], references: [id], onDelete: SetNull)
   priority     IssuePriority @default(medium)
   status       IssueStatus   @default(open)
   identifiedAt DateTime      @default(now())
@@ -201,6 +229,7 @@ model Issue {
   @@index([priority])
   @@index([status])
   @@index([ownerId])
+  @@index([serviceId])
 }
 
 model Scorecard {
@@ -264,4 +293,85 @@ model ActivityLog {
   @@index([entityType, entityId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// ============================================================
+// Services (OSHC Centres) & Projects
+// ============================================================
+
+model Service {
+  id          String        @id @default(cuid())
+  name        String
+  code        String        @unique
+  address     String?
+  suburb      String?
+  state       String?
+  postcode    String?
+  phone       String?
+  email       String?
+  status      ServiceStatus @default(active)
+  managerId   String?
+  manager     User?         @relation("ServiceManager", fields: [managerId], references: [id])
+  capacity    Int?
+  operatingDays String?
+  notes       String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  todos    Todo[]
+  projects Project[]
+  issues   Issue[]    @relation("ServiceIssues")
+
+  @@index([status])
+  @@index([managerId])
+}
+
+model ProjectTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  category    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks    ProjectTemplateTask[]
+  projects Project[]
+}
+
+model ProjectTemplateTask {
+  id          String          @id @default(cuid())
+  templateId  String
+  template    ProjectTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  title       String
+  description String?         @db.Text
+  category    String?
+  sortOrder   Int             @default(0)
+  defaultDays Int?
+
+  @@index([templateId])
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?       @db.Text
+  serviceId   String?
+  service     Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  templateId  String?
+  template    ProjectTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  ownerId     String
+  owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id])
+  status      ProjectStatus @default(not_started)
+  startDate   DateTime?
+  targetDate  DateTime?
+  completedAt DateTime?
+  deleted     Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  todos Todo[]
+
+  @@index([serviceId])
+  @@index([ownerId])
+  @@index([status])
 }
