@@ -130,13 +130,13 @@ export function CreateProjectModal({
                     }}
                     className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${
                       templateId === t.id
-                        ? "border-[#1B4D3E] bg-[#1B4D3E]/5"
+                        ? "border-[#004E64] bg-[#004E64]/5"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
                     <FileText
                       className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                        templateId === t.id ? "text-[#1B4D3E]" : "text-gray-400"
+                        templateId === t.id ? "text-[#004E64]" : "text-gray-400"
                       }`}
                     />
                     <div>
@@ -167,7 +167,7 @@ export function CreateProjectModal({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               placeholder="e.g., Lakemba Centre Opening"
             />
           </div>
@@ -181,7 +181,7 @@ export function CreateProjectModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
             />
           </div>
 
@@ -194,7 +194,7 @@ export function CreateProjectModal({
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               >
                 <option value="">No linked centre</option>
                 {services?.map((s) => (
@@ -212,7 +212,7 @@ export function CreateProjectModal({
                 required
                 value={ownerId}
                 onChange={(e) => setOwnerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               >
                 <option value="">Select owner...</option>
                 {users?.map((u) => (
@@ -233,7 +233,7 @@ export function CreateProjectModal({
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               />
             </div>
             <div>
@@ -245,7 +245,7 @@ export function CreateProjectModal({
                 type="date"
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               />
             </div>
           </div>
@@ -283,7 +283,7 @@ export function CreateProjectModal({
             <button
               type="submit"
               disabled={createProject.isPending}
-              className="flex-1 px-4 py-2 bg-[#1B4D3E] text-white font-medium rounded-lg hover:bg-[#164032] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
             >
               {createProject.isPending ? "Creating..." : "Create Project"}
             </button>

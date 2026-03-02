@@ -80,6 +80,13 @@ enum ProjectStatus {
   cancelled
 }
 
+enum MeetingStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -102,6 +109,7 @@ model User {
   vtoUpdates        VisionTractionOrganiser[] @relation("VTOUpdater")
   managedServices   Service[]         @relation("ServiceManager")
   ownedProjects     Project[]         @relation("ProjectOwner")
+  createdMeetings   Meeting[]         @relation("MeetingCreator")
 }
 
 model VisionTractionOrganiser {
@@ -374,4 +382,31 @@ model Project {
   @@index([serviceId])
   @@index([ownerId])
   @@index([status])
+}
+
+// ============================================================
+// L10 Meetings
+// ============================================================
+
+model Meeting {
+  id            String        @id @default(cuid())
+  title         String
+  date          DateTime
+  status        MeetingStatus @default(scheduled)
+  currentSection Int          @default(0)
+  rating        Float?
+  notes         String?       @db.Text
+  headlines     String?       @db.Text
+  segueNotes    String?       @db.Text
+  concludeNotes String?       @db.Text
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdById   String
+  createdBy     User          @relation("MeetingCreator", fields: [createdById], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([date])
+  @@index([status])
+  @@index([createdById])
 }

@@ -108,7 +108,7 @@ function InviteUserModal({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               placeholder="John Smith"
             />
           </div>
@@ -122,7 +122,7 @@ function InviteUserModal({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               placeholder="john@amanaoshc.com.au"
             />
           </div>
@@ -136,7 +136,7 @@ function InviteUserModal({
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               placeholder="Set a temporary password"
               minLength={8}
             />
@@ -149,7 +149,7 @@ function InviteUserModal({
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as Role)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
             >
               <option value="member">Member</option>
               <option value="admin">Admin</option>
@@ -168,7 +168,7 @@ function InviteUserModal({
             <button
               type="submit"
               disabled={createUser.isPending}
-              className="flex-1 px-4 py-2 bg-[#1B4D3E] text-white font-medium rounded-lg hover:bg-[#164032] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
             >
               {createUser.isPending ? "Creating..." : "Create User"}
             </button>
@@ -184,7 +184,7 @@ function RoleIcon({ role }: { role: Role }) {
     case "owner":
       return <ShieldCheck className="w-4 h-4 text-[#FECE00]" />;
     case "admin":
-      return <Shield className="w-4 h-4 text-[#1B4D3E]" />;
+      return <Shield className="w-4 h-4 text-[#004E64]" />;
     default:
       return <User className="w-4 h-4 text-gray-400" />;
   }
@@ -235,7 +235,7 @@ function UserRow({
     <tr className="border-b border-gray-100 last:border-0">
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#1B4D3E]/10 flex items-center justify-center text-xs font-medium text-[#1B4D3E]">
+          <div className="w-8 h-8 rounded-full bg-[#004E64]/10 flex items-center justify-center text-xs font-medium text-[#004E64]">
             {user.name
               .split(" ")
               .map((n) => n[0])
@@ -352,7 +352,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
             <input
               type="text"
               defaultValue="Amana OSHC"
-              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               readOnly
             />
           </div>
@@ -362,8 +362,8 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
                 Primary Colour
               </label>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-md bg-[#1B4D3E] border border-gray-200" />
-                <span className="text-sm text-gray-500">#1B4D3E</span>
+                <div className="w-8 h-8 rounded-md bg-[#004E64] border border-gray-200" />
+                <span className="text-sm text-gray-500">#004E64</span>
               </div>
             </div>
             <div>
@@ -391,7 +391,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
             </div>
             <button
               onClick={() => setShowInvite(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
             >
               <UserPlus className="w-4 h-4" />
               Invite User

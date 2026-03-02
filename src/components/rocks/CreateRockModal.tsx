@@ -97,7 +97,7 @@ export function CreateRockModal({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               placeholder="e.g., Launch 3 new NSW centres by end of quarter"
             />
           </div>
@@ -110,7 +110,7 @@ export function CreateRockModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
               placeholder="Describe the Rock in detail..."
             />
           </div>
@@ -124,7 +124,7 @@ export function CreateRockModal({
                 required
                 value={ownerId}
                 onChange={(e) => setOwnerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               >
                 <option value="">Select owner...</option>
                 {users?.map((u) => (
@@ -142,7 +142,7 @@ export function CreateRockModal({
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as RockPriority)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               >
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
@@ -162,7 +162,7 @@ export function CreateRockModal({
             <button
               type="submit"
               disabled={createRock.isPending}
-              className="flex-1 px-4 py-2 bg-[#1B4D3E] text-white font-medium rounded-lg hover:bg-[#164032] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
             >
               {createRock.isPending ? "Creating..." : "Create Rock"}
             </button>

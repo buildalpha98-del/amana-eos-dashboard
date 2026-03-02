@@ -41,7 +41,7 @@ export default function RocksPage() {
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 view === "kanban"
-                  ? "bg-white text-[#1B4D3E] shadow-sm"
+                  ? "bg-white text-[#004E64] shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="Kanban view"
@@ -53,7 +53,7 @@ export default function RocksPage() {
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 view === "list"
-                  ? "bg-white text-[#1B4D3E] shadow-sm"
+                  ? "bg-white text-[#004E64] shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="List view"
@@ -65,7 +65,7 @@ export default function RocksPage() {
           {/* Add Rock */}
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Add Rock
@@ -92,7 +92,7 @@ export default function RocksPage() {
           <span className="text-sm text-red-600">
             {rocks.filter((r) => r.status === "off_track").length} off track
           </span>
-          <span className="text-sm text-[#1B4D3E]">
+          <span className="text-sm text-[#004E64]">
             {rocks.filter((r) => r.status === "complete").length} complete
           </span>
         </div>
@@ -101,7 +101,7 @@ export default function RocksPage() {
       {/* Content */}
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="animate-spin w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
         </div>
       ) : rocks && rocks.length > 0 ? (
         view === "kanban" ? (
@@ -112,8 +112,8 @@ export default function RocksPage() {
       ) : (
         /* Empty State */
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-[#1B4D3E]/5 flex items-center justify-center mb-4">
-            <Mountain className="w-8 h-8 text-[#1B4D3E]/30" />
+          <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
+            <Mountain className="w-8 h-8 text-[#004E64]/30" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">
             No Rocks for {quarter.replace("-", " ")}
@@ -124,7 +124,7 @@ export default function RocksPage() {
           </p>
           <button
             onClick={() => setShowCreate(true)}
-            className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors shadow-sm"
+            className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Create Your First Rock

@@ -11,6 +11,7 @@ import {
   Calendar,
   CheckSquare,
   User,
+  Plus,
 } from "lucide-react";
 
 interface UserOption {
@@ -38,6 +39,14 @@ export function ProjectDetailPanel({
   const deleteProject = useDeleteProject();
   const queryClient = useQueryClient();
   const [showDelete, setShowDelete] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskAssignee, setNewTaskAssignee] = useState("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split("T")[0];
+  });
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -48,7 +57,6 @@ export function ProjectDetailPanel({
     },
   });
 
-  // Toggle todo status
   const toggleTodo = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const newStatus = status === "complete" ? "pending" : "complete";
@@ -66,7 +74,6 @@ export function ProjectDetailPanel({
     },
   });
 
-  // Reassign todo
   const reassignTodo = useMutation({
     mutationFn: async ({ id, assigneeId }: { id: string; assigneeId: string }) => {
       const res = await fetch(`/api/todos/${id}`, {
@@ -82,6 +89,52 @@ export function ProjectDetailPanel({
     },
   });
 
+  const addTask = useMutation({
+    mutationFn: async (data: {
+      title: string;
+      assigneeId: string;
+      dueDate: string;
+      projectId: string;
+      serviceId?: string | null;
+    }) => {
+      const now = new Date();
+      const weekOf = new Date(now);
+      weekOf.setDate(weekOf.getDate() - weekOf.getDay() + (weekOf.getDay() === 0 ? -6 : 1));
+      weekOf.setHours(0, 0, 0, 0);
+
+      const res = await fetch("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, weekOf: weekOf.toISOString() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to add task");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      setNewTaskTitle("");
+      setNewTaskAssignee("");
+      setShowAddTask(false);
+    },
+  });
+
+  const handleAddTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim() || !newTaskAssignee) return;
+    addTask.mutate({
+      title: newTaskTitle,
+      assigneeId: newTaskAssignee,
+      dueDate: newTaskDueDate,
+      projectId,
+      serviceId: project?.service?.id || null,
+    });
+  };
+
   const handleDelete = () => {
     deleteProject.mutate(projectId, { onSuccess: onClose });
   };
@@ -89,60 +142,39 @@ export function ProjectDetailPanel({
   if (isLoading || !project) {
     return (
       <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 z-50 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
       </div>
     );
   }
 
-  const completedTodos = project.todos.filter(
-    (t) => t.status === "complete"
-  ).length;
-  const progress =
-    project.todos.length > 0
-      ? Math.round((completedTodos / project.todos.length) * 100)
-      : 0;
+  const completedTodos = project.todos.filter((t) => t.status === "complete").length;
+  const progress = project.todos.length > 0 ? Math.round((completedTodos / project.todos.length) * 100) : 0;
 
   return (
     <>
       <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
       <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 z-50 flex flex-col overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-base font-semibold text-gray-900">
-            Project Details
-          </h3>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
-          >
+          <h3 className="text-base font-semibold text-gray-900">Project Details</h3>
+          <button onClick={onClose} className="p-1 rounded-md text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          {/* Title */}
-          <h2 className="text-lg font-semibold text-gray-900">
-            {project.name}
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900">{project.name}</h2>
 
           {/* Status */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-              Status
-            </label>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Status</label>
             <div className="flex gap-1 flex-wrap">
               {statusOptions.map((s) => (
                 <button
                   key={s.key}
-                  onClick={() =>
-                    updateProject.mutate({ id: projectId, status: s.key })
-                  }
+                  onClick={() => updateProject.mutate({ id: projectId, status: s.key })}
                   className={cn(
                     "px-2.5 py-1.5 text-[10px] font-medium rounded-md border transition-colors",
-                    project.status === s.key
-                      ? s.color
-                      : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
+                    project.status === s.key ? s.color : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
                   )}
                 >
                   {s.label}
@@ -167,12 +199,7 @@ export function ProjectDetailPanel({
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Calendar className="w-4 h-4 text-gray-400" />
                 <span>
-                  Target:{" "}
-                  {new Date(project.targetDate).toLocaleDateString("en-AU", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
+                  Target: {new Date(project.targetDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
                 </span>
               </div>
             )}
@@ -181,156 +208,139 @@ export function ProjectDetailPanel({
           {/* Progress */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Progress
-              </label>
-              <span className="text-sm font-semibold text-gray-700">
-                {progress}%
-              </span>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</label>
+              <span className="text-sm font-semibold text-gray-700">{progress}%</span>
             </div>
             <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className={cn(
-                  "h-full rounded-full transition-all",
-                  progress === 100
-                    ? "bg-emerald-500"
-                    : progress > 50
-                    ? "bg-[#1B4D3E]"
-                    : "bg-blue-500"
-                )}
+                className={cn("h-full rounded-full transition-all", progress === 100 ? "bg-emerald-500" : progress > 50 ? "bg-[#004E64]" : "bg-blue-500")}
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">
-              {completedTodos} of {project.todos.length} tasks complete
-            </p>
+            <p className="text-xs text-gray-400 mt-1">{completedTodos} of {project.todos.length} tasks complete</p>
           </div>
 
-          {/* Description */}
           {project.description && (
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-                Description
-              </label>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Description</label>
               <p className="text-sm text-gray-600">{project.description}</p>
             </div>
           )}
 
           {/* Task List */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-              <CheckSquare className="w-3.5 h-3.5 inline mr-1" />
-              Tasks ({project.todos.length})
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <CheckSquare className="w-3.5 h-3.5 inline mr-1" />
+                Tasks ({project.todos.length})
+              </label>
+              <button
+                onClick={() => setShowAddTask(true)}
+                className="inline-flex items-center gap-1 text-xs font-medium text-[#004E64] hover:text-[#003D52] transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Task
+              </button>
+            </div>
+
+            {showAddTask && (
+              <form onSubmit={handleAddTask} className="mb-3 p-3 bg-[#004E64]/5 rounded-lg border border-[#004E64]/20 space-y-2">
+                <input
+                  type="text"
+                  autoFocus
+                  required
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  placeholder="Task title..."
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    required
+                    value={newTaskAssignee}
+                    onChange={(e) => setNewTaskAssignee(e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  >
+                    <option value="">Assign to...</option>
+                    {users?.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    required
+                    value={newTaskDueDate}
+                    onChange={(e) => setNewTaskDueDate(e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" disabled={addTask.isPending} className="px-3 py-1.5 text-xs bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] disabled:opacity-50">
+                    {addTask.isPending ? "Adding..." : "Add"}
+                  </button>
+                  <button type="button" onClick={() => setShowAddTask(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
             {project.todos.length > 0 ? (
               <div className="space-y-2">
                 {project.todos.map((todo) => (
                   <div
                     key={todo.id}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors",
-                      todo.status === "complete"
-                        ? "bg-gray-50 border-gray-100"
-                        : "bg-white border-gray-200"
-                    )}
+                    className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors", todo.status === "complete" ? "bg-gray-50 border-gray-100" : "bg-white border-gray-200")}
                   >
                     <button
-                      onClick={() =>
-                        toggleTodo.mutate({
-                          id: todo.id,
-                          status: todo.status,
-                        })
-                      }
-                      className={cn(
-                        "w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-                        todo.status === "complete"
-                          ? "bg-emerald-500 border-emerald-500 text-white"
-                          : "border-gray-300 hover:border-[#1B4D3E]"
-                      )}
+                      onClick={() => toggleTodo.mutate({ id: todo.id, status: todo.status })}
+                      className={cn("w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors", todo.status === "complete" ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-300 hover:border-[#004E64]")}
                     >
                       {todo.status === "complete" && (
-                        <svg
-                          className="w-3 h-3"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={3}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M5 13l4 4L19 7"
-                          />
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       )}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <p
-                        className={cn(
-                          "text-sm truncate",
-                          todo.status === "complete"
-                            ? "line-through text-gray-400"
-                            : "text-gray-700"
-                        )}
-                      >
-                        {todo.title}
-                      </p>
+                      <p className={cn("text-sm truncate", todo.status === "complete" ? "line-through text-gray-400" : "text-gray-700")}>{todo.title}</p>
                       <p className="text-[10px] text-gray-400">
-                        Due{" "}
-                        {new Date(todo.dueDate).toLocaleDateString("en-AU", {
-                          day: "numeric",
-                          month: "short",
-                        })}
+                        Due {new Date(todo.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                       </p>
                     </div>
                     <select
                       value={todo.assignee.id}
-                      onChange={(e) =>
-                        reassignTodo.mutate({
-                          id: todo.id,
-                          assigneeId: e.target.value,
-                        })
-                      }
+                      onChange={(e) => reassignTodo.mutate({ id: todo.id, assigneeId: e.target.value })}
                       className="text-xs text-gray-500 border-none bg-transparent focus:outline-none cursor-pointer"
                     >
                       {users?.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name}
-                        </option>
+                        <option key={u.id} value={u.id}>{u.name}</option>
                       ))}
                     </select>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm text-gray-400 italic">No tasks yet</p>
-            )}
+            ) : !showAddTask ? (
+              <button
+                onClick={() => setShowAddTask(true)}
+                className="w-full py-6 text-center text-sm text-gray-400 border-2 border-dashed border-gray-200 rounded-lg hover:border-[#004E64] hover:text-[#004E64] transition-colors"
+              >
+                <Plus className="w-5 h-5 mx-auto mb-1" />
+                Add the first task
+              </button>
+            ) : null}
           </div>
         </div>
 
-        {/* Footer */}
         <div className="border-t border-gray-200 px-6 py-3 flex justify-between">
           {showDelete ? (
             <div className="flex items-center gap-2">
               <span className="text-sm text-red-600">Delete this project?</span>
-              <button
-                onClick={handleDelete}
-                className="text-xs px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => setShowDelete(false)}
-                className="text-xs px-3 py-1 text-gray-500"
-              >
-                Cancel
-              </button>
+              <button onClick={handleDelete} className="text-xs px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">Delete</button>
+              <button onClick={() => setShowDelete(false)} className="text-xs px-3 py-1 text-gray-500">Cancel</button>
             </div>
           ) : (
-            <button
-              onClick={() => setShowDelete(true)}
-              className="text-gray-400 hover:text-red-500 transition-colors"
-            >
+            <button onClick={() => setShowDelete(true)} className="text-gray-400 hover:text-red-500 transition-colors">
               <Trash2 className="w-4 h-4" />
             </button>
           )}

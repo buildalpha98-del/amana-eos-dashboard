@@ -25,7 +25,7 @@ export function TopBar() {
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-30">
       <div className="flex items-center gap-4">
         <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-        <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#1B4D3E]/10 text-[#1B4D3E]">
+        <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#004E64]/10 text-[#004E64]">
           {quarter}
         </span>
       </div>
@@ -45,7 +45,7 @@ export function TopBar() {
 
         {/* Quick Add */}
         <button
-          className="p-2 rounded-lg text-white bg-[#1B4D3E] hover:bg-[#164032] transition-colors"
+          className="p-2 rounded-lg text-white bg-[#004E64] hover:bg-[#003D52] transition-colors"
           title="Quick Add"
         >
           <Plus className="w-4 h-4" />

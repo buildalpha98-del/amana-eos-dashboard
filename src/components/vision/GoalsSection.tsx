@@ -62,7 +62,7 @@ export function GoalsSection({
         </h3>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="inline-flex items-center gap-1 text-xs px-2 py-1 text-[#1B4D3E] hover:bg-[#1B4D3E]/5 rounded-md transition-colors"
+          className="inline-flex items-center gap-1 text-xs px-2 py-1 text-[#004E64] hover:bg-[#004E64]/5 rounded-md transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           Add Goal
@@ -72,13 +72,13 @@ export function GoalsSection({
       <div className="divide-y divide-gray-100">
         {/* Add form */}
         {showAdd && (
-          <div className="px-5 py-4 bg-[#1B4D3E]/[0.02] space-y-3">
+          <div className="px-5 py-4 bg-[#004E64]/[0.02] space-y-3">
             <input
               autoFocus
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Goal title..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4D3E]"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleCreate();
               }}
@@ -88,13 +88,13 @@ export function GoalsSection({
               onChange={(e) => setNewDesc(e.target.value)}
               placeholder="Description (optional)..."
               rows={2}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
             />
             <div className="flex gap-2">
               <button
                 onClick={handleCreate}
                 disabled={createGoal.isPending || !newTitle.trim()}
-                className="text-xs px-3 py-1.5 bg-[#1B4D3E] text-white rounded-md hover:bg-[#164032] disabled:opacity-50"
+                className="text-xs px-3 py-1.5 bg-[#004E64] text-white rounded-md hover:bg-[#003D52] disabled:opacity-50"
               >
                 {createGoal.isPending ? "Creating..." : "Create Goal"}
               </button>
@@ -153,7 +153,7 @@ function GoalRow({
           )}
         </button>
 
-        <Target className="w-4 h-4 text-[#1B4D3E] flex-shrink-0" />
+        <Target className="w-4 h-4 text-[#004E64] flex-shrink-0" />
 
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium text-gray-900">{goal.title}</span>
@@ -228,9 +228,9 @@ function GoalRow({
               {goal.rocks.map((rock) => (
                 <div
                   key={rock.id}
-                  className="flex items-center gap-2 px-2 py-1 bg-[#1B4D3E]/5 rounded"
+                  className="flex items-center gap-2 px-2 py-1 bg-[#004E64]/5 rounded"
                 >
-                  <Mountain className="w-3 h-3 text-[#1B4D3E]" />
+                  <Mountain className="w-3 h-3 text-[#004E64]" />
                   <span className="text-xs text-gray-700 flex-1">
                     {rock.title}
                   </span>

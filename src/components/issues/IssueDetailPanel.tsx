@@ -60,7 +60,7 @@ export function IssueDetailPanel({
   if (isLoading || !issue) {
     return (
       <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl border-l border-gray-200 z-50 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -94,7 +94,7 @@ export function IssueDetailPanel({
                 autoFocus
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 text-lg font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4D3E]"
+                className="w-full px-3 py-2 text-lg font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     updateIssue.mutate({ id: issueId, title });
@@ -109,7 +109,7 @@ export function IssueDetailPanel({
                     updateIssue.mutate({ id: issueId, title });
                     setEditTitle(false);
                   }}
-                  className="text-xs px-3 py-1 bg-[#1B4D3E] text-white rounded-md"
+                  className="text-xs px-3 py-1 bg-[#004E64] text-white rounded-md"
                 >
                   Save
                 </button>
@@ -123,7 +123,7 @@ export function IssueDetailPanel({
             </div>
           ) : (
             <h2
-              className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-[#1B4D3E] transition-colors"
+              className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-[#004E64] transition-colors"
               onClick={() => {
                 setTitle(issue.title);
                 setEditTitle(true);
@@ -217,7 +217,7 @@ export function IssueDetailPanel({
                   ownerId: e.target.value || null,
                 })
               }
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4D3E]"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
             >
               <option value="">Unassigned</option>
               {users?.map((u) => (
@@ -242,7 +242,7 @@ export function IssueDetailPanel({
                 })
               }
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
               placeholder="Describe the issue..."
             />
           </div>
@@ -263,7 +263,7 @@ export function IssueDetailPanel({
                   })
                 }
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] resize-none"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
                 placeholder="How was this resolved?"
               />
             </div>
@@ -275,9 +275,9 @@ export function IssueDetailPanel({
               <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
                 Linked Rock
               </label>
-              <div className="flex items-center gap-2 px-3 py-2 bg-[#1B4D3E]/5 rounded-lg">
-                <Mountain className="w-4 h-4 text-[#1B4D3E]" />
-                <span className="text-sm text-[#1B4D3E] font-medium">
+              <div className="flex items-center gap-2 px-3 py-2 bg-[#004E64]/5 rounded-lg">
+                <Mountain className="w-4 h-4 text-[#004E64]" />
+                <span className="text-sm text-[#004E64] font-medium">
                   {issue.rock.title}
                 </span>
               </div>

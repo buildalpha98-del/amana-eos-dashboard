@@ -26,7 +26,7 @@ import type { RockStatus } from "@prisma/client";
 const columns: { id: RockStatus; label: string; color: string }[] = [
   { id: "on_track", label: "On Track", color: "#10B981" },
   { id: "off_track", label: "Off Track", color: "#EF4444" },
-  { id: "complete", label: "Complete", color: "#1B4D3E" },
+  { id: "complete", label: "Complete", color: "#004E64" },
 ];
 
 function DroppableColumn({
@@ -56,7 +56,7 @@ function DroppableColumn({
       <div
         ref={setNodeRef}
         className={`space-y-3 min-h-[200px] p-2 rounded-xl transition-colors duration-200 ${
-          isOver ? "bg-[#1B4D3E]/5 ring-2 ring-[#1B4D3E]/20" : "bg-gray-50/50"
+          isOver ? "bg-[#004E64]/5 ring-2 ring-[#004E64]/20" : "bg-gray-50/50"
         }`}
       >
         <SortableContext

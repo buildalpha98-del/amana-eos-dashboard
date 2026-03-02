@@ -130,13 +130,13 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
                     className={cn(
                       "px-1 py-3 text-center text-[10px] font-medium w-[70px]",
                       isCurrent
-                        ? "text-[#1B4D3E] bg-[#1B4D3E]/5 font-semibold"
+                        ? "text-[#004E64] bg-[#004E64]/5 font-semibold"
                         : "text-gray-400"
                     )}
                   >
                     {formatWeekShort(week)}
                     {isCurrent && (
-                      <div className="text-[8px] text-[#1B4D3E] font-bold mt-0.5">
+                      <div className="text-[8px] text-[#004E64] font-bold mt-0.5">
                         THIS WEEK
                       </div>
                     )}
@@ -155,8 +155,8 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
                     className="sticky left-0 z-10 bg-gray-50 px-4 py-2"
                   >
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#1B4D3E]/10 flex items-center justify-center">
-                        <span className="text-[10px] font-medium text-[#1B4D3E]">
+                      <div className="w-6 h-6 rounded-full bg-[#004E64]/10 flex items-center justify-center">
+                        <span className="text-[10px] font-medium text-[#004E64]">
                           {group.owner.name
                             .split(" ")
                             .map((n) => n[0])

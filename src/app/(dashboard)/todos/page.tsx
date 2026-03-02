@@ -85,7 +85,7 @@ export default function TodosPage() {
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 groupBy === "person"
-                  ? "bg-white text-[#1B4D3E] shadow-sm"
+                  ? "bg-white text-[#004E64] shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="Group by person"
@@ -97,7 +97,7 @@ export default function TodosPage() {
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 groupBy === "flat"
-                  ? "bg-white text-[#1B4D3E] shadow-sm"
+                  ? "bg-white text-[#004E64] shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="Flat list"
@@ -112,7 +112,7 @@ export default function TodosPage() {
             className={cn(
               "p-2 rounded-lg border transition-colors",
               hasActiveFilters
-                ? "border-[#1B4D3E] bg-[#1B4D3E]/5 text-[#1B4D3E]"
+                ? "border-[#004E64] bg-[#004E64]/5 text-[#004E64]"
                 : "border-gray-200 text-gray-400 hover:text-gray-600"
             )}
             title="Filters"
@@ -123,7 +123,7 @@ export default function TodosPage() {
           {/* Add To-Do */}
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Add To-Do
@@ -142,7 +142,7 @@ export default function TodosPage() {
           <select
             value={filterAssignee}
             onChange={(e) => setFilterAssignee(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
           >
             <option value="">All People</option>
             {users?.map((u) => (
@@ -155,7 +155,7 @@ export default function TodosPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
           >
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
@@ -208,7 +208,7 @@ export default function TodosPage() {
       {/* Content */}
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="animate-spin w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
         </div>
       ) : todos && todos.length > 0 ? (
         groupBy === "person" ? (
@@ -223,8 +223,8 @@ export default function TodosPage() {
       ) : (
         /* Empty State */
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-[#1B4D3E]/5 flex items-center justify-center mb-4">
-            <CheckSquare className="w-8 h-8 text-[#1B4D3E]/30" />
+          <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
+            <CheckSquare className="w-8 h-8 text-[#004E64]/30" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">
             No To-Dos this week
@@ -235,7 +235,7 @@ export default function TodosPage() {
           </p>
           <button
             onClick={() => setShowCreate(true)}
-            className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors shadow-sm"
+            className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Create Your First To-Do

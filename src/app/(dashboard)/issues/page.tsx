@@ -99,7 +99,7 @@ export default function IssuesPage() {
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 viewMode === "board"
-                  ? "bg-white text-[#1B4D3E] shadow-sm"
+                  ? "bg-white text-[#004E64] shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="Board view"
@@ -111,7 +111,7 @@ export default function IssuesPage() {
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 viewMode === "list"
-                  ? "bg-white text-[#1B4D3E] shadow-sm"
+                  ? "bg-white text-[#004E64] shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="List view"
@@ -126,7 +126,7 @@ export default function IssuesPage() {
             className={cn(
               "p-2 rounded-lg border transition-colors",
               hasActiveFilters
-                ? "border-[#1B4D3E] bg-[#1B4D3E]/5 text-[#1B4D3E]"
+                ? "border-[#004E64] bg-[#004E64]/5 text-[#004E64]"
                 : "border-gray-200 text-gray-400 hover:text-gray-600"
             )}
             title="Filters"
@@ -136,7 +136,7 @@ export default function IssuesPage() {
 
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Raise Issue
@@ -175,7 +175,7 @@ export default function IssuesPage() {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E]"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64]"
           >
             <option value="">All Priorities</option>
             <option value="critical">Critical</option>
@@ -187,7 +187,7 @@ export default function IssuesPage() {
           <select
             value={ownerFilter}
             onChange={(e) => setOwnerFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E]"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64]"
           >
             <option value="">All Owners</option>
             {users?.map((u) => (
@@ -232,7 +232,7 @@ export default function IssuesPage() {
       {/* Content */}
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="animate-spin w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
         </div>
       ) : issues && issues.length > 0 ? (
         viewMode === "board" ? (
@@ -340,7 +340,7 @@ export default function IssuesPage() {
           </p>
           <button
             onClick={() => setShowCreate(true)}
-            className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors shadow-sm"
+            className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Raise Your First Issue

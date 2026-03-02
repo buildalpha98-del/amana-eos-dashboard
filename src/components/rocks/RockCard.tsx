@@ -18,7 +18,7 @@ const priorityConfig = {
 const statusColors = {
   on_track: "#10B981",
   off_track: "#EF4444",
-  complete: "#1B4D3E",
+  complete: "#004E64",
   dropped: "#9CA3AF",
 };
 
@@ -84,8 +84,8 @@ export function RockCard({
       {/* Footer: Owner + Counts */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-[#1B4D3E]/10 flex items-center justify-center">
-            <span className="text-[10px] font-medium text-[#1B4D3E]">
+          <div className="w-6 h-6 rounded-full bg-[#004E64]/10 flex items-center justify-center">
+            <span className="text-[10px] font-medium text-[#004E64]">
               {rock.owner.name
                 .split(" ")
                 .map((n) => n[0])

@@ -45,7 +45,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen bg-[#0F2E23] text-white flex flex-col transition-all duration-300 z-40",
+        "fixed left-0 top-0 h-screen bg-[#003344] text-white flex flex-col transition-all duration-300 z-40",
         collapsed ? "w-16" : "w-64"
       )}
     >
@@ -99,7 +99,7 @@ export function Sidebar() {
       <div className="border-t border-white/10 p-3">
         {session?.user && (
           <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#1B4D3E] flex items-center justify-center text-xs font-medium">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#004E64] flex items-center justify-center text-xs font-medium">
               {session.user.name
                 ?.split(" ")
                 .map((n) => n[0])
@@ -131,7 +131,7 @@ export function Sidebar() {
       {/* Collapse Toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-[#0F2E23] border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-[#003344] border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors"
       >
         {collapsed ? (
           <ChevronRight className="w-3 h-3" />

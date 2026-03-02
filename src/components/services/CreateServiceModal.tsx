@@ -115,7 +115,7 @@ export function CreateServiceModal({
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
                 placeholder="e.g., Amana OSHC Lakemba"
               />
             </div>
@@ -128,7 +128,7 @@ export function CreateServiceModal({
                 required
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent uppercase"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent uppercase"
                 placeholder="e.g., LKB"
               />
             </div>
@@ -142,7 +142,7 @@ export function CreateServiceModal({
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               placeholder="Street address"
             />
           </div>
@@ -156,7 +156,7 @@ export function CreateServiceModal({
                 type="text"
                 value={suburb}
                 onChange={(e) => setSuburb(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               />
             </div>
             <div>
@@ -166,7 +166,7 @@ export function CreateServiceModal({
               <select
                 value={state}
                 onChange={(e) => setState(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               >
                 <option value="NSW">NSW</option>
                 <option value="VIC">VIC</option>
@@ -186,7 +186,7 @@ export function CreateServiceModal({
                 type="text"
                 value={postcode}
                 onChange={(e) => setPostcode(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
                 maxLength={4}
               />
             </div>
@@ -201,7 +201,7 @@ export function CreateServiceModal({
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               />
             </div>
             <div>
@@ -212,7 +212,7 @@ export function CreateServiceModal({
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               />
             </div>
           </div>
@@ -225,7 +225,7 @@ export function CreateServiceModal({
               <select
                 value={managerId}
                 onChange={(e) => setManagerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               >
                 <option value="">Select manager...</option>
                 {users?.map((u) => (
@@ -243,7 +243,7 @@ export function CreateServiceModal({
                 type="number"
                 value={capacity}
                 onChange={(e) => setCapacity(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
                 placeholder="Max children"
               />
             </div>
@@ -257,7 +257,7 @@ export function CreateServiceModal({
               type="text"
               value={operatingDays}
               onChange={(e) => setOperatingDays(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               placeholder="e.g., Mon-Fri"
             />
           </div>
@@ -273,7 +273,7 @@ export function CreateServiceModal({
             <button
               type="submit"
               disabled={createService.isPending}
-              className="flex-1 px-4 py-2 bg-[#1B4D3E] text-white font-medium rounded-lg hover:bg-[#164032] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
             >
               {createService.isPending ? "Adding..." : "Add Centre"}
             </button>

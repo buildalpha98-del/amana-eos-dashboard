@@ -113,7 +113,7 @@ export function CreateIssueModal({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               placeholder="e.g., Staff retention at Western Sydney centres"
             />
           </div>
@@ -127,7 +127,7 @@ export function CreateIssueModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
               placeholder="Context and impact..."
             />
           </div>
@@ -142,7 +142,7 @@ export function CreateIssueModal({
                 onChange={(e) =>
                   setPriority(e.target.value as typeof priority)
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               >
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
@@ -159,7 +159,7 @@ export function CreateIssueModal({
               <select
                 value={ownerId}
                 onChange={(e) => setOwnerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               >
                 <option value="">Unassigned</option>
                 {users?.map((u) => (
@@ -179,7 +179,7 @@ export function CreateIssueModal({
             <select
               value={rockId}
               onChange={(e) => setRockId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
             >
               <option value="">No linked Rock</option>
               {rocks?.map((r) => (
@@ -201,7 +201,7 @@ export function CreateIssueModal({
             <button
               type="submit"
               disabled={createIssue.isPending}
-              className="flex-1 px-4 py-2 bg-[#1B4D3E] text-white font-medium rounded-lg hover:bg-[#164032] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
             >
               {createIssue.isPending ? "Creating..." : "Raise Issue"}
             </button>

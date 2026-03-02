@@ -66,7 +66,7 @@ export function DataEntryCell({
             if (e.key === "Enter") handleSave();
             if (e.key === "Escape") setEditing(false);
           }}
-          className="w-full px-1.5 py-1 text-xs text-center border border-[#1B4D3E] rounded bg-white focus:outline-none focus:ring-1 focus:ring-[#1B4D3E]"
+          className="w-full px-1.5 py-1 text-xs text-center border border-[#004E64] rounded bg-white focus:outline-none focus:ring-1 focus:ring-[#004E64]"
         />
       </td>
     );

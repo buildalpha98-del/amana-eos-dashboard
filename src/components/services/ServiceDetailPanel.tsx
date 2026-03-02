@@ -55,7 +55,7 @@ export function ServiceDetailPanel({
   if (isLoading || !service) {
     return (
       <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 z-50 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -162,7 +162,7 @@ export function ServiceDetailPanel({
                   managerId: e.target.value || null,
                 })
               }
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4D3E]"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
             >
               <option value="">Unassigned</option>
               {users?.map((u) => (
@@ -185,7 +185,7 @@ export function ServiceDetailPanel({
                     setNotes(service.notes || "");
                     setEditing(true);
                   }}
-                  className="text-gray-400 hover:text-[#1B4D3E]"
+                  className="text-gray-400 hover:text-[#004E64]"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                 </button>
@@ -198,7 +198,7 @@ export function ServiceDetailPanel({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] resize-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
                 />
                 <div className="flex gap-2">
                   <button
@@ -206,7 +206,7 @@ export function ServiceDetailPanel({
                       updateService.mutate({ id: serviceId, notes });
                       setEditing(false);
                     }}
-                    className="text-xs px-3 py-1 bg-[#1B4D3E] text-white rounded-md"
+                    className="text-xs px-3 py-1 bg-[#004E64] text-white rounded-md"
                   >
                     Save
                   </button>
@@ -307,10 +307,10 @@ export function ServiceDetailPanel({
                   <button
                     key={project.id}
                     onClick={() => onNavigateToProject?.(project.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2 bg-[#1B4D3E]/5 rounded-lg text-sm text-left hover:bg-[#1B4D3E]/10 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 bg-[#004E64]/5 rounded-lg text-sm text-left hover:bg-[#004E64]/10 transition-colors"
                   >
-                    <FolderKanban className="w-4 h-4 text-[#1B4D3E] flex-shrink-0" />
-                    <span className="flex-1 truncate text-[#1B4D3E] font-medium">
+                    <FolderKanban className="w-4 h-4 text-[#004E64] flex-shrink-0" />
+                    <span className="flex-1 truncate text-[#004E64] font-medium">
                       {project.name}
                     </span>
                     <span className="text-xs text-gray-400 capitalize">

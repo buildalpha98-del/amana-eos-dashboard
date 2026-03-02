@@ -61,8 +61,8 @@ function PersonSection({ group }: { group: PersonGroup }) {
         ) : (
           <ChevronRight className="w-4 h-4 text-gray-400" />
         )}
-        <div className="w-8 h-8 rounded-full bg-[#1B4D3E]/10 flex items-center justify-center flex-shrink-0">
-          <span className="text-xs font-medium text-[#1B4D3E]">
+        <div className="w-8 h-8 rounded-full bg-[#004E64]/10 flex items-center justify-center flex-shrink-0">
+          <span className="text-xs font-medium text-[#004E64]">
             {group.assignee.name
               .split(" ")
               .map((n) => n[0])
@@ -89,7 +89,7 @@ function PersonSection({ group }: { group: PersonGroup }) {
                     ? (group.completedCount / group.totalCount) * 100
                     : 0
                 }%`,
-                backgroundColor: allDone ? "#1B4D3E" : "#10B981",
+                backgroundColor: allDone ? "#004E64" : "#10B981",
               }}
             />
           </div>

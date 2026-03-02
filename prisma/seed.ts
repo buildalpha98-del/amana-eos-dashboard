@@ -298,7 +298,128 @@ async function main() {
       },
     });
 
-    console.log("Created 3 project templates");
+    // Staff Training & Induction Template
+    await prisma.projectTemplate.create({
+      data: {
+        name: "Staff Training & Induction Program",
+        description: "Onboarding checklist for new educators including WWCC, first aid, safeguarding, and centre-specific training.",
+        category: "Staffing",
+        tasks: {
+          create: [
+            { title: "Verify Working With Children Check (WWCC)", category: "Compliance", sortOrder: 1, defaultDays: 3 },
+            { title: "Complete First Aid & CPR certification", category: "Training", sortOrder: 2, defaultDays: 7 },
+            { title: "Complete Child Protection / Safeguarding module", category: "Training", sortOrder: 3, defaultDays: 7 },
+            { title: "Review My Time Our Place (MTOP) framework", category: "Training", sortOrder: 4, defaultDays: 10 },
+            { title: "Shadow experienced educator for 3 sessions", category: "Induction", sortOrder: 5, defaultDays: 10 },
+            { title: "Complete food safety & allergy management training", category: "Training", sortOrder: 6, defaultDays: 10 },
+            { title: "Read and sign centre policies and procedures", category: "Compliance", sortOrder: 7, defaultDays: 5 },
+            { title: "Set up staff portal login and timesheet access", category: "Admin", sortOrder: 8, defaultDays: 3 },
+            { title: "Complete anaphylaxis and asthma management training", category: "Training", sortOrder: 9, defaultDays: 14 },
+            { title: "Conduct orientation walkthrough with Centre Coordinator", category: "Induction", sortOrder: 10, defaultDays: 5 },
+            { title: "Complete probation review meeting", category: "HR", sortOrder: 11, defaultDays: 45 },
+          ],
+        },
+      },
+    });
+
+    // Vacation Care Program Template
+    await prisma.projectTemplate.create({
+      data: {
+        name: "Vacation Care Program Planning",
+        description: "End-to-end planning for school holiday vacation care including program design, excursions, staffing, and enrolments.",
+        category: "Programs",
+        tasks: {
+          create: [
+            { title: "Set vacation care dates and operating hours", category: "Planning", sortOrder: 1, defaultDays: 3 },
+            { title: "Design weekly activity themes and program schedule", category: "Programming", sortOrder: 2, defaultDays: 10 },
+            { title: "Research and book excursion venues", category: "Excursions", sortOrder: 3, defaultDays: 14 },
+            { title: "Complete risk assessments for all excursions", category: "Compliance", sortOrder: 4, defaultDays: 18 },
+            { title: "Arrange bus/transport for excursion days", category: "Logistics", sortOrder: 5, defaultDays: 18 },
+            { title: "Design and send vacation care brochure to families", category: "Marketing", sortOrder: 6, defaultDays: 14 },
+            { title: "Open enrolments and manage bookings", category: "Admin", sortOrder: 7, defaultDays: 14 },
+            { title: "Confirm additional casual staff for holiday period", category: "Staffing", sortOrder: 8, defaultDays: 21 },
+            { title: "Order supplies, craft materials, and catering", category: "Logistics", sortOrder: 9, defaultDays: 21 },
+            { title: "Prepare sign-in/sign-out sheets and emergency contacts", category: "Admin", sortOrder: 10, defaultDays: 25 },
+            { title: "Final program review and staff briefing", category: "Planning", sortOrder: 11, defaultDays: 28 },
+            { title: "Post-vacation care family feedback survey", category: "Quality", sortOrder: 12, defaultDays: 49 },
+          ],
+        },
+      },
+    });
+
+    // NQS Assessment & Rating Preparation
+    await prisma.projectTemplate.create({
+      data: {
+        name: "Assessment & Rating Preparation",
+        description: "Prepare for ACECQA Assessment & Rating visit. Covers all 7 NQS quality areas with evidence collection and self-assessment.",
+        category: "Compliance",
+        tasks: {
+          create: [
+            { title: "Conduct NQS self-assessment across all 7 quality areas", category: "Assessment", sortOrder: 1, defaultDays: 14 },
+            { title: "Update Quality Improvement Plan (QIP) with current goals", category: "Documentation", sortOrder: 2, defaultDays: 14 },
+            { title: "Gather evidence for QA1 - Educational program and practice", category: "Evidence", sortOrder: 3, defaultDays: 21 },
+            { title: "Gather evidence for QA2 - Children's health and safety", category: "Evidence", sortOrder: 4, defaultDays: 21 },
+            { title: "Gather evidence for QA3 - Physical environment", category: "Evidence", sortOrder: 5, defaultDays: 21 },
+            { title: "Gather evidence for QA4 - Staffing arrangements", category: "Evidence", sortOrder: 6, defaultDays: 21 },
+            { title: "Gather evidence for QA5 - Relationships with children", category: "Evidence", sortOrder: 7, defaultDays: 21 },
+            { title: "Gather evidence for QA6 - Collaborative partnerships", category: "Evidence", sortOrder: 8, defaultDays: 21 },
+            { title: "Gather evidence for QA7 - Governance and leadership", category: "Evidence", sortOrder: 9, defaultDays: 21 },
+            { title: "Review and update all required policies", category: "Documentation", sortOrder: 10, defaultDays: 28 },
+            { title: "Conduct mock assessment walk-through with team", category: "Preparation", sortOrder: 11, defaultDays: 35 },
+            { title: "Staff coaching sessions on speaking to assessors", category: "Preparation", sortOrder: 12, defaultDays: 35 },
+            { title: "Ensure all displays, documentation, and signage current", category: "Environment", sortOrder: 13, defaultDays: 40 },
+            { title: "Final team briefing before A&R visit", category: "Preparation", sortOrder: 14, defaultDays: 42 },
+          ],
+        },
+      },
+    });
+
+    // Parent Engagement Initiative
+    await prisma.projectTemplate.create({
+      data: {
+        name: "Parent & Community Engagement Initiative",
+        description: "Build stronger relationships with families through events, surveys, and communication improvements.",
+        category: "Community",
+        tasks: {
+          create: [
+            { title: "Design and distribute parent satisfaction survey", category: "Feedback", sortOrder: 1, defaultDays: 7 },
+            { title: "Analyse survey results and identify improvement areas", category: "Feedback", sortOrder: 2, defaultDays: 14 },
+            { title: "Plan family open day / showcase event", category: "Events", sortOrder: 3, defaultDays: 10 },
+            { title: "Set up parent communication channel (app/email)", category: "Communication", sortOrder: 4, defaultDays: 7 },
+            { title: "Create monthly parent newsletter template", category: "Communication", sortOrder: 5, defaultDays: 10 },
+            { title: "Organise cultural celebration event", category: "Events", sortOrder: 6, defaultDays: 21 },
+            { title: "Establish parent advisory group", category: "Governance", sortOrder: 7, defaultDays: 21 },
+            { title: "Implement daily photo/activity updates for parents", category: "Communication", sortOrder: 8, defaultDays: 14 },
+            { title: "Follow-up survey to measure improvement", category: "Feedback", sortOrder: 9, defaultDays: 60 },
+          ],
+        },
+      },
+    });
+
+    // Centre Safety & Emergency Preparedness
+    await prisma.projectTemplate.create({
+      data: {
+        name: "Safety & Emergency Preparedness Review",
+        description: "Comprehensive safety audit and emergency preparedness review for OSHC centres.",
+        category: "Safety",
+        tasks: {
+          create: [
+            { title: "Review and update emergency management plan", category: "Emergency", sortOrder: 1, defaultDays: 7 },
+            { title: "Conduct fire evacuation drill and document", category: "Emergency", sortOrder: 2, defaultDays: 10 },
+            { title: "Conduct lockdown drill and document", category: "Emergency", sortOrder: 3, defaultDays: 14 },
+            { title: "Inspect all fire extinguishers and safety equipment", category: "Equipment", sortOrder: 4, defaultDays: 7 },
+            { title: "Review and restock all first aid kits", category: "First Aid", sortOrder: 5, defaultDays: 7 },
+            { title: "Update medical action plans for enrolled children", category: "Medical", sortOrder: 6, defaultDays: 10 },
+            { title: "Complete workplace hazard inspection", category: "WHS", sortOrder: 7, defaultDays: 14 },
+            { title: "Update emergency contact lists for all families", category: "Admin", sortOrder: 8, defaultDays: 10 },
+            { title: "Verify all staff first aid certifications are current", category: "Compliance", sortOrder: 9, defaultDays: 7 },
+            { title: "Submit safety audit report to management", category: "Reporting", sortOrder: 10, defaultDays: 21 },
+          ],
+        },
+      },
+    });
+
+    console.log("Created 8 project templates");
   } else {
     console.log("Project templates already exist, skipping");
   }

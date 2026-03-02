@@ -64,7 +64,7 @@ export default function ProjectsPage() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Project
@@ -116,7 +116,7 @@ export default function ProjectsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search projects..."
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
           />
         </div>
         <div className="flex items-center gap-1 ml-auto">
@@ -148,7 +148,7 @@ export default function ProjectsPage() {
       {/* Project Grid/List */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
         </div>
       ) : filtered && filtered.length > 0 ? (
         view === "grid" ? (
@@ -204,7 +204,7 @@ export default function ProjectsPage() {
                     </div>
                     <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-[#1B4D3E] rounded-full"
+                        className="h-full bg-[#004E64] rounded-full"
                         style={{ width: `${project.progress.percent}%` }}
                       />
                     </div>
@@ -226,7 +226,7 @@ export default function ProjectsPage() {
           {!search && (
             <button
               onClick={() => setShowCreate(true)}
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors"
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
             >
               <Plus className="w-4 h-4" />
               New Project

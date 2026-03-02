@@ -36,9 +36,9 @@ export function QuarterSelector({
           className={cn(
             "px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150",
             value === q
-              ? "bg-[#1B4D3E] text-white shadow-sm"
+              ? "bg-[#004E64] text-white shadow-sm"
               : q === current
-              ? "text-[#1B4D3E] hover:bg-white/60 font-semibold"
+              ? "text-[#004E64] hover:bg-white/60 font-semibold"
               : "text-gray-500 hover:bg-white/60"
           )}
         >

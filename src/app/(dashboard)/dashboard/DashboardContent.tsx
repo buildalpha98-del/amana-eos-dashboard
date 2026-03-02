@@ -136,7 +136,7 @@ export function DashboardContent() {
           value={stats?.rocks.total || 0}
           subtitle={`${stats?.rocks.onTrack || 0} on track`}
           icon={Mountain}
-          color="#1B4D3E"
+          color="#004E64"
           href="/rocks"
         />
         <StatCard
@@ -191,13 +191,13 @@ export function DashboardContent() {
                 href={item.href}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group"
               >
-                <div className="w-8 h-8 rounded-lg bg-[#1B4D3E]/10 flex items-center justify-center">
-                  <item.icon className="w-4 h-4 text-[#1B4D3E]" />
+                <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
+                  <item.icon className="w-4 h-4 text-[#004E64]" />
                 </div>
                 <span className="text-sm font-medium text-gray-700 flex-1">
                   {item.label}
                 </span>
-                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#1B4D3E] transition-colors" />
+                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#004E64] transition-colors" />
               </Link>
             ))}
           </div>
@@ -207,7 +207,7 @@ export function DashboardContent() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Rock Progress</h3>
-            <Link href="/rocks" className="text-sm text-[#1B4D3E] hover:underline">
+            <Link href="/rocks" className="text-sm text-[#004E64] hover:underline">
               View all
             </Link>
           </div>
@@ -227,7 +227,7 @@ export function DashboardContent() {
               </div>
               <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden mt-2">
                 <div
-                  className="h-full bg-[#1B4D3E] rounded-full transition-all"
+                  className="h-full bg-[#004E64] rounded-full transition-all"
                   style={{
                     width: `${
                       stats.rocks.total > 0
@@ -258,7 +258,7 @@ export function DashboardContent() {
               <p className="text-gray-500 text-sm">No Rocks for this quarter yet.</p>
               <Link
                 href="/rocks"
-                className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors"
+                className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add Rock
@@ -271,7 +271,7 @@ export function DashboardContent() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Projects</h3>
-            <Link href="/projects" className="text-sm text-[#1B4D3E] hover:underline">
+            <Link href="/projects" className="text-sm text-[#004E64] hover:underline">
               View all
             </Link>
           </div>
@@ -310,7 +310,7 @@ export function DashboardContent() {
               <p className="text-gray-500 text-sm">No projects yet.</p>
               <Link
                 href="/projects"
-                className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] transition-colors"
+                className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 New Project

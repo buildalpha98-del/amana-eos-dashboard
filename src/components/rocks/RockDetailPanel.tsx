@@ -18,7 +18,7 @@ import type { RockStatus, RockPriority } from "@prisma/client";
 const statusOptions: { value: RockStatus; label: string; color: string }[] = [
   { value: "on_track", label: "On Track", color: "#10B981" },
   { value: "off_track", label: "Off Track", color: "#EF4444" },
-  { value: "complete", label: "Complete", color: "#1B4D3E" },
+  { value: "complete", label: "Complete", color: "#004E64" },
   { value: "dropped", label: "Dropped", color: "#9CA3AF" },
 ];
 
@@ -47,7 +47,7 @@ export function RockDetailPanel({
     return (
       <Panel onClose={onClose}>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-6 h-6 border-2 border-[#1B4D3E] border-t-transparent rounded-full" />
+          <div className="animate-spin w-6 h-6 border-2 border-[#004E64] border-t-transparent rounded-full" />
         </div>
       </Panel>
     );
@@ -95,11 +95,11 @@ export function RockDetailPanel({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full text-lg font-semibold text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E]"
+                className="w-full text-lg font-semibold text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#004E64]"
               />
             ) : (
               <h2
-                className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-[#1B4D3E]"
+                className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-[#004E64]"
                 onClick={() => {
                   setTitle(rock.title);
                   setDescription(rock.description || "");
@@ -114,7 +114,7 @@ export function RockDetailPanel({
               {rock.oneYearGoal && (
                 <>
                   <span className="text-gray-300">·</span>
-                  <span className="text-xs text-[#1B4D3E]">
+                  <span className="text-xs text-[#004E64]">
                     {rock.oneYearGoal.title}
                   </span>
                 </>
@@ -134,7 +134,7 @@ export function RockDetailPanel({
             <button
               onClick={handleSave}
               disabled={updateRock.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1B4D3E] text-white text-sm font-medium rounded-lg hover:bg-[#164032] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] disabled:opacity-50"
             >
               <Save className="w-3.5 h-3.5" />
               Save
@@ -222,7 +222,7 @@ export function RockDetailPanel({
             step={5}
             value={rock.percentComplete}
             onChange={(e) => handleProgressChange(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-[#1B4D3E]"
+            className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-[#004E64]"
           />
         </div>
 
@@ -233,8 +233,8 @@ export function RockDetailPanel({
             Owner
           </label>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-[#1B4D3E]/10 flex items-center justify-center">
-              <span className="text-xs font-medium text-[#1B4D3E]">
+            <div className="w-7 h-7 rounded-full bg-[#004E64]/10 flex items-center justify-center">
+              <span className="text-xs font-medium text-[#004E64]">
                 {rock.owner.name
                   .split(" ")
                   .map((n: string) => n[0])
@@ -262,7 +262,7 @@ export function RockDetailPanel({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1B4D3E] resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
               placeholder="Describe the Rock in detail..."
             />
           ) : (
@@ -306,7 +306,7 @@ export function RockDetailPanel({
                       className={cn(
                         "w-4 h-4 rounded-full border-2 flex items-center justify-center",
                         m.completed
-                          ? "border-[#1B4D3E] bg-[#1B4D3E]"
+                          ? "border-[#004E64] bg-[#004E64]"
                           : "border-gray-300"
                       )}
                     >
@@ -367,7 +367,7 @@ export function RockDetailPanel({
                       className={cn(
                         "w-4 h-4 rounded border-2 flex items-center justify-center",
                         todo.status === "complete"
-                          ? "border-[#1B4D3E] bg-[#1B4D3E]"
+                          ? "border-[#004E64] bg-[#004E64]"
                           : "border-gray-300"
                       )}
                     >

@@ -36,12 +36,12 @@ export default function VisionPage() {
       {/* Content */}
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="animate-spin w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-[#1B4D3E]/5 flex items-center justify-center mb-4">
-            <Eye className="w-8 h-8 text-[#1B4D3E]/30" />
+          <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
+            <Eye className="w-8 h-8 text-[#004E64]/30" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">
             V/TO not available
@@ -57,8 +57,8 @@ export default function VisionPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-6">
               <div className="flex items-center gap-2 px-1">
-                <div className="w-1.5 h-6 rounded-full bg-[#1B4D3E]" />
-                <h3 className="text-sm font-bold text-[#1B4D3E] uppercase tracking-wider">
+                <div className="w-1.5 h-6 rounded-full bg-[#004E64]" />
+                <h3 className="text-sm font-bold text-[#004E64] uppercase tracking-wider">
                   Vision
                 </h3>
               </div>
