@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  owner
+  admin
+  member
+}
+
+enum RockStatus {
+  on_track
+  off_track
+  complete
+  dropped
+}
+
+enum RockPriority {
+  critical
+  high
+  medium
+}
+
+enum TodoStatus {
+  pending
+  in_progress
+  complete
+  cancelled
+}
+
+enum IssuePriority {
+  critical
+  high
+  medium
+  low
+}
+
+enum IssueStatus {
+  open
+  in_discussion
+  solved
+  closed
+}
+
+enum GoalStatus {
+  on_track
+  at_risk
+  off_track
+  complete
+}
+
+enum GoalDirection {
+  above
+  below
+  exact
+}
+
+enum MeasurableFrequency {
+  weekly
+  monthly
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(member)
+  avatar       String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedRocks        Rock[]            @relation("RockOwner")
+  assignedTodos     Todo[]            @relation("TodoAssignee")
+  raisedIssues      Issue[]           @relation("IssueRaiser")
+  ownedIssues       Issue[]           @relation("IssueOwner")
+  ownedMeasurables  Measurable[]      @relation("MeasurableOwner")
+  measurableEntries MeasurableEntry[] @relation("EntryCreator")
+  activityLogs      ActivityLog[]
+  vtoUpdates        VisionTractionOrganiser[] @relation("VTOUpdater")
+}
+
+model VisionTractionOrganiser {
+  id                String   @id @default(cuid())
+  coreValues        String[]
+  corePurpose       String?
+  coreNiche         String?
+  tenYearTarget     String?  @db.Text
+  threeYearPicture  String?  @db.Text
+  marketingStrategy String?  @db.Text
+  updatedAt         DateTime @updatedAt
+  updatedById       String?
+  updatedBy         User?    @relation("VTOUpdater", fields: [updatedById], references: [id])
+
+  oneYearGoals OneYearGoal[]
+}
+
+model OneYearGoal {
+  id          String     @id @default(cuid())
+  title       String
+  description String?    @db.Text
+  targetDate  DateTime?
+  status      GoalStatus @default(on_track)
+  vtoId       String
+  vto         VisionTractionOrganiser @relation(fields: [vtoId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  rocks Rock[]
+}
+
+model Rock {
+  id              String       @id @default(cuid())
+  title           String
+  description     String?      @db.Text
+  ownerId         String
+  owner           User         @relation("RockOwner", fields: [ownerId], references: [id])
+  quarter         String
+  status          RockStatus   @default(on_track)
+  percentComplete Int          @default(0)
+  priority        RockPriority @default(medium)
+  oneYearGoalId   String?
+  oneYearGoal     OneYearGoal? @relation(fields: [oneYearGoalId], references: [id], onDelete: SetNull)
+  deleted         Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  todos       Todo[]
+  issues      Issue[]
+  milestones  Milestone[]
+  measurables Measurable[]
+
+  @@index([quarter])
+  @@index([ownerId])
+  @@index([status])
+}
+
+model Milestone {
+  id        String   @id @default(cuid())
+  title     String
+  dueDate   DateTime
+  completed Boolean  @default(false)
+  rockId    String
+  rock      Rock     @relation(fields: [rockId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Todo {
+  id          String     @id @default(cuid())
+  title       String
+  description String?    @db.Text
+  assigneeId  String
+  assignee    User       @relation("TodoAssignee", fields: [assigneeId], references: [id])
+  rockId      String?
+  rock        Rock?      @relation(fields: [rockId], references: [id], onDelete: SetNull)
+  issueId     String?
+  issue       Issue?     @relation(fields: [issueId], references: [id], onDelete: SetNull)
+  dueDate     DateTime
+  status      TodoStatus @default(pending)
+  weekOf      DateTime
+  deleted     Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  completedAt DateTime?
+  updatedAt   DateTime   @updatedAt
+
+  @@index([assigneeId])
+  @@index([rockId])
+  @@index([weekOf])
+  @@index([status])
+}
+
+model Issue {
+  id           String        @id @default(cuid())
+  title        String
+  description  String?       @db.Text
+  raisedById   String
+  raisedBy     User          @relation("IssueRaiser", fields: [raisedById], references: [id])
+  ownerId      String?
+  owner        User?         @relation("IssueOwner", fields: [ownerId], references: [id])
+  rockId       String?
+  rock         Rock?         @relation(fields: [rockId], references: [id], onDelete: SetNull)
+  priority     IssuePriority @default(medium)
+  status       IssueStatus   @default(open)
+  identifiedAt DateTime      @default(now())
+  discussedAt  DateTime?
+  solvedAt     DateTime?
+  resolution   String?       @db.Text
+  deleted      Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  spawnedTodos Todo[]
+
+  @@index([priority])
+  @@index([status])
+  @@index([ownerId])
+}
+
+model Scorecard {
+  id        String   @id @default(cuid())
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  measurables Measurable[]
+}
+
+model Measurable {
+  id            String              @id @default(cuid())
+  title         String
+  description   String?
+  ownerId       String
+  owner         User                @relation("MeasurableOwner", fields: [ownerId], references: [id])
+  goalValue     Float
+  goalDirection GoalDirection       @default(above)
+  unit          String?
+  frequency     MeasurableFrequency @default(weekly)
+  rockId        String?
+  rock          Rock?               @relation(fields: [rockId], references: [id], onDelete: SetNull)
+  scorecardId   String
+  scorecard     Scorecard           @relation(fields: [scorecardId], references: [id], onDelete: Cascade)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  entries MeasurableEntry[]
+
+  @@index([ownerId])
+  @@index([scorecardId])
+}
+
+model MeasurableEntry {
+  id           String     @id @default(cuid())
+  measurableId String
+  measurable   Measurable @relation(fields: [measurableId], references: [id], onDelete: Cascade)
+  weekOf       DateTime
+  value        Float
+  onTrack      Boolean
+  notes        String?
+  enteredById  String
+  enteredBy    User       @relation("EntryCreator", fields: [enteredById], references: [id])
+  createdAt    DateTime   @default(now())
+
+  @@unique([measurableId, weekOf])
+  @@index([weekOf])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
