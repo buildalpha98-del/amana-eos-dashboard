@@ -424,6 +424,179 @@ async function main() {
     console.log("Project templates already exist, skipping");
   }
 
+  // ============================================================
+  // Seed Financial Periods
+  // ============================================================
+  const existingFinancials = await prisma.financialPeriod.findFirst();
+  if (!existingFinancials) {
+    const services = await prisma.service.findMany();
+
+    // Define financial parameters per centre (realistic OSHC data)
+    const centreFinancialProfiles: Record<string, {
+      bscRevenue: [number, number]; // [min, max] per month
+      ascRevenue: [number, number];
+      vcRevenueHoliday: number; // Holiday month only
+      staffCostsPercent: number;
+      foodCostsPercent: number;
+      suppliesCostsPercent: number;
+      rentCostsPercent: number;
+      adminCostsPercent: number;
+      otherCostsPercent: number;
+      bscEnrolments: [number, number];
+      ascEnrolments: [number, number];
+      bscAttendanceRate: [number, number];
+      ascAttendanceRate: [number, number];
+    }> = {
+      "LKB": { bscRevenue: [4000, 5000], ascRevenue: [16000, 18000], vcRevenueHoliday: 3500, staffCostsPercent: 65, foodCostsPercent: 6.5, suppliesCostsPercent: 3, rentCostsPercent: 10, adminCostsPercent: 4, otherCostsPercent: 1.5, bscEnrolments: [30, 35], ascEnrolments: [50, 55], bscAttendanceRate: [75, 85], ascAttendanceRate: [80, 90] },
+      "GRN": { bscRevenue: [3500, 4500], ascRevenue: [13000, 15000], vcRevenueHoliday: 2800, staffCostsPercent: 63, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 4, otherCostsPercent: 2, bscEnrolments: [25, 32], ascEnrolments: [40, 48], bscAttendanceRate: [70, 80], ascAttendanceRate: [75, 88] },
+      "AUB": { bscRevenue: [3800, 4800], ascRevenue: [14000, 16000], vcRevenueHoliday: 3200, staffCostsPercent: 64, foodCostsPercent: 6.5, suppliesCostsPercent: 3, rentCostsPercent: 10, adminCostsPercent: 4, otherCostsPercent: 1.5, bscEnrolments: [28, 34], ascEnrolments: [45, 52], bscAttendanceRate: [72, 82], ascAttendanceRate: [78, 88] },
+      "BNK": { bscRevenue: [3500, 4500], ascRevenue: [13000, 15000], vcRevenueHoliday: 3000, staffCostsPercent: 63, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 4, otherCostsPercent: 2, bscEnrolments: [24, 30], ascEnrolments: [42, 50], bscAttendanceRate: [68, 78], ascAttendanceRate: [75, 87] },
+      "PBL": { bscRevenue: [2500, 3500], ascRevenue: [10000, 12000], vcRevenueHoliday: 2200, staffCostsPercent: 60, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 12, adminCostsPercent: 5, otherCostsPercent: 2, bscEnrolments: [18, 25], ascEnrolments: [32, 42], bscAttendanceRate: [65, 75], ascAttendanceRate: [72, 85] },
+      // VIC centres (onboarding, lower numbers)
+      "BMD": { bscRevenue: [2000, 3000], ascRevenue: [8000, 10000], vcRevenueHoliday: 1500, staffCostsPercent: 62, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 5, otherCostsPercent: 2, bscEnrolments: [15, 22], ascEnrolments: [28, 38], bscAttendanceRate: [60, 75], ascAttendanceRate: [70, 85] },
+      "COB": { bscRevenue: [2000, 3000], ascRevenue: [8000, 10000], vcRevenueHoliday: 1500, staffCostsPercent: 62, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 5, otherCostsPercent: 2, bscEnrolments: [16, 23], ascEnrolments: [28, 38], bscAttendanceRate: [60, 75], ascAttendanceRate: [70, 85] },
+    };
+
+    const months = [
+      { start: new Date("2025-12-01"), end: new Date("2025-12-31"), isHoliday: true },
+      { start: new Date("2026-01-01"), end: new Date("2026-01-31"), isHoliday: false },
+      { start: new Date("2026-02-01"), end: new Date("2026-02-28"), isHoliday: false },
+    ];
+
+    for (const service of services) {
+      const profile = centreFinancialProfiles[service.code];
+      if (!profile) continue;
+
+      for (const month of months) {
+        // Generate random values within ranges
+        const bscRev = Math.random() * (profile.bscRevenue[1] - profile.bscRevenue[0]) + profile.bscRevenue[0];
+        const ascRev = Math.random() * (profile.ascRevenue[1] - profile.ascRevenue[0]) + profile.ascRevenue[0];
+        const vcRev = month.isHoliday ? profile.vcRevenueHoliday : 0;
+        const totalRev = bscRev + ascRev + vcRev;
+
+        const staffCosts = totalRev * (profile.staffCostsPercent / 100);
+        const foodCosts = totalRev * (profile.foodCostsPercent / 100);
+        const suppliesCosts = totalRev * (profile.suppliesCostsPercent / 100);
+        const rentCosts = totalRev * (profile.rentCostsPercent / 100);
+        const adminCosts = totalRev * (profile.adminCostsPercent / 100);
+        const otherCosts = totalRev * (profile.otherCostsPercent / 100);
+        const totalCosts = staffCosts + foodCosts + suppliesCosts + rentCosts + adminCosts + otherCosts;
+
+        const bscEnrol = Math.floor(Math.random() * (profile.bscEnrolments[1] - profile.bscEnrolments[0]) + profile.bscEnrolments[0]);
+        const ascEnrol = Math.floor(Math.random() * (profile.ascEnrolments[1] - profile.ascEnrolments[0]) + profile.ascEnrolments[0]);
+        const bscAtt = Math.floor(bscEnrol * (Math.random() * (profile.bscAttendanceRate[1] - profile.bscAttendanceRate[0]) + profile.bscAttendanceRate[0]) / 100);
+        const ascAtt = Math.floor(ascEnrol * (Math.random() * (profile.ascAttendanceRate[1] - profile.ascAttendanceRate[0]) + profile.ascAttendanceRate[0]) / 100);
+
+        await prisma.financialPeriod.create({
+          data: {
+            serviceId: service.id,
+            periodType: "monthly",
+            periodStart: month.start,
+            periodEnd: month.end,
+            bscRevenue: parseFloat(bscRev.toFixed(2)),
+            ascRevenue: parseFloat(ascRev.toFixed(2)),
+            vcRevenue: vcRev,
+            otherRevenue: 0,
+            totalRevenue: parseFloat(totalRev.toFixed(2)),
+            staffCosts: parseFloat(staffCosts.toFixed(2)),
+            foodCosts: parseFloat(foodCosts.toFixed(2)),
+            suppliesCosts: parseFloat(suppliesCosts.toFixed(2)),
+            rentCosts: parseFloat(rentCosts.toFixed(2)),
+            adminCosts: parseFloat(adminCosts.toFixed(2)),
+            otherCosts: parseFloat(otherCosts.toFixed(2)),
+            totalCosts: parseFloat(totalCosts.toFixed(2)),
+            grossProfit: parseFloat((totalRev - totalCosts).toFixed(2)),
+            margin: parseFloat(((totalRev - totalCosts) / totalRev * 100).toFixed(2)),
+            bscEnrolments: bscEnrol,
+            ascEnrolments: ascEnrol,
+            bscAttendance: bscAtt,
+            ascAttendance: ascAtt,
+            vcAttendance: month.isHoliday ? Math.floor(ascEnrol * 0.3) : 0,
+          },
+        });
+      }
+    }
+
+    console.log("Created financial periods for all centres (3 months)");
+  } else {
+    console.log("Financial periods already exist, skipping");
+  }
+
+  // ============================================================
+  // Seed Centre Metrics
+  // ============================================================
+  const existingMetrics = await prisma.centreMetrics.findFirst();
+  if (!existingMetrics) {
+    const services = await prisma.service.findMany();
+
+    // Define metrics profiles per centre
+    const centreMetricsProfiles: Record<string, {
+      bscCapacity: number;
+      ascCapacity: number;
+      bscOccupancy: [number, number];
+      ascOccupancy: [number, number];
+      totalEducators: number;
+      educatorTurnover: [number, number];
+      ratioCompliance: [number, number];
+      parentNps: [number, number] | null;
+      incidentCount: [number, number];
+      complaintCount: [number, number];
+      wwccCompliance: number;
+      firstAidCompliance: [number, number];
+      overallCompliance: [number, number];
+      nqsRating: string | null;
+    }> = {
+      "LKB": { bscCapacity: 35, ascCapacity: 55, bscOccupancy: [75, 85], ascOccupancy: [80, 90], totalEducators: 7, educatorTurnover: [5, 12], ratioCompliance: [98, 100], parentNps: [65, 75], incidentCount: [1, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [95, 100], overallCompliance: [95, 100], nqsRating: "Exceeding" },
+      "GRN": { bscCapacity: 30, ascCapacity: 48, bscOccupancy: [72, 82], ascOccupancy: [78, 88], totalEducators: 6, educatorTurnover: [8, 15], ratioCompliance: [97, 100], parentNps: [60, 72], incidentCount: [1, 3], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [93, 100], overallCompliance: [94, 100], nqsRating: "Meeting" },
+      "AUB": { bscCapacity: 34, ascCapacity: 52, bscOccupancy: [74, 84], ascOccupancy: [79, 89], totalEducators: 6, educatorTurnover: [6, 13], ratioCompliance: [97, 100], parentNps: [62, 73], incidentCount: [0, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [94, 100], overallCompliance: [95, 100], nqsRating: "Exceeding" },
+      "BNK": { bscCapacity: 30, ascCapacity: 50, bscOccupancy: [70, 80], ascOccupancy: [75, 87], totalEducators: 6, educatorTurnover: [10, 18], ratioCompliance: [96, 100], parentNps: [55, 68], incidentCount: [1, 3], complaintCount: [0, 2], wwccCompliance: 100, firstAidCompliance: [90, 100], overallCompliance: [93, 100], nqsRating: "Meeting" },
+      "PBL": { bscCapacity: 25, ascCapacity: 42, bscOccupancy: [65, 78], ascOccupancy: [70, 85], totalEducators: 5, educatorTurnover: [8, 16], ratioCompliance: [95, 100], parentNps: [50, 65], incidentCount: [0, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [90, 98], overallCompliance: [92, 99], nqsRating: "Meeting" },
+      // VIC centres (onboarding)
+      "BMD": { bscCapacity: 30, ascCapacity: 50, bscOccupancy: [45, 65], ascOccupancy: [55, 75], totalEducators: 4, educatorTurnover: [10, 20], ratioCompliance: [95, 100], parentNps: null, incidentCount: [0, 1], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [90, 100], overallCompliance: [90, 100], nqsRating: null },
+      "COB": { bscCapacity: 28, ascCapacity: 45, bscOccupancy: [50, 68], ascOccupancy: [58, 76], totalEducators: 4, educatorTurnover: [12, 20], ratioCompliance: [95, 100], parentNps: null, incidentCount: [0, 1], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [90, 100], overallCompliance: [90, 100], nqsRating: null },
+    };
+
+    for (const service of services) {
+      const profile = centreMetricsProfiles[service.code];
+      if (!profile) continue;
+
+      const bscOcc = Math.random() * (profile.bscOccupancy[1] - profile.bscOccupancy[0]) + profile.bscOccupancy[0];
+      const ascOcc = Math.random() * (profile.ascOccupancy[1] - profile.ascOccupancy[0]) + profile.ascOccupancy[0];
+      const turnover = Math.random() * (profile.educatorTurnover[1] - profile.educatorTurnover[0]) + profile.educatorTurnover[0];
+      const ratioCom = Math.random() * (profile.ratioCompliance[1] - profile.ratioCompliance[0]) + profile.ratioCompliance[0];
+      const firstAidCom = Math.random() * (profile.firstAidCompliance[1] - profile.firstAidCompliance[0]) + profile.firstAidCompliance[0];
+      const overallCom = Math.random() * (profile.overallCompliance[1] - profile.overallCompliance[0]) + profile.overallCompliance[0];
+      const nps = profile.parentNps ? Math.random() * (profile.parentNps[1] - profile.parentNps[0]) + profile.parentNps[0] : null;
+      const incidents = Math.floor(Math.random() * (profile.incidentCount[1] - profile.incidentCount[0] + 1)) + profile.incidentCount[0];
+      const complaints = Math.floor(Math.random() * (profile.complaintCount[1] - profile.complaintCount[0] + 1)) + profile.complaintCount[0];
+
+      await prisma.centreMetrics.create({
+        data: {
+          serviceId: service.id,
+          recordedAt: new Date("2026-02-28"),
+          bscCapacity: profile.bscCapacity,
+          ascCapacity: profile.ascCapacity,
+          bscOccupancy: parseFloat(bscOcc.toFixed(2)),
+          ascOccupancy: parseFloat(ascOcc.toFixed(2)),
+          totalEducators: profile.totalEducators,
+          educatorsTurnover: parseFloat(turnover.toFixed(2)),
+          ratioCompliance: parseFloat(ratioCom.toFixed(2)),
+          parentNps: nps ? parseFloat(nps.toFixed(1)) : null,
+          incidentCount: incidents,
+          complaintCount: complaints,
+          wwccCompliance: profile.wwccCompliance,
+          firstAidCompliance: parseFloat(firstAidCom.toFixed(2)),
+          overallCompliance: parseFloat(overallCom.toFixed(2)),
+          nqsRating: profile.nqsRating,
+        },
+      });
+    }
+
+    console.log("Created centre metrics for all services");
+  } else {
+    console.log("Centre metrics already exist, skipping");
+  }
+
   console.log("\nSeed complete!");
 }
 

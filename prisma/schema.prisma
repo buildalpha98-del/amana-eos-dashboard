@@ -329,6 +329,8 @@ model Service {
   todos    Todo[]
   projects Project[]
   issues   Issue[]    @relation("ServiceIssues")
+  financials FinancialPeriod[] @relation("ServiceFinancials")
+  metrics    CentreMetrics[]   @relation("ServiceMetrics")
 
   @@index([status])
   @@index([managerId])
@@ -409,4 +411,93 @@ model Meeting {
   @@index([date])
   @@index([status])
   @@index([createdById])
+}
+
+// ============================================================
+// Financial & Performance Data
+// ============================================================
+
+enum FinancialPeriodType {
+  weekly
+  monthly
+  quarterly
+}
+
+model FinancialPeriod {
+  id            String              @id @default(cuid())
+  serviceId     String
+  service       Service             @relation("ServiceFinancials", fields: [serviceId], references: [id], onDelete: Cascade)
+  periodType    FinancialPeriodType
+  periodStart   DateTime
+  periodEnd     DateTime
+  
+  // Revenue
+  bscRevenue    Float               @default(0)
+  ascRevenue    Float               @default(0)
+  vcRevenue     Float               @default(0)
+  otherRevenue  Float               @default(0)
+  totalRevenue  Float               @default(0)
+  
+  // Costs
+  staffCosts    Float               @default(0)
+  foodCosts     Float               @default(0)
+  suppliesCosts Float               @default(0)
+  rentCosts     Float               @default(0)
+  adminCosts    Float               @default(0)
+  otherCosts    Float               @default(0)
+  totalCosts    Float               @default(0)
+  
+  // Derived
+  grossProfit   Float               @default(0)
+  margin        Float               @default(0)
+  
+  // Attendance
+  bscEnrolments Int                 @default(0)
+  ascEnrolments Int                 @default(0)
+  bscAttendance Int                 @default(0)
+  ascAttendance Int                 @default(0)
+  vcAttendance  Int                 @default(0)
+  
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  
+  @@unique([serviceId, periodType, periodStart])
+  @@index([serviceId])
+  @@index([periodStart])
+  @@index([periodType])
+}
+
+model CentreMetrics {
+  id              String   @id @default(cuid())
+  serviceId       String
+  service         Service  @relation("ServiceMetrics", fields: [serviceId], references: [id], onDelete: Cascade)
+  recordedAt      DateTime @default(now())
+  
+  // Occupancy
+  bscCapacity     Int      @default(0)
+  ascCapacity     Int      @default(0)
+  bscOccupancy    Float    @default(0)
+  ascOccupancy    Float    @default(0)
+  
+  // Staff
+  totalEducators  Int      @default(0)
+  educatorsTurnover Float  @default(0)
+  ratioCompliance Float    @default(100)
+  
+  // Quality
+  parentNps       Float?
+  incidentCount   Int      @default(0)
+  complaintCount  Int      @default(0)
+  
+  // Compliance
+  wwccCompliance  Float    @default(100)
+  firstAidCompliance Float @default(100)
+  overallCompliance Float  @default(100)
+  nqsRating       String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([serviceId])
+  @@index([recordedAt])
 }
