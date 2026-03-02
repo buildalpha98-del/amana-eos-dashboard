@@ -110,6 +110,8 @@ model User {
   managedServices   Service[]         @relation("ServiceManager")
   ownedProjects     Project[]         @relation("ProjectOwner")
   createdMeetings   Meeting[]         @relation("MeetingCreator")
+  uploadedDocuments Document[]        @relation("DocumentUploader")
+  uploadedAttachments Attachment[]    @relation("AttachmentUploader")
 }
 
 model VisionTractionOrganiser {
@@ -161,6 +163,7 @@ model Rock {
   issues      Issue[]
   milestones  Milestone[]
   measurables Measurable[]
+  attachments Attachment[]
 
   @@index([quarter])
   @@index([ownerId])
@@ -233,6 +236,7 @@ model Issue {
   updatedAt    DateTime      @updatedAt
 
   spawnedTodos Todo[]
+  attachments Attachment[]
 
   @@index([priority])
   @@index([status])
@@ -331,6 +335,7 @@ model Service {
   issues   Issue[]    @relation("ServiceIssues")
   financials FinancialPeriod[] @relation("ServiceFinancials")
   metrics    CentreMetrics[]   @relation("ServiceMetrics")
+  documents  Document[] @relation("ServiceDocuments")
 
   @@index([status])
   @@index([managerId])
@@ -380,6 +385,7 @@ model Project {
   updatedAt   DateTime      @updatedAt
 
   todos Todo[]
+  attachments Attachment[]
 
   @@index([serviceId])
   @@index([ownerId])
@@ -411,6 +417,67 @@ model Meeting {
   @@index([date])
   @@index([status])
   @@index([createdById])
+}
+
+// ============================================================
+// Documents & Attachments
+// ============================================================
+
+enum DocumentCategory {
+  policy
+  procedure
+  template
+  guide
+  compliance
+  financial
+  marketing
+  hr
+  other
+}
+
+model Document {
+  id          String           @id @default(cuid())
+  title       String
+  description String?          @db.Text
+  category    DocumentCategory @default(other)
+  fileName    String
+  fileUrl     String
+  fileSize    Int?
+  mimeType    String?
+  centreId    String?
+  centre      Service?         @relation("ServiceDocuments", fields: [centreId], references: [id], onDelete: SetNull)
+  uploadedById String
+  uploadedBy  User             @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  version     Int              @default(1)
+  tags        String[]
+  deleted     Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([category])
+  @@index([centreId])
+  @@index([uploadedById])
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  fileName    String
+  fileUrl     String
+  fileSize    Int?
+  mimeType    String?
+  rockId      String?
+  rock        Rock?    @relation(fields: [rockId], references: [id], onDelete: Cascade)
+  issueId     String?
+  issue       Issue?   @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedById String
+  uploadedBy  User     @relation("AttachmentUploader", fields: [uploadedById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([rockId])
+  @@index([issueId])
+  @@index([projectId])
 }
 
 // ============================================================

@@ -22,6 +22,7 @@ import {
   FolderKanban,
   DollarSign,
   Trophy,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,7 @@ const navItems = [
   { href: "/services", label: "Services", icon: Building2, section: "Operations" },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Operations" },
   { href: "/meetings", label: "Meetings", icon: Presentation, section: "Operations" },
+  { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
   { href: "/team", label: "Team", icon: Users, section: "Admin" },
   { href: "/settings", label: "Settings", icon: Settings, section: "Admin" },
 ];
