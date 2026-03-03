@@ -16,8 +16,11 @@ import {
   ArrowDownRight,
   Plus,
   X,
+  RefreshCw,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
 import { RevenueVsCostsChart } from "@/components/charts/RevenueVsCostsChart";
 import { MarginComparisonChart } from "@/components/charts/MarginComparisonChart";
 import { RevenueBreakdownChart } from "@/components/charts/RevenueBreakdownChart";
@@ -76,6 +79,35 @@ function StatCard({
           <Icon className="w-5 h-5" />
         </div>
       </div>
+    </div>
+  );
+}
+
+function XeroSyncBadge() {
+  const { data: xeroStatus } = useXeroStatus();
+  const sync = useXeroSync();
+
+  if (!xeroStatus || xeroStatus.status === "disconnected") return null;
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#13B5EA]/10 text-[#13B5EA] text-xs font-medium">
+        <div className="w-1.5 h-1.5 rounded-full bg-[#13B5EA]" />
+        Xero Connected
+      </div>
+      {xeroStatus.lastSyncAt && (
+        <span className="text-xs text-gray-400">
+          Last sync: {new Date(xeroStatus.lastSyncAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+        </span>
+      )}
+      <button
+        onClick={() => sync.mutate(1)}
+        disabled={sync.isPending}
+        className="flex items-center gap-1 text-xs text-[#004E64] hover:text-[#003D52] font-medium disabled:opacity-50"
+      >
+        <RefreshCw className={cn("w-3.5 h-3.5", sync.isPending && "animate-spin")} />
+        {sync.isPending ? "Syncing..." : "Sync Now"}
+      </button>
     </div>
   );
 }
@@ -299,6 +331,9 @@ export default function FinancialsPage() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Financial Dashboard</h2>
           <p className="text-gray-500 mt-1">Revenue, costs, and profitability across all centres</p>
+          <div className="mt-2">
+            <XeroSyncBadge />
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -423,6 +458,7 @@ export default function FinancialsPage() {
               <thead>
                 <tr className="bg-gray-50 text-left">
                   <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Centre</th>
+                  <th className="px-2 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center w-12">Source</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">State</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">BSC Rev</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">ASC Rev</th>
@@ -444,6 +480,13 @@ export default function FinancialsPage() {
                     )}
                   >
                     <td className="px-6 py-3 font-medium text-gray-900">{row.service.name}</td>
+                    <td className="px-2 py-3 text-center">
+                      {row.dataSource === "xero" ? (
+                        <span title="Synced from Xero"><RefreshCw className="w-3.5 h-3.5 text-[#13B5EA] inline-block" /></span>
+                      ) : (
+                        <span title="Manually entered"><Pencil className="w-3.5 h-3.5 text-gray-400 inline-block" /></span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                         {row.service.state}
@@ -484,6 +527,7 @@ export default function FinancialsPage() {
               <tfoot>
                 <tr className="bg-[#004E64]/5 font-semibold">
                   <td className="px-6 py-3 text-gray-900">Total</td>
+                  <td className="px-2 py-3"></td>
                   <td className="px-4 py-3"></td>
                   <td className="px-4 py-3 text-right text-gray-900">
                     {formatCurrency(sortedData.reduce((s, r) => s + r.bscRevenue, 0))}

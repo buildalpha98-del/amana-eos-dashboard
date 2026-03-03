@@ -17,9 +17,25 @@ import {
   Filter,
   Check,
   Loader2,
+  Link2,
+  Unlink,
+  RefreshCw,
+  ArrowRight,
+  MapPin,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
+import {
+  useXeroStatus,
+  useXeroConnect,
+  useXeroDisconnect,
+  useXeroTrackingCategories,
+  useXeroAccounts,
+  useXeroMappings,
+  useSaveXeroMappings,
+  useXeroSync,
+} from "@/hooks/useXero";
 
 interface UserData {
   id: string;
@@ -715,6 +731,716 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
   );
 }
 
+// ——— Xero Integration ———
+
+function formatRelativeTime(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHrs = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+}
+
+const revenueCategoryLabels: Record<string, string> = {
+  bscRevenue: "BSC Revenue",
+  ascRevenue: "ASC Revenue",
+  vcRevenue: "VC Revenue",
+  otherRevenue: "Other Revenue",
+};
+
+const expenseCategoryLabels: Record<string, string> = {
+  staffCosts: "Staff Costs",
+  foodCosts: "Food Costs",
+  suppliesCosts: "Supplies Costs",
+  rentCosts: "Rent Costs",
+  adminCosts: "Admin Costs",
+  otherCosts: "Other Costs",
+};
+
+function suggestAccountCategory(
+  name: string,
+  type: "REVENUE" | "EXPENSE" | string
+): string {
+  const upper = name.toUpperCase();
+  if (upper.includes("BSC") || upper.includes("BEFORE SCHOOL"))
+    return "bscRevenue";
+  if (upper.includes("ASC") || upper.includes("AFTER SCHOOL"))
+    return "ascRevenue";
+  if (upper.includes("VACATION") || upper.includes("VC")) return "vcRevenue";
+  if (
+    upper.includes("STAFF") ||
+    upper.includes("WAGE") ||
+    upper.includes("SALARY")
+  )
+    return "staffCosts";
+  if (upper.includes("FOOD") || upper.includes("CATERING"))
+    return "foodCosts";
+  if (upper.includes("SUPPLY") || upper.includes("SUPPLIES"))
+    return "suppliesCosts";
+  if (upper.includes("RENT") || upper.includes("LEASE")) return "rentCosts";
+  if (upper.includes("ADMIN") || upper.includes("OFFICE"))
+    return "adminCosts";
+  if (type === "REVENUE") return "otherRevenue";
+  return "otherCosts";
+}
+
+function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
+  const queryClient = useQueryClient();
+  const [showMappingModal, setShowMappingModal] = useState(false);
+  const [mappingStep, setMappingStep] = useState<1 | 2>(1);
+  const [syncSuccess, setSyncSuccess] = useState(false);
+
+  // Centre mapping local state
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [centreMappings, setCentreMappings] = useState<
+    { xeroOptionId: string; serviceId: string }[]
+  >([]);
+
+  // Account mapping local state
+  const [accountMappings, setAccountMappings] = useState<
+    { xeroAccountId: string; category: string }[]
+  >([]);
+
+  const { data: status, isLoading: statusLoading } = useXeroStatus();
+  const xeroConnect = useXeroConnect();
+  const xeroDisconnect = useXeroDisconnect();
+  const sync = useXeroSync();
+  const saveMappings = useSaveXeroMappings();
+
+  const { data: trackingCategories, isLoading: trackingLoading } =
+    useXeroTrackingCategories(showMappingModal);
+  const { data: currentMappings } = useXeroMappings(showMappingModal);
+  const { data: xeroAccounts, isLoading: accountsLoading } = useXeroAccounts(
+    mappingStep === 2
+  );
+
+  // Initialize centre mappings from current state when modal opens
+  useEffect(() => {
+    if (currentMappings?.centreMappings) {
+      setCentreMappings(currentMappings.centreMappings);
+    }
+    if (currentMappings?.trackingCategoryId) {
+      setSelectedCategoryId(currentMappings.trackingCategoryId);
+    }
+    if (currentMappings?.accountMappings) {
+      setAccountMappings(currentMappings.accountMappings);
+    }
+  }, [currentMappings]);
+
+  // Auto-match centre mappings when tracking category changes
+  useEffect(() => {
+    if (!selectedCategoryId || !trackingCategories || !currentMappings?.services)
+      return;
+    const category = trackingCategories.find(
+      (c: { id: string }) => c.id === selectedCategoryId
+    );
+    if (!category) return;
+
+    const services = currentMappings.services as {
+      id: string;
+      name: string;
+    }[];
+    const newMappings = (
+      category.options as { id: string; name: string }[]
+    ).map((opt) => {
+      const existing = centreMappings.find((m) => m.xeroOptionId === opt.id);
+      if (existing?.serviceId) return existing;
+      const matched = services.find((s) =>
+        opt.name.toUpperCase().includes(s.name.toUpperCase())
+      );
+      return { xeroOptionId: opt.id, serviceId: matched?.id || "" };
+    });
+    setCentreMappings(newMappings);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategoryId, trackingCategories]);
+
+  // Auto-suggest account mappings when accounts load
+  useEffect(() => {
+    if (!xeroAccounts) return;
+    const accounts = xeroAccounts as {
+      id: string;
+      name: string;
+      code: string;
+      type: string;
+    }[];
+    const existing = accountMappings;
+    const newMappings = accounts.map((acc) => {
+      const ex = existing.find((m) => m.xeroAccountId === acc.id);
+      if (ex?.category) return ex;
+      return {
+        xeroAccountId: acc.id,
+        category: suggestAccountCategory(acc.name, acc.type),
+      };
+    });
+    setAccountMappings(newMappings);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [xeroAccounts]);
+
+  const handleSaveMappings = () => {
+    // Transform local state to match API shape
+    const accounts = (xeroAccounts || []) as { id: string; code: string; name: string; type: string; Code: string; Name: string; Type: string; Class: string }[];
+    const transformedAccountMappings = accountMappings
+      .filter((m) => m.category)
+      .map((m) => {
+        const acc = accounts.find((a) => a.code === m.xeroAccountId || a.Code === m.xeroAccountId);
+        return {
+          xeroAccountCode: m.xeroAccountId,
+          xeroAccountName: acc?.Name || acc?.name || m.xeroAccountId,
+          xeroAccountType: acc?.Type || acc?.Class || acc?.type || "EXPENSE",
+          localCategory: m.category,
+        };
+      });
+
+    const transformedCentreMappings = centreMappings
+      .filter((m) => m.serviceId)
+      .map((m) => ({
+        serviceId: m.serviceId,
+        xeroTrackingOptionId: m.xeroOptionId,
+      }));
+
+    saveMappings.mutate(
+      {
+        trackingCategoryId: selectedCategoryId,
+        centreMappings: transformedCentreMappings,
+        accountMappings: transformedAccountMappings,
+      },
+      {
+        onSuccess: () => {
+          setShowMappingModal(false);
+          setMappingStep(1);
+          queryClient.invalidateQueries({ queryKey: ["xero-status"] });
+          queryClient.invalidateQueries({ queryKey: ["xero-mappings"] });
+        },
+      }
+    );
+  };
+
+  const handleSync = () => {
+    sync.mutate(undefined, {
+      onSuccess: () => {
+        setSyncSuccess(true);
+        setTimeout(() => setSyncSuccess(false), 3000);
+        queryClient.invalidateQueries({ queryKey: ["xero-status"] });
+      },
+    });
+  };
+
+  const openModal = () => {
+    setMappingStep(1);
+    setShowMappingModal(true);
+  };
+
+  const isConnected = status?.status === "connected";
+  const isMapped = isConnected && (status?.mappedCentres ?? 0) > 0;
+
+  return (
+    <>
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Link2 className="w-5 h-5 text-gray-400" />
+            <h3 className="text-lg font-semibold text-gray-900">
+              Integrations
+            </h3>
+          </div>
+        </div>
+
+        {statusLoading ? (
+          <div className="py-4 text-center text-gray-400 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+            Checking connection...
+          </div>
+        ) : !isConnected ? (
+          /* ——— State 1: Disconnected ——— */
+          <div>
+            <p className="text-sm text-gray-500 mb-4">
+              Connect your Xero account to automatically sync financial data
+              across all centres.
+            </p>
+            <button
+              onClick={() => xeroConnect.mutate()}
+              disabled={xeroConnect.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#13B5EA] text-white text-sm font-medium rounded-lg hover:bg-[#0fa3d4] transition-colors disabled:opacity-50"
+            >
+              {xeroConnect.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Link2 className="w-4 h-4" />
+                  Connect to Xero
+                </>
+              )}
+            </button>
+          </div>
+        ) : !isMapped ? (
+          /* ——— State 2: Connected but unmapped ——— */
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                Connected to {status?.tenantName}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={openModal}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+              >
+                <MapPin className="w-4 h-4" />
+                Configure Mappings
+              </button>
+              <button
+                onClick={() => xeroDisconnect.mutate()}
+                disabled={xeroDisconnect.isPending}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-red-500 text-sm font-medium hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <Unlink className="w-3.5 h-3.5" />
+                Disconnect
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ——— State 3: Connected and mapped ——— */
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                Connected to {status?.tenantName}
+              </span>
+            </div>
+
+            {/* Stats row */}
+            <div className="flex items-center gap-4 mb-3 text-sm text-gray-600">
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                {status?.mappedCentres} centres mapped
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <FileSpreadsheet className="w-3.5 h-3.5 text-gray-400" />
+                {status?.accountMappings} accounts mapped
+              </span>
+            </div>
+
+            {/* Last sync info */}
+            <div className="flex items-center gap-2 mb-4 text-xs text-gray-500">
+              <RefreshCw className="w-3.5 h-3.5" />
+              {status?.lastSyncAt
+                ? `Last synced: ${formatRelativeTime(status.lastSyncAt)}`
+                : "Never synced"}
+              {status?.lastSyncStatus === "error" && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-xs font-medium">
+                  Sync error
+                </span>
+              )}
+            </div>
+
+            {/* Sync success message */}
+            {syncSuccess && (
+              <div className="mb-3 px-3 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm flex items-center gap-2">
+                <Check className="w-4 h-4" />
+                Sync completed successfully
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSync}
+                disabled={sync.isPending}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              >
+                {sync.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    Sync Now
+                  </>
+                )}
+              </button>
+              <button
+                onClick={openModal}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <MapPin className="w-4 h-4" />
+                Edit Mappings
+              </button>
+              <button
+                onClick={() => xeroDisconnect.mutate()}
+                disabled={xeroDisconnect.isPending}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-red-500 text-sm font-medium hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <Unlink className="w-3.5 h-3.5" />
+                Disconnect
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ——— Mapping Modal ——— */}
+      {showMappingModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 p-6 max-h-[80vh] overflow-y-auto">
+            {/* Modal header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {mappingStep === 1
+                    ? "Step 1: Centre Mapping"
+                    : "Step 2: Account Mapping"}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {mappingStep === 1
+                    ? "Map Xero tracking categories to your services"
+                    : "Map Xero accounts to your financial categories"}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowMappingModal(false);
+                  setMappingStep(1);
+                }}
+                className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Step indicator */}
+            <div className="flex items-center gap-2 mb-6">
+              <span
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+                  mappingStep === 1
+                    ? "bg-[#004E64] text-white"
+                    : "bg-green-100 text-green-700"
+                )}
+              >
+                {mappingStep > 1 ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  "1"
+                )}
+              </span>
+              <div className="flex-1 h-0.5 bg-gray-200">
+                <div
+                  className={cn(
+                    "h-full bg-[#004E64] transition-all",
+                    mappingStep === 2 ? "w-full" : "w-0"
+                  )}
+                />
+              </div>
+              <span
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+                  mappingStep === 2
+                    ? "bg-[#004E64] text-white"
+                    : "bg-gray-100 text-gray-400"
+                )}
+              >
+                2
+              </span>
+            </div>
+
+            {mappingStep === 1 ? (
+              /* ——— Step 1: Centre Mapping ——— */
+              <div>
+                {trackingLoading ? (
+                  <div className="py-8 text-center text-gray-400 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+                    Loading tracking categories...
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tracking Category
+                      </label>
+                      <select
+                        value={selectedCategoryId}
+                        onChange={(e) => setSelectedCategoryId(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                      >
+                        <option value="">Select a tracking category</option>
+                        {trackingCategories?.map(
+                          (cat: { id: string; name: string }) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
+
+                    {selectedCategoryId && (
+                      <div className="space-y-2">
+                        {trackingCategories
+                          ?.find(
+                            (c: { id: string }) =>
+                              c.id === selectedCategoryId
+                          )
+                          ?.options?.map(
+                            (opt: { id: string; name: string }) => {
+                              const mapping = centreMappings.find(
+                                (m) => m.xeroOptionId === opt.id
+                              );
+                              return (
+                                <div
+                                  key={opt.id}
+                                  className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-gray-50"
+                                >
+                                  <span className="text-sm font-medium text-gray-700 flex-shrink-0">
+                                    {opt.name}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <ArrowRight className="w-4 h-4 text-gray-300" />
+                                    <select
+                                      value={mapping?.serviceId || ""}
+                                      onChange={(e) => {
+                                        const newMappings =
+                                          centreMappings.filter(
+                                            (m) =>
+                                              m.xeroOptionId !== opt.id
+                                          );
+                                        newMappings.push({
+                                          xeroOptionId: opt.id,
+                                          serviceId: e.target.value,
+                                        });
+                                        setCentreMappings(newMappings);
+                                      }}
+                                      className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                                    >
+                                      <option value="">Not mapped</option>
+                                      {(
+                                        currentMappings?.services as {
+                                          id: string;
+                                          name: string;
+                                        }[]
+                                      )?.map((svc) => (
+                                        <option
+                                          key={svc.id}
+                                          value={svc.id}
+                                        >
+                                          {svc.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                              );
+                            }
+                          )}
+                      </div>
+                    )}
+
+                    <div className="flex justify-end mt-6">
+                      <button
+                        onClick={() => setMappingStep(2)}
+                        disabled={!selectedCategoryId}
+                        className={cn(
+                          "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                          selectedCategoryId
+                            ? "bg-[#004E64] text-white hover:bg-[#003D52]"
+                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        )}
+                      >
+                        Next
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              /* ——— Step 2: Account Mapping ——— */
+              <div>
+                {accountsLoading ? (
+                  <div className="py-8 text-center text-gray-400 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+                    Loading Xero accounts...
+                  </div>
+                ) : (
+                  <>
+                    {/* Revenue Accounts */}
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                        Revenue Accounts
+                      </h4>
+                      <div className="space-y-2">
+                        {(
+                          xeroAccounts as {
+                            id: string;
+                            name: string;
+                            code: string;
+                            type: string;
+                          }[]
+                        )
+                          ?.filter((a) => a.type === "REVENUE")
+                          .map((acc) => {
+                            const mapping = accountMappings.find(
+                              (m) => m.xeroAccountId === acc.id
+                            );
+                            return (
+                              <div
+                                key={acc.id}
+                                className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-gray-50"
+                              >
+                                <span className="text-sm text-gray-700">
+                                  <span className="font-mono text-xs text-gray-400 mr-2">
+                                    {acc.code}
+                                  </span>
+                                  {acc.name}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <ArrowRight className="w-4 h-4 text-gray-300" />
+                                  <select
+                                    value={mapping?.category || ""}
+                                    onChange={(e) => {
+                                      const newMappings =
+                                        accountMappings.filter(
+                                          (m) =>
+                                            m.xeroAccountId !== acc.id
+                                        );
+                                      newMappings.push({
+                                        xeroAccountId: acc.id,
+                                        category: e.target.value,
+                                      });
+                                      setAccountMappings(newMappings);
+                                    }}
+                                    className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                                  >
+                                    <option value="">Not mapped</option>
+                                    {Object.entries(
+                                      revenueCategoryLabels
+                                    ).map(([key, label]) => (
+                                      <option key={key} value={key}>
+                                        {label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Expense Accounts */}
+                    <div className="mb-6">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                        Expense Accounts
+                      </h4>
+                      <div className="space-y-2">
+                        {(
+                          xeroAccounts as {
+                            id: string;
+                            name: string;
+                            code: string;
+                            type: string;
+                          }[]
+                        )
+                          ?.filter((a) => a.type === "EXPENSE")
+                          .map((acc) => {
+                            const mapping = accountMappings.find(
+                              (m) => m.xeroAccountId === acc.id
+                            );
+                            return (
+                              <div
+                                key={acc.id}
+                                className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-gray-50"
+                              >
+                                <span className="text-sm text-gray-700">
+                                  <span className="font-mono text-xs text-gray-400 mr-2">
+                                    {acc.code}
+                                  </span>
+                                  {acc.name}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <ArrowRight className="w-4 h-4 text-gray-300" />
+                                  <select
+                                    value={mapping?.category || ""}
+                                    onChange={(e) => {
+                                      const newMappings =
+                                        accountMappings.filter(
+                                          (m) =>
+                                            m.xeroAccountId !== acc.id
+                                        );
+                                      newMappings.push({
+                                        xeroAccountId: acc.id,
+                                        category: e.target.value,
+                                      });
+                                      setAccountMappings(newMappings);
+                                    }}
+                                    className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                                  >
+                                    <option value="">Not mapped</option>
+                                    {Object.entries(
+                                      expenseCategoryLabels
+                                    ).map(([key, label]) => (
+                                      <option key={key} value={key}>
+                                        {label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex items-center justify-between mt-6">
+                      <button
+                        onClick={() => setMappingStep(1)}
+                        className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Back
+                      </button>
+                      <button
+                        onClick={handleSaveMappings}
+                        disabled={saveMappings.isPending}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+                      >
+                        {saveMappings.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Save Mappings
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function SettingsContent({ userRole }: { userRole: Role }) {
   const [showInvite, setShowInvite] = useState(false);
   const isOwner = userRole === "owner";
@@ -733,6 +1459,11 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Organisation Settings */}
       <OrgSettingsSection isOwner={isOwner} />
+
+      {/* Xero Integration (owner/admin) */}
+      {(userRole === "owner" || userRole === "admin") && (
+        <XeroIntegrationSection isOwner={isOwner} />
+      )}
 
       {/* User Management (owner only) */}
       {isOwner && (

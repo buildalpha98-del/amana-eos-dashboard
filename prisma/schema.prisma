@@ -549,6 +549,7 @@ model Service {
   bscDailyRate  Float?
   ascDailyRate  Float?
   vcDailyRate   Float?
+  xeroTrackingOptionId String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -774,7 +775,11 @@ model FinancialPeriod {
   bscAttendance Int                 @default(0)
   ascAttendance Int                 @default(0)
   vcAttendance  Int                 @default(0)
-  
+
+  // Data source
+  dataSource    String              @default("manual")
+  xeroSyncedAt  DateTime?
+
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   
@@ -1050,4 +1055,50 @@ model OrgSettings {
   primaryColor String   @default("#004E64")
   accentColor  String   @default("#FECE00")
   updatedAt    DateTime @updatedAt
+}
+
+// ============================================================
+// Xero Integration
+// ============================================================
+
+enum XeroConnectionStatus {
+  connected
+  disconnected
+  error
+}
+
+model XeroConnection {
+  id                     String               @id @default("singleton")
+  status                 XeroConnectionStatus @default(disconnected)
+  tenantId               String?
+  tenantName             String?
+  accessToken            String?              @db.Text
+  refreshToken           String?              @db.Text
+  tokenExpiresAt         DateTime?
+  scopes                 String?
+  trackingCategoryId     String?
+  lastSyncAt             DateTime?
+  lastSyncStatus         String?
+  lastSyncError          String?              @db.Text
+  connectedById          String?
+  syncedFinancialPeriods Int                  @default(0)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  accountMappings XeroAccountMapping[]
+}
+
+model XeroAccountMapping {
+  id               String         @id @default(cuid())
+  xeroConnectionId String
+  xeroConnection   XeroConnection @relation(fields: [xeroConnectionId], references: [id], onDelete: Cascade)
+  xeroAccountCode  String
+  xeroAccountName  String
+  xeroAccountType  String
+  localCategory    String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([xeroConnectionId, xeroAccountCode])
+  @@index([xeroConnectionId])
 }

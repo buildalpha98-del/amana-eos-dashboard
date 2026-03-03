@@ -38,6 +38,8 @@ export interface FinancialPeriodData {
   vcAttendance: number;
   budgetRevenue: number | null;
   budgetCosts: number | null;
+  dataSource: string;
+  xeroSyncedAt: string | null;
 }
 
 export interface FinancialSummary {

@@ -28,5 +28,6 @@ export const config = {
     "/api/communication/:path*",
     "/services/:path*",
     "/api/services/:path*",
+    "/api/xero/:path*",
   ],
 };

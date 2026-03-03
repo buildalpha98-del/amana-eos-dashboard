@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
   };
   if (serviceId) where.serviceId = serviceId;
 
+  // dataSource and xeroSyncedAt are included automatically as scalar fields
   const financials = await prisma.financialPeriod.findMany({
     where,
     include: {
@@ -126,6 +127,7 @@ export async function POST(req: NextRequest) {
       ascEnrolments: d.ascEnrolments,
       ...(d.budgetRevenue !== undefined && { budgetRevenue: d.budgetRevenue }),
       ...(d.budgetCosts !== undefined && { budgetCosts: d.budgetCosts }),
+      dataSource: "manual",
     },
     create: {
       serviceId: d.serviceId,
@@ -153,6 +155,7 @@ export async function POST(req: NextRequest) {
       ascEnrolments: d.ascEnrolments,
       ...(d.budgetRevenue !== undefined && { budgetRevenue: d.budgetRevenue }),
       ...(d.budgetCosts !== undefined && { budgetCosts: d.budgetCosts }),
+      dataSource: "manual",
     },
     include: {
       service: { select: { id: true, name: true, code: true } },
