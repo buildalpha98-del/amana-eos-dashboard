@@ -290,6 +290,48 @@ export async function GET() {
     })),
   };
 
+  // ── Project To-Dos ───────────────────────────────────────
+  const projectTodos = await prisma.todo.findMany({
+    where: {
+      deleted: false,
+      status: { notIn: ["complete", "cancelled"] },
+      projectId: { not: null },
+    },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      dueDate: true,
+      assignee: { select: { id: true, name: true } },
+      project: {
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          service: { select: { id: true, name: true, code: true } },
+        },
+      },
+    },
+    orderBy: { dueDate: "asc" },
+    take: 20,
+  });
+
+  const projectTodosFormatted = projectTodos.map((t) => ({
+    id: t.id,
+    title: t.title,
+    status: t.status,
+    dueDate: t.dueDate.toISOString(),
+    assigneeName: t.assignee.name,
+    assigneeId: t.assignee.id,
+    projectId: t.project!.id,
+    projectName: t.project!.name,
+    projectStatus: t.project!.status,
+    serviceName: t.project!.service?.name || null,
+    serviceCode: t.project!.service?.code || null,
+    serviceId: t.project!.service?.id || null,
+    isOverdue: t.dueDate < now,
+  }));
+
   // ── Key Metrics ───────────────────────────────────────────
   const [
     latestFinancials,
@@ -397,5 +439,6 @@ export async function GET() {
     trends,
     actionItems,
     keyMetrics,
+    projectTodos: projectTodosFormatted,
   });
 }

@@ -14,6 +14,7 @@ import type { ServiceSummary } from "@/hooks/useServices";
 const statusConfig: Record<string, { label: string; color: string }> = {
   active: { label: "Active", color: "bg-emerald-100 text-emerald-700" },
   onboarding: { label: "Onboarding", color: "bg-blue-100 text-blue-700" },
+  pipeline: { label: "Pipeline", color: "bg-purple-100 text-purple-700" },
   closing: { label: "Closing", color: "bg-amber-100 text-amber-700" },
   closed: { label: "Closed", color: "bg-gray-100 text-gray-500" },
 };
@@ -30,7 +31,7 @@ export function ServiceCard({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md hover:border-gray-300 transition-all group"
+      className="w-full text-left bg-white rounded-xl border border-gray-200 p-3.5 sm:p-5 hover:shadow-md hover:border-gray-300 transition-all group"
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
@@ -70,7 +71,7 @@ export function ServiceCard({
       </div>
 
       {/* Counts bar */}
-      <div className="flex items-center gap-4 mt-4 pt-3 border-t border-gray-100">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-3 sm:mt-4 pt-3 border-t border-gray-100">
         <div className="flex items-center gap-1 text-xs text-gray-500">
           <CheckSquare className="w-3.5 h-3.5" />
           <span>

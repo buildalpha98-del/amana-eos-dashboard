@@ -14,7 +14,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireAuth();
+  const { error } = await requireAuth(["owner", "admin"]);
   if (error) return error;
 
   const { id } = await params;

@@ -88,6 +88,7 @@ export async function PATCH(
     "name", "code", "address", "suburb", "state", "postcode",
     "phone", "email", "status", "managerId", "capacity", "operatingDays", "notes",
     "bscDailyRate", "ascDailyRate", "vcDailyRate",
+    "bscCasualRate", "ascCasualRate",
   ];
 
   for (const f of fields) {

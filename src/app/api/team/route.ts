@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { error } = await requireAuth(["owner", "admin"]);
   if (error) return error;
 
   const users = await prisma.user.findMany({

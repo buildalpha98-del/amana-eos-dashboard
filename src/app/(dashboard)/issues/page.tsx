@@ -146,26 +146,28 @@ export default function IssuesPage() {
 
       {/* Status Tabs */}
       {viewMode === "list" && (
-        <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1 w-fit">
-          {statusTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = statusFilter === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setStatusFilter(tab.key)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                {Icon && <Icon className={cn("w-3.5 h-3.5", isActive && tab.color)} />}
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mb-4">
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+            {statusTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = statusFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setStatusFilter(tab.key)}
+                  className={cn(
+                    "flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap",
+                    isActive
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  {Icon && <Icon className={cn("w-3.5 h-3.5", isActive && tab.color)} />}
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -213,7 +215,7 @@ export default function IssuesPage() {
 
       {/* Summary Bar */}
       {issues && issues.length > 0 && (
-        <div className="flex items-center gap-4 mb-4 px-1">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 px-1">
           <span className="text-sm text-gray-500">
             <span className="font-semibold text-gray-900">{stats.total}</span> Issues
           </span>
@@ -237,9 +239,9 @@ export default function IssuesPage() {
       ) : issues && issues.length > 0 ? (
         viewMode === "board" ? (
           /* Board View — IDS Columns */
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:overflow-visible">
             {/* Identify Column */}
-            <div className="space-y-3">
+            <div className="space-y-3 min-w-[280px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
               <div className="flex items-center gap-2 pb-2 border-b-2 border-amber-400">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
                 <h3 className="text-sm font-semibold text-amber-700">
@@ -264,7 +266,7 @@ export default function IssuesPage() {
             </div>
 
             {/* Discuss Column */}
-            <div className="space-y-3">
+            <div className="space-y-3 min-w-[280px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
               <div className="flex items-center gap-2 pb-2 border-b-2 border-blue-400">
                 <MessageSquare className="w-4 h-4 text-blue-600" />
                 <h3 className="text-sm font-semibold text-blue-700">
@@ -289,7 +291,7 @@ export default function IssuesPage() {
             </div>
 
             {/* Solve Column */}
-            <div className="space-y-3">
+            <div className="space-y-3 min-w-[280px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
               <div className="flex items-center gap-2 pb-2 border-b-2 border-emerald-400">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 <h3 className="text-sm font-semibold text-emerald-700">

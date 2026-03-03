@@ -19,9 +19,12 @@ import { useState } from "react";
 // Command Centre components
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { KeyMetricsBar } from "@/components/dashboard/KeyMetricsBar";
+import { DashboardRocks } from "@/components/dashboard/DashboardRocks";
+import { DashboardAnnouncements } from "@/components/dashboard/DashboardAnnouncements";
 import { CentreHealthHeatmap } from "@/components/dashboard/CentreHealthHeatmap";
 import { TrendSparklines } from "@/components/dashboard/TrendSparklines";
 import { ActionItemsFeed } from "@/components/dashboard/ActionItemsFeed";
+import { DashboardProjectTodos } from "@/components/dashboard/DashboardProjectTodos";
 
 // ─── Quick Add Modals (kept from original) ─────────────────────
 
@@ -326,6 +329,7 @@ function QuickAddRockModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"medium" | "high" | "critical">("medium");
+  const [rockType, setRockType] = useState<"company" | "personal">("personal");
   const [showSuccess, setShowSuccess] = useState(false);
 
   const createRockMutation = useMutation({
@@ -334,6 +338,7 @@ function QuickAddRockModal({
       ownerId: string;
       quarter: string;
       priority: string;
+      rockType: string;
       description?: string;
     }) => {
       const res = await fetch("/api/rocks", {
@@ -352,6 +357,7 @@ function QuickAddRockModal({
         setTitle("");
         setDescription("");
         setPriority("medium");
+        setRockType("personal");
         setShowSuccess(false);
         onClose();
       }, 1500);
@@ -369,6 +375,7 @@ function QuickAddRockModal({
       ownerId: session.user.id,
       quarter,
       priority,
+      rockType,
       description: description || undefined,
     });
   };
@@ -407,6 +414,36 @@ function QuickAddRockModal({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Rock Type
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setRockType("company")}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  rockType === "company"
+                    ? "bg-[#004E64] text-white border-[#004E64]"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Company
+              </button>
+              <button
+                type="button"
+                onClick={() => setRockType("personal")}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  rockType === "personal"
+                    ? "bg-[#004E64] text-white border-[#004E64]"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Personal
+              </button>
+            </div>
           </div>
 
           <div>
@@ -496,12 +533,12 @@ export function DashboardContent() {
             overview across all centres.
           </p>
         </div>
-        <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+        <div className="flex items-center bg-gray-100 rounded-lg p-0.5 overflow-x-auto">
           {periodOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setPeriod(opt.value)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              className={`px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                 period === opt.value
                   ? "bg-white text-[#004E64] shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -523,8 +560,17 @@ export function DashboardContent() {
           {/* ── Key Metrics Bar ─────────────────────────────── */}
           <KeyMetricsBar metrics={data.keyMetrics} />
 
+          {/* ── Company & Personal Rocks at a Glance ─────── */}
+          <DashboardRocks />
+
+          {/* ── Latest Announcements ───────────────────────── */}
+          <DashboardAnnouncements />
+
           {/* ── Centre Health Heatmap ──────────────────────── */}
           <CentreHealthHeatmap centres={data.centreHealth} networkAvgScore={data.networkAvgScore} />
+
+          {/* ── Project To-Dos ─────────────────────────────── */}
+          <DashboardProjectTodos todos={data.projectTodos} />
 
           {/* ── Sparklines + Action Items ──────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -552,11 +598,11 @@ export function DashboardContent() {
       )}
 
       {/* ── Quick Actions (kept from original) ─────────────── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
           Quick Actions
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           <button
             onClick={() => setOpenTodoModal(true)}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group"

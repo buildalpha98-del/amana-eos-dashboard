@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/server-auth";
 
 // GET /api/marketing/overview — aggregated marketing stats
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { error } = await requireAuth(["owner", "admin"]);
   if (error) return error;
 
   const now = new Date();

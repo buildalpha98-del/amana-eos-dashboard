@@ -60,24 +60,25 @@ export default function ScorecardPage() {
   return (
     <div className="max-w-full mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Scorecard</h2>
           <p className="text-sm text-gray-500">
             Track your weekly measurables — trailing 13 weeks
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <ExportButton
             onClick={handleExport}
             disabled={!scorecard?.measurables || scorecard.measurables.length === 0}
           />
           <button
             onClick={() => setShowAddMeasurable(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Measurable
+            <span className="hidden sm:inline">Add Measurable</span>
+            <span className="sm:hidden">Add</span>
           </button>
         </div>
       </div>

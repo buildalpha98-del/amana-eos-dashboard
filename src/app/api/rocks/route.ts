@@ -9,6 +9,7 @@ const createRockSchema = z.object({
   ownerId: z.string().min(1, "Owner is required"),
   quarter: z.string().min(1, "Quarter is required"),
   priority: z.enum(["critical", "high", "medium"]).default("medium"),
+  rockType: z.enum(["company", "personal"]).default("personal"),
   oneYearGoalId: z.string().optional().nullable(),
   serviceId: z.string().optional().nullable(),
 });
@@ -22,9 +23,12 @@ export async function GET(req: NextRequest) {
   const quarter = searchParams.get("quarter");
   const serviceId = searchParams.get("serviceId");
 
+  const rockType = searchParams.get("rockType");
+
   const where: Record<string, unknown> = { deleted: false };
   if (quarter) where.quarter = quarter;
   if (serviceId) where.serviceId = serviceId;
+  if (rockType) where.rockType = rockType;
 
   const rocks = await prisma.rock.findMany({
     where,
@@ -67,6 +71,7 @@ export async function POST(req: NextRequest) {
       ownerId: parsed.data.ownerId,
       quarter: parsed.data.quarter,
       priority: parsed.data.priority,
+      rockType: parsed.data.rockType,
       oneYearGoalId: parsed.data.oneYearGoalId || null,
       serviceId: parsed.data.serviceId || null,
     },

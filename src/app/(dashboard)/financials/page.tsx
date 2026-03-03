@@ -18,12 +18,14 @@ import {
   X,
   RefreshCw,
   Pencil,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
 import { RevenueVsCostsChart } from "@/components/charts/RevenueVsCostsChart";
 import { MarginComparisonChart } from "@/components/charts/MarginComparisonChart";
 import { RevenueBreakdownChart } from "@/components/charts/RevenueBreakdownChart";
+import { ImportOWNAModal } from "@/components/financials/ImportOWNAModal";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-AU", {
@@ -54,11 +56,11 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
       <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+        <div className="min-w-0">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">{title}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 truncate">{value}</p>
           {subtitle && (
             <div className="flex items-center gap-1 mt-1">
               {trend === "up" && <ArrowUpRight className="w-3 h-3 text-emerald-500" />}
@@ -160,8 +162,8 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-t-xl sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h3 className="text-base font-semibold text-gray-900">Enter Financial Data</h3>
           <button onClick={onClose} className="p-1 rounded-md text-gray-400 hover:text-gray-600">
@@ -283,6 +285,7 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
 export default function FinancialsPage() {
   const [period, setPeriod] = useState<string>("monthly");
   const [showEnterData, setShowEnterData] = useState(false);
+  const [showImportOWNA, setShowImportOWNA] = useState(false);
   const { data, isLoading } = useFinancials({ period });
 
   const summary = data?.summary;
@@ -327,23 +330,34 @@ export default function FinancialsPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Financial Dashboard</h2>
-          <p className="text-gray-500 mt-1">Revenue, costs, and profitability across all centres</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Financial Dashboard</h2>
+          <p className="text-sm text-gray-500 mt-1">Revenue, costs, and profitability across all centres</p>
           <div className="mt-2">
             <XeroSyncBadge />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowEnterData(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Enter Data
-          </button>
-          <ExportButton onClick={handleExport} disabled={!data?.financials || data.financials.length === 0} />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowImportOWNA(true)}
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 border border-[#004E64] text-[#004E64] text-sm font-medium rounded-lg hover:bg-[#004E64]/5 transition-colors"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden sm:inline">Import from OWNA</span>
+              <span className="sm:hidden">Import</span>
+            </button>
+            <button
+              onClick={() => setShowEnterData(true)}
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Enter Data</span>
+              <span className="sm:hidden">Add</span>
+            </button>
+            <ExportButton onClick={handleExport} disabled={!data?.financials || data.financials.length === 0} />
+          </div>
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
           {[
             { label: "Weekly", value: "weekly" },
@@ -354,7 +368,7 @@ export default function FinancialsPage() {
               key={opt.value}
               onClick={() => setPeriod(opt.value)}
               className={cn(
-                "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                "px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors",
                 period === opt.value
                   ? "bg-white text-[#004E64] shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -404,27 +418,27 @@ export default function FinancialsPage() {
       </div>
 
       {/* Attendance Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-2">
             <Building2 className="w-5 h-5 text-[#004E64]" />
             <h3 className="text-sm font-medium text-gray-500">Active Centres</h3>
           </div>
           <p className="text-3xl font-bold text-gray-900">{summary?.centreCount || 0}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-2">
             <TrendingUp className="w-5 h-5 text-blue-500" />
             <h3 className="text-sm font-medium text-gray-500">BSC Attendance</h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{summary?.totalBscAttendance || 0}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900">{summary?.totalBscAttendance || 0}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-2">
             <TrendingUp className="w-5 h-5 text-emerald-500" />
             <h3 className="text-sm font-medium text-gray-500">ASC Attendance</h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{summary?.totalAscAttendance || 0}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900">{summary?.totalAscAttendance || 0}</p>
         </div>
       </div>
 
@@ -453,8 +467,8 @@ export default function FinancialsPage() {
             <p className="text-sm text-gray-400 mt-1">Financial data will appear here once centres start reporting.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left">
                   <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Centre</th>
@@ -581,6 +595,7 @@ export default function FinancialsPage() {
       </div>
 
       <EnterDataModal open={showEnterData} onClose={() => setShowEnterData(false)} />
+      <ImportOWNAModal open={showImportOWNA} onClose={() => setShowImportOWNA(false)} />
     </div>
   );
 }

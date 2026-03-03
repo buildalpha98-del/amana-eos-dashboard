@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { error } = await requireAuth(["owner", "admin"]);
   if (error) return error;
 
   const { searchParams } = new URL(req.url);

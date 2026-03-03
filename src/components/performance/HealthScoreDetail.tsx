@@ -163,13 +163,13 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
 
         {/* Data Loaded */}
         {data && (
-          <div className="p-6 space-y-6">
+          <div className="p-4 md:p-6 space-y-6">
             {/* ── Header ────────────────────────────────────────── */}
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Centre Health Score</h2>
                 <div className="flex items-center gap-3 mt-2">
-                  <span className={`text-4xl font-bold ${getScoreColor(data.current.overallScore)}`}>
+                  <span className={`text-3xl md:text-4xl font-bold ${getScoreColor(data.current.overallScore)}`}>
                     {data.current.overallScore}
                   </span>
                   <div className="flex flex-col gap-1">
@@ -197,7 +197,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
             </div>
 
             {/* ── Pillar Cards Row ──────────────────────────────── */}
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
               {PILLAR_KEYS.map((key) => {
                 const score = data.current.pillars[key]?.score ?? 0;
                 return (
@@ -319,7 +319,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Network Comparison</h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   {/* Legend */}
-                  <div className="flex items-center gap-4 mb-2">
+                  <div className="flex flex-wrap items-center gap-4 mb-2">
                     <div className="flex items-center gap-1.5">
                       <div className="w-3 h-3 rounded-sm bg-[#004E64]" />
                       <span className="text-xs text-gray-600">Centre</span>

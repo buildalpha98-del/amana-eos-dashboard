@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useCreateRock } from "@/hooks/useRocks";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
-import type { RockPriority } from "@prisma/client";
+import type { RockPriority, RockType } from "@prisma/client";
 
 interface UserOption {
   id: string;
@@ -26,6 +26,7 @@ export function CreateRockModal({
   const [description, setDescription] = useState("");
   const [ownerId, setOwnerId] = useState("");
   const [priority, setPriority] = useState<RockPriority>("medium");
+  const [rockType, setRockType] = useState<RockType>("personal");
   const [error, setError] = useState("");
 
   const { data: users } = useQuery<UserOption[]>({
@@ -49,13 +50,14 @@ export function CreateRockModal({
     }
 
     createRock.mutate(
-      { title, description: description || undefined, ownerId, quarter, priority },
+      { title, description: description || undefined, ownerId, quarter, priority, rockType },
       {
         onSuccess: () => {
           setTitle("");
           setDescription("");
           setOwnerId("");
           setPriority("medium");
+          setRockType("personal");
           onClose();
         },
         onError: (err: Error) => setError(err.message),
@@ -113,6 +115,36 @@ export function CreateRockModal({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
               placeholder="Describe the Rock in detail..."
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Rock Type
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setRockType("company")}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  rockType === "company"
+                    ? "bg-[#004E64] text-white border-[#004E64]"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Company Rock
+              </button>
+              <button
+                type="button"
+                onClick={() => setRockType("personal")}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  rockType === "personal"
+                    ? "bg-[#004E64] text-white border-[#004E64]"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                Personal Rock
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

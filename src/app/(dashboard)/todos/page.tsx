@@ -222,7 +222,7 @@ export default function TodosPage() {
 
       {/* Filters */}
       {showFilters && (
-        <div className="mb-4 flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
+        <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3 p-3 bg-white rounded-lg border border-gray-200">
           <select
             value={filterAssignee}
             onChange={(e) => setFilterAssignee(e.target.value)}
@@ -267,21 +267,21 @@ export default function TodosPage() {
         <div className="mb-4 bg-amber-50/50 border border-amber-200 rounded-xl overflow-hidden">
           <button
             onClick={() => setShowCarryForward(!showCarryForward)}
-            className="w-full flex items-center justify-between px-4 py-3 hover:bg-amber-50 transition-colors"
+            className="w-full flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-4 py-3 hover:bg-amber-50 transition-colors gap-2"
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               {showCarryForward ? (
-                <ChevronDown className="w-4 h-4 text-amber-600" />
+                <ChevronDown className="w-4 h-4 text-amber-600 shrink-0" />
               ) : (
-                <ChevronRight className="w-4 h-4 text-amber-600" />
+                <ChevronRight className="w-4 h-4 text-amber-600 shrink-0" />
               )}
               <span className="text-sm font-semibold text-amber-800">
                 Carried Forward
               </span>
-              <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 font-medium">
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 font-medium shrink-0">
                 {carryForwardTodos.length}
               </span>
-              <span className="text-xs text-amber-600">
+              <span className="text-xs text-amber-600 hidden sm:inline">
                 incomplete from last week
               </span>
             </div>
@@ -290,7 +290,7 @@ export default function TodosPage() {
                 e.stopPropagation();
                 handleCarryForwardAll();
               }}
-              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-md transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-md transition-colors self-start sm:self-auto shrink-0"
             >
               <ArrowRight className="w-3 h-3" />
               Move all to this week
@@ -327,12 +327,12 @@ export default function TodosPage() {
 
       {/* Summary Bar */}
       {todos && todos.length > 0 && (
-        <div className="flex items-center gap-4 mb-4 px-1">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 px-1">
           <span className="text-sm text-gray-500">
             <span className="font-semibold text-gray-900">{stats.total}</span>{" "}
             To-Dos
           </span>
-          <span className="text-gray-300">|</span>
+          <span className="text-gray-300 hidden sm:inline">|</span>
           <span className="text-sm text-emerald-600">
             {stats.complete} complete
           </span>
@@ -345,7 +345,7 @@ export default function TodosPage() {
             </span>
           )}
           {stats.total > 0 && (
-            <span className="text-sm text-gray-400 ml-auto">
+            <span className="text-sm text-gray-400 sm:ml-auto">
               {Math.round((stats.complete / stats.total) * 100)}% done
             </span>
           )}
@@ -404,28 +404,29 @@ export default function TodosPage() {
 
       {/* Batch Action Bar */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl">
-          <span className="text-sm font-medium">
+        <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-30 flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3 sm:px-5 py-2.5 sm:py-3 bg-gray-900 text-white rounded-xl shadow-2xl max-w-[calc(100vw-2rem)]">
+          <span className="text-xs sm:text-sm font-medium">
             {selectedIds.size} selected
           </span>
-          <div className="w-px h-5 bg-gray-600" />
+          <div className="w-px h-5 bg-gray-600 hidden sm:block" />
           <button
             onClick={handleBatchComplete}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+            className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
           >
             <CheckSquare className="w-3.5 h-3.5" />
             Complete
           </button>
           <button
             onClick={handleBatchMoveToThisWeek}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-[#004E64] hover:bg-[#003D52] rounded-lg transition-colors"
+            className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium bg-[#004E64] hover:bg-[#003D52] rounded-lg transition-colors"
           >
             <ArrowRight className="w-3.5 h-3.5" />
-            Move to this week
+            <span className="hidden sm:inline">Move to this week</span>
+            <span className="sm:hidden">Move</span>
           </button>
           <button
             onClick={handleBatchDelete}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+            className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Delete

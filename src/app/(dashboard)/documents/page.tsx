@@ -59,6 +59,19 @@ interface Service {
   code: string;
 }
 
+/**
+ * Convert a stored fileUrl (e.g. /uploads/file-123.pdf) to the download API
+ * route so files are served reliably in both dev and standalone production builds.
+ */
+function getDownloadUrl(fileUrl: string): string {
+  if (fileUrl.startsWith("/uploads/")) {
+    const fileName = fileUrl.replace("/uploads/", "");
+    return `/api/documents/download?file=${encodeURIComponent(fileName)}`;
+  }
+  // If it's already an absolute URL or different path, return as-is
+  return fileUrl;
+}
+
 export default function DocumentsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedCentre, setSelectedCentre] = useState<string>("");
@@ -521,7 +534,7 @@ export default function DocumentsPage() {
                   </div>
                   <div className="flex gap-2 pt-3 border-t border-gray-100">
                     <a
-                      href={doc.fileUrl}
+                      href={getDownloadUrl(doc.fileUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 bg-[#004E64] hover:bg-[#003D52] text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
@@ -598,7 +611,7 @@ export default function DocumentsPage() {
                         <td className="px-4 py-3">
                           <div className="flex gap-3">
                             <a
-                              href={doc.fileUrl}
+                              href={getDownloadUrl(doc.fileUrl)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-[#004E64] hover:text-[#003D52] transition-colors"

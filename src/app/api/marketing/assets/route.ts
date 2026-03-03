@@ -14,7 +14,7 @@ const createAssetSchema = z.object({
 
 // GET /api/marketing/assets — list assets with optional filters
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { error } = await requireAuth(["owner", "admin"]);
   if (error) return error;
 
   const { searchParams } = new URL(req.url);

@@ -16,6 +16,8 @@ const createServiceSchema = z.object({
   capacity: z.number().optional().nullable(),
   operatingDays: z.string().optional(),
   notes: z.string().optional(),
+  bscCasualRate: z.number().optional(),
+  ascCasualRate: z.number().optional(),
 });
 
 // GET /api/services
@@ -76,6 +78,8 @@ export async function POST(req: NextRequest) {
       capacity: parsed.data.capacity || null,
       operatingDays: parsed.data.operatingDays || null,
       notes: parsed.data.notes || null,
+      bscCasualRate: parsed.data.bscCasualRate ?? 0,
+      ascCasualRate: parsed.data.ascCasualRate ?? 0,
     },
     include: {
       manager: { select: { id: true, name: true, email: true, avatar: true } },

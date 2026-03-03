@@ -7,6 +7,8 @@ import {
   CheckSquare,
   AlertCircle,
   GripVertical,
+  Building2,
+  User,
 } from "lucide-react";
 
 const priorityConfig = {
@@ -41,17 +43,30 @@ export function RockCard({
         isDragging && "shadow-lg rotate-1 opacity-90"
       )}
     >
-      {/* Header: Priority + Grip */}
+      {/* Header: Priority + Type + Grip */}
       <div className="flex items-start justify-between mb-2">
-        <span
-          className={cn(
-            "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider",
-            priority.bg,
-            priority.text
+        <div className="flex items-center gap-1.5">
+          <span
+            className={cn(
+              "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider",
+              priority.bg,
+              priority.text
+            )}
+          >
+            {priority.label}
+          </span>
+          {rock.rockType === "company" ? (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-purple-50 text-purple-700">
+              <Building2 className="w-2.5 h-2.5" />
+              Co.
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-50 text-gray-500">
+              <User className="w-2.5 h-2.5" />
+              Personal
+            </span>
           )}
-        >
-          {priority.label}
-        </span>
+        </div>
         <GripVertical className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 

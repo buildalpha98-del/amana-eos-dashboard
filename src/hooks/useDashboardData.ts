@@ -53,6 +53,23 @@ export interface DashboardResponse {
     rocksOnTrack: number;
     todosOverdue: number;
   };
+  projectTodos: ProjectTodoItem[];
+}
+
+export interface ProjectTodoItem {
+  id: string;
+  title: string;
+  status: string;
+  dueDate: string;
+  assigneeName: string;
+  assigneeId: string;
+  projectId: string;
+  projectName: string;
+  projectStatus: string;
+  serviceName: string | null;
+  serviceCode: string | null;
+  serviceId: string | null;
+  isOverdue: boolean;
 }
 
 export function useDashboardData(period?: string) {

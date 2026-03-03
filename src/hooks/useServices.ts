@@ -36,6 +36,8 @@ export interface ServiceDetail extends Omit<ServiceSummary, "_count"> {
   bscDailyRate: number | null;
   ascDailyRate: number | null;
   vcDailyRate: number | null;
+  bscCasualRate: number;
+  ascCasualRate: number;
   todos: {
     id: string;
     title: string;
@@ -142,6 +144,8 @@ export function useUpdateService() {
       bscDailyRate?: number | null;
       ascDailyRate?: number | null;
       vcDailyRate?: number | null;
+      bscCasualRate?: number;
+      ascCasualRate?: number;
     }) => {
       const res = await fetch(`/api/services/${id}`, {
         method: "PATCH",

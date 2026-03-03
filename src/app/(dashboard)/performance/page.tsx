@@ -123,11 +123,11 @@ export default function PerformancePage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Centre Performance</h2>
-          <p className="text-gray-500 mt-1">
-            Rankings, KPIs, and operational health across all service centres
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Centre Performance</h2>
+          <p className="text-sm md:text-base text-gray-500 mt-1">
+            Rankings, KPIs, and operational health across all centres
           </p>
         </div>
         <ExportButton onClick={handleExport} disabled={!centres || centres.length === 0} />
@@ -185,8 +185,8 @@ export default function PerformancePage() {
 
       {/* Performance League Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Centre Rankings</h3>
+        <div className="px-4 md:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">Centre Rankings</h3>
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">Sort by:</span>
             <select
@@ -212,23 +212,23 @@ export default function PerformancePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left">
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-10">#</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Centre</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">State</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Score</th>
+                  <th className="px-3 md:px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-10">#</th>
+                  <th className="px-3 md:px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Centre</th>
+                  <th className="hidden sm:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">State</th>
+                  <th className="px-3 md:px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Score</th>
                   <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Trend</th>
-                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Fin</th>
-                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Ops</th>
-                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Comp</th>
-                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Sat</th>
-                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Team</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Occupancy</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Revenue</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Margin</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Compliance</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">NPS</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Staff</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Issues</th>
+                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Fin</th>
+                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Ops</th>
+                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Comp</th>
+                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Sat</th>
+                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Team</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Occupancy</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Revenue</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Margin</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Compliance</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">NPS</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Staff</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Issues</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -242,7 +242,7 @@ export default function PerformancePage() {
                       centre.score < 60 ? "bg-red-50/30" : ""
                     )}
                   >
-                    <td className="px-4 py-3">
+                    <td className="px-3 md:px-4 py-3">
                       <span className={cn(
                         "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold",
                         index === 0 ? "bg-[#FECE00] text-[#004E64]" :
@@ -253,18 +253,18 @@ export default function PerformancePage() {
                         {index + 1}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 md:px-4 py-3">
                       <div>
-                        <p className="font-medium text-gray-900">{centre.name}</p>
-                        <p className="text-xs text-gray-400">{centre.manager?.name || "No manager"}</p>
+                        <p className="font-medium text-gray-900 text-sm">{centre.name}</p>
+                        <p className="text-xs text-gray-400 hidden sm:block">{centre.manager?.name || "No manager"}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="hidden sm:table-cell px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                         {centre.state || "—"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 md:px-4 py-3 text-center">
                       <ScoreBadge score={centre.score} />
                     </td>
                     <td className="px-3 py-3 text-center">
@@ -280,22 +280,22 @@ export default function PerformancePage() {
                       const val = centre.pillars?.[key as keyof typeof centre.pillars] ?? 0;
                       const color = val >= 75 ? "bg-emerald-100 text-emerald-700" : val >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
                       return (
-                        <td key={key} className="px-3 py-3 text-center">
+                        <td key={key} className="hidden md:table-cell px-3 py-3 text-center">
                           <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${color}`}>{val}</span>
                         </td>
                       );
                     })}
-                    <td className="px-4 py-3 text-right">
+                    <td className="hidden lg:table-cell px-4 py-3 text-right">
                       <MetricCell value={centre.metrics?.ascOccupancy} suffix="%" good="high" threshold={65} />
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="hidden lg:table-cell px-4 py-3 text-right">
                       {centre.financials ? (
                         <span className="font-medium text-gray-900">{formatCurrency(centre.financials.totalRevenue)}</span>
                       ) : (
                         <span className="text-gray-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="hidden lg:table-cell px-4 py-3 text-right">
                       {centre.financials ? (
                         <span className={cn(
                           "font-medium",
@@ -308,16 +308,16 @@ export default function PerformancePage() {
                         <span className="text-gray-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="hidden lg:table-cell px-4 py-3 text-right">
                       <MetricCell value={centre.metrics?.overallCompliance} suffix="%" good="high" threshold={95} />
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="hidden lg:table-cell px-4 py-3 text-right">
                       <MetricCell value={centre.metrics?.parentNps} good="high" threshold={50} />
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="hidden lg:table-cell px-4 py-3 text-right">
                       <MetricCell value={centre.metrics?.totalEducators} />
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="hidden lg:table-cell px-4 py-3 text-right">
                       {centre.openIssues > 0 ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
                           {centre.openIssues}

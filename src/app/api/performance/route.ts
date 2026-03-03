@@ -10,7 +10,7 @@ import {
 } from "@/lib/health-score";
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { error } = await requireAuth(["owner", "admin"]);
   if (error) return error;
 
   // Get all active services with their latest metrics and financials

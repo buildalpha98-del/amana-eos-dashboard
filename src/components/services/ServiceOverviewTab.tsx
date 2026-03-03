@@ -20,6 +20,7 @@ import {
 const statusOptions = [
   { key: "active", label: "Active", color: "bg-emerald-100 text-emerald-700 border-emerald-300" },
   { key: "onboarding", label: "Onboarding", color: "bg-blue-100 text-blue-700 border-blue-300" },
+  { key: "pipeline", label: "Pipeline", color: "bg-purple-100 text-purple-700 border-purple-300" },
   { key: "closing", label: "Closing", color: "bg-amber-100 text-amber-700 border-amber-300" },
   { key: "closed", label: "Closed", color: "bg-gray-100 text-gray-500 border-gray-300" },
 ] as const;
@@ -235,6 +236,52 @@ export function ServiceOverviewTab({
                 updateService.mutate({
                   id: service.id,
                   vcDailyRate: isNaN(val) ? null : val,
+                });
+              }}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              placeholder="$0"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Casual Rates */}
+      <div>
+        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+          <DollarSign className="w-3.5 h-3.5 inline mr-1" />
+          Casual Rates (per child per session)
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] text-gray-400 block mb-0.5">BSC Casual</label>
+            <input
+              type="number"
+              min={0}
+              step={0.5}
+              defaultValue={service.bscCasualRate ?? 0}
+              onBlur={(e) => {
+                const val = parseFloat(e.target.value);
+                updateService.mutate({
+                  id: service.id,
+                  bscCasualRate: isNaN(val) ? 0 : val,
+                });
+              }}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              placeholder="$0"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-400 block mb-0.5">ASC Casual</label>
+            <input
+              type="number"
+              min={0}
+              step={0.5}
+              defaultValue={service.ascCasualRate ?? 0}
+              onBlur={(e) => {
+                const val = parseFloat(e.target.value);
+                updateService.mutate({
+                  id: service.id,
+                  ascCasualRate: isNaN(val) ? 0 : val,
                 });
               }}
               className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"

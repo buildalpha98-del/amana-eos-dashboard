@@ -23,9 +23,16 @@ import {
   ArrowRight,
   MapPin,
   FileSpreadsheet,
+  Lock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
+import {
+  permissionsTable,
+  type PermissionRow,
+} from "@/lib/role-permissions";
 import {
   useXeroStatus,
   useXeroConnect,
@@ -1441,6 +1448,90 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
   );
 }
 
+// ——— Permissions Overview (owner only) ———
+
+function PermissionsPanel() {
+  // Group rows by section
+  const sections: { name: string; rows: PermissionRow[] }[] = [];
+  let currentSection = "";
+  for (const row of permissionsTable) {
+    if (row.section !== currentSection) {
+      currentSection = row.section;
+      sections.push({ name: currentSection, rows: [] });
+    }
+    sections[sections.length - 1].rows.push(row);
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Lock className="w-5 h-5 text-gray-400" />
+        <h3 className="text-lg font-semibold text-gray-900">
+          Role Permissions
+        </h3>
+      </div>
+      <p className="text-sm text-gray-500 mb-5">
+        An overview of what each role can access. Custom per-user permissions are
+        not supported yet — all users of a role share the same access level.
+      </p>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+                Permission
+              </th>
+              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-24">
+                Owner
+              </th>
+              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-24">
+                Admin
+              </th>
+              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-24">
+                Member
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sections.map((section) => (
+              <>
+                <tr key={`section-${section.name}`}>
+                  <td
+                    colSpan={4}
+                    className="pt-4 pb-1 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider"
+                  >
+                    {section.name}
+                  </td>
+                </tr>
+                {section.rows.map((row) => (
+                  <tr
+                    key={row.label}
+                    className="border-b border-gray-50 hover:bg-gray-50/50"
+                  >
+                    <td className="py-2 px-3 text-sm text-gray-700">
+                      {row.label}
+                    </td>
+                    {(["owner", "admin", "member"] as const).map((role) => (
+                      <td key={role} className="py-2 px-3 text-center">
+                        {row[role] ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-gray-300 mx-auto" />
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function SettingsContent({ userRole }: { userRole: Role }) {
   const [showInvite, setShowInvite] = useState(false);
   const isOwner = userRole === "owner";
@@ -1539,6 +1630,9 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
 
       {/* Activity Log (owner/admin) */}
       {(userRole === "owner" || userRole === "admin") && <ActivityLogPanel />}
+
+      {/* Permissions overview (owner only) */}
+      {isOwner && <PermissionsPanel />}
     </div>
   );
 }

@@ -10,6 +10,7 @@ const updateRockSchema = z.object({
   status: z.enum(["on_track", "off_track", "complete", "dropped"]).optional(),
   percentComplete: z.number().min(0).max(100).optional(),
   priority: z.enum(["critical", "high", "medium"]).optional(),
+  rockType: z.enum(["company", "personal"]).optional(),
   oneYearGoalId: z.string().optional().nullable(),
 });
 

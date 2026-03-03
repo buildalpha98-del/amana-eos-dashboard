@@ -15,6 +15,7 @@ import {
   AlertCircle,
   CalendarDays,
   DollarSign,
+  FolderKanban,
   Loader2,
   Radio,
 } from "lucide-react";
@@ -23,6 +24,7 @@ import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
 import { ServiceRocksTab } from "@/components/services/ServiceRocksTab";
 import { ServiceTodosTab } from "@/components/services/ServiceTodosTab";
 import { ServiceIssuesTab } from "@/components/services/ServiceIssuesTab";
+import { ServiceProjectsTab } from "@/components/services/ServiceProjectsTab";
 import { WeeklyDataEntry } from "@/components/services/WeeklyDataEntry";
 import { ServiceCommTab } from "@/components/services/ServiceCommTab";
 
@@ -32,6 +34,7 @@ const tabs = [
   { key: "rocks", label: "Rocks", icon: Mountain },
   { key: "todos", label: "To-Dos", icon: CheckSquare },
   { key: "issues", label: "Issues", icon: AlertCircle },
+  { key: "projects", label: "Projects", icon: FolderKanban },
   { key: "weekly", label: "Weekly Data", icon: CalendarDays },
   { key: "comms", label: "Comms", icon: Radio },
   { key: "financials", label: "Financials", icon: DollarSign },
@@ -42,6 +45,7 @@ type TabKey = (typeof tabs)[number]["key"];
 const statusBadgeStyles: Record<string, string> = {
   active: "bg-emerald-100 text-emerald-700 border-emerald-300",
   onboarding: "bg-blue-100 text-blue-700 border-blue-300",
+  pipeline: "bg-purple-100 text-purple-700 border-purple-300",
   closing: "bg-amber-100 text-amber-700 border-amber-300",
   closed: "bg-gray-100 text-gray-500 border-gray-300",
 };
@@ -184,6 +188,10 @@ export default function ServiceDetailPage() {
 
         {activeTab === "issues" && (
           <ServiceIssuesTab serviceId={service.id} />
+        )}
+
+        {activeTab === "projects" && (
+          <ServiceProjectsTab serviceId={service.id} />
         )}
 
         {activeTab === "weekly" && (

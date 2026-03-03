@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { RockStatus, RockPriority } from "@prisma/client";
+import type { RockStatus, RockPriority, RockType } from "@prisma/client";
 
 export interface RockOwner {
   id: string;
@@ -20,6 +20,7 @@ export interface RockData {
   status: RockStatus;
   percentComplete: number;
   priority: RockPriority;
+  rockType: RockType;
   oneYearGoalId: string | null;
   oneYearGoal: { id: string; title: string } | null;
   createdAt: string;
@@ -27,12 +28,15 @@ export interface RockData {
   _count: { todos: number; issues: number; milestones: number };
 }
 
-export function useRocks(quarter?: string) {
+export function useRocks(quarter?: string, rockType?: string) {
   return useQuery<RockData[]>({
-    queryKey: ["rocks", quarter],
+    queryKey: ["rocks", quarter, rockType],
     queryFn: async () => {
-      const params = quarter ? `?quarter=${quarter}` : "";
-      const res = await fetch(`/api/rocks${params}`);
+      const params = new URLSearchParams();
+      if (quarter) params.set("quarter", quarter);
+      if (rockType) params.set("rockType", rockType);
+      const qs = params.toString();
+      const res = await fetch(`/api/rocks${qs ? `?${qs}` : ""}`);
       if (!res.ok) throw new Error("Failed to fetch rocks");
       return res.json();
     },
@@ -60,6 +64,7 @@ export function useCreateRock() {
       ownerId: string;
       quarter: string;
       priority?: RockPriority;
+      rockType?: RockType;
       oneYearGoalId?: string | null;
     }) => {
       const res = await fetch("/api/rocks", {
@@ -93,6 +98,7 @@ export function useUpdateRock() {
       status?: RockStatus;
       percentComplete?: number;
       priority?: RockPriority;
+      rockType?: RockType;
       oneYearGoalId?: string | null;
     }) => {
       const res = await fetch(`/api/rocks/${id}`, {

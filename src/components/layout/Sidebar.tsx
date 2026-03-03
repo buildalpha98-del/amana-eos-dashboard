@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Eye,
@@ -51,18 +51,42 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings, section: "Admin" },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
 
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    onMobileClose?.();
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 h-screen bg-[#003344] text-white flex flex-col transition-all duration-300 z-40",
-        collapsed ? "w-16" : "w-64"
+    <>
+      {/* Mobile backdrop */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40 md:hidden"
+          onClick={onMobileClose}
+        />
       )}
-    >
+
+      <aside
+        className={cn(
+          "fixed left-0 top-0 h-screen bg-[#003344] text-white flex flex-col transition-all duration-300 z-50",
+          // Mobile: off-canvas drawer via translate
+          "w-64 -translate-x-full md:translate-x-0",
+          // Desktop: collapse toggle
+          collapsed ? "md:w-16" : "md:w-64",
+          // Mobile open: slide in
+          mobileOpen && "translate-x-0"
+        )}
+      >
       {/* Brand Header */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-white/10">
         <Image
@@ -166,10 +190,10 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Collapse Toggle */}
+      {/* Collapse Toggle (desktop only) */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-[#003344] border border-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-[#003344] border border-white/20 hidden md:flex items-center justify-center text-white/60 hover:text-white transition-colors"
       >
         {collapsed ? (
           <ChevronRight className="w-3 h-3" />
@@ -178,5 +202,6 @@ export function Sidebar() {
         )}
       </button>
     </aside>
+    </>
   );
 }

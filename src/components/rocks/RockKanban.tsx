@@ -41,7 +41,7 @@ function DroppableColumn({
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
-    <div className="flex-1 min-w-[300px]">
+    <div className="flex-1 min-w-[260px] sm:min-w-[300px]">
       <div className="flex items-center gap-2 mb-3 px-1">
         <div
           className="w-2.5 h-2.5 rounded-full"
@@ -155,7 +155,7 @@ export function RockKanban({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
         {columns.map((col) => (
           <DroppableColumn
             key={col.id}

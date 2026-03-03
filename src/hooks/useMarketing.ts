@@ -732,3 +732,86 @@ export function useDeleteHashtagSet() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketingHashtags"] }); },
   });
 }
+
+// ── Import Content Calendar ─────────────────────────────────
+
+export interface ImportPreviewPost {
+  rowIndex: number;
+  title: string;
+  platform: string;
+  platformRaw: string;
+  status: string;
+  scheduledDate: string | null;
+  content: string | null;
+  hashtags: string | null;
+  campaign: string | null;
+  pillar: string | null;
+  designLink: string | null;
+  notes: string | null;
+  error: string | null;
+}
+
+export interface ImportPreviewData {
+  posts: ImportPreviewPost[];
+  errors: { row: number; message: string }[];
+  summary: {
+    totalRows: number;
+    validPosts: number;
+    errorCount: number;
+    campaigns: string[];
+  };
+}
+
+export interface ImportResultData {
+  success: boolean;
+  summary: {
+    postsCreated: number;
+    campaignsCreated: number;
+    campaignsMatched: number;
+    errors: number;
+  };
+  posts: { id: string; title: string; platform: string }[];
+  errors: { row: number; message: string }[];
+}
+
+export function useImportCalendarPreview() {
+  return useMutation<ImportPreviewData, Error, File>({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/marketing/import-calendar?preview=true", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to preview file");
+      }
+      return res.json();
+    },
+  });
+}
+
+export function useImportCalendar() {
+  const qc = useQueryClient();
+  return useMutation<ImportResultData, Error, File>({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/marketing/import-calendar", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to import calendar");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+  });
+}

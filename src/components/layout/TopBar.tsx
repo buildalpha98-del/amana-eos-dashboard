@@ -52,7 +52,7 @@ export function TopBar() {
 
   return (
     <>
-      <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-30">
+      <header className="h-16 bg-white border-b border-gray-200 hidden md:flex items-center justify-between px-6 sticky top-0 z-30">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
           <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#004E64]/10 text-[#004E64]">
@@ -93,6 +93,39 @@ export function TopBar() {
           <NotificationDropdown />
         </div>
       </header>
+
+      {/* Mobile inline sub-header: page title + quick actions below the fixed mobile header */}
+      <div className="md:hidden flex items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
+        <div className="flex items-center gap-2 min-w-0">
+          <h1 className="text-base font-semibold text-gray-900 truncate">{title}</h1>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#004E64]/10 text-[#004E64] shrink-0">
+            {quarter}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+            title="Search"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setQuickAddOpen((v) => !v)}
+              className="p-2 rounded-lg text-white bg-[#004E64] hover:bg-[#003D52] transition-colors"
+              title="Quick Add"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <QuickAddMenu
+              open={quickAddOpen}
+              onClose={() => setQuickAddOpen(false)}
+            />
+          </div>
+          <NotificationDropdown />
+        </div>
+      </div>
 
       {/* Command Palette */}
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />

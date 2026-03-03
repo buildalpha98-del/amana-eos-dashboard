@@ -173,7 +173,7 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
       </div>
 
       {/* Grid */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto -mx-4 sm:mx-0 scrollbar-thin">
         <table className="w-full min-w-[900px]">
           <thead>
             <tr className="border-b border-gray-200">

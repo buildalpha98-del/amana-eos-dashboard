@@ -168,7 +168,7 @@ export default function TicketsPage() {
             Manage parent enquiries and WhatsApp conversations
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Export */}
           <ExportButton onClick={handleExport} disabled={!tickets || tickets.length === 0} />
 
@@ -260,25 +260,27 @@ export default function TicketsPage() {
 
       {/* Status Tabs (List View) */}
       {viewMode === "list" && (
-        <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1 w-fit">
-          {statusTabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setStatusFilter(tab.key)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors",
-                  statusFilter === tab.key
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                {Icon && <Icon className={cn("w-3.5 h-3.5", tab.color)} />}
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mb-4">
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+            {statusTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setStatusFilter(tab.key)}
+                  className={cn(
+                    "flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
+                    statusFilter === tab.key
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  {Icon && <Icon className={cn("w-3.5 h-3.5", tab.color)} />}
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -337,7 +339,7 @@ export default function TicketsPage() {
 
       {/* Stats Bar */}
       {viewMode !== "analytics" && tickets && tickets.length > 0 && (
-        <div className="flex items-center gap-4 mb-4 px-1">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 px-1">
           <span className="text-sm text-gray-500">
             <span className="font-semibold text-gray-900">{stats.total}</span> tickets
           </span>
@@ -445,12 +447,12 @@ export default function TicketsPage() {
       ) : tickets && tickets.length > 0 ? (
         viewMode === "board" ? (
           /* Board View */
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 lg:grid-cols-5 sm:overflow-visible">
             {boardConfig.map((col) => {
               const Icon = col.icon;
               const items = boardColumns[col.key];
               return (
-                <div key={col.key} className="space-y-3">
+                <div key={col.key} className="space-y-3 min-w-[260px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
                   <div className={cn("flex items-center gap-2 pb-2 border-b-2", col.color)}>
                     <Icon className={cn("w-4 h-4", col.iconColor)} />
                     <h3 className="text-sm font-semibold text-gray-700">{col.label}</h3>

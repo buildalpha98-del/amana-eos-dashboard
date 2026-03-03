@@ -16,7 +16,7 @@ const createKPISchema = z.object({
 
 // GET /api/marketing/kpis — list KPIs with optional filters
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { error } = await requireAuth(["owner", "admin"]);
   if (error) return error;
 
   const { searchParams } = new URL(req.url);

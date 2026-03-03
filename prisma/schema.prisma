@@ -26,6 +26,11 @@ enum RockPriority {
   medium
 }
 
+enum RockType {
+  company
+  personal
+}
+
 enum TodoStatus {
   pending
   in_progress
@@ -68,6 +73,7 @@ enum MeasurableFrequency {
 enum ServiceStatus {
   active
   onboarding
+  pipeline
   closing
   closed
 }
@@ -237,6 +243,7 @@ model Rock {
   status          RockStatus   @default(on_track)
   percentComplete Int          @default(0)
   priority        RockPriority @default(medium)
+  rockType        RockType     @default(personal)
   oneYearGoalId   String?
   oneYearGoal     OneYearGoal? @relation(fields: [oneYearGoalId], references: [id], onDelete: SetNull)
   serviceId       String?
@@ -549,6 +556,8 @@ model Service {
   bscDailyRate  Float?
   ascDailyRate  Float?
   vcDailyRate   Float?
+  bscCasualRate Float     @default(0)
+  ascCasualRate Float     @default(0)
   xeroTrackingOptionId String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useRock, useUpdateRock, useDeleteRock } from "@/hooks/useRocks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { cn, formatDateAU } from "@/lib/utils";
+import { cn, formatDateAU, getWeekStart } from "@/lib/utils";
 import {
   X,
   CheckSquare,
@@ -15,7 +16,7 @@ import {
   Save,
   Plus,
 } from "lucide-react";
-import type { RockStatus, RockPriority } from "@prisma/client";
+import type { RockStatus, RockPriority, RockType } from "@prisma/client";
 
 const statusOptions: { value: RockStatus; label: string; color: string }[] = [
   { value: "on_track", label: "On Track", color: "#10B981" },
@@ -37,6 +38,7 @@ export function RockDetailPanel({
   rockId: string;
   onClose: () => void;
 }) {
+  const { data: session } = useSession();
   const { data: rock, isLoading } = useRock(rockId);
   const updateRock = useUpdateRock();
   const deleteRock = useDeleteRock();
@@ -61,6 +63,8 @@ export function RockDetailPanel({
       setDescription(rock.description || "");
     }
   }, [rock]);
+
+  // ── Milestone state & mutations ──
   const [showAddMilestone, setShowAddMilestone] = useState(false);
   const [newMilestoneTitle, setNewMilestoneTitle] = useState("");
   const [newMilestoneDue, setNewMilestoneDue] = useState("");
@@ -109,6 +113,114 @@ export function RockDetailPanel({
     },
   });
 
+  // ── Linked To-Do state & mutations ──
+  const [showAddTodo, setShowAddTodo] = useState(false);
+  const [newTodoTitle, setNewTodoTitle] = useState("");
+  const [newTodoDue, setNewTodoDue] = useState("");
+  const [newTodoAssignee, setNewTodoAssignee] = useState("");
+
+  const addLinkedTodo = useMutation({
+    mutationFn: async (data: {
+      title: string;
+      assigneeId: string;
+      dueDate: string;
+      weekOf: string;
+      rockId: string;
+    }) => {
+      const res = await fetch("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to create linked to-do");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      setNewTodoTitle("");
+      setNewTodoDue("");
+      setNewTodoAssignee("");
+      setShowAddTodo(false);
+    },
+  });
+
+  const toggleTodoStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error("Failed to update to-do");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+  });
+
+  const unlinkTodo = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rockId: null }),
+      });
+      if (!res.ok) throw new Error("Failed to unlink to-do");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+  });
+
+  // ── Linked Issue state & mutations ──
+  const [showAddIssue, setShowAddIssue] = useState(false);
+  const [newIssueTitle, setNewIssueTitle] = useState("");
+  const [newIssuePriority, setNewIssuePriority] = useState<"low" | "medium" | "high" | "critical">("medium");
+
+  const addLinkedIssue = useMutation({
+    mutationFn: async (data: {
+      title: string;
+      priority: string;
+      rockId: string;
+    }) => {
+      const res = await fetch("/api/issues", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to create linked issue");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
+      queryClient.invalidateQueries({ queryKey: ["issues"] });
+      setNewIssueTitle("");
+      setNewIssuePriority("medium");
+      setShowAddIssue(false);
+    },
+  });
+
+  const unlinkIssue = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/issues/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rockId: null }),
+      });
+      if (!res.ok) throw new Error("Failed to unlink issue");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
+      queryClient.invalidateQueries({ queryKey: ["issues"] });
+    },
+  });
+
   if (isLoading) {
     return (
       <Panel onClose={onClose}>
@@ -148,6 +260,12 @@ export function RockDetailPanel({
 
   const handleProgressChange = (percentComplete: number) => {
     updateRock.mutate({ id: rock.id, percentComplete });
+  };
+
+  const getDefaultDueDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().split("T")[0];
   };
 
   return (
@@ -313,6 +431,37 @@ export function RockDetailPanel({
           </select>
         </div>
 
+        {/* Rock Type */}
+        <div>
+          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+            Rock Type
+          </label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => updateRock.mutate({ id: rock.id, rockType: "company" as RockType })}
+              className={cn(
+                "flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors",
+                rock.rockType === "company"
+                  ? "bg-[#004E64] text-white border-[#004E64]"
+                  : "text-gray-600 border-gray-200 hover:border-gray-300"
+              )}
+            >
+              Company Rock
+            </button>
+            <button
+              onClick={() => updateRock.mutate({ id: rock.id, rockType: "personal" as RockType })}
+              className={cn(
+                "flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors",
+                rock.rockType === "personal"
+                  ? "bg-[#004E64] text-white border-[#004E64]"
+                  : "text-gray-600 border-gray-200 hover:border-gray-300"
+              )}
+            >
+              Personal Rock
+            </button>
+          </div>
+        </div>
+
         {/* Description */}
         <div>
           <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
@@ -448,12 +597,87 @@ export function RockDetailPanel({
           )}
         </div>
 
-        {/* Linked To-Dos */}
+        {/* ── Linked To-Dos ── */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-            <CheckSquare className="w-3.5 h-3.5 inline mr-1" />
-            Linked To-Dos ({rock.todos?.length || 0})
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <CheckSquare className="w-3.5 h-3.5 inline mr-1" />
+              Linked To-Dos ({rock.todos?.length || 0})
+            </label>
+            <button
+              onClick={() => {
+                setShowAddTodo(!showAddTodo);
+                if (!newTodoAssignee && session?.user?.id) {
+                  setNewTodoAssignee(session.user.id);
+                }
+              }}
+              className="text-xs text-[#004E64] hover:text-[#003D52] font-medium flex items-center gap-0.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add
+            </button>
+          </div>
+
+          {showAddTodo && (
+            <div className="space-y-2 mb-3 p-3 bg-gray-50 rounded-lg">
+              <input
+                type="text"
+                value={newTodoTitle}
+                onChange={(e) => setNewTodoTitle(e.target.value)}
+                placeholder="To-do title..."
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              />
+              <div className="flex gap-2">
+                <select
+                  value={newTodoAssignee}
+                  onChange={(e) => setNewTodoAssignee(e.target.value)}
+                  className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                >
+                  <option value="">Assignee...</option>
+                  {users?.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  value={newTodoDue || getDefaultDueDate()}
+                  onChange={(e) => setNewTodoDue(e.target.value)}
+                  className="px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const dueDate = newTodoDue || getDefaultDueDate();
+                    if (newTodoTitle.trim() && newTodoAssignee && dueDate) {
+                      const dueDateObj = new Date(dueDate);
+                      const weekOf = getWeekStart(dueDateObj).toISOString().split("T")[0];
+                      addLinkedTodo.mutate({
+                        title: newTodoTitle.trim(),
+                        assigneeId: newTodoAssignee,
+                        dueDate,
+                        weekOf,
+                        rockId,
+                      });
+                    }
+                  }}
+                  disabled={!newTodoTitle.trim() || !newTodoAssignee || addLinkedTodo.isPending}
+                  className="px-3 py-1.5 text-sm bg-[#004E64] text-white rounded-md hover:bg-[#003D52] disabled:opacity-50"
+                >
+                  {addLinkedTodo.isPending ? "..." : "Add To-Do"}
+                </button>
+                <button
+                  onClick={() => setShowAddTodo(false)}
+                  className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-md"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {rock.todos && rock.todos.length > 0 ? (
             <div className="space-y-1">
               {rock.todos.map(
@@ -465,14 +689,20 @@ export function RockDetailPanel({
                 }) => (
                   <div
                     key={todo.id}
-                    className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-gray-50"
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-gray-50 group"
                   >
-                    <div
+                    <button
+                      onClick={() =>
+                        toggleTodoStatus.mutate({
+                          id: todo.id,
+                          status: todo.status === "complete" ? "pending" : "complete",
+                        })
+                      }
                       className={cn(
-                        "w-4 h-4 rounded border-2 flex items-center justify-center",
+                        "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
                         todo.status === "complete"
                           ? "border-[#004E64] bg-[#004E64]"
-                          : "border-gray-300"
+                          : "border-gray-300 hover:border-[#004E64]"
                       )}
                     >
                       {todo.status === "complete" && (
@@ -488,7 +718,7 @@ export function RockDetailPanel({
                           />
                         </svg>
                       )}
-                    </div>
+                    </button>
                     <span
                       className={cn(
                         "text-sm flex-1",
@@ -502,23 +732,87 @@ export function RockDetailPanel({
                     <span className="text-xs text-gray-400">
                       {todo.assignee.name}
                     </span>
+                    <button
+                      onClick={() => unlinkTodo.mutate(todo.id)}
+                      title="Unlink from rock"
+                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
                 )
               )}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 italic">
-              No linked To-Dos yet
-            </p>
+            !showAddTodo && (
+              <p className="text-sm text-gray-400 italic">
+                No linked To-Dos yet — add to-dos to break this rock down
+              </p>
+            )
           )}
         </div>
 
-        {/* Linked Issues */}
+        {/* ── Linked Issues ── */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-            <AlertCircle className="w-3.5 h-3.5 inline mr-1" />
-            Linked Issues ({rock.issues?.length || 0})
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <AlertCircle className="w-3.5 h-3.5 inline mr-1" />
+              Linked Issues ({rock.issues?.length || 0})
+            </label>
+            <button
+              onClick={() => setShowAddIssue(!showAddIssue)}
+              className="text-xs text-[#004E64] hover:text-[#003D52] font-medium flex items-center gap-0.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add
+            </button>
+          </div>
+
+          {showAddIssue && (
+            <div className="space-y-2 mb-3 p-3 bg-gray-50 rounded-lg">
+              <input
+                type="text"
+                value={newIssueTitle}
+                onChange={(e) => setNewIssueTitle(e.target.value)}
+                placeholder="Issue title..."
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              />
+              <div className="flex gap-2">
+                <select
+                  value={newIssuePriority}
+                  onChange={(e) => setNewIssuePriority(e.target.value as typeof newIssuePriority)}
+                  className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+                <button
+                  onClick={() => {
+                    if (newIssueTitle.trim()) {
+                      addLinkedIssue.mutate({
+                        title: newIssueTitle.trim(),
+                        priority: newIssuePriority,
+                        rockId,
+                      });
+                    }
+                  }}
+                  disabled={!newIssueTitle.trim() || addLinkedIssue.isPending}
+                  className="px-3 py-1.5 text-sm bg-[#004E64] text-white rounded-md hover:bg-[#003D52] disabled:opacity-50"
+                >
+                  {addLinkedIssue.isPending ? "..." : "Add Issue"}
+                </button>
+                <button
+                  onClick={() => setShowAddIssue(false)}
+                  className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-md"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {rock.issues && rock.issues.length > 0 ? (
             <div className="space-y-1">
               {rock.issues.map(
@@ -530,11 +824,11 @@ export function RockDetailPanel({
                 }) => (
                   <div
                     key={issue.id}
-                    className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-gray-50"
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-gray-50 group"
                   >
                     <div
                       className={cn(
-                        "w-2 h-2 rounded-full",
+                        "w-2 h-2 rounded-full flex-shrink-0",
                         issue.priority === "critical"
                           ? "bg-red-500"
                           : issue.priority === "high"
@@ -555,14 +849,23 @@ export function RockDetailPanel({
                     >
                       {issue.status.replace("_", " ")}
                     </span>
+                    <button
+                      onClick={() => unlinkIssue.mutate(issue.id)}
+                      title="Unlink from rock"
+                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
                 )
               )}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 italic">
-              No linked Issues yet
-            </p>
+            !showAddIssue && (
+              <p className="text-sm text-gray-400 italic">
+                No linked Issues yet — report issues blocking this rock
+              </p>
+            )
           )}
         </div>
 

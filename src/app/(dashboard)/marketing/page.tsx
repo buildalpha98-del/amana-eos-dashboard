@@ -12,6 +12,7 @@ import {
   Image,
   Layout,
   Hash,
+  Upload,
 } from "lucide-react";
 import { MarketingTabs } from "@/components/marketing/MarketingTabs";
 import { OverviewTab } from "@/components/marketing/OverviewTab";
@@ -25,6 +26,7 @@ import { KPIsTab } from "@/components/marketing/KPIsTab";
 import { AssetsTab } from "@/components/marketing/AssetsTab";
 import { TemplatesTab } from "@/components/marketing/TemplatesTab";
 import { HashtagsTab } from "@/components/marketing/HashtagsTab";
+import { ImportCalendarModal } from "@/components/marketing/ImportCalendarModal";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: BarChart3 },
@@ -42,6 +44,7 @@ export default function MarketingPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -56,6 +59,13 @@ export default function MarketingPage() {
             Manage campaigns, posts, and content across all platforms
           </p>
         </div>
+        <button
+          onClick={() => setShowImport(true)}
+          className="inline-flex items-center gap-2 rounded-lg border border-[#004E64] px-4 py-2 text-sm font-medium text-[#004E64] hover:bg-[#004E64] hover:text-white transition-colors"
+        >
+          <Upload className="h-4 w-4" />
+          Import Content Calendar
+        </button>
       </div>
 
       {/* Tabs */}
@@ -93,6 +103,12 @@ export default function MarketingPage() {
           onClose={() => setSelectedPostId(null)}
         />
       )}
+
+      {/* Import Content Calendar Modal */}
+      <ImportCalendarModal
+        open={showImport}
+        onClose={() => setShowImport(false)}
+      />
     </div>
   );
 }

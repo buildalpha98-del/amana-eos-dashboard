@@ -1,110 +1,127 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useServices } from "@/hooks/useServices";
 import { ServiceCard } from "@/components/services/ServiceCard";
 import { CreateServiceModal } from "@/components/services/CreateServiceModal";
-import { cn } from "@/lib/utils";
 import {
   Building2,
   Plus,
   Search,
 } from "lucide-react";
+import type { ServiceSummary } from "@/hooks/useServices";
 
-const statusTabs = [
-  { key: "", label: "All" },
-  { key: "active", label: "Active" },
-  { key: "onboarding", label: "Onboarding" },
-  { key: "closing", label: "Closing" },
-  { key: "closed", label: "Closed" },
-];
+/** Swim-lane definitions — order matters for rendering */
+const swimLanes = [
+  {
+    key: "open",
+    label: "Open",
+    statuses: ["active"],
+    badgeColor: "bg-emerald-100 text-emerald-700",
+    accentColor: "border-emerald-400",
+  },
+  {
+    key: "onboarding",
+    label: "Onboarding",
+    statuses: ["onboarding"],
+    badgeColor: "bg-blue-100 text-blue-700",
+    accentColor: "border-blue-400",
+  },
+  {
+    key: "pipeline",
+    label: "Pipeline",
+    statuses: ["pipeline"],
+    badgeColor: "bg-purple-100 text-purple-700",
+    accentColor: "border-purple-400",
+  },
+  {
+    key: "closed",
+    label: "Closed",
+    statuses: ["closing", "closed"],
+    badgeColor: "bg-gray-100 text-gray-500",
+    accentColor: "border-gray-400",
+  },
+] as const;
 
 export default function ServicesPage() {
   const router = useRouter();
-  const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
-  const { data: services, isLoading } = useServices(statusFilter || undefined);
+  // Fetch all services (no status filter — we group client-side)
+  const { data: services, isLoading } = useServices();
 
-  const filtered = services?.filter((s) => {
-    if (!search) return true;
+  // Apply search filter
+  const filtered = useMemo(() => {
+    if (!services) return [];
+    if (!search) return services;
     const q = search.toLowerCase();
-    return (
-      s.name.toLowerCase().includes(q) ||
-      s.code.toLowerCase().includes(q) ||
-      s.suburb?.toLowerCase().includes(q) ||
-      s.manager?.name.toLowerCase().includes(q)
+    return services.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) ||
+        s.code.toLowerCase().includes(q) ||
+        s.suburb?.toLowerCase().includes(q) ||
+        s.manager?.name.toLowerCase().includes(q)
     );
-  });
+  }, [services, search]);
 
-  const counts = {
-    all: services?.length || 0,
-    active: services?.filter((s) => s.status === "active").length || 0,
-    onboarding: services?.filter((s) => s.status === "onboarding").length || 0,
-  };
+  // Group filtered services into swim lanes
+  const grouped = useMemo(() => {
+    const map = new Map<string, ServiceSummary[]>();
+    for (const lane of swimLanes) {
+      map.set(
+        lane.key,
+        filtered.filter((s) =>
+          (lane.statuses as readonly string[]).includes(s.status)
+        )
+      );
+    }
+    return map;
+  }, [filtered]);
+
+  const totalCount = services?.length || 0;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
             Service Centres
           </h2>
-          <p className="text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             Manage your OSHC centres across all locations
           </p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           Add Centre
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Total Centres</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{counts.all}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Active</p>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">
-            {counts.active}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Onboarding</p>
-          <p className="text-2xl font-bold text-blue-600 mt-1">
-            {counts.onboarding}
-          </p>
-        </div>
+      {/* Stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {swimLanes.map((lane) => {
+          const count = grouped.get(lane.key)?.length || 0;
+          return (
+            <div
+              key={lane.key}
+              className="bg-white rounded-xl border border-gray-200 p-4"
+            >
+              <p className="text-sm text-gray-500">{lane.label}</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{count}</p>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-          {statusTabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setStatusFilter(tab.key)}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                statusFilter === tab.key
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        <div className="relative flex-1 max-w-xs">
+      {/* Search */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -114,24 +131,17 @@ export default function ServicesPage() {
             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
           />
         </div>
+        <p className="text-sm text-gray-400">
+          {filtered.length} of {totalCount} centres
+        </p>
       </div>
 
-      {/* Grid */}
+      {/* Swim Lanes */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
         </div>
-      ) : filtered && filtered.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((service) => (
-            <ServiceCard
-              key={service.id}
-              service={service}
-              onClick={() => router.push(`/services/${service.id}`)}
-            />
-          ))}
-        </div>
-      ) : (
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Building2 className="w-16 h-16 text-gray-300 mb-4" />
           <p className="text-gray-500 text-lg">No service centres found</p>
@@ -149,6 +159,55 @@ export default function ServicesPage() {
               Add Centre
             </button>
           )}
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {swimLanes.map((lane) => {
+            const items = grouped.get(lane.key) || [];
+            // Always render the lane header even if empty (shows 0 count)
+            return (
+              <section key={lane.key}>
+                {/* Lane header */}
+                <div className="flex items-center gap-3 mb-3">
+                  <div
+                    className={`w-1 h-6 rounded-full border-l-4 ${lane.accentColor}`}
+                  />
+                  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                    {lane.label}
+                  </h3>
+                  <span
+                    className={`inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full text-xs font-semibold ${lane.badgeColor}`}
+                  >
+                    {items.length}
+                  </span>
+                </div>
+
+                {items.length === 0 ? (
+                  <div className="flex items-center justify-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <p className="text-sm text-gray-400">
+                      No centres in this category
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                    {items.map((service) => (
+                      <div
+                        key={service.id}
+                        className="flex-shrink-0 w-[280px] sm:w-[340px]"
+                      >
+                        <ServiceCard
+                          service={service}
+                          onClick={() =>
+                            router.push(`/services/${service.id}`)
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
 
