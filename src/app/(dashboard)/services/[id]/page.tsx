@@ -16,6 +16,7 @@ import {
   CalendarDays,
   DollarSign,
   Loader2,
+  Radio,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
@@ -23,6 +24,7 @@ import { ServiceRocksTab } from "@/components/services/ServiceRocksTab";
 import { ServiceTodosTab } from "@/components/services/ServiceTodosTab";
 import { ServiceIssuesTab } from "@/components/services/ServiceIssuesTab";
 import { WeeklyDataEntry } from "@/components/services/WeeklyDataEntry";
+import { ServiceCommTab } from "@/components/services/ServiceCommTab";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: Building2 },
@@ -31,6 +33,7 @@ const tabs = [
   { key: "todos", label: "To-Dos", icon: CheckSquare },
   { key: "issues", label: "Issues", icon: AlertCircle },
   { key: "weekly", label: "Weekly Data", icon: CalendarDays },
+  { key: "comms", label: "Comms", icon: Radio },
   { key: "financials", label: "Financials", icon: DollarSign },
 ] as const;
 
@@ -190,6 +193,10 @@ export default function ServiceDetailPage() {
             ascRate={service.ascDailyRate || 0}
             vcRate={service.vcDailyRate || 0}
           />
+        )}
+
+        {activeTab === "comms" && (
+          <ServiceCommTab serviceId={service.id} />
         )}
 
         {activeTab === "financials" && (

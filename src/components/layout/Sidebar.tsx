@@ -25,6 +25,7 @@ import {
   FileText,
   MessageSquare,
   Megaphone,
+  Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canAccessPage } from "@/lib/permissions";
@@ -42,6 +43,7 @@ const navItems = [
   { href: "/services", label: "Services", icon: Building2, section: "Operations" },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Operations" },
   { href: "/meetings", label: "Meetings", icon: Presentation, section: "Operations" },
+  { href: "/communication", label: "Communication", icon: Radio, section: "Operations" },
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Operations" },
   { href: "/tickets", label: "Tickets", icon: MessageSquare, section: "Support" },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },

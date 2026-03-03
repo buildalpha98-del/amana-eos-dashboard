@@ -192,6 +192,10 @@ model User {
   dismissedNotifications NotificationDismissal[]
   marketingPosts    MarketingPost[]   @relation("MarketingPostAssignee")
   marketingComments MarketingComment[] @relation("MarketingCommentAuthor")
+  announcements     Announcement[]    @relation("AnnouncementAuthor")
+  announcementReads AnnouncementRead[] @relation("AnnouncementReader")
+  cascadeAcks       CascadeAcknowledgment[] @relation("CascadeAcknowledger")
+  weeklyPulses      WeeklyPulse[]     @relation("PulseAuthor")
 }
 
 model VisionTractionOrganiser {
@@ -558,6 +562,7 @@ model Service {
   documents  Document[] @relation("ServiceDocuments")
   tickets    SupportTicket[]  @relation("ServiceTickets")
   whatsappContacts WhatsAppContact[] @relation("ServiceContacts")
+  announcements Announcement[] @relation("ServiceAnnouncements")
 
   @@index([status])
   @@index([managerId])
@@ -636,6 +641,8 @@ model Meeting {
   createdBy     User          @relation("MeetingCreator", fields: [createdById], references: [id])
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+
+  cascades CascadeMessage[] @relation("MeetingCascade")
 
   @@index([date])
   @@index([status])
@@ -921,6 +928,109 @@ model ResponseTemplate {
   shortcut  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// Internal Communication
+// ============================================================
+
+enum AnnouncementAudience {
+  all
+  owners_admins
+  managers
+  custom
+}
+
+enum AnnouncementPriority {
+  normal
+  important
+  urgent
+}
+
+model Announcement {
+  id          String               @id @default(cuid())
+  title       String
+  body        String               @db.Text
+  authorId    String
+  author      User                 @relation("AnnouncementAuthor", fields: [authorId], references: [id])
+  audience    AnnouncementAudience @default(all)
+  priority    AnnouncementPriority @default(normal)
+  pinned      Boolean              @default(false)
+  serviceId   String?
+  service     Service?             @relation("ServiceAnnouncements", fields: [serviceId], references: [id], onDelete: SetNull)
+  publishedAt DateTime?
+  expiresAt   DateTime?
+  deleted     Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  readReceipts AnnouncementRead[]
+
+  @@index([audience])
+  @@index([pinned])
+  @@index([publishedAt])
+  @@index([serviceId])
+}
+
+model AnnouncementRead {
+  id             String       @id @default(cuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation("AnnouncementReader", fields: [userId], references: [id])
+  readAt         DateTime     @default(now())
+
+  @@unique([announcementId, userId])
+  @@index([announcementId])
+  @@index([userId])
+}
+
+model CascadeMessage {
+  id          String   @id @default(cuid())
+  meetingId   String
+  meeting     Meeting  @relation("MeetingCascade", fields: [meetingId], references: [id], onDelete: Cascade)
+  message     String   @db.Text
+  publishedAt DateTime @default(now())
+  deleted     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  acknowledgments CascadeAcknowledgment[]
+
+  @@index([meetingId])
+  @@index([publishedAt])
+}
+
+model CascadeAcknowledgment {
+  id               String         @id @default(cuid())
+  cascadeMessageId String
+  cascadeMessage   CascadeMessage @relation(fields: [cascadeMessageId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User           @relation("CascadeAcknowledger", fields: [userId], references: [id])
+  acknowledgedAt   DateTime       @default(now())
+
+  @@unique([cascadeMessageId, userId])
+  @@index([cascadeMessageId])
+  @@index([userId])
+}
+
+model WeeklyPulse {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation("PulseAuthor", fields: [userId], references: [id])
+  weekOf     DateTime
+  wins       String?  @db.Text
+  priorities String?  @db.Text
+  blockers   String?  @db.Text
+  mood       Int?     // 1-5 scale
+  notes      String?  @db.Text
+  submittedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, weekOf])
+  @@index([userId])
+  @@index([weekOf])
 }
 
 model NotificationDismissal {

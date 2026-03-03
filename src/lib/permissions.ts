@@ -16,6 +16,7 @@ const roleAccessMap: Record<Role, string[]> = {
     "/projects",
     "/tickets",
     "/marketing",
+    "/communication",
     "/documents",
     "/team",
     "/settings",
@@ -34,6 +35,7 @@ const roleAccessMap: Record<Role, string[]> = {
     "/projects",
     "/tickets",
     "/marketing",
+    "/communication",
     "/documents",
     "/team",
     // No /settings
@@ -48,6 +50,7 @@ const roleAccessMap: Record<Role, string[]> = {
     "/meetings",
     "/services",
     "/projects",
+    "/communication",
     "/documents",
     // No /financials, /performance, /team, /settings, /tickets
   ],
