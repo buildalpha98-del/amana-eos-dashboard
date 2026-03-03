@@ -87,6 +87,81 @@ enum MeetingStatus {
   cancelled
 }
 
+// ============================================================
+// Marketing
+// ============================================================
+
+enum MarketingPlatform {
+  facebook
+  instagram
+  linkedin
+  email
+  newsletter
+  website
+  flyer
+}
+
+enum MarketingPostStatus {
+  draft
+  in_review
+  approved
+  scheduled
+  published
+}
+
+enum MarketingCampaignType {
+  campaign
+  event
+  launch
+  promotion
+  awareness
+  partnership
+}
+
+enum MarketingCampaignStatus {
+  draft
+  scheduled
+  active
+  completed
+  paused
+  cancelled
+}
+
+enum MarketingRecurrence {
+  none
+  weekly
+  fortnightly
+  monthly
+}
+
+enum MarketingKPIPeriod {
+  monthly
+  quarterly
+  yearly
+}
+
+enum MarketingAssetType {
+  image
+  video
+  document
+  template
+  graphic
+}
+
+enum MarketingHashtagCategory {
+  brand
+  campaign
+  platform
+  trending
+}
+
+enum MarketingKPICategory {
+  engagement
+  growth
+  content
+  conversion
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -115,6 +190,8 @@ model User {
   assignedTickets   SupportTicket[]   @relation("TicketAssignee")
   sentMessages      TicketMessage[]   @relation("MessageSender")
   dismissedNotifications NotificationDismissal[]
+  marketingPosts    MarketingPost[]   @relation("MarketingPostAssignee")
+  marketingComments MarketingComment[] @relation("MarketingCommentAuthor")
 }
 
 model VisionTractionOrganiser {
@@ -309,6 +386,134 @@ model ActivityLog {
   @@index([entityType, entityId])
   @@index([userId])
   @@index([createdAt])
+}
+
+// ============================================================
+// Marketing
+// ============================================================
+
+model MarketingCampaign {
+  id          String                  @id @default(cuid())
+  name        String
+  type        MarketingCampaignType   @default(campaign)
+  status      MarketingCampaignStatus @default(draft)
+  startDate   DateTime?
+  endDate     DateTime?
+  platforms   MarketingPlatform[]
+  goal        String?                 @db.Text
+  notes       String?                 @db.Text
+  designLink  String?
+  deleted     Boolean                 @default(false)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  posts    MarketingPost[]
+  comments MarketingComment[]
+
+  @@index([status])
+  @@index([startDate])
+}
+
+model MarketingPost {
+  id               String               @id @default(cuid())
+  title            String
+  platform         MarketingPlatform
+  status           MarketingPostStatus   @default(draft)
+  scheduledDate    DateTime?
+  content          String?               @db.Text
+  notes            String?               @db.Text
+  designLink       String?
+  pillar           String?
+  assigneeId       String?
+  assignee         User?                 @relation("MarketingPostAssignee", fields: [assigneeId], references: [id])
+  campaignId       String?
+  campaign         MarketingCampaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  likes            Int                   @default(0)
+  comments         Int                   @default(0)
+  shares           Int                   @default(0)
+  reach            Int                   @default(0)
+  recurring        MarketingRecurrence   @default(none)
+  recurringParentId String?
+  recurringParent  MarketingPost?        @relation("RecurringPosts", fields: [recurringParentId], references: [id])
+  recurringChildren MarketingPost[]      @relation("RecurringPosts")
+  deleted          Boolean               @default(false)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([platform])
+  @@index([status])
+  @@index([assigneeId])
+  @@index([campaignId])
+  @@index([scheduledDate])
+}
+
+model MarketingComment {
+  id         String            @id @default(cuid())
+  campaignId String
+  campaign   MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User              @relation("MarketingCommentAuthor", fields: [authorId], references: [id])
+  text       String            @db.Text
+  createdAt  DateTime          @default(now())
+
+  @@index([campaignId])
+  @@index([authorId])
+}
+
+model MarketingKPI {
+  id        String               @id @default(cuid())
+  name      String
+  target    Float
+  current   Float                @default(0)
+  unit      String?
+  period    MarketingKPIPeriod   @default(monthly)
+  category  MarketingKPICategory @default(engagement)
+  deleted   Boolean              @default(false)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([category])
+  @@index([period])
+}
+
+model MarketingAsset {
+  id        String             @id @default(cuid())
+  name      String
+  type      MarketingAssetType @default(image)
+  url       String
+  tags      String[]
+  deleted   Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([type])
+}
+
+model MarketingTemplate {
+  id        String            @id @default(cuid())
+  name      String
+  platform  MarketingPlatform
+  pillar    String?
+  content   String            @db.Text
+  notes     String?           @db.Text
+  hashtags  String?
+  deleted   Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([platform])
+}
+
+model MarketingHashtagSet {
+  id        String                  @id @default(cuid())
+  name      String
+  category  MarketingHashtagCategory
+  tags      String                  @db.Text
+  deleted   Boolean                 @default(false)
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+
+  @@index([category])
 }
 
 // ============================================================

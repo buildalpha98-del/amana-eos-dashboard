@@ -22,5 +22,7 @@ export const config = {
     "/api/issues/:path*",
     "/api/scorecard/:path*",
     "/api/users/:path*",
+    "/marketing/:path*",
+    "/api/marketing/:path*",
   ],
 };
