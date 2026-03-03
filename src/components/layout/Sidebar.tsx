@@ -32,12 +32,12 @@ import { canAccessPage } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "EOS" },
-  { href: "/vision", label: "Vision / V-TO", icon: Eye, section: "EOS" },
-  { href: "/rocks", label: "Rocks", icon: Mountain, section: "EOS" },
-  { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS" },
-  { href: "/issues", label: "Issues", icon: AlertCircle, section: "EOS" },
-  { href: "/scorecard", label: "Scorecard", icon: BarChart3, section: "EOS" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "EOS", tooltip: "Your command centre overview" },
+  { href: "/vision", label: "Vision / V-TO", icon: Eye, section: "EOS", tooltip: "Vision/Traction Organiser — your long-term goals & strategic plan" },
+  { href: "/rocks", label: "Rocks", icon: Mountain, section: "EOS", tooltip: "Quarterly priorities — 90-day goals for the team" },
+  { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS", tooltip: "7-day action items from weekly meetings" },
+  { href: "/issues", label: "Issues", icon: AlertCircle, section: "EOS", tooltip: "Issues List — track & solve using IDS (Identify, Discuss, Solve)" },
+  { href: "/scorecard", label: "Scorecard", icon: BarChart3, section: "EOS", tooltip: "Weekly measurables & KPIs" },
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations" },
   { href: "/performance", label: "Performance", icon: Trophy, section: "Operations" },
   { href: "/services", label: "Services", icon: Building2, section: "Operations" },
@@ -147,7 +147,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                     ? "bg-white/10 text-[#FECE00]"
                     : "text-white/70 hover:bg-white/5 hover:text-white"
                 )}
-                title={collapsed ? item.label : undefined}
+                title={collapsed ? item.label : ("tooltip" in item && item.tooltip ? item.tooltip as string : undefined)}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
                 {!collapsed && <span className="truncate">{item.label}</span>}

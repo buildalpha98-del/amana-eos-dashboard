@@ -560,6 +560,71 @@ export function DashboardContent() {
           {/* ── Key Metrics Bar ─────────────────────────────── */}
           <KeyMetricsBar metrics={data.keyMetrics} />
 
+          {/* ── Quick Actions ─────────────────────────────── */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Quick Actions
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+              <button
+                onClick={() => setOpenTodoModal(true)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
+                  <Plus className="w-4 h-4 text-[#004E64]" />
+                </div>
+                <span className="text-sm font-medium text-gray-700 flex-1 text-left">
+                  Quick To-Do
+                </span>
+                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#004E64] transition-colors" />
+              </button>
+              <button
+                onClick={() => setOpenIssueModal(true)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
+                  <Plus className="w-4 h-4 text-[#004E64]" />
+                </div>
+                <span className="text-sm font-medium text-gray-700 flex-1 text-left">
+                  Quick Issue
+                </span>
+                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#004E64] transition-colors" />
+              </button>
+              <button
+                onClick={() => setOpenRockModal(true)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
+                  <Plus className="w-4 h-4 text-[#004E64]" />
+                </div>
+                <span className="text-sm font-medium text-gray-700 flex-1 text-left">
+                  Quick Rock
+                </span>
+                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#004E64] transition-colors" />
+              </button>
+              {[
+                { label: "New Project", href: "/projects", icon: FolderKanban },
+                { label: "Add Centre", href: "/services", icon: Building2 },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
+                    <item.icon className="w-4 h-4 text-[#004E64]" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 flex-1">
+                    {item.label}
+                  </span>
+                  <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#004E64] transition-colors" />
+                </Link>
+              ))}
+            </div>
+          </div>
+
           {/* ── Company & Personal Rocks at a Glance ─────── */}
           <DashboardRocks />
 
@@ -596,69 +661,6 @@ export function DashboardContent() {
           <p>Unable to load dashboard data. Please try again.</p>
         </div>
       )}
-
-      {/* ── Quick Actions (kept from original) ─────────────── */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
-          Quick Actions
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-          <button
-            onClick={() => setOpenTodoModal(true)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group"
-          >
-            <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-              <Plus className="w-4 h-4 text-[#004E64]" />
-            </div>
-            <span className="text-sm font-medium text-gray-700 flex-1 text-left">
-              Quick To-Do
-            </span>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#004E64] transition-colors" />
-          </button>
-          <button
-            onClick={() => setOpenIssueModal(true)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group"
-          >
-            <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-              <Plus className="w-4 h-4 text-[#004E64]" />
-            </div>
-            <span className="text-sm font-medium text-gray-700 flex-1 text-left">
-              Quick Issue
-            </span>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#004E64] transition-colors" />
-          </button>
-          <button
-            onClick={() => setOpenRockModal(true)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group"
-          >
-            <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-              <Plus className="w-4 h-4 text-[#004E64]" />
-            </div>
-            <span className="text-sm font-medium text-gray-700 flex-1 text-left">
-              Quick Rock
-            </span>
-            <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#004E64] transition-colors" />
-          </button>
-          {[
-            { label: "New Project", href: "/projects", icon: FolderKanban },
-            { label: "Add Service Centre", href: "/services", icon: Building2 },
-          ].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group"
-            >
-              <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-                <item.icon className="w-4 h-4 text-[#004E64]" />
-              </div>
-              <span className="text-sm font-medium text-gray-700 flex-1">
-                {item.label}
-              </span>
-              <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-[#004E64] transition-colors" />
-            </Link>
-          ))}
-        </div>
-      </div>
 
       {/* Quick Add Modals */}
       <QuickAddToDoModal

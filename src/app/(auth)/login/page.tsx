@@ -135,6 +135,11 @@ function LoginForm() {
               )}
             </button>
           </form>
+
+          <p className="text-center text-sm text-gray-400 mt-4">
+            Forgot your password?{" "}
+            <span className="text-gray-500 font-medium">Contact your administrator.</span>
+          </p>
         </div>
 
         <p className="text-center text-white/40 text-xs mt-6">
