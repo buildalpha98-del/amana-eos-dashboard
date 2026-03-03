@@ -564,6 +564,7 @@ model Service {
   tickets    SupportTicket[]  @relation("ServiceTickets")
   whatsappContacts WhatsAppContact[] @relation("ServiceContacts")
   announcements Announcement[] @relation("ServiceAnnouncements")
+  healthScores  HealthScore[]  @relation("ServiceHealthScores")
 
   @@index([status])
   @@index([managerId])
@@ -1086,6 +1087,39 @@ model XeroConnection {
   updatedAt              DateTime             @updatedAt
 
   accountMappings XeroAccountMapping[]
+}
+
+// ============================================================
+// Health Score (Centre Health Score - Phase 2)
+// ============================================================
+
+model HealthScore {
+  id              String   @id @default(cuid())
+  serviceId       String
+  service         Service  @relation("ServiceHealthScores", fields: [serviceId], references: [id], onDelete: Cascade)
+  periodStart     DateTime
+  periodType      String   @default("monthly")
+
+  overallScore    Float
+  trend           String   @default("stable") // improving | declining | stable
+
+  financialScore      Float @default(0)
+  operationalScore    Float @default(0)
+  complianceScore     Float @default(0)
+  satisfactionScore   Float @default(0)
+  teamCultureScore    Float @default(0)
+
+  financialBreakdown      Json?
+  operationalBreakdown    Json?
+  complianceBreakdown     Json?
+  satisfactionBreakdown   Json?
+  teamCultureBreakdown    Json?
+
+  computedAt      DateTime @default(now())
+
+  @@unique([serviceId, periodType, periodStart])
+  @@index([serviceId])
+  @@index([periodStart])
 }
 
 model XeroAccountMapping {

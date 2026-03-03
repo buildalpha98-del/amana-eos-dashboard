@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import {
+  computeHealthScore,
+  getScoreStatus,
+  type ScoreInputMetrics,
+  type ScoreInputFinancials,
+  type ScoreInputEOS,
+} from "@/lib/health-score";
 
 export async function GET() {
   const { error } = await requireAuth();
@@ -22,27 +29,95 @@ export async function GET() {
     orderBy: { name: "asc" },
   });
 
+  // Query latest persisted HealthScore per service (monthly)
+  const persistedScores = await prisma.healthScore.findMany({
+    where: { periodType: "monthly" },
+    orderBy: { periodStart: "desc" },
+    distinct: ["serviceId"],
+  });
+
+  const scoreMap = new Map(
+    persistedScores.map((hs) => [hs.serviceId, hs])
+  );
+
   const centreHealth = services.map((s) => {
     const m = s.metrics[0] ?? null;
     const f = s.financials[0] ?? null;
+    const persisted = scoreMap.get(s.id);
 
-    // Composite score (same algorithm as /api/performance)
-    let score = 50;
-    if (m) {
-      score += m.ascOccupancy > 70 ? 10 : m.ascOccupancy > 50 ? 5 : 0;
-      score += m.ratioCompliance >= 100 ? 10 : 0;
-      score += m.overallCompliance >= 95 ? 10 : m.overallCompliance >= 80 ? 5 : 0;
-      score += m.parentNps && m.parentNps > 60 ? 10 : m.parentNps && m.parentNps > 40 ? 5 : 0;
-      score += m.incidentCount === 0 ? 5 : 0;
-      score -= m.educatorsTurnover > 20 ? 10 : m.educatorsTurnover > 10 ? 5 : 0;
-    }
-    if (f) {
-      score += f.margin > 20 ? 10 : f.margin > 10 ? 5 : f.margin > 0 ? 2 : -5;
-    }
-    score = Math.max(0, Math.min(100, score));
+    let score: number;
+    let status: "green" | "amber" | "red";
+    let trend: "improving" | "declining" | "stable";
+    let pillars: {
+      financial: number;
+      operational: number;
+      compliance: number;
+      satisfaction: number;
+      teamCulture: number;
+    };
 
-    const status: "green" | "amber" | "red" =
-      score >= 80 ? "green" : score >= 60 ? "amber" : "red";
+    if (persisted) {
+      // Use persisted health score
+      score = Math.round(persisted.overallScore);
+      status = getScoreStatus(score);
+      trend = persisted.trend as "improving" | "declining" | "stable";
+      pillars = {
+        financial: Math.round(persisted.financialScore),
+        operational: Math.round(persisted.operationalScore),
+        compliance: Math.round(persisted.complianceScore),
+        satisfaction: Math.round(persisted.satisfactionScore),
+        teamCulture: Math.round(persisted.teamCultureScore),
+      };
+    } else {
+      // Fallback: compute on-the-fly with metrics + financials, empty EOS
+      const metricsInput: ScoreInputMetrics | null = m
+        ? {
+            bscOccupancy: m.bscOccupancy,
+            ascOccupancy: m.ascOccupancy,
+            ratioCompliance: m.ratioCompliance,
+            overallCompliance: m.overallCompliance,
+            wwccCompliance: m.wwccCompliance,
+            firstAidCompliance: m.firstAidCompliance,
+            parentNps: m.parentNps,
+            incidentCount: m.incidentCount,
+            complaintCount: m.complaintCount,
+            educatorsTurnover: m.educatorsTurnover,
+            nqsRating: m.nqsRating,
+          }
+        : null;
+
+      const financialsInput: ScoreInputFinancials | null = f
+        ? {
+            margin: f.margin,
+            totalRevenue: f.totalRevenue,
+            budgetRevenue: f.budgetRevenue,
+            bscEnrolments: f.bscEnrolments,
+            ascEnrolments: f.ascEnrolments,
+          }
+        : null;
+
+      const emptyEOS: ScoreInputEOS = {
+        rocksTotal: 0,
+        rocksOnTrack: 0,
+        rocksComplete: 0,
+        todosOverdue: 0,
+        openIssues: 0,
+        ticketsTotal: 0,
+        ticketsResolved: 0,
+      };
+
+      const result = computeHealthScore(metricsInput, financialsInput, emptyEOS, null);
+      score = result.overallScore;
+      status = result.status;
+      trend = "stable";
+      pillars = {
+        financial: result.pillars.financial.score,
+        operational: result.pillars.operational.score,
+        compliance: result.pillars.compliance.score,
+        satisfaction: result.pillars.satisfaction.score,
+        teamCulture: result.pillars.teamCulture.score,
+      };
+    }
 
     return {
       id: s.id,
@@ -51,6 +126,8 @@ export async function GET() {
       state: s.state,
       score,
       status,
+      trend,
+      pillars,
       metrics: {
         occupancy: m ? Math.round((m.bscOccupancy + m.ascOccupancy) / 2) : 0,
         compliance: m ? Math.round(m.overallCompliance) : 0,
@@ -59,6 +136,14 @@ export async function GET() {
       },
     };
   });
+
+  // Network average score
+  const networkAvgScore =
+    centreHealth.length > 0
+      ? Math.round(
+          centreHealth.reduce((sum, c) => sum + c.score, 0) / centreHealth.length
+        )
+      : 0;
 
   // ── Trends (trailing 13 weeks) ────────────────────────────
   const thirteenWeeksAgo = new Date(now);
@@ -308,6 +393,7 @@ export async function GET() {
 
   return NextResponse.json({
     centreHealth,
+    networkAvgScore,
     trends,
     actionItems,
     keyMetrics,

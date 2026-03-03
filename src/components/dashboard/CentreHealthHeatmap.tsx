@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 import type { CentreHealthItem } from "@/hooks/useDashboardData";
 
 interface CentreHealthHeatmapProps {
   centres: CentreHealthItem[];
+  networkAvgScore?: number;
 }
 
 const statusColors = {
@@ -13,7 +15,13 @@ const statusColors = {
   red: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", dot: "bg-red-500" },
 };
 
-export function CentreHealthHeatmap({ centres }: CentreHealthHeatmapProps) {
+const trendIcons = {
+  improving: <ArrowUp className="w-3.5 h-3.5 text-emerald-500" />,
+  declining: <ArrowDown className="w-3.5 h-3.5 text-red-500" />,
+  stable: <Minus className="w-3.5 h-3.5 text-gray-400" />,
+};
+
+export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHeatmapProps) {
   const greenCount = centres.filter((c) => c.status === "green").length;
   const amberCount = centres.filter((c) => c.status === "amber").length;
   const redCount = centres.filter((c) => c.status === "red").length;
@@ -30,6 +38,11 @@ export function CentreHealthHeatmap({ centres }: CentreHealthHeatmapProps) {
           </p>
         </div>
         <div className="flex items-center gap-3 text-xs">
+          {networkAvgScore !== undefined && (
+            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+              Avg: {networkAvgScore}
+            </span>
+          )}
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
             Green ({greenCount})
@@ -53,10 +66,11 @@ export function CentreHealthHeatmap({ centres }: CentreHealthHeatmapProps) {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {centres.map((centre) => {
             const colors = statusColors[centre.status];
+            const trend = centre.trend ?? "stable";
             return (
               <Link
                 key={centre.id}
-                href="/performance"
+                href={`/performance?centre=${centre.id}`}
                 className={`${colors.bg} ${colors.border} border rounded-lg p-3 hover:shadow-md transition-shadow group`}
               >
                 <div className="flex items-center gap-2 mb-1.5">
@@ -68,9 +82,25 @@ export function CentreHealthHeatmap({ centres }: CentreHealthHeatmapProps) {
                 <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
                   {centre.name}
                 </p>
-                <p className={`text-2xl font-bold mt-1 ${colors.text}`}>
-                  {centre.score}
-                </p>
+                <div className="flex items-center gap-1 mt-1">
+                  <p className={`text-2xl font-bold ${colors.text}`}>
+                    {centre.score}
+                  </p>
+                  {trendIcons[trend]}
+                </div>
+                <div className="flex gap-0.5 mt-1.5">
+                  {[
+                    { key: "financial", color: "bg-blue-400" },
+                    { key: "operational", color: "bg-emerald-400" },
+                    { key: "compliance", color: "bg-purple-400" },
+                    { key: "satisfaction", color: "bg-amber-400" },
+                    { key: "teamCulture", color: "bg-rose-400" },
+                  ].map(({ key, color }) => (
+                    <div key={key} className="h-1.5 rounded-full flex-1 bg-gray-200 overflow-hidden">
+                      <div className={`h-full ${color} rounded-full`} style={{ width: `${centre.pillars?.[key as keyof typeof centre.pillars] ?? 0}%` }} />
+                    </div>
+                  ))}
+                </div>
                 <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] text-gray-500">
                   <span>Occ {centre.metrics.occupancy}%</span>
                   <span>Comp {centre.metrics.compliance}%</span>

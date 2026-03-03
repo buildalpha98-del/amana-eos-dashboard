@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import {
+  computeHealthScore,
+  getScoreStatus,
+  type ScoreInputMetrics,
+  type ScoreInputFinancials,
+  type ScoreInputEOS,
+} from "@/lib/health-score";
 
 export async function GET(req: NextRequest) {
   const { error } = await requireAuth();
@@ -31,25 +38,114 @@ export async function GET(req: NextRequest) {
     orderBy: { name: "asc" },
   });
 
+  // Query latest persisted HealthScore per service (monthly)
+  const persistedScores = await prisma.healthScore.findMany({
+    where: { periodType: "monthly" },
+    orderBy: { periodStart: "desc" },
+    distinct: ["serviceId"],
+  });
+
+  const scoreMap = new Map(
+    persistedScores.map((hs) => [hs.serviceId, hs])
+  );
+
   // Build performance data for each centre
   const performance = services.map((s) => {
     const metric = s.metrics[0] || null;
     const financial = s.financials[0] || null;
+    const persisted = scoreMap.get(s.id);
 
-    // Calculate a composite score (0-100)
-    let score = 50; // base
-    if (metric) {
-      score += (metric.ascOccupancy > 70 ? 10 : metric.ascOccupancy > 50 ? 5 : 0);
-      score += (metric.ratioCompliance >= 100 ? 10 : 0);
-      score += (metric.overallCompliance >= 95 ? 10 : metric.overallCompliance >= 80 ? 5 : 0);
-      score += (metric.parentNps && metric.parentNps > 60 ? 10 : metric.parentNps && metric.parentNps > 40 ? 5 : 0);
-      score += (metric.incidentCount === 0 ? 5 : 0);
-      score -= (metric.educatorsTurnover > 20 ? 10 : metric.educatorsTurnover > 10 ? 5 : 0);
+    let score: number;
+    let trend: "improving" | "declining" | "stable";
+    let pillars: {
+      financial: number;
+      operational: number;
+      compliance: number;
+      satisfaction: number;
+      teamCulture: number;
+    };
+    let pillarBreakdowns: {
+      financial: Record<string, number>;
+      operational: Record<string, number>;
+      compliance: Record<string, number>;
+      satisfaction: Record<string, number>;
+      teamCulture: Record<string, number>;
+    };
+
+    if (persisted) {
+      // Use persisted health score
+      score = Math.round(persisted.overallScore);
+      trend = persisted.trend as "improving" | "declining" | "stable";
+      pillars = {
+        financial: Math.round(persisted.financialScore),
+        operational: Math.round(persisted.operationalScore),
+        compliance: Math.round(persisted.complianceScore),
+        satisfaction: Math.round(persisted.satisfactionScore),
+        teamCulture: Math.round(persisted.teamCultureScore),
+      };
+      pillarBreakdowns = {
+        financial: (persisted.financialBreakdown as Record<string, number>) ?? {},
+        operational: (persisted.operationalBreakdown as Record<string, number>) ?? {},
+        compliance: (persisted.complianceBreakdown as Record<string, number>) ?? {},
+        satisfaction: (persisted.satisfactionBreakdown as Record<string, number>) ?? {},
+        teamCulture: (persisted.teamCultureBreakdown as Record<string, number>) ?? {},
+      };
+    } else {
+      // Fallback: compute on-the-fly with metrics + financials, empty EOS
+      const metricsInput: ScoreInputMetrics | null = metric
+        ? {
+            bscOccupancy: metric.bscOccupancy,
+            ascOccupancy: metric.ascOccupancy,
+            ratioCompliance: metric.ratioCompliance,
+            overallCompliance: metric.overallCompliance,
+            wwccCompliance: metric.wwccCompliance,
+            firstAidCompliance: metric.firstAidCompliance,
+            parentNps: metric.parentNps,
+            incidentCount: metric.incidentCount,
+            complaintCount: metric.complaintCount,
+            educatorsTurnover: metric.educatorsTurnover,
+            nqsRating: metric.nqsRating,
+          }
+        : null;
+
+      const financialsInput: ScoreInputFinancials | null = financial
+        ? {
+            margin: financial.margin,
+            totalRevenue: financial.totalRevenue,
+            budgetRevenue: financial.budgetRevenue,
+            bscEnrolments: financial.bscEnrolments,
+            ascEnrolments: financial.ascEnrolments,
+          }
+        : null;
+
+      const emptyEOS: ScoreInputEOS = {
+        rocksTotal: 0,
+        rocksOnTrack: 0,
+        rocksComplete: 0,
+        todosOverdue: 0,
+        openIssues: 0,
+        ticketsTotal: 0,
+        ticketsResolved: 0,
+      };
+
+      const result = computeHealthScore(metricsInput, financialsInput, emptyEOS, null);
+      score = result.overallScore;
+      trend = "stable";
+      pillars = {
+        financial: result.pillars.financial.score,
+        operational: result.pillars.operational.score,
+        compliance: result.pillars.compliance.score,
+        satisfaction: result.pillars.satisfaction.score,
+        teamCulture: result.pillars.teamCulture.score,
+      };
+      pillarBreakdowns = {
+        financial: result.pillars.financial.breakdown,
+        operational: result.pillars.operational.breakdown,
+        compliance: result.pillars.compliance.breakdown,
+        satisfaction: result.pillars.satisfaction.breakdown,
+        teamCulture: result.pillars.teamCulture.breakdown,
+      };
     }
-    if (financial) {
-      score += (financial.margin > 20 ? 10 : financial.margin > 10 ? 5 : financial.margin > 0 ? 2 : -5);
-    }
-    score = Math.max(0, Math.min(100, score));
 
     return {
       id: s.id,
@@ -60,6 +156,9 @@ export async function GET(req: NextRequest) {
       capacity: s.capacity,
       manager: s.manager,
       score,
+      trend,
+      pillars,
+      pillarBreakdowns,
       metrics: metric
         ? {
             bscOccupancy: metric.bscOccupancy,

@@ -524,7 +524,7 @@ export function DashboardContent() {
           <KeyMetricsBar metrics={data.keyMetrics} />
 
           {/* ── Centre Health Heatmap ──────────────────────── */}
-          <CentreHealthHeatmap centres={data.centreHealth} />
+          <CentreHealthHeatmap centres={data.centreHealth} networkAvgScore={data.networkAvgScore} />
 
           {/* ── Sparklines + Action Items ──────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

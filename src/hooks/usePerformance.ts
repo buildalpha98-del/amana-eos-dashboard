@@ -11,6 +11,21 @@ export interface CentrePerformance {
   capacity: number | null;
   manager: { id: string; name: string } | null;
   score: number;
+  trend: "improving" | "declining" | "stable";
+  pillars: {
+    financial: number;
+    operational: number;
+    compliance: number;
+    satisfaction: number;
+    teamCulture: number;
+  };
+  pillarBreakdowns: {
+    financial: Record<string, number>;
+    operational: Record<string, number>;
+    compliance: Record<string, number>;
+    satisfaction: Record<string, number>;
+    teamCulture: Record<string, number>;
+  };
   metrics: {
     bscOccupancy: number;
     ascOccupancy: number;

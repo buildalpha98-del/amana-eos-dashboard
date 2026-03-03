@@ -29,5 +29,6 @@ export const config = {
     "/services/:path*",
     "/api/services/:path*",
     "/api/xero/:path*",
+    "/api/health-scores/:path*",
   ],
 };

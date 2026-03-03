@@ -9,6 +9,14 @@ export interface CentreHealthItem {
   state: string | null;
   score: number;
   status: "green" | "amber" | "red";
+  trend: "improving" | "declining" | "stable";
+  pillars: {
+    financial: number;
+    operational: number;
+    compliance: number;
+    satisfaction: number;
+    teamCulture: number;
+  };
   metrics: {
     occupancy: number;
     compliance: number;
@@ -24,6 +32,7 @@ export interface TrendPoint {
 
 export interface DashboardResponse {
   centreHealth: CentreHealthItem[];
+  networkAvgScore: number;
   trends: {
     revenue: TrendPoint[];
     enrolments: TrendPoint[];

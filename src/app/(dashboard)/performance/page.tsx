@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { usePerformance } from "@/hooks/usePerformance";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV, formatCurrencyCSV } from "@/lib/csv-export";
@@ -13,12 +14,17 @@ import {
   Star,
   ArrowUpRight,
   ArrowDownRight,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScoreDistributionChart } from "@/components/charts/ScoreDistributionChart";
 import { CentreRadarChart } from "@/components/charts/CentreRadarChart";
 import { OccupancyComparisonChart } from "@/components/charts/OccupancyComparisonChart";
 import { ScoreTrendChart } from "@/components/charts/ScoreTrendChart";
+import { HealthScoreDetail } from "@/components/performance/HealthScoreDetail";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-AU", {
@@ -58,12 +64,28 @@ function MetricCell({ value, suffix, good, threshold }: { value: number | null |
 
 export default function PerformancePage() {
   const { data: centres, isLoading } = usePerformance();
+  const [sortBy, setSortBy] = useState<string>("overall");
+  const [selectedCentreId, setSelectedCentreId] = useState<string | null>(null);
 
   const topPerformer = centres && centres.length > 0 ? centres[0] : null;
   const needsAttention = centres ? centres.filter((c) => c.score < 60) : [];
   const avgScore = centres && centres.length > 0
     ? Math.round(centres.reduce((s, c) => s + c.score, 0) / centres.length)
     : 0;
+
+  const sortOptions = [
+    { value: "overall", label: "Overall Score" },
+    { value: "financial", label: "Financial" },
+    { value: "operational", label: "Operational" },
+    { value: "compliance", label: "Compliance" },
+    { value: "satisfaction", label: "Satisfaction" },
+    { value: "teamCulture", label: "Team & Culture" },
+  ];
+
+  const sortedCentres = centres ? [...centres].sort((a, b) => {
+    if (sortBy === "overall") return b.score - a.score;
+    return (b.pillars?.[sortBy as keyof typeof b.pillars] ?? 0) - (a.pillars?.[sortBy as keyof typeof a.pillars] ?? 0);
+  }) : [];
 
   const handleExport = () => {
     if (!centres || centres.length === 0) return;
@@ -125,7 +147,10 @@ export default function PerformancePage() {
             <Star className="w-5 h-5 text-[#FECE00]" />
             <p className="text-sm font-medium text-gray-500">Avg Performance Score</p>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{avgScore}</p>
+          <div className="flex items-baseline gap-2">
+            <p className="text-3xl font-bold text-gray-900">{avgScore}</p>
+            <span className="text-sm text-gray-400">/ 100</span>
+          </div>
           <p className="text-sm text-gray-400 mt-1">out of 100</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -160,12 +185,24 @@ export default function PerformancePage() {
 
       {/* Performance League Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">Centre Rankings</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">Sort by:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64]/20"
+            >
+              {sortOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
         {isLoading ? (
           <div className="p-12 text-center text-gray-400">Loading performance data...</div>
-        ) : !centres || centres.length === 0 ? (
+        ) : !sortedCentres || sortedCentres.length === 0 ? (
           <div className="p-12 text-center">
             <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">No performance data available yet.</p>
@@ -179,6 +216,12 @@ export default function PerformancePage() {
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Centre</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">State</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Score</th>
+                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Trend</th>
+                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Fin</th>
+                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Ops</th>
+                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Comp</th>
+                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Sat</th>
+                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Team</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Occupancy</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Revenue</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Margin</th>
@@ -189,12 +232,16 @@ export default function PerformancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {centres.map((centre, index) => (
-                  <tr key={centre.id} className={cn(
-                    "hover:bg-gray-50 transition-colors",
-                    index === 0 ? "bg-emerald-50/30" : "",
-                    centre.score < 60 ? "bg-red-50/30" : ""
-                  )}>
+                {sortedCentres.map((centre, index) => (
+                  <tr
+                    key={centre.id}
+                    onClick={() => setSelectedCentreId(centre.id)}
+                    className={cn(
+                      "hover:bg-gray-50 transition-colors cursor-pointer",
+                      index === 0 ? "bg-emerald-50/30" : "",
+                      centre.score < 60 ? "bg-red-50/30" : ""
+                    )}
+                  >
                     <td className="px-4 py-3">
                       <span className={cn(
                         "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold",
@@ -220,6 +267,24 @@ export default function PerformancePage() {
                     <td className="px-4 py-3 text-center">
                       <ScoreBadge score={centre.score} />
                     </td>
+                    <td className="px-3 py-3 text-center">
+                      {centre.trend === "improving" ? (
+                        <ArrowUp className="w-4 h-4 text-emerald-500 mx-auto" />
+                      ) : centre.trend === "declining" ? (
+                        <ArrowDown className="w-4 h-4 text-red-500 mx-auto" />
+                      ) : (
+                        <Minus className="w-4 h-4 text-gray-400 mx-auto" />
+                      )}
+                    </td>
+                    {["financial", "operational", "compliance", "satisfaction", "teamCulture"].map((key) => {
+                      const val = centre.pillars?.[key as keyof typeof centre.pillars] ?? 0;
+                      const color = val >= 75 ? "bg-emerald-100 text-emerald-700" : val >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
+                      return (
+                        <td key={key} className="px-3 py-3 text-center">
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${color}`}>{val}</span>
+                        </td>
+                      );
+                    })}
                     <td className="px-4 py-3 text-right">
                       <MetricCell value={centre.metrics?.ascOccupancy} suffix="%" good="high" threshold={65} />
                     </td>
@@ -268,6 +333,13 @@ export default function PerformancePage() {
           </div>
         )}
       </div>
+
+      {selectedCentreId && (
+        <HealthScoreDetail
+          serviceId={selectedCentreId}
+          onClose={() => setSelectedCentreId(null)}
+        />
+      )}
     </div>
   );
 }

@@ -29,37 +29,45 @@ export function CentreRadarChart({ centres }: CentreRadarChartProps) {
   const selected = centres.find((c) => c.id === selectedId) || centres[0];
 
   const radarData = selected
-    ? [
-        {
-          metric: "Occupancy",
-          value: normalise(selected.metrics?.ascOccupancy, 100),
-          raw: selected.metrics?.ascOccupancy ?? 0,
-        },
-        {
-          metric: "Compliance",
-          value: normalise(selected.metrics?.overallCompliance, 100),
-          raw: selected.metrics?.overallCompliance ?? 0,
-        },
-        {
-          metric: "NPS",
-          value: normalise(selected.metrics?.parentNps, 100),
-          raw: selected.metrics?.parentNps ?? 0,
-        },
-        {
-          metric: "Margin",
-          value: normalise(selected.financials?.margin, 40),
-          raw: selected.financials?.margin ?? 0,
-        },
-        {
-          metric: "Staff",
-          value: normalise(selected.metrics?.totalEducators, 30),
-          raw: selected.metrics?.totalEducators ?? 0,
-        },
-      ]
+    ? selected.pillars
+      ? [
+          { metric: "Financial", value: selected.pillars.financial },
+          { metric: "Operational", value: selected.pillars.operational },
+          { metric: "Compliance", value: selected.pillars.compliance },
+          { metric: "Satisfaction", value: selected.pillars.satisfaction },
+          { metric: "Team & Culture", value: selected.pillars.teamCulture },
+        ]
+      : [
+          {
+            metric: "Occupancy",
+            value: normalise(selected.metrics?.ascOccupancy, 100),
+          },
+          {
+            metric: "Compliance",
+            value: normalise(selected.metrics?.overallCompliance, 100),
+          },
+          {
+            metric: "NPS",
+            value: normalise(selected.metrics?.parentNps, 100),
+          },
+          {
+            metric: "Margin",
+            value: normalise(selected.financials?.margin, 40),
+          },
+          {
+            metric: "Staff",
+            value: normalise(selected.metrics?.totalEducators, 30),
+          },
+        ]
     : [];
 
+  const hasPillars = !!(selected && selected.pillars);
+
   return (
-    <ChartCard title="Centre Radar" subtitle="Multi-metric comparison (normalised to 0-100)">
+    <ChartCard
+      title="Centre Radar"
+      subtitle={hasPillars ? "Health score pillars (0-100 scale)" : "Multi-metric comparison (normalised to 0-100)"}
+    >
       <div className="mb-3">
         <select
           value={selectedId}
@@ -95,16 +103,7 @@ export function CentreRadarChart({ centres }: CentreRadarChartProps) {
             strokeWidth={2}
           />
           <Tooltip
-            formatter={(value: number | string | undefined, _name: string | undefined, props: unknown) => {
-              const p = props as { payload?: { raw?: number; metric?: string } } | undefined;
-              const raw = p?.payload?.raw ?? 0;
-              const metric = p?.payload?.metric ?? "";
-              const suffix =
-                metric === "Occupancy" || metric === "Compliance" || metric === "Margin"
-                  ? "%"
-                  : "";
-              return [`${raw}${suffix} (normalised: ${Number(value ?? 0).toFixed(0)})`, metric];
-            }}
+            formatter={(value: number | string | undefined) => [`${Number(value ?? 0)}/100`, ""]}
             contentStyle={{
               borderRadius: "8px",
               border: "1px solid #E5E7EB",
