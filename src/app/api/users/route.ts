@@ -3,6 +3,8 @@ import { hash } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getResend, FROM_EMAIL } from "@/lib/email";
+import { welcomeEmail } from "@/lib/email-templates";
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -81,6 +83,23 @@ export async function POST(req: NextRequest) {
       details: { name: user.name, email: user.email, role: user.role },
     },
   });
+
+  // Send welcome email with temporary password
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const loginUrl = `${baseUrl}/login`;
+  const { subject, html } = welcomeEmail(name.split(" ")[0], password, loginUrl);
+
+  const resend = getResend();
+  if (resend) {
+    try {
+      await resend.emails.send({ from: FROM_EMAIL, to: email, subject, html });
+    } catch (emailErr) {
+      console.error("Failed to send welcome email:", emailErr);
+      // Don't fail user creation if email fails
+    }
+  } else {
+    console.log(`[DEV] Welcome email for ${email} — temp password: ${password}`);
+  }
 
   return NextResponse.json(user, { status: 201 });
 }

@@ -202,6 +202,20 @@ model User {
   announcementReads AnnouncementRead[] @relation("AnnouncementReader")
   cascadeAcks       CascadeAcknowledgment[] @relation("CascadeAcknowledger")
   weeklyPulses      WeeklyPulse[]     @relation("PulseAuthor")
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([userId])
 }
 
 model VisionTractionOrganiser {

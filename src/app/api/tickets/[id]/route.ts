@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getResend, FROM_EMAIL } from "@/lib/email";
+import { ticketNotificationEmail } from "@/lib/email-templates";
 
 // GET /api/tickets/[id]
 export async function GET(
@@ -99,6 +101,30 @@ export async function PATCH(
       details: { changes: Object.keys(data) },
     },
   });
+
+  // Send notification email when ticket is assigned to someone new
+  if (body.assignedToId && ticket.assignedTo) {
+    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const ticketUrl = `${baseUrl}/tickets?id=${ticket.id}`;
+    const { subject, html } = ticketNotificationEmail(
+      ticket.assignedTo.name.split(" ")[0],
+      {
+        title: ticket.subject || `Ticket #${ticket.ticketNumber}`,
+        priority: ticket.priority,
+        raisedBy: ticket.contact?.name || undefined,
+      },
+      ticketUrl
+    );
+
+    const resend = getResend();
+    if (resend) {
+      resend.emails
+        .send({ from: FROM_EMAIL, to: ticket.assignedTo.email, subject, html })
+        .catch((err: unknown) => console.error("Failed to send ticket notification:", err));
+    } else {
+      console.log(`[DEV] Ticket notification for ${ticket.assignedTo.email}: ${ticket.subject}`);
+    }
+  }
 
   return NextResponse.json(ticket);
 }

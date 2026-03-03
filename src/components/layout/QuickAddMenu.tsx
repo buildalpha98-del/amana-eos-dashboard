@@ -1,20 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useEffect } from "react";
 import {
   CheckSquare,
   AlertCircle,
   Mountain,
   Presentation,
 } from "lucide-react";
-
-const quickItems = [
-  { label: "New To-Do", icon: CheckSquare, href: "/todos?create=true" },
-  { label: "New Issue", icon: AlertCircle, href: "/issues?create=true" },
-  { label: "New Rock", icon: Mountain, href: "/rocks?create=true" },
-  { label: "New Meeting", icon: Presentation, href: "/meetings?create=true" },
-];
+import { useQuickAdd } from "@/components/quick-add/QuickAddProvider";
 
 export function QuickAddMenu({
   open,
@@ -23,7 +16,7 @@ export function QuickAddMenu({
   open: boolean;
   onClose: () => void;
 }) {
-  const router = useRouter();
+  const { openTodoModal, openIssueModal, openRockModal } = useQuickAdd();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,6 +33,12 @@ export function QuickAddMenu({
 
   if (!open) return null;
 
+  const quickItems = [
+    { label: "New To-Do", icon: CheckSquare, action: () => { openTodoModal(); onClose(); } },
+    { label: "New Issue", icon: AlertCircle, action: () => { openIssueModal(); onClose(); } },
+    { label: "New Rock", icon: Mountain, action: () => { openRockModal(); onClose(); } },
+  ];
+
   return (
     <div
       ref={menuRef}
@@ -50,10 +49,7 @@ export function QuickAddMenu({
         return (
           <button
             key={item.label}
-            onClick={() => {
-              router.push(item.href);
-              onClose();
-            }}
+            onClick={item.action}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <Icon className="w-4 h-4 text-gray-400" />

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
@@ -137,8 +138,9 @@ function LoginForm() {
           </form>
 
           <p className="text-center text-sm text-gray-400 mt-4">
-            Forgot your password?{" "}
-            <span className="text-gray-500 font-medium">Contact your administrator.</span>
+            <Link href="/forgot-password" className="text-[#004E64] font-medium hover:underline">
+              Forgot your password?
+            </Link>
           </p>
         </div>
 
