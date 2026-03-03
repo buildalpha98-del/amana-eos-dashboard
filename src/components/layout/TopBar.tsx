@@ -77,6 +77,7 @@ export function TopBar() {
           {/* Quick Add */}
           <div className="relative">
             <button
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={() => setQuickAddOpen((v) => !v)}
               className="p-2 rounded-lg text-white bg-[#004E64] hover:bg-[#003D52] transition-colors"
               title="Quick Add"
@@ -112,6 +113,7 @@ export function TopBar() {
           </button>
           <div className="relative">
             <button
+              onMouseDown={(e) => e.stopPropagation()}
               onClick={() => setQuickAddOpen((v) => !v)}
               className="p-2 rounded-lg text-white bg-[#004E64] hover:bg-[#003D52] transition-colors"
               title="Quick Add"

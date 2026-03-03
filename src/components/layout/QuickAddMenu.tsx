@@ -1,11 +1,10 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import {
   CheckSquare,
   AlertCircle,
   Mountain,
-  Presentation,
 } from "lucide-react";
 import { useQuickAdd } from "@/components/quick-add/QuickAddProvider";
 
@@ -19,17 +18,32 @@ export function QuickAddMenu({
   const { openTodoModal, openIssueModal, openRockModal } = useQuickAdd();
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+  const handleClickOutside = useCallback(
+    (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        // Also check if the click is on the toggle button (parent relative container)
+        const toggle = menuRef.current.parentElement?.querySelector(
+          'button[title="Quick Add"]'
+        );
+        if (toggle && toggle.contains(e.target as Node)) return;
         onClose();
       }
-    }
+    },
+    [onClose]
+  );
+
+  useEffect(() => {
     if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
+      // Use a rAF to avoid the same event that opened the menu from closing it
+      const id = requestAnimationFrame(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+      });
+      return () => {
+        cancelAnimationFrame(id);
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
     }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open, onClose]);
+  }, [open, handleClickOutside]);
 
   if (!open) return null;
 
