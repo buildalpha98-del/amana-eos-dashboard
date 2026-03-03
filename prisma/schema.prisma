@@ -203,6 +203,7 @@ model User {
   cascadeAcks       CascadeAcknowledgment[] @relation("CascadeAcknowledger")
   weeklyPulses      WeeklyPulse[]     @relation("PulseAuthor")
   passwordResetTokens PasswordResetToken[]
+  calendarIntegration CalendarIntegration?
 }
 
 model PasswordResetToken {
@@ -215,6 +216,21 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 
   @@index([token])
+  @@index([userId])
+}
+
+model CalendarIntegration {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     String   @default("microsoft") // "microsoft" | "google" (future)
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  scope        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   @@index([userId])
 }
 

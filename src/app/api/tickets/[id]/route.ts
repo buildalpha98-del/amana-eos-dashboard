@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { ticketNotificationEmail } from "@/lib/email-templates";
+import { notifyTicketAssigned, notifyTicketStatusChange } from "@/lib/teams-notify";
 
 // GET /api/tickets/[id]
 export async function GET(
@@ -103,9 +104,10 @@ export async function PATCH(
   });
 
   // Send notification email when ticket is assigned to someone new
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const ticketUrl = `${baseUrl}/tickets?id=${ticket.id}`;
+
   if (body.assignedToId && ticket.assignedTo) {
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-    const ticketUrl = `${baseUrl}/tickets?id=${ticket.id}`;
     const { subject, html } = ticketNotificationEmail(
       ticket.assignedTo.name.split(" ")[0],
       {
@@ -124,6 +126,26 @@ export async function PATCH(
     } else {
       console.log(`[DEV] Ticket notification for ${ticket.assignedTo.email}: ${ticket.subject}`);
     }
+
+    // Teams notification (fire-and-forget)
+    notifyTicketAssigned({
+      ticketNumber: ticket.ticketNumber,
+      subject: ticket.subject,
+      priority: ticket.priority,
+      assignedTo: ticket.assignedTo.name,
+      raisedBy: ticket.contact?.name || undefined,
+      url: ticketUrl,
+    }).catch(() => {});
+  }
+
+  // Teams notification for status changes
+  if (body.status !== undefined && body.status !== existing.status) {
+    notifyTicketStatusChange({
+      ticketNumber: ticket.ticketNumber,
+      subject: ticket.subject,
+      newStatus: body.status,
+      url: ticketUrl,
+    }).catch(() => {});
   }
 
   return NextResponse.json(ticket);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { notifyNewRock } from "@/lib/teams-notify";
 
 const createRockSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -97,6 +98,15 @@ export async function POST(req: NextRequest) {
       details: { title: rock.title, quarter: rock.quarter },
     },
   });
+
+  // Teams notification (fire-and-forget)
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  notifyNewRock({
+    title: rock.title,
+    owner: rock.owner?.name || "Unassigned",
+    quarter: rock.quarter,
+    url: `${baseUrl}/rocks`,
+  }).catch(() => {});
 
   return NextResponse.json(rock, { status: 201 });
 }

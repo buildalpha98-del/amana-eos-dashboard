@@ -1,19 +1,18 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/server-auth";
+
 /**
- * One-time script to add all missing OSHC templates to an existing database.
- * Run with: npx tsx prisma/seed-new-templates.ts
+ * POST /api/project-templates/seed
  *
- * Safe to run multiple times — skips templates that already exist (by name).
+ * Owner-only endpoint that seeds any missing project templates.
+ * Safe to call multiple times — skips templates that already exist by name.
  */
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
-
-const allTemplates = [
-  // ── 1. New Centre Opening ──────────────────────────────
+const ALL_TEMPLATES = [
   {
     name: "New Centre Opening",
-    description:
-      "Complete checklist for launching a new OSHC centre at a school site. Covers compliance, staffing, setup, and marketing.",
+    description: "Complete checklist for launching a new OSHC centre at a school site. Covers compliance, staffing, setup, and marketing.",
     category: "Operations",
     tasks: [
       { title: "Sign LOI with school principal", category: "Legal", sortOrder: 1, defaultDays: 7 },
@@ -36,12 +35,9 @@ const allTemplates = [
       { title: "Official opening day", category: "Operations", sortOrder: 18, defaultDays: 49 },
     ],
   },
-
-  // ── 2. Annual Compliance Audit ─────────────────────────
   {
     name: "Annual Compliance Audit",
-    description:
-      "Annual NQS (National Quality Standard) self-assessment and compliance review for an existing centre.",
+    description: "Annual NQS (National Quality Standard) self-assessment and compliance review for an existing centre.",
     category: "Compliance",
     tasks: [
       { title: "Review and update policies and procedures", category: "Documentation", sortOrder: 1, defaultDays: 7 },
@@ -56,12 +52,9 @@ const allTemplates = [
       { title: "Submit compliance report to management", category: "Documentation", sortOrder: 10, defaultDays: 30 },
     ],
   },
-
-  // ── 3. Term Marketing Campaign ─────────────────────────
   {
     name: "Term Marketing Campaign",
-    description:
-      "Quarterly marketing campaign to boost enrolments and community engagement.",
+    description: "Quarterly marketing campaign to boost enrolments and community engagement.",
     category: "Marketing",
     tasks: [
       { title: "Define campaign goals and target numbers", category: "Strategy", sortOrder: 1, defaultDays: 3 },
@@ -74,12 +67,9 @@ const allTemplates = [
       { title: "Review campaign results and adjust", category: "Strategy", sortOrder: 8, defaultDays: 28 },
     ],
   },
-
-  // ── 4. Staff Training & Induction ──────────────────────
   {
     name: "Staff Training & Induction Program",
-    description:
-      "Onboarding checklist for new educators including WWCC, first aid, safeguarding, and centre-specific training.",
+    description: "Onboarding checklist for new educators including WWCC, first aid, safeguarding, and centre-specific training.",
     category: "Staffing",
     tasks: [
       { title: "Verify Working With Children Check (WWCC)", category: "Compliance", sortOrder: 1, defaultDays: 3 },
@@ -95,12 +85,9 @@ const allTemplates = [
       { title: "Complete probation review meeting", category: "HR", sortOrder: 11, defaultDays: 45 },
     ],
   },
-
-  // ── 5. Vacation Care Program ───────────────────────────
   {
     name: "Vacation Care Program Planning",
-    description:
-      "End-to-end planning for school holiday vacation care including program design, excursions, staffing, and enrolments.",
+    description: "End-to-end planning for school holiday vacation care including program design, excursions, staffing, and enrolments.",
     category: "Programs",
     tasks: [
       { title: "Set vacation care dates and operating hours", category: "Planning", sortOrder: 1, defaultDays: 3 },
@@ -117,12 +104,9 @@ const allTemplates = [
       { title: "Post-vacation care family feedback survey", category: "Quality", sortOrder: 12, defaultDays: 49 },
     ],
   },
-
-  // ── 6. Assessment & Rating Preparation ─────────────────
   {
     name: "Assessment & Rating Preparation",
-    description:
-      "Prepare for ACECQA Assessment & Rating visit. Covers all 7 NQS quality areas with evidence collection and self-assessment.",
+    description: "Prepare for ACECQA Assessment & Rating visit. Covers all 7 NQS quality areas with evidence collection and self-assessment.",
     category: "Compliance",
     tasks: [
       { title: "Conduct NQS self-assessment across all 7 quality areas", category: "Assessment", sortOrder: 1, defaultDays: 14 },
@@ -141,12 +125,9 @@ const allTemplates = [
       { title: "Final team briefing before A&R visit", category: "Preparation", sortOrder: 14, defaultDays: 42 },
     ],
   },
-
-  // ── 7. Parent & Community Engagement ───────────────────
   {
     name: "Parent & Community Engagement Initiative",
-    description:
-      "Build stronger relationships with families through events, surveys, and communication improvements.",
+    description: "Build stronger relationships with families through events, surveys, and communication improvements.",
     category: "Community",
     tasks: [
       { title: "Design and distribute parent satisfaction survey", category: "Feedback", sortOrder: 1, defaultDays: 7 },
@@ -160,12 +141,9 @@ const allTemplates = [
       { title: "Follow-up survey to measure improvement", category: "Feedback", sortOrder: 9, defaultDays: 60 },
     ],
   },
-
-  // ── 8. Safety & Emergency Preparedness ─────────────────
   {
     name: "Safety & Emergency Preparedness Review",
-    description:
-      "Comprehensive safety audit and emergency preparedness review for OSHC centres.",
+    description: "Comprehensive safety audit and emergency preparedness review for OSHC centres.",
     category: "Safety",
     tasks: [
       { title: "Review and update emergency management plan", category: "Emergency", sortOrder: 1, defaultDays: 7 },
@@ -180,12 +158,9 @@ const allTemplates = [
       { title: "Submit safety audit report to management", category: "Reporting", sortOrder: 10, defaultDays: 21 },
     ],
   },
-
-  // ── 9. School Sales Cycle ──────────────────────────────
   {
     name: "School Sales Cycle",
-    description:
-      "End-to-end sales pipeline for pitching OSHC services to a new school partner.",
+    description: "End-to-end sales pipeline for pitching OSHC services to a new school partner.",
     category: "Growth",
     tasks: [
       { title: "Research school demographics and current OSHC provider", category: "Research", sortOrder: 1, defaultDays: 7 },
@@ -200,12 +175,9 @@ const allTemplates = [
       { title: "Announce new service to school community", category: "Communication", sortOrder: 10, defaultDays: 7 },
     ],
   },
-
-  // ── 10. Tender Application ─────────────────────────────
   {
     name: "Tender Application",
-    description:
-      "Structured workflow for preparing and submitting an OSHC tender once it is released.",
+    description: "Structured workflow for preparing and submitting an OSHC tender once it is released.",
     category: "Growth",
     tasks: [
       { title: "Review tender documents and mandatory criteria", category: "Review", sortOrder: 1, defaultDays: 3 },
@@ -221,12 +193,9 @@ const allTemplates = [
       { title: "Submit tender before deadline", category: "Submission", sortOrder: 11, defaultDays: 1 },
     ],
   },
-
-  // ── 11. QIP Development ────────────────────────────────
   {
     name: "Quality Improvement Plan (QIP) Development",
-    description:
-      "Develop or refresh the service QIP aligned to the National Quality Framework. Covers self-assessment, goal setting, evidence collection, and regulatory submission.",
+    description: "Develop or refresh the service QIP aligned to the National Quality Framework. Covers self-assessment, goal setting, evidence collection, and regulatory submission.",
     category: "Quality",
     tasks: [
       { title: "Review current NQS ratings and previous QIP", category: "Assessment", sortOrder: 1, defaultDays: 7 },
@@ -244,12 +213,9 @@ const allTemplates = [
       { title: "Conduct first quarterly review and update progress notes", category: "Review", sortOrder: 13, defaultDays: 90 },
     ],
   },
-
-  // ── 12. Educator Professional Development ──────────────
   {
     name: "Educator Professional Development Cycle",
-    description:
-      "Annual professional development cycle for educators including performance appraisals, goal setting, training plans, mentoring, and certification tracking.",
+    description: "Annual professional development cycle for educators including performance appraisals, goal setting, training plans, mentoring, and certification tracking.",
     category: "Staffing",
     tasks: [
       { title: "Schedule annual performance appraisals for all educators", category: "Planning", sortOrder: 1, defaultDays: 7 },
@@ -267,12 +233,9 @@ const allTemplates = [
       { title: "Prepare end-of-year PD summary report for management", category: "Reporting", sortOrder: 13, defaultDays: 150 },
     ],
   },
-
-  // ── 13. Inclusion Support Program ──────────────────────
   {
     name: "Inclusion Support Program Setup",
-    description:
-      "Set up individualised support for a child with additional needs. Covers ISP meetings, funding applications, environment modifications, and staff training.",
+    description: "Set up individualised support for a child with additional needs. Covers ISP meetings, funding applications, environment modifications, and staff training.",
     category: "Inclusion",
     tasks: [
       { title: "Meet with family to understand child's needs and routines", category: "Consultation", sortOrder: 1, defaultDays: 5 },
@@ -290,12 +253,9 @@ const allTemplates = [
       { title: "Conduct formal ISP review and update goals", category: "Review", sortOrder: 13, defaultDays: 60 },
     ],
   },
-
-  // ── 14. Service Policy Review Cycle ────────────────────
   {
     name: "Service Policy Review Cycle",
-    description:
-      "Systematic review and update of all service policies to ensure NQF compliance, alignment with current legislation, and reflection of best practice in OSHC.",
+    description: "Systematic review and update of all service policies to ensure NQF compliance, alignment with current legislation, and reflection of best practice in OSHC.",
     category: "Governance",
     tasks: [
       { title: "Compile master list of all current service policies with review dates", category: "Audit", sortOrder: 1, defaultDays: 7 },
@@ -317,37 +277,46 @@ const allTemplates = [
   },
 ];
 
-async function main() {
-  let created = 0;
-  let skipped = 0;
+export async function POST() {
+  const { error } = await requireAuth(["owner"]);
+  if (error) return error;
 
-  for (const tmpl of allTemplates) {
-    const existing = await prisma.projectTemplate.findFirst({
-      where: { name: tmpl.name },
-    });
-    if (existing) {
-      console.log(`  \u2713 "${tmpl.name}" already exists`);
-      skipped++;
-      continue;
+  try {
+    const existingNames = new Set(
+      (await prisma.projectTemplate.findMany({ select: { name: true } })).map(
+        (t) => t.name
+      )
+    );
+
+    let created = 0;
+    const createdNames: string[] = [];
+
+    for (const tmpl of ALL_TEMPLATES) {
+      if (existingNames.has(tmpl.name)) continue;
+
+      await prisma.projectTemplate.create({
+        data: {
+          name: tmpl.name,
+          description: tmpl.description,
+          category: tmpl.category,
+          tasks: { create: tmpl.tasks },
+        },
+      });
+
+      created++;
+      createdNames.push(tmpl.name);
     }
-    await prisma.projectTemplate.create({
-      data: {
-        name: tmpl.name,
-        description: tmpl.description,
-        category: tmpl.category,
-        tasks: { create: tmpl.tasks },
-      },
+
+    return NextResponse.json({
+      message: `Seeded ${created} missing template(s). ${existingNames.size} already existed.`,
+      created: createdNames,
+      total: ALL_TEMPLATES.length,
     });
-    console.log(`  + Created "${tmpl.name}" (${tmpl.tasks.length} tasks)`);
-    created++;
+  } catch (err) {
+    console.error("Template seed error:", err);
+    return NextResponse.json(
+      { error: "Failed to seed templates" },
+      { status: 500 }
+    );
   }
-
-  console.log(`\nDone! Created ${created}, skipped ${skipped} (already exist).`);
 }
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());

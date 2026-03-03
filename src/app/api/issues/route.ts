@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { notifyNewIssue } from "@/lib/teams-notify";
 
 const createIssueSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -92,6 +93,17 @@ export async function POST(req: NextRequest) {
       details: { title: issue.title, priority: issue.priority },
     },
   });
+
+  // Teams notification for high/critical issues (fire-and-forget)
+  if (["critical", "high"].includes(issue.priority)) {
+    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    notifyNewIssue({
+      title: issue.title,
+      priority: issue.priority,
+      raisedBy: issue.raisedBy?.name || session!.user.name || "Unknown",
+      url: `${baseUrl}/issues`,
+    }).catch(() => {});
+  }
 
   return NextResponse.json(issue, { status: 201 });
 }
