@@ -235,6 +235,8 @@ model Rock {
   priority        RockPriority @default(medium)
   oneYearGoalId   String?
   oneYearGoal     OneYearGoal? @relation(fields: [oneYearGoalId], references: [id], onDelete: SetNull)
+  serviceId       String?
+  service         Service?     @relation("ServiceRocks", fields: [serviceId], references: [id], onDelete: SetNull)
   deleted         Boolean      @default(false)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -248,6 +250,7 @@ model Rock {
   @@index([quarter])
   @@index([ownerId])
   @@index([status])
+  @@index([serviceId])
 }
 
 model Milestone {
@@ -348,6 +351,8 @@ model Measurable {
   rock          Rock?               @relation(fields: [rockId], references: [id], onDelete: SetNull)
   scorecardId   String
   scorecard     Scorecard           @relation(fields: [scorecardId], references: [id], onDelete: Cascade)
+  serviceId     String?
+  service       Service?            @relation("ServiceMeasurables", fields: [serviceId], references: [id], onDelete: SetNull)
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
@@ -355,6 +360,7 @@ model Measurable {
 
   @@index([ownerId])
   @@index([scorecardId])
+  @@index([serviceId])
 }
 
 model MeasurableEntry {
@@ -545,6 +551,8 @@ model Service {
   todos    Todo[]
   projects Project[]
   issues   Issue[]    @relation("ServiceIssues")
+  rocks    Rock[]     @relation("ServiceRocks")
+  measurables Measurable[] @relation("ServiceMeasurables")
   financials FinancialPeriod[] @relation("ServiceFinancials")
   metrics    CentreMetrics[]   @relation("ServiceMetrics")
   documents  Document[] @relation("ServiceDocuments")

@@ -11,6 +11,7 @@ const createMeasurableSchema = z.object({
   goalDirection: z.enum(["above", "below", "exact"]),
   unit: z.string().optional().nullable(),
   frequency: z.enum(["weekly", "monthly"]).optional(),
+  serviceId: z.string().optional().nullable(),
 });
 
 // POST /api/measurables — create a new measurable
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
       unit: parsed.data.unit || null,
       frequency: parsed.data.frequency || "weekly",
       scorecardId: scorecard.id,
+      serviceId: parsed.data.serviceId || null,
     },
     include: {
       owner: { select: { id: true, name: true, email: true, avatar: true } },

@@ -40,6 +40,28 @@ export async function GET(
         },
         orderBy: { createdAt: "desc" },
       },
+      rocks: {
+        where: { deleted: false },
+        include: {
+          owner: { select: { id: true, name: true } },
+          _count: {
+            select: {
+              todos: { where: { deleted: false } },
+              milestones: true,
+            },
+          },
+        },
+        orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      },
+      _count: {
+        select: {
+          todos: { where: { deleted: false } },
+          issues: { where: { deleted: false } },
+          projects: { where: { deleted: false } },
+          rocks: { where: { deleted: false } },
+          measurables: true,
+        },
+      },
     },
   });
 

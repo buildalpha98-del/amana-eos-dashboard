@@ -24,5 +24,7 @@ export const config = {
     "/api/users/:path*",
     "/marketing/:path*",
     "/api/marketing/:path*",
+    "/services/:path*",
+    "/api/services/:path*",
   ],
 };

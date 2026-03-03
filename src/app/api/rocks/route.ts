@@ -10,6 +10,7 @@ const createRockSchema = z.object({
   quarter: z.string().min(1, "Quarter is required"),
   priority: z.enum(["critical", "high", "medium"]).default("medium"),
   oneYearGoalId: z.string().optional().nullable(),
+  serviceId: z.string().optional().nullable(),
 });
 
 // GET /api/rocks — list rocks with optional quarter filter
@@ -19,12 +20,14 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const quarter = searchParams.get("quarter");
+  const serviceId = searchParams.get("serviceId");
+
+  const where: Record<string, unknown> = { deleted: false };
+  if (quarter) where.quarter = quarter;
+  if (serviceId) where.serviceId = serviceId;
 
   const rocks = await prisma.rock.findMany({
-    where: {
-      deleted: false,
-      ...(quarter ? { quarter } : {}),
-    },
+    where,
     include: {
       owner: { select: { id: true, name: true, email: true, avatar: true } },
       oneYearGoal: { select: { id: true, title: true } },
@@ -65,6 +68,7 @@ export async function POST(req: NextRequest) {
       quarter: parsed.data.quarter,
       priority: parsed.data.priority,
       oneYearGoalId: parsed.data.oneYearGoalId || null,
+      serviceId: parsed.data.serviceId || null,
     },
     include: {
       owner: { select: { id: true, name: true, email: true, avatar: true } },

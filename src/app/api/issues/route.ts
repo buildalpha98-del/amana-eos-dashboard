@@ -8,6 +8,7 @@ const createIssueSchema = z.object({
   description: z.string().optional(),
   ownerId: z.string().optional().nullable(),
   rockId: z.string().optional().nullable(),
+  serviceId: z.string().optional().nullable(),
   priority: z.enum(["critical", "high", "medium", "low"]).default("medium"),
 });
 
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
   const priority = searchParams.get("priority");
   const ownerId = searchParams.get("ownerId");
   const rockId = searchParams.get("rockId");
+  const serviceId = searchParams.get("serviceId");
 
   const where: Record<string, unknown> = { deleted: false };
 
@@ -28,6 +30,7 @@ export async function GET(req: NextRequest) {
   if (priority) where.priority = priority;
   if (ownerId) where.ownerId = ownerId;
   if (rockId) where.rockId = rockId;
+  if (serviceId) where.serviceId = serviceId;
 
   const issues = await prisma.issue.findMany({
     where,
@@ -67,6 +70,7 @@ export async function POST(req: NextRequest) {
       raisedById: session!.user.id,
       ownerId: parsed.data.ownerId || null,
       rockId: parsed.data.rockId || null,
+      serviceId: parsed.data.serviceId || null,
       priority: parsed.data.priority,
     },
     include: {

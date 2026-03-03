@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useServices } from "@/hooks/useServices";
 import { ServiceCard } from "@/components/services/ServiceCard";
-import { ServiceDetailPanel } from "@/components/services/ServiceDetailPanel";
 import { CreateServiceModal } from "@/components/services/CreateServiceModal";
 import { cn } from "@/lib/utils";
 import {
@@ -21,9 +21,9 @@ const statusTabs = [
 ];
 
 export default function ServicesPage() {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
   const { data: services, isLoading } = useServices(statusFilter || undefined);
@@ -127,7 +127,7 @@ export default function ServicesPage() {
             <ServiceCard
               key={service.id}
               service={service}
-              onClick={() => setSelectedServiceId(service.id)}
+              onClick={() => router.push(`/services/${service.id}`)}
             />
           ))}
         </div>
@@ -150,14 +150,6 @@ export default function ServicesPage() {
             </button>
           )}
         </div>
-      )}
-
-      {/* Detail Panel */}
-      {selectedServiceId && (
-        <ServiceDetailPanel
-          serviceId={selectedServiceId}
-          onClose={() => setSelectedServiceId(null)}
-        />
       )}
 
       {/* Create Modal */}
