@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useIssues } from "@/hooks/useIssues";
 import { useQuery } from "@tanstack/react-query";
 import { IssueCard } from "@/components/issues/IssueCard";
+import { IssueKanban } from "@/components/issues/IssueKanban";
 import { IssueDetailPanel } from "@/components/issues/IssueDetailPanel";
 import { CreateIssueModal } from "@/components/issues/CreateIssueModal";
 import {
@@ -261,83 +262,7 @@ export default function IssuesPage() {
         </div>
       ) : issues && issues.length > 0 ? (
         viewMode === "board" ? (
-          /* Board View — IDS Columns */
-          <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:overflow-visible">
-            {/* Identify Column */}
-            <div className="space-y-3 min-w-[280px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
-              <div className="flex items-center gap-2 pb-2 border-b-2 border-amber-400">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                <h3 className="text-sm font-semibold text-amber-700">
-                  Identify
-                </h3>
-                <span className="text-xs text-amber-500 ml-auto">
-                  {boardColumns.open.length}
-                </span>
-              </div>
-              {boardColumns.open.map((issue) => (
-                <IssueCard
-                  key={issue.id}
-                  issue={issue}
-                  onClick={() => setSelectedId(issue.id)}
-                />
-              ))}
-              {boardColumns.open.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-8">
-                  No issues to identify
-                </p>
-              )}
-            </div>
-
-            {/* Discuss Column */}
-            <div className="space-y-3 min-w-[280px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
-              <div className="flex items-center gap-2 pb-2 border-b-2 border-blue-400">
-                <MessageSquare className="w-4 h-4 text-blue-600" />
-                <h3 className="text-sm font-semibold text-blue-700">
-                  Discuss
-                </h3>
-                <span className="text-xs text-blue-500 ml-auto">
-                  {boardColumns.in_discussion.length}
-                </span>
-              </div>
-              {boardColumns.in_discussion.map((issue) => (
-                <IssueCard
-                  key={issue.id}
-                  issue={issue}
-                  onClick={() => setSelectedId(issue.id)}
-                />
-              ))}
-              {boardColumns.in_discussion.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-8">
-                  No issues in discussion
-                </p>
-              )}
-            </div>
-
-            {/* Solve Column */}
-            <div className="space-y-3 min-w-[280px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
-              <div className="flex items-center gap-2 pb-2 border-b-2 border-emerald-400">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-sm font-semibold text-emerald-700">
-                  Solved
-                </h3>
-                <span className="text-xs text-emerald-500 ml-auto">
-                  {boardColumns.solved.length + boardColumns.closed.length}
-                </span>
-              </div>
-              {[...boardColumns.solved, ...boardColumns.closed].map((issue) => (
-                <IssueCard
-                  key={issue.id}
-                  issue={issue}
-                  onClick={() => setSelectedId(issue.id)}
-                />
-              ))}
-              {boardColumns.solved.length + boardColumns.closed.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-8">
-                  No solved issues
-                </p>
-              )}
-            </div>
-          </div>
+          <IssueKanban issues={filteredIssues} onSelect={setSelectedId} />
         ) : (
           /* List View */
           <div className="space-y-2">

@@ -8,6 +8,7 @@ import { TicketCard } from "@/components/tickets/TicketCard";
 import { TicketDetailPanel } from "@/components/tickets/TicketDetailPanel";
 import { CreateTicketModal } from "@/components/tickets/CreateTicketModal";
 import { ResponseTemplateManager } from "@/components/tickets/ResponseTemplateManager";
+import { TicketAnalytics } from "@/components/tickets/TicketAnalytics";
 import { TicketVolumeTrendChart } from "@/components/charts/TicketVolumeTrendChart";
 import { TicketPriorityChart } from "@/components/charts/TicketPriorityChart";
 import { AgentWorkloadChart } from "@/components/charts/AgentWorkloadChart";
@@ -363,80 +364,7 @@ export default function TicketsPage() {
 
       {/* Content */}
       {viewMode === "analytics" ? (
-        /* Analytics View */
-        <div className="space-y-6">
-          {/* Days Range Selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Period:</span>
-            {[7, 14, 30, 90].map((d) => (
-              <button
-                key={d}
-                onClick={() => setAnalyticsDays(d)}
-                className={cn(
-                  "px-3 py-1.5 text-xs font-medium rounded-lg transition-colors",
-                  analyticsDays === d
-                    ? "bg-[#004E64] text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                )}
-              >
-                {d} days
-              </button>
-            ))}
-          </div>
-
-          {analyticsLoading ? (
-            <div className="flex items-center justify-center py-24">
-              <div className="text-center">
-                <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-sm text-gray-500">Loading analytics...</p>
-              </div>
-            </div>
-          ) : analytics ? (
-            <>
-              {/* Stat Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <p className="text-sm font-medium text-gray-500">Total Tickets</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {analytics.totalTickets}
-                  </p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <p className="text-sm font-medium text-gray-500">Avg First Response</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {analytics.avgFirstResponseHours !== null
-                      ? `${analytics.avgFirstResponseHours}h`
-                      : "--"}
-                  </p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <p className="text-sm font-medium text-gray-500">Avg Resolution</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {analytics.avgResolutionHours !== null
-                      ? `${analytics.avgResolutionHours}h`
-                      : "--"}
-                  </p>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
-                  <p className="text-sm font-medium text-gray-500">Open Tickets</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {(analytics.byStatus["new"] || 0) +
-                      (analytics.byStatus["open"] || 0) +
-                      (analytics.byStatus["pending_parent"] || 0)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Charts */}
-              <TicketVolumeTrendChart data={analytics.volumeTrend} />
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <TicketPriorityChart data={analytics.byPriority} />
-                <AgentWorkloadChart data={analytics.agentWorkload} />
-              </div>
-            </>
-          ) : null}
-        </div>
+        <TicketAnalytics />
       ) : isLoading ? (
         <div className="flex items-center justify-center py-24">
           <div className="text-center">

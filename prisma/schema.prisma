@@ -209,6 +209,7 @@ model User {
   calendarIntegration CalendarIntegration?
   onboardings       StaffOnboarding[] @relation("OnboardingUser")
   lmsEnrollments    LMSEnrollment[]   @relation("LMSStudent")
+  certificates      ComplianceCertificate[] @relation("UserCertificates")
 
   @@index([serviceId])
 }
@@ -615,6 +616,7 @@ model Service {
   staffMembers      User[]             @relation("ServiceStaff")
   onboardingPacks   OnboardingPack[]   @relation("ServiceOnboardingPacks")
   lmsCourses        LMSCourse[]        @relation("ServiceCourses")
+  certificates      ComplianceCertificate[] @relation("ServiceCertificates")
 
   @@index([status])
   @@index([managerId])
@@ -1381,4 +1383,40 @@ model LMSModuleProgress {
   @@unique([enrollmentId, moduleId])
   @@index([enrollmentId])
   @@index([moduleId])
+}
+
+// ============================================================
+// Compliance Calendar
+// ============================================================
+
+enum CertificateType {
+  wwcc
+  first_aid
+  anaphylaxis
+  asthma
+  cpr
+  police_check
+  annual_review
+  other
+}
+
+model ComplianceCertificate {
+  id          String          @id @default(cuid())
+  serviceId   String
+  service     Service         @relation("ServiceCertificates", fields: [serviceId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?           @relation("UserCertificates", fields: [userId], references: [id], onDelete: SetNull)
+  type        CertificateType
+  label       String?
+  issueDate   DateTime
+  expiryDate  DateTime
+  notes       String?         @db.Text
+  alertDays   Int             @default(30)
+  acknowledged Boolean        @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([serviceId])
+  @@index([userId])
+  @@index([expiryDate])
 }

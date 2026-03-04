@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  GripVertical,
 } from "lucide-react";
 
 const priorityConfig = {
@@ -77,9 +78,11 @@ const statusConfig = {
 export function IssueCard({
   issue,
   onClick,
+  isDragging,
 }: {
   issue: IssueData;
   onClick: () => void;
+  isDragging?: boolean;
 }) {
   const p = priorityConfig[issue.priority];
   const s = statusConfig[issue.status];
@@ -92,15 +95,19 @@ export function IssueCard({
     : null;
 
   return (
-    <button
+    <div
       onClick={onClick}
       className={cn(
-        "w-full text-left p-4 rounded-xl border transition-all hover:shadow-md",
+        "w-full text-left p-4 rounded-xl border transition-all hover:shadow-md cursor-pointer group/card",
         issue.status === "closed" ? "opacity-60" : "",
+        isDragging && "shadow-lg rotate-1 opacity-90",
         p.bg
       )}
     >
       <div className="flex items-start gap-3">
+        {/* Drag Handle */}
+        <GripVertical className="w-4 h-4 text-gray-300 opacity-0 group-hover/card:opacity-100 transition-opacity mt-0.5 flex-shrink-0" />
+
         {/* Priority Icon */}
         <div className={cn("mt-0.5 flex-shrink-0", p.color)}>
           <PriorityIcon className="w-5 h-5" />
@@ -191,6 +198,6 @@ export function IssueCard({
           </div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }

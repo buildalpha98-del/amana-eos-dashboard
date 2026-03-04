@@ -6,11 +6,13 @@ import { ScorecardGrid } from "@/components/scorecard/ScorecardGrid";
 import { AddMeasurableModal } from "@/components/scorecard/AddMeasurableModal";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV } from "@/lib/csv-export";
-import { BarChart3, Plus } from "lucide-react";
+import { BarChart3, Plus, Users, Building2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function ScorecardPage() {
   const { data: scorecard, isLoading, error } = useScorecard();
   const [showAddMeasurable, setShowAddMeasurable] = useState(false);
+  const [groupBy, setGroupBy] = useState<"person" | "service">("person");
 
   const handleExport = () => {
     if (!scorecard?.measurables || scorecard.measurables.length === 0) return;
@@ -68,6 +70,36 @@ export default function ScorecardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Group By Toggle */}
+          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+            <button
+              onClick={() => setGroupBy("person")}
+              className={cn(
+                "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
+                groupBy === "person"
+                  ? "bg-white text-[#004E64] shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
+              )}
+              title="Group by person"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Person</span>
+            </button>
+            <button
+              onClick={() => setGroupBy("service")}
+              className={cn(
+                "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
+                groupBy === "service"
+                  ? "bg-white text-[#004E64] shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
+              )}
+              title="Group by centre"
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Centre</span>
+            </button>
+          </div>
+
           <ExportButton
             onClick={handleExport}
             disabled={!scorecard?.measurables || scorecard.measurables.length === 0}
@@ -109,7 +141,7 @@ export default function ScorecardPage() {
           </button>
         </div>
       ) : scorecard ? (
-        <ScorecardGrid scorecard={scorecard} />
+        <ScorecardGrid scorecard={scorecard} groupBy={groupBy} />
       ) : null}
 
       <AddMeasurableModal

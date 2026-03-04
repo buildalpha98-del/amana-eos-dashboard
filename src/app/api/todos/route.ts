@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getServiceScope } from "@/lib/service-scope";
 
 const createTodoSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -18,7 +19,7 @@ const createTodoSchema = z.object({
 
 // GET /api/todos — list todos with optional filters
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
   const { searchParams } = new URL(req.url);
@@ -44,6 +45,15 @@ export async function GET(req: NextRequest) {
   const serviceId = searchParams.get("serviceId");
   if (serviceId) {
     where.serviceId = serviceId;
+  }
+
+  // Staff scoping: only see todos assigned to them or related to their centre
+  const scope = getServiceScope(session);
+  if (scope) {
+    where.OR = [
+      { assigneeId: session!.user.id },
+      { serviceId: scope },
+    ];
   }
 
   const todos = await prisma.todo.findMany({

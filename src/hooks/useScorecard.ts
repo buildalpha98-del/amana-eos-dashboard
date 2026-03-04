@@ -38,6 +38,7 @@ export interface MeasurableData {
   rockId: string | null;
   rock: { id: string; title: string } | null;
   serviceId: string | null;
+  service: { id: string; name: string } | null;
   entries: MeasurableEntry[];
 }
 

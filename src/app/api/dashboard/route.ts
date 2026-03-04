@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getServiceScope } from "@/lib/service-scope";
 import {
   computeHealthScore,
   getScoreStatus,
@@ -10,14 +11,18 @@ import {
 } from "@/lib/health-score";
 
 export async function GET() {
-  const { error } = await requireAuth();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
   const now = new Date();
+  const scope = getServiceScope(session);
 
   // ── Centre Health ──────────────────────────────────────────
   const services = await prisma.service.findMany({
-    where: { status: { in: ["active", "onboarding"] } },
+    where: {
+      status: { in: ["active", "onboarding"] },
+      ...(scope ? { id: scope } : {}),
+    },
     include: {
       metrics: { orderBy: { recordedAt: "desc" }, take: 1 },
       financials: {
@@ -212,6 +217,7 @@ export async function GET() {
           deleted: false,
           status: { notIn: ["complete", "cancelled"] },
           dueDate: { lt: now },
+          ...(scope ? { OR: [{ assigneeId: session!.user.id }, { serviceId: scope }] } : {}),
         },
         select: {
           id: true,
@@ -239,6 +245,7 @@ export async function GET() {
           deleted: false,
           status: { in: ["open", "in_discussion"] },
           priority: { in: ["critical", "high"] },
+          ...(scope ? { serviceId: scope } : {}),
         },
         select: { id: true, title: true, priority: true },
         orderBy: { createdAt: "desc" },
@@ -296,6 +303,7 @@ export async function GET() {
       deleted: false,
       status: { notIn: ["complete", "cancelled"] },
       projectId: { not: null },
+      ...(scope ? { OR: [{ assigneeId: session!.user.id }, { serviceId: scope }] } : {}),
     },
     select: {
       id: true,
@@ -381,6 +389,7 @@ export async function GET() {
         deleted: false,
         status: { notIn: ["complete", "cancelled"] },
         dueDate: { lt: now },
+        ...(scope ? { OR: [{ assigneeId: session!.user.id }, { serviceId: scope }] } : {}),
       },
     }),
   ]);

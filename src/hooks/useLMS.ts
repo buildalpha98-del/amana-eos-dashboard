@@ -122,3 +122,95 @@ export function useUpdateLMSCourse() {
     },
   });
 }
+
+export function useCreateModule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ courseId, ...data }: {
+      courseId: string;
+      title: string;
+      description?: string;
+      type?: string;
+      content?: string;
+      resourceUrl?: string;
+      duration?: number;
+      isRequired?: boolean;
+    }) => {
+      const res = await fetch(`/api/lms/courses/${courseId}/modules`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create module");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lms-course"] });
+    },
+  });
+}
+
+export function useUpdateModule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ moduleId, ...data }: {
+      moduleId: string;
+      title?: string;
+      description?: string | null;
+      type?: string;
+      content?: string | null;
+      resourceUrl?: string | null;
+      duration?: number | null;
+      isRequired?: boolean;
+    }) => {
+      const res = await fetch(`/api/lms/modules/${moduleId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update module");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lms-course"] });
+    },
+  });
+}
+
+export function useDeleteModule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (moduleId: string) => {
+      const res = await fetch(`/api/lms/modules/${moduleId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete module");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lms-course"] });
+    },
+  });
+}
+
+export function useReorderModules() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ courseId, moduleIds }: { courseId: string; moduleIds: string[] }) => {
+      const res = await fetch(`/api/lms/courses/${courseId}/modules`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ moduleIds }),
+      });
+      if (!res.ok) throw new Error("Failed to reorder modules");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["lms-course"] });
+    },
+  });
+}

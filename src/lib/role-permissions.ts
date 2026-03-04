@@ -20,6 +20,7 @@ export const allPages = [
   "/tickets",
   "/marketing",
   "/communication",
+  "/compliance",
   "/documents",
   "/onboarding",
   "/team",
@@ -52,6 +53,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/services",
     "/projects",
     "/communication",
+    "/compliance",
     "/documents",
     "/onboarding",
   ],
@@ -151,6 +153,11 @@ export const features = [
   "projects.create",
   "projects.edit",
 
+  // Compliance
+  "compliance.view",
+  "compliance.create",
+  "compliance.manage",
+
   // Onboarding / LMS
   "onboarding.view",
   "onboarding.create",
@@ -206,6 +213,7 @@ const memberFeatures: readonly Feature[] = [
   "meetings.view",
   "meetings.create",
   "communication.view",
+  "compliance.view",
   "documents.view",
   "services.view",
   "projects.view",
@@ -303,6 +311,7 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Pages", label: "Onboarding & LMS", owner: true, admin: true, member: true, staff: true },
   { section: "Pages", label: "Financials", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Performance", owner: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Compliance", owner: true, admin: true, member: true, staff: false },
   { section: "Pages", label: "Tickets", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Marketing", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Team", owner: true, admin: true, member: false, staff: false },

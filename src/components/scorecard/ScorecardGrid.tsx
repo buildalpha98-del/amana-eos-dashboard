@@ -5,7 +5,7 @@ import type { ScorecardData, MeasurableEntry } from "@/hooks/useScorecard";
 import { DataEntryCell } from "./DataEntryCell";
 import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Building2 } from "lucide-react";
 
 function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goalDirection: "above" | "below" | "exact" }) {
   // values are newest-first; find the two most recent non-null values
@@ -108,20 +108,48 @@ function isCurrentWeek(date: Date): boolean {
   return date.getTime() === current.getTime();
 }
 
-export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
+export function ScorecardGrid({ scorecard, groupBy = "person" }: { scorecard: ScorecardData; groupBy?: "person" | "service" }) {
   const weeks = useMemo(() => getTrailing13Weeks(), []);
 
-  // Group measurables by owner
+  // Group measurables by owner or service
   const grouped = useMemo(() => {
+    if (groupBy === "service") {
+      const groups: Record<
+        string,
+        { key: string; label: string; icon: "service"; measurables: typeof scorecard.measurables }
+      > = {};
+
+      for (const m of scorecard.measurables) {
+        const serviceKey = m.service?.id || "unassigned";
+        const serviceName = m.service?.name || "Unassigned";
+        if (!groups[serviceKey]) {
+          groups[serviceKey] = {
+            key: serviceKey,
+            label: serviceName,
+            icon: "service",
+            measurables: [],
+          };
+        }
+        groups[serviceKey].measurables.push(m);
+      }
+
+      return Object.values(groups).sort((a, b) =>
+        a.label.localeCompare(b.label)
+      );
+    }
+
+    // Default: group by person
     const groups: Record<
       string,
-      { owner: { id: string; name: string }; measurables: typeof scorecard.measurables }
+      { key: string; label: string; icon: "person"; measurables: typeof scorecard.measurables }
     > = {};
 
     for (const m of scorecard.measurables) {
       if (!groups[m.ownerId]) {
         groups[m.ownerId] = {
-          owner: { id: m.owner.id, name: m.owner.name },
+          key: m.owner.id,
+          label: m.owner.name,
+          icon: "person",
           measurables: [],
         };
       }
@@ -129,9 +157,9 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
     }
 
     return Object.values(groups).sort((a, b) =>
-      a.owner.name.localeCompare(b.owner.name)
+      a.label.localeCompare(b.label)
     );
-  }, [scorecard.measurables]);
+  }, [scorecard.measurables, groupBy]);
 
   // Build entry lookup: measurableId -> weekIso -> entry
   const entryLookup = useMemo(() => {
@@ -252,26 +280,32 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
           </thead>
           <tbody>
             {grouped.map((group) => (
-              <Fragment key={group.owner.id}>
-                {/* Owner divider */}
+              <Fragment key={group.key}>
+                {/* Group divider */}
                 <tr>
                   <td
                     colSpan={weeks.length + 4}
                     className="sticky left-0 z-10 bg-gray-50 px-4 py-2"
                   >
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#004E64]/10 flex items-center justify-center">
-                        <span className="text-[10px] font-medium text-[#004E64]">
-                          {group.owner.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </span>
-                      </div>
+                      {group.icon === "service" ? (
+                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
+                          <Building2 className="w-3 h-3 text-amber-700" />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-[#004E64]/10 flex items-center justify-center">
+                          <span className="text-[10px] font-medium text-[#004E64]">
+                            {group.label
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)}
+                          </span>
+                        </div>
+                      )}
                       <span className="text-xs font-semibold text-gray-600">
-                        {group.owner.name}
+                        {group.label}
                       </span>
                     </div>
                   </td>

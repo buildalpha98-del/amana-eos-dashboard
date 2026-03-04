@@ -9,6 +9,11 @@ interface UserOption {
   name: string;
 }
 
+interface ServiceOption {
+  id: string;
+  name: string;
+}
+
 export function AddMeasurableModal({
   open,
   onClose,
@@ -23,6 +28,7 @@ export function AddMeasurableModal({
   const [goalValue, setGoalValue] = useState("");
   const [goalDirection, setGoalDirection] = useState<"above" | "below" | "exact">("above");
   const [unit, setUnit] = useState("");
+  const [serviceId, setServiceId] = useState("");
   const [error, setError] = useState("");
 
   const createMeasurable = useMutation({
@@ -33,6 +39,7 @@ export function AddMeasurableModal({
       goalValue: number;
       goalDirection: string;
       unit?: string;
+      serviceId?: string;
     }) => {
       const res = await fetch("/api/measurables", {
         method: "POST",
@@ -56,6 +63,16 @@ export function AddMeasurableModal({
       const res = await fetch("/api/users");
       if (!res.ok) return [];
       return res.json();
+    },
+  });
+
+  const { data: services } = useQuery<ServiceOption[]>({
+    queryKey: ["services-list"],
+    queryFn: async () => {
+      const res = await fetch("/api/services");
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name }));
     },
   });
 
@@ -84,6 +101,7 @@ export function AddMeasurableModal({
         goalValue: numGoal,
         goalDirection,
         unit: unit || undefined,
+        serviceId: serviceId || undefined,
       },
       {
         onSuccess: () => {
@@ -92,6 +110,7 @@ export function AddMeasurableModal({
           setOwnerId("");
           setGoalValue("");
           setUnit("");
+          setServiceId("");
           onClose();
         },
         onError: (err: Error) => setError(err.message),
@@ -168,6 +187,25 @@ export function AddMeasurableModal({
               {users?.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Centre{" "}
+              <span className="text-gray-400 font-normal">(optional)</span>
+            </label>
+            <select
+              value={serviceId}
+              onChange={(e) => setServiceId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            >
+              <option value="">All centres (global)</option>
+              {services?.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
                 </option>
               ))}
             </select>

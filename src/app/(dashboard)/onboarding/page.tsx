@@ -10,7 +10,8 @@ import {
   useUpdateOnboardingProgress,
   type StaffOnboardingData,
 } from "@/hooks/useOnboarding";
-import { useLMSCourses, useCreateLMSCourse } from "@/hooks/useLMS";
+import { useLMSCourses, useLMSCourse, useCreateLMSCourse } from "@/hooks/useLMS";
+import { ModuleEditor } from "@/components/lms/ModuleEditor";
 import { useQuery } from "@tanstack/react-query";
 import {
   GraduationCap,
@@ -118,24 +119,7 @@ export default function OnboardingPage() {
     },
     enabled: !!selectedPackId,
   });
-  const { data: selectedCourseData, isLoading: selectedCourseLoading } = useQuery<{
-    id: string;
-    title: string;
-    description: string | null;
-    category: string | null;
-    status: string;
-    isRequired: boolean;
-    modules: { id: string; title: string; type: string; sortOrder: number }[];
-    _count: { enrollments: number };
-  }>({
-    queryKey: ["lms-course-detail", selectedCourseId],
-    queryFn: async () => {
-      const res = await fetch(`/api/lms/courses/${selectedCourseId}`);
-      if (!res.ok) throw new Error("Failed to fetch course details");
-      return res.json();
-    },
-    enabled: !!selectedCourseId,
-  });
+  const { data: selectedCourseData, isLoading: selectedCourseLoading } = useLMSCourse(selectedCourseId);
 
   const createPack = useCreateOnboardingPack();
   const createCourse = useCreateLMSCourse();
@@ -588,34 +572,43 @@ export default function OnboardingPage() {
                     )}
                     <span className="flex items-center gap-1">
                       <Users className="w-3.5 h-3.5" />
-                      {selectedCourseData._count.enrollments} enrolled
+                      {selectedCourseData.enrollments?.length ?? 0} enrolled
                     </span>
                   </div>
 
-                  {selectedCourseData.modules && selectedCourseData.modules.length > 0 && (
-                    <div>
-                      <h5 className="text-sm font-medium text-gray-700 mb-2">Modules ({selectedCourseData.modules.length})</h5>
-                      <div className="space-y-2">
-                        {selectedCourseData.modules
-                          .sort((a, b) => a.sortOrder - b.sortOrder)
-                          .map((mod) => {
-                            const TypeIcon = MODULE_TYPE_ICONS[mod.type] || FileText;
-                            return (
-                              <div key={mod.id} className="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-lg">
-                                <TypeIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                <p className="text-sm text-gray-900 flex-1">{mod.title}</p>
-                                <span className="text-[10px] font-medium bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full capitalize">
-                                  {mod.type.replace("_", " ")}
-                                </span>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </div>
-                  )}
+                  {isAdmin ? (
+                    <ModuleEditor
+                      courseId={selectedCourseData.id}
+                      modules={selectedCourseData.modules ? [...selectedCourseData.modules].sort((a, b) => a.sortOrder - b.sortOrder) : []}
+                    />
+                  ) : (
+                    <>
+                      {selectedCourseData.modules && selectedCourseData.modules.length > 0 && (
+                        <div>
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">Modules ({selectedCourseData.modules.length})</h5>
+                          <div className="space-y-2">
+                            {selectedCourseData.modules
+                              .sort((a, b) => a.sortOrder - b.sortOrder)
+                              .map((mod) => {
+                                const TypeIcon = MODULE_TYPE_ICONS[mod.type] || FileText;
+                                return (
+                                  <div key={mod.id} className="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-lg">
+                                    <TypeIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                    <p className="text-sm text-gray-900 flex-1">{mod.title}</p>
+                                    <span className="text-[10px] font-medium bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full capitalize">
+                                      {mod.type.replace("_", " ")}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
 
-                  {selectedCourseData.modules && selectedCourseData.modules.length === 0 && (
-                    <p className="text-sm text-gray-400 italic">No modules added to this course yet.</p>
+                      {selectedCourseData.modules && selectedCourseData.modules.length === 0 && (
+                        <p className="text-sm text-gray-400 italic">No modules added to this course yet.</p>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
