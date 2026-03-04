@@ -25,6 +25,12 @@ import { CentreRadarChart } from "@/components/charts/CentreRadarChart";
 import { OccupancyComparisonChart } from "@/components/charts/OccupancyComparisonChart";
 import { ScoreTrendChart } from "@/components/charts/ScoreTrendChart";
 import { HealthScoreDetail } from "@/components/performance/HealthScoreDetail";
+import { CentreLeaderboard } from "@/components/performance/CentreLeaderboard";
+import { CentreComparison } from "@/components/performance/CentreComparison";
+import { RegionalRollup } from "@/components/performance/RegionalRollup";
+import { LayoutGrid, ListOrdered, BarChart3 } from "lucide-react";
+
+type ViewMode = "centres" | "leaderboard" | "compare";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-AU", {
@@ -66,6 +72,8 @@ export default function PerformancePage() {
   const { data: centres, isLoading } = usePerformance();
   const [sortBy, setSortBy] = useState<string>("overall");
   const [selectedCentreId, setSelectedCentreId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("centres");
+  const [stateFilter, setStateFilter] = useState<string | null>(null);
 
   const topPerformer = centres && centres.length > 0 ? centres[0] : null;
   const needsAttention = centres ? centres.filter((c) => c.score < 60) : [];
@@ -130,9 +138,53 @@ export default function PerformancePage() {
             Rankings, KPIs, and operational health across all centres
           </p>
         </div>
-        <ExportButton onClick={handleExport} disabled={!centres || centres.length === 0} />
+        <div className="flex items-center gap-3">
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+            <button
+              onClick={() => { setViewMode("centres"); setStateFilter(null); }}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                viewMode === "centres"
+                  ? "bg-white text-[#004E64] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span className="hidden sm:inline">Centres</span>
+            </button>
+            <button
+              onClick={() => setViewMode("leaderboard")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                viewMode === "leaderboard"
+                  ? "bg-white text-[#004E64] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              <ListOrdered className="w-4 h-4" />
+              <span className="hidden sm:inline">Leaderboard</span>
+            </button>
+            <button
+              onClick={() => { setViewMode("compare"); setStateFilter(null); }}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                viewMode === "compare"
+                  ? "bg-white text-[#004E64] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Compare</span>
+            </button>
+          </div>
+          <ExportButton onClick={handleExport} disabled={!centres || centres.length === 0} />
+        </div>
       </div>
 
+      {/* ═══ Centres View (existing) ═══ */}
+      {viewMode === "centres" && (
+      <>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -340,6 +392,36 @@ export default function PerformancePage() {
           onClose={() => setSelectedCentreId(null)}
         />
       )}
+      </>
+      )}
+
+      {/* ═══ Leaderboard View ═══ */}
+      {viewMode === "leaderboard" && (
+        <>
+          {isLoading ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
+              Loading performance data...
+            </div>
+          ) : centres && centres.length > 0 ? (
+            <>
+              <RegionalRollup
+                centres={centres}
+                activeState={stateFilter}
+                onStateSelect={setStateFilter}
+              />
+              <CentreLeaderboard centres={centres} stateFilter={stateFilter} />
+            </>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No performance data available yet.</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ═══ Compare View ═══ */}
+      {viewMode === "compare" && <CentreComparison />}
     </div>
   );
 }

@@ -29,6 +29,7 @@ import { ServiceProjectsTab } from "@/components/services/ServiceProjectsTab";
 import { WeeklyDataEntry } from "@/components/services/WeeklyDataEntry";
 import { ServiceCommTab } from "@/components/services/ServiceCommTab";
 import { ServiceAttendanceTab } from "@/components/services/ServiceAttendanceTab";
+import { ServiceTodayPanel } from "@/components/services/ServiceTodayPanel";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: Building2 },
@@ -145,6 +146,9 @@ export default function ServiceDetailPage() {
           {service.status}
         </span>
       </div>
+
+      {/* Today Panel */}
+      <ServiceTodayPanel serviceId={id} />
 
       {/* Tab Bar */}
       <div className="border-b border-gray-200">

@@ -150,5 +150,7 @@ export const config = {
     "/api/compliance/:path*",
     "/api/notifications/:path*",
     "/api/accountability-chart/:path*",
+    "/api/todo-templates/:path*",
+    "/api/dashboard/:path*",
   ],
 };

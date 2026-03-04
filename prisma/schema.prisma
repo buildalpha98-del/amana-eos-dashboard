@@ -218,6 +218,8 @@ model User {
   certificates      ComplianceCertificate[] @relation("UserCertificates")
   recordedAttendance DailyAttendance[]     @relation("AttendanceRecorder")
   seatAssignments    AccountabilitySeatAssignment[]
+  todoTemplatesAssigned TodoTemplate[]  @relation("TemplateAssignee")
+  todoTemplatesCreated  TodoTemplate[]  @relation("TemplateCreator")
 
   @@index([serviceId])
 }
@@ -626,6 +628,7 @@ model Service {
   lmsCourses        LMSCourse[]        @relation("ServiceCourses")
   certificates      ComplianceCertificate[] @relation("ServiceCertificates")
   attendance        DailyAttendance[]      @relation("ServiceAttendance")
+  todoTemplates     TodoTemplate[]         @relation("ServiceTemplates")
 
   @@index([status])
   @@index([managerId])
@@ -1454,6 +1457,39 @@ model DailyAttendance {
   @@unique([serviceId, date, sessionType])
   @@index([serviceId])
   @@index([date])
+}
+
+// ============================================================
+// Recurring Todo Templates
+// ============================================================
+
+enum RecurrenceRule {
+  daily
+  weekly
+  fortnightly
+  monthly
+  quarterly
+}
+
+model TodoTemplate {
+  id             String         @id @default(cuid())
+  title          String
+  description    String?        @db.Text
+  assigneeId     String
+  assignee       User           @relation("TemplateAssignee", fields: [assigneeId], references: [id])
+  serviceId      String?
+  service        Service?       @relation("ServiceTemplates", fields: [serviceId], references: [id], onDelete: SetNull)
+  recurrence     RecurrenceRule
+  nextRunAt      DateTime                    // Next date this template should create a todo
+  isActive       Boolean        @default(true)
+  createdById    String?
+  createdBy      User?          @relation("TemplateCreator", fields: [createdById], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([isActive, nextRunAt])
+  @@index([assigneeId])
+  @@index([serviceId])
 }
 
 // ============================================================

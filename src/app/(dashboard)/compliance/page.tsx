@@ -27,6 +27,7 @@ import {
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import ComplianceMatrixView from "@/components/compliance/ComplianceMatrixView";
 
 /* ------------------------------------------------------------------ */
 /* Constants                                                           */
@@ -370,6 +371,7 @@ const complianceImportColumns: ColumnConfig[] = [
 function AdminComplianceView() {
   const [showCreate, setShowCreate] = useState(false);
   const [showImportCerts, setShowImportCerts] = useState(false);
+  const [viewMode, setViewMode] = useState<"calendar" | "matrix">("calendar");
   const queryClient = useQueryClient();
   const [serviceFilter, setServiceFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -485,7 +487,33 @@ function AdminComplianceView() {
             Track staff certificates, compliance dates and upcoming renewals
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* View Toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+            <button
+              onClick={() => setViewMode("calendar")}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                viewMode === "calendar"
+                  ? "bg-white text-[#004E64] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              Calendar
+            </button>
+            <button
+              onClick={() => setViewMode("matrix")}
+              className={cn(
+                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                viewMode === "matrix"
+                  ? "bg-white text-[#004E64] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              Matrix
+            </button>
+          </div>
+
           <button
             onClick={() => setShowImportCerts(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
@@ -503,221 +531,228 @@ function AdminComplianceView() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-            Total Certs
-          </p>
-          <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-amber-200 p-4">
-          <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-1">
-            Expiring Soon
-          </p>
-          <p className="text-2xl font-bold text-amber-600">{stats.expiringSoon}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-red-200 p-4">
-          <p className="text-xs font-medium text-red-600 uppercase tracking-wider mb-1">
-            Expired
-          </p>
-          <p className="text-2xl font-bold text-red-600">{stats.expired}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-emerald-200 p-4">
-          <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider mb-1">
-            Valid
-          </p>
-          <p className="text-2xl font-bold text-emerald-600">{stats.valid}</p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <select
-          value={serviceFilter}
-          onChange={(e) => setServiceFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
-        >
-          <option value="">All Centres</option>
-          {services.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
-        >
-          <option value="">All Types</option>
-          {certTypes.map((t) => (
-            <option key={t} value={t}>
-              {typeLabels[t]}
-            </option>
-          ))}
-        </select>
-        {(serviceFilter || typeFilter) && (
-          <button
-            onClick={() => {
-              setServiceFilter("");
-              setTypeFilter("");
-            }}
-            className="text-xs text-[#004E64] hover:underline"
-          >
-            Clear filters
-          </button>
-        )}
-      </div>
-
-      {/* Content */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
-        </div>
-      ) : grouped.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-[#004E64]/10 flex items-center justify-center mb-4">
-            <ShieldCheck className="w-8 h-8 text-[#004E64]" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
-            No certificates found
-          </h3>
-          <p className="text-sm text-gray-500 max-w-sm mb-4">
-            Add staff compliance certificates to track expiry dates and upcoming
-            renewals.
-          </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add First Certificate
-          </button>
-        </div>
+      {/* View Content */}
+      {viewMode === "matrix" ? (
+        <ComplianceMatrixView services={services} />
       ) : (
-        <div className="space-y-8">
-          {grouped.map(([month, items]) => (
-            <div key={month}>
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                {monthLabel(month)}
+        <>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                Total Certs
+              </p>
+              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-amber-200 p-4">
+              <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-1">
+                Expiring Soon
+              </p>
+              <p className="text-2xl font-bold text-amber-600">{stats.expiringSoon}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-red-200 p-4">
+              <p className="text-xs font-medium text-red-600 uppercase tracking-wider mb-1">
+                Expired
+              </p>
+              <p className="text-2xl font-bold text-red-600">{stats.expired}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-emerald-200 p-4">
+              <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider mb-1">
+                Valid
+              </p>
+              <p className="text-2xl font-bold text-emerald-600">{stats.valid}</p>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <select
+              value={serviceFilter}
+              onChange={(e) => setServiceFilter(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            >
+              <option value="">All Centres</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            >
+              <option value="">All Types</option>
+              {certTypes.map((t) => (
+                <option key={t} value={t}>
+                  {typeLabels[t]}
+                </option>
+              ))}
+            </select>
+            {(serviceFilter || typeFilter) && (
+              <button
+                onClick={() => {
+                  setServiceFilter("");
+                  setTypeFilter("");
+                }}
+                className="text-xs text-[#004E64] hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+
+          {/* Content */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-24">
+              <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+            </div>
+          ) : grouped.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
+              <div className="w-16 h-16 rounded-2xl bg-[#004E64]/10 flex items-center justify-center mb-4">
+                <ShieldCheck className="w-8 h-8 text-[#004E64]" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                No certificates found
               </h3>
-              <div className="space-y-2">
-                {items.map((cert) => {
-                  const days = daysUntilExpiry(cert.expiryDate);
-                  const status = expiryStatus(days);
-                  return (
-                    <div
-                      key={cert.id}
-                      className={cn(
-                        "bg-white rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3",
-                        status === "expired" || status === "critical"
-                          ? "border-red-200"
-                          : status === "warning"
-                          ? "border-amber-200"
-                          : "border-gray-200"
-                      )}
-                    >
-                      {/* Status dot + type badge */}
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
+              <p className="text-sm text-gray-500 max-w-sm mb-4">
+                Add staff compliance certificates to track expiry dates and upcoming
+                renewals.
+              </p>
+              <button
+                onClick={() => setShowCreate(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add First Certificate
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {grouped.map(([month, items]) => (
+                <div key={month}>
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                    {monthLabel(month)}
+                  </h3>
+                  <div className="space-y-2">
+                    {items.map((cert) => {
+                      const days = daysUntilExpiry(cert.expiryDate);
+                      const status = expiryStatus(days);
+                      return (
                         <div
+                          key={cert.id}
                           className={cn(
-                            "w-2.5 h-2.5 rounded-full flex-shrink-0",
-                            statusDot(status)
-                          )}
-                        />
-                        <span
-                          className={cn(
-                            "text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0",
-                            typeBadgeColors[cert.type] || "bg-gray-100 text-gray-700"
+                            "bg-white rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3",
+                            status === "expired" || status === "critical"
+                              ? "border-red-200"
+                              : status === "warning"
+                              ? "border-amber-200"
+                              : "border-gray-200"
                           )}
                         >
-                          {typeLabels[cert.type] || cert.type}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {cert.user?.name || cert.label || "Unnamed"}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs text-gray-500 truncate">
-                              {cert.service.name}{" "}
-                              <span className="text-gray-400">({cert.service.code})</span>
-                            </p>
-                            {cert.fileUrl && (
-                              <a
-                                href={cert.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-xs text-[#004E64] hover:underline flex-shrink-0"
-                              >
-                                <FileText className="w-3 h-3" />
-                                File
-                              </a>
-                            )}
+                          {/* Status dot + type badge */}
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div
+                              className={cn(
+                                "w-2.5 h-2.5 rounded-full flex-shrink-0",
+                                statusDot(status)
+                              )}
+                            />
+                            <span
+                              className={cn(
+                                "text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0",
+                                typeBadgeColors[cert.type] || "bg-gray-100 text-gray-700"
+                              )}
+                            >
+                              {typeLabels[cert.type] || cert.type}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {cert.user?.name || cert.label || "Unnamed"}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs text-gray-500 truncate">
+                                  {cert.service.name}{" "}
+                                  <span className="text-gray-400">({cert.service.code})</span>
+                                </p>
+                                {cert.fileUrl && (
+                                  <a
+                                    href={cert.fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 text-xs text-[#004E64] hover:underline flex-shrink-0"
+                                  >
+                                    <FileText className="w-3 h-3" />
+                                    File
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Expiry info */}
+                          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+                            <div className="text-right">
+                              <p className="text-xs text-gray-400">Expires</p>
+                              <p className="text-sm font-medium text-gray-700">
+                                {formatDate(cert.expiryDate)}
+                              </p>
+                            </div>
+                            <span
+                              className={cn(
+                                "text-xs font-semibold px-2 py-1 rounded-lg border",
+                                statusColor(status)
+                              )}
+                            >
+                              {status === "expired"
+                                ? `${Math.abs(days)}d overdue`
+                                : status === "critical"
+                                ? `${days}d left`
+                                : status === "warning"
+                                ? `${days}d left`
+                                : `${days}d left`}
+                            </span>
+
+                            {/* Acknowledge expired */}
+                            {(status === "expired" || status === "critical") &&
+                              !cert.acknowledged && (
+                                <button
+                                  onClick={() =>
+                                    updateCert.mutate({
+                                      id: cert.id,
+                                      acknowledged: true,
+                                    })
+                                  }
+                                  className="p-1.5 text-gray-400 hover:text-amber-600 transition-colors"
+                                  title="Acknowledge"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                              )}
+
+                            {/* Delete */}
+                            <button
+                              onClick={() => {
+                                if (confirm("Delete this certificate?")) {
+                                  deleteCert.mutate(cert.id);
+                                }
+                              }}
+                              className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
-                      </div>
-
-                      {/* Expiry info */}
-                      <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
-                        <div className="text-right">
-                          <p className="text-xs text-gray-400">Expires</p>
-                          <p className="text-sm font-medium text-gray-700">
-                            {formatDate(cert.expiryDate)}
-                          </p>
-                        </div>
-                        <span
-                          className={cn(
-                            "text-xs font-semibold px-2 py-1 rounded-lg border",
-                            statusColor(status)
-                          )}
-                        >
-                          {status === "expired"
-                            ? `${Math.abs(days)}d overdue`
-                            : status === "critical"
-                            ? `${days}d left`
-                            : status === "warning"
-                            ? `${days}d left`
-                            : `${days}d left`}
-                        </span>
-
-                        {/* Acknowledge expired */}
-                        {(status === "expired" || status === "critical") &&
-                          !cert.acknowledged && (
-                            <button
-                              onClick={() =>
-                                updateCert.mutate({
-                                  id: cert.id,
-                                  acknowledged: true,
-                                })
-                              }
-                              className="p-1.5 text-gray-400 hover:text-amber-600 transition-colors"
-                              title="Acknowledge"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                          )}
-
-                        {/* Delete */}
-                        <button
-                          onClick={() => {
-                            if (confirm("Delete this certificate?")) {
-                              deleteCert.mutate(cert.id);
-                            }
-                          }}
-                          className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {/* Import Wizard */}

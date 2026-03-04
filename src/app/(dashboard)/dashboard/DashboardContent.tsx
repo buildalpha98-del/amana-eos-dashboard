@@ -15,6 +15,7 @@ import { CentreHealthHeatmap } from "@/components/dashboard/CentreHealthHeatmap"
 import { TrendSparklines } from "@/components/dashboard/TrendSparklines";
 import { ActionItemsFeed } from "@/components/dashboard/ActionItemsFeed";
 import { DashboardProjectTodos } from "@/components/dashboard/DashboardProjectTodos";
+import { StaffDashboard } from "@/components/dashboard/StaffDashboard";
 
 // ─── Alert Banner ───────────────────────────────────────────
 
@@ -85,6 +86,10 @@ export function DashboardContent() {
 
   const role = (session?.user?.role as string) || "";
   const isServiceScoped = role === "staff" || role === "member";
+
+  if (isServiceScoped) {
+    return <StaffDashboard />;
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

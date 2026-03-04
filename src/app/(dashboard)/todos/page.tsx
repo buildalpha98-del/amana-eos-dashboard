@@ -22,8 +22,10 @@ import {
   X,
   Archive,
   ListPlus,
+  Repeat,
 } from "lucide-react";
 import { BulkCreateTodosModal } from "@/components/todos/BulkCreateTodosModal";
+import { TemplateManagerModal } from "@/components/todos/TemplateManagerModal";
 import { cn } from "@/lib/utils";
 
 interface UserOption {
@@ -43,6 +45,7 @@ export default function TodosPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showCarryForward, setShowCarryForward] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const updateTodo = useUpdateTodo();
   const deleteTodo = useDeleteTodo();
@@ -238,6 +241,16 @@ export default function TodosPage() {
           >
             <ListPlus className="w-4 h-4" />
             Bulk
+          </button>
+
+          {/* Templates */}
+          <button
+            onClick={() => setShowTemplates(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            title="Manage recurring templates"
+          >
+            <Repeat className="w-4 h-4" />
+            Templates
           </button>
 
           {/* Add To-Do */}
@@ -490,6 +503,11 @@ export default function TodosPage() {
         onClose={() => setShowBulkCreate(false)}
         weekOf={weekOf}
       />
+
+      {/* Template Manager Modal */}
+      {showTemplates && (
+        <TemplateManagerModal onClose={() => setShowTemplates(false)} />
+      )}
 
       {/* Detail Panel */}
       {selectedTodo && (
