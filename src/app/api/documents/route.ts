@@ -6,7 +6,7 @@ import { requireAuth } from "@/lib/server-auth";
 const createDocumentSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  category: z.enum(["policy", "procedure", "template", "guide", "compliance", "financial", "marketing", "hr", "other"]).default("other"),
+  category: z.enum(["program", "policy", "procedure", "template", "guide", "compliance", "financial", "marketing", "hr", "other"]).default("other"),
   fileName: z.string().min(1),
   fileUrl: z.string().min(1),
   fileSize: z.number().optional(),
@@ -17,7 +17,7 @@ const createDocumentSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
   const { searchParams } = new URL(req.url);
@@ -28,10 +28,13 @@ export async function GET(req: NextRequest) {
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 50));
 
-  const where = {
+  // Staff users can only see documents for their assigned service + company-wide docs
+  const isStaff = session!.user.role === "staff";
+  const staffServiceId = session!.user.serviceId;
+
+  const where: Record<string, unknown> = {
     deleted: false,
     ...(category ? { category: category as any } : {}),
-    ...(centreId ? { centreId } : {}),
     ...(folderId === "root" ? { folderId: null } : folderId ? { folderId } : {}),
     ...(search
       ? {
@@ -44,9 +47,35 @@ export async function GET(req: NextRequest) {
       : {}),
   };
 
+  // Staff service scoping: show their service docs + company-wide (centreId = null)
+  if (isStaff && staffServiceId) {
+    where.OR = [
+      { centreId: staffServiceId },
+      { centreId: null },
+      ...(search
+        ? [
+            { title: { contains: search, mode: "insensitive" as const } },
+            { description: { contains: search, mode: "insensitive" as const } },
+            { tags: { hasSome: [search] } },
+          ]
+        : []),
+    ];
+    // If staff also filters by centre, only allow their own service
+    if (centreId && centreId !== staffServiceId) {
+      // Staff trying to view another centre — show nothing
+      return NextResponse.json({ documents: [], total: 0, page, totalPages: 0 });
+    }
+    if (centreId) {
+      where.centreId = centreId;
+      delete where.OR;
+    }
+  } else if (centreId) {
+    where.centreId = centreId;
+  }
+
   const [documents, total] = await Promise.all([
     prisma.document.findMany({
-      where,
+      where: where as any,
       include: {
         uploadedBy: { select: { id: true, name: true, email: true } },
         centre: { select: { id: true, name: true, code: true } },
@@ -56,7 +85,7 @@ export async function GET(req: NextRequest) {
       skip: (page - 1) * limit,
       take: limit,
     }),
-    prisma.document.count({ where }),
+    prisma.document.count({ where: where as any }),
   ]);
 
   return NextResponse.json({

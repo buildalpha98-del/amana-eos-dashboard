@@ -11,6 +11,7 @@ enum Role {
   owner
   admin
   member
+  staff
 }
 
 enum RockStatus {
@@ -176,6 +177,8 @@ model User {
   role         Role     @default(member)
   avatar       String?
   active       Boolean  @default(true)
+  serviceId    String?
+  service      Service? @relation("ServiceStaff", fields: [serviceId], references: [id], onDelete: SetNull)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -204,6 +207,10 @@ model User {
   weeklyPulses      WeeklyPulse[]     @relation("PulseAuthor")
   passwordResetTokens PasswordResetToken[]
   calendarIntegration CalendarIntegration?
+  onboardings       StaffOnboarding[] @relation("OnboardingUser")
+  lmsEnrollments    LMSEnrollment[]   @relation("LMSStudent")
+
+  @@index([serviceId])
 }
 
 model PasswordResetToken {
@@ -603,7 +610,10 @@ model Service {
   tickets    SupportTicket[]  @relation("ServiceTickets")
   whatsappContacts WhatsAppContact[] @relation("ServiceContacts")
   announcements Announcement[] @relation("ServiceAnnouncements")
-  healthScores  HealthScore[]  @relation("ServiceHealthScores")
+  healthScores      HealthScore[]      @relation("ServiceHealthScores")
+  staffMembers      User[]             @relation("ServiceStaff")
+  onboardingPacks   OnboardingPack[]   @relation("ServiceOnboardingPacks")
+  lmsCourses        LMSCourse[]        @relation("ServiceCourses")
 
   @@index([status])
   @@index([managerId])
@@ -697,6 +707,7 @@ model Meeting {
 // ============================================================
 
 enum DocumentCategory {
+  program
   policy
   procedure
   template
@@ -1176,4 +1187,197 @@ model XeroAccountMapping {
 
   @@unique([xeroConnectionId, xeroAccountCode])
   @@index([xeroConnectionId])
+}
+
+// ============================================================
+// Staff Onboarding
+// ============================================================
+
+enum OnboardingStatus {
+  not_started
+  in_progress
+  completed
+}
+
+model OnboardingPack {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  serviceId   String?
+  service     Service? @relation("ServiceOnboardingPacks", fields: [serviceId], references: [id], onDelete: SetNull)
+  isDefault   Boolean  @default(false)
+  deleted     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks       OnboardingTask[]
+  assignments StaffOnboarding[]
+
+  @@index([serviceId])
+}
+
+model OnboardingTask {
+  id          String          @id @default(cuid())
+  packId      String
+  pack        OnboardingPack  @relation(fields: [packId], references: [id], onDelete: Cascade)
+  title       String
+  description String?         @db.Text
+  category    String?
+  sortOrder   Int             @default(0)
+  isRequired  Boolean         @default(true)
+  documentId  String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  progress StaffOnboardingProgress[]
+
+  @@index([packId])
+}
+
+model StaffOnboarding {
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation("OnboardingUser", fields: [userId], references: [id], onDelete: Cascade)
+  packId       String
+  pack         OnboardingPack    @relation(fields: [packId], references: [id], onDelete: Cascade)
+  status       OnboardingStatus  @default(not_started)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  dueDate      DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  progress StaffOnboardingProgress[]
+
+  @@unique([userId, packId])
+  @@index([userId])
+  @@index([packId])
+  @@index([status])
+}
+
+model StaffOnboardingProgress {
+  id             String          @id @default(cuid())
+  onboardingId   String
+  onboarding     StaffOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  taskId         String
+  task           OnboardingTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  completed      Boolean         @default(false)
+  completedAt    DateTime?
+  notes          String?         @db.Text
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([onboardingId, taskId])
+  @@index([onboardingId])
+  @@index([taskId])
+}
+
+// ============================================================
+// LMS (Learning Management System)
+// ============================================================
+
+enum LMSCourseStatus {
+  draft
+  published
+  archived
+}
+
+enum LMSModuleType {
+  document
+  video
+  quiz
+  checklist
+  external_link
+}
+
+enum LMSEnrollmentStatus {
+  enrolled
+  in_progress
+  completed
+  expired
+}
+
+model LMSCourse {
+  id          String          @id @default(cuid())
+  title       String
+  description String?         @db.Text
+  category    String?
+  thumbnail   String?
+  status      LMSCourseStatus @default(draft)
+  isRequired  Boolean         @default(false)
+  serviceId   String?
+  service     Service?        @relation("ServiceCourses", fields: [serviceId], references: [id], onDelete: SetNull)
+  sortOrder   Int             @default(0)
+  deleted     Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  modules     LMSModule[]
+  enrollments LMSEnrollment[]
+
+  @@index([status])
+  @@index([serviceId])
+}
+
+model LMSModule {
+  id          String        @id @default(cuid())
+  courseId     String
+  course      LMSCourse     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?       @db.Text
+  type        LMSModuleType @default(document)
+  content     String?       @db.Text
+  resourceUrl String?
+  documentId  String?
+  duration    Int?
+  sortOrder   Int           @default(0)
+  isRequired  Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  progress LMSModuleProgress[]
+
+  @@index([courseId])
+}
+
+model LMSEnrollment {
+  id           String              @id @default(cuid())
+  userId       String
+  user         User                @relation("LMSStudent", fields: [userId], references: [id], onDelete: Cascade)
+  courseId      String
+  course       LMSCourse           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status       LMSEnrollmentStatus @default(enrolled)
+  enrolledAt   DateTime            @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  dueDate      DateTime?
+  score        Float?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  moduleProgress LMSModuleProgress[]
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+}
+
+model LMSModuleProgress {
+  id            String        @id @default(cuid())
+  enrollmentId  String
+  enrollment    LMSEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  moduleId      String
+  module        LMSModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  completed     Boolean       @default(false)
+  completedAt   DateTime?
+  score         Float?
+  timeSpent     Int?
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([enrollmentId, moduleId])
+  @@index([enrollmentId])
+  @@index([moduleId])
 }

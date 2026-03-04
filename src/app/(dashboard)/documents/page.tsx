@@ -40,6 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
+  program: { bg: "bg-cyan-50", text: "text-cyan-700", badge: "bg-cyan-100" },
   policy: { bg: "bg-blue-50", text: "text-blue-700", badge: "bg-blue-100" },
   procedure: { bg: "bg-purple-50", text: "text-purple-700", badge: "bg-purple-100" },
   template: { bg: "bg-green-50", text: "text-green-700", badge: "bg-green-100" },
@@ -51,7 +52,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; badge: string 
   other: { bg: "bg-gray-50", text: "text-gray-700", badge: "bg-gray-100" },
 };
 
-const CATEGORIES = ["policy", "procedure", "template", "guide", "compliance", "financial", "marketing", "hr", "other"];
+const CATEGORIES = ["program", "policy", "procedure", "template", "guide", "compliance", "financial", "marketing", "hr", "other"];
 
 interface Service {
   id: string;
@@ -370,6 +371,38 @@ export default function DocumentsPage() {
           </div>
         )}
 
+        {/* Category Filter Pills */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => { setSelectedCategory(""); setDocPage(1); }}
+            className={cn(
+              "px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-colors",
+              !selectedCategory
+                ? "bg-[#004E64] text-white border-[#004E64]"
+                : "bg-white text-gray-600 border-gray-300 hover:border-[#004E64] hover:text-[#004E64]"
+            )}
+          >
+            All
+          </button>
+          {CATEGORIES.map(cat => {
+            const colors = CATEGORY_COLORS[cat] || CATEGORY_COLORS.other;
+            return (
+              <button
+                key={cat}
+                onClick={() => { setSelectedCategory(selectedCategory === cat ? "" : cat); setDocPage(1); }}
+                className={cn(
+                  "px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-colors capitalize",
+                  selectedCategory === cat
+                    ? `${colors.badge} ${colors.text} border-current`
+                    : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+                )}
+              >
+                {cat === "hr" ? "HR" : cat}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Search and Filters */}
         <div className="flex items-center gap-4">
           <div className="relative flex-1 max-w-sm">
@@ -382,18 +415,6 @@ export default function DocumentsPage() {
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
             />
           </div>
-          <select
-            value={selectedCategory}
-            onChange={(e) => { setSelectedCategory(e.target.value); setDocPage(1); }}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
-          >
-            <option value="">All Categories</option>
-            {CATEGORIES.map(cat => (
-              <option key={cat} value={cat}>
-                {cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </option>
-            ))}
-          </select>
           <select
             value={selectedCentre}
             onChange={(e) => setSelectedCentre(e.target.value)}

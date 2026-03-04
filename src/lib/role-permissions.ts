@@ -21,6 +21,7 @@ export const allPages = [
   "/marketing",
   "/communication",
   "/documents",
+  "/onboarding",
   "/team",
   "/settings",
 ] as const;
@@ -34,6 +35,8 @@ export type AppPage = (typeof allPages)[number];
  * - **admin**  : everything except Settings (org settings, user role management)
  * - **member** : a limited subset; no Financials, Performance, Team, Settings,
  *                Marketing, or Tickets unless explicitly granted later.
+ * - **staff**  : very limited — only their service context, documents, communication,
+ *                onboarding/LMS, and a simplified dashboard.
  */
 export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   owner: allPages,
@@ -50,6 +53,14 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/projects",
     "/communication",
     "/documents",
+    "/onboarding",
+  ],
+  staff: [
+    "/dashboard",
+    "/documents",
+    "/communication",
+    "/onboarding",
+    "/todos",
   ],
 };
 
@@ -140,6 +151,14 @@ export const features = [
   "projects.create",
   "projects.edit",
 
+  // Onboarding / LMS
+  "onboarding.view",
+  "onboarding.create",
+  "onboarding.manage",
+  "lms.view",
+  "lms.create",
+  "lms.manage",
+
   // Xero integration
   "xero.connect",
   "xero.sync",
@@ -192,12 +211,25 @@ const memberFeatures: readonly Feature[] = [
   "projects.view",
   "projects.create",
   "projects.edit",
+  "onboarding.view",
+  "lms.view",
+];
+
+const staffFeatures: readonly Feature[] = [
+  "documents.view",
+  "communication.view",
+  "onboarding.view",
+  "lms.view",
+  "todos.view",
+  "todos.create",
+  "todos.edit",
 ];
 
 export const roleFeatures: Record<Role, readonly Feature[]> = {
   owner: ownerFeatures,
   admin: adminFeatures,
   member: memberFeatures,
+  staff: staffFeatures,
 };
 
 // ---------------------------------------------------------------------------
@@ -223,11 +255,12 @@ export function hasFeature(role: Role | undefined, feature: Feature): boolean {
   return (roleFeatures[role] as readonly string[]).includes(feature);
 }
 
-/** Does the role meet a minimum level? owner > admin > member */
+/** Does the role meet a minimum level? owner > admin > member > staff */
 const rolePriority: Record<Role, number> = {
-  owner: 3,
-  admin: 2,
-  member: 1,
+  owner: 4,
+  admin: 3,
+  member: 2,
+  staff: 1,
 };
 
 export function hasMinRole(
@@ -250,43 +283,47 @@ export interface PermissionRow {
   owner: boolean;
   admin: boolean;
   member: boolean;
+  staff: boolean;
 }
 
 /** Informational table data for the Settings > Permissions panel */
 export const permissionsTable: PermissionRow[] = [
   // Pages
-  { section: "Pages", label: "Dashboard", owner: true, admin: true, member: true },
-  { section: "Pages", label: "Vision / V-TO", owner: true, admin: true, member: true },
-  { section: "Pages", label: "Rocks", owner: true, admin: true, member: true },
-  { section: "Pages", label: "To-Dos", owner: true, admin: true, member: true },
-  { section: "Pages", label: "Issues", owner: true, admin: true, member: true },
-  { section: "Pages", label: "Scorecard", owner: true, admin: true, member: true },
-  { section: "Pages", label: "Meetings", owner: true, admin: true, member: true },
-  { section: "Pages", label: "Services", owner: true, admin: true, member: true },
-  { section: "Pages", label: "Projects", owner: true, admin: true, member: true },
-  { section: "Pages", label: "Communication", owner: true, admin: true, member: true },
-  { section: "Pages", label: "Documents", owner: true, admin: true, member: true },
-  { section: "Pages", label: "Financials", owner: true, admin: true, member: false },
-  { section: "Pages", label: "Performance", owner: true, admin: true, member: false },
-  { section: "Pages", label: "Tickets", owner: true, admin: true, member: false },
-  { section: "Pages", label: "Marketing", owner: true, admin: true, member: false },
-  { section: "Pages", label: "Team", owner: true, admin: true, member: false },
-  { section: "Pages", label: "Settings", owner: true, admin: false, member: false },
+  { section: "Pages", label: "Dashboard", owner: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Vision / V-TO", owner: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Rocks", owner: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "To-Dos", owner: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Issues", owner: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Scorecard", owner: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Meetings", owner: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Services", owner: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Projects", owner: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Communication", owner: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Documents", owner: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Onboarding & LMS", owner: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Financials", owner: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Performance", owner: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Tickets", owner: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Marketing", owner: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Team", owner: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Settings", owner: true, admin: false, member: false, staff: false },
 
   // Actions
-  { section: "Actions", label: "Create / edit Rocks", owner: true, admin: true, member: true },
-  { section: "Actions", label: "Create / edit To-Dos", owner: true, admin: true, member: true },
-  { section: "Actions", label: "Create / edit Issues", owner: true, admin: true, member: true },
-  { section: "Actions", label: "Edit Scorecard", owner: true, admin: true, member: false },
-  { section: "Actions", label: "Create / edit financial data", owner: true, admin: true, member: false },
-  { section: "Actions", label: "Create / edit Marketing posts", owner: true, admin: true, member: false },
-  { section: "Actions", label: "Manage Tickets", owner: true, admin: true, member: false },
-  { section: "Actions", label: "Create / edit Documents", owner: true, admin: true, member: false },
+  { section: "Actions", label: "Create / edit Rocks", owner: true, admin: true, member: true, staff: false },
+  { section: "Actions", label: "Create / edit To-Dos", owner: true, admin: true, member: true, staff: true },
+  { section: "Actions", label: "Create / edit Issues", owner: true, admin: true, member: true, staff: false },
+  { section: "Actions", label: "Edit Scorecard", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Create / edit financial data", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Create / edit Marketing posts", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Manage Tickets", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Create / edit Documents", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "View Onboarding & LMS", owner: true, admin: true, member: true, staff: true },
+  { section: "Actions", label: "Manage Onboarding & LMS", owner: true, admin: true, member: false, staff: false },
 
   // Admin
-  { section: "Admin", label: "View activity log", owner: true, admin: true, member: false },
-  { section: "Admin", label: "Manage users (invite, roles, deactivate)", owner: true, admin: false, member: false },
-  { section: "Admin", label: "Edit organisation settings", owner: true, admin: false, member: false },
-  { section: "Admin", label: "Connect / manage Xero", owner: true, admin: false, member: false },
-  { section: "Admin", label: "View permissions overview", owner: true, admin: false, member: false },
+  { section: "Admin", label: "View activity log", owner: true, admin: true, member: false, staff: false },
+  { section: "Admin", label: "Manage users (invite, roles, deactivate)", owner: true, admin: false, member: false, staff: false },
+  { section: "Admin", label: "Edit organisation settings", owner: true, admin: false, member: false, staff: false },
+  { section: "Admin", label: "Connect / manage Xero", owner: true, admin: false, member: false, staff: false },
+  { section: "Admin", label: "View permissions overview", owner: true, admin: false, member: false, staff: false },
 ];

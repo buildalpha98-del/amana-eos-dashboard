@@ -10,7 +10,8 @@ const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email is required"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["owner", "admin", "member"]).default("member"),
+  role: z.enum(["owner", "admin", "member", "staff"]).default("member"),
+  serviceId: z.string().optional().nullable(),
 });
 
 // GET /api/users — list all users (owner only)
@@ -26,6 +27,8 @@ export async function GET() {
       role: true,
       active: true,
       avatar: true,
+      serviceId: true,
+      service: { select: { id: true, name: true, code: true } },
       createdAt: true,
     },
     orderBy: { createdAt: "asc" },
@@ -49,7 +52,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { name, email, password, role } = parsed.data;
+  const { name, email, password, role, serviceId } = parsed.data;
+
+  // Validate: staff role requires a serviceId
+  if (role === "staff" && !serviceId) {
+    return NextResponse.json(
+      { error: "Staff members must be assigned to a service/centre" },
+      { status: 400 }
+    );
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -62,13 +73,21 @@ export async function POST(req: NextRequest) {
   const passwordHash = await hash(password, 12);
 
   const user = await prisma.user.create({
-    data: { name, email, passwordHash, role },
+    data: {
+      name,
+      email,
+      passwordHash,
+      role,
+      serviceId: role === "staff" ? serviceId : null,
+    },
     select: {
       id: true,
       name: true,
       email: true,
       role: true,
       active: true,
+      serviceId: true,
+      service: { select: { id: true, name: true, code: true } },
       createdAt: true,
     },
   });
@@ -80,7 +99,7 @@ export async function POST(req: NextRequest) {
       action: "create",
       entityType: "User",
       entityId: user.id,
-      details: { name: user.name, email: user.email, role: user.role },
+      details: { name: user.name, email: user.email, role: user.role, serviceId: user.serviceId },
     },
   });
 

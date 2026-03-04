@@ -26,6 +26,7 @@ import {
   MessageSquare,
   Megaphone,
   Radio,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canAccessPage } from "@/lib/permissions";
@@ -47,6 +48,7 @@ const navItems = [
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Operations" },
   { href: "/tickets", label: "Tickets", icon: MessageSquare, section: "Support" },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
+  { href: "/onboarding", label: "Onboarding & LMS", icon: GraduationCap, section: "Admin" },
   { href: "/team", label: "Team", icon: Users, section: "Admin" },
   { href: "/settings", label: "Settings", icon: Settings, section: "Admin" },
 ];
