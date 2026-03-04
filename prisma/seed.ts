@@ -23,10 +23,10 @@ async function main() {
   });
   console.log(`Owner ready: ${admin.email}`);
 
-  // Only seed V/TO if none exists
-  const existingVTO = await prisma.visionTractionOrganiser.findFirst();
-  if (!existingVTO) {
-    const vto = await prisma.visionTractionOrganiser.create({
+  // V/TO — delete + replace
+  await prisma.oneYearGoal.deleteMany();
+  await prisma.visionTractionOrganiser.deleteMany();
+  const vto = await prisma.visionTractionOrganiser.create({
       data: {
         coreValues: [
           "Faith & Character",
@@ -82,15 +82,13 @@ async function main() {
       },
     });
 
-    console.log("Created V/TO with goals");
-  } else {
-    console.log("V/TO already exists, skipping");
-  }
+  console.log("Replaced V/TO with goals");
 
-  // Only seed scorecard if none exists
-  const existingScorecard = await prisma.scorecard.findFirst();
-  if (!existingScorecard) {
-    const scorecard = await prisma.scorecard.create({
+  // Scorecard — delete + replace
+  await prisma.measurableEntry.deleteMany();
+  await prisma.measurable.deleteMany();
+  await prisma.scorecard.deleteMany();
+  const scorecard = await prisma.scorecard.create({
       data: { title: "Weekly Leadership Scorecard" },
     });
 
@@ -114,17 +112,13 @@ async function main() {
         },
       });
     }
-    console.log("Created Scorecard with measurables");
-  } else {
-    console.log("Scorecard already exists, skipping");
-  }
+  console.log("Replaced Scorecard with measurables");
 
   // ============================================================
   // Seed Sample Services (OSHC Centres)
   // ============================================================
-  const existingServices = await prisma.service.findFirst();
-  if (!existingServices) {
-    const centres = [
+  // Services — upsert by code (preserves IDs + foreign key references)
+  const centres = [
       // ── NSW Active Centres ──────────────────────────────────
       {
         name: "Amana OSHC MFIS Beaumont Hills",
@@ -272,25 +266,23 @@ async function main() {
       },
     ];
 
-    for (const centre of centres) {
-      await prisma.service.create({
-        data: {
-          ...centre,
-          managerId: admin.id,
-        },
-      });
-    }
-    console.log(`Created ${centres.length} service centres`);
-  } else {
-    console.log("Services already exist, skipping");
+  for (const centre of centres) {
+    await prisma.service.upsert({
+      where: { code: centre.code },
+      update: { ...centre, managerId: admin.id },
+      create: { ...centre, managerId: admin.id },
+    });
   }
+  console.log(`Upserted ${centres.length} service centres`);
 
   // ============================================================
   // Seed Project Templates
   // ============================================================
-  const existingTemplates = await prisma.projectTemplate.findFirst();
-  if (!existingTemplates) {
-    // New Centre Opening Template
+  // Project Templates — delete + replace
+  await prisma.projectTemplateTask.deleteMany();
+  await prisma.projectTemplate.deleteMany();
+
+  // New Centre Opening Template
     await prisma.projectTemplate.create({
       data: {
         name: "New Centre Opening",
@@ -639,16 +631,14 @@ async function main() {
       },
     });
 
-    console.log("Created 14 project templates");
-  } else {
-    console.log("Project templates already exist, skipping");
-  }
+  console.log("Replaced 14 project templates");
 
   // ============================================================
   // Seed Financial Periods
   // ============================================================
-  const existingFinancials = await prisma.financialPeriod.findFirst();
-  if (!existingFinancials) {
+  // Financial Periods — delete + replace
+  await prisma.financialPeriod.deleteMany();
+  {
     const services = await prisma.service.findMany();
 
     // Define financial parameters per centre (realistic OSHC data)
@@ -742,16 +732,15 @@ async function main() {
       }
     }
 
-    console.log("Created financial periods for all centres (3 months)");
-  } else {
-    console.log("Financial periods already exist, skipping");
+    console.log("Replaced financial periods for all centres (3 months)");
   }
 
   // ============================================================
   // Seed Centre Metrics
   // ============================================================
-  const existingMetrics = await prisma.centreMetrics.findFirst();
-  if (!existingMetrics) {
+  // Centre Metrics — delete + replace
+  await prisma.centreMetrics.deleteMany();
+  {
     const services = await prisma.service.findMany();
 
     // Define metrics profiles per centre
@@ -821,17 +810,19 @@ async function main() {
       });
     }
 
-    console.log("Created centre metrics for all services");
-  } else {
-    console.log("Centre metrics already exist, skipping");
+    console.log("Replaced centre metrics for all services");
   }
 
   // ============================================================
   // Support Tickets: Contacts, Tickets, Messages, Templates
   // ============================================================
 
-  const existingContacts = await prisma.whatsAppContact.findFirst();
-  if (!existingContacts) {
+  // Support Tickets — delete + replace
+  await prisma.ticketMessage.deleteMany();
+  await prisma.supportTicket.deleteMany();
+  await prisma.whatsAppContact.deleteMany();
+  await prisma.responseTemplate.deleteMany();
+  {
     // Get first few services for linking
     const allServices = await prisma.service.findMany({ take: 5 });
 
@@ -1143,9 +1134,7 @@ async function main() {
       }),
     ]);
 
-    console.log("Created 7 response templates");
-  } else {
-    console.log("WhatsApp contacts already exist, skipping ticket seed data");
+    console.log("Replaced 7 response templates");
   }
 
   console.log("\nSeed complete!");
