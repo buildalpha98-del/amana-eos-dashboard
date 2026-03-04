@@ -149,5 +149,6 @@ export const config = {
     "/api/attendance/:path*",
     "/api/compliance/:path*",
     "/api/notifications/:path*",
+    "/api/accountability-chart/:path*",
   ],
 };

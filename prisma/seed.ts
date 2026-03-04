@@ -1137,6 +1137,129 @@ async function main() {
     console.log("Replaced 7 response templates");
   }
 
+  // ── Accountability Chart (EOS) ────────────────────────────
+  await prisma.accountabilitySeatAssignment.deleteMany();
+  await prisma.accountabilitySeat.deleteMany();
+
+  // Helper to create a seat with optional assignee by email
+  const createSeat = async (
+    title: string,
+    responsibilities: string[],
+    parentId: string | null,
+    order: number,
+    assigneeEmails: string[] = []
+  ) => {
+    const seat = await prisma.accountabilitySeat.create({
+      data: { title, responsibilities, parentId, order },
+    });
+    for (const email of assigneeEmails) {
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (user) {
+        await prisma.accountabilitySeatAssignment.create({
+          data: { seatId: seat.id, userId: user.id },
+        });
+      }
+    }
+    return seat;
+  };
+
+  // Level 0: Visionary
+  const visionary = await createSeat(
+    "Visionary",
+    ["20 Ideas", "Big Relationships", "Culture", "Research & Development"],
+    null, 0,
+    [adminEmail]
+  );
+
+  // Level 1: Integrator
+  const integrator = await createSeat(
+    "Integrator",
+    ["LMA", "P&L / Business Plan", "Remove Obstacles & Barriers", "Special Projects", "Business Processes"],
+    visionary.id, 0
+  );
+
+  // Level 2: Department Heads (report to Integrator)
+  const marketing = await createSeat(
+    "Marketing",
+    ["Brand", "Parent Leads", "Digital", "Program Marketing", "CRM"],
+    integrator.id, 0
+  );
+
+  const operations = await createSeat(
+    "Operations",
+    ["LMA", "Revenue & GP", "Process Management", "Parent Escalations"],
+    integrator.id, 1
+  );
+
+  const compliance = await createSeat(
+    "Compliance",
+    ["LMA", "Management Training", "Legislation", "Gov Policy and Procedures"],
+    integrator.id, 2
+  );
+
+  const financeAdmin = await createSeat(
+    "Finance & Admin",
+    ["LMA", "IT Systems", "Invoicing", "Office Management"],
+    integrator.id, 3
+  );
+
+  // Level 3: Under Marketing
+  await createSeat("Marketing Assistant", [], marketing.id, 0);
+
+  // Level 3: Under Operations
+  await createSeat(
+    "Program Coordinator",
+    ["Program Development", "Program Costings", "Program Sales"],
+    operations.id, 0
+  );
+
+  await createSeat(
+    "Customer Service",
+    ["Parent Accounts", "Assisting Parents", "Lead Conversion (Sales)"],
+    operations.id, 1
+  );
+
+  const stateManager = await createSeat(
+    "State Manager",
+    ["LMA", "Budgeting", "School Relationships", "Compliance", "Induction"],
+    operations.id, 2
+  );
+
+  // Level 3: Under Compliance
+  await createSeat("HR", ["Hiring"], compliance.id, 0);
+
+  // Level 3: Under Finance & Admin
+  await createSeat("Accounts", ["AP/AR", "Payroll"], financeAdmin.id, 0);
+
+  // Level 4: Under State Manager
+  const bakTeamLeader = await createSeat(
+    "BAK Team Leader",
+    ["LMA", "Rostering", "Equipment Management", "Audits"],
+    stateManager.id, 0
+  );
+
+  const centreManagers = await createSeat(
+    "Centre Managers",
+    ["LMA", "Rostering", "Equipment Management", "Audits", "Parent Relationships"],
+    stateManager.id, 1
+  );
+
+  // Level 5: Under BAK Team Leader
+  await createSeat(
+    "BAK Coach",
+    ["Program Delivery", "Child Safety", "FUN"],
+    bakTeamLeader.id, 0
+  );
+
+  // Level 5: Under Centre Managers
+  await createSeat(
+    "OSHC Educators",
+    ["Program Delivery", "Child Safety", "FUN"],
+    centreManagers.id, 0
+  );
+
+  console.log("Replaced accountability chart (17 seats)");
+
   console.log("\nSeed complete!");
 }
 

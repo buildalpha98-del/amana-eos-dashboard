@@ -217,6 +217,7 @@ model User {
   lmsEnrollments    LMSEnrollment[]   @relation("LMSStudent")
   certificates      ComplianceCertificate[] @relation("UserCertificates")
   recordedAttendance DailyAttendance[]     @relation("AttendanceRecorder")
+  seatAssignments    AccountabilitySeatAssignment[]
 
   @@index([serviceId])
 }
@@ -1453,4 +1454,34 @@ model DailyAttendance {
   @@unique([serviceId, date, sessionType])
   @@index([serviceId])
   @@index([date])
+}
+
+// ============================================================
+// Accountability Chart (EOS)
+// ============================================================
+
+model AccountabilitySeat {
+  id               String   @id @default(cuid())
+  title            String                          // "Visionary", "Marketing", "BAK Team Leader"
+  responsibilities String[]                        // PostgreSQL native text array
+  parentId         String?
+  parent           AccountabilitySeat?  @relation("SeatHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children         AccountabilitySeat[] @relation("SeatHierarchy")
+  order            Int      @default(0)            // Sort order among siblings
+  assignees        AccountabilitySeatAssignment[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([parentId])
+}
+
+model AccountabilitySeatAssignment {
+  id     String @id @default(cuid())
+  seatId String
+  seat   AccountabilitySeat @relation(fields: [seatId], references: [id], onDelete: Cascade)
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([seatId, userId])
+  @@index([userId])
 }

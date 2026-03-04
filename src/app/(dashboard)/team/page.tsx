@@ -15,10 +15,10 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function TeamPage() {
-  const { data: members, isLoading } = useTeam();
+  const { data: members, isLoading: teamLoading } = useTeam();
   const [viewMode, setViewMode] = useState<"chart" | "list">("chart");
 
-  // Compute summary stats
+  // Compute summary stats (from team performance data)
   const totalRocks =
     members?.reduce((s, m) => s + m.activeRocks, 0) || 0;
   const avgCompletion =
@@ -40,7 +40,9 @@ export default function TeamPage() {
             Accountability Chart
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Team structure, roles, and individual performance metrics
+            {viewMode === "chart"
+              ? "Organisational structure and seat assignments"
+              : "Team performance metrics and individual stats"}
           </p>
         </div>
         <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 self-start sm:self-auto">
@@ -52,7 +54,7 @@ export default function TeamPage() {
                 ? "bg-white text-[#004E64] shadow-sm"
                 : "text-gray-400 hover:text-gray-600"
             )}
-            title="Org Chart"
+            title="Accountability Chart"
           >
             <LayoutGrid className="w-4 h-4" />
           </button>
@@ -64,95 +66,91 @@ export default function TeamPage() {
                 ? "bg-white text-[#004E64] shadow-sm"
                 : "text-gray-400 hover:text-gray-600"
             )}
-            title="List View"
+            title="Performance List"
           >
             <List className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* 4 Summary Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Team Size */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#004E64]/10">
-              <Users className="w-5 h-5 text-[#004E64]" />
+      {/* Stats cards — only show on list view */}
+      {viewMode === "list" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-[#004E64]/10">
+                <Users className="w-5 h-5 text-[#004E64]" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Team Size
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {teamLoading ? "--" : members?.length || 0}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Team Size
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? "--" : members?.length || 0}
-              </p>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-[#004E64]/10">
+                <Mountain className="w-5 h-5 text-[#004E64]" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Active Rocks
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {teamLoading ? "--" : totalRocks}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-[#004E64]/10">
+                <CheckSquare className="w-5 h-5 text-[#004E64]" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Avg Todo Completion
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {teamLoading ? "--" : `${avgCompletion}%`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-[#004E64]/10">
+                <AlertCircle className="w-5 h-5 text-[#004E64]" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Open Issues
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {teamLoading ? "--" : totalIssues}
+                </p>
+              </div>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Active Rocks */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#004E64]/10">
-              <Mountain className="w-5 h-5 text-[#004E64]" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Active Rocks
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? "--" : totalRocks}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Avg Todo Completion */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#004E64]/10">
-              <CheckSquare className="w-5 h-5 text-[#004E64]" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Avg Todo Completion
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? "--" : `${avgCompletion}%`}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Open Issues */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#004E64]/10">
-              <AlertCircle className="w-5 h-5 text-[#004E64]" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Open Issues
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {isLoading ? "--" : totalIssues}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content: loading, empty, or view */}
-      {isLoading ? (
+      {/* Content */}
+      {viewMode === "chart" ? (
+        <OrgChartView />
+      ) : teamLoading ? (
         <div className="flex items-center justify-center py-24">
           <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
         </div>
       ) : members && members.length > 0 ? (
-        viewMode === "chart" ? (
-          <OrgChartView members={members} />
-        ) : (
-          <TeamListView members={members} />
-        )
+        <TeamListView members={members} />
       ) : (
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
           <Users className="w-16 h-16 text-gray-300 mb-4" />
@@ -160,7 +158,7 @@ export default function TeamPage() {
             No team members
           </h3>
           <p className="text-gray-500 mt-2">
-            Add users in Settings to populate the accountability chart.
+            Add users in Settings to populate the team list.
           </p>
         </div>
       )}
