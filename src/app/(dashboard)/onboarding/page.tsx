@@ -10,7 +10,14 @@ import {
   useUpdateOnboardingProgress,
   type StaffOnboardingData,
 } from "@/hooks/useOnboarding";
-import { useLMSCourses, useLMSCourse, useCreateLMSCourse } from "@/hooks/useLMS";
+import {
+  useLMSCourses,
+  useLMSCourse,
+  useCreateLMSCourse,
+  useEnrollStaff,
+  useUnenrollStaff,
+  useUpdateModuleProgress,
+} from "@/hooks/useLMS";
 import { ModuleEditor } from "@/components/lms/ModuleEditor";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,6 +41,11 @@ import {
   HelpCircle,
   ExternalLink,
   ListChecks,
+  Eye,
+  EyeOff,
+  Play,
+  Trash2,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hasMinRole } from "@/lib/permissions";
@@ -79,9 +91,13 @@ export default function OnboardingPage() {
   const [showCreatePack, setShowCreatePack] = useState(false);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
+  const [showEnroll, setShowEnroll] = useState(false);
   const [expandedAssignment, setExpandedAssignment] = useState<string | null>(null);
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
+  const [expandedEnrollmentId, setExpandedEnrollmentId] = useState<string | null>(null);
+  const [revealedAnswers, setRevealedAnswers] = useState<Set<string>>(new Set());
 
   // Data
   const { data: packs = [], isLoading: packsLoading } = useOnboardingPacks();
@@ -128,11 +144,15 @@ export default function OnboardingPage() {
   const createCourse = useCreateLMSCourse();
   const assignPack = useAssignOnboarding();
   const updateProgress = useUpdateOnboardingProgress();
+  const enrollStaff = useEnrollStaff();
+  const unenrollStaff = useUnenrollStaff();
+  const updateModuleProgress = useUpdateModuleProgress();
 
   // Form state
   const [packForm, setPackForm] = useState({ name: "", description: "", serviceId: "", isDefault: false, tasks: [{ title: "", description: "", category: "general", isRequired: true }] });
   const [courseForm, setCourseForm] = useState({ title: "", description: "", category: "", isRequired: false, serviceId: "" });
   const [assignForm, setAssignForm] = useState({ userId: "", packId: "", dueDate: "" });
+  const [enrollForm, setEnrollForm] = useState<{ userIds: string[]; dueDate: string }>({ userIds: [], dueDate: "" });
 
   const handleCreatePack = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,6 +193,38 @@ export default function OnboardingPage() {
       });
       setAssignForm({ userId: "", packId: "", dueDate: "" });
       setShowAssign(false);
+    } catch {
+      // error handled by mutation
+    }
+  };
+
+  const handleEnroll = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCourseId || enrollForm.userIds.length === 0) return;
+    try {
+      await enrollStaff.mutateAsync({
+        courseId: selectedCourseId,
+        userIds: enrollForm.userIds,
+        dueDate: enrollForm.dueDate || undefined,
+      });
+      setEnrollForm({ userIds: [], dueDate: "" });
+      setShowEnroll(false);
+    } catch {
+      // error handled by mutation
+    }
+  };
+
+  const handleUnenroll = async (enrollmentId: string) => {
+    try {
+      await unenrollStaff.mutateAsync(enrollmentId);
+    } catch {
+      // error handled by mutation
+    }
+  };
+
+  const handleModuleProgress = async (enrollmentId: string, moduleId: string, completed: boolean) => {
+    try {
+      await updateModuleProgress.mutateAsync({ enrollmentId, moduleId, completed });
     } catch {
       // error handled by mutation
     }
@@ -544,7 +596,7 @@ export default function OnboardingPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {courses.map((course) => (
-                <div key={course.id} onClick={() => setSelectedCourseId(selectedCourseId === course.id ? null : course.id)} className={cn("bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer", selectedCourseId === course.id && "ring-2 ring-[#004E64] border-[#004E64]")}>
+                <div key={course.id} onClick={() => { setSelectedCourseId(selectedCourseId === course.id ? null : course.id); setExpandedModuleId(null); setExpandedEnrollmentId(null); }} className={cn("bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer", selectedCourseId === course.id && "ring-2 ring-[#004E64] border-[#004E64]")}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                       <BookOpen className="w-5 h-5 text-purple-700" />
@@ -609,9 +661,20 @@ export default function OnboardingPage() {
                     </div>
                   </div>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); setSelectedCourseId(null); }} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {isAdmin && selectedCourseData && (
+                    <button
+                      onClick={() => { setEnrollForm({ userIds: [], dueDate: "" }); setShowEnroll(true); }}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Enrol Staff
+                    </button>
+                  )}
+                  <button onClick={(e) => { e.stopPropagation(); setSelectedCourseId(null); }} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {selectedCourseLoading ? (
@@ -620,7 +683,7 @@ export default function OnboardingPage() {
                   <span className="ml-2 text-sm text-gray-500">Loading course details...</span>
                 </div>
               ) : selectedCourseData ? (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {selectedCourseData.description && (
                     <p className="text-sm text-gray-600">{selectedCourseData.description}</p>
                   )}
@@ -636,38 +699,135 @@ export default function OnboardingPage() {
                   </div>
 
                   {isAdmin ? (
-                    <ModuleEditor
-                      courseId={selectedCourseData.id}
-                      modules={selectedCourseData.modules ? [...selectedCourseData.modules].sort((a, b) => a.sortOrder - b.sortOrder) : []}
-                    />
-                  ) : (
                     <>
-                      {selectedCourseData.modules && selectedCourseData.modules.length > 0 && (
+                      {/* Module Editor */}
+                      <ModuleEditor
+                        courseId={selectedCourseData.id}
+                        modules={selectedCourseData.modules ? [...selectedCourseData.modules].sort((a, b) => a.sortOrder - b.sortOrder) : []}
+                      />
+
+                      {/* Enrolled Staff Section */}
+                      {selectedCourseData.enrollments && selectedCourseData.enrollments.length > 0 && (
                         <div>
-                          <h5 className="text-sm font-medium text-gray-700 mb-2">Modules ({selectedCourseData.modules.length})</h5>
+                          <h5 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            Enrolled Staff ({selectedCourseData.enrollments.length})
+                          </h5>
                           <div className="space-y-2">
-                            {selectedCourseData.modules
-                              .sort((a, b) => a.sortOrder - b.sortOrder)
-                              .map((mod) => {
-                                const TypeIcon = MODULE_TYPE_ICONS[mod.type] || FileText;
-                                return (
-                                  <div key={mod.id} className="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-lg">
-                                    <TypeIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                    <p className="text-sm text-gray-900 flex-1">{mod.title}</p>
-                                    <span className="text-[10px] font-medium bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full capitalize">
-                                      {mod.type.replace("_", " ")}
+                            {selectedCourseData.enrollments.map((enrollment) => {
+                              const completedModules = enrollment.moduleProgress.filter(p => p.completed).length;
+                              const totalModules = selectedCourseData.modules?.length ?? 0;
+                              const pct = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+                              const isExpandedEnrollment = expandedEnrollmentId === enrollment.id;
+
+                              return (
+                                <div key={enrollment.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                                  <div
+                                    onClick={() => setExpandedEnrollmentId(isExpandedEnrollment ? null : enrollment.id)}
+                                    className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900">{enrollment.user.name}</p>
+                                      <p className="text-xs text-gray-500">{enrollment.user.email}</p>
+                                    </div>
+                                    <span className={cn(
+                                      "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
+                                      enrollment.status === "completed" ? "bg-emerald-100 text-emerald-700"
+                                        : enrollment.status === "in_progress" ? "bg-blue-100 text-blue-700"
+                                        : enrollment.status === "expired" ? "bg-red-100 text-red-700"
+                                        : "bg-gray-100 text-gray-600"
+                                    )}>
+                                      {enrollment.status.replace("_", " ")}
                                     </span>
+                                    <div className="w-24">
+                                      <div className="flex items-center justify-between text-[10px] text-gray-400 mb-0.5">
+                                        <span>{completedModules}/{totalModules}</span>
+                                        <span>{pct}%</span>
+                                      </div>
+                                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                        <div className="h-full bg-[#004E64] rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                      </div>
+                                    </div>
+                                    {enrollment.dueDate && (
+                                      <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                                        <Clock className="w-3 h-3" />
+                                        {new Date(enrollment.dueDate).toLocaleDateString("en-AU", { month: "short", day: "numeric" })}
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (confirm(`Unenrol ${enrollment.user.name} from this course?`)) {
+                                          handleUnenroll(enrollment.id);
+                                        }
+                                      }}
+                                      disabled={unenrollStaff.isPending}
+                                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    {isExpandedEnrollment ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
                                   </div>
-                                );
-                              })}
+
+                                  {isExpandedEnrollment && (
+                                    <div className="border-t border-gray-100 p-3 space-y-1.5 bg-gray-50/50">
+                                      {selectedCourseData.modules
+                                        ?.slice()
+                                        .sort((a, b) => a.sortOrder - b.sortOrder)
+                                        .map((mod) => {
+                                          const modProgress = enrollment.moduleProgress.find(p => p.moduleId === mod.id);
+                                          return (
+                                            <div key={mod.id} className="flex items-center gap-2 text-xs">
+                                              {modProgress?.completed ? (
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                                              ) : (
+                                                <Circle className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                                              )}
+                                              <span className={cn("flex-1", modProgress?.completed ? "text-gray-400 line-through" : "text-gray-700")}>
+                                                {mod.title}
+                                              </span>
+                                              {modProgress?.completedAt && (
+                                                <span className="text-gray-400">
+                                                  {new Date(modProgress.completedAt).toLocaleDateString("en-AU", { month: "short", day: "numeric" })}
+                                                </span>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
 
-                      {selectedCourseData.modules && selectedCourseData.modules.length === 0 && (
-                        <p className="text-sm text-gray-400 italic">No modules added to this course yet.</p>
+                      {selectedCourseData.enrollments && selectedCourseData.enrollments.length === 0 && (
+                        <div className="bg-gray-50 rounded-lg p-4 text-center">
+                          <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                          <p className="text-sm text-gray-500">No staff enrolled yet.</p>
+                          <button
+                            onClick={() => { setEnrollForm({ userIds: [], dueDate: "" }); setShowEnroll(true); }}
+                            className="text-sm text-[#004E64] hover:underline mt-1"
+                          >
+                            Enrol staff now →
+                          </button>
+                        </div>
                       )}
                     </>
+                  ) : (
+                    /* ─── Staff Content Viewer ─── */
+                    <StaffCourseViewer
+                      course={selectedCourseData}
+                      userId={session?.user?.id}
+                      expandedModuleId={expandedModuleId}
+                      setExpandedModuleId={setExpandedModuleId}
+                      revealedAnswers={revealedAnswers}
+                      setRevealedAnswers={setRevealedAnswers}
+                      onModuleProgress={handleModuleProgress}
+                      isUpdating={updateModuleProgress.isPending}
+                    />
                   )}
                 </div>
               ) : (
@@ -854,6 +1014,351 @@ export default function OnboardingPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Enrol Staff Modal */}
+      {showEnroll && selectedCourseData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Enrol Staff</h3>
+                <p className="text-sm text-gray-500 mt-0.5">{selectedCourseData.title}</p>
+              </div>
+              <button onClick={() => setShowEnroll(false)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleEnroll} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Staff Members *</label>
+                <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-2 space-y-1">
+                  {users
+                    .filter(u => !selectedCourseData.enrollments?.some(e => e.userId === u.id))
+                    .map(u => (
+                      <label key={u.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={enrollForm.userIds.includes(u.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setEnrollForm({ ...enrollForm, userIds: [...enrollForm.userIds, u.id] });
+                            } else {
+                              setEnrollForm({ ...enrollForm, userIds: enrollForm.userIds.filter(id => id !== u.id) });
+                            }
+                          }}
+                          className="rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]"
+                        />
+                        <span className="text-sm text-gray-900">{u.name}</span>
+                        <span className="text-xs text-gray-400">({u.role})</span>
+                      </label>
+                    ))
+                  }
+                  {users.filter(u => !selectedCourseData.enrollments?.some(e => e.userId === u.id)).length === 0 && (
+                    <p className="text-sm text-gray-400 italic p-2">All staff are already enrolled.</p>
+                  )}
+                </div>
+                {enrollForm.userIds.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">{enrollForm.userIds.length} selected</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date (Optional)</label>
+                <input
+                  type="date"
+                  value={enrollForm.dueDate}
+                  onChange={(e) => setEnrollForm({ ...enrollForm, dueDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                />
+              </div>
+              {enrollStaff.isError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
+                  {(enrollStaff.error as Error).message}
+                </div>
+              )}
+              <div className="flex gap-3 pt-4 border-t">
+                <button type="button" onClick={() => setShowEnroll(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="submit" disabled={enrollStaff.isPending || enrollForm.userIds.length === 0} className="flex-1 bg-[#004E64] hover:bg-[#003D52] text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
+                  {enrollStaff.isPending ? "Enrolling..." : `Enrol ${enrollForm.userIds.length} Staff`}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────
+   Staff Course Viewer — Interactive module content + progress
+   ─────────────────────────────────────────────────────────── */
+interface StaffCourseViewerProps {
+  course: {
+    id: string;
+    modules: {
+      id: string;
+      title: string;
+      description: string | null;
+      type: "document" | "video" | "quiz" | "checklist" | "external_link";
+      content: string | null;
+      resourceUrl: string | null;
+      duration: number | null;
+      sortOrder: number;
+      isRequired: boolean;
+    }[];
+    enrollments: {
+      id: string;
+      userId: string;
+      status: string;
+      moduleProgress: { id: string; moduleId: string; completed: boolean; completedAt: string | null }[];
+    }[];
+  };
+  userId: string | undefined;
+  expandedModuleId: string | null;
+  setExpandedModuleId: (id: string | null) => void;
+  revealedAnswers: Set<string>;
+  setRevealedAnswers: React.Dispatch<React.SetStateAction<Set<string>>>;
+  onModuleProgress: (enrollmentId: string, moduleId: string, completed: boolean) => void;
+  isUpdating: boolean;
+}
+
+function StaffCourseViewer({
+  course,
+  userId,
+  expandedModuleId,
+  setExpandedModuleId,
+  revealedAnswers,
+  setRevealedAnswers,
+  onModuleProgress,
+  isUpdating,
+}: StaffCourseViewerProps) {
+  const myEnrollment = course.enrollments?.find((e) => e.userId === userId);
+  const modules = [...course.modules].sort((a, b) => a.sortOrder - b.sortOrder);
+  const completedCount = myEnrollment
+    ? myEnrollment.moduleProgress.filter((p) => p.completed).length
+    : 0;
+  const totalModules = modules.length;
+  const pct = totalModules > 0 ? Math.round((completedCount / totalModules) * 100) : 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Progress bar */}
+      {myEnrollment && (
+        <div className="bg-gradient-to-r from-[#004E64]/5 to-transparent rounded-lg p-4">
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="font-medium text-gray-700">Your Progress</span>
+            <span className="text-gray-500">
+              {completedCount}/{totalModules} modules
+              {pct === 100 && " ✓ Complete!"}
+            </span>
+          </div>
+          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                pct === 100 ? "bg-emerald-500" : "bg-[#004E64]"
+              )}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          {myEnrollment.status === "completed" && (
+            <p className="text-xs text-emerald-600 mt-2 font-medium">🎉 Course completed! Well done.</p>
+          )}
+        </div>
+      )}
+
+      {!myEnrollment && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          You are not enrolled in this course. Content is view-only. Ask your admin to enrol you.
+        </div>
+      )}
+
+      {/* Module accordion */}
+      {modules.length === 0 ? (
+        <p className="text-sm text-gray-400 italic">No modules in this course yet.</p>
+      ) : (
+        <div className="space-y-2">
+          <h5 className="text-sm font-semibold text-gray-900">
+            Modules ({modules.length})
+          </h5>
+          {modules.map((mod) => {
+            const TypeIcon = MODULE_TYPE_ICONS[mod.type] || FileText;
+            const isExpanded = expandedModuleId === mod.id;
+            const progress = myEnrollment?.moduleProgress.find((p) => p.moduleId === mod.id);
+            const isCompleted = progress?.completed ?? false;
+
+            return (
+              <div key={mod.id} className={cn("border rounded-lg overflow-hidden transition-colors", isCompleted ? "border-emerald-200 bg-emerald-50/30" : "border-gray-200")}>
+                {/* Module header */}
+                <button
+                  onClick={() => setExpandedModuleId(isExpanded ? null : mod.id)}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-50/50 transition-colors text-left"
+                >
+                  {myEnrollment && (
+                    <div className="flex-shrink-0">
+                      {isCompleted ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-gray-300" />
+                      )}
+                    </div>
+                  )}
+                  <TypeIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className={cn("text-sm font-medium", isCompleted ? "text-gray-400 line-through" : "text-gray-900")}>
+                      {mod.title}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-[10px] font-medium bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full capitalize">
+                      {mod.type.replace("_", " ")}
+                    </span>
+                    {mod.duration && (
+                      <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                        <Clock className="w-3 h-3" />
+                        {mod.duration}m
+                      </span>
+                    )}
+                    {mod.isRequired && (
+                      <span className="text-[10px] font-medium text-red-500 uppercase">Required</span>
+                    )}
+                    {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                  </div>
+                </button>
+
+                {/* Expanded content */}
+                {isExpanded && (
+                  <div className="border-t border-gray-100 p-4 bg-white">
+                    {mod.description && (
+                      <p className="text-sm text-gray-600 mb-3 italic">{mod.description}</p>
+                    )}
+
+                    {/* Document content */}
+                    {mod.type === "document" && mod.content && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed max-h-[500px] overflow-y-auto">
+                        {mod.content}
+                      </div>
+                    )}
+
+                    {/* Checklist content */}
+                    {mod.type === "checklist" && mod.content && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-2">
+                        {mod.content.split("\n").filter(line => line.trim()).map((line, i) => (
+                          <div key={i} className="flex items-start gap-2.5 text-sm text-gray-800">
+                            <div className="w-4 h-4 mt-0.5 rounded border border-gray-300 flex-shrink-0 flex items-center justify-center">
+                              <span className="text-[10px] text-gray-400">{i + 1}</span>
+                            </div>
+                            <span>{line.replace(/^[☐☑✓✔•\-\*]\s*/, "").trim()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Quiz content */}
+                    {mod.type === "quiz" && mod.content && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-4">
+                        {mod.content.split(/\n(?=Q\d|Question)/i).filter(q => q.trim()).map((qa, i) => {
+                          const lines = qa.split("\n").filter(l => l.trim());
+                          const question = lines[0];
+                          const answer = lines.slice(1).join("\n");
+                          const key = `${mod.id}-${i}`;
+                          const isRevealed = revealedAnswers.has(key);
+
+                          return (
+                            <div key={i} className="space-y-1.5">
+                              <p className="text-sm font-medium text-gray-900">{question}</p>
+                              {answer && (
+                                <div>
+                                  <button
+                                    onClick={() => {
+                                      setRevealedAnswers(prev => {
+                                        const next = new Set(prev);
+                                        if (next.has(key)) next.delete(key);
+                                        else next.add(key);
+                                        return next;
+                                      });
+                                    }}
+                                    className="text-xs text-[#004E64] hover:underline flex items-center gap-1"
+                                  >
+                                    {isRevealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                    {isRevealed ? "Hide Answer" : "Show Answer"}
+                                  </button>
+                                  {isRevealed && (
+                                    <p className="text-sm text-gray-600 mt-1.5 pl-3 border-l-2 border-[#004E64]/20 whitespace-pre-wrap">
+                                      {answer}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Video content */}
+                    {mod.type === "video" && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        {mod.resourceUrl ? (
+                          <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] transition-colors text-sm">
+                            <Play className="w-4 h-4" /> Watch Video
+                          </a>
+                        ) : mod.content ? (
+                          <p className="text-sm text-gray-600 whitespace-pre-wrap">{mod.content}</p>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">No video link provided yet.</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* External link content */}
+                    {mod.type === "external_link" && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        {mod.resourceUrl ? (
+                          <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] transition-colors text-sm">
+                            <ExternalLink className="w-4 h-4" /> Open Resource
+                          </a>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">No link provided yet.</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Fallback no content */}
+                    {!mod.content && !mod.resourceUrl && mod.type !== "video" && mod.type !== "external_link" && (
+                      <p className="text-sm text-gray-400 italic">No content available for this module yet.</p>
+                    )}
+
+                    {/* Mark as Complete button */}
+                    {myEnrollment && (
+                      <div className="mt-4 pt-3 border-t border-gray-200">
+                        <button
+                          onClick={() => onModuleProgress(myEnrollment.id, mod.id, !isCompleted)}
+                          disabled={isUpdating}
+                          className={cn(
+                            "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
+                            isCompleted
+                              ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              : "bg-emerald-600 text-white hover:bg-emerald-700"
+                          )}
+                        >
+                          {isUpdating ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : isCompleted ? (
+                            <Circle className="w-4 h-4" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4" />
+                          )}
+                          {isCompleted ? "Mark as Incomplete" : "Mark as Complete"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

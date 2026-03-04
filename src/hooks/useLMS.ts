@@ -214,3 +214,68 @@ export function useReorderModules() {
     },
   });
 }
+
+export function useEnrollStaff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { courseId: string; userIds: string[]; dueDate?: string }) => {
+      const res = await fetch("/api/lms/enrollments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to enrol staff");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-course"] });
+      qc.invalidateQueries({ queryKey: ["lms-courses"] });
+    },
+  });
+}
+
+export function useUnenrollStaff() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (enrollmentId: string) => {
+      const res = await fetch("/api/lms/enrollments", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enrollmentId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to unenrol");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-course"] });
+      qc.invalidateQueries({ queryKey: ["lms-courses"] });
+    },
+  });
+}
+
+export function useUpdateModuleProgress() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { enrollmentId: string; moduleId: string; completed: boolean }) => {
+      const res = await fetch("/api/lms/enrollments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update progress");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-course"] });
+    },
+  });
+}
