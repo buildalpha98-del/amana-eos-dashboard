@@ -12,7 +12,7 @@ import {
 } from "@/hooks/useOnboarding";
 import { useLMSCourses, useLMSCourse, useCreateLMSCourse } from "@/hooks/useLMS";
 import { ModuleEditor } from "@/components/lms/ModuleEditor";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   GraduationCap,
   BookOpen,
@@ -28,6 +28,7 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  Sparkles,
   FileText,
   Video,
   HelpCircle,
@@ -68,8 +69,10 @@ const MODULE_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string
 
 export default function OnboardingPage() {
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const role = session?.user?.role as Role | undefined;
   const isAdmin = hasMinRole(role, "admin");
+  const isOwner = role === "owner";
   const isStaff = role === "staff";
 
   const [activeTab, setActiveTab] = useState<"onboarding" | "lms">("onboarding");
@@ -175,6 +178,41 @@ export default function OnboardingPage() {
     }
   };
 
+  // Seeding state (owner only)
+  const [seedingPacks, setSeedingPacks] = useState(false);
+  const [seedingCourses, setSeedingCourses] = useState(false);
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
+
+  const handleSeedPacks = async () => {
+    setSeedingPacks(true);
+    setSeedMessage(null);
+    try {
+      const res = await fetch("/api/onboarding/seed", { method: "POST" });
+      const data = await res.json();
+      setSeedMessage(data.message || "Packs seeded!");
+      queryClient.invalidateQueries({ queryKey: ["onboarding-packs"] });
+    } catch {
+      setSeedMessage("Failed to seed packs.");
+    } finally {
+      setSeedingPacks(false);
+    }
+  };
+
+  const handleSeedCourses = async () => {
+    setSeedingCourses(true);
+    setSeedMessage(null);
+    try {
+      const res = await fetch("/api/lms/seed", { method: "POST" });
+      const data = await res.json();
+      setSeedMessage(data.message || "Courses seeded!");
+      queryClient.invalidateQueries({ queryKey: ["lms-courses"] });
+    } catch {
+      setSeedMessage("Failed to seed courses.");
+    } finally {
+      setSeedingCourses(false);
+    }
+  };
+
   const handleToggleTask = async (assignment: StaffOnboardingData, taskId: string, currentCompleted: boolean) => {
     await updateProgress.mutateAsync({
       onboardingId: assignment.id,
@@ -210,6 +248,16 @@ export default function OnboardingPage() {
         </div>
         {isAdmin && (
           <div className="flex items-center gap-3">
+            {isOwner && (
+              <button
+                onClick={activeTab === "onboarding" ? handleSeedPacks : handleSeedCourses}
+                disabled={seedingPacks || seedingCourses}
+                className="inline-flex items-center gap-2 px-4 py-2.5 border border-amber-300 bg-amber-50 text-amber-700 text-sm font-medium rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+              >
+                {(seedingPacks || seedingCourses) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                {activeTab === "onboarding" ? "Seed Packs" : "Seed Training Courses"}
+              </button>
+            )}
             <button
               onClick={() => setShowAssign(true)}
               className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
@@ -251,6 +299,17 @@ export default function OnboardingPage() {
           Training / LMS
         </button>
       </div>
+
+      {/* Seed Message */}
+      {seedMessage && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <p className="text-sm text-amber-800">{seedMessage}</p>
+          <button onClick={() => setSeedMessage(null)} className="ml-auto text-amber-400 hover:text-amber-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Onboarding Tab */}
       {activeTab === "onboarding" && (
