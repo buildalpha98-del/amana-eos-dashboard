@@ -374,3 +374,92 @@ export function welcomeEmail(
 
   return { subject, html };
 }
+
+// ─── Weekly Report ──────────────────────────────────────────
+
+interface WeeklyReportData {
+  weekOf: string;
+  totalRevenue: number;
+  avgBscOccupancy: number;
+  avgAscOccupancy: number;
+  overdueTodos: number;
+  offTrackRocks: number;
+  expiringCerts: number;
+  centres: { name: string; code: string; bscOccupancy: number; ascOccupancy: number }[];
+  dashboardUrl: string;
+}
+
+export function weeklyReportEmail(name: string, data: WeeklyReportData) {
+  const subject = `Weekly Report: w/c ${data.weekOf} — Amana OSHC`;
+
+  const riskItems: string[] = [];
+  if (data.overdueTodos > 0) riskItems.push(`${data.overdueTodos} overdue to-do${data.overdueTodos > 1 ? "s" : ""}`);
+  if (data.offTrackRocks > 0) riskItems.push(`${data.offTrackRocks} off-track rock${data.offTrackRocks > 1 ? "s" : ""}`);
+  if (data.expiringCerts > 0) riskItems.push(`${data.expiringCerts} expiring cert${data.expiringCerts > 1 ? "s" : ""}`);
+
+  const riskHtml = riskItems.length > 0
+    ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #fecaca;border-radius:8px;overflow:hidden;background-color:#fef2f2;">
+        <tr><td style="padding:12px 16px;">
+          <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#dc2626;">⚠️ Items Needing Attention</p>
+          <p style="margin:0;font-size:13px;color:#991b1b;">${riskItems.join(" &bull; ")}</p>
+        </td></tr>
+       </table>`
+    : "";
+
+  const centreRowsHtml = data.centres
+    .map((c) => {
+      const bscColor = c.bscOccupancy >= 75 ? "#10b981" : c.bscOccupancy >= 50 ? "#f59e0b" : "#ef4444";
+      const ascColor = c.ascOccupancy >= 75 ? "#10b981" : c.ascOccupancy >= 50 ? "#f59e0b" : "#ef4444";
+      return `<tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;font-size:13px;">${c.name}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;text-align:center;font-size:13px;font-weight:600;color:${bscColor};">${c.bscOccupancy}%</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;text-align:center;font-size:13px;font-weight:600;color:${ascColor};">${c.ascOccupancy}%</td>
+      </tr>`;
+    })
+    .join("");
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Weekly Leadership Report
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${name}, here is your weekly summary for the week commencing ${data.weekOf}:
+    </p>
+
+    <!-- KPI Cards -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px;text-align:center;background-color:#f0fdf4;width:33%;">
+          <div style="font-size:24px;font-weight:700;color:#10b981;">$${data.totalRevenue.toLocaleString("en-AU", { minimumFractionDigits: 0 })}</div>
+          <div style="font-size:11px;color:#059669;text-transform:uppercase;margin-top:4px;">Est. Revenue</div>
+        </td>
+        <td style="padding:16px;text-align:center;background-color:#eff6ff;width:33%;">
+          <div style="font-size:24px;font-weight:700;color:#3b82f6;">${data.avgBscOccupancy}%</div>
+          <div style="font-size:11px;color:#2563eb;text-transform:uppercase;margin-top:4px;">BSC Occupancy</div>
+        </td>
+        <td style="padding:16px;text-align:center;background-color:#f5f3ff;width:34%;">
+          <div style="font-size:24px;font-weight:700;color:#8b5cf6;">${data.avgAscOccupancy}%</div>
+          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;margin-top:4px;">ASC Occupancy</div>
+        </td>
+      </tr>
+    </table>
+
+    ${riskHtml}
+
+    <!-- Centre Breakdown -->
+    ${data.centres.length > 0 ? `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr style="background-color:#f9fafb;">
+        <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Centre</th>
+        <th style="padding:8px 12px;text-align:center;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">BSC %</th>
+        <th style="padding:8px 12px;text-align:center;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">ASC %</th>
+      </tr>
+      ${centreRowsHtml}
+    </table>
+    ` : ""}
+
+    ${buttonHtml("Open Dashboard", data.dashboardUrl)}
+  `);
+
+  return { subject, html };
+}

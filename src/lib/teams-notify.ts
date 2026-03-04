@@ -212,3 +212,83 @@ export function notifyProjectMilestone(project: {
     actions: [{ type: "Action.OpenUrl" as const, title: "View Project", url: project.url }],
   });
 }
+
+// ── Automation-wired notifications ──────────────────────
+
+/** Rock auto-flagged as off-track by escalation cron */
+export function notifyRockOffTrack(rock: {
+  title: string;
+  owner: string;
+  quarter: string;
+  percentComplete: number;
+  url: string;
+}) {
+  return sendTeamsNotification({
+    title: "🪨 Rock Flagged Off-Track",
+    body: `**${rock.title}** owned by **${rock.owner}** is behind schedule at **${rock.percentComplete}%** completion.`,
+    accentColor: "#f59e0b",
+    facts: [
+      { title: "Owner", value: rock.owner },
+      { title: "Quarter", value: rock.quarter },
+      { title: "Progress", value: `${rock.percentComplete}%` },
+    ],
+    actions: [{ type: "Action.OpenUrl" as const, title: "View Rocks", url: rock.url }],
+  });
+}
+
+/** Stale issues alert from escalation cron */
+export function notifyStaleIssues(data: {
+  count: number;
+  url: string;
+}) {
+  return sendTeamsNotification({
+    title: "⚠️ Stale Issues",
+    body: `**${data.count}** issue${data.count === 1 ? "" : "s"} have been open for over 14 days with no recent activity.`,
+    accentColor: "#f97316",
+    actions: [{ type: "Action.OpenUrl" as const, title: "View Issues", url: data.url }],
+  });
+}
+
+/** Weekly leadership summary from report cron */
+export function notifyWeeklySummary(data: {
+  centres: number;
+  totalRevenue: number;
+  avgOccupancy: number;
+  overdueTodos: number;
+  url: string;
+}) {
+  return sendTeamsNotification({
+    title: "📊 Weekly Leadership Summary",
+    body: `**${data.centres}** centres reporting. Avg occupancy **${data.avgOccupancy}%**, estimated revenue **$${data.totalRevenue.toLocaleString("en-AU", { minimumFractionDigits: 0 })}**.`,
+    facts: [
+      { title: "Centres Reporting", value: `${data.centres}` },
+      { title: "Est. Revenue", value: `$${data.totalRevenue.toLocaleString("en-AU", { minimumFractionDigits: 0 })}` },
+      { title: "Avg Occupancy", value: `${data.avgOccupancy}%` },
+      { title: "Overdue To-Dos", value: `${data.overdueTodos}` },
+    ],
+    actions: [{ type: "Action.OpenUrl" as const, title: "Open Dashboard", url: data.url }],
+  });
+}
+
+/** Low occupancy alert from attendance cron */
+export function notifyLowOccupancy(data: {
+  service: string;
+  sessionType: string;
+  occupancyPct: number;
+  date: string;
+  url: string;
+}) {
+  const emoji = data.occupancyPct < 40 ? "🔴" : "🟡";
+  return sendTeamsNotification({
+    title: `${emoji} Low Occupancy: ${data.service}`,
+    body: `**${data.sessionType}** occupancy at **${data.occupancyPct}%** on ${data.date}.`,
+    accentColor: data.occupancyPct < 40 ? "#dc2626" : "#f59e0b",
+    facts: [
+      { title: "Centre", value: data.service },
+      { title: "Session", value: data.sessionType },
+      { title: "Occupancy", value: `${data.occupancyPct}%` },
+      { title: "Date", value: data.date },
+    ],
+    actions: [{ type: "Action.OpenUrl" as const, title: "View Service", url: data.url }],
+  });
+}
