@@ -13,6 +13,8 @@ const updateMeetingSchema = z.object({
   segueNotes: z.string().optional().nullable(),
   concludeNotes: z.string().optional().nullable(),
   cascadeMessages: z.string().optional().nullable(),
+  serviceIds: z.array(z.string()).optional(),
+  rockIds: z.array(z.string()).optional(),
 });
 
 // GET /api/meetings/:id — get a single meeting
@@ -29,6 +31,10 @@ export async function GET(
     where: { id },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },
+      cascades: {
+        where: { deleted: false },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 
@@ -74,8 +80,33 @@ export async function PATCH(
     data: updateData,
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },
+      cascades: {
+        where: { deleted: false },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
+
+  // When meeting is completed, create CascadeMessage records from the text
+  if (
+    parsed.data.status === "completed" &&
+    existing.status !== "completed" &&
+    parsed.data.cascadeMessages
+  ) {
+    const lines = parsed.data.cascadeMessages
+      .split("\n")
+      .map((l: string) => l.trim())
+      .filter((l: string) => l.length > 0);
+
+    if (lines.length > 0) {
+      await prisma.cascadeMessage.createMany({
+        data: lines.map((line: string) => ({
+          meetingId: id,
+          message: line.replace(/^[-•*]\s*/, ""), // Strip bullet markers
+        })),
+      });
+    }
+  }
 
   await prisma.activityLog.create({
     data: {

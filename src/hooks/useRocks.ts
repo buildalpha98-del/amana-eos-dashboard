@@ -23,6 +23,7 @@ export interface RockData {
   rockType: RockType;
   oneYearGoalId: string | null;
   oneYearGoal: { id: string; title: string } | null;
+  serviceId: string | null;
   createdAt: string;
   updatedAt: string;
   _count: { todos: number; issues: number; milestones: number };

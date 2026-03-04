@@ -20,6 +20,7 @@ export interface IssueData {
   owner: IssueUser | null;
   rockId: string | null;
   rock: { id: string; title: string } | null;
+  serviceId: string | null;
   priority: IssuePriority;
   status: IssueStatus;
   identifiedAt: string;

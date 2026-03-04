@@ -676,6 +676,8 @@ model Meeting {
   segueNotes    String?       @db.Text
   concludeNotes   String?       @db.Text
   cascadeMessages String?       @db.Text
+  serviceIds    String[]      // IDs of services scoped to this meeting
+  rockIds       String[]      // IDs of rocks linked to this meeting
   startedAt       DateTime?
   completedAt   DateTime?
   createdById   String

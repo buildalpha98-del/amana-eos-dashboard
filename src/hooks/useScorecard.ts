@@ -37,6 +37,7 @@ export interface MeasurableData {
   frequency: "weekly" | "monthly";
   rockId: string | null;
   rock: { id: string; title: string } | null;
+  serviceId: string | null;
   entries: MeasurableEntry[];
 }
 

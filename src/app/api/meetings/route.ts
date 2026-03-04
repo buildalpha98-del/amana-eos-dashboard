@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/server-auth";
 const createMeetingSchema = z.object({
   title: z.string().min(1, "Title is required"),
   date: z.string().min(1, "Date is required"),
+  serviceIds: z.array(z.string()).optional(),
 });
 
 // GET /api/meetings — list meetings ordered by date desc
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
       status: "in_progress",
       startedAt: new Date(),
       createdById: session!.user.id,
+      serviceIds: parsed.data.serviceIds || [],
     },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },
@@ -65,7 +67,7 @@ export async function POST(req: NextRequest) {
       action: "create",
       entityType: "Meeting",
       entityId: meeting.id,
-      details: { title: meeting.title },
+      details: { title: meeting.title, serviceIds: parsed.data.serviceIds },
     },
   });
 

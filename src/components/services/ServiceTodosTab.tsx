@@ -41,6 +41,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -73,13 +74,21 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to create to-do");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to create to-do");
+      }
       return res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
       queryClient.invalidateQueries({ queryKey: ["todos", { serviceId }] });
       setShowModal(false);
+      setError(null);
       setFormData({ title: "", description: "", assigneeId: "", dueDate: "" });
+    },
+    onError: (err: Error) => {
+      setError(err.message);
     },
   });
 
@@ -104,7 +113,10 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
 
   function handleCreate() {
     if (!formData.title || !formData.assigneeId || !formData.dueDate) return;
-    const weekOf = getWeekStart(new Date(formData.dueDate)).toISOString();
+    setError(null);
+    // Use date-only string + T00:00:00 to avoid timezone shifts
+    const dueDateISO = `${formData.dueDate}T00:00:00`;
+    const weekOf = getWeekStart(new Date(dueDateISO)).toISOString();
     createTodo.mutate({
       title: formData.title,
       description: formData.description || null,
@@ -324,9 +336,15 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                 </div>
               </div>
 
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
+                  {error}
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={() => { setShowModal(false); setError(null); }}
                   className="text-xs px-4 py-2 text-gray-500 hover:text-gray-700"
                 >
                   Cancel

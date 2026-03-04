@@ -16,6 +16,8 @@ import type { RockData } from "@/hooks/useRocks";
 import type { TodoData } from "@/hooks/useTodos";
 import type { IssueData } from "@/hooks/useIssues";
 import type { ScorecardData, MeasurableData } from "@/hooks/useScorecard";
+import { useServices } from "@/hooks/useServices";
+import type { ServiceSummary } from "@/hooks/useServices";
 import { cn, formatDateAU, getWeekStart, getCurrentQuarter } from "@/lib/utils";
 import {
   Presentation,
@@ -44,6 +46,8 @@ import {
   Plus,
   Search,
   History,
+  Building2,
+  X,
 } from "lucide-react";
 
 // ============================================================
@@ -1259,11 +1263,12 @@ function ActiveMeetingView({
 
   // Data hooks
   const { data: scorecard } = useScorecard();
-  const { data: rocks } = useRocks(getCurrentQuarter());
+  const { data: allRocks } = useRocks(getCurrentQuarter());
   const weekStart = getWeekStart();
-  const { data: todos } = useTodos({ weekOf: weekStart.toISOString() });
-  const { data: issues } = useIssues({ status: "open" });
-  const { data: discussingIssues } = useIssues({ status: "in_discussion" });
+  const { data: allTodos } = useTodos({ weekOf: weekStart.toISOString() });
+  const { data: allOpenIssues } = useIssues({ status: "open" });
+  const { data: allDiscussingIssues } = useIssues({ status: "in_discussion" });
+  const { data: services } = useServices("active");
   const { data: users } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["users-list"],
     queryFn: async () => {
@@ -1272,6 +1277,65 @@ function ActiveMeetingView({
       return res.json();
     },
   });
+
+  // Service-level scoping: filter data by meeting's serviceIds
+  const meetingServiceIds = meeting.serviceIds || [];
+  const hasServiceScope = meetingServiceIds.length > 0;
+
+  // Filter rocks by service scope
+  const rocks = useMemo(() => {
+    if (!allRocks) return undefined;
+    if (!hasServiceScope) return allRocks;
+    return allRocks.filter(
+      (r) => r.serviceId && meetingServiceIds.includes(r.serviceId)
+    );
+  }, [allRocks, hasServiceScope, meetingServiceIds]);
+
+  // Filter scorecard: only show measurables for scoped services
+  const filteredScorecard = useMemo(() => {
+    if (!scorecard) return undefined;
+    if (!hasServiceScope) return scorecard;
+    return {
+      ...scorecard,
+      measurables: scorecard.measurables.filter(
+        (m) => m.serviceId && meetingServiceIds.includes(m.serviceId)
+      ),
+    };
+  }, [scorecard, hasServiceScope, meetingServiceIds]);
+
+  // Filter todos by service scope
+  const todos = useMemo(() => {
+    if (!allTodos) return undefined;
+    if (!hasServiceScope) return allTodos;
+    return allTodos.filter(
+      (t) => t.serviceId && meetingServiceIds.includes(t.serviceId)
+    );
+  }, [allTodos, hasServiceScope, meetingServiceIds]);
+
+  // Filter issues by service scope
+  const issues = useMemo(() => {
+    if (!allOpenIssues) return undefined;
+    if (!hasServiceScope) return allOpenIssues;
+    return allOpenIssues.filter(
+      (i) => i.serviceId && meetingServiceIds.includes(i.serviceId)
+    );
+  }, [allOpenIssues, hasServiceScope, meetingServiceIds]);
+
+  const discussingIssues = useMemo(() => {
+    if (!allDiscussingIssues) return undefined;
+    if (!hasServiceScope) return allDiscussingIssues;
+    return allDiscussingIssues.filter(
+      (i) => i.serviceId && meetingServiceIds.includes(i.serviceId)
+    );
+  }, [allDiscussingIssues, hasServiceScope, meetingServiceIds]);
+
+  // Service names for display
+  const scopedServiceNames = useMemo(() => {
+    if (!hasServiceScope || !services) return [];
+    return services
+      .filter((s) => meetingServiceIds.includes(s.id))
+      .map((s) => s.name);
+  }, [hasServiceScope, services, meetingServiceIds]);
 
   // Merge open + discussing issues for IDS
   const allIDSIssues = [
@@ -1397,6 +1461,14 @@ function ActiveMeetingView({
           </h2>
           <p className="text-xs text-gray-500">
             {formatDateAU(meeting.date)}{" "}
+            {scopedServiceNames.length > 0 && (
+              <>
+                &middot;{" "}
+                <span className="text-[#004E64] font-medium">
+                  {scopedServiceNames.join(", ")}
+                </span>
+              </>
+            )}
             {isCompleted && meeting.rating && (
               <>
                 &middot; Rated{" "}
@@ -1546,7 +1618,7 @@ function ActiveMeetingView({
               <SegueSection notes={segueNotes} onUpdate={setSegueNotes} />
             )}
             {currentSection === 1 && (
-              <ScorecardSection scorecard={scorecard} onDropToIDS={handleDropToIDS} />
+              <ScorecardSection scorecard={filteredScorecard} onDropToIDS={handleDropToIDS} />
             )}
             {currentSection === 2 && (
               <RockReviewSection rocks={rocks} />
@@ -1748,7 +1820,7 @@ function ActiveMeetingView({
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">Scorecard items</span>
                   <span className="text-xs font-semibold text-gray-700">
-                    {scorecard ? scorecard.measurables.length : "--"}
+                    {filteredScorecard ? filteredScorecard.measurables.length : "--"}
                   </span>
                 </div>
               </div>
@@ -1764,22 +1836,185 @@ function ActiveMeetingView({
 // Main Page Component
 // ============================================================
 
+// ============================================================
+// Start Meeting Dialog (Service Selector)
+// ============================================================
+
+function StartMeetingDialog({
+  onStart,
+  onCancel,
+  isPending,
+}: {
+  onStart: (serviceIds: string[]) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  const { data: services } = useServices("active");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+
+  const toggleService = (id: string) => {
+    setSelectedServiceIds((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+
+  const selectAll = () => {
+    if (services) setSelectedServiceIds(services.map((s) => s.id));
+  };
+
+  const clearAll = () => setSelectedServiceIds([]);
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 bg-black/30 z-50"
+        onClick={onCancel}
+      />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-gray-900">
+                Start L10 Meeting
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Select which services to include in this meeting
+              </p>
+            </div>
+            <button
+              onClick={onCancel}
+              className="p-1 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onStart([])}
+                className="text-xs px-3 py-1.5 border border-[#004E64] text-[#004E64] rounded-lg hover:bg-[#004E64]/5 transition-colors font-medium"
+              >
+                Company-Wide Meeting
+              </button>
+              <button
+                onClick={selectAll}
+                className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                Select All
+              </button>
+              {selectedServiceIds.length > 0 && (
+                <button
+                  onClick={clearAll}
+                  className="text-xs px-3 py-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Services Grid */}
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {services?.map((service) => {
+                const selected = selectedServiceIds.includes(service.id);
+                return (
+                  <button
+                    key={service.id}
+                    onClick={() => toggleService(service.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left",
+                      selected
+                        ? "border-[#004E64] bg-[#004E64]/5"
+                        : "border-gray-200 hover:border-gray-300"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                        selected
+                          ? "bg-[#004E64] border-[#004E64]"
+                          : "border-gray-300"
+                      )}
+                    >
+                      {selected && (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {service.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {service.code}
+                        {service.state ? ` · ${service.state}` : ""}
+                      </p>
+                    </div>
+                    <Building2 className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                  </button>
+                );
+              })}
+              {(!services || services.length === 0) && (
+                <p className="text-center text-sm text-gray-400 py-4">
+                  No active services found
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+            <span className="text-xs text-gray-500">
+              {selectedServiceIds.length > 0
+                ? `${selectedServiceIds.length} service${selectedServiceIds.length > 1 ? "s" : ""} selected`
+                : "Company-wide (no service filter)"}
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={onCancel}
+                className="text-xs px-4 py-2 text-gray-500 hover:text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => onStart(selectedServiceIds)}
+                disabled={isPending}
+                className="text-xs px-4 py-2 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] transition-colors font-medium disabled:opacity-50"
+              >
+                {isPending ? "Starting..." : selectedServiceIds.length > 0 ? "Start Service Meeting" : "Start Meeting"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function MeetingsPage() {
   const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null);
+  const [showStartDialog, setShowStartDialog] = useState(false);
 
   const { data: meetings, isLoading } = useMeetings({ limit: 100 });
   const createMeeting = useCreateMeeting();
 
   const activeMeeting = meetings?.find((m) => m.id === activeMeetingId);
 
-  const handleStartNew = async () => {
+  const handleStartNew = () => {
+    setShowStartDialog(true);
+  };
+
+  const handleConfirmStart = async (serviceIds: string[]) => {
     const now = new Date();
-    const title = `L10 Meeting — ${formatDateAU(now)}`;
+    const title = serviceIds.length > 0
+      ? `L10 Meeting — ${formatDateAU(now)}`
+      : `L10 Meeting — ${formatDateAU(now)}`;
     try {
       const newMeeting = await createMeeting.mutateAsync({
         title,
         date: now.toISOString(),
+        serviceIds,
       });
+      setShowStartDialog(false);
       setActiveMeetingId(newMeeting.id);
     } catch {
       // Error handled by mutation
@@ -1808,10 +2043,19 @@ export default function MeetingsPage() {
   }
 
   return (
-    <MeetingListView
-      meetings={meetings || []}
-      onStartNew={handleStartNew}
-      onSelect={handleSelectMeeting}
-    />
+    <>
+      <MeetingListView
+        meetings={meetings || []}
+        onStartNew={handleStartNew}
+        onSelect={handleSelectMeeting}
+      />
+      {showStartDialog && (
+        <StartMeetingDialog
+          onStart={handleConfirmStart}
+          onCancel={() => setShowStartDialog(false)}
+          isPending={createMeeting.isPending}
+        />
+      )}
+    </>
   );
 }

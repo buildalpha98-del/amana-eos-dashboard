@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
       title: parsed.data.title,
       description: parsed.data.description || null,
       assigneeId: parsed.data.assigneeId,
+      createdById: session!.user.id,
       rockId: parsed.data.rockId || null,
       issueId: parsed.data.issueId || null,
       serviceId: parsed.data.serviceId || null,

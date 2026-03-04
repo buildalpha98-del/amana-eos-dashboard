@@ -10,6 +10,13 @@ export interface MeetingUser {
   avatar: string | null;
 }
 
+export interface MeetingCascade {
+  id: string;
+  message: string;
+  publishedAt: string;
+  createdAt: string;
+}
+
 export interface MeetingData {
   id: string;
   title: string;
@@ -22,10 +29,13 @@ export interface MeetingData {
   segueNotes: string | null;
   concludeNotes: string | null;
   cascadeMessages: string | null;
+  serviceIds: string[];
+  rockIds: string[];
   startedAt: string | null;
   completedAt: string | null;
   createdById: string;
   createdBy: MeetingUser;
+  cascades?: MeetingCascade[];
   createdAt: string;
   updatedAt: string;
 }
@@ -62,7 +72,11 @@ export function useMeeting(id: string) {
 export function useCreateMeeting() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { title: string; date: string }) => {
+    mutationFn: async (data: {
+      title: string;
+      date: string;
+      serviceIds?: string[];
+    }) => {
       const res = await fetch("/api/meetings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -97,6 +111,8 @@ export function useUpdateMeeting() {
       segueNotes?: string | null;
       concludeNotes?: string | null;
       cascadeMessages?: string | null;
+      serviceIds?: string[];
+      rockIds?: string[];
     }) => {
       const res = await fetch(`/api/meetings/${id}`, {
         method: "PATCH",

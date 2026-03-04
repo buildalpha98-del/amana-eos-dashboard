@@ -20,6 +20,7 @@ export interface TodoData {
   rock: { id: string; title: string } | null;
   issueId: string | null;
   issue: { id: string; title: string } | null;
+  serviceId: string | null;
   isPrivate: boolean;
   dueDate: string;
   weekOf: string;
