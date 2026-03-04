@@ -22,6 +22,7 @@ interface KeyMetrics {
 
 interface KeyMetricsBarProps {
   metrics: KeyMetrics;
+  hideFinancials?: boolean;
 }
 
 const formatCurrency = (value: number) => {
@@ -30,14 +31,15 @@ const formatCurrency = (value: number) => {
   return `$${value.toFixed(0)}`;
 };
 
-export function KeyMetricsBar({ metrics }: KeyMetricsBarProps) {
-  const items = [
+export function KeyMetricsBar({ metrics, hideFinancials }: KeyMetricsBarProps) {
+  const allItems = [
     {
       label: "Revenue",
       fullLabel: "Total Revenue",
       value: formatCurrency(metrics.totalRevenue),
       icon: DollarSign,
       color: "#10B981",
+      financial: true,
     },
     {
       label: "Occupancy",
@@ -45,6 +47,7 @@ export function KeyMetricsBar({ metrics }: KeyMetricsBarProps) {
       value: `${metrics.avgOccupancy}%`,
       icon: Users,
       color: "#3B82F6",
+      financial: false,
     },
     {
       label: "NPS",
@@ -52,6 +55,7 @@ export function KeyMetricsBar({ metrics }: KeyMetricsBarProps) {
       value: `${metrics.overallNps}`,
       icon: ThumbsUp,
       color: "#8B5CF6",
+      financial: false,
     },
     {
       label: "Tickets",
@@ -59,6 +63,7 @@ export function KeyMetricsBar({ metrics }: KeyMetricsBarProps) {
       value: `${metrics.openTickets}`,
       icon: MessageSquare,
       color: "#F59E0B",
+      financial: true,
     },
     {
       label: "Centres",
@@ -66,6 +71,7 @@ export function KeyMetricsBar({ metrics }: KeyMetricsBarProps) {
       value: `${metrics.activeCentres}`,
       icon: Building2,
       color: "#004E64",
+      financial: false,
     },
     {
       label: "On Track",
@@ -73,6 +79,7 @@ export function KeyMetricsBar({ metrics }: KeyMetricsBarProps) {
       value: `${metrics.rocksOnTrack}`,
       icon: Mountain,
       color: "#004E64",
+      financial: false,
     },
     {
       label: "Overdue",
@@ -80,12 +87,15 @@ export function KeyMetricsBar({ metrics }: KeyMetricsBarProps) {
       value: `${metrics.todosOverdue}`,
       icon: Clock,
       color: metrics.todosOverdue > 0 ? "#EF4444" : "#10B981",
+      financial: false,
     },
   ];
 
+  const items = hideFinancials ? allItems.filter((i) => !i.financial) : allItems;
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+      <div className={`grid grid-cols-2 sm:grid-cols-3 ${hideFinancials ? "lg:grid-cols-5" : "sm:grid-cols-4 lg:grid-cols-7"} gap-4`}>
         {items.map((item) => (
           <div key={item.label} className="flex items-center gap-3" title={item.fullLabel}>
             <div

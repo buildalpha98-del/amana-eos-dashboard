@@ -65,7 +65,20 @@ function InviteUserModal({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("member");
+  const [serviceId, setServiceId] = useState("");
   const [error, setError] = useState("");
+
+  // Fetch services for the service picker
+  const { data: services } = useQuery<{ id: string; name: string; code: string }[]>({
+    queryKey: ["services-list"],
+    queryFn: async () => {
+      const res = await fetch("/api/services");
+      if (!res.ok) throw new Error("Failed to fetch services");
+      return res.json();
+    },
+  });
+
+  const needsService = role === "staff" || role === "member";
 
   const createUser = useMutation({
     mutationFn: async (data: {
@@ -73,6 +86,7 @@ function InviteUserModal({
       email: string;
       password: string;
       role: Role;
+      serviceId?: string | null;
     }) => {
       const res = await fetch("/api/users", {
         method: "POST",
@@ -91,6 +105,7 @@ function InviteUserModal({
       setEmail("");
       setPassword("");
       setRole("member");
+      setServiceId("");
       setError("");
       onClose();
     },
@@ -125,7 +140,7 @@ function InviteUserModal({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            createUser.mutate({ name, email, password, role });
+            createUser.mutate({ name, email, password, role, serviceId: needsService ? serviceId || null : null });
           }}
           className="space-y-4"
         >
@@ -178,14 +193,39 @@ function InviteUserModal({
             </label>
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value as Role)}
+              onChange={(e) => { setRole(e.target.value as Role); if (e.target.value !== "staff" && e.target.value !== "member") setServiceId(""); }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
             >
+              <option value="staff">Staff</option>
               <option value="member">Member</option>
               <option value="admin">Admin</option>
               <option value="owner">Owner</option>
             </select>
           </div>
+
+          {needsService && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Service / Centre <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              >
+                <option value="">Select a service...</option>
+                {services?.map((svc) => (
+                  <option key={svc.id} value={svc.id}>
+                    {svc.name} ({svc.code})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                {role === "staff" ? "Staff" : "Members"} are scoped to their assigned service
+              </p>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button

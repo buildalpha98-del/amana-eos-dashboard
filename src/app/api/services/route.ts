@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getServiceScope } from "@/lib/service-scope";
 
 const createServiceSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -22,14 +23,18 @@ const createServiceSchema = z.object({
 
 // GET /api/services
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
+  const scope = getServiceScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
 
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
+
+  // Member/staff: only see their assigned service
+  if (scope) where.id = scope;
 
   const services = await prisma.service.findMany({
     where,

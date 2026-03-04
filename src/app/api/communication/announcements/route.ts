@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getServiceScope } from "@/lib/service-scope";
 
 const createAnnouncementSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -36,6 +37,15 @@ export async function GET(req: NextRequest) {
     // Show both published and drafts — no publishedAt filter
   } else {
     where.publishedAt = { not: null };
+  }
+
+  // Member/staff: only see announcements for their service or company-wide (serviceId = null)
+  const scope = getServiceScope(session);
+  if (scope) {
+    where.OR = [
+      { serviceId: scope },
+      { serviceId: null },
+    ];
   }
 
   const announcements = await prisma.announcement.findMany({

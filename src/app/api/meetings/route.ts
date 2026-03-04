@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getServiceScope } from "@/lib/service-scope";
 
 const createMeetingSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -11,9 +12,10 @@ const createMeetingSchema = z.object({
 
 // GET /api/meetings — list meetings ordered by date desc
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
+  const scope = getServiceScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const limit = parseInt(searchParams.get("limit") || "20", 10);
@@ -21,6 +23,8 @@ export async function GET(req: NextRequest) {
   const meetings = await prisma.meeting.findMany({
     where: {
       ...(status ? { status: status as "scheduled" | "in_progress" | "completed" | "cancelled" } : {}),
+      // Member/staff: only see meetings linked to their service
+      ...(scope ? { serviceIds: { has: scope } } : {}),
     },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },

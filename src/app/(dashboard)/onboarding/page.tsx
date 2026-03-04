@@ -17,6 +17,8 @@ import {
   useEnrollStaff,
   useUnenrollStaff,
   useUpdateModuleProgress,
+  useSelfEnrol,
+  useMyEnrollments,
 } from "@/hooks/useLMS";
 import { ModuleEditor } from "@/components/lms/ModuleEditor";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -79,6 +81,195 @@ const MODULE_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string
   external_link: ExternalLink,
 };
 
+/* ------------------------------------------------------------------ */
+/* Staff / Member LMS View                                             */
+/* ------------------------------------------------------------------ */
+
+function StaffLMSView() {
+  const { data: myEnrollments = [], isLoading: enrollLoading } = useMyEnrollments();
+  const { data: allCourses = [], isLoading: coursesLoading } = useLMSCourses("published");
+  const selfEnrol = useSelfEnrol();
+  const updateProgress = useUpdateModuleProgress();
+  const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null);
+  const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
+
+  const enrolledCourseIds = new Set(myEnrollments.map((e) => e.courseId));
+  const availableCourses = allCourses.filter((c) => !enrolledCourseIds.has(c.id));
+
+  const isLoading = enrollLoading || coursesLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* My Courses */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-[#004E64]" />
+          My Courses
+          <span className="text-sm font-normal text-gray-400">({myEnrollments.length})</span>
+        </h3>
+
+        {myEnrollments.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
+            <GraduationCap className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+            <p className="text-gray-500">You haven&apos;t enrolled in any courses yet.</p>
+            <p className="text-sm text-gray-400 mt-1">Browse available courses below to get started.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {myEnrollments.map((enrollment) => {
+              const course = enrollment.course;
+              const totalModules = course.modules?.length || 0;
+              const completedModules = enrollment.moduleProgress?.filter((p) => p.completed).length || 0;
+              const progress = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+              const isExpanded = expandedCourseId === enrollment.id;
+
+              return (
+                <div key={enrollment.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => setExpandedCourseId(isExpanded ? null : enrollment.id)}
+                    className="w-full p-4 flex items-center gap-4 text-left hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{course.title}</p>
+                      <p className="text-sm text-gray-500 truncate">{course.description}</p>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-gray-900">{progress}%</p>
+                        <p className="text-xs text-gray-400">{completedModules}/{totalModules} modules</p>
+                      </div>
+                      <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            progress >= 100 ? "bg-emerald-500" : progress > 0 ? "bg-[#004E64]" : "bg-gray-200"
+                          )}
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                    </div>
+                  </button>
+
+                  {isExpanded && course.modules && (
+                    <div className="border-t border-gray-100 divide-y divide-gray-50">
+                      {course.modules.map((mod) => {
+                        const moduleProgress = enrollment.moduleProgress?.find((p) => p.moduleId === mod.id);
+                        const isComplete = moduleProgress?.completed || false;
+                        const isModExpanded = expandedModuleId === mod.id;
+                        const ModIcon = MODULE_TYPE_ICONS[mod.type] || FileText;
+
+                        return (
+                          <div key={mod.id}>
+                            <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                              <button
+                                onClick={() =>
+                                  updateProgress.mutate({
+                                    enrollmentId: enrollment.id,
+                                    moduleId: mod.id,
+                                    completed: !isComplete,
+                                  })
+                                }
+                                className="flex-shrink-0"
+                              >
+                                {isComplete ? (
+                                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                ) : (
+                                  <Circle className="w-5 h-5 text-gray-300 hover:text-[#004E64]" />
+                                )}
+                              </button>
+                              <ModIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                              <button
+                                onClick={() => setExpandedModuleId(isModExpanded ? null : mod.id)}
+                                className="flex-1 text-left"
+                              >
+                                <p className={cn("text-sm font-medium", isComplete ? "text-gray-400 line-through" : "text-gray-900")}>
+                                  {mod.title}
+                                </p>
+                              </button>
+                              {mod.content && (
+                                <button
+                                  onClick={() => setExpandedModuleId(isModExpanded ? null : mod.id)}
+                                  className="text-xs text-[#004E64] hover:underline flex-shrink-0"
+                                >
+                                  {isModExpanded ? "Hide" : "View"}
+                                </button>
+                              )}
+                            </div>
+                            {isModExpanded && mod.content && (
+                              <div className="px-12 pb-3">
+                                <div className="prose prose-sm max-w-none text-gray-600 whitespace-pre-wrap text-xs leading-relaxed">
+                                  {mod.content}
+                                </div>
+                                {mod.resourceUrl && (
+                                  <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#004E64] hover:underline mt-2">
+                                    <ExternalLink className="w-3 h-3" /> Open resource
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Available Courses */}
+      {availableCourses.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-amber-500" />
+            Available Courses
+            <span className="text-sm font-normal text-gray-400">({availableCourses.length})</span>
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {availableCourses.map((course) => (
+              <div key={course.id} className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col">
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900 mb-1">{course.title}</p>
+                  <p className="text-sm text-gray-500 line-clamp-2 mb-3">{course.description}</p>
+                  <div className="flex items-center gap-3 text-xs text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <BookOpen className="w-3.5 h-3.5" />
+                      {course._count.modules} modules
+                    </span>
+                    {course.category && (
+                      <span className="px-2 py-0.5 bg-gray-100 rounded-full text-gray-500">{course.category}</span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => selfEnrol.mutate(course.id)}
+                  disabled={selfEnrol.isPending}
+                  className="mt-4 w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  {selfEnrol.isPending ? "Enrolling..." : "Enrol"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function OnboardingPage() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
@@ -86,6 +277,7 @@ export default function OnboardingPage() {
   const isAdmin = hasMinRole(role, "admin");
   const isOwner = role === "owner";
   const isStaff = role === "staff";
+  const isServiceScoped = role === "staff" || role === "member";
 
   const [activeTab, setActiveTab] = useState<"onboarding" | "lms">("onboarding");
   const [showCreatePack, setShowCreatePack] = useState(false);
@@ -583,7 +775,11 @@ export default function OnboardingPage() {
       )}
 
       {/* LMS Tab */}
-      {activeTab === "lms" && (
+      {activeTab === "lms" && isServiceScoped && (
+        <StaffLMSView />
+      )}
+
+      {activeTab === "lms" && !isServiceScoped && (
         <div className="space-y-6">
           {courses.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">

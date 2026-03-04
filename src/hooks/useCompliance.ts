@@ -13,6 +13,8 @@ export interface ComplianceCertData {
   issueDate: string;
   expiryDate: string;
   notes: string | null;
+  fileUrl: string | null;
+  fileName: string | null;
   alertDays: number;
   acknowledged: boolean;
   createdAt: string;
@@ -46,6 +48,8 @@ export function useCreateCert() {
       expiryDate: string;
       notes?: string | null;
       alertDays?: number;
+      fileUrl?: string | null;
+      fileName?: string | null;
     }) => {
       const res = await fetch("/api/compliance", {
         method: "POST",

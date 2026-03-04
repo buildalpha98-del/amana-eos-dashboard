@@ -1411,6 +1411,8 @@ model ComplianceCertificate {
   issueDate   DateTime
   expiryDate  DateTime
   notes       String?         @db.Text
+  fileUrl     String?
+  fileName    String?
   alertDays   Int             @default(30)
   acknowledged Boolean        @default(false)
   createdAt   DateTime        @default(now())

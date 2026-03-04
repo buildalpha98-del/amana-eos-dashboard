@@ -98,6 +98,47 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(progress);
   }
 
+  // ── Mode C: Self-enrol (staff/member can enrol themselves) ──
+  if (body.selfEnrol && body.courseId) {
+    const courseId = body.courseId as string;
+    const course = await prisma.lMSCourse.findUnique({
+      where: { id: courseId },
+      include: { modules: true },
+    });
+
+    if (!course || course.deleted || course.status !== "published") {
+      return NextResponse.json({ error: "Course not found or not published" }, { status: 404 });
+    }
+
+    // Check not already enrolled
+    const existing = await prisma.lMSEnrollment.findFirst({
+      where: { courseId, userId: session!.user.id },
+    });
+    if (existing) {
+      return NextResponse.json({ error: "You are already enrolled in this course" }, { status: 409 });
+    }
+
+    const enrollment = await prisma.lMSEnrollment.create({
+      data: {
+        userId: session!.user.id,
+        courseId,
+        moduleProgress: {
+          create: course.modules.map((mod) => ({
+            moduleId: mod.id,
+            completed: false,
+          })),
+        },
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        course: { select: { id: true, title: true } },
+        moduleProgress: true,
+      },
+    });
+
+    return NextResponse.json({ enrolled: 1, enrollments: [enrollment] }, { status: 201 });
+  }
+
   // ── Mode A: Enrol staff (owner/admin only) ──
   if (session!.user.role !== "owner" && session!.user.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

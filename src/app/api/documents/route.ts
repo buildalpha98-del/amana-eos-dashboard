@@ -28,8 +28,8 @@ export async function GET(req: NextRequest) {
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 50));
 
-  // Staff users can only see documents for their assigned service + company-wide docs
-  const isStaff = session!.user.role === "staff";
+  // Staff/member users can only see documents for their assigned service + company-wide docs
+  const isServiceScoped = ["staff", "member"].includes(session!.user.role);
   const staffServiceId = session!.user.serviceId;
 
   const where: Record<string, unknown> = {
@@ -47,8 +47,8 @@ export async function GET(req: NextRequest) {
       : {}),
   };
 
-  // Staff service scoping: show their service docs + company-wide (centreId = null)
-  if (isStaff && staffServiceId) {
+  // Staff/member service scoping: show their service docs + company-wide (centreId = null)
+  if (isServiceScoped && staffServiceId) {
     where.OR = [
       { centreId: staffServiceId },
       { centreId: null },

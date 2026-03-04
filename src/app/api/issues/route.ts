@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getServiceScope } from "@/lib/service-scope";
 import { notifyNewIssue } from "@/lib/teams-notify";
 
 const createIssueSchema = z.object({
@@ -15,9 +16,10 @@ const createIssueSchema = z.object({
 
 // GET /api/issues — list issues with optional filters
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
+  const scope = getServiceScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const priority = searchParams.get("priority");
@@ -32,6 +34,15 @@ export async function GET(req: NextRequest) {
   if (ownerId) where.ownerId = ownerId;
   if (rockId) where.rockId = rockId;
   if (serviceId) where.serviceId = serviceId;
+
+  // Member/staff: only see issues for their service or raised by/owned by them
+  if (scope) {
+    where.OR = [
+      { serviceId: scope },
+      { raisedById: session!.user.id },
+      { ownerId: session!.user.id },
+    ];
+  }
 
   const issues = await prisma.issue.findMany({
     where,

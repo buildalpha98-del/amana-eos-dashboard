@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useServices } from "@/hooks/useServices";
 import { ServiceCard } from "@/components/services/ServiceCard";
 import { CreateServiceModal } from "@/components/services/CreateServiceModal";
@@ -46,8 +47,18 @@ const swimLanes = [
 
 export default function ServicesPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+
+  // Member/staff: redirect to their assigned service
+  const role = (session?.user?.role as string) || "";
+  const serviceId = session?.user?.serviceId as string | undefined;
+  useEffect(() => {
+    if ((role === "staff" || role === "member") && serviceId) {
+      router.replace(`/services/${serviceId}`);
+    }
+  }, [role, serviceId, router]);
 
   // Fetch all services (no status filter — we group client-side)
   const { data: services, isLoading } = useServices();

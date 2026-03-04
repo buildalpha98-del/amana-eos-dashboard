@@ -442,12 +442,24 @@ export async function GET() {
     todosOverdue: overdueCount,
   };
 
+  // Strip financial data for member/staff roles
+  const role = session!.user.role as string;
+  const isServiceScoped = role === "staff" || role === "member";
+
   return NextResponse.json({
-    centreHealth,
+    centreHealth: isServiceScoped
+      ? centreHealth.map((c) => ({ ...c, metrics: { ...c.metrics, margin: 0 } }))
+      : centreHealth,
     networkAvgScore,
-    trends,
-    actionItems,
-    keyMetrics,
+    trends: isServiceScoped
+      ? { ...trends, revenue: [] }
+      : trends,
+    actionItems: isServiceScoped
+      ? { ...actionItems, unassignedTickets: [], overdueRocks: [] }
+      : actionItems,
+    keyMetrics: isServiceScoped
+      ? { ...keyMetrics, totalRevenue: 0, openTickets: 0 }
+      : keyMetrics,
     projectTodos: projectTodosFormatted,
   });
 }

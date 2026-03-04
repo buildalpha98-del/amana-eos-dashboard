@@ -13,6 +13,8 @@ const createCertSchema = z.object({
   expiryDate: z.string().min(1),
   notes: z.string().optional().nullable(),
   alertDays: z.number().optional(),
+  fileUrl: z.string().optional().nullable(),
+  fileName: z.string().optional().nullable(),
 });
 
 export async function GET(req: NextRequest) {
@@ -24,10 +26,16 @@ export async function GET(req: NextRequest) {
   const upcoming = searchParams.get("upcoming"); // "30" = next 30 days
 
   const scope = getServiceScope(session);
+  const role = session!.user.role as string;
   const where: Record<string, unknown> = {};
 
   if (scope) {
-    where.serviceId = scope;
+    // Staff only see their own certs; member sees their service's certs
+    if (role === "staff") {
+      where.userId = session!.user.id;
+    } else {
+      where.serviceId = scope;
+    }
   } else if (serviceId) {
     where.serviceId = serviceId;
   }
@@ -52,7 +60,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth();
   if (error) return error;
 
   const body = await req.json();
@@ -62,16 +70,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
+  const role = session!.user.role as string;
+  const isServiceScoped = role === "staff" || role === "member";
+
+  // Staff/member: force userId to themselves and serviceId to their assigned service
+  const finalServiceId = isServiceScoped ? (session!.user.serviceId as string) : parsed.data.serviceId;
+  const finalUserId = isServiceScoped ? session!.user.id : (parsed.data.userId || null);
+
+  if (!finalServiceId) {
+    return NextResponse.json({ error: "Service ID is required" }, { status: 400 });
+  }
+
   const cert = await prisma.complianceCertificate.create({
     data: {
-      serviceId: parsed.data.serviceId,
-      userId: parsed.data.userId || null,
+      serviceId: finalServiceId,
+      userId: finalUserId,
       type: parsed.data.type,
       label: parsed.data.label || null,
       issueDate: new Date(parsed.data.issueDate),
       expiryDate: new Date(parsed.data.expiryDate),
       notes: parsed.data.notes || null,
       alertDays: parsed.data.alertDays ?? 30,
+      fileUrl: parsed.data.fileUrl || null,
+      fileName: parsed.data.fileName || null,
     },
     include: {
       service: { select: { id: true, name: true, code: true } },

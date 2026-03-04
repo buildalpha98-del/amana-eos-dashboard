@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getServiceScope } from "@/lib/service-scope";
 import { notifyNewRock } from "@/lib/teams-notify";
 
 const createRockSchema = z.object({
@@ -17,9 +18,10 @@ const createRockSchema = z.object({
 
 // GET /api/rocks — list rocks with optional quarter filter
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
+  const scope = getServiceScope(session);
   const { searchParams } = new URL(req.url);
   const quarter = searchParams.get("quarter");
   const serviceId = searchParams.get("serviceId");
@@ -30,6 +32,14 @@ export async function GET(req: NextRequest) {
   if (quarter) where.quarter = quarter;
   if (serviceId) where.serviceId = serviceId;
   if (rockType) where.rockType = rockType;
+
+  // Member/staff: only see rocks for their service or owned by them
+  if (scope) {
+    where.OR = [
+      { serviceId: scope },
+      { ownerId: session!.user.id },
+    ];
+  }
 
   const rocks = await prisma.rock.findMany({
     where,

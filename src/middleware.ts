@@ -50,17 +50,24 @@ const rolePageAccess: Record<string, string[]> = {
   ],
   member: [
     "/dashboard",
-    "/vision",
     "/rocks",
     "/todos",
     "/issues",
-    "/scorecard",
     "/meetings",
     "/services",
-    "/projects",
     "/communication",
+    "/compliance",
     "/documents",
-    // No /financials, /performance, /team, /settings, /tickets, /marketing
+    "/onboarding",
+    // No /vision, /scorecard, /projects, /financials, /performance, /team, /settings, /tickets, /marketing
+  ],
+  staff: [
+    "/dashboard",
+    "/documents",
+    "/communication",
+    "/onboarding",
+    "/todos",
+    "/compliance",
   ],
 };
 
@@ -118,6 +125,8 @@ export const config = {
     "/services/:path*",
     "/projects/:path*",
     "/documents/:path*",
+    "/compliance/:path*",
+    "/onboarding/:path*",
     "/api/rocks/:path*",
     "/api/todos/:path*",
     "/api/issues/:path*",

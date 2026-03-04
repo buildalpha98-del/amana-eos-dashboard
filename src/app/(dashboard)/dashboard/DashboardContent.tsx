@@ -83,6 +83,9 @@ export function DashboardContent() {
   const periodOptions = getPeriodOptions();
   const { data, isLoading } = useDashboardData(period);
 
+  const role = (session?.user?.role as string) || "";
+  const isServiceScoped = role === "staff" || role === "member";
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Welcome Header */}
@@ -93,24 +96,26 @@ export function DashboardContent() {
           </h2>
           <p className="text-gray-500 mt-1">
             Welcome back, {session?.user?.name?.split(" ")[0] || "there"} &mdash;{" "}
-            overview across all centres.
+            {isServiceScoped ? "your centre overview." : "overview across all centres."}
           </p>
         </div>
-        <div className="flex items-center bg-gray-100 rounded-lg p-0.5 overflow-x-auto">
-          {periodOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setPeriod(opt.value)}
-              className={`px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
-                period === opt.value
-                  ? "bg-white text-[#004E64] shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
+        {!isServiceScoped && (
+          <div className="flex items-center bg-gray-100 rounded-lg p-0.5 overflow-x-auto">
+            {periodOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setPeriod(opt.value)}
+                className={`px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                  period === opt.value
+                    ? "bg-white text-[#004E64] shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -128,7 +133,18 @@ export function DashboardContent() {
           />
 
           {/* ── Key Metrics Bar ─────────────────────────────── */}
-          <KeyMetricsBar metrics={data.keyMetrics} />
+          {isServiceScoped ? (
+            <KeyMetricsBar
+              metrics={{
+                ...data.keyMetrics,
+                totalRevenue: 0,
+                openTickets: 0,
+              }}
+              hideFinancials
+            />
+          ) : (
+            <KeyMetricsBar metrics={data.keyMetrics} />
+          )}
 
           {/* ── Company & Personal Rocks at a Glance ─────── */}
           <DashboardRocks />
@@ -137,26 +153,30 @@ export function DashboardContent() {
           <DashboardAnnouncements />
 
           {/* ── Centre Health Heatmap ──────────────────────── */}
-          <CentreHealthHeatmap centres={data.centreHealth} networkAvgScore={data.networkAvgScore} />
+          {!isServiceScoped && (
+            <CentreHealthHeatmap centres={data.centreHealth} networkAvgScore={data.networkAvgScore} />
+          )}
 
           {/* ── Project To-Dos ─────────────────────────────── */}
-          <DashboardProjectTodos todos={data.projectTodos} />
+          {!isServiceScoped && (
+            <DashboardProjectTodos todos={data.projectTodos} />
+          )}
 
           {/* ── Sparklines + Action Items ──────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             <div className="lg:col-span-3">
               <TrendSparklines
-                revenue={data.trends.revenue}
+                revenue={isServiceScoped ? [] : data.trends.revenue}
                 enrolments={data.trends.enrolments}
-                tickets={data.trends.tickets}
+                tickets={isServiceScoped ? [] : data.trends.tickets}
               />
             </div>
             <div className="lg:col-span-2">
               <ActionItemsFeed
                 overdueTodos={data.actionItems.overdueTodos}
-                unassignedTickets={data.actionItems.unassignedTickets}
+                unassignedTickets={isServiceScoped ? [] : data.actionItems.unassignedTickets}
                 idsIssues={data.actionItems.idsIssues}
-                overdueRocks={data.actionItems.overdueRocks}
+                overdueRocks={isServiceScoped ? [] : data.actionItems.overdueRocks}
               />
             </div>
           </div>

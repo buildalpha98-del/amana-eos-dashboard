@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import {
   useComplianceCerts,
   useCreateCert,
@@ -18,6 +19,9 @@ import {
   X,
   Trash2,
   Eye,
+  Upload,
+  FileText,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -135,7 +139,222 @@ function monthLabel(key: string) {
 /* Component                                                           */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Staff / Member Upload View                                          */
+/* ------------------------------------------------------------------ */
+
+function StaffComplianceView() {
+  const { data: certs = [], isLoading } = useComplianceCerts();
+  const createCert = useCreateCert();
+  const [uploading, setUploading] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadType, setUploadType] = useState<string>("");
+
+  const certMap = useMemo(() => {
+    const map: Record<string, ComplianceCertData> = {};
+    certs.forEach((c) => {
+      // Keep latest cert per type
+      if (!map[c.type] || new Date(c.expiryDate) > new Date(map[c.type].expiryDate)) {
+        map[c.type] = c;
+      }
+    });
+    return map;
+  }, [certs]);
+
+  const handleUpload = async (type: string) => {
+    setUploadType(type);
+    fileRef.current?.click();
+  };
+
+  const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadType) return;
+
+    setUploading(uploadType);
+    try {
+      // Upload file via /api/upload
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const { url } = await uploadRes.json();
+
+      // Create compliance cert with file
+      const today = new Date().toISOString().split("T")[0];
+      const oneYearLater = new Date();
+      oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
+      await createCert.mutateAsync({
+        serviceId: "auto", // Will be overridden by API for staff
+        type: uploadType,
+        label: `${typeLabels[uploadType]} - ${file.name}`,
+        issueDate: today,
+        expiryDate: oneYearLater.toISOString().split("T")[0],
+        fileUrl: url,
+        fileName: file.name,
+      });
+    } catch (err) {
+      console.error("Upload error:", err);
+    } finally {
+      setUploading(null);
+      setUploadType("");
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <input
+        ref={fileRef}
+        type="file"
+        className="hidden"
+        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+        onChange={onFileSelected}
+      />
+
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <ShieldCheck className="w-6 h-6 text-[#004E64]" />
+          My Compliance Documents
+        </h2>
+        <p className="text-gray-500 mt-1">
+          Upload and manage your required compliance certificates
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {certTypes.filter((t) => t !== "other").map((type) => {
+          const cert = certMap[type];
+          const days = cert ? daysUntilExpiry(cert.expiryDate) : null;
+          const status = days !== null ? expiryStatus(days) : null;
+          const isUploading = uploading === type;
+
+          return (
+            <div
+              key={type}
+              className={cn(
+                "bg-white rounded-xl border p-5 transition-all",
+                cert
+                  ? status === "expired" || status === "critical"
+                    ? "border-red-200"
+                    : status === "warning"
+                    ? "border-amber-200"
+                    : "border-emerald-200"
+                  : "border-gray-200 border-dashed"
+              )}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "text-xs font-semibold px-2.5 py-1 rounded-full",
+                      typeBadgeColors[type]
+                    )}
+                  >
+                    {typeLabels[type]}
+                  </span>
+                  {cert && status && (
+                    <span
+                      className={cn(
+                        "text-xs font-medium px-2 py-0.5 rounded-lg border",
+                        statusColor(status)
+                      )}
+                    >
+                      {status === "expired"
+                        ? "Expired"
+                        : status === "critical"
+                        ? `${days}d left`
+                        : status === "warning"
+                        ? `${days}d left`
+                        : "Valid"}
+                    </span>
+                  )}
+                </div>
+                {!cert && (
+                  <span className="text-xs text-gray-400 font-medium">Missing</span>
+                )}
+              </div>
+
+              {cert ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Expires</span>
+                    <span className="font-medium text-gray-700">
+                      {formatDate(cert.expiryDate)}
+                    </span>
+                  </div>
+                  {cert.fileUrl && (
+                    <a
+                      href={cert.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-[#004E64] hover:underline"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      {cert.fileName || "View document"}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                  <button
+                    onClick={() => handleUpload(type)}
+                    disabled={isUploading}
+                    className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-[#004E64] border border-[#004E64]/20 rounded-lg hover:bg-[#004E64]/5 transition-colors disabled:opacity-50"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {isUploading ? "Uploading..." : "Upload New Version"}
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center py-3">
+                  <p className="text-sm text-gray-400 mb-3">
+                    No document uploaded yet
+                  </p>
+                  <button
+                    onClick={() => handleUpload(type)}
+                    disabled={isUploading}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {isUploading ? "Uploading..." : "Upload Document"}
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Admin Compliance View                                               */
+/* ------------------------------------------------------------------ */
+
 export default function CompliancePage() {
+  const { data: session } = useSession();
+  const role = (session?.user?.role as string) || "";
+  const isServiceScoped = role === "staff" || role === "member";
+
+  if (isServiceScoped) {
+    return <StaffComplianceView />;
+  }
+
+  return <AdminComplianceView />;
+}
+
+function AdminComplianceView() {
   const [showCreate, setShowCreate] = useState(false);
   const [serviceFilter, setServiceFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -395,10 +614,23 @@ export default function CompliancePage() {
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {cert.user?.name || cert.label || "Unnamed"}
                           </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {cert.service.name}{" "}
-                            <span className="text-gray-400">({cert.service.code})</span>
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-gray-500 truncate">
+                              {cert.service.name}{" "}
+                              <span className="text-gray-400">({cert.service.code})</span>
+                            </p>
+                            {cert.fileUrl && (
+                              <a
+                                href={cert.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs text-[#004E64] hover:underline flex-shrink-0"
+                              >
+                                <FileText className="w-3 h-3" />
+                                File
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </div>
 

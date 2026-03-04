@@ -259,6 +259,40 @@ export function useUnenrollStaff() {
   });
 }
 
+export function useSelfEnrol() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (courseId: string) => {
+      const res = await fetch("/api/lms/enrollments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selfEnrol: true, courseId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to enrol");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-courses"] });
+      qc.invalidateQueries({ queryKey: ["lms-course"] });
+      qc.invalidateQueries({ queryKey: ["my-enrollments"] });
+    },
+  });
+}
+
+export function useMyEnrollments() {
+  return useQuery<(LMSEnrollmentData & { course: LMSCourseData & { modules: LMSModuleData[] } })[]>({
+    queryKey: ["my-enrollments"],
+    queryFn: async () => {
+      const res = await fetch("/api/lms/my-enrollments");
+      if (!res.ok) throw new Error("Failed to fetch enrollments");
+      return res.json();
+    },
+  });
+}
+
 export function useUpdateModuleProgress() {
   const qc = useQueryClient();
   return useMutation({

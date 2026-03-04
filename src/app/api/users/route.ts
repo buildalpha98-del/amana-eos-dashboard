@@ -54,10 +54,10 @@ export async function POST(req: NextRequest) {
 
   const { name, email, password, role, serviceId } = parsed.data;
 
-  // Validate: staff role requires a serviceId
-  if (role === "staff" && !serviceId) {
+  // Validate: staff and member roles require a serviceId
+  if ((role === "staff" || role === "member") && !serviceId) {
     return NextResponse.json(
-      { error: "Staff members must be assigned to a service/centre" },
+      { error: "Staff and member users must be assigned to a service/centre" },
       { status: 400 }
     );
   }
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       email,
       passwordHash,
       role,
-      serviceId: role === "staff" ? serviceId : null,
+      serviceId: (role === "staff" || role === "member") ? (serviceId || null) : null,
     },
     select: {
       id: true,

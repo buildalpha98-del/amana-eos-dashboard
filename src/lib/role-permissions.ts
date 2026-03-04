@@ -44,14 +44,11 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   admin: allPages.filter((p) => p !== "/settings"),
   member: [
     "/dashboard",
-    "/vision",
     "/rocks",
     "/todos",
     "/issues",
-    "/scorecard",
     "/meetings",
     "/services",
-    "/projects",
     "/communication",
     "/compliance",
     "/documents",
@@ -63,6 +60,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/communication",
     "/onboarding",
     "/todos",
+    "/compliance",
   ],
 };
 
@@ -199,7 +197,7 @@ const adminFeatures: readonly Feature[] = features.filter(
 );
 
 const memberFeatures: readonly Feature[] = [
-  // View-only for most things
+  // Service-scoped access
   "rocks.view",
   "rocks.create",
   "rocks.edit",
@@ -209,16 +207,11 @@ const memberFeatures: readonly Feature[] = [
   "issues.view",
   "issues.create",
   "issues.edit",
-  "scorecard.view",
   "meetings.view",
-  "meetings.create",
   "communication.view",
   "compliance.view",
   "documents.view",
   "services.view",
-  "projects.view",
-  "projects.create",
-  "projects.edit",
   "onboarding.view",
   "lms.view",
 ];
@@ -231,6 +224,7 @@ const staffFeatures: readonly Feature[] = [
   "todos.view",
   "todos.create",
   "todos.edit",
+  "compliance.view",
 ];
 
 export const roleFeatures: Record<Role, readonly Feature[]> = {
