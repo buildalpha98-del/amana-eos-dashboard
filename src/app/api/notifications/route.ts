@@ -10,7 +10,8 @@ interface Notification {
     | "unassigned_ticket"
     | "critical_issue"
     | "sla_warning"
-    | "low_compliance";
+    | "low_compliance"
+    | "compliance_expiring";
   severity: "critical" | "warning" | "info";
   title: string;
   message: string;
@@ -168,6 +169,45 @@ export async function GET(req: NextRequest) {
       link: "/performance",
       timestamp: metric.recordedAt.toISOString(),
       entityId: metric.serviceId,
+    });
+  });
+
+  // 7. Compliance certificates expiring within 30 days
+  const in30d = new Date(now.getTime() + 30 * 86400000);
+  const expiringCerts = await prisma.complianceCertificate.findMany({
+    where: { expiryDate: { lte: in30d } },
+    include: {
+      user: { select: { name: true } },
+      service: { select: { name: true } },
+    },
+    orderBy: { expiryDate: "asc" },
+    take: 20,
+  });
+  expiringCerts.forEach((cert) => {
+    const expiry = new Date(cert.expiryDate);
+    const isExpired = expiry <= now;
+    const daysUntil = Math.ceil(
+      (expiry.getTime() - now.getTime()) / 86400000
+    );
+    const urgency = isExpired
+      ? "EXPIRED"
+      : daysUntil <= 7
+      ? "critical"
+      : "warning";
+    const certLabel = cert.label || cert.type.replace(/_/g, " ").toUpperCase();
+    const staffName = cert.user?.name || "Unassigned";
+
+    notifications.push({
+      id: `cert-${cert.id}`,
+      type: "compliance_expiring",
+      severity: isExpired || daysUntil <= 7 ? "critical" : "warning",
+      title: isExpired ? "Certificate Expired" : "Certificate Expiring",
+      message: isExpired
+        ? `${certLabel} for ${staffName} at ${cert.service.name} has expired`
+        : `${certLabel} for ${staffName} at ${cert.service.name} expires in ${daysUntil} day${daysUntil !== 1 ? "s" : ""}`,
+      link: "/compliance",
+      timestamp: cert.expiryDate.toISOString(),
+      entityId: cert.id,
     });
   });
 

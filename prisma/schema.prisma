@@ -79,6 +79,12 @@ enum ServiceStatus {
   closed
 }
 
+enum SessionType {
+  bsc
+  asc
+  vc
+}
+
 enum ProjectStatus {
   not_started
   in_progress
@@ -210,6 +216,7 @@ model User {
   onboardings       StaffOnboarding[] @relation("OnboardingUser")
   lmsEnrollments    LMSEnrollment[]   @relation("LMSStudent")
   certificates      ComplianceCertificate[] @relation("UserCertificates")
+  recordedAttendance DailyAttendance[]     @relation("AttendanceRecorder")
 
   @@index([serviceId])
 }
@@ -617,6 +624,7 @@ model Service {
   onboardingPacks   OnboardingPack[]   @relation("ServiceOnboardingPacks")
   lmsCourses        LMSCourse[]        @relation("ServiceCourses")
   certificates      ComplianceCertificate[] @relation("ServiceCertificates")
+  attendance        DailyAttendance[]      @relation("ServiceAttendance")
 
   @@index([status])
   @@index([managerId])
@@ -1421,4 +1429,28 @@ model ComplianceCertificate {
   @@index([serviceId])
   @@index([userId])
   @@index([expiryDate])
+}
+
+// ── Attendance & Enrolment Tracking ─────────────────────────
+
+model DailyAttendance {
+  id            String      @id @default(cuid())
+  serviceId     String
+  service       Service     @relation("ServiceAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
+  date          DateTime    @db.Date
+  sessionType   SessionType
+  enrolled      Int         @default(0)
+  attended      Int         @default(0)
+  capacity      Int         @default(0)
+  casual        Int         @default(0)
+  absent        Int         @default(0)
+  notes         String?     @db.Text
+  recordedById  String?
+  recordedBy    User?       @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([serviceId, date, sessionType])
+  @@index([serviceId])
+  @@index([date])
 }

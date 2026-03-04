@@ -21,7 +21,9 @@ import {
   Trash2,
   X,
   Archive,
+  ListPlus,
 } from "lucide-react";
+import { BulkCreateTodosModal } from "@/components/todos/BulkCreateTodosModal";
 import { cn } from "@/lib/utils";
 
 interface UserOption {
@@ -32,6 +34,7 @@ interface UserOption {
 export default function TodosPage() {
   const [weekOf, setWeekOf] = useState(() => getWeekStart());
   const [showCreate, setShowCreate] = useState(false);
+  const [showBulkCreate, setShowBulkCreate] = useState(false);
   const [selectedTodo, setSelectedTodo] = useState<TodoData | null>(null);
   const [groupBy, setGroupBy] = useState<"person" | "flat">("person");
   const [filterAssignee, setFilterAssignee] = useState("");
@@ -225,6 +228,16 @@ export default function TodosPage() {
             title="Filters"
           >
             <Filter className="w-4 h-4" />
+          </button>
+
+          {/* Bulk Create */}
+          <button
+            onClick={() => setShowBulkCreate(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            title="Bulk create to-dos"
+          >
+            <ListPlus className="w-4 h-4" />
+            Bulk
           </button>
 
           {/* Add To-Do */}
@@ -468,6 +481,13 @@ export default function TodosPage() {
       <CreateTodoModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
+        weekOf={weekOf}
+      />
+
+      {/* Bulk Create Modal */}
+      <BulkCreateTodosModal
+        open={showBulkCreate}
+        onClose={() => setShowBulkCreate(false)}
         weekOf={weekOf}
       />
 

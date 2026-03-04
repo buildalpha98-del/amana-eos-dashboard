@@ -181,6 +181,159 @@ export function ticketNotificationEmail(
   return { subject, html };
 }
 
+// ─── Compliance Expiry Alert ─────────────────────────────────
+
+export function complianceAlertEmail(
+  name: string,
+  certs: { type: string; label: string | null; expiryDate: Date; service: string; urgency: string }[]
+) {
+  const subject = `${certs.length} compliance certificate${certs.length > 1 ? "s" : ""} expiring — Amana OSHC`;
+
+  const urgencyColor: Record<string, string> = {
+    expired: "#dc2626",
+    "7 days": "#f59e0b",
+    "14 days": "#f97316",
+    "30 days": "#6b7280",
+  };
+
+  const certRows = certs
+    .map(
+      (c) => `
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;font-size:13px;">
+        ${c.label || c.type}
+      </td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;">
+        ${c.service}
+      </td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;">
+        <span style="color:${urgencyColor[c.urgency] || "#6b7280"};font-weight:600;">
+          ${c.urgency === "expired" ? "EXPIRED" : c.urgency}
+        </span>
+      </td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;">
+        ${new Date(c.expiryDate).toLocaleDateString("en-AU")}
+      </td>
+    </tr>`
+    )
+    .join("");
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Compliance Certificates Expiring
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${name}, the following certificates need attention:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr style="background-color:#f9fafb;">
+        <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Certificate</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Centre</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Status</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Expiry</th>
+      </tr>
+      ${certRows}
+    </table>
+    ${buttonHtml("View Compliance", `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/compliance`)}
+  `);
+
+  return { subject, html };
+}
+
+export function complianceAdminSummaryEmail(counts: {
+  expired: number;
+  due7d: number;
+  due14d: number;
+  due30d: number;
+  total: number;
+}) {
+  const subject = `Compliance Summary: ${counts.total} certificates need attention — Amana OSHC`;
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Daily Compliance Summary
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Here is today's compliance certificate status across all centres:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px;background-color:#fef2f2;border-bottom:1px solid #fecaca;">
+          <span style="font-size:24px;font-weight:700;color:#dc2626;">${counts.expired}</span>
+          <span style="color:#dc2626;font-size:13px;margin-left:8px;">Expired</span>
+        </td>
+        <td style="padding:16px;background-color:#fffbeb;border-bottom:1px solid #fde68a;">
+          <span style="font-size:24px;font-weight:700;color:#f59e0b;">${counts.due7d}</span>
+          <span style="color:#f59e0b;font-size:13px;margin-left:8px;">Within 7 days</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px;background-color:#fff7ed;">
+          <span style="font-size:24px;font-weight:700;color:#f97316;">${counts.due14d}</span>
+          <span style="color:#f97316;font-size:13px;margin-left:8px;">Within 14 days</span>
+        </td>
+        <td style="padding:16px;background-color:#f9fafb;">
+          <span style="font-size:24px;font-weight:700;color:#6b7280;">${counts.due30d}</span>
+          <span style="color:#6b7280;font-size:13px;margin-left:8px;">Within 30 days</span>
+        </td>
+      </tr>
+    </table>
+    ${buttonHtml("View Compliance Dashboard", `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/compliance`)}
+  `);
+
+  return { subject, html };
+}
+
+// ─── Daily Digest ───────────────────────────────────────────
+
+export function dailyDigestEmail(
+  name: string,
+  counts: {
+    overdueTodos: number;
+    offTrackRocks: number;
+    expiringCerts: number;
+    unreadAnnouncements: number;
+  },
+  dashboardUrl: string
+) {
+  const total = counts.overdueTodos + counts.offTrackRocks + counts.expiringCerts + counts.unreadAnnouncements;
+  const subject = `Your morning briefing: ${total} item${total > 1 ? "s" : ""} need attention — Amana OSHC`;
+
+  const cards = [
+    { label: "Overdue To-Dos", count: counts.overdueTodos, color: "#ef4444", bg: "#fef2f2" },
+    { label: "Off-Track Rocks", count: counts.offTrackRocks, color: "#f59e0b", bg: "#fffbeb" },
+    { label: "Expiring Certs", count: counts.expiringCerts, color: "#f97316", bg: "#fff7ed" },
+    { label: "Unread Updates", count: counts.unreadAnnouncements, color: "#3b82f6", bg: "#eff6ff" },
+  ].filter((c) => c.count > 0);
+
+  const cardHtml = cards
+    .map(
+      (c) => `
+    <td style="padding:12px 16px;background-color:${c.bg};text-align:center;width:25%;">
+      <div style="font-size:28px;font-weight:700;color:${c.color};">${c.count}</div>
+      <div style="font-size:11px;color:${c.color};text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">${c.label}</div>
+    </td>`
+    )
+    .join("");
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Good Morning, ${name}
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Here is what needs your attention today:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        ${cardHtml}
+      </tr>
+    </table>
+    ${buttonHtml("Open Dashboard", dashboardUrl)}
+  `);
+
+  return { subject, html };
+}
+
 // ─── Welcome Email ───────────────────────────────────────────
 
 export function welcomeEmail(

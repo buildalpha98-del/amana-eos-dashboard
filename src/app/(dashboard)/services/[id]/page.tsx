@@ -18,6 +18,7 @@ import {
   FolderKanban,
   Loader2,
   Radio,
+  ClipboardList,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
@@ -27,9 +28,11 @@ import { ServiceIssuesTab } from "@/components/services/ServiceIssuesTab";
 import { ServiceProjectsTab } from "@/components/services/ServiceProjectsTab";
 import { WeeklyDataEntry } from "@/components/services/WeeklyDataEntry";
 import { ServiceCommTab } from "@/components/services/ServiceCommTab";
+import { ServiceAttendanceTab } from "@/components/services/ServiceAttendanceTab";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: Building2 },
+  { key: "attendance", label: "Attendance", icon: ClipboardList },
   { key: "scorecard", label: "Scorecard", icon: BarChart3 },
   { key: "rocks", label: "Rocks", icon: Mountain },
   { key: "todos", label: "To-Dos", icon: CheckSquare },
@@ -172,6 +175,13 @@ export default function ServiceDetailPage() {
       <div className="min-h-[40vh]">
         {activeTab === "overview" && (
           <ServiceOverviewTab service={service} users={users || []} />
+        )}
+
+        {activeTab === "attendance" && (
+          <ServiceAttendanceTab
+            serviceId={service.id}
+            capacity={service.capacity}
+          />
         )}
 
         {activeTab === "scorecard" && (

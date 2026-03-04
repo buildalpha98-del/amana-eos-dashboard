@@ -146,5 +146,8 @@ export const config = {
     "/api/team/:path*",
     "/api/tickets/:path*",
     "/api/org-settings/:path*",
+    "/api/attendance/:path*",
+    "/api/compliance/:path*",
+    "/api/notifications/:path*",
   ],
 };

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ImportWizard } from "@/components/import/ImportWizard";
 import {
   Settings,
   Users,
@@ -1646,7 +1647,9 @@ function PermissionsPanel() {
 
 export function SettingsContent({ userRole }: { userRole: Role }) {
   const [showInvite, setShowInvite] = useState(false);
+  const [showImportStaff, setShowImportStaff] = useState(false);
   const isOwner = userRole === "owner";
+  const queryClient = useQueryClient();
 
   const { data: users, isLoading } = useQuery<UserData[]>({
     queryKey: ["users"],
@@ -1678,13 +1681,22 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
                 User Management
               </h3>
             </div>
-            <button
-              onClick={() => setShowInvite(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-            >
-              <UserPlus className="w-4 h-4" />
-              Invite User
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowImportStaff(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                Import Staff
+              </button>
+              <button
+                onClick={() => setShowInvite(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+              >
+                <UserPlus className="w-4 h-4" />
+                Invite User
+              </button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -1722,6 +1734,21 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
             open={showInvite}
             onClose={() => setShowInvite(false)}
           />
+
+          {showImportStaff && (
+            <ImportWizard
+              title="Import Staff from Spreadsheet"
+              endpoint="/api/users/import"
+              columnConfig={[
+                { key: "name", label: "Name", required: true },
+                { key: "email", label: "Email", required: true },
+                { key: "role", label: "Role (owner/admin/member/staff)" },
+                { key: "service", label: "Service / Centre" },
+              ]}
+              onComplete={() => queryClient.invalidateQueries({ queryKey: ["users"] })}
+              onClose={() => setShowImportStaff(false)}
+            />
+          )}
         </div>
       )}
 

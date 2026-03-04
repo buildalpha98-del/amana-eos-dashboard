@@ -151,6 +151,11 @@ export const features = [
   "projects.create",
   "projects.edit",
 
+  // Attendance
+  "attendance.view",
+  "attendance.create",
+  "attendance.edit",
+
   // Compliance
   "compliance.view",
   "compliance.create",
@@ -163,6 +168,12 @@ export const features = [
   "lms.view",
   "lms.create",
   "lms.manage",
+
+  // Import / Bulk
+  "users.import",
+  "attendance.import",
+  "compliance.import",
+  "todos.bulk_create",
 
   // Xero integration
   "xero.connect",
@@ -190,6 +201,7 @@ const adminFeatures: readonly Feature[] = features.filter(
     f !== "users.create" &&
     f !== "users.edit_role" &&
     f !== "users.deactivate" &&
+    f !== "users.import" &&
     f !== "settings.view" &&
     f !== "permissions.view" &&
     f !== "xero.connect" &&
@@ -214,6 +226,9 @@ const memberFeatures: readonly Feature[] = [
   "services.view",
   "onboarding.view",
   "lms.view",
+  "attendance.view",
+  "attendance.create",
+  "attendance.edit",
 ];
 
 const staffFeatures: readonly Feature[] = [
@@ -312,6 +327,7 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Pages", label: "Settings", owner: true, admin: false, member: false, staff: false },
 
   // Actions
+  { section: "Actions", label: "View / edit Attendance", owner: true, admin: true, member: true, staff: false },
   { section: "Actions", label: "Create / edit Rocks", owner: true, admin: true, member: true, staff: false },
   { section: "Actions", label: "Create / edit To-Dos", owner: true, admin: true, member: true, staff: true },
   { section: "Actions", label: "Create / edit Issues", owner: true, admin: true, member: true, staff: false },
@@ -322,6 +338,12 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Actions", label: "Create / edit Documents", owner: true, admin: true, member: false, staff: false },
   { section: "Actions", label: "View Onboarding & LMS", owner: true, admin: true, member: true, staff: true },
   { section: "Actions", label: "Manage Onboarding & LMS", owner: true, admin: true, member: false, staff: false },
+
+  // Admin
+  { section: "Actions", label: "Import staff (CSV/XLSX)", owner: true, admin: false, member: false, staff: false },
+  { section: "Actions", label: "Import attendance data", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Import compliance certs", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Bulk create To-Dos", owner: true, admin: true, member: false, staff: false },
 
   // Admin
   { section: "Admin", label: "View activity log", owner: true, admin: true, member: false, staff: false },

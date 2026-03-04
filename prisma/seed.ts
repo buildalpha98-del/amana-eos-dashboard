@@ -125,11 +125,11 @@ async function main() {
   const existingServices = await prisma.service.findFirst();
   if (!existingServices) {
     const centres = [
-      // NSW Active Centres
+      // ── NSW Active Centres ──────────────────────────────────
       {
         name: "Amana OSHC MFIS Beaumont Hills",
         code: "MFIS-BH",
-        address: "Beaumont Hills",
+        address: "20 Mungerie Rd",
         suburb: "Beaumont Hills",
         state: "NSW",
         postcode: "2155",
@@ -141,8 +141,8 @@ async function main() {
       },
       {
         name: "Amana OSHC MFIS Greenacre",
-        code: "MFIS-GRN",
-        address: "Greenacre",
+        code: "MFIS-GA",
+        address: "405 Waterloo Rd",
         suburb: "Greenacre",
         state: "NSW",
         postcode: "2190",
@@ -155,7 +155,7 @@ async function main() {
       {
         name: "Amana OSHC MFIS Hoxton Park",
         code: "MFIS-HP",
-        address: "Hoxton Park",
+        address: "210 Pacific Palms Cct",
         suburb: "Hoxton Park",
         state: "NSW",
         postcode: "2171",
@@ -168,7 +168,7 @@ async function main() {
       {
         name: "Amana OSHC Unity Grammar",
         code: "UG",
-        address: "Austral",
+        address: "70 Fourth Ave",
         suburb: "Austral",
         state: "NSW",
         postcode: "2179",
@@ -181,7 +181,7 @@ async function main() {
       {
         name: "Amana OSHC Arkana College",
         code: "ARK",
-        address: "Kingsgrove",
+        address: "346 Stoney Creek Rd",
         suburb: "Kingsgrove",
         state: "NSW",
         postcode: "2208",
@@ -191,24 +191,24 @@ async function main() {
         capacity: 40,
         operatingDays: "Mon-Fri",
       },
-      // VIC Active Centres
       {
-        name: "Amana OSHC AIA KKCC",
-        code: "AIA-KKCC",
-        address: "Keysborough",
-        suburb: "Keysborough",
-        state: "VIC",
-        postcode: "3173",
+        name: "Amana OSHC Minarah College",
+        code: "MNC",
+        address: "264 Wilson Rd",
+        suburb: "Green Valley",
+        state: "NSW",
+        postcode: "2168",
         phone: "1300 200 262",
-        email: "aiakkcc@amanaoshc.com.au",
+        email: "minarah@amanaoshc.com.au",
         status: "active" as const,
         capacity: 50,
         operatingDays: "Mon-Fri",
       },
+      // ── VIC Active Centres ──────────────────────────────────
       {
         name: "Amana OSHC Al-Taqwa College",
-        code: "ATQ",
-        address: "Truganina",
+        code: "ATC",
+        address: "201 Sayers Rd",
         suburb: "Truganina",
         state: "VIC",
         postcode: "3029",
@@ -218,43 +218,55 @@ async function main() {
         capacity: 60,
         operatingDays: "Mon-Fri",
       },
-      // VIC Onboarding Centres
       {
-        name: "Amana OSHC Minaret Officer",
-        code: "MIN-OFF",
-        address: "Officer",
-        suburb: "Officer",
+        name: "Amana OSHC AIA Coburg",
+        code: "AIA-COB",
+        address: "653 Sydney Rd",
+        suburb: "Coburg",
         state: "VIC",
-        postcode: "3809",
+        postcode: "3058",
         phone: "1300 200 262",
-        email: "minaretofficer@amanaoshc.com.au",
-        status: "onboarding" as const,
-        capacity: 45,
+        email: "aiacoburg@amanaoshc.com.au",
+        status: "active" as const,
+        capacity: 50,
         operatingDays: "Mon-Fri",
       },
       {
         name: "Amana OSHC Minaret Doveton",
         code: "MIN-DOV",
-        address: "Doveton",
+        address: "146 Kidds Rd",
         suburb: "Doveton",
         state: "VIC",
         postcode: "3177",
         phone: "1300 200 262",
         email: "minaretdoveton@amanaoshc.com.au",
-        status: "onboarding" as const,
+        status: "active" as const,
         capacity: 40,
+        operatingDays: "Mon-Fri",
+      },
+      {
+        name: "Amana OSHC Minaret Officer",
+        code: "MIN-OFF",
+        address: "67 Tivendale Rd",
+        suburb: "Officer",
+        state: "VIC",
+        postcode: "3809",
+        phone: "1300 200 262",
+        email: "minaretofficer@amanaoshc.com.au",
+        status: "active" as const,
+        capacity: 45,
         operatingDays: "Mon-Fri",
       },
       {
         name: "Amana OSHC Minaret Springvale",
         code: "MIN-SPR",
-        address: "Springvale",
+        address: "36-38 Lewis St",
         suburb: "Springvale",
         state: "VIC",
         postcode: "3171",
         phone: "1300 200 262",
         email: "minaretspringvale@amanaoshc.com.au",
-        status: "onboarding" as const,
+        status: "active" as const,
         capacity: 45,
         operatingDays: "Mon-Fri",
       },
@@ -655,18 +667,19 @@ async function main() {
       bscAttendanceRate: [number, number];
       ascAttendanceRate: [number, number];
     }> = {
+      // NSW Active Centres
       "MFIS-BH": { bscRevenue: [3500, 5000], ascRevenue: [14000, 18000], vcRevenueHoliday: 3500, staffCostsPercent: 65, foodCostsPercent: 6.5, suppliesCostsPercent: 3, rentCostsPercent: 10, adminCostsPercent: 4, otherCostsPercent: 1.5, bscEnrolments: [30, 38], ascEnrolments: [48, 58], bscAttendanceRate: [75, 85], ascAttendanceRate: [80, 90] },
-      "MFIS-GRN": { bscRevenue: [3000, 4200], ascRevenue: [11000, 14000], vcRevenueHoliday: 2800, staffCostsPercent: 63, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 4, otherCostsPercent: 2, bscEnrolments: [25, 32], ascEnrolments: [40, 48], bscAttendanceRate: [70, 80], ascAttendanceRate: [75, 88] },
+      "MFIS-GA": { bscRevenue: [3000, 4200], ascRevenue: [11000, 14000], vcRevenueHoliday: 2800, staffCostsPercent: 63, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 4, otherCostsPercent: 2, bscEnrolments: [25, 32], ascEnrolments: [40, 48], bscAttendanceRate: [70, 80], ascAttendanceRate: [75, 88] },
       "MFIS-HP": { bscRevenue: [3200, 4200], ascRevenue: [11000, 14000], vcRevenueHoliday: 3000, staffCostsPercent: 64, foodCostsPercent: 6.5, suppliesCostsPercent: 3, rentCostsPercent: 10, adminCostsPercent: 4, otherCostsPercent: 1.5, bscEnrolments: [28, 35], ascEnrolments: [44, 52], bscAttendanceRate: [72, 82], ascAttendanceRate: [78, 88] },
       "UG": { bscRevenue: [3000, 4000], ascRevenue: [11000, 13500], vcRevenueHoliday: 2600, staffCostsPercent: 63, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 4, otherCostsPercent: 2, bscEnrolments: [23, 30], ascEnrolments: [38, 46], bscAttendanceRate: [68, 78], ascAttendanceRate: [75, 87] },
       "ARK": { bscRevenue: [2500, 3500], ascRevenue: [9000, 12000], vcRevenueHoliday: 2200, staffCostsPercent: 60, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 12, adminCostsPercent: 5, otherCostsPercent: 2, bscEnrolments: [18, 25], ascEnrolments: [32, 42], bscAttendanceRate: [65, 75], ascAttendanceRate: [72, 85] },
-      // VIC Active Centres (Large)
-      "AIA-KKCC": { bscRevenue: [3500, 5000], ascRevenue: [14000, 18000], vcRevenueHoliday: 3500, staffCostsPercent: 65, foodCostsPercent: 6.5, suppliesCostsPercent: 3, rentCostsPercent: 10, adminCostsPercent: 4, otherCostsPercent: 1.5, bscEnrolments: [30, 38], ascEnrolments: [48, 58], bscAttendanceRate: [75, 85], ascAttendanceRate: [80, 90] },
-      "ATQ": { bscRevenue: [3500, 5000], ascRevenue: [14000, 18000], vcRevenueHoliday: 3500, staffCostsPercent: 65, foodCostsPercent: 6.5, suppliesCostsPercent: 3, rentCostsPercent: 10, adminCostsPercent: 4, otherCostsPercent: 1.5, bscEnrolments: [32, 40], ascEnrolments: [50, 60], bscAttendanceRate: [75, 85], ascAttendanceRate: [80, 90] },
-      // VIC Onboarding Centres (Lower ramp-up)
+      "MNC": { bscRevenue: [3000, 4200], ascRevenue: [12000, 15000], vcRevenueHoliday: 3000, staffCostsPercent: 63, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 4, otherCostsPercent: 2, bscEnrolments: [26, 33], ascEnrolments: [42, 50], bscAttendanceRate: [70, 80], ascAttendanceRate: [76, 88] },
+      // VIC Active Centres
+      "ATC": { bscRevenue: [3500, 5000], ascRevenue: [14000, 18000], vcRevenueHoliday: 3500, staffCostsPercent: 65, foodCostsPercent: 6.5, suppliesCostsPercent: 3, rentCostsPercent: 10, adminCostsPercent: 4, otherCostsPercent: 1.5, bscEnrolments: [32, 40], ascEnrolments: [50, 60], bscAttendanceRate: [75, 85], ascAttendanceRate: [80, 90] },
+      "AIA-COB": { bscRevenue: [3500, 5000], ascRevenue: [14000, 18000], vcRevenueHoliday: 3500, staffCostsPercent: 65, foodCostsPercent: 6.5, suppliesCostsPercent: 3, rentCostsPercent: 10, adminCostsPercent: 4, otherCostsPercent: 1.5, bscEnrolments: [30, 38], ascEnrolments: [48, 58], bscAttendanceRate: [75, 85], ascAttendanceRate: [80, 90] },
+      "MIN-DOV": { bscRevenue: [2000, 3000], ascRevenue: [8000, 11000], vcRevenueHoliday: 1500, staffCostsPercent: 62, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 5, otherCostsPercent: 2, bscEnrolments: [15, 22], ascEnrolments: [28, 38], bscAttendanceRate: [62, 76], ascAttendanceRate: [72, 86] },
       "MIN-OFF": { bscRevenue: [1500, 2500], ascRevenue: [6000, 9000], vcRevenueHoliday: 1200, staffCostsPercent: 62, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 5, otherCostsPercent: 2, bscEnrolments: [12, 20], ascEnrolments: [24, 36], bscAttendanceRate: [60, 75], ascAttendanceRate: [70, 85] },
-      "MIN-DOV": { bscRevenue: [1500, 2500], ascRevenue: [6000, 9000], vcRevenueHoliday: 1200, staffCostsPercent: 62, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 5, otherCostsPercent: 2, bscEnrolments: [12, 20], ascEnrolments: [24, 36], bscAttendanceRate: [60, 75], ascAttendanceRate: [70, 85] },
-      "MIN-SPR": { bscRevenue: [1500, 2500], ascRevenue: [6000, 9000], vcRevenueHoliday: 1200, staffCostsPercent: 62, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 5, otherCostsPercent: 2, bscEnrolments: [12, 20], ascEnrolments: [24, 36], bscAttendanceRate: [60, 75], ascAttendanceRate: [70, 85] },
+      "MIN-SPR": { bscRevenue: [1800, 2800], ascRevenue: [7000, 10000], vcRevenueHoliday: 1400, staffCostsPercent: 62, foodCostsPercent: 6, suppliesCostsPercent: 3, rentCostsPercent: 11, adminCostsPercent: 5, otherCostsPercent: 2, bscEnrolments: [14, 21], ascEnrolments: [26, 37], bscAttendanceRate: [62, 76], ascAttendanceRate: [72, 86] },
     };
 
     const months = [
@@ -759,17 +772,17 @@ async function main() {
       nqsRating: string | null;
     }> = {
       "MFIS-BH": { bscCapacity: 40, ascCapacity: 60, bscOccupancy: [75, 85], ascOccupancy: [80, 90], totalEducators: 8, educatorTurnover: [5, 12], ratioCompliance: [98, 100], parentNps: [65, 75], incidentCount: [1, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [95, 100], overallCompliance: [95, 100], nqsRating: "Exceeding" },
-      "MFIS-GRN": { bscCapacity: 35, ascCapacity: 50, bscOccupancy: [72, 82], ascOccupancy: [78, 88], totalEducators: 6, educatorTurnover: [8, 15], ratioCompliance: [97, 100], parentNps: [60, 72], incidentCount: [1, 3], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [93, 100], overallCompliance: [94, 100], nqsRating: "Meeting" },
+      "MFIS-GA": { bscCapacity: 35, ascCapacity: 50, bscOccupancy: [72, 82], ascOccupancy: [78, 88], totalEducators: 6, educatorTurnover: [8, 15], ratioCompliance: [97, 100], parentNps: [60, 72], incidentCount: [1, 3], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [93, 100], overallCompliance: [94, 100], nqsRating: "Meeting" },
       "MFIS-HP": { bscCapacity: 38, ascCapacity: 55, bscOccupancy: [74, 84], ascOccupancy: [79, 89], totalEducators: 7, educatorTurnover: [6, 13], ratioCompliance: [97, 100], parentNps: [62, 73], incidentCount: [0, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [94, 100], overallCompliance: [95, 100], nqsRating: "Exceeding" },
       "UG": { bscCapacity: 32, ascCapacity: 45, bscOccupancy: [70, 80], ascOccupancy: [75, 87], totalEducators: 6, educatorTurnover: [10, 18], ratioCompliance: [96, 100], parentNps: [55, 68], incidentCount: [1, 3], complaintCount: [0, 2], wwccCompliance: 100, firstAidCompliance: [90, 100], overallCompliance: [93, 100], nqsRating: "Meeting" },
       "ARK": { bscCapacity: 28, ascCapacity: 40, bscOccupancy: [65, 78], ascOccupancy: [70, 85], totalEducators: 5, educatorTurnover: [8, 16], ratioCompliance: [95, 100], parentNps: [50, 65], incidentCount: [0, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [90, 98], overallCompliance: [92, 99], nqsRating: "Meeting" },
+      "MNC": { bscCapacity: 35, ascCapacity: 50, bscOccupancy: [70, 82], ascOccupancy: [76, 88], totalEducators: 6, educatorTurnover: [7, 14], ratioCompliance: [97, 100], parentNps: [58, 70], incidentCount: [0, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [93, 100], overallCompliance: [94, 100], nqsRating: "Meeting" },
       // VIC Active Centres
-      "AIA-KKCC": { bscCapacity: 35, ascCapacity: 50, bscOccupancy: [75, 85], ascOccupancy: [80, 90], totalEducators: 7, educatorTurnover: [5, 12], ratioCompliance: [98, 100], parentNps: [65, 75], incidentCount: [1, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [95, 100], overallCompliance: [95, 100], nqsRating: "Exceeding" },
-      "ATQ": { bscCapacity: 40, ascCapacity: 60, bscOccupancy: [75, 85], ascOccupancy: [80, 90], totalEducators: 8, educatorTurnover: [5, 12], ratioCompliance: [98, 100], parentNps: [65, 75], incidentCount: [1, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [95, 100], overallCompliance: [95, 100], nqsRating: "Exceeding" },
-      // VIC Onboarding Centres
-      "MIN-OFF": { bscCapacity: 32, ascCapacity: 45, bscOccupancy: [45, 65], ascOccupancy: [55, 75], totalEducators: 4, educatorTurnover: [10, 20], ratioCompliance: [95, 100], parentNps: null, incidentCount: [0, 1], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [90, 100], overallCompliance: [90, 100], nqsRating: null },
-      "MIN-DOV": { bscCapacity: 28, ascCapacity: 40, bscOccupancy: [50, 68], ascOccupancy: [58, 76], totalEducators: 4, educatorTurnover: [12, 20], ratioCompliance: [95, 100], parentNps: null, incidentCount: [0, 1], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [90, 100], overallCompliance: [90, 100], nqsRating: null },
-      "MIN-SPR": { bscCapacity: 32, ascCapacity: 45, bscOccupancy: [50, 68], ascOccupancy: [58, 76], totalEducators: 4, educatorTurnover: [12, 20], ratioCompliance: [95, 100], parentNps: null, incidentCount: [0, 1], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [90, 100], overallCompliance: [90, 100], nqsRating: null },
+      "AIA-COB": { bscCapacity: 35, ascCapacity: 50, bscOccupancy: [75, 85], ascOccupancy: [80, 90], totalEducators: 7, educatorTurnover: [5, 12], ratioCompliance: [98, 100], parentNps: [65, 75], incidentCount: [1, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [95, 100], overallCompliance: [95, 100], nqsRating: "Exceeding" },
+      "ATC": { bscCapacity: 40, ascCapacity: 60, bscOccupancy: [75, 85], ascOccupancy: [80, 90], totalEducators: 8, educatorTurnover: [5, 12], ratioCompliance: [98, 100], parentNps: [65, 75], incidentCount: [1, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [95, 100], overallCompliance: [95, 100], nqsRating: "Exceeding" },
+      "MIN-OFF": { bscCapacity: 32, ascCapacity: 45, bscOccupancy: [65, 78], ascOccupancy: [70, 82], totalEducators: 5, educatorTurnover: [8, 16], ratioCompliance: [96, 100], parentNps: [52, 65], incidentCount: [0, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [92, 100], overallCompliance: [93, 100], nqsRating: "Meeting" },
+      "MIN-DOV": { bscCapacity: 28, ascCapacity: 40, bscOccupancy: [62, 76], ascOccupancy: [68, 80], totalEducators: 5, educatorTurnover: [9, 17], ratioCompliance: [96, 100], parentNps: [50, 64], incidentCount: [0, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [91, 100], overallCompliance: [92, 100], nqsRating: "Meeting" },
+      "MIN-SPR": { bscCapacity: 32, ascCapacity: 45, bscOccupancy: [64, 77], ascOccupancy: [70, 82], totalEducators: 5, educatorTurnover: [9, 17], ratioCompliance: [96, 100], parentNps: [52, 66], incidentCount: [0, 2], complaintCount: [0, 1], wwccCompliance: 100, firstAidCompliance: [92, 100], overallCompliance: [93, 100], nqsRating: "Meeting" },
     };
 
     for (const service of services) {

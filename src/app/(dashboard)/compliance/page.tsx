@@ -22,7 +22,10 @@ import {
   Upload,
   FileText,
   ExternalLink,
+  FileSpreadsheet,
 } from "lucide-react";
+import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -354,8 +357,20 @@ export default function CompliancePage() {
   return <AdminComplianceView />;
 }
 
+const complianceImportColumns: ColumnConfig[] = [
+  { key: "staffEmail", label: "Staff Email", required: true },
+  { key: "staffName", label: "Staff Name" },
+  { key: "service", label: "Centre / Code" },
+  { key: "certType", label: "Certificate Type", required: true },
+  { key: "issueDate", label: "Issue Date", required: true },
+  { key: "expiryDate", label: "Expiry Date", required: true },
+  { key: "notes", label: "Notes" },
+];
+
 function AdminComplianceView() {
   const [showCreate, setShowCreate] = useState(false);
+  const [showImportCerts, setShowImportCerts] = useState(false);
+  const queryClient = useQueryClient();
   const [serviceFilter, setServiceFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
 
@@ -470,13 +485,22 @@ function AdminComplianceView() {
             Track staff certificates, compliance dates and upcoming renewals
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Certificate
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImportCerts(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Import Certificates
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Certificate
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -694,6 +718,17 @@ function AdminComplianceView() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Import Wizard */}
+      {showImportCerts && (
+        <ImportWizard
+          title="Import Compliance Certificates"
+          endpoint="/api/compliance/import"
+          columnConfig={complianceImportColumns}
+          onComplete={() => queryClient.invalidateQueries({ queryKey: ["compliance-certs"] })}
+          onClose={() => setShowImportCerts(false)}
+        />
       )}
 
       {/* Create Modal */}
