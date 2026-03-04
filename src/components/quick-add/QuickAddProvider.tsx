@@ -1,10 +1,16 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { getCurrentQuarter, getWeekStart } from "@/lib/utils";
+
+function getDefaultDueDate() {
+  const d = new Date();
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().split("T")[0];
+}
 
 // ─── Context ─────────────────────────────────────────────────
 
@@ -58,8 +64,20 @@ function QuickAddToDoModal({
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  const [dueDate, setDueDate] = useState(getDefaultDueDate);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // Reset form every time modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setTitle("");
+      setDescription("");
+      setDueDate(getDefaultDueDate());
+      setShowSuccess(false);
+      setErrorMsg("");
+    }
+  }, [isOpen]);
 
   const createTodoMutation = useMutation({
     mutationFn: async (data: {
@@ -74,20 +92,24 @@ function QuickAddToDoModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to create to-do");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to create to-do");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-command-centre"] });
       queryClient.invalidateQueries({ queryKey: ["todos"] });
       setShowSuccess(true);
+      setErrorMsg("");
       setTimeout(() => {
-        setTitle("");
-        setDescription("");
-        setDueDate("");
         setShowSuccess(false);
         onClose();
       }, 1500);
+    },
+    onError: (err: Error) => {
+      setErrorMsg(err.message || "Something went wrong");
     },
   });
 
@@ -95,6 +117,7 @@ function QuickAddToDoModal({
     e.preventDefault();
     if (!title || !dueDate || !session?.user?.id) return;
 
+    setErrorMsg("");
     const dueDateObj = new Date(dueDate);
     const weekOf = getWeekStart(dueDateObj).toISOString().split("T")[0];
 
@@ -105,12 +128,6 @@ function QuickAddToDoModal({
       weekOf,
       description: description || undefined,
     });
-  };
-
-  const getDefaultDueDate = () => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().split("T")[0];
   };
 
   if (!isOpen) return null;
@@ -134,6 +151,12 @@ function QuickAddToDoModal({
           </div>
         )}
 
+        {errorMsg && (
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+            {errorMsg}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -145,6 +168,7 @@ function QuickAddToDoModal({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What needs to be done?"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+              autoFocus
               required
             />
           </div>
@@ -155,7 +179,7 @@ function QuickAddToDoModal({
             </label>
             <input
               type="date"
-              value={dueDate || getDefaultDueDate()}
+              value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
               required
@@ -211,6 +235,18 @@ function QuickAddIssueModal({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"medium" | "high" | "critical" | "low">("medium");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // Reset form every time modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setTitle("");
+      setDescription("");
+      setPriority("medium");
+      setShowSuccess(false);
+      setErrorMsg("");
+    }
+  }, [isOpen]);
 
   const createIssueMutation = useMutation({
     mutationFn: async (data: {
@@ -223,20 +259,24 @@ function QuickAddIssueModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to create issue");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to create issue");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-command-centre"] });
       queryClient.invalidateQueries({ queryKey: ["issues"] });
       setShowSuccess(true);
+      setErrorMsg("");
       setTimeout(() => {
-        setTitle("");
-        setDescription("");
-        setPriority("medium");
         setShowSuccess(false);
         onClose();
       }, 1500);
+    },
+    onError: (err: Error) => {
+      setErrorMsg(err.message || "Something went wrong");
     },
   });
 
@@ -244,6 +284,7 @@ function QuickAddIssueModal({
     e.preventDefault();
     if (!title) return;
 
+    setErrorMsg("");
     createIssueMutation.mutate({
       title,
       priority,
@@ -272,6 +313,12 @@ function QuickAddIssueModal({
           </div>
         )}
 
+        {errorMsg && (
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+            {errorMsg}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -283,6 +330,7 @@ function QuickAddIssueModal({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What's the issue?"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+              autoFocus
               required
             />
           </div>
@@ -354,6 +402,19 @@ function QuickAddRockModal({
   const [priority, setPriority] = useState<"medium" | "high" | "critical">("medium");
   const [rockType, setRockType] = useState<"company" | "personal">("personal");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // Reset form every time modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setTitle("");
+      setDescription("");
+      setPriority("medium");
+      setRockType("personal");
+      setShowSuccess(false);
+      setErrorMsg("");
+    }
+  }, [isOpen]);
 
   const createRockMutation = useMutation({
     mutationFn: async (data: {
@@ -369,21 +430,24 @@ function QuickAddRockModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to create rock");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to create rock");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-command-centre"] });
       queryClient.invalidateQueries({ queryKey: ["rocks"] });
       setShowSuccess(true);
+      setErrorMsg("");
       setTimeout(() => {
-        setTitle("");
-        setDescription("");
-        setPriority("medium");
-        setRockType("personal");
         setShowSuccess(false);
         onClose();
       }, 1500);
+    },
+    onError: (err: Error) => {
+      setErrorMsg(err.message || "Something went wrong");
     },
   });
 
@@ -391,6 +455,7 @@ function QuickAddRockModal({
     e.preventDefault();
     if (!title || !session?.user?.id) return;
 
+    setErrorMsg("");
     const quarter = getCurrentQuarter();
 
     createRockMutation.mutate({
@@ -424,6 +489,12 @@ function QuickAddRockModal({
           </div>
         )}
 
+        {errorMsg && (
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+            {errorMsg}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -435,6 +506,7 @@ function QuickAddRockModal({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What's your rock goal?"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+              autoFocus
               required
             />
           </div>
