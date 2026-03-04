@@ -16,6 +16,7 @@ import {
   XCircle,
   LayoutGrid,
   List,
+  Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,7 @@ export default function IssuesPage() {
   const [ownerFilter, setOwnerFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"board" | "list">("board");
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: issues, isLoading } = useIssues({
     ...(statusFilter ? { status: statusFilter } : {}),
@@ -56,16 +58,23 @@ export default function IssuesPage() {
     },
   });
 
+  // Filter out closed issues when archive is hidden
+  const filteredIssues = useMemo(() => {
+    if (!issues) return [];
+    if (showArchived) return issues;
+    return issues.filter((i) => i.status !== "closed");
+  }, [issues, showArchived]);
+
   // Group issues by status for board view
   const boardColumns = useMemo(() => {
-    if (!issues) return { open: [], in_discussion: [], solved: [], closed: [] };
+    if (!filteredIssues) return { open: [], in_discussion: [], solved: [], closed: [] };
     return {
-      open: issues.filter((i) => i.status === "open"),
-      in_discussion: issues.filter((i) => i.status === "in_discussion"),
-      solved: issues.filter((i) => i.status === "solved"),
-      closed: issues.filter((i) => i.status === "closed"),
+      open: filteredIssues.filter((i) => i.status === "open"),
+      in_discussion: filteredIssues.filter((i) => i.status === "in_discussion"),
+      solved: filteredIssues.filter((i) => i.status === "solved"),
+      closed: filteredIssues.filter((i) => i.status === "closed"),
     };
-  }, [issues]);
+  }, [filteredIssues]);
 
   // Stats
   const stats = useMemo(() => {
@@ -119,6 +128,20 @@ export default function IssuesPage() {
               <List className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Archive Toggle */}
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className={cn(
+              "p-2 rounded-lg border transition-colors",
+              showArchived
+                ? "border-[#004E64] bg-[#004E64]/5 text-[#004E64]"
+                : "border-gray-200 text-gray-400 hover:text-gray-600"
+            )}
+            title={showArchived ? "Hide closed issues" : "Show closed issues"}
+          >
+            <Archive className="w-4 h-4" />
+          </button>
 
           {/* Filter Toggle */}
           <button
@@ -318,7 +341,7 @@ export default function IssuesPage() {
         ) : (
           /* List View */
           <div className="space-y-2">
-            {issues.map((issue) => (
+            {filteredIssues.map((issue) => (
               <IssueCard
                 key={issue.id}
                 issue={issue}

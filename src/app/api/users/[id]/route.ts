@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { hash } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 
 const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
-  role: z.enum(["owner", "admin", "member"]).optional(),
+  role: z.enum(["owner", "admin", "member", "staff"]).optional(),
   active: z.boolean().optional(),
+  newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
 });
 
 // PATCH /api/users/:id — update a user (owner only)
@@ -33,9 +35,16 @@ export async function PATCH(
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  // Build update payload — handle password separately
+  const { newPassword, ...rest } = parsed.data;
+  const updateData: Record<string, unknown> = { ...rest };
+  if (newPassword) {
+    updateData.passwordHash = await hash(newPassword, 12);
+  }
+
   const updated = await prisma.user.update({
     where: { id },
-    data: parsed.data,
+    data: updateData,
     select: {
       id: true,
       name: true,
@@ -49,10 +58,10 @@ export async function PATCH(
   await prisma.activityLog.create({
     data: {
       userId: session!.user.id,
-      action: "update",
+      action: newPassword ? "reset_password" : "update",
       entityType: "User",
       entityId: id,
-      details: parsed.data,
+      details: { ...rest, passwordReset: !!newPassword },
     },
   });
 

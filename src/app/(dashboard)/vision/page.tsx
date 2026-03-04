@@ -100,12 +100,14 @@ export default function VisionPage() {
                 title="Core Purpose"
                 field="corePurpose"
                 value={vto.corePurpose}
+                sectionLabels={vto.sectionLabels}
               />
 
               <VTOSection
                 title="Core Niche"
                 field="coreNiche"
                 value={vto.coreNiche}
+                sectionLabels={vto.sectionLabels}
               />
 
               <VTOSection
@@ -113,6 +115,7 @@ export default function VisionPage() {
                 field="tenYearTarget"
                 value={vto.tenYearTarget}
                 multiline
+                sectionLabels={vto.sectionLabels}
               />
             </div>
 
@@ -130,6 +133,7 @@ export default function VisionPage() {
                 field="threeYearPicture"
                 value={vto.threeYearPicture}
                 multiline
+                sectionLabels={vto.sectionLabels}
               />
 
               <GoalsSection goals={vto.oneYearGoals} vtoId={vto.id} />
@@ -139,6 +143,7 @@ export default function VisionPage() {
                 field="marketingStrategy"
                 value={vto.marketingStrategy}
                 multiline
+                sectionLabels={vto.sectionLabels}
               />
             </div>
           </div>

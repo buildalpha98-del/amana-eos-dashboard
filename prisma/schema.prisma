@@ -249,6 +249,7 @@ model VisionTractionOrganiser {
   tenYearTarget     String?  @db.Text
   threeYearPicture  String?  @db.Text
   marketingStrategy String?  @db.Text
+  sectionLabels     Json?    // Custom section titles e.g. { tenYearTarget: "5-Year Target" }
   updatedAt         DateTime @updatedAt
   updatedById       String?
   updatedBy         User?    @relation("VTOUpdater", fields: [updatedById], references: [id])

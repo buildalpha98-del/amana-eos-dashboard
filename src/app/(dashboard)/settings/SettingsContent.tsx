@@ -229,6 +229,9 @@ function UserRow({
 }) {
   const queryClient = useQueryClient();
   const [showMenu, setShowMenu] = useState(false);
+  const [showResetPw, setShowResetPw] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   const toggleActive = useMutation({
     mutationFn: async () => {
@@ -258,6 +261,22 @@ function UserRow({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setShowMenu(false);
+    },
+  });
+
+  const resetPassword = useMutation({
+    mutationFn: async (password: string) => {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword: password }),
+      });
+      if (!res.ok) throw new Error("Failed to reset password");
+      return res.json();
+    },
+    onSuccess: () => {
+      setResetSuccess(true);
+      setTimeout(() => { setResetSuccess(false); setShowResetPw(false); setNewPassword(""); }, 2000);
     },
   });
 
@@ -340,9 +359,62 @@ function UserRow({
                   >
                     {user.active ? "Deactivate" : "Reactivate"}
                   </button>
+                  <hr className="my-1" />
+                  <button
+                    onClick={() => { setShowResetPw(true); setShowMenu(false); }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    Reset Password
+                  </button>
                 </div>
               </>
             )}
+          </div>
+        )}
+        {showResetPw && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-gray-900">Reset Password</h3>
+                <button onClick={() => { setShowResetPw(false); setNewPassword(""); }} className="p-1 text-gray-400 hover:text-gray-600">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">Set a new password for <span className="font-medium text-gray-900">{user.name}</span></p>
+              {resetSuccess ? (
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Password reset successfully!
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New password (min 8 characters)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent mb-4"
+                    minLength={8}
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => { setShowResetPw(false); setNewPassword(""); }}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => resetPassword.mutate(newPassword)}
+                      disabled={newPassword.length < 8 || resetPassword.isPending}
+                      className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50 text-sm"
+                    >
+                      {resetPassword.isPending ? "Resetting..." : "Reset"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         )}
       </td>

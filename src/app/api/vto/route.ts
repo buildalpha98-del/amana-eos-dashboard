@@ -50,6 +50,7 @@ export async function PATCH(req: NextRequest) {
   if (body.tenYearTarget !== undefined) data.tenYearTarget = body.tenYearTarget;
   if (body.threeYearPicture !== undefined) data.threeYearPicture = body.threeYearPicture;
   if (body.marketingStrategy !== undefined) data.marketingStrategy = body.marketingStrategy;
+  if (body.sectionLabels !== undefined) data.sectionLabels = body.sectionLabels;
 
   data.updatedById = session!.user.id;
 

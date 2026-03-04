@@ -35,6 +35,19 @@ export function ServiceOverviewTab({
   const updateService = useUpdateService();
   const [editing, setEditing] = useState(false);
   const [notes, setNotes] = useState("");
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [detailsForm, setDetailsForm] = useState({
+    name: "",
+    code: "",
+    address: "",
+    suburb: "",
+    state: "",
+    postcode: "",
+    phone: "",
+    email: "",
+    capacity: "",
+    operatingDays: "",
+  });
 
   return (
     <div className="space-y-6">
@@ -65,43 +78,224 @@ export function ServiceOverviewTab({
 
       {/* Contact Details */}
       <div className="space-y-2">
-        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
-          Contact Details
-        </label>
-        {service.address && (
-          <div className="flex items-start gap-2 text-sm text-gray-600">
-            <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-            <span>
-              {service.address}
-              {service.suburb && `, ${service.suburb}`}
-              {service.state && ` ${service.state}`}
-              {service.postcode && ` ${service.postcode}`}
-            </span>
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Contact Details
+          </label>
+          {!editingDetails && (
+            <button
+              onClick={() => {
+                setDetailsForm({
+                  name: service.name || "",
+                  code: service.code || "",
+                  address: service.address || "",
+                  suburb: service.suburb || "",
+                  state: service.state || "",
+                  postcode: service.postcode || "",
+                  phone: service.phone || "",
+                  email: service.email || "",
+                  capacity: service.capacity?.toString() || "",
+                  operatingDays: service.operatingDays || "",
+                });
+                setEditingDetails(true);
+              }}
+              className="text-gray-400 hover:text-[#004E64]"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+        {editingDetails ? (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">Service Name</label>
+                <input
+                  autoFocus
+                  type="text"
+                  value={detailsForm.name}
+                  onChange={(e) => setDetailsForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="Service name"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">Code</label>
+                <input
+                  type="text"
+                  value={detailsForm.code}
+                  onChange={(e) => setDetailsForm((f) => ({ ...f, code: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="Service code"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 block mb-0.5">Address</label>
+              <input
+                type="text"
+                value={detailsForm.address}
+                onChange={(e) => setDetailsForm((f) => ({ ...f, address: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                placeholder="Street address"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">Suburb</label>
+                <input
+                  type="text"
+                  value={detailsForm.suburb}
+                  onChange={(e) => setDetailsForm((f) => ({ ...f, suburb: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="Suburb"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">State</label>
+                <input
+                  type="text"
+                  value={detailsForm.state}
+                  onChange={(e) => setDetailsForm((f) => ({ ...f, state: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="State"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">Postcode</label>
+                <input
+                  type="text"
+                  value={detailsForm.postcode}
+                  onChange={(e) => setDetailsForm((f) => ({ ...f, postcode: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="Postcode"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">Phone</label>
+                <input
+                  type="text"
+                  value={detailsForm.phone}
+                  onChange={(e) => setDetailsForm((f) => ({ ...f, phone: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="Phone number"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">Email</label>
+                <input
+                  type="text"
+                  value={detailsForm.email}
+                  onChange={(e) => setDetailsForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="Email address"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">Capacity</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={detailsForm.capacity}
+                  onChange={(e) => setDetailsForm((f) => ({ ...f, capacity: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="Max children"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 block mb-0.5">Operating Days</label>
+                <input
+                  type="text"
+                  value={detailsForm.operatingDays}
+                  onChange={(e) => setDetailsForm((f) => ({ ...f, operatingDays: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  placeholder="e.g. Mon-Fri"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const capacityVal = detailsForm.capacity
+                    ? parseInt(detailsForm.capacity, 10)
+                    : null;
+                  updateService.mutate({
+                    id: service.id,
+                    name: detailsForm.name,
+                    code: detailsForm.code,
+                    address: detailsForm.address,
+                    suburb: detailsForm.suburb,
+                    state: detailsForm.state,
+                    postcode: detailsForm.postcode,
+                    phone: detailsForm.phone,
+                    email: detailsForm.email,
+                    capacity: isNaN(capacityVal as number) ? null : capacityVal,
+                    operatingDays: detailsForm.operatingDays,
+                  });
+                  setEditingDetails(false);
+                }}
+                className="text-xs px-3 py-1 bg-[#004E64] text-white rounded-md"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setEditingDetails(false)}
+                className="text-xs px-3 py-1 text-gray-500"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-        )}
-        {service.phone && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Phone className="w-4 h-4 text-gray-400" />
-            <span>{service.phone}</span>
-          </div>
-        )}
-        {service.email && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Mail className="w-4 h-4 text-gray-400" />
-            <span>{service.email}</span>
-          </div>
-        )}
-        {service.capacity && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Users className="w-4 h-4 text-gray-400" />
-            <span>Capacity: {service.capacity} children</span>
-          </div>
-        )}
-        {service.operatingDays && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Calendar className="w-4 h-4 text-gray-400" />
-            <span>{service.operatingDays}</span>
-          </div>
+        ) : (
+          <>
+            {service.name && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="font-medium">{service.name}</span>
+                {service.code && (
+                  <span className="text-xs text-gray-400">({service.code})</span>
+                )}
+              </div>
+            )}
+            {service.address && (
+              <div className="flex items-start gap-2 text-sm text-gray-600">
+                <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                <span>
+                  {service.address}
+                  {service.suburb && `, ${service.suburb}`}
+                  {service.state && ` ${service.state}`}
+                  {service.postcode && ` ${service.postcode}`}
+                </span>
+              </div>
+            )}
+            {service.phone && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Phone className="w-4 h-4 text-gray-400" />
+                <span>{service.phone}</span>
+              </div>
+            )}
+            {service.email && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Mail className="w-4 h-4 text-gray-400" />
+                <span>{service.email}</span>
+              </div>
+            )}
+            {service.capacity && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Users className="w-4 h-4 text-gray-400" />
+                <span>Capacity: {service.capacity} children</span>
+              </div>
+            )}
+            {service.operatingDays && (
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Calendar className="w-4 h-4 text-gray-400" />
+                <span>{service.operatingDays}</span>
+              </div>
+            )}
+          </>
         )}
       </div>
 

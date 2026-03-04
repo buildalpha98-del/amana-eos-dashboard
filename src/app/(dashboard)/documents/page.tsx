@@ -5,6 +5,7 @@ import {
   useDocuments,
   useCreateDocument,
   useDeleteDocument,
+  useUpdateDocument,
   useDocumentFolders,
   useCreateFolder,
   useDeleteFolder,
@@ -36,6 +37,7 @@ import {
   Upload,
   CheckCircle2,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -120,9 +122,12 @@ export default function DocumentsPage() {
 
   const createDocument = useCreateDocument();
   const deleteDocument = useDeleteDocument();
+  const updateDocument = useUpdateDocument();
   const createFolder = useCreateFolder();
   const deleteFolder = useDeleteFolder();
   const moveDocument = useMoveDocument();
+  const [editingDoc, setEditingDoc] = useState<DocumentData | null>(null);
+  const [editDocForm, setEditDocForm] = useState({ title: "", description: "", category: "" });
 
   // Build breadcrumb path
   const breadcrumbs = useMemo(() => {
@@ -206,6 +211,22 @@ export default function DocumentsPage() {
     if (confirm("Are you sure you want to delete this document?")) {
       await deleteDocument.mutateAsync(id);
     }
+  };
+
+  const handleEditDoc = (doc: DocumentData) => {
+    setEditDocForm({ title: doc.title, description: doc.description || "", category: doc.category || "" });
+    setEditingDoc(doc);
+  };
+
+  const handleSaveDoc = async () => {
+    if (!editingDoc || !editDocForm.title.trim()) return;
+    await updateDocument.mutateAsync({
+      id: editingDoc.id,
+      title: editDocForm.title.trim(),
+      description: editDocForm.description || null,
+      category: editDocForm.category || null,
+    });
+    setEditingDoc(null);
   };
 
   const handleCreateFolder = async () => {
@@ -563,6 +584,13 @@ export default function DocumentsPage() {
                       <ExternalLink className="w-4 h-4" /> View
                     </a>
                     <button
+                      onClick={() => handleEditDoc(doc)}
+                      className="px-3 py-2 rounded-lg text-sm text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+                      title="Edit document"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => setMoveDocId(doc.id)}
                       className="px-3 py-2 rounded-lg text-sm text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
                       title="Move to folder"
@@ -640,6 +668,13 @@ export default function DocumentsPage() {
                             >
                               <ExternalLink className="w-4 h-4" />
                             </a>
+                            <button
+                              onClick={() => handleEditDoc(doc)}
+                              className="text-gray-500 hover:text-gray-700 transition-colors"
+                              title="Edit document"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => setMoveDocId(doc.id)}
                               className="text-gray-500 hover:text-gray-700 transition-colors"
@@ -901,6 +936,69 @@ export default function DocumentsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Document Modal */}
+      {editingDoc && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Document</h3>
+              <button onClick={() => setEditingDoc(null)} className="p-1 rounded-md text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Title *</label>
+                <input
+                  type="text"
+                  value={editDocForm.title}
+                  onChange={(e) => setEditDocForm({ ...editDocForm, title: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+                <textarea
+                  value={editDocForm.description}
+                  onChange={(e) => setEditDocForm({ ...editDocForm, description: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
+                <select
+                  value={editDocForm.category}
+                  onChange={(e) => setEditDocForm({ ...editDocForm, category: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                >
+                  <option value="">No category</option>
+                  {["program", "policy", "procedure", "template", "guide", "compliance", "financial", "marketing", "hr", "other"].map(cat => (
+                    <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setEditingDoc(null)}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveDoc}
+                  disabled={updateDocument.isPending || !editDocForm.title.trim()}
+                  className="flex-1 bg-[#004E64] hover:bg-[#003D52] text-white font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {updateDocument.isPending ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

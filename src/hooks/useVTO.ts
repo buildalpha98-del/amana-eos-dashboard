@@ -30,6 +30,7 @@ export interface VTOData {
   tenYearTarget: string | null;
   threeYearPicture: string | null;
   marketingStrategy: string | null;
+  sectionLabels: Record<string, string> | null;
   updatedAt: string;
   updatedBy: { id: string; name: string } | null;
   oneYearGoals: OneYearGoal[];
@@ -57,6 +58,7 @@ export function useUpdateVTO() {
         tenYearTarget: string;
         threeYearPicture: string;
         marketingStrategy: string;
+        sectionLabels: Record<string, string>;
       }>
     ) => {
       const res = await fetch("/api/vto", {

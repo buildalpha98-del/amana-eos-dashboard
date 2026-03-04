@@ -5,6 +5,11 @@ import { z } from "zod";
 
 const updateDocumentSchema = z.object({
   folderId: z.string().nullable().optional(),
+  title: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional(),
+  centreId: z.string().nullable().optional(),
 });
 
 export async function PATCH(
@@ -22,9 +27,15 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
+  const { centreId, ...rest } = parsed.data;
+  const updateData: Record<string, unknown> = { ...rest };
+  if (centreId !== undefined) {
+    updateData.centre = centreId ? { connect: { id: centreId } } : { disconnect: true };
+  }
+
   const document = await prisma.document.update({
     where: { id },
-    data: parsed.data,
+    data: updateData,
     include: {
       uploadedBy: { select: { id: true, name: true, email: true } },
       centre: { select: { id: true, name: true, code: true } },

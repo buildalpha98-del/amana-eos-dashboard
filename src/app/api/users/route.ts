@@ -14,9 +14,9 @@ const createUserSchema = z.object({
   serviceId: z.string().optional().nullable(),
 });
 
-// GET /api/users — list all users (owner only)
+// GET /api/users — list all users (any authenticated user)
 export async function GET() {
-  const { session, error } = await requireAuth(["owner"]);
+  const { error } = await requireAuth();
   if (error) return error;
 
   const users = await prisma.user.findMany({

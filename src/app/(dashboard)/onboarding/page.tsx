@@ -76,6 +76,8 @@ export default function OnboardingPage() {
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
   const [expandedAssignment, setExpandedAssignment] = useState<string | null>(null);
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   // Data
   const { data: packs = [], isLoading: packsLoading } = useOnboardingPacks();
@@ -100,6 +102,39 @@ export default function OnboardingPage() {
       return res.json();
     },
     enabled: isAdmin,
+  });
+  const { data: selectedPackData, isLoading: selectedPackLoading } = useQuery<{
+    id: string;
+    name: string;
+    description: string | null;
+    isDefault: boolean;
+    tasks: { id: string; title: string; category: string; isRequired: boolean; sortOrder: number }[];
+  }>({
+    queryKey: ["onboarding-pack-detail", selectedPackId],
+    queryFn: async () => {
+      const res = await fetch(`/api/onboarding/packs/${selectedPackId}`);
+      if (!res.ok) throw new Error("Failed to fetch pack details");
+      return res.json();
+    },
+    enabled: !!selectedPackId,
+  });
+  const { data: selectedCourseData, isLoading: selectedCourseLoading } = useQuery<{
+    id: string;
+    title: string;
+    description: string | null;
+    category: string | null;
+    status: string;
+    isRequired: boolean;
+    modules: { id: string; title: string; type: string; sortOrder: number }[];
+    _count: { enrollments: number };
+  }>({
+    queryKey: ["lms-course-detail", selectedCourseId],
+    queryFn: async () => {
+      const res = await fetch(`/api/lms/courses/${selectedCourseId}`);
+      if (!res.ok) throw new Error("Failed to fetch course details");
+      return res.json();
+    },
+    enabled: !!selectedCourseId,
   });
 
   const createPack = useCreateOnboardingPack();
@@ -346,9 +381,10 @@ export default function OnboardingPage() {
                   <p className="text-gray-400 text-sm mt-1">Create your first pack to start onboarding new staff.</p>
                 </div>
               ) : (
+                <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {packs.map((pack) => (
-                    <div key={pack.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                    <div key={pack.id} onClick={() => setSelectedPackId(selectedPackId === pack.id ? null : pack.id)} className={cn("bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer", selectedPackId === pack.id && "ring-2 ring-[#004E64] border-[#004E64]")}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
                           <ClipboardList className="w-5 h-5 text-cyan-700" />
@@ -369,6 +405,73 @@ export default function OnboardingPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Selected Pack Detail Panel */}
+                {selectedPackId && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6 mt-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
+                          <ClipboardList className="w-5 h-5 text-cyan-700" />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900">
+                            {selectedPackData?.name ?? packs.find(p => p.id === selectedPackId)?.name ?? "Pack Details"}
+                          </h4>
+                          {selectedPackData?.isDefault && (
+                            <span className="text-[10px] font-bold uppercase bg-[#FECE00] text-[#004E64] px-2 py-0.5 rounded-full">Default</span>
+                          )}
+                        </div>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); setSelectedPackId(null); }} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {selectedPackLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                        <span className="ml-2 text-sm text-gray-500">Loading pack details...</span>
+                      </div>
+                    ) : selectedPackData ? (
+                      <div className="space-y-4">
+                        {selectedPackData.description && (
+                          <p className="text-sm text-gray-600">{selectedPackData.description}</p>
+                        )}
+
+                        <div>
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">Tasks ({selectedPackData.tasks.length})</h5>
+                          <div className="space-y-2">
+                            {selectedPackData.tasks
+                              .sort((a, b) => a.sortOrder - b.sortOrder)
+                              .map((task) => (
+                                <div key={task.id} className="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-lg">
+                                  <CheckCircle2 className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-gray-900">{task.title}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <span className="text-[10px] font-medium bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full capitalize">
+                                      {task.category.replace("_", " ")}
+                                    </span>
+                                    {task.isRequired && (
+                                      <span className="text-[10px] font-medium text-red-500 uppercase">Required</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center py-8 text-sm text-gray-500">
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        Could not load pack details.
+                      </div>
+                    )}
+                  </div>
+                )}
+                </>
               )}
             </div>
           )}
@@ -398,7 +501,7 @@ export default function OnboardingPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {courses.map((course) => (
-                <div key={course.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                <div key={course.id} onClick={() => setSelectedCourseId(selectedCourseId === course.id ? null : course.id)} className={cn("bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer", selectedCourseId === course.id && "ring-2 ring-[#004E64] border-[#004E64]")}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                       <BookOpen className="w-5 h-5 text-purple-700" />
@@ -431,6 +534,96 @@ export default function OnboardingPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Selected Course Detail Panel */}
+          {selectedCourseId && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-purple-700" />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900">
+                      {selectedCourseData?.title ?? courses.find(c => c.id === selectedCourseId)?.title ?? "Course Details"}
+                    </h4>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {selectedCourseData?.status && (
+                        <span className={cn(
+                          "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
+                          selectedCourseData.status === "published" ? "bg-emerald-100 text-emerald-700"
+                            : selectedCourseData.status === "draft" ? "bg-gray-100 text-gray-600"
+                            : "bg-amber-100 text-amber-700"
+                        )}>
+                          {selectedCourseData.status}
+                        </span>
+                      )}
+                      {selectedCourseData?.isRequired && (
+                        <span className="text-[10px] font-bold uppercase bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Required</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <button onClick={(e) => { e.stopPropagation(); setSelectedCourseId(null); }} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {selectedCourseLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                  <span className="ml-2 text-sm text-gray-500">Loading course details...</span>
+                </div>
+              ) : selectedCourseData ? (
+                <div className="space-y-4">
+                  {selectedCourseData.description && (
+                    <p className="text-sm text-gray-600">{selectedCourseData.description}</p>
+                  )}
+
+                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                    {selectedCourseData.category && (
+                      <span className="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{selectedCourseData.category}</span>
+                    )}
+                    <span className="flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5" />
+                      {selectedCourseData._count.enrollments} enrolled
+                    </span>
+                  </div>
+
+                  {selectedCourseData.modules && selectedCourseData.modules.length > 0 && (
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-700 mb-2">Modules ({selectedCourseData.modules.length})</h5>
+                      <div className="space-y-2">
+                        {selectedCourseData.modules
+                          .sort((a, b) => a.sortOrder - b.sortOrder)
+                          .map((mod) => {
+                            const TypeIcon = MODULE_TYPE_ICONS[mod.type] || FileText;
+                            return (
+                              <div key={mod.id} className="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-lg">
+                                <TypeIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <p className="text-sm text-gray-900 flex-1">{mod.title}</p>
+                                <span className="text-[10px] font-medium bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full capitalize">
+                                  {mod.type.replace("_", " ")}
+                                </span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedCourseData.modules && selectedCourseData.modules.length === 0 && (
+                    <p className="text-sm text-gray-400 italic">No modules added to this course yet.</p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8 text-sm text-gray-500">
+                  <AlertCircle className="w-4 h-4 mr-2" />
+                  Could not load course details.
+                </div>
+              )}
             </div>
           )}
         </div>

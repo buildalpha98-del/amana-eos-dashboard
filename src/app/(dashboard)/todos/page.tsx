@@ -20,6 +20,7 @@ import {
   ArrowRight,
   Trash2,
   X,
+  Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +39,7 @@ export default function TodosPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showCarryForward, setShowCarryForward] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
 
   const updateTodo = useUpdateTodo();
   const deleteTodo = useDeleteTodo();
@@ -94,6 +96,13 @@ export default function TodosPage() {
       ).length,
     };
   }, [todos]);
+
+  // Filter out completed/cancelled todos when archive is hidden
+  const filteredTodos = useMemo(() => {
+    if (!todos) return [];
+    if (showArchived) return todos;
+    return todos.filter((t) => t.status !== "complete" && t.status !== "cancelled");
+  }, [todos, showArchived]);
 
   const hasActiveFilters = filterAssignee || filterStatus;
 
@@ -189,6 +198,20 @@ export default function TodosPage() {
               <List className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Archive Toggle */}
+          <button
+            onClick={() => setShowArchived(!showArchived)}
+            className={cn(
+              "p-2 rounded-lg border transition-colors",
+              showArchived
+                ? "border-[#004E64] bg-[#004E64]/5 text-[#004E64]"
+                : "border-gray-200 text-gray-400 hover:text-gray-600"
+            )}
+            title={showArchived ? "Hide completed" : "Show completed"}
+          >
+            <Archive className="w-4 h-4" />
+          </button>
 
           {/* Filter Toggle */}
           <button
@@ -360,14 +383,14 @@ export default function TodosPage() {
       ) : todos && todos.length > 0 ? (
         groupBy === "person" ? (
           <TodoListByPerson
-            todos={todos}
+            todos={filteredTodos}
             onTodoClick={(todo) => setSelectedTodo(todo)}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
           />
         ) : (
           <div className="space-y-2">
-            {todos.map((todo) => (
+            {filteredTodos.map((todo) => (
               <TodoItem
                 key={todo.id}
                 todo={todo}

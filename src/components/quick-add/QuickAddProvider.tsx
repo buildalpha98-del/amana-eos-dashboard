@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useSession } from "next-auth/react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { getCurrentQuarter, getWeekStart } from "@/lib/utils";
 
@@ -65,8 +65,19 @@ function QuickAddToDoModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState(getDefaultDueDate);
+  const [assigneeId, setAssigneeId] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const { data: users = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["users-list"],
+    queryFn: async () => {
+      const res = await fetch("/api/users");
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isOpen,
+  });
 
   // Reset form every time modal opens
   useEffect(() => {
@@ -74,10 +85,11 @@ function QuickAddToDoModal({
       setTitle("");
       setDescription("");
       setDueDate(getDefaultDueDate());
+      setAssigneeId(session?.user?.id || "");
       setShowSuccess(false);
       setErrorMsg("");
     }
-  }, [isOpen]);
+  }, [isOpen, session?.user?.id]);
 
   const createTodoMutation = useMutation({
     mutationFn: async (data: {
@@ -115,7 +127,7 @@ function QuickAddToDoModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !dueDate || !session?.user?.id) return;
+    if (!title || !dueDate || !assigneeId) return;
 
     setErrorMsg("");
     const dueDateObj = new Date(dueDate);
@@ -123,7 +135,7 @@ function QuickAddToDoModal({
 
     createTodoMutation.mutate({
       title,
-      assigneeId: session.user.id,
+      assigneeId,
       dueDate: dueDateObj.toISOString().split("T")[0],
       weekOf,
       description: description || undefined,
@@ -173,17 +185,35 @@ function QuickAddToDoModal({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Due Date *
-            </label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
-              required
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Assignee *
+              </label>
+              <select
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+                required
+              >
+                <option value="">Select assignee...</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Due Date *
+              </label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+                required
+              />
+            </div>
           </div>
 
           <div>
@@ -209,7 +239,7 @@ function QuickAddToDoModal({
             </button>
             <button
               type="submit"
-              disabled={createTodoMutation.isPending || !title || !dueDate}
+              disabled={createTodoMutation.isPending || !title || !dueDate || !assigneeId}
               className="flex-1 px-4 py-2 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] disabled:opacity-50 transition-colors font-medium"
             >
               {createTodoMutation.isPending ? "Creating..." : "Create To-Do"}

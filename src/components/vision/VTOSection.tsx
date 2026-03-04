@@ -9,26 +9,78 @@ export function VTOSection({
   field,
   value,
   multiline,
+  sectionLabels,
 }: {
   title: string;
   field: string;
   value: string | null;
   multiline?: boolean;
+  sectionLabels?: Record<string, string> | null;
 }) {
   const updateVTO = useUpdateVTO();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || "");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+
+  const displayTitle = sectionLabels?.[field] || title;
 
   const handleSave = () => {
     updateVTO.mutate({ [field]: draft });
     setEditing(false);
   };
 
+  const handleSaveTitle = () => {
+    const newLabel = titleDraft.trim();
+    if (!newLabel) return;
+    const updated = { ...(sectionLabels || {}), [field]: newLabel };
+    updateVTO.mutate({ sectionLabels: updated });
+    setEditingTitle(false);
+  };
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50/50">
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
-        {!editing && (
+        {editingTitle ? (
+          <div className="flex items-center gap-2 flex-1">
+            <input
+              autoFocus
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              className="flex-1 px-2 py-1 text-sm font-semibold border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveTitle();
+                if (e.key === "Escape") setEditingTitle(false);
+              }}
+            />
+            <button
+              onClick={handleSaveTitle}
+              className="p-1 text-emerald-600 hover:text-emerald-700"
+              title="Save title"
+            >
+              <Check className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setEditingTitle(false)}
+              className="p-1 text-gray-400 hover:text-gray-600"
+              title="Cancel"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ) : (
+          <h3
+            className="text-sm font-semibold text-gray-700 cursor-pointer hover:text-[#004E64] transition-colors"
+            onClick={() => {
+              setTitleDraft(displayTitle);
+              setEditingTitle(true);
+            }}
+            title="Click to rename"
+          >
+            {displayTitle}
+          </h3>
+        )}
+        {!editing && !editingTitle && (
           <button
             onClick={() => {
               setDraft(value || "");
