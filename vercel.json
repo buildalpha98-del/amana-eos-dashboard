@@ -1,0 +1,49 @@
+{
+  "buildCommand": "npx prisma generate && npx prisma db push --skip-generate && npx tsx prisma/seed.ts && next build",
+  "crons": [
+    {
+      "path": "/api/cron/attendance-alerts",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/compliance-alerts",
+      "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/auto-onboarding",
+      "schedule": "30 21 * * *"
+    },
+    {
+      "path": "/api/cron/daily-digest",
+      "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/auto-escalation",
+      "schedule": "30 22 * * *"
+    },
+    {
+      "path": "/api/xero/sync/cron",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/auto-carry-forward",
+      "schedule": "0 20 * * 0"
+    },
+    {
+      "path": "/api/cron/auto-measurables",
+      "schedule": "30 20 * * 0"
+    },
+    {
+      "path": "/api/cron/weekly-report",
+      "schedule": "0 21 * * 0"
+    },
+    {
+      "path": "/api/cron/attendance-to-financials",
+      "schedule": "0 13 * * 0"
+    },
+    {
+      "path": "/api/health-scores/compute",
+      "schedule": "0 20 1 * *"
+    }
+  ]
+}
