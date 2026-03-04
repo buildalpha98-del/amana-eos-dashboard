@@ -56,6 +56,8 @@ export function IssueDetailPanel({
   const [newTodoAssignee, setNewTodoAssignee] = useState("");
   const [newTodoDueDate, setNewTodoDueDate] = useState("");
   const [showRockPicker, setShowRockPicker] = useState(false);
+  const [showResolvePrompt, setShowResolvePrompt] = useState(false);
+  const [resolveNote, setResolveNote] = useState("");
 
   // Sync local state when issue data loads
   useEffect(() => {
@@ -213,12 +215,23 @@ export function IssueDetailPanel({
                 return (
                   <button
                     key={step.key}
-                    onClick={() =>
+                    onClick={() => {
+                      // Require resolution note when moving to solved or closed
+                      if (
+                        (step.key === "solved" || step.key === "closed") &&
+                        issue.status !== "solved" &&
+                        issue.status !== "closed" &&
+                        !issue.resolution
+                      ) {
+                        setResolveNote("");
+                        setShowResolvePrompt(true);
+                        return;
+                      }
                       updateIssue.mutate({
                         id: issueId,
                         status: step.key,
-                      })
-                    }
+                      });
+                    }}
                     className={cn(
                       "flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-lg border-2 transition-all text-center",
                       isActive
@@ -234,6 +247,53 @@ export function IssueDetailPanel({
                 );
               })}
             </div>
+
+            {/* Resolution prompt modal */}
+            {showResolvePrompt && (
+              <div className="mt-3 p-4 border border-emerald-200 bg-emerald-50 rounded-lg space-y-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span className="text-sm font-medium text-emerald-800">
+                    How was this issue resolved?
+                  </span>
+                </div>
+                <textarea
+                  autoFocus
+                  value={resolveNote}
+                  onChange={(e) => setResolveNote(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                  placeholder="Describe the resolution..."
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setShowResolvePrompt(false);
+                  }}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!resolveNote.trim()) return;
+                      updateIssue.mutate({
+                        id: issueId,
+                        status: "solved",
+                        resolution: resolveNote.trim(),
+                      });
+                      setResolution(resolveNote.trim());
+                      setShowResolvePrompt(false);
+                    }}
+                    disabled={!resolveNote.trim()}
+                    className="text-xs px-4 py-1.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  >
+                    Mark as Solved
+                  </button>
+                  <button
+                    onClick={() => setShowResolvePrompt(false)}
+                    className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Priority */}

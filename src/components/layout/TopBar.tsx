@@ -29,6 +29,9 @@ const pageTitles: Record<string, string> = {
   "/documents": "Documents",
   "/team": "Team",
   "/settings": "Settings",
+  "/communication": "Communication",
+  "/marketing": "Marketing",
+  "/onboarding": "Onboarding",
 };
 
 export function TopBar() {

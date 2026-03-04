@@ -1,7 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { getCurrentQuarter } from "@/lib/utils";
 import { useState } from "react";
 
@@ -14,6 +15,52 @@ import { CentreHealthHeatmap } from "@/components/dashboard/CentreHealthHeatmap"
 import { TrendSparklines } from "@/components/dashboard/TrendSparklines";
 import { ActionItemsFeed } from "@/components/dashboard/ActionItemsFeed";
 import { DashboardProjectTodos } from "@/components/dashboard/DashboardProjectTodos";
+
+// ─── Alert Banner ───────────────────────────────────────────
+
+function AlertBanner({
+  overdueTodos,
+  criticalIssues,
+  overdueRocks,
+}: {
+  overdueTodos: number;
+  criticalIssues: number;
+  overdueRocks: number;
+}) {
+  const alerts: { label: string; count: number; href: string }[] = [];
+  if (overdueTodos > 0) alerts.push({ label: "overdue to-do", count: overdueTodos, href: "/todos" });
+  if (criticalIssues > 0) alerts.push({ label: "critical issue", count: criticalIssues, href: "/issues" });
+  if (overdueRocks > 0) alerts.push({ label: "off-track rock", count: overdueRocks, href: "/rocks" });
+
+  if (alerts.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-center gap-3">
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+        <AlertTriangle className="w-4 h-4 text-red-600" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-red-800">
+          Attention needed:{" "}
+          {alerts.map((a, i) => (
+            <span key={a.href}>
+              {i > 0 && ", "}
+              <Link href={a.href} className="underline hover:text-red-900 font-semibold">
+                {a.count} {a.label}{a.count !== 1 ? "s" : ""}
+              </Link>
+            </span>
+          ))}
+        </p>
+      </div>
+      <Link
+        href={alerts[0].href}
+        className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-medium text-red-700 hover:text-red-900 transition-colors"
+      >
+        Review <ChevronRight className="w-3.5 h-3.5" />
+      </Link>
+    </div>
+  );
+}
 
 // ─── Main Dashboard Content ─────────────────────────────────
 
@@ -73,6 +120,13 @@ export function DashboardContent() {
         </div>
       ) : data ? (
         <>
+          {/* ── Alert Banner ────────────────────────────────── */}
+          <AlertBanner
+            overdueTodos={data.actionItems.overdueTodos.length}
+            criticalIssues={data.actionItems.idsIssues.filter((i) => i.priority === "critical").length}
+            overdueRocks={data.actionItems.overdueRocks.length}
+          />
+
           {/* ── Key Metrics Bar ─────────────────────────────── */}
           <KeyMetricsBar metrics={data.keyMetrics} />
 

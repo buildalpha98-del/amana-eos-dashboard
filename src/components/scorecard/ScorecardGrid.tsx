@@ -5,6 +5,44 @@ import type { ScorecardData, MeasurableEntry } from "@/hooks/useScorecard";
 import { DataEntryCell } from "./DataEntryCell";
 import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+
+function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goalDirection: "above" | "below" | "exact" }) {
+  // values are newest-first; find the two most recent non-null values
+  const recent = values.filter((v): v is number => v !== null);
+  if (recent.length < 2) return <span className="text-gray-300 text-[10px]">—</span>;
+
+  const latest = recent[0];
+  const prev = recent[1];
+  const diff = latest - prev;
+  const pct = prev !== 0 ? Math.abs(diff / prev) * 100 : 0;
+
+  // "improving" depends on goalDirection
+  const isImproving = goalDirection === "below" ? diff < 0 : diff > 0;
+  const isFlat = Math.abs(diff) < 0.001 || pct < 1;
+
+  if (isFlat) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-gray-400" title="Flat vs previous week">
+        <Minus className="w-3 h-3" />
+      </span>
+    );
+  }
+
+  if (isImproving) {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-emerald-600" title={`+${pct.toFixed(0)}% vs previous week`}>
+        <TrendingUp className="w-3 h-3" />
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-0.5 text-red-500" title={`-${pct.toFixed(0)}% vs previous week`}>
+      <TrendingDown className="w-3 h-3" />
+    </span>
+  );
+}
 
 function Sparkline({ values, goalValue, width = 64, height = 20 }: { values: (number | null)[]; goalValue: number; width?: number; height?: number }) {
   const nums = values.filter((v): v is number => v !== null);
@@ -263,8 +301,17 @@ export function ScorecardGrid({ scorecard }: { scorecard: ScorecardData }) {
                   >
                     {/* Title */}
                     <td className="sticky left-0 z-10 bg-white px-4 py-2">
-                      <div className="text-sm font-medium text-gray-900 truncate max-w-[180px]">
-                        {m.title}
+                      <div className="flex items-center gap-1.5">
+                        <div className="text-sm font-medium text-gray-900 truncate max-w-[160px]">
+                          {m.title}
+                        </div>
+                        <TrendArrow
+                          values={weeks.map((w) => {
+                            const e = entryLookup[m.id]?.[w.toISOString().split("T")[0]];
+                            return e ? e.value : null;
+                          })}
+                          goalDirection={m.goalDirection}
+                        />
                       </div>
                       {m.description && (
                         <div className="text-[10px] text-gray-400 truncate max-w-[180px]">
