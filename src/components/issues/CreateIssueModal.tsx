@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createIssueSchema, type CreateIssueInput } from "@/lib/schemas/issue";
 import { useCreateIssue } from "@/hooks/useIssues";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { FormField } from "@/components/ui/form/FormField";
+import { FormInput } from "@/components/ui/form/FormInput";
+import { FormSelect } from "@/components/ui/form/FormSelect";
+import { FormTextarea } from "@/components/ui/form/FormTextarea";
 
 interface UserOption {
   id: string;
@@ -23,12 +29,22 @@ export function CreateIssueModal({
   onClose: () => void;
 }) {
   const createIssue = useCreateIssue();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [ownerId, setOwnerId] = useState("");
-  const [rockId, setRockId] = useState("");
-  const [priority, setPriority] = useState<"critical" | "high" | "medium" | "low">("medium");
-  const [error, setError] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<CreateIssueInput>({
+    resolver: zodResolver(createIssueSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      ownerId: "",
+      rockId: "",
+      priority: "medium",
+    },
+  });
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -51,28 +67,19 @@ export function CreateIssueModal({
 
   if (!open) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
+  const onSubmit = (data: CreateIssueInput) => {
     createIssue.mutate(
       {
-        title,
-        description: description || undefined,
-        ownerId: ownerId || null,
-        rockId: rockId || null,
-        priority,
+        ...data,
+        description: data.description || undefined,
+        ownerId: data.ownerId || null,
+        rockId: data.rockId || null,
       },
       {
         onSuccess: () => {
-          setTitle("");
-          setDescription("");
-          setOwnerId("");
-          setRockId("");
-          setPriority("medium");
+          reset();
           onClose();
         },
-        onError: (err: Error) => setError(err.message),
       }
     );
   };
@@ -97,98 +104,55 @@ export function CreateIssueModal({
           </button>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Issue Title
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <FormField label="Issue Title" error={errors.title}>
+            <FormInput
+              registration={register("title")}
+              hasError={!!errors.title}
               placeholder="e.g., Staff retention at Western Sydney centres"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+          <FormField label="Description" optional>
+            <FormTextarea
+              registration={register("description")}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
               placeholder="Context and impact..."
             />
-          </div>
+          </FormField>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Priority
-              </label>
-              <select
-                value={priority}
-                onChange={(e) =>
-                  setPriority(e.target.value as typeof priority)
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
-              >
+            <FormField label="Priority">
+              <FormSelect registration={register("priority")}>
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
-              </select>
-            </div>
+              </FormSelect>
+            </FormField>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Owner{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
-              </label>
-              <select
-                value={ownerId}
-                onChange={(e) => setOwnerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
-              >
+            <FormField label="Owner" optional>
+              <FormSelect registration={register("ownerId")}>
                 <option value="">Unassigned</option>
                 {users?.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name}
                   </option>
                 ))}
-              </select>
-            </div>
+              </FormSelect>
+            </FormField>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Linked Rock{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <select
-              value={rockId}
-              onChange={(e) => setRockId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
-            >
+          <FormField label="Linked Rock" optional>
+            <FormSelect registration={register("rockId")}>
               <option value="">No linked Rock</option>
               {rocks?.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.title}
                 </option>
               ))}
-            </select>
-          </div>
+            </FormSelect>
+          </FormField>
 
           <div className="flex gap-3 pt-2">
             <button

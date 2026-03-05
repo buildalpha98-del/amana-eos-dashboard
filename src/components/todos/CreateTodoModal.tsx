@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createTodoSchema, type CreateTodoInput } from "@/lib/schemas/todo";
 import { useCreateTodo } from "@/hooks/useTodos";
 import { useQuery } from "@tanstack/react-query";
 import { X, Lock, Unlock } from "lucide-react";
+import { FormField } from "@/components/ui/form/FormField";
+import { FormInput } from "@/components/ui/form/FormInput";
+import { FormSelect } from "@/components/ui/form/FormSelect";
+import { FormTextarea } from "@/components/ui/form/FormTextarea";
 
 interface UserOption {
   id: string;
@@ -26,18 +32,34 @@ export function CreateTodoModal({
   weekOf: Date;
 }) {
   const createTodo = useCreateTodo();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [assigneeId, setAssigneeId] = useState("");
-  const [rockId, setRockId] = useState("");
-  const [dueDate, setDueDate] = useState(() => {
-    // Default due date = end of week (Sunday)
+
+  const defaultDueDate = (() => {
     const end = new Date(weekOf);
     end.setDate(end.getDate() + 6);
     return end.toISOString().split("T")[0];
+  })();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<CreateTodoInput>({
+    resolver: zodResolver(createTodoSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      assigneeId: "",
+      rockId: "",
+      isPrivate: false,
+      dueDate: defaultDueDate,
+      weekOf: weekOf.toISOString(),
+    },
   });
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [error, setError] = useState("");
+
+  const isPrivate = watch("isPrivate");
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -60,35 +82,19 @@ export function CreateTodoModal({
 
   if (!open) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!assigneeId) {
-      setError("Please select an assignee");
-      return;
-    }
-
+  const onSubmit = (data: CreateTodoInput) => {
     createTodo.mutate(
       {
-        title,
-        description: description || undefined,
-        assigneeId,
-        rockId: rockId || null,
-        isPrivate,
-        dueDate,
+        ...data,
+        description: data.description || undefined,
+        rockId: data.rockId || null,
         weekOf: weekOf.toISOString(),
       },
       {
         onSuccess: () => {
-          setTitle("");
-          setDescription("");
-          setAssigneeId("");
-          setRockId("");
-          setIsPrivate(false);
+          reset();
           onClose();
         },
-        onError: (err: Error) => setError(err.message),
       }
     );
   };
@@ -118,51 +124,28 @@ export function CreateTodoModal({
           </button>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <FormField label="Title" error={errors.title}>
+            <FormInput
+              registration={register("title")}
+              hasError={!!errors.title}
               placeholder="e.g., Follow up with NSW property managers"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+          <FormField label="Description" optional>
+            <FormTextarea
+              registration={register("description")}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
               placeholder="Add details..."
             />
-          </div>
+          </FormField>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Assignee
-              </label>
-              <select
-                required
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            <FormField label="Assignee" error={errors.assigneeId}>
+              <FormSelect
+                registration={register("assigneeId")}
+                hasError={!!errors.assigneeId}
               >
                 <option value="">Select person...</option>
                 {users?.map((u) => (
@@ -170,41 +153,28 @@ export function CreateTodoModal({
                     {u.name}
                   </option>
                 ))}
-              </select>
-            </div>
+              </FormSelect>
+            </FormField>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Due Date
-              </label>
-              <input
+            <FormField label="Due Date" error={errors.dueDate}>
+              <FormInput
+                registration={register("dueDate")}
+                hasError={!!errors.dueDate}
                 type="date"
-                required
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               />
-            </div>
+            </FormField>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Linked Rock{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <select
-              value={rockId}
-              onChange={(e) => setRockId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
-            >
+          <FormField label="Linked Rock" optional>
+            <FormSelect registration={register("rockId")}>
               <option value="">No linked Rock</option>
               {rocks?.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.title}
                 </option>
               ))}
-            </select>
-          </div>
+            </FormSelect>
+          </FormField>
 
           {/* Private Toggle */}
           <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
@@ -220,7 +190,7 @@ export function CreateTodoModal({
             </div>
             <button
               type="button"
-              onClick={() => setIsPrivate(!isPrivate)}
+              onClick={() => setValue("isPrivate", !isPrivate)}
               className={`relative w-10 h-5 rounded-full transition-colors ${
                 isPrivate ? "bg-amber-500" : "bg-gray-300"
               }`}

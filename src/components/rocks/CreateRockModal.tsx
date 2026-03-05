@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createRockSchema, type CreateRockInput } from "@/lib/schemas/rock";
 import { useCreateRock } from "@/hooks/useRocks";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { FormField } from "@/components/ui/form/FormField";
+import { FormInput } from "@/components/ui/form/FormInput";
+import { FormSelect } from "@/components/ui/form/FormSelect";
+import { FormTextarea } from "@/components/ui/form/FormTextarea";
 import type { RockPriority, RockType } from "@prisma/client";
 
 interface UserOption {
@@ -22,12 +28,27 @@ export function CreateRockModal({
   quarter: string;
 }) {
   const createRock = useCreateRock();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [ownerId, setOwnerId] = useState("");
-  const [priority, setPriority] = useState<RockPriority>("medium");
-  const [rockType, setRockType] = useState<RockType>("personal");
-  const [error, setError] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<CreateRockInput>({
+    resolver: zodResolver(createRockSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      ownerId: "",
+      quarter,
+      priority: "medium",
+      rockType: "personal",
+    },
+  });
+
+  const rockType = watch("rockType");
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -40,27 +61,18 @@ export function CreateRockModal({
 
   if (!open) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!ownerId) {
-      setError("Please select an owner");
-      return;
-    }
-
+  const onSubmit = (data: CreateRockInput) => {
     createRock.mutate(
-      { title, description: description || undefined, ownerId, quarter, priority, rockType },
+      {
+        ...data,
+        description: data.description || undefined,
+        quarter,
+      },
       {
         onSuccess: () => {
-          setTitle("");
-          setDescription("");
-          setOwnerId("");
-          setPriority("medium");
-          setRockType("personal");
+          reset();
           onClose();
         },
-        onError: (err: Error) => setError(err.message),
       }
     );
   };
@@ -83,39 +95,22 @@ export function CreateRockModal({
           </button>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <FormField label="Title" error={errors.title}>
+            <FormInput
+              registration={register("title")}
+              hasError={!!errors.title}
               placeholder="e.g., Launch 3 new NSW centres by end of quarter"
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+          <FormField label="Description" optional>
+            <FormTextarea
+              registration={register("description")}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
               placeholder="Describe the Rock in detail..."
             />
-          </div>
+          </FormField>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -124,7 +119,7 @@ export function CreateRockModal({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setRockType("company")}
+                onClick={() => setValue("rockType", "company")}
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   rockType === "company"
                     ? "bg-[#004E64] text-white border-[#004E64]"
@@ -135,7 +130,7 @@ export function CreateRockModal({
               </button>
               <button
                 type="button"
-                onClick={() => setRockType("personal")}
+                onClick={() => setValue("rockType", "personal")}
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   rockType === "personal"
                     ? "bg-[#004E64] text-white border-[#004E64]"
@@ -148,15 +143,10 @@ export function CreateRockModal({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Owner
-              </label>
-              <select
-                required
-                value={ownerId}
-                onChange={(e) => setOwnerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            <FormField label="Owner" error={errors.ownerId}>
+              <FormSelect
+                registration={register("ownerId")}
+                hasError={!!errors.ownerId}
               >
                 <option value="">Select owner...</option>
                 {users?.map((u) => (
@@ -164,23 +154,16 @@ export function CreateRockModal({
                     {u.name}
                   </option>
                 ))}
-              </select>
-            </div>
+              </FormSelect>
+            </FormField>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Priority
-              </label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as RockPriority)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
-              >
+            <FormField label="Priority">
+              <FormSelect registration={register("priority")}>
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
-              </select>
-            </div>
+              </FormSelect>
+            </FormField>
           </div>
 
           <div className="flex gap-3 pt-2">

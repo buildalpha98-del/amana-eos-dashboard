@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope } from "@/lib/service-scope";
 import { notifyNewIssue } from "@/lib/teams-notify";
-
-const createIssueSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-  ownerId: z.string().optional().nullable(),
-  rockId: z.string().optional().nullable(),
-  serviceId: z.string().optional().nullable(),
-  priority: z.enum(["critical", "high", "medium", "low"]).default("medium"),
-});
+import { createIssueSchema } from "@/lib/schemas/issue";
 
 // GET /api/issues — list issues with optional filters
 export async function GET(req: NextRequest) {

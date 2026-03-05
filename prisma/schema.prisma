@@ -446,6 +446,7 @@ model Rock {
   @@index([ownerId])
   @@index([status])
   @@index([serviceId])
+  @@index([quarter, serviceId])
 }
 
 model Milestone {
@@ -490,6 +491,8 @@ model Todo {
   @@index([status])
   @@index([serviceId])
   @@index([projectId])
+  @@index([createdById])
+  @@index([weekOf, serviceId])
 }
 
 model Issue {
@@ -521,6 +524,8 @@ model Issue {
   @@index([status])
   @@index([ownerId])
   @@index([serviceId])
+  @@index([raisedById])
+  @@index([status, serviceId])
 }
 
 model Scorecard {
@@ -572,6 +577,7 @@ model MeasurableEntry {
 
   @@unique([measurableId, weekOf])
   @@index([weekOf])
+  @@index([enteredById])
 }
 
 model ActivityLog {
@@ -1627,6 +1633,7 @@ model DailyAttendance {
   @@unique([serviceId, date, sessionType])
   @@index([serviceId])
   @@index([date])
+  @@index([serviceId, date])
 }
 
 // ============================================================
@@ -1660,6 +1667,7 @@ model TodoTemplate {
   @@index([isActive, nextRunAt])
   @@index([assigneeId])
   @@index([serviceId])
+  @@index([createdById])
 }
 
 // ============================================================
@@ -1888,6 +1896,7 @@ model LeaveRequest {
   @@index([startDate])
   @@index([serviceId])
   @@index([leaveType])
+  @@index([reviewedById])
 }
 
 model LeaveBalance {

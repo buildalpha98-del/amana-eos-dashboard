@@ -1,20 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope } from "@/lib/service-scope";
 import { notifyNewRock } from "@/lib/teams-notify";
-
-const createRockSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-  ownerId: z.string().min(1, "Owner is required"),
-  quarter: z.string().min(1, "Quarter is required"),
-  priority: z.enum(["critical", "high", "medium"]).default("medium"),
-  rockType: z.enum(["company", "personal"]).default("personal"),
-  oneYearGoalId: z.string().optional().nullable(),
-  serviceId: z.string().optional().nullable(),
-});
+import { createRockSchema } from "@/lib/schemas/rock";
 
 // GET /api/rocks — list rocks with optional quarter filter
 export async function GET(req: NextRequest) {
