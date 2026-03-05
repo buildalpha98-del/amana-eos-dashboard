@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { weeklyReportEmail } from "@/lib/email-templates";
 import { notifyWeeklySummary } from "@/lib/teams-notify";
+import { acquireCronLock } from "@/lib/cron-guard";
 
 /**
  * GET /api/cron/weekly-report
@@ -18,6 +19,12 @@ export async function GET(req: NextRequest) {
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Idempotency guard — prevent duplicate weekly report emails on retry
+  const guard = await acquireCronLock("weekly-report", "weekly");
+  if (!guard.acquired) {
+    return NextResponse.json({ message: guard.reason, skipped: true });
   }
 
   try {
@@ -163,6 +170,12 @@ export async function GET(req: NextRequest) {
       url: `${baseUrl}/dashboard`,
     }).catch(() => {});
 
+    await guard.complete({
+      weekOf: lastMonday.toISOString().split("T")[0],
+      emailsSent,
+      centres: centreData.length,
+    });
+
     return NextResponse.json({
       message: "Weekly report sent",
       weekOf: lastMonday.toISOString().split("T")[0],
@@ -176,6 +189,7 @@ export async function GET(req: NextRequest) {
       emailsSent,
     });
   } catch (err) {
+    await guard.fail(err);
     console.error("Weekly report cron failed:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },

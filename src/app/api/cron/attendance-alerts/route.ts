@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { notifyLowOccupancy } from "@/lib/teams-notify";
+import { acquireCronLock } from "@/lib/cron-guard";
 
 /**
  * GET /api/cron/attendance-alerts
@@ -22,6 +23,12 @@ export async function GET(req: NextRequest) {
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Idempotency guard — prevent duplicate attendance alerts on retry
+  const guard = await acquireCronLock("attendance-alerts", "daily");
+  if (!guard.acquired) {
+    return NextResponse.json({ message: guard.reason, skipped: true });
   }
 
   try {
@@ -136,6 +143,13 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    await guard.complete({
+      servicesChecked: services.length,
+      lowOccupancyAlerts,
+      missingDataAlerts,
+      emailsSent,
+    });
+
     return NextResponse.json({
       message: "Attendance alerts processed",
       date: yesterday.toISOString().split("T")[0],
@@ -145,6 +159,7 @@ export async function GET(req: NextRequest) {
       emailsSent,
     });
   } catch (err) {
+    await guard.fail(err);
     console.error("Attendance alerts cron failed:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },

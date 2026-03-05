@@ -7,6 +7,7 @@ import {
   notifyRockOffTrack,
   notifyStaleIssues,
 } from "@/lib/teams-notify";
+import { acquireCronLock } from "@/lib/cron-guard";
 
 /**
  * GET /api/cron/auto-escalation
@@ -25,6 +26,12 @@ export async function GET(req: NextRequest) {
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Idempotency guard — prevent duplicate escalation notifications on retry
+  const guard = await acquireCronLock("auto-escalation", "daily");
+  if (!guard.acquired) {
+    return NextResponse.json({ message: guard.reason, skipped: true });
   }
 
   try {
@@ -166,6 +173,13 @@ export async function GET(req: NextRequest) {
       }).catch(() => {});
     }
 
+    await guard.complete({
+      overdueTodos: overdueTodos.length,
+      rocksEscalated,
+      staleIssues: staleIssues.length,
+      emailsSent,
+    });
+
     return NextResponse.json({
       message: "Auto-escalation complete",
       overdueTodos: {
@@ -182,6 +196,7 @@ export async function GET(req: NextRequest) {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
+    await guard.fail(err);
     console.error("Auto-escalation cron failed:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },

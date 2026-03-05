@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { complianceAlertEmail, complianceAdminSummaryEmail } from "@/lib/email-templates";
+import { acquireCronLock } from "@/lib/cron-guard";
 
 /**
  * GET /api/cron/compliance-alerts
@@ -17,6 +18,12 @@ export async function GET(req: NextRequest) {
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Idempotency guard — prevent duplicate compliance alert emails on retry
+  const guard = await acquireCronLock("compliance-alerts", "daily");
+  if (!guard.acquired) {
+    return NextResponse.json({ message: guard.reason, skipped: true });
   }
 
   try {
@@ -157,6 +164,8 @@ export async function GET(req: NextRequest) {
       console.log(`  Due 30d: ${due30d.length}`);
     }
 
+    await guard.complete({ total: expiringCerts.length, emailsSent });
+
     return NextResponse.json({
       message: "Compliance alerts processed",
       counts: {
@@ -170,6 +179,7 @@ export async function GET(req: NextRequest) {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
+    await guard.fail(err);
     console.error("Compliance alert cron failed:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },

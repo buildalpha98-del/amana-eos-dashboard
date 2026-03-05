@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { acquireCronLock } from "@/lib/cron-guard";
 
 /**
  * GET /api/cron/auto-carry-forward
@@ -18,6 +19,12 @@ export async function GET(req: NextRequest) {
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Idempotency guard — prevent double carry-forward on retry
+  const guard = await acquireCronLock("auto-carry-forward", "weekly");
+  if (!guard.acquired) {
+    return NextResponse.json({ message: guard.reason, skipped: true });
   }
 
   try {
@@ -66,6 +73,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    await guard.complete({
+      carried: result.count,
+      assigneesAffected: assigneeCounts.size,
+    });
+
     return NextResponse.json({
       message: "Auto carry-forward complete",
       carried: result.count,
@@ -73,6 +85,7 @@ export async function GET(req: NextRequest) {
       weekOf: thisMonday.toISOString().split("T")[0],
     });
   } catch (err) {
+    await guard.fail(err);
     console.error("Auto carry-forward cron failed:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },

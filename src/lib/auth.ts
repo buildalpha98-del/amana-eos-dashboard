@@ -19,7 +19,7 @@ export const authOptions: NextAuthOptions = {
 
         // Rate limit by email — 5 attempts per 15 minutes
         const rateLimitKey = `login:${credentials.email.toLowerCase()}`;
-        const { limited, resetIn } = checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000);
+        const { limited, resetIn } = await checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000);
         if (limited) {
           const minutes = Math.ceil(resetIn / 60000);
           throw new Error(`Too many login attempts. Please try again in ${minutes} minutes.`);
@@ -39,7 +39,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Successful login — reset rate limit
-        resetRateLimit(rateLimitKey);
+        await resetRateLimit(rateLimitKey);
 
         return {
           id: user.id,

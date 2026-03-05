@@ -590,6 +590,24 @@ model ActivityLog {
 }
 
 // ============================================================
+// Cron Job Idempotency
+// ============================================================
+
+model CronRun {
+  id        String   @id @default(cuid())
+  cronName  String
+  period    String   // e.g. "2025-03-05" for daily, "2025-W10" for weekly
+  details   Json?
+  startedAt DateTime @default(now())
+  completedAt DateTime?
+  status    String   @default("running") // running | completed | failed
+
+  @@unique([cronName, period])
+  @@index([cronName])
+  @@index([startedAt])
+}
+
+// ============================================================
 // Marketing
 // ============================================================
 

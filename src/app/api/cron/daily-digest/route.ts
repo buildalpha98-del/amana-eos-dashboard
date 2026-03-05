@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { dailyDigestEmail } from "@/lib/email-templates";
+import { acquireCronLock } from "@/lib/cron-guard";
 
 /**
  * GET /api/cron/daily-digest
@@ -17,6 +18,12 @@ export async function GET(req: NextRequest) {
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Idempotency guard — prevent duplicate digest emails on retry
+  const guard = await acquireCronLock("daily-digest", "daily");
+  if (!guard.acquired) {
+    return NextResponse.json({ message: guard.reason, skipped: true });
   }
 
   try {
@@ -110,6 +117,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    await guard.complete({ totalUsers: users.length, emailsSent, skipped });
+
     return NextResponse.json({
       message: "Daily digest processed",
       totalUsers: users.length,
@@ -118,6 +127,7 @@ export async function GET(req: NextRequest) {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
+    await guard.fail(err);
     console.error("Daily digest cron failed:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },
