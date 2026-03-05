@@ -21,7 +21,18 @@ const updateCampaignSchema = z.object({
   goal: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   designLink: z.string().optional().nullable(),
+  serviceIds: z.array(z.string()).optional(),
 });
+
+const serviceInclude = {
+  services: {
+    select: {
+      service: {
+        select: { id: true, name: true, code: true },
+      },
+    },
+  },
+} as const;
 
 // GET /api/marketing/campaigns/:id — get a single campaign with all related data
 export async function GET(
@@ -58,6 +69,7 @@ export async function GET(
           posts: { where: { deleted: false } },
         },
       },
+      ...serviceInclude,
     },
   });
 
@@ -92,9 +104,29 @@ export async function PATCH(
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
+  const { serviceIds, ...updateData } = parsed.data;
+
   const campaign = await prisma.marketingCampaign.update({
     where: { id },
-    data: parsed.data,
+    data: updateData,
+  });
+
+  // Sync service join table if serviceIds provided
+  if (serviceIds !== undefined) {
+    await prisma.marketingCampaignService.deleteMany({ where: { campaignId: id } });
+    if (serviceIds.length > 0) {
+      await prisma.marketingCampaignService.createMany({
+        data: serviceIds.map((serviceId) => ({
+          campaignId: id,
+          serviceId,
+        })),
+      });
+    }
+  }
+
+  // Re-fetch with all includes
+  const fullCampaign = await prisma.marketingCampaign.findUnique({
+    where: { id },
     include: {
       _count: {
         select: {
@@ -102,6 +134,7 @@ export async function PATCH(
           comments: true,
         },
       },
+      ...serviceInclude,
     },
   });
 
@@ -115,7 +148,7 @@ export async function PATCH(
     },
   });
 
-  return NextResponse.json(campaign);
+  return NextResponse.json(fullCampaign);
 }
 
 // DELETE /api/marketing/campaigns/:id — soft delete a campaign

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { useCreateCampaign } from "@/hooks/useMarketing";
 import type { MarketingPlatform, MarketingCampaignType } from "@prisma/client";
+import { ServiceMultiSelect } from "./ServiceMultiSelect";
 
 const CAMPAIGN_TYPES: MarketingCampaignType[] = [
   "campaign",
@@ -41,6 +42,7 @@ export function CreateCampaignModal({
   const [goal, setGoal] = useState("");
   const [notes, setNotes] = useState("");
   const [designLink, setDesignLink] = useState("");
+  const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [error, setError] = useState("");
 
   const resetForm = () => {
@@ -52,6 +54,7 @@ export function CreateCampaignModal({
     setGoal("");
     setNotes("");
     setDesignLink("");
+    setServiceIds([]);
     setError("");
   };
 
@@ -87,6 +90,7 @@ export function CreateCampaignModal({
         ...(goal.trim() && { goal: goal.trim() }),
         ...(notes.trim() && { notes: notes.trim() }),
         ...(designLink.trim() && { designLink: designLink.trim() }),
+        ...(serviceIds.length > 0 && { serviceIds }),
       },
       {
         onSuccess: () => {
@@ -217,6 +221,18 @@ export function CreateCampaignModal({
                     </label>
                   ))}
                 </div>
+              </div>
+
+              {/* Target Centres */}
+              <div>
+                <ServiceMultiSelect
+                  selectedIds={serviceIds}
+                  onChange={setServiceIds}
+                  label="Target Centres"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Leave empty for all centres
+                </p>
               </div>
 
               {/* Goal */}

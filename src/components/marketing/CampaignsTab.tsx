@@ -30,8 +30,10 @@ const TYPE_OPTIONS = [
 
 export function CampaignsTab({
   onSelectCampaign,
+  serviceId,
 }: {
   onSelectCampaign: (id: string) => void;
+  serviceId: string;
 }) {
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -40,6 +42,7 @@ export function CampaignsTab({
   const { data: campaigns, isLoading } = useCampaigns({
     status: statusFilter || undefined,
     type: typeFilter || undefined,
+    serviceId: serviceId || undefined,
   });
 
   return (
@@ -106,6 +109,7 @@ export function CampaignsTab({
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Platforms</th>
+                  <th className="px-4 py-3">Centres</th>
                   <th className="px-4 py-3">Start Date</th>
                   <th className="px-4 py-3">Posts</th>
                 </tr>
@@ -132,6 +136,24 @@ export function CampaignsTab({
                           <PlatformBadge key={p} platform={p} />
                         ))}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {campaign.services && campaign.services.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {campaign.services.map((s) => (
+                            <span
+                              key={s.service.id}
+                              className="inline-flex items-center rounded-md bg-[#004E64]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#004E64]"
+                            >
+                              {s.service.code}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic text-xs">
+                          All Centres
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {campaign.startDate

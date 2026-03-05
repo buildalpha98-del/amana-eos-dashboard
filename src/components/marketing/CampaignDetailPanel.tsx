@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Trash2, Send } from "lucide-react";
+import { X, Trash2, Send, Pencil } from "lucide-react";
 import {
   useCampaign,
   useUpdateCampaign,
@@ -11,6 +11,7 @@ import {
 import type { MarketingPlatform } from "@prisma/client";
 import { StatusBadge } from "./StatusBadge";
 import { PlatformBadge } from "./PlatformBadge";
+import { ServiceMultiSelect } from "./ServiceMultiSelect";
 
 const CAMPAIGN_STATUSES = [
   "draft",
@@ -65,6 +66,8 @@ export function CampaignDetailPanel({
   const [designLink, setDesignLink] = useState("");
   const [commentText, setCommentText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingCentres, setEditingCentres] = useState(false);
+  const [serviceIds, setServiceIds] = useState<string[]>([]);
 
   // Sync local state when data loads or changes
   useEffect(() => {
@@ -86,6 +89,9 @@ export function CampaignDetailPanel({
       setGoal(campaign.goal || "");
       setNotes(campaign.notes || "");
       setDesignLink(campaign.designLink || "");
+      setServiceIds(
+        campaign.services?.map((s) => s.service.id) ?? []
+      );
     }
   }, [campaign]);
 
@@ -132,6 +138,11 @@ export function CampaignDetailPanel({
     handleUpdate("platforms", updated);
   };
 
+  function handleSaveCentres(ids: string[]) {
+    setServiceIds(ids);
+    updateCampaign.mutate({ id: campaignId, serviceIds: ids });
+  }
+
   return (
     <>
       {/* Overlay */}
@@ -164,6 +175,22 @@ export function CampaignDetailPanel({
               >
                 {isLoading ? "Loading..." : name}
               </h2>
+            )}
+            {/* Service Badges */}
+            {campaign?.services && campaign.services.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {campaign.services.map((s) => (
+                  <span
+                    key={s.service.id}
+                    className="inline-flex items-center rounded-md bg-[#004E64]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#004E64]"
+                  >
+                    {s.service.code}
+                  </span>
+                ))}
+              </div>
+            )}
+            {campaign && (!campaign.services || campaign.services.length === 0) && (
+              <p className="text-xs text-gray-400 italic mt-1">All Centres</p>
             )}
           </div>
           <div className="ml-3 flex items-center gap-2">
@@ -300,6 +327,48 @@ export function CampaignDetailPanel({
                     </label>
                   ))}
                 </div>
+              </div>
+
+              {/* Target Centres */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Target Centres
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setEditingCentres(!editingCentres)}
+                    className="text-xs text-[#004E64] hover:underline inline-flex items-center gap-1"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    {editingCentres ? "Done" : "Edit"}
+                  </button>
+                </div>
+                {editingCentres ? (
+                  <ServiceMultiSelect
+                    selectedIds={serviceIds}
+                    onChange={handleSaveCentres}
+                  />
+                ) : (
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                    {serviceIds.length === 0 ? (
+                      <span className="text-sm text-gray-500 italic">
+                        All Centres
+                      </span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1">
+                        {campaign?.services?.map((s) => (
+                          <span
+                            key={s.service.id}
+                            className="inline-flex items-center rounded-md bg-[#004E64]/10 px-2 py-0.5 text-xs font-medium text-[#004E64]"
+                          >
+                            {s.service.name} ({s.service.code})
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Goal */}

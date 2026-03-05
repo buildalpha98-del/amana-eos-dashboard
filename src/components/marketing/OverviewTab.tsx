@@ -5,6 +5,8 @@ import {
   Megaphone,
   CheckCircle2,
   FolderOpen,
+  Building2,
+  AlertTriangle,
 } from "lucide-react";
 import { useMarketingOverview } from "@/hooks/useMarketing";
 import type { OverviewData } from "@/hooks/useMarketing";
@@ -60,8 +62,14 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
-export function OverviewTab() {
-  const { data, isLoading, error } = useMarketingOverview();
+interface OverviewTabProps {
+  serviceId: string;
+}
+
+export function OverviewTab({ serviceId }: OverviewTabProps) {
+  const { data, isLoading, error } = useMarketingOverview(
+    serviceId || undefined
+  );
 
   if (isLoading) {
     return (
@@ -80,6 +88,8 @@ export function OverviewTab() {
   }
 
   if (!data) return null;
+
+  const showCentreCards = !serviceId;
 
   return (
     <div className="space-y-6">
@@ -109,6 +119,40 @@ export function OverviewTab() {
           );
         })}
       </div>
+
+      {/* Centre Coverage Cards (only when All Centres selected) */}
+      {showCentreCards && (
+        <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
+                <Building2 className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {data.centresWithContent ?? 0}
+                </p>
+                <p className="text-sm text-gray-500">Centres with Content</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-6 border border-gray-200">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">
+                  {data.centresWithoutContent ?? 0}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Centres without Content
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Upcoming This Week */}
       <div className="bg-white rounded-xl border border-gray-200">

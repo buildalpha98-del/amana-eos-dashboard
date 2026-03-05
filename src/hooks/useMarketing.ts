@@ -25,6 +25,7 @@ export interface CampaignData {
   createdAt: string;
   updatedAt: string;
   _count: { posts: number; comments: number };
+  services?: { service: { id: string; name: string; code: string } }[];
 }
 
 export interface CampaignDetail extends CampaignData {
@@ -53,6 +54,11 @@ export interface PostData {
   recurring: MarketingRecurrence;
   createdAt: string;
   updatedAt: string;
+  services?: { service: { id: string; name: string; code: string } }[];
+  clonedFromId?: string;
+  externalPostId?: string;
+  externalUrl?: string;
+  engagementSyncedAt?: string;
 }
 
 export interface CommentData {
@@ -69,6 +75,8 @@ export interface OverviewData {
   activeCampaigns: number;
   upcomingPosts: PostData[];
   activeCampaignsList: (CampaignData & { _count: { posts: number } })[];
+  centresWithContent?: number;
+  centresWithoutContent?: number;
 }
 
 // ── Campaigns ──────────────────────────────────────────────
@@ -76,14 +84,16 @@ export interface OverviewData {
 export function useCampaigns(filters?: {
   status?: string;
   type?: string;
+  serviceId?: string;
 }) {
   const params = new URLSearchParams();
   if (filters?.status) params.set("status", filters.status);
   if (filters?.type) params.set("type", filters.type);
+  if (filters?.serviceId) params.set("serviceId", filters.serviceId);
   const qs = params.toString();
 
   return useQuery<CampaignData[]>({
-    queryKey: ["campaigns", filters?.status, filters?.type],
+    queryKey: ["campaigns", filters?.status, filters?.type, filters?.serviceId],
     queryFn: async () => {
       const res = await fetch(`/api/marketing/campaigns${qs ? `?${qs}` : ""}`);
       if (!res.ok) throw new Error("Failed to fetch campaigns");
@@ -117,6 +127,7 @@ export function useCreateCampaign() {
       goal?: string;
       notes?: string;
       designLink?: string;
+      serviceIds?: string[];
     }) => {
       const res = await fetch("/api/marketing/campaigns", {
         method: "POST",
@@ -153,6 +164,7 @@ export function useUpdateCampaign() {
       goal?: string | null;
       notes?: string | null;
       designLink?: string | null;
+      serviceIds?: string[];
     }) => {
       const res = await fetch(`/api/marketing/campaigns/${id}`, {
         method: "PATCH",
@@ -246,21 +258,24 @@ export function usePosts(filters?: {
   platform?: string;
   assigneeId?: string;
   campaignId?: string;
+  serviceId?: string;
 }) {
   const params = new URLSearchParams();
   if (filters?.status) params.set("status", filters.status);
   if (filters?.platform) params.set("platform", filters.platform);
   if (filters?.assigneeId) params.set("assigneeId", filters.assigneeId);
   if (filters?.campaignId) params.set("campaignId", filters.campaignId);
+  if (filters?.serviceId) params.set("serviceId", filters.serviceId);
   const qs = params.toString();
 
   return useQuery<PostData[]>({
     queryKey: [
-      "posts",
+      "marketing-posts",
       filters?.status,
       filters?.platform,
       filters?.assigneeId,
       filters?.campaignId,
+      filters?.serviceId,
     ],
     queryFn: async () => {
       const res = await fetch(`/api/marketing/posts${qs ? `?${qs}` : ""}`);
@@ -297,6 +312,7 @@ export function useCreatePost() {
       assigneeId?: string;
       campaignId?: string;
       recurring?: MarketingRecurrence;
+      serviceIds?: string[];
     }) => {
       const res = await fetch("/api/marketing/posts", {
         method: "POST",
@@ -310,7 +326,7 @@ export function useCreatePost() {
       return res.json();
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["posts"] });
+      qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
     },
   });
@@ -338,6 +354,9 @@ export function useUpdatePost() {
       comments?: number;
       shares?: number;
       reach?: number;
+      serviceIds?: string[];
+      externalPostId?: string | null;
+      externalUrl?: string | null;
     }) => {
       const res = await fetch(`/api/marketing/posts/${id}`, {
         method: "PATCH",
@@ -351,7 +370,7 @@ export function useUpdatePost() {
       return res.json();
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["posts"] });
+      qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["post"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
     },
@@ -369,7 +388,7 @@ export function useDeletePost() {
       return res.json();
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["posts"] });
+      qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
     },
   });
@@ -377,11 +396,15 @@ export function useDeletePost() {
 
 // ── Overview ───────────────────────────────────────────────
 
-export function useMarketingOverview() {
+export function useMarketingOverview(serviceId?: string) {
+  const params = new URLSearchParams();
+  if (serviceId) params.set("serviceId", serviceId);
+  const qs = params.toString();
+
   return useQuery<OverviewData>({
-    queryKey: ["marketingOverview"],
+    queryKey: ["marketing-overview", serviceId],
     queryFn: async () => {
-      const res = await fetch("/api/marketing/overview");
+      const res = await fetch(`/api/marketing/overview${qs ? `?${qs}` : ""}`);
       if (!res.ok) throw new Error("Failed to fetch overview");
       return res.json();
     },
@@ -405,13 +428,53 @@ export interface AnalyticsData {
   monthlyTrend: { month: string; posts: number; engagement: number }[];
 }
 
-export function useMarketingAnalytics(period: number) {
+export function useMarketingAnalytics(period: number, serviceId?: string) {
+  const params = new URLSearchParams();
+  params.set("period", String(period));
+  if (serviceId) params.set("serviceId", serviceId);
+  const qs = params.toString();
+
   return useQuery<AnalyticsData>({
-    queryKey: ["marketingAnalytics", period],
+    queryKey: ["marketing-analytics", period, serviceId],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/analytics?period=${period}`);
+      const res = await fetch(`/api/marketing/analytics?${qs}`);
       if (!res.ok) throw new Error("Failed to fetch analytics");
       return res.json();
+    },
+  });
+}
+
+// ── Coverage ───────────────────────────────────────────────
+
+export function useCentreCoverage() {
+  return useQuery({
+    queryKey: ["marketing-coverage"],
+    queryFn: async () => {
+      const res = await fetch("/api/marketing/coverage");
+      if (!res.ok) throw new Error("Failed to fetch coverage");
+      return res.json();
+    },
+  });
+}
+
+// ── Batch Post Action ──────────────────────────────────────
+
+export function useBatchPostAction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { postIds: string[]; action: string; [key: string]: unknown }) => {
+      const res = await fetch("/api/marketing/posts/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Batch action failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marketing-posts"] });
+      qc.invalidateQueries({ queryKey: ["marketing-overview"] });
+      qc.invalidateQueries({ queryKey: ["marketing-coverage"] });
     },
   });
 }
@@ -663,7 +726,7 @@ export function useUseTemplate() {
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to use template"); }
       return res.json();
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["posts"] }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketing-posts"] }); },
   });
 }
 
@@ -809,9 +872,136 @@ export function useImportCalendar() {
       return res.json();
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["posts"] });
+      qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
     },
+  });
+}
+
+// ─── Social Media Hooks ─────────────────────────────────────
+
+export interface SocialConnectionData {
+  id: string;
+  platform: string;
+  status: string;
+  accountId: string | null;
+  accountName: string | null;
+  lastSyncAt: string | null;
+  lastSyncStatus: string | null;
+  lastSyncError: string | null;
+  serviceId: string | null;
+  tokenExpiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  service: { id: string; name: string } | null;
+}
+
+export interface SocialAccountData {
+  id: string;
+  platform: string;
+  accountName: string | null;
+  accountId: string | null;
+  serviceId: string | null;
+  status: string;
+}
+
+export interface SocialPostData {
+  externalId: string;
+  message: string;
+  createdTime: string;
+  permalink: string;
+  likes: number;
+  comments: number;
+  shares: number;
+}
+
+export function useSocialConnections() {
+  return useQuery<SocialConnectionData[]>({
+    queryKey: ["social-connections"],
+    queryFn: async () => {
+      const res = await fetch("/api/marketing/social/status");
+      if (!res.ok) throw new Error("Failed to fetch social connections");
+      return res.json();
+    },
+  });
+}
+
+export function useConnectSocial() {
+  return useMutation({
+    mutationFn: async (data: { platform: string }) => {
+      const res = await fetch("/api/marketing/social/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to initiate connection");
+      return res.json() as Promise<{ authUrl: string; state: string }>;
+    },
+  });
+}
+
+export function useDisconnectSocial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { connectionId: string }) => {
+      const res = await fetch("/api/marketing/social/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to disconnect");
+      return res.json();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["social-connections"] }),
+  });
+}
+
+export function useSocialAccounts() {
+  return useQuery<SocialAccountData[]>({
+    queryKey: ["social-accounts"],
+    queryFn: async () => {
+      const res = await fetch("/api/marketing/social/accounts");
+      if (!res.ok) throw new Error("Failed to fetch social accounts");
+      return res.json();
+    },
+  });
+}
+
+export function useLinkSocialPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      postId: string;
+      externalPostId: string;
+      externalUrl: string;
+    }) => {
+      const res = await fetch("/api/marketing/social/link-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to link post");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marketing-posts"] });
+      qc.invalidateQueries({ queryKey: ["social-connections"] });
+      qc.invalidateQueries({ queryKey: ["post"] });
+    },
+  });
+}
+
+export function useFetchSocialPosts(connectionId?: string) {
+  return useQuery<SocialPostData[]>({
+    queryKey: ["social-posts", connectionId],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/marketing/social/fetch-posts?connectionId=${connectionId}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch social posts");
+      return res.json();
+    },
+    enabled: !!connectionId,
   });
 }

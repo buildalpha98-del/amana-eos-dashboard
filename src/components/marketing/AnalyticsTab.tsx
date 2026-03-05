@@ -5,8 +5,11 @@ import {
   BarChart3,
   TrendingUp,
   Trophy,
+  Grid3X3,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useMarketingAnalytics } from "@/hooks/useMarketing";
+import { ContentHeatmap } from "./ContentHeatmap";
 
 // ── Platform bar colors (matching PlatformBadge) ───────────
 const platformBarColors: Record<string, string> = {
@@ -44,9 +47,17 @@ function formatPlatformLabel(platform: string): string {
   return platform.charAt(0).toUpperCase() + platform.slice(1);
 }
 
-export function AnalyticsTab() {
+interface AnalyticsTabProps {
+  serviceId: string;
+  onCentreClick?: (serviceId: string) => void;
+}
+
+export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
   const [period, setPeriod] = useState(30);
-  const { data, isLoading, error } = useMarketingAnalytics(period);
+  const { data, isLoading, error } = useMarketingAnalytics(
+    period,
+    serviceId || undefined
+  );
 
   if (isLoading) {
     return (
@@ -325,6 +336,114 @@ export function AnalyticsTab() {
           </div>
         )}
       </div>
+
+      {/* ── Centre Performance Ranking (All Centres only) ── */}
+      {!serviceId && (() => {
+        const centreBreakdown = (data as unknown as Record<string, unknown>).centreBreakdown as
+          | Array<{
+              serviceId: string;
+              serviceName: string;
+              serviceCode: string;
+              postCount: number;
+              totalEngagement: number;
+              topPlatform: string;
+            }>
+          | undefined;
+
+        if (!centreBreakdown || centreBreakdown.length === 0) return null;
+
+        const maxEngagement = Math.max(...centreBreakdown.map((c) => c.totalEngagement), 1);
+        const medalColors = ["#FFD700", "#C0C0C0", "#CD7F32"];
+
+        return (
+          <div className="rounded-xl border border-gray-200 bg-white">
+            <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
+              <Trophy className="h-5 w-5 text-[#004E64]" />
+              <h3 className="text-lg font-semibold text-gray-900">Centre Performance</h3>
+            </div>
+            <div className="px-6 py-5 space-y-3">
+              {centreBreakdown.slice(0, 15).map((centre, idx) => {
+                const barPct = (centre.totalEngagement / maxEngagement) * 100;
+                const medalColor = idx < 3 ? medalColors[idx] : undefined;
+                const platformBadgeColor =
+                  platformBarColors[centre.topPlatform?.toLowerCase()] ?? "bg-gray-400";
+
+                return (
+                  <div
+                    key={centre.serviceId}
+                    onClick={() => onCentreClick?.(centre.serviceId)}
+                    className={cn(
+                      "flex items-center gap-3",
+                      onCentreClick && "cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded-lg"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                        medalColor ? "text-white" : "bg-gray-100 text-gray-500"
+                      )}
+                      style={medalColor ? { backgroundColor: medalColor } : undefined}
+                    >
+                      {idx + 1}
+                    </span>
+                    <span className="w-36 shrink-0 truncate text-sm font-medium text-gray-800">
+                      {centre.serviceName}
+                    </span>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-white",
+                        platformBadgeColor
+                      )}
+                    >
+                      {centre.topPlatform
+                        ? centre.topPlatform.charAt(0).toUpperCase() + centre.topPlatform.slice(1)
+                        : "—"}
+                    </span>
+                    <div className="flex-1 h-4 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-4 rounded-full bg-[#004E64] transition-all duration-500"
+                        style={{
+                          width: `${Math.max(barPct, 2)}%`,
+                          opacity: Math.max(0.4, 1 - idx * 0.05),
+                        }}
+                      />
+                    </div>
+                    <span className="w-16 shrink-0 text-right text-sm font-semibold text-gray-700">
+                      {centre.totalEngagement.toLocaleString()}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Content Coverage Heatmap (All Centres only) ── */}
+      {!serviceId && (() => {
+        const weeklyHeatmap = (data as unknown as Record<string, unknown>).weeklyHeatmap as
+          | Array<{
+              serviceId: string;
+              serviceName: string;
+              serviceCode: string;
+              weeks: Array<{ weekStart: string; postCount: number }>;
+            }>
+          | undefined;
+
+        if (!weeklyHeatmap || weeklyHeatmap.length === 0) return null;
+
+        return (
+          <div className="rounded-xl border border-gray-200 bg-white">
+            <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
+              <Grid3X3 className="h-5 w-5 text-[#004E64]" />
+              <h3 className="text-lg font-semibold text-gray-900">Content Coverage</h3>
+            </div>
+            <div className="px-6 py-5">
+              <ContentHeatmap data={weeklyHeatmap} onCentreClick={onCentreClick} />
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

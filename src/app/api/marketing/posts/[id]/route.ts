@@ -31,7 +31,18 @@ const updatePostSchema = z.object({
   shares: z.number().optional(),
   reach: z.number().optional(),
   recurring: z.enum(["none", "weekly", "fortnightly", "monthly"]).optional(),
+  serviceIds: z.array(z.string()).optional(),
 });
+
+const serviceInclude = {
+  services: {
+    select: {
+      service: {
+        select: { id: true, name: true, code: true },
+      },
+    },
+  },
+} as const;
 
 // GET /api/marketing/posts/:id — get a single post with related data
 export async function GET(
@@ -54,6 +65,7 @@ export async function GET(
         where: { deleted: false },
         select: { id: true, title: true, scheduledDate: true, status: true },
       },
+      ...serviceInclude,
     },
   });
 
@@ -88,12 +100,33 @@ export async function PATCH(
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
+  const { serviceIds, ...updateData } = parsed.data;
+
   const post = await prisma.marketingPost.update({
     where: { id },
-    data: parsed.data,
+    data: updateData,
+  });
+
+  // Sync service join table if serviceIds provided
+  if (serviceIds !== undefined) {
+    await prisma.marketingPostService.deleteMany({ where: { postId: id } });
+    if (serviceIds.length > 0) {
+      await prisma.marketingPostService.createMany({
+        data: serviceIds.map((serviceId) => ({
+          postId: id,
+          serviceId,
+        })),
+      });
+    }
+  }
+
+  // Re-fetch with all includes
+  const fullPost = await prisma.marketingPost.findUnique({
+    where: { id },
     include: {
       assignee: { select: { id: true, name: true, avatar: true } },
       campaign: { select: { id: true, name: true } },
+      ...serviceInclude,
     },
   });
 
@@ -107,7 +140,7 @@ export async function PATCH(
     },
   });
 
-  return NextResponse.json(post);
+  return NextResponse.json(fullPost);
 }
 
 // DELETE /api/marketing/posts/:id — soft delete a post

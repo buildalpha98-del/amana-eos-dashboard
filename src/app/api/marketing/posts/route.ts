@@ -29,7 +29,18 @@ const createPostSchema = z.object({
   shares: z.number().default(0),
   reach: z.number().default(0),
   recurring: z.enum(["none", "weekly", "fortnightly", "monthly"]).default("none"),
+  serviceIds: z.array(z.string()).optional(),
 });
+
+const serviceInclude = {
+  services: {
+    select: {
+      service: {
+        select: { id: true, name: true, code: true },
+      },
+    },
+  },
+} as const;
 
 // GET /api/marketing/posts — list posts with optional filters
 export async function GET(req: NextRequest) {
@@ -41,6 +52,7 @@ export async function GET(req: NextRequest) {
   const platform = searchParams.get("platform");
   const assigneeId = searchParams.get("assigneeId");
   const campaignId = searchParams.get("campaignId");
+  const serviceId = searchParams.get("serviceId");
 
   const posts = await prisma.marketingPost.findMany({
     where: {
@@ -49,10 +61,12 @@ export async function GET(req: NextRequest) {
       ...(platform ? { platform: platform as any } : {}),
       ...(assigneeId ? { assigneeId } : {}),
       ...(campaignId ? { campaignId } : {}),
+      ...(serviceId ? { services: { some: { serviceId } } } : {}),
     },
     include: {
       assignee: { select: { id: true, name: true, avatar: true } },
       campaign: { select: { id: true, name: true } },
+      ...serviceInclude,
     },
     orderBy: [
       { scheduledDate: { sort: "asc", nulls: "first" } },
@@ -94,6 +108,7 @@ export async function POST(req: NextRequest) {
     shares,
     reach,
     recurring,
+    serviceIds,
   } = parsed.data;
 
   const post = await prisma.marketingPost.create({
@@ -114,11 +129,17 @@ export async function POST(req: NextRequest) {
       reach,
       recurring,
     },
-    include: {
-      assignee: { select: { id: true, name: true, avatar: true } },
-      campaign: { select: { id: true, name: true } },
-    },
   });
+
+  // Link services if provided
+  if (serviceIds && serviceIds.length > 0) {
+    await prisma.marketingPostService.createMany({
+      data: serviceIds.map((serviceId) => ({
+        postId: post.id,
+        serviceId,
+      })),
+    });
+  }
 
   // Generate recurring children when recurring is not "none" and scheduledDate is set
   if (recurring !== "none" && scheduledDate) {
@@ -139,7 +160,7 @@ export async function POST(req: NextRequest) {
       const childDate = new Date(scheduledDate);
       childDate.setDate(childDate.getDate() + dayOffset);
 
-      await prisma.marketingPost.create({
+      const childPost = await prisma.marketingPost.create({
         data: {
           title,
           platform,
@@ -159,8 +180,28 @@ export async function POST(req: NextRequest) {
           recurringParentId: post.id,
         },
       });
+
+      // Link services to recurring children too
+      if (serviceIds && serviceIds.length > 0) {
+        await prisma.marketingPostService.createMany({
+          data: serviceIds.map((serviceId) => ({
+            postId: childPost.id,
+            serviceId,
+          })),
+        });
+      }
     }
   }
+
+  // Re-fetch with all includes
+  const fullPost = await prisma.marketingPost.findUnique({
+    where: { id: post.id },
+    include: {
+      assignee: { select: { id: true, name: true, avatar: true } },
+      campaign: { select: { id: true, name: true } },
+      ...serviceInclude,
+    },
+  });
 
   await prisma.activityLog.create({
     data: {
@@ -172,5 +213,5 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(post, { status: 201 });
+  return NextResponse.json(fullPost, { status: 201 });
 }

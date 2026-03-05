@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Trash2 } from "lucide-react";
-import { usePost, useUpdatePost, useDeletePost } from "@/hooks/useMarketing";
+import { X, Trash2, Pencil, ExternalLink, Unlink, Link2 } from "lucide-react";
+import { usePost, useUpdatePost, useDeletePost, useSocialConnections } from "@/hooks/useMarketing";
 import type { PostData } from "@/hooks/useMarketing";
+import { ServiceMultiSelect } from "./ServiceMultiSelect";
+import { LinkSocialPostModal } from "./LinkSocialPostModal";
 
 interface PostDetailPanelProps {
   postId: string;
@@ -45,6 +47,10 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
   const [shares, setShares] = useState(0);
   const [reach, setReach] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingCentres, setEditingCentres] = useState(false);
+  const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const { data: socialConnections } = useSocialConnections();
 
   useEffect(() => {
     if (post) {
@@ -63,6 +69,9 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
       setComments(post.comments);
       setShares(post.shares);
       setReach(post.reach);
+      setServiceIds(
+        post.services?.map((s) => s.service.id) ?? []
+      );
     }
   }, [post]);
 
@@ -82,6 +91,11 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
     deletePost.mutate(postId, {
       onSuccess: () => onClose(),
     });
+  }
+
+  function handleSaveCentres(ids: string[]) {
+    setServiceIds(ids);
+    updatePost.mutate({ id: postId, serviceIds: ids });
   }
 
   if (isLoading) {
@@ -124,12 +138,30 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
       <div className="fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto bg-white shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => autoSave("title", title)}
-            className="text-lg font-semibold text-gray-900 bg-transparent border-none outline-none focus:ring-0 w-full mr-4"
-          />
+          <div className="flex-1 mr-4">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => autoSave("title", title)}
+              className="text-lg font-semibold text-gray-900 bg-transparent border-none outline-none focus:ring-0 w-full"
+            />
+            {/* Service Badges */}
+            {post.services && post.services.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {post.services.map((s) => (
+                  <span
+                    key={s.service.id}
+                    className="inline-flex items-center rounded-md bg-[#004E64]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#004E64]"
+                  >
+                    {s.service.code}
+                  </span>
+                ))}
+              </div>
+            )}
+            {(!post.services || post.services.length === 0) && (
+              <p className="text-xs text-gray-400 italic mt-1">All Centres</p>
+            )}
+          </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleDelete}
@@ -208,6 +240,48 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               }
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
             />
+          </div>
+
+          {/* Target Centres */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Target Centres
+              </label>
+              <button
+                type="button"
+                onClick={() => setEditingCentres(!editingCentres)}
+                className="text-xs text-[#004E64] hover:underline inline-flex items-center gap-1"
+              >
+                <Pencil className="h-3 w-3" />
+                {editingCentres ? "Done" : "Edit"}
+              </button>
+            </div>
+            {editingCentres ? (
+              <ServiceMultiSelect
+                selectedIds={serviceIds}
+                onChange={handleSaveCentres}
+              />
+            ) : (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                {serviceIds.length === 0 ? (
+                  <span className="text-sm text-gray-500 italic">
+                    All Centres
+                  </span>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {post.services?.map((s) => (
+                      <span
+                        key={s.service.id}
+                        className="inline-flex items-center rounded-md bg-[#004E64]/10 px-2 py-0.5 text-xs font-medium text-[#004E64]"
+                      >
+                        {s.service.name} ({s.service.code})
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Content */}
@@ -317,6 +391,108 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
             ))}
           </div>
         </div>
+
+        {/* Social Metrics Section (published FB/IG posts only) */}
+        {post.status === "published" &&
+          ["facebook", "instagram"].includes(post.platform) && (
+            <div className="border-t border-gray-200 px-6 py-4">
+              <h3 className="mb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Social Metrics
+              </h3>
+
+              {post.externalPostId ? (
+                <div className="space-y-3">
+                  {/* Live metrics indicator */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                        Live
+                      </span>
+                      {post.engagementSyncedAt && (
+                        <span className="text-xs text-gray-400">
+                          Last synced:{" "}
+                          {(() => {
+                            const diff =
+                              Date.now() -
+                              new Date(post.engagementSyncedAt).getTime();
+                            const hours = Math.floor(diff / 3600000);
+                            if (hours < 1) return "just now";
+                            if (hours < 24) return `${hours}h ago`;
+                            return `${Math.floor(hours / 24)}d ago`;
+                          })()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {post.externalUrl && (
+                        <a
+                          href={post.externalUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-[#004E64] hover:underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          View on{" "}
+                          {post.platform.charAt(0).toUpperCase() +
+                            post.platform.slice(1)}
+                        </a>
+                      )}
+                      <button
+                        onClick={() =>
+                          updatePost.mutate({
+                            id: postId,
+                            externalPostId: null,
+                            externalUrl: null,
+                          })
+                        }
+                        className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-500"
+                      >
+                        <Unlink className="h-3 w-3" />
+                        Unlink
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Engagement grid */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { label: "Likes", value: post.likes },
+                      { label: "Comments", value: post.comments },
+                      { label: "Shares", value: post.shares },
+                      { label: "Reach", value: post.reach },
+                    ].map((m) => (
+                      <div
+                        key={m.label}
+                        className="rounded-lg bg-green-50 border border-green-100 p-2 text-center"
+                      >
+                        <p className="text-lg font-bold text-green-700">
+                          {m.value.toLocaleString()}
+                        </p>
+                        <p className="text-[10px] text-green-600">{m.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowLinkModal(true)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-[#004E64] px-4 py-2 text-sm font-medium text-[#004E64] hover:bg-[#004E64]/5 transition-colors"
+                >
+                  <Link2 className="h-4 w-4" />
+                  Link to Social Post
+                </button>
+              )}
+            </div>
+          )}
+
+        {/* Link Social Post Modal */}
+        {showLinkModal && (
+          <LinkSocialPostModal
+            postId={postId}
+            platform={post.platform}
+            onClose={() => setShowLinkModal(false)}
+          />
+        )}
       </div>
     </>
   );

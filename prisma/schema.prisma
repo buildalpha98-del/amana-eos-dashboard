@@ -114,6 +114,13 @@ enum MarketingPlatform {
   flyer
 }
 
+enum SocialConnectionStatus {
+  connected
+  disconnected
+  expired
+  error
+}
+
 enum MarketingPostStatus {
   draft
   in_review
@@ -475,6 +482,7 @@ model MarketingCampaign {
 
   posts    MarketingPost[]
   comments MarketingComment[]
+  services MarketingCampaignService[]
 
   @@index([status])
   @@index([startDate])
@@ -502,6 +510,13 @@ model MarketingPost {
   recurringParentId String?
   recurringParent  MarketingPost?        @relation("RecurringPosts", fields: [recurringParentId], references: [id])
   recurringChildren MarketingPost[]      @relation("RecurringPosts")
+  clonedFromId     String?
+  clonedFrom       MarketingPost?        @relation("PostClones", fields: [clonedFromId], references: [id])
+  clones           MarketingPost[]       @relation("PostClones")
+  services         MarketingPostService[]
+  externalPostId   String?
+  externalUrl      String?
+  engagementSyncedAt DateTime?
   deleted          Boolean               @default(false)
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
@@ -511,6 +526,7 @@ model MarketingPost {
   @@index([assigneeId])
   @@index([campaignId])
   @@index([scheduledDate])
+  @@index([externalPostId])
 }
 
 model MarketingComment {
@@ -629,6 +645,9 @@ model Service {
   certificates      ComplianceCertificate[] @relation("ServiceCertificates")
   attendance        DailyAttendance[]      @relation("ServiceAttendance")
   todoTemplates     TodoTemplate[]         @relation("ServiceTemplates")
+  marketingPosts    MarketingPostService[]     @relation("ServiceMarketingPosts")
+  marketingCampaigns MarketingCampaignService[] @relation("ServiceMarketingCampaigns")
+  socialConnections SocialConnection[]         @relation("ServiceSocialConnections")
 
   @@index([status])
   @@index([managerId])
@@ -1520,4 +1539,62 @@ model AccountabilitySeatAssignment {
 
   @@unique([seatId, userId])
   @@index([userId])
+}
+
+// ============================================================
+// Marketing Multi-Centre Scoping
+// ============================================================
+
+model MarketingPostService {
+  id        String        @id @default(cuid())
+  postId    String
+  post      MarketingPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  serviceId String
+  service   Service       @relation("ServiceMarketingPosts", fields: [serviceId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([postId, serviceId])
+  @@index([postId])
+  @@index([serviceId])
+}
+
+model MarketingCampaignService {
+  id         String            @id @default(cuid())
+  campaignId String
+  campaign   MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  serviceId  String
+  service    Service           @relation("ServiceMarketingCampaigns", fields: [serviceId], references: [id], onDelete: Cascade)
+  createdAt  DateTime          @default(now())
+
+  @@unique([campaignId, serviceId])
+  @@index([campaignId])
+  @@index([serviceId])
+}
+
+// ============================================================
+// Social Media Connections (Facebook + Instagram via Meta)
+// ============================================================
+
+model SocialConnection {
+  id              String                  @id @default(cuid())
+  platform        MarketingPlatform
+  status          SocialConnectionStatus  @default(disconnected)
+  accountId       String?
+  accountName     String?
+  accessToken     String?                 @db.Text
+  refreshToken    String?                 @db.Text
+  tokenExpiresAt  DateTime?
+  pageAccessToken String?                 @db.Text
+  scopes          String?
+  lastSyncAt      DateTime?
+  lastSyncStatus  String?
+  lastSyncError   String?                 @db.Text
+  serviceId       String?
+  service         Service?                @relation("ServiceSocialConnections", fields: [serviceId], references: [id])
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@unique([platform, accountId])
+  @@index([platform])
+  @@index([serviceId])
 }

@@ -21,7 +21,18 @@ const createCampaignSchema = z.object({
   goal: z.string().optional(),
   notes: z.string().optional(),
   designLink: z.string().optional(),
+  serviceIds: z.array(z.string()).optional(),
 });
+
+const serviceInclude = {
+  services: {
+    select: {
+      service: {
+        select: { id: true, name: true, code: true },
+      },
+    },
+  },
+} as const;
 
 // GET /api/marketing/campaigns — list campaigns with optional filters
 export async function GET(req: NextRequest) {
@@ -31,12 +42,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const type = searchParams.get("type");
+  const serviceId = searchParams.get("serviceId");
 
   const campaigns = await prisma.marketingCampaign.findMany({
     where: {
       deleted: false,
       ...(status ? { status: status as any } : {}),
       ...(type ? { type: type as any } : {}),
+      ...(serviceId ? { services: { some: { serviceId } } } : {}),
     },
     include: {
       _count: {
@@ -45,6 +58,7 @@ export async function GET(req: NextRequest) {
           comments: true,
         },
       },
+      ...serviceInclude,
     },
     orderBy: [{ startDate: "desc" }, { createdAt: "desc" }],
   });
@@ -67,18 +81,35 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const { serviceIds, ...campaignData } = parsed.data;
+
   const campaign = await prisma.marketingCampaign.create({
     data: {
-      name: parsed.data.name,
-      type: parsed.data.type,
-      status: parsed.data.status,
-      startDate: parsed.data.startDate || null,
-      endDate: parsed.data.endDate || null,
-      platforms: parsed.data.platforms || [],
-      goal: parsed.data.goal || null,
-      notes: parsed.data.notes || null,
-      designLink: parsed.data.designLink || null,
+      name: campaignData.name,
+      type: campaignData.type,
+      status: campaignData.status,
+      startDate: campaignData.startDate || null,
+      endDate: campaignData.endDate || null,
+      platforms: campaignData.platforms || [],
+      goal: campaignData.goal || null,
+      notes: campaignData.notes || null,
+      designLink: campaignData.designLink || null,
     },
+  });
+
+  // Link services if provided
+  if (serviceIds && serviceIds.length > 0) {
+    await prisma.marketingCampaignService.createMany({
+      data: serviceIds.map((serviceId) => ({
+        campaignId: campaign.id,
+        serviceId,
+      })),
+    });
+  }
+
+  // Re-fetch with all includes
+  const fullCampaign = await prisma.marketingCampaign.findUnique({
+    where: { id: campaign.id },
     include: {
       _count: {
         select: {
@@ -86,6 +117,7 @@ export async function POST(req: NextRequest) {
           comments: true,
         },
       },
+      ...serviceInclude,
     },
   });
 
@@ -99,5 +131,5 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(campaign, { status: 201 });
+  return NextResponse.json(fullCampaign, { status: 201 });
 }

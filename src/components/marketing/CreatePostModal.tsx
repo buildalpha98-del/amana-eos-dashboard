@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useCreatePost, useCampaigns } from "@/hooks/useMarketing";
+import { ServiceMultiSelect } from "./ServiceMultiSelect";
 
 interface CreatePostModalProps {
   open: boolean;
@@ -49,6 +50,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
   const [recurring, setRecurring] = useState("none");
   const [notes, setNotes] = useState("");
   const [designLink, setDesignLink] = useState("");
+  const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [error, setError] = useState("");
 
   function resetForm() {
@@ -62,6 +64,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
     setRecurring("none");
     setNotes("");
     setDesignLink("");
+    setServiceIds([]);
     setError("");
   }
 
@@ -97,6 +100,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
         recurring: recurring as (typeof RECURRING_OPTIONS)[number]["value"],
         notes: notes || undefined,
         designLink: designLink || undefined,
+        serviceIds: serviceIds.length > 0 ? serviceIds : undefined,
       },
       {
         onSuccess: () => {
@@ -280,6 +284,18 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Target Centres */}
+            <div>
+              <ServiceMultiSelect
+                selectedIds={serviceIds}
+                onChange={setServiceIds}
+                label="Target Centres"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Leave empty for all centres
+              </p>
             </div>
 
             {/* Notes */}

@@ -7,9 +7,16 @@ export async function GET(req: NextRequest) {
   const { error } = await requireAuth(["owner", "admin"]);
   if (error) return error;
 
+  const { searchParams } = new URL(req.url);
+  const serviceId = searchParams.get("serviceId");
+
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+  const serviceFilter = serviceId
+    ? { services: { some: { serviceId } } }
+    : {};
 
   const [
     totalPosts,
@@ -21,12 +28,12 @@ export async function GET(req: NextRequest) {
   ] = await Promise.all([
     // Total non-deleted posts
     prisma.marketingPost.count({
-      where: { deleted: false },
+      where: { deleted: false, ...serviceFilter },
     }),
 
     // Total non-deleted campaigns
     prisma.marketingCampaign.count({
-      where: { deleted: false },
+      where: { deleted: false, ...serviceFilter },
     }),
 
     // Posts published this month
@@ -38,6 +45,7 @@ export async function GET(req: NextRequest) {
           gte: startOfMonth,
           lte: endOfMonth,
         },
+        ...serviceFilter,
       },
     }),
 
@@ -46,6 +54,7 @@ export async function GET(req: NextRequest) {
       where: {
         deleted: false,
         status: "active",
+        ...serviceFilter,
       },
     }),
 
@@ -55,6 +64,7 @@ export async function GET(req: NextRequest) {
         deleted: false,
         status: { not: "published" },
         scheduledDate: { gte: now },
+        ...serviceFilter,
       },
       include: {
         assignee: { select: { id: true, name: true, avatar: true } },
@@ -69,6 +79,7 @@ export async function GET(req: NextRequest) {
       where: {
         deleted: false,
         status: "active",
+        ...serviceFilter,
       },
       include: {
         _count: {
@@ -82,12 +93,35 @@ export async function GET(req: NextRequest) {
     }),
   ]);
 
-  return NextResponse.json({
+  const response: Record<string, unknown> = {
     totalPosts,
     totalCampaigns,
     publishedThisMonth,
     activeCampaigns,
     upcomingPosts,
     activeCampaignsList,
-  });
+  };
+
+  // When NOT filtered by service, add centre content stats
+  if (!serviceId) {
+    const [centresWithContent, totalActiveServices] = await Promise.all([
+      // Count distinct services linked to at least one non-deleted post
+      prisma.marketingPostService.findMany({
+        where: {
+          post: { deleted: false },
+        },
+        select: { serviceId: true },
+        distinct: ["serviceId"],
+      }),
+      // Total active services
+      prisma.service.count({
+        where: { status: "active" },
+      }),
+    ]);
+
+    response.centresWithContent = centresWithContent.length;
+    response.centresWithoutContent = totalActiveServices - centresWithContent.length;
+  }
+
+  return NextResponse.json(response);
 }

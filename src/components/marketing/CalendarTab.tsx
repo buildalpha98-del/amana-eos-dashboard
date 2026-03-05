@@ -25,15 +25,18 @@ const STATUS_DOTS: Record<string, string> = {
 
 interface CalendarTabProps {
   onSelectPost: (id: string) => void;
+  serviceId: string;
 }
 
-export function CalendarTab({ onSelectPost }: CalendarTabProps) {
+export function CalendarTab({ onSelectPost, serviceId }: CalendarTabProps) {
   const [currentDate, setCurrentDate] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
-  const { data: posts, isLoading } = usePosts();
+  const { data: posts, isLoading } = usePosts({
+    serviceId: serviceId || undefined,
+  });
 
   const days = useMemo(() => {
     // Build array of dates for the calendar grid
