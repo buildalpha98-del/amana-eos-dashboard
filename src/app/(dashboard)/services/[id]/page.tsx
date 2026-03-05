@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 import { useService } from "@/hooks/useServices";
+import { hasMinRole } from "@/lib/role-permissions";
+import type { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -57,6 +60,8 @@ const statusBadgeStyles: Record<string, string> = {
 export default function ServiceDetailPage() {
   const params = useParams();
   const id = params.id as string;
+  const { data: session } = useSession();
+  const role = session?.user?.role as Role | undefined;
   const { data: service, isLoading, isError } = useService(id);
   const { data: users } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["users-list"],
@@ -67,6 +72,12 @@ export default function ServiceDetailPage() {
     },
   });
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
+
+  // Hide financials tab for non-admin users
+  const visibleTabs = useMemo(
+    () => tabs.filter((t) => t.key !== "financials" || hasMinRole(role, "admin")),
+    [role]
+  );
 
   // Loading state
   if (isLoading) {
@@ -153,7 +164,7 @@ export default function ServiceDetailPage() {
       {/* Tab Bar */}
       <div className="border-b border-gray-200">
         <nav className="flex gap-0 -mb-px overflow-x-auto">
-          {tabs.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
             return (

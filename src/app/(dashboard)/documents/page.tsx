@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/hooks/useToast";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
   program: { bg: "bg-cyan-50", text: "text-cyan-700", badge: "bg-cyan-100" },
@@ -159,7 +160,7 @@ export default function DocumentsPage() {
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       if (!res.ok) {
         const err = await res.json();
-        alert(err.error || "Upload failed");
+        toast({ description: err.error || "Upload failed", variant: "destructive" });
         return;
       }
       const result = await res.json();
@@ -171,7 +172,7 @@ export default function DocumentsPage() {
         title: prev.title || result.fileName.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
       }));
     } catch {
-      alert("Upload failed. Please try again.");
+      toast({ description: "Upload failed. Please try again.", variant: "destructive" });
     } finally {
       setUploadingFile(false);
     }
@@ -180,7 +181,7 @@ export default function DocumentsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.fileName || !formData.fileUrl) {
-      alert("Please upload a file and fill in the title");
+      toast({ description: "Please upload a file and fill in the title", variant: "destructive" });
       return;
     }
 
@@ -246,7 +247,7 @@ export default function DocumentsPage() {
       await deleteFolder.mutateAsync(folderId);
       setDeleteFolderId(null);
     } catch (err: any) {
-      alert(err.message);
+      toast({ description: err.message || "Failed to delete folder", variant: "destructive" });
     }
   };
 

@@ -3,13 +3,17 @@
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useServices } from "@/hooks/useServices";
+import { useServices, useDeleteService } from "@/hooks/useServices";
 import { ServiceCard } from "@/components/services/ServiceCard";
 import { CreateServiceModal } from "@/components/services/CreateServiceModal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { hasMinRole } from "@/lib/role-permissions";
+import type { Role } from "@prisma/client";
 import {
   Building2,
   Plus,
   Search,
+  Trash2,
 } from "lucide-react";
 import type { ServiceSummary } from "@/hooks/useServices";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -51,10 +55,13 @@ export default function ServicesPage() {
   const { data: session } = useSession();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ServiceSummary | null>(null);
+  const deleteService = useDeleteService();
 
   // Member/staff: redirect to their assigned service
-  const role = (session?.user?.role as string) || "";
+  const role = session?.user?.role as Role | undefined;
   const serviceId = session?.user?.serviceId as string | undefined;
+  const isAdmin = hasMinRole(role, "admin");
   useEffect(() => {
     if ((role === "staff" || role === "member") && serviceId) {
       router.replace(`/services/${serviceId}`);
@@ -215,7 +222,7 @@ export default function ServicesPage() {
                     {items.map((service) => (
                       <div
                         key={service.id}
-                        className="flex-shrink-0 w-[280px] sm:w-[340px]"
+                        className="relative flex-shrink-0 w-[280px] sm:w-[340px] group/card"
                       >
                         <ServiceCard
                           service={service}
@@ -223,6 +230,18 @@ export default function ServicesPage() {
                             router.push(`/services/${service.id}`)
                           }
                         />
+                        {isAdmin && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteTarget(service);
+                            }}
+                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 opacity-0 group-hover/card:opacity-100 transition-all z-10"
+                            title="Delete centre"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -237,6 +256,22 @@ export default function ServicesPage() {
       <CreateServiceModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
+      />
+
+      {/* Delete Confirm */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={`Delete ${deleteTarget?.name}?`}
+        description="This will permanently delete this centre and all associated timesheets, financial data, metrics, and compliance records. Todos, issues, and rocks will be unlinked but preserved. This action cannot be undone."
+        confirmLabel="Delete Centre"
+        variant="danger"
+        loading={deleteService.isPending}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          await deleteService.mutateAsync(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
       />
     </div>
   );

@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useUpdateService } from "@/hooks/useServices";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useUpdateService, useDeleteService } from "@/hooks/useServices";
+import { hasMinRole } from "@/lib/role-permissions";
+import type { Role } from "@prisma/client";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { cn } from "@/lib/utils";
 import {
   MapPin,
@@ -15,6 +20,8 @@ import {
   Target,
   AlertCircle,
   CheckSquare,
+  Trash2,
+  Loader2,
 } from "lucide-react";
 
 const statusOptions = [
@@ -32,7 +39,12 @@ export function ServiceOverviewTab({
   service: any;
   users: { id: string; name: string }[];
 }) {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const role = session?.user?.role as Role | undefined;
   const updateService = useUpdateService();
+  const deleteService = useDeleteService();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
   const [notes, setNotes] = useState("");
   const [editingDetails, setEditingDetails] = useState(false);
@@ -586,6 +598,37 @@ export function ServiceOverviewTab({
           </div>
         </div>
       )}
+
+      {/* Danger Zone — owner/admin only */}
+      {hasMinRole(role, "admin") && (
+        <div className="border border-red-200 rounded-xl p-5 bg-red-50/50">
+          <h4 className="text-sm font-semibold text-red-700 mb-1">Danger Zone</h4>
+          <p className="text-xs text-red-600/80 mb-3">
+            Permanently delete this centre and all associated timesheets, financial data, metrics, and compliance records. Todos, issues, and rocks will be unlinked but preserved.
+          </p>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete Centre
+          </button>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title={`Delete ${service.name}?`}
+        description="This will permanently delete this centre and all associated timesheets, financial data, metrics, and compliance records. Todos, issues, and rocks will be unlinked but preserved. This action cannot be undone."
+        confirmLabel="Delete Centre"
+        variant="danger"
+        loading={deleteService.isPending}
+        onConfirm={async () => {
+          await deleteService.mutateAsync(service.id);
+          router.push("/services");
+        }}
+      />
     </div>
   );
 }

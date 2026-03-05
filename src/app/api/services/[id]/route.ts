@@ -115,3 +115,39 @@ export async function PATCH(
 
   return NextResponse.json(service);
 }
+
+// DELETE /api/services/[id]
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { session, error } = await requireAuth(["owner", "admin"]);
+  if (error) return error;
+
+  const { id } = await params;
+
+  const service = await prisma.service.findUnique({
+    where: { id },
+    select: { id: true, name: true },
+  });
+
+  if (!service) {
+    return NextResponse.json({ error: "Service not found" }, { status: 404 });
+  }
+
+  // Log before deletion
+  await prisma.activityLog.create({
+    data: {
+      userId: session!.user.id,
+      action: "delete",
+      entityType: "Service",
+      entityId: service.id,
+      details: { name: service.name },
+    },
+  });
+
+  // Cascade config in schema handles related data
+  await prisma.service.delete({ where: { id } });
+
+  return NextResponse.json({ success: true });
+}
