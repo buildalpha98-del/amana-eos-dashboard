@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
 import {
   CheckSquare,
   AlertCircle,
@@ -8,42 +7,21 @@ import {
 } from "lucide-react";
 import { useQuickAdd } from "@/components/quick-add/QuickAddProvider";
 
+export interface QuickAddMenuPosition {
+  top: number;
+  right: number;
+}
+
 export function QuickAddMenu({
   open,
   onClose,
+  position,
 }: {
   open: boolean;
   onClose: () => void;
+  position: QuickAddMenuPosition;
 }) {
   const { openTodoModal, openIssueModal, openRockModal } = useQuickAdd();
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const handleClickOutside = useCallback(
-    (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        // Also check if the click is on the toggle button (parent relative container)
-        const toggle = menuRef.current.parentElement?.querySelector(
-          'button[title="Quick Add"]'
-        );
-        if (toggle && toggle.contains(e.target as Node)) return;
-        onClose();
-      }
-    },
-    [onClose]
-  );
-
-  useEffect(() => {
-    if (open) {
-      // Use a rAF to avoid the same event that opened the menu from closing it
-      const id = requestAnimationFrame(() => {
-        document.addEventListener("mousedown", handleClickOutside);
-      });
-      return () => {
-        cancelAnimationFrame(id);
-        document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }
-  }, [open, handleClickOutside]);
 
   if (!open) return null;
 
@@ -54,23 +32,29 @@ export function QuickAddMenu({
   ];
 
   return (
-    <div
-      ref={menuRef}
-      className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50"
-    >
-      {quickItems.map((item) => {
-        const Icon = item.icon;
-        return (
-          <button
-            key={item.label}
-            onClick={item.action}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <Icon className="w-4 h-4 text-gray-400" />
-            {item.label}
-          </button>
-        );
-      })}
-    </div>
+    <>
+      {/* Invisible fullscreen backdrop for outside clicks */}
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+
+      {/* Menu dropdown — fixed positioned, outside any stacking context */}
+      <div
+        className="fixed w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+        style={{ top: position.top, right: position.right }}
+      >
+        {quickItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.label}
+              onClick={item.action}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Icon className="w-4 h-4 text-gray-400" />
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }

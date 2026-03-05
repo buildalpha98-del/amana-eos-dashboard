@@ -205,7 +205,7 @@ function StatCard({
     <div className="bg-white rounded-xl border border-gray-200 p-4">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-gray-500 truncate">{title}</p>
+          <p className="text-xs font-medium text-gray-500">{title}</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
         </div>
         <div
