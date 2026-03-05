@@ -17,6 +17,11 @@ const SCOPES = [
   "email",
   "accounting.reports.read",
   "accounting.settings.read",
+  "payroll.employees.read",
+  "payroll.timesheets",
+  "payroll.payruns",
+  "payroll.payslip.read",
+  "payroll.settings.read",
   "offline_access",
 ].join(" ");
 

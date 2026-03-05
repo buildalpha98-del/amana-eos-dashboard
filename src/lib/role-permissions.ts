@@ -7,6 +7,7 @@ import type { Role } from "@prisma/client";
 /** Every routable page in the dashboard */
 export const allPages = [
   "/dashboard",
+  "/my-portal",
   "/vision",
   "/rocks",
   "/todos",
@@ -23,6 +24,9 @@ export const allPages = [
   "/compliance",
   "/documents",
   "/onboarding",
+  "/timesheets",
+  "/leave",
+  "/contracts",
   "/team",
   "/settings",
 ] as const;
@@ -44,6 +48,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   admin: allPages.filter((p) => p !== "/settings"),
   member: [
     "/dashboard",
+    "/my-portal",
     "/rocks",
     "/todos",
     "/issues",
@@ -53,14 +58,17 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/compliance",
     "/documents",
     "/onboarding",
+    "/leave",
   ],
   staff: [
     "/dashboard",
+    "/my-portal",
     "/documents",
     "/communication",
     "/onboarding",
     "/todos",
     "/compliance",
+    "/leave",
   ],
 };
 
@@ -180,6 +188,39 @@ export const features = [
   "xero.sync",
   "xero.manage_mappings",
 
+  // HR — Timesheets
+  "timesheets.view",
+  "timesheets.create",
+  "timesheets.import",
+  "timesheets.approve",
+  "timesheets.export_to_xero",
+
+  // HR — Leave
+  "leave.view",
+  "leave.request",
+  "leave.approve",
+  "leave.sync_balances",
+
+  // HR — Contracts
+  "contracts.view",
+  "contracts.create",
+  "contracts.edit",
+  "contracts.acknowledge",
+
+  // Policies
+  "policies.view",
+  "policies.create",
+  "policies.manage",
+  "policies.acknowledge",
+
+  // Offboarding
+  "offboarding.view",
+  "offboarding.create",
+  "offboarding.manage",
+
+  // Self-Service Portal
+  "my_portal.view",
+
   // Activity log
   "activity_log.view",
 
@@ -205,7 +246,8 @@ const adminFeatures: readonly Feature[] = features.filter(
     f !== "settings.view" &&
     f !== "permissions.view" &&
     f !== "xero.connect" &&
-    f !== "xero.manage_mappings"
+    f !== "xero.manage_mappings" &&
+    f !== "timesheets.export_to_xero"
 );
 
 const memberFeatures: readonly Feature[] = [
@@ -229,6 +271,15 @@ const memberFeatures: readonly Feature[] = [
   "attendance.view",
   "attendance.create",
   "attendance.edit",
+  // HR
+  "leave.view",
+  "leave.request",
+  "contracts.view",
+  "contracts.acknowledge",
+  "policies.view",
+  "policies.acknowledge",
+  "offboarding.view",
+  "my_portal.view",
 ];
 
 const staffFeatures: readonly Feature[] = [
@@ -240,6 +291,14 @@ const staffFeatures: readonly Feature[] = [
   "todos.create",
   "todos.edit",
   "compliance.view",
+  // HR
+  "leave.view",
+  "leave.request",
+  "contracts.view",
+  "contracts.acknowledge",
+  "policies.view",
+  "policies.acknowledge",
+  "my_portal.view",
 ];
 
 export const roleFeatures: Record<Role, readonly Feature[]> = {
@@ -325,6 +384,10 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Pages", label: "Marketing", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Team", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Settings", owner: true, admin: false, member: false, staff: false },
+  { section: "Pages", label: "My Portal", owner: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Timesheets", owner: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Leave Management", owner: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Contracts", owner: true, admin: true, member: false, staff: false },
 
   // Actions
   { section: "Actions", label: "View / edit Attendance", owner: true, admin: true, member: true, staff: false },
@@ -346,6 +409,18 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Actions", label: "Bulk create To-Dos", owner: true, admin: true, member: false, staff: false },
 
   // Admin
+  // HR Actions
+  { section: "Actions", label: "Import timesheets (OWNA)", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Approve timesheets", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Export timesheets to Xero", owner: true, admin: false, member: false, staff: false },
+  { section: "Actions", label: "Request leave", owner: true, admin: true, member: true, staff: true },
+  { section: "Actions", label: "Approve / reject leave", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Manage contracts", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Acknowledge contracts", owner: true, admin: true, member: true, staff: true },
+  { section: "Actions", label: "Manage policies", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Acknowledge policies", owner: true, admin: true, member: true, staff: true },
+  { section: "Actions", label: "Manage offboarding", owner: true, admin: true, member: false, staff: false },
+
   { section: "Admin", label: "View activity log", owner: true, admin: true, member: false, staff: false },
   { section: "Admin", label: "Manage users (invite, roles, deactivate)", owner: true, admin: false, member: false, staff: false },
   { section: "Admin", label: "Edit organisation settings", owner: true, admin: false, member: false, staff: false },

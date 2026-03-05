@@ -28,6 +28,10 @@ import {
   Radio,
   GraduationCap,
   ShieldCheck,
+  ClipboardList,
+  CalendarDays,
+  FileSignature,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canAccessPage } from "@/lib/permissions";
@@ -35,6 +39,7 @@ import type { Role } from "@prisma/client";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "EOS", tooltip: "Your command centre overview" },
+  { href: "/my-portal", label: "My Portal", icon: UserCircle, section: "EOS", tooltip: "Your personal HR hub — profile, leave, training & more" },
   { href: "/vision", label: "Vision / V-TO", icon: Eye, section: "EOS", tooltip: "Vision/Traction Organiser — your long-term goals & strategic plan" },
   { href: "/rocks", label: "Rocks", icon: Mountain, section: "EOS", tooltip: "Quarterly priorities — 90-day goals for the team" },
   { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS", tooltip: "7-day action items from weekly meetings" },
@@ -47,10 +52,13 @@ const navItems = [
   { href: "/meetings", label: "Meetings", icon: Presentation, section: "Operations" },
   { href: "/communication", label: "Communication", icon: Radio, section: "Operations" },
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Operations" },
+  { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "HR", tooltip: "Import OWNA rosters, approve & export to Xero" },
+  { href: "/leave", label: "Leave", icon: CalendarDays, section: "HR", tooltip: "Request & manage staff leave" },
+  { href: "/contracts", label: "Contracts", icon: FileSignature, section: "HR", tooltip: "Employment contracts & award rates" },
   { href: "/tickets", label: "Tickets", icon: MessageSquare, section: "Support" },
   { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations" },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
-  { href: "/onboarding", label: "Onboarding & LMS", icon: GraduationCap, section: "Admin" },
+  { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "Admin", tooltip: "Onboarding, LMS & offboarding" },
   { href: "/team", label: "Team", icon: Users, section: "Admin" },
   { href: "/settings", label: "Settings", icon: Settings, section: "Admin" },
 ];

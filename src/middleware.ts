@@ -12,6 +12,7 @@ import type { Role } from "@prisma/client";
 const rolePageAccess: Record<string, string[]> = {
   owner: [
     "/dashboard",
+    "/my-portal",
     "/vision",
     "/rocks",
     "/todos",
@@ -28,11 +29,15 @@ const rolePageAccess: Record<string, string[]> = {
     "/compliance",
     "/documents",
     "/onboarding",
+    "/timesheets",
+    "/leave",
+    "/contracts",
     "/team",
     "/settings",
   ],
   admin: [
     "/dashboard",
+    "/my-portal",
     "/vision",
     "/rocks",
     "/todos",
@@ -49,11 +54,15 @@ const rolePageAccess: Record<string, string[]> = {
     "/compliance",
     "/documents",
     "/onboarding",
+    "/timesheets",
+    "/leave",
+    "/contracts",
     "/team",
     // No /settings
   ],
   member: [
     "/dashboard",
+    "/my-portal",
     "/rocks",
     "/todos",
     "/issues",
@@ -63,15 +72,17 @@ const rolePageAccess: Record<string, string[]> = {
     "/compliance",
     "/documents",
     "/onboarding",
-    // No /vision, /scorecard, /projects, /financials, /performance, /team, /settings, /tickets, /marketing
+    "/leave",
   ],
   staff: [
     "/dashboard",
+    "/my-portal",
     "/documents",
     "/communication",
     "/onboarding",
     "/todos",
     "/compliance",
+    "/leave",
   ],
 };
 
@@ -113,6 +124,7 @@ export default withAuth(
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/my-portal/:path*",
     "/vision/:path*",
     "/rocks/:path*",
     "/todos/:path*",
@@ -131,6 +143,9 @@ export const config = {
     "/documents/:path*",
     "/compliance/:path*",
     "/onboarding/:path*",
+    "/timesheets/:path*",
+    "/leave/:path*",
+    "/contracts/:path*",
     "/api/rocks/:path*",
     "/api/todos/:path*",
     "/api/issues/:path*",
@@ -152,5 +167,14 @@ export const config = {
     "/api/accountability-chart/:path*",
     "/api/todo-templates/:path*",
     "/api/dashboard/:path*",
+    "/api/leave/:path*",
+    "/api/timesheets/:path*",
+    "/api/timesheet-entries/:path*",
+    "/api/contracts/:path*",
+    "/api/policies/:path*",
+    "/api/offboarding/:path*",
+    "/api/my-portal/:path*",
+    "/api/emergency-contacts/:path*",
+    "/api/qualifications/:path*",
   ],
 };

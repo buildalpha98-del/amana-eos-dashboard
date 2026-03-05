@@ -1,0 +1,123 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/server-auth";
+
+const updateTimesheetSchema = z.object({
+  notes: z.string().optional().nullable(),
+  importSource: z.string().optional(),
+  importFileName: z.string().optional(),
+});
+
+// GET /api/timesheets/[id] — timesheet detail with entries
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { error } = await requireAuth(["owner", "admin"]);
+  if (error) return error;
+
+  const { id } = await params;
+
+  const timesheet = await prisma.timesheet.findUnique({
+    where: { id },
+    include: {
+      service: { select: { id: true, name: true, code: true } },
+      entries: {
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: [{ date: "asc" }, { shiftStart: "asc" }],
+      },
+    },
+  });
+
+  if (!timesheet || timesheet.deleted) {
+    return NextResponse.json({ error: "Timesheet not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(timesheet);
+}
+
+// PATCH /api/timesheets/[id] — update timesheet fields
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { error } = await requireAuth(["owner", "admin"]);
+  if (error) return error;
+
+  const { id } = await params;
+  const body = await req.json();
+  const parsed = updateTimesheetSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+
+  const existing = await prisma.timesheet.findUnique({ where: { id } });
+  if (!existing || existing.deleted) {
+    return NextResponse.json({ error: "Timesheet not found" }, { status: 404 });
+  }
+
+  if (existing.status !== "ts_draft" && existing.status !== "submitted") {
+    return NextResponse.json(
+      { error: "Can only edit draft or submitted timesheets" },
+      { status: 400 }
+    );
+  }
+
+  const timesheet = await prisma.timesheet.update({
+    where: { id },
+    data: parsed.data,
+    include: {
+      service: { select: { id: true, name: true, code: true } },
+      _count: { select: { entries: true } },
+    },
+  });
+
+  return NextResponse.json(timesheet);
+}
+
+// DELETE /api/timesheets/[id] — soft delete (draft only)
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { session, error } = await requireAuth(["owner", "admin"]);
+  if (error) return error;
+
+  const { id } = await params;
+
+  const existing = await prisma.timesheet.findUnique({ where: { id } });
+  if (!existing || existing.deleted) {
+    return NextResponse.json({ error: "Timesheet not found" }, { status: 404 });
+  }
+
+  if (existing.status !== "ts_draft") {
+    return NextResponse.json(
+      { error: "Can only delete draft timesheets" },
+      { status: 400 }
+    );
+  }
+
+  await prisma.timesheet.update({
+    where: { id },
+    data: { deleted: true },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      userId: session!.user.id,
+      action: "delete_timesheet",
+      entityType: "Timesheet",
+      entityId: id,
+      details: { weekEnding: existing.weekEnding },
+    },
+  });
+
+  return NextResponse.json({ success: true });
+}

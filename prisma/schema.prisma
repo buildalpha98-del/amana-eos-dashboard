@@ -182,6 +182,104 @@ enum MarketingKPICategory {
   conversion
 }
 
+// ============================================================
+// Employment Hero Replacement — HR Enums
+// ============================================================
+
+enum EmploymentType {
+  casual
+  part_time
+  permanent
+  fixed_term
+}
+
+enum VisaStatus {
+  citizen
+  permanent_resident
+  work_visa
+  student_visa
+  bridging_visa
+  other
+}
+
+enum QualificationType {
+  cert_iii
+  diploma
+  bachelor
+  masters
+  first_aid
+  wwcc
+  other
+}
+
+enum PolicyStatus {
+  draft
+  published
+  archived
+}
+
+enum ContractStatus {
+  contract_draft
+  active
+  superseded
+  terminated
+}
+
+enum ContractType {
+  ct_casual
+  ct_part_time
+  ct_permanent
+  ct_fixed_term
+}
+
+enum AwardLevel {
+  es1
+  es2
+  es3
+  es4
+  cs1
+  cs2
+  cs3
+  cs4
+  director
+  coordinator
+  custom
+}
+
+enum LeaveType {
+  annual
+  sick
+  personal
+  unpaid
+  long_service
+  parental
+  compassionate
+}
+
+enum LeaveRequestStatus {
+  leave_pending
+  leave_approved
+  leave_rejected
+  leave_cancelled
+}
+
+enum TimesheetStatus {
+  ts_draft
+  submitted
+  approved
+  exported_to_xero
+  rejected
+}
+
+enum ShiftType {
+  shift_bsc
+  shift_asc
+  shift_vac
+  pd
+  shift_admin
+  shift_other
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -227,6 +325,36 @@ model User {
   seatAssignments    AccountabilitySeatAssignment[]
   todoTemplatesAssigned TodoTemplate[]  @relation("TemplateAssignee")
   todoTemplatesCreated  TodoTemplate[]  @relation("TemplateCreator")
+
+  // ── Staff Profile Expansion ──────────────────────────────────
+  phone             String?
+  dateOfBirth       DateTime?    @db.Date
+  addressStreet     String?
+  addressSuburb     String?
+  addressState      String?
+  addressPostcode   String?
+  taxFileNumber     String?      @db.Text  // AES-256-GCM encrypted
+  superFundName     String?
+  superMemberNumber String?
+  superUSI          String?
+  visaStatus        VisaStatus?
+  visaExpiry        DateTime?    @db.Date
+  employmentType    EmploymentType?
+  startDate         DateTime?    @db.Date
+  probationEndDate  DateTime?    @db.Date
+  bankDetailsNote   String?
+  xeroEmployeeId    String?
+
+  // ── HR Relations ─────────────────────────────────────────────
+  emergencyContacts   EmergencyContact[]
+  qualifications      StaffQualification[]
+  contracts           EmploymentContract[]    @relation("ContractEmployee")
+  leaveRequests       LeaveRequest[]          @relation("LeaveRequester")
+  approvedLeaves      LeaveRequest[]          @relation("LeaveApprover")
+  leaveBalances       LeaveBalance[]
+  timesheetEntries    TimesheetEntry[]        @relation("TimesheetStaff")
+  policyAcks          PolicyAcknowledgement[] @relation("PolicyAcknowledger")
+  offboardings        StaffOffboarding[]      @relation("OffboardingUser")
 
   @@index([serviceId])
 }
@@ -648,6 +776,11 @@ model Service {
   marketingPosts    MarketingPostService[]     @relation("ServiceMarketingPosts")
   marketingCampaigns MarketingCampaignService[] @relation("ServiceMarketingCampaigns")
   socialConnections SocialConnection[]         @relation("ServiceSocialConnections")
+
+  // ── HR Relations ─────────────────────────────────────────────
+  leaveRequests      LeaveRequest[]          @relation("ServiceLeaveRequests")
+  timesheets         Timesheet[]             @relation("ServiceTimesheets")
+  offboardingPacks   OffboardingPack[]       @relation("ServiceOffboardingPacks")
 
   @@index([status])
   @@index([managerId])
@@ -1597,4 +1730,300 @@ model SocialConnection {
   @@unique([platform, accountId])
   @@index([platform])
   @@index([serviceId])
+}
+
+// ============================================================
+// Phase 1: Staff Profile — Emergency Contacts & Qualifications
+// ============================================================
+
+model EmergencyContact {
+  id           String  @id @default(cuid())
+  userId       String
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  phone        String
+  relationship String
+  isPrimary    Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model StaffQualification {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            QualificationType
+  name            String
+  institution     String?
+  completedDate   DateTime?         @db.Date
+  expiryDate      DateTime?         @db.Date
+  certificateUrl  String?
+  verified        Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([type])
+}
+
+// ============================================================
+// Phase 2: Policy Acknowledgement
+// ============================================================
+
+model Policy {
+  id            String       @id @default(cuid())
+  title         String
+  description   String?      @db.Text
+  version       Int          @default(1)
+  status        PolicyStatus @default(draft)
+  category      String?
+  documentUrl   String?
+  documentId    String?
+  publishedAt   DateTime?
+  requiresReack Boolean      @default(true)
+  deleted       Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  acknowledgements PolicyAcknowledgement[]
+
+  @@index([status])
+  @@index([category])
+}
+
+model PolicyAcknowledgement {
+  id             String   @id @default(cuid())
+  policyId       String
+  policy         Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation("PolicyAcknowledger", fields: [userId], references: [id], onDelete: Cascade)
+  policyVersion  Int
+  acknowledgedAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@unique([policyId, userId, policyVersion])
+  @@index([policyId])
+  @@index([userId])
+}
+
+// ============================================================
+// Phase 3: Contract Management
+// ============================================================
+
+model EmploymentContract {
+  id                  String         @id @default(cuid())
+  userId              String
+  user                User           @relation("ContractEmployee", fields: [userId], references: [id], onDelete: Cascade)
+  contractType        ContractType
+  awardLevel          AwardLevel?
+  awardLevelCustom    String?
+  payRate             Float
+  hoursPerWeek        Float?
+  startDate           DateTime       @db.Date
+  endDate             DateTime?      @db.Date
+  status              ContractStatus @default(contract_draft)
+  documentUrl         String?
+  documentId          String?
+  signedAt            DateTime?
+  acknowledgedByStaff Boolean        @default(false)
+  acknowledgedAt      DateTime?
+  notes               String?        @db.Text
+  previousContractId  String?
+  previousContract    EmploymentContract?  @relation("ContractHistory", fields: [previousContractId], references: [id])
+  supersededBy        EmploymentContract[] @relation("ContractHistory")
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([contractType])
+}
+
+// ============================================================
+// Phase 4: Leave Management
+// ============================================================
+
+model LeaveRequest {
+  id            String             @id @default(cuid())
+  userId        String
+  user          User               @relation("LeaveRequester", fields: [userId], references: [id], onDelete: Cascade)
+  leaveType     LeaveType
+  startDate     DateTime           @db.Date
+  endDate       DateTime           @db.Date
+  totalDays     Float
+  isHalfDay     Boolean            @default(false)
+  reason        String?            @db.Text
+  status        LeaveRequestStatus @default(leave_pending)
+  reviewedById  String?
+  reviewedBy    User?              @relation("LeaveApprover", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  reviewNotes   String?            @db.Text
+  serviceId     String?
+  service       Service?           @relation("ServiceLeaveRequests", fields: [serviceId], references: [id], onDelete: SetNull)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([startDate])
+  @@index([serviceId])
+  @@index([leaveType])
+}
+
+model LeaveBalance {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveType       LeaveType
+  balance         Float     @default(0)
+  accrued         Float     @default(0)
+  taken           Float     @default(0)
+  pending         Float     @default(0)
+  asOfDate        DateTime  @default(now())
+  source          String    @default("manual")
+  xeroSyncedAt    DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, leaveType])
+  @@index([userId])
+}
+
+// ============================================================
+// Phase 5: Timesheet Import from OWNA
+// ============================================================
+
+model Timesheet {
+  id             String          @id @default(cuid())
+  serviceId      String
+  service        Service         @relation("ServiceTimesheets", fields: [serviceId], references: [id], onDelete: Cascade)
+  weekEnding     DateTime        @db.Date
+  status         TimesheetStatus @default(ts_draft)
+  submittedAt    DateTime?
+  submittedById  String?
+  approvedAt     DateTime?
+  approvedById   String?
+  exportedAt     DateTime?
+  xeroPayRunId   String?
+  importSource   String?         @default("manual")
+  importFileName String?
+  notes          String?         @db.Text
+  deleted        Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  entries TimesheetEntry[]
+
+  @@unique([serviceId, weekEnding])
+  @@index([serviceId])
+  @@index([status])
+  @@index([weekEnding])
+}
+
+model TimesheetEntry {
+  id            String     @id @default(cuid())
+  timesheetId   String
+  timesheet     Timesheet  @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User       @relation("TimesheetStaff", fields: [userId], references: [id])
+  date          DateTime   @db.Date
+  shiftStart    DateTime
+  shiftEnd      DateTime
+  breakMinutes  Int        @default(0)
+  totalHours    Float
+  shiftType     ShiftType
+  notes         String?
+  isOvertime    Boolean    @default(false)
+  payRate       Float?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([timesheetId])
+  @@index([userId])
+  @@index([date])
+}
+
+// ============================================================
+// Phase 6: Offboarding Workflow
+// ============================================================
+
+model OffboardingPack {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  serviceId   String?
+  service     Service? @relation("ServiceOffboardingPacks", fields: [serviceId], references: [id], onDelete: SetNull)
+  isDefault   Boolean  @default(false)
+  deleted     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks       OffboardingTask[]
+  assignments StaffOffboarding[]
+
+  @@index([serviceId])
+}
+
+model OffboardingTask {
+  id          String           @id @default(cuid())
+  packId      String
+  pack        OffboardingPack  @relation(fields: [packId], references: [id], onDelete: Cascade)
+  title       String
+  description String?          @db.Text
+  category    String?
+  sortOrder   Int              @default(0)
+  isRequired  Boolean          @default(true)
+  assignedTo  String?
+  documentId  String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  progress StaffOffboardingProgress[]
+
+  @@index([packId])
+}
+
+model StaffOffboarding {
+  id                   String            @id @default(cuid())
+  userId               String
+  user                 User              @relation("OffboardingUser", fields: [userId], references: [id], onDelete: Cascade)
+  packId               String
+  pack                 OffboardingPack   @relation(fields: [packId], references: [id], onDelete: Cascade)
+  status               OnboardingStatus  @default(not_started)
+  initiatedById        String?
+  lastDay              DateTime?         @db.Date
+  reason               String?
+  exitInterviewNotes   String?           @db.Text
+  startedAt            DateTime?
+  completedAt          DateTime?
+  deactivateOnComplete Boolean           @default(true)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  progress StaffOffboardingProgress[]
+
+  @@unique([userId, packId])
+  @@index([userId])
+  @@index([packId])
+  @@index([status])
+}
+
+model StaffOffboardingProgress {
+  id               String            @id @default(cuid())
+  offboardingId    String
+  offboarding      StaffOffboarding  @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
+  taskId           String
+  task             OffboardingTask   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  completed        Boolean           @default(false)
+  completedAt      DateTime?
+  completedById    String?
+  notes            String?           @db.Text
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([offboardingId, taskId])
+  @@index([offboardingId])
+  @@index([taskId])
 }
