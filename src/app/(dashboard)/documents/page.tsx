@@ -40,6 +40,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
   program: { bg: "bg-cyan-50", text: "text-cyan-700", badge: "bg-cyan-100" },
@@ -128,6 +129,8 @@ export default function DocumentsPage() {
   const moveDocument = useMoveDocument();
   const [editingDoc, setEditingDoc] = useState<DocumentData | null>(null);
   const [editDocForm, setEditDocForm] = useState({ title: "", description: "", category: "" });
+  const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
+  const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
 
   // Build breadcrumb path
   const breadcrumbs = useMemo(() => {
@@ -208,9 +211,8 @@ export default function DocumentsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this document?")) {
-      await deleteDocument.mutateAsync(id);
-    }
+    await deleteDocument.mutateAsync(id);
+    setDeleteDocId(null);
   };
 
   const handleEditDoc = (doc: DocumentData) => {
@@ -240,12 +242,11 @@ export default function DocumentsPage() {
   };
 
   const handleDeleteFolder = async (folderId: string) => {
-    if (confirm("Delete this folder? It must be empty.")) {
-      try {
-        await deleteFolder.mutateAsync(folderId);
-      } catch (err: any) {
-        alert(err.message);
-      }
+    try {
+      await deleteFolder.mutateAsync(folderId);
+      setDeleteFolderId(null);
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -489,7 +490,7 @@ export default function DocumentsPage() {
                 </p>
                 {folder._count.documents === 0 && folder._count.children === 0 && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder.id); }}
+                    onClick={(e) => { e.stopPropagation(); setDeleteFolderId(folder.id); }}
                     className="absolute top-2 right-2 p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Delete empty folder"
                   >
@@ -598,7 +599,7 @@ export default function DocumentsPage() {
                       <FolderInput className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(doc.id)}
+                      onClick={() => setDeleteDocId(doc.id)}
                       disabled={deleteDocument.isPending}
                       className="px-3 py-2 rounded-lg text-sm text-red-600 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
                     >
@@ -683,7 +684,7 @@ export default function DocumentsPage() {
                               <FolderInput className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(doc.id)}
+                              onClick={() => setDeleteDocId(doc.id)}
                               disabled={deleteDocument.isPending}
                               className="text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
                               title="Delete document"
@@ -1002,6 +1003,28 @@ export default function DocumentsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteDocId}
+        onOpenChange={(open) => !open && setDeleteDocId(null)}
+        title="Delete Document"
+        description="Are you sure you want to delete this document? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => deleteDocId && handleDelete(deleteDocId)}
+        loading={deleteDocument.isPending}
+      />
+
+      <ConfirmDialog
+        open={!!deleteFolderId}
+        onOpenChange={(open) => !open && setDeleteFolderId(null)}
+        title="Delete Folder"
+        description="Delete this folder? It must be empty."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => deleteFolderId && handleDeleteFolder(deleteFolderId)}
+        loading={deleteFolder.isPending}
+      />
     </div>
   );
 }

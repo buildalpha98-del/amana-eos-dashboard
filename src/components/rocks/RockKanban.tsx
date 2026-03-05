@@ -6,6 +6,7 @@ import {
   DragOverlay,
   closestCorners,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
@@ -115,6 +116,7 @@ export function RockKanban({
   const updateRock = useUpdateRock();
 
   const sensors = useSensors(
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
@@ -135,16 +137,16 @@ export function RockKanban({
     const rockId = active.id as string;
     const targetStatus = over.id as RockStatus;
 
-    // Check if dropped on a column
-    if (columns.some((c) => c.id === targetStatus)) {
-      const rock = rocks.find((r) => r.id === rockId);
-      if (rock && rock.status !== targetStatus) {
-        updateRock.mutate({
-          id: rockId,
-          status: targetStatus,
-          ...(targetStatus === "complete" ? { percentComplete: 100 } : {}),
-        });
-      }
+    // Only accept drops on valid column targets (not other cards)
+    if (!columns.some((c) => c.id === targetStatus)) return;
+
+    const rock = rocks.find((r) => r.id === rockId);
+    if (rock && rock.status !== targetStatus) {
+      updateRock.mutate({
+        id: rockId,
+        status: targetStatus,
+        ...(targetStatus === "complete" ? { percentComplete: 100 } : {}),
+      });
     }
   };
 

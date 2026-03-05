@@ -7,6 +7,7 @@ import type {
   MessageDirection,
   MessageDeliveryStatus,
 } from "@prisma/client";
+import { toast } from "@/hooks/useToast";
 
 export interface TicketContactUser {
   id: string;
@@ -135,6 +136,7 @@ export function useCreateTicket() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tickets"] });
+      toast({ description: "Ticket created" });
     },
   });
 }
@@ -182,6 +184,7 @@ export function useDeleteTicket() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tickets"] });
+      toast({ description: "Ticket deleted" });
     },
   });
 }
@@ -214,6 +217,7 @@ export function useSendMessage() {
       queryClient.invalidateQueries({
         queryKey: ["ticket-messages", variables.ticketId],
       });
+      toast({ description: "Message sent" });
     },
   });
 }

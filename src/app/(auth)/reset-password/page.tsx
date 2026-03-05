@@ -43,8 +43,23 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    if (password.length < 12) {
+      setError("Password must be at least 12 characters");
+      return;
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      setError("Password must contain an uppercase letter");
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError("Password must contain a number");
+      return;
+    }
+
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      setError("Password must contain a special character");
       return;
     }
 
@@ -143,7 +158,7 @@ function ResetPasswordForm() {
                 Set a new password
               </h2>
               <p className="text-gray-500 text-sm mb-6">
-                Enter your new password below. It must be at least 8 characters.
+                Enter your new password below. It must be at least 12 characters with uppercase, number, and special character.
               </p>
 
               {error && (
@@ -164,13 +179,40 @@ function ResetPasswordForm() {
                     id="password"
                     type="password"
                     required
-                    minLength={8}
+                    minLength={12}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent transition-shadow"
-                    placeholder="At least 8 characters"
+                    placeholder="At least 12 characters"
                     autoComplete="new-password"
                   />
+
+                  {/* Live validation checklist */}
+                  {password.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {[
+                        { label: "12+ characters", met: password.length >= 12 },
+                        { label: "Uppercase letter", met: /[A-Z]/.test(password) },
+                        { label: "Number", met: /[0-9]/.test(password) },
+                        { label: "Special character", met: /[^A-Za-z0-9]/.test(password) },
+                      ].map((rule) => (
+                        <div key={rule.label} className="flex items-center gap-2">
+                          {rule.met ? (
+                            <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          )}
+                          <span className={`text-xs ${rule.met ? "text-emerald-600" : "text-gray-400"}`}>
+                            {rule.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -184,7 +226,7 @@ function ResetPasswordForm() {
                     id="confirmPassword"
                     type="password"
                     required
-                    minLength={8}
+                    minLength={12}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent transition-shadow"

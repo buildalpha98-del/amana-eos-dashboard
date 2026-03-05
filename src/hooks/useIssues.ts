@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IssueStatus, IssuePriority } from "@prisma/client";
+import { toast } from "@/hooks/useToast";
 
 export interface IssueUser {
   id: string;
@@ -100,6 +101,7 @@ export function useCreateIssue() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
+      toast({ description: "Issue created" });
     },
   });
 }
@@ -148,6 +150,7 @@ export function useDeleteIssue() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
+      toast({ description: "Issue deleted" });
     },
   });
 }

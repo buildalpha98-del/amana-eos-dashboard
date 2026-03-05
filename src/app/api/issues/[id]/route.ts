@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 
 const updateIssueSchema = z.object({
   title: z.string().min(1).optional(),
@@ -111,6 +112,21 @@ export async function PATCH(
       details: { changes: Object.keys(data) },
     },
   });
+
+  // Notify new owner if ownerId changed and it's not the current user
+  if (
+    parsed.data.ownerId !== undefined &&
+    parsed.data.ownerId !== existing.ownerId &&
+    parsed.data.ownerId !== null &&
+    parsed.data.ownerId !== session!.user.id
+  ) {
+    sendAssignmentEmail({
+      type: "issue",
+      assigneeId: parsed.data.ownerId,
+      assignerId: session!.user.id,
+      entityTitle: issue.title,
+    });
+  }
 
   return NextResponse.json(issue);
 }

@@ -27,6 +27,7 @@ import {
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import ComplianceMatrixView from "@/components/compliance/ComplianceMatrixView";
 
 /* ------------------------------------------------------------------ */
@@ -375,6 +376,7 @@ function AdminComplianceView() {
   const queryClient = useQueryClient();
   const [serviceFilter, setServiceFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [deleteCertId, setDeleteCertId] = useState<string | null>(null);
 
   const { data: certs = [], isLoading } = useComplianceCerts(
     serviceFilter ? { serviceId: serviceFilter } : undefined
@@ -733,11 +735,7 @@ function AdminComplianceView() {
 
                             {/* Delete */}
                             <button
-                              onClick={() => {
-                                if (confirm("Delete this certificate?")) {
-                                  deleteCert.mutate(cert.id);
-                                }
-                              }}
+                              onClick={() => setDeleteCertId(cert.id)}
                               className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
                               title="Delete"
                             >
@@ -940,6 +938,23 @@ function AdminComplianceView() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteCertId}
+        onOpenChange={(open) => !open && setDeleteCertId(null)}
+        title="Delete Certificate"
+        description="Are you sure you want to delete this certificate? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => {
+          if (deleteCertId) {
+            deleteCert.mutate(deleteCertId, {
+              onSuccess: () => setDeleteCertId(null),
+            });
+          }
+        }}
+        loading={deleteCert.isPending}
+      />
     </div>
   );
 }

@@ -11,7 +11,10 @@ interface Notification {
     | "critical_issue"
     | "sla_warning"
     | "low_compliance"
-    | "compliance_expiring";
+    | "compliance_expiring"
+    | "new_todo_assigned"
+    | "new_issue_assigned"
+    | "new_rock_assigned";
   severity: "critical" | "warning" | "info";
   title: string;
   message: string;
@@ -208,6 +211,80 @@ export async function GET(req: NextRequest) {
       link: "/compliance",
       timestamp: cert.expiryDate.toISOString(),
       entityId: cert.id,
+    });
+  });
+
+  // 8. Newly assigned todos (last 7 days, assigned by someone else)
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+  const assignedTodos = await prisma.todo.findMany({
+    where: {
+      deleted: false,
+      assigneeId: session.user.id,
+      createdAt: { gte: sevenDaysAgo },
+      NOT: { createdById: session.user.id },
+    },
+    include: { createdBy: { select: { name: true } } },
+    take: 10,
+    orderBy: { createdAt: "desc" },
+  });
+  assignedTodos.forEach((todo) => {
+    notifications.push({
+      id: `assigned-todo-${todo.id}`,
+      type: "new_todo_assigned",
+      severity: "info",
+      title: "New To-Do Assigned",
+      message: `"${todo.title}" assigned by ${todo.createdBy?.name ?? "Unknown"}`,
+      link: "/todos",
+      timestamp: todo.createdAt.toISOString(),
+      entityId: todo.id,
+    });
+  });
+
+  // 9. Newly assigned issues (last 7 days, raised by someone else)
+  const assignedIssues = await prisma.issue.findMany({
+    where: {
+      deleted: false,
+      ownerId: session.user.id,
+      createdAt: { gte: sevenDaysAgo },
+      NOT: { raisedById: session.user.id },
+    },
+    include: { raisedBy: { select: { name: true } } },
+    take: 10,
+    orderBy: { createdAt: "desc" },
+  });
+  assignedIssues.forEach((issue) => {
+    notifications.push({
+      id: `assigned-issue-${issue.id}`,
+      type: "new_issue_assigned",
+      severity: "info",
+      title: "New Issue Assigned",
+      message: `"${issue.title}" raised by ${issue.raisedBy.name}`,
+      link: "/issues",
+      timestamp: issue.createdAt.toISOString(),
+      entityId: issue.id,
+    });
+  });
+
+  // 10. Newly assigned rocks (last 7 days)
+  const assignedRocks = await prisma.rock.findMany({
+    where: {
+      deleted: false,
+      ownerId: session.user.id,
+      createdAt: { gte: sevenDaysAgo },
+    },
+    take: 10,
+    orderBy: { createdAt: "desc" },
+  });
+  assignedRocks.forEach((rock) => {
+    notifications.push({
+      id: `assigned-rock-${rock.id}`,
+      type: "new_rock_assigned",
+      severity: "info",
+      title: "New Rock Assigned",
+      message: `"${rock.title}" was recently assigned to you`,
+      link: "/rocks",
+      timestamp: rock.createdAt.toISOString(),
+      entityId: rock.id,
     });
   });
 

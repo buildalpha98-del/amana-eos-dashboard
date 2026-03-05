@@ -16,6 +16,7 @@ import {
   Save,
   Plus,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { RockStatus, RockPriority, RockType } from "@prisma/client";
 
 const statusOptions: { value: RockStatus; label: string; color: string }[] = [
@@ -247,7 +248,12 @@ export function RockDetailPanel({
   };
 
   const handleDelete = () => {
-    deleteRock.mutate(rock.id, { onSuccess: onClose });
+    deleteRock.mutate(rock.id, {
+      onSuccess: () => {
+        setConfirmDelete(false);
+        onClose();
+      },
+    });
   };
 
   const handleStatusChange = (status: RockStatus) => {
@@ -871,34 +877,25 @@ export function RockDetailPanel({
 
         {/* Delete */}
         <div className="pt-4 border-t border-gray-200">
-          {confirmDelete ? (
-            <div className="flex items-center gap-3">
-              <p className="text-sm text-red-600">
-                Are you sure? This cannot be undone.
-              </p>
-              <button
-                onClick={handleDelete}
-                className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600 transition-colors"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Delete Rock
-            </button>
-          )}
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete Rock
+          </button>
         </div>
+
+        <ConfirmDialog
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title="Delete Rock"
+          description="Are you sure you want to delete this rock? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleDelete}
+          loading={deleteRock.isPending}
+        />
       </div>
     </Panel>
   );

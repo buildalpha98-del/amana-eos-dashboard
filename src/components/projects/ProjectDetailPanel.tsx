@@ -13,6 +13,7 @@ import {
   User,
   Plus,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface UserOption {
   id: string;
@@ -136,7 +137,12 @@ export function ProjectDetailPanel({
   };
 
   const handleDelete = () => {
-    deleteProject.mutate(projectId, { onSuccess: onClose });
+    deleteProject.mutate(projectId, {
+      onSuccess: () => {
+        setShowDelete(false);
+        onClose();
+      },
+    });
   };
 
   if (isLoading || !project) {
@@ -333,18 +339,21 @@ export function ProjectDetailPanel({
         </div>
 
         <div className="border-t border-gray-200 px-6 py-3 flex justify-between">
-          {showDelete ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-red-600">Delete this project?</span>
-              <button onClick={handleDelete} className="text-xs px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">Delete</button>
-              <button onClick={() => setShowDelete(false)} className="text-xs px-3 py-1 text-gray-500">Cancel</button>
-            </div>
-          ) : (
-            <button onClick={() => setShowDelete(true)} className="text-gray-400 hover:text-red-500 transition-colors">
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
+          <button onClick={() => setShowDelete(true)} className="text-gray-400 hover:text-red-500 transition-colors">
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
+
+        <ConfirmDialog
+          open={showDelete}
+          onOpenChange={setShowDelete}
+          title="Delete Project"
+          description="Are you sure you want to delete this project and all its tasks? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleDelete}
+          loading={deleteProject.isPending}
+        />
       </div>
     </>
   );

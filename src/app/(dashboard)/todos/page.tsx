@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { useTodos, useUpdateTodo, useDeleteTodo, type TodoData } from "@/hooks/useTodos";
+import { useSession } from "next-auth/react";
+import { useTodos, useUpdateTodo, useDeleteTodo, useCreateTodo, type TodoData } from "@/hooks/useTodos";
 import { useQuery } from "@tanstack/react-query";
 import { getWeekStart } from "@/lib/utils";
 import { WeekSelector } from "@/components/todos/WeekSelector";
@@ -9,11 +10,13 @@ import { TodoListByPerson } from "@/components/todos/TodoListByPerson";
 import { TodoItem } from "@/components/todos/TodoItem";
 import { CreateTodoModal } from "@/components/todos/CreateTodoModal";
 import { TodoDetailPanel } from "@/components/todos/TodoDetailPanel";
+import { TodoKanban } from "@/components/todos/TodoKanban";
 import {
   CheckSquare,
   Plus,
   Users,
   List,
+  LayoutGrid,
   Filter,
   ChevronDown,
   ChevronRight,
@@ -23,6 +26,7 @@ import {
   Archive,
   ListPlus,
   Repeat,
+  Loader2,
 } from "lucide-react";
 import { BulkCreateTodosModal } from "@/components/todos/BulkCreateTodosModal";
 import { TemplateManagerModal } from "@/components/todos/TemplateManagerModal";
@@ -34,11 +38,13 @@ interface UserOption {
 }
 
 export default function TodosPage() {
+  const { data: session } = useSession();
   const [weekOf, setWeekOf] = useState(() => getWeekStart());
   const [showCreate, setShowCreate] = useState(false);
   const [showBulkCreate, setShowBulkCreate] = useState(false);
   const [selectedTodo, setSelectedTodo] = useState<TodoData | null>(null);
   const [groupBy, setGroupBy] = useState<"person" | "flat">("person");
+  const [viewMode, setViewMode] = useState<"list" | "board">("list");
   const [filterAssignee, setFilterAssignee] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -46,9 +52,11 @@ export default function TodosPage() {
   const [showCarryForward, setShowCarryForward] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [quickAddTitle, setQuickAddTitle] = useState("");
 
   const updateTodo = useUpdateTodo();
   const deleteTodo = useDeleteTodo();
+  const createTodo = useCreateTodo();
 
   const { data: todos, isLoading } = useTodos({
     weekOf: weekOf.toISOString(),
@@ -177,13 +185,13 @@ export default function TodosPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Group Toggle */}
+          {/* View Toggle */}
           <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
             <button
-              onClick={() => setGroupBy("person")}
+              onClick={() => { setViewMode("list"); setGroupBy("person"); }}
               className={cn(
                 "p-1.5 rounded-md transition-colors",
-                groupBy === "person"
+                viewMode === "list" && groupBy === "person"
                   ? "bg-white text-[#004E64] shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
@@ -192,16 +200,28 @@ export default function TodosPage() {
               <Users className="w-4 h-4" />
             </button>
             <button
-              onClick={() => setGroupBy("flat")}
+              onClick={() => { setViewMode("list"); setGroupBy("flat"); }}
               className={cn(
                 "p-1.5 rounded-md transition-colors",
-                groupBy === "flat"
+                viewMode === "list" && groupBy === "flat"
                   ? "bg-white text-[#004E64] shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="Flat list"
             >
               <List className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("board")}
+              className={cn(
+                "p-1.5 rounded-md transition-colors",
+                viewMode === "board"
+                  ? "bg-white text-[#004E64] shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
+              )}
+              title="Board view"
+            >
+              <LayoutGrid className="w-4 h-4" />
             </button>
           </div>
 
@@ -401,13 +421,56 @@ export default function TodosPage() {
         </div>
       )}
 
+      {/* Quick-Add Input */}
+      {session?.user?.id && (
+        <div className="mb-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const title = quickAddTitle.trim();
+              if (!title) return;
+              const dueDate = new Date(weekOf);
+              dueDate.setDate(dueDate.getDate() + 6); // End of the week
+              createTodo.mutate(
+                {
+                  title,
+                  assigneeId: session.user.id,
+                  weekOf: weekOf.toISOString(),
+                  dueDate: dueDate.toISOString(),
+                },
+                { onSuccess: () => setQuickAddTitle("") }
+              );
+            }}
+            className="flex items-center gap-2"
+          >
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={quickAddTitle}
+                onChange={(e) => setQuickAddTitle(e.target.value)}
+                placeholder="Quick add a to-do... (press Enter)"
+                className="w-full rounded-lg border border-gray-200 pl-3 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64] placeholder:text-gray-400"
+              />
+              {createTodo.isPending && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+              )}
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Content */}
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
           <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
         </div>
       ) : todos && todos.length > 0 ? (
-        groupBy === "person" ? (
+        viewMode === "board" ? (
+          <TodoKanban
+            todos={filteredTodos}
+            onTodoClick={(todo) => setSelectedTodo(todo)}
+          />
+        ) : groupBy === "person" ? (
           <TodoListByPerson
             todos={filteredTodos}
             onTodoClick={(todo) => setSelectedTodo(todo)}

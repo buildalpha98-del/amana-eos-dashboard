@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { RockStatus, RockPriority, RockType } from "@prisma/client";
+import { toast } from "@/hooks/useToast";
 
 export interface RockOwner {
   id: string;
@@ -81,6 +82,7 @@ export function useCreateRock() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rocks"] });
+      toast({ description: "Rock created" });
     },
   });
 }
@@ -130,6 +132,7 @@ export function useDeleteRock() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rocks"] });
+      toast({ description: "Rock deleted" });
     },
   });
 }

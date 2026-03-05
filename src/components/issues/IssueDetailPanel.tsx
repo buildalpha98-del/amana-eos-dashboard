@@ -20,6 +20,7 @@ import {
   Unlink,
   Clock,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 interface UserOption {
   id: string;
@@ -99,7 +100,12 @@ export function IssueDetailPanel({
   };
 
   const handleDelete = () => {
-    deleteIssue.mutate(issueId, { onSuccess: onClose });
+    deleteIssue.mutate(issueId, {
+      onSuccess: () => {
+        setShowDelete(false);
+        onClose();
+      },
+    });
   };
 
   if (isLoading || !issue) {
@@ -593,31 +599,24 @@ export function IssueDetailPanel({
 
         {/* Footer */}
         <div className="border-t border-gray-200 px-6 py-3 flex justify-between">
-          {showDelete ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-red-600">Delete this issue?</span>
-              <button
-                onClick={handleDelete}
-                className="text-xs px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => setShowDelete(false)}
-                className="text-xs px-3 py-1 text-gray-500"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowDelete(true)}
-              className="text-gray-400 hover:text-red-500 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            onClick={() => setShowDelete(true)}
+            className="text-gray-400 hover:text-red-500 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
+
+        <ConfirmDialog
+          open={showDelete}
+          onOpenChange={setShowDelete}
+          title="Delete Issue"
+          description="Are you sure you want to delete this issue? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleDelete}
+          loading={deleteIssue.isPending}
+        />
       </div>
     </>
   );

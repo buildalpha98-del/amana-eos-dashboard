@@ -29,6 +29,7 @@ export const allPages = [
   "/contracts",
   "/team",
   "/settings",
+  "/profile",
 ] as const;
 
 export type AppPage = (typeof allPages)[number];
@@ -59,6 +60,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/documents",
     "/onboarding",
     "/leave",
+    "/timesheets",
+    "/profile",
   ],
   staff: [
     "/dashboard",
@@ -69,6 +72,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/todos",
     "/compliance",
     "/leave",
+    "/timesheets",
+    "/profile",
   ],
 };
 
@@ -280,6 +285,8 @@ const memberFeatures: readonly Feature[] = [
   "policies.acknowledge",
   "offboarding.view",
   "my_portal.view",
+  "timesheets.view",
+  "timesheets.create",
 ];
 
 const staffFeatures: readonly Feature[] = [
@@ -299,6 +306,8 @@ const staffFeatures: readonly Feature[] = [
   "policies.view",
   "policies.acknowledge",
   "my_portal.view",
+  "timesheets.view",
+  "timesheets.create",
 ];
 
 export const roleFeatures: Record<Role, readonly Feature[]> = {
@@ -385,9 +394,10 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Pages", label: "Team", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Settings", owner: true, admin: false, member: false, staff: false },
   { section: "Pages", label: "My Portal", owner: true, admin: true, member: true, staff: true },
-  { section: "Pages", label: "Timesheets", owner: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Timesheets", owner: true, admin: true, member: true, staff: true },
   { section: "Pages", label: "Leave Management", owner: true, admin: true, member: true, staff: true },
   { section: "Pages", label: "Contracts", owner: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Profile", owner: true, admin: true, member: true, staff: true },
 
   // Actions
   { section: "Actions", label: "View / edit Attendance", owner: true, admin: true, member: true, staff: false },

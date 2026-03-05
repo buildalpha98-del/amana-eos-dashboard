@@ -29,6 +29,7 @@ import { CentreLeaderboard } from "@/components/performance/CentreLeaderboard";
 import { CentreComparison } from "@/components/performance/CentreComparison";
 import { RegionalRollup } from "@/components/performance/RegionalRollup";
 import { LayoutGrid, ListOrdered, BarChart3 } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 type ViewMode = "centres" | "leaderboard" | "compare";
 
@@ -253,11 +254,28 @@ export default function PerformancePage() {
           </div>
         </div>
         {isLoading ? (
-          <div className="p-12 text-center text-gray-400">Loading performance data...</div>
+          <div className="space-y-3 p-6">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 flex-1" />
+              </div>
+            ))}
+          </div>
         ) : !sortedCentres || sortedCentres.length === 0 ? (
-          <div className="p-12 text-center">
-            <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">No performance data available yet.</p>
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
+              <Building2 className="w-8 h-8 text-[#004E64]/30" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              No performance data available yet
+            </h3>
+            <p className="text-gray-500 mt-2 max-w-md">
+              Performance scores will appear here once service centres have been
+              set up and start reporting data.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -399,8 +417,17 @@ export default function PerformancePage() {
       {viewMode === "leaderboard" && (
         <>
           {isLoading ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
-              Loading performance data...
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 flex-1" />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : centres && centres.length > 0 ? (
             <>

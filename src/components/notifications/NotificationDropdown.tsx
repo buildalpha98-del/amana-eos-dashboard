@@ -32,6 +32,10 @@ const typeConfig: Record<
   critical_issue: { icon: AlertTriangle, color: "text-red-500" },
   sla_warning: { icon: Clock, color: "text-red-500" },
   low_compliance: { icon: ShieldAlert, color: "text-red-500" },
+  compliance_expiring: { icon: ShieldAlert, color: "text-orange-600" },
+  new_todo_assigned: { icon: CheckSquare, color: "text-blue-600" },
+  new_issue_assigned: { icon: AlertTriangle, color: "text-amber-600" },
+  new_rock_assigned: { icon: Mountain, color: "text-purple-600" },
 };
 
 const severityBorder: Record<NotificationItem["severity"], string> = {

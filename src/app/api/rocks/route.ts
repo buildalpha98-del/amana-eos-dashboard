@@ -5,6 +5,7 @@ import { getServiceScope } from "@/lib/service-scope";
 import { notifyNewRock } from "@/lib/teams-notify";
 import { createRockSchema } from "@/lib/schemas/rock";
 import { parsePagination } from "@/lib/pagination";
+import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 
 // GET /api/rocks — list rocks with optional quarter filter
 export async function GET(req: NextRequest) {
@@ -120,6 +121,16 @@ export async function POST(req: NextRequest) {
     quarter: rock.quarter,
     url: `${baseUrl}/rocks`,
   }).catch(() => {});
+
+  // Notify assigned owner via email (fire-and-forget)
+  if (rock.ownerId && rock.ownerId !== session!.user.id) {
+    sendAssignmentEmail({
+      type: "rock",
+      assigneeId: rock.ownerId,
+      assignerId: session!.user.id,
+      entityTitle: rock.title,
+    });
+  }
 
   return NextResponse.json(rock, { status: 201 });
 }

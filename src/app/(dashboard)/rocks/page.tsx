@@ -10,6 +10,7 @@ import { RockDetailPanel } from "@/components/rocks/RockDetailPanel";
 import { CreateRockModal } from "@/components/rocks/CreateRockModal";
 import { Mountain, Plus, LayoutGrid, List } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function RocksPage() {
   const [quarter, setQuarter] = useState(getCurrentQuarter());
@@ -100,8 +101,18 @@ export default function RocksPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-2 w-full" />
+              <div className="flex gap-2">
+                <Skeleton className="h-6 w-6 rounded-full" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : rocks && rocks.length > 0 ? (
         view === "kanban" ? (

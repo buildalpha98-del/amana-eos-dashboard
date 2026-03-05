@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/useToast";
 
 export interface ProjectSummary {
   id: string;
@@ -126,6 +127,7 @@ export function useCreateProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["services"] });
+      toast({ description: "Project created" });
     },
   });
 }
@@ -176,6 +178,7 @@ export function useDeleteProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["services"] });
+      toast({ description: "Project deleted" });
     },
   });
 }

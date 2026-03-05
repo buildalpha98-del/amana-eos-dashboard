@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getServiceScope } from "@/lib/service-scope";
 
 const entrySchema = z.object({
   userId: z.string().min(1),
@@ -28,14 +29,20 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
-  if (error) return error;
+  const { session, error } = await requireAuth();
+  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
 
   const timesheet = await prisma.timesheet.findUnique({ where: { id } });
   if (!timesheet || timesheet.deleted) {
     return NextResponse.json({ error: "Timesheet not found" }, { status: 404 });
+  }
+
+  // Staff/member can only add entries to their own service's timesheets
+  const scope = getServiceScope(session);
+  if (scope && timesheet.serviceId !== scope) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = await req.json();
@@ -46,6 +53,17 @@ export async function POST(
       { error: parsed.error.issues[0].message },
       { status: 400 }
     );
+  }
+
+  // Staff/member can only add entries for themselves
+  if (scope) {
+    const otherUserEntries = parsed.data.filter((e) => e.userId !== session.user.id);
+    if (otherUserEntries.length > 0) {
+      return NextResponse.json(
+        { error: "You can only add timesheet entries for yourself" },
+        { status: 403 }
+      );
+    }
   }
 
   const entriesToCreate = parsed.data.map((entry) => {

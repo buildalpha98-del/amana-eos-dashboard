@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TodoStatus } from "@prisma/client";
+import { toast } from "@/hooks/useToast";
 
 export interface TodoAssignee {
   id: string;
@@ -80,6 +81,7 @@ export function useCreateTodo() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
+      toast({ description: "To-do created" });
     },
   });
 }
@@ -129,6 +131,7 @@ export function useDeleteTodo() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
+      toast({ description: "To-do deleted" });
     },
   });
 }

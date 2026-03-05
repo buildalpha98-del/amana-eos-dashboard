@@ -12,6 +12,7 @@ import {
   Search,
 } from "lucide-react";
 import type { ServiceSummary } from "@/hooks/useServices";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 /** Swim-lane definitions — order matters for rendering */
 const swimLanes = [
@@ -149,8 +150,18 @@ export default function ServicesPage() {
 
       {/* Swim Lanes */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-3 w-full" />
+              <div className="flex gap-2">
+                <Skeleton className="h-6 w-6 rounded-full" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">

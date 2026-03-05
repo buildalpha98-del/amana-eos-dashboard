@@ -5,6 +5,7 @@ import { getServiceScope } from "@/lib/service-scope";
 import { notifyNewIssue } from "@/lib/teams-notify";
 import { createIssueSchema } from "@/lib/schemas/issue";
 import { parsePagination } from "@/lib/pagination";
+import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 
 // GET /api/issues — list issues with optional filters
 export async function GET(req: NextRequest) {
@@ -119,6 +120,16 @@ export async function POST(req: NextRequest) {
       raisedBy: issue.raisedBy?.name || session!.user.name || "Unknown",
       url: `${baseUrl}/issues`,
     }).catch(() => {});
+  }
+
+  // Notify assigned owner via email (fire-and-forget)
+  if (issue.ownerId && issue.ownerId !== session!.user.id) {
+    sendAssignmentEmail({
+      type: "issue",
+      assigneeId: issue.ownerId,
+      assignerId: session!.user.id,
+      entityTitle: issue.title,
+    });
   }
 
   return NextResponse.json(issue, { status: 201 });

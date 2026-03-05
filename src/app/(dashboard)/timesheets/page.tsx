@@ -38,6 +38,8 @@ import {
   Filter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import * as XLSX from "xlsx";
 
 /* ------------------------------------------------------------------ */
@@ -963,6 +965,7 @@ function TimesheetDetail({
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (isLoading || !ts) {
     return (
@@ -996,8 +999,8 @@ function TimesheetDetail({
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this timesheet?")) return;
     await deleteTimesheet.mutateAsync(timesheetId);
+    setShowDeleteConfirm(false);
     onClose();
   };
 
@@ -1148,7 +1151,7 @@ function TimesheetDetail({
               {submitTimesheet.isPending ? "Submitting..." : "Submit"}
             </button>
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={deleteTimesheet.isPending}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
             >
@@ -1217,7 +1220,7 @@ function TimesheetDetail({
               {submitTimesheet.isPending ? "Re-submitting..." : "Re-submit"}
             </button>
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={deleteTimesheet.isPending}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
             >
@@ -1235,6 +1238,17 @@ function TimesheetDetail({
           onClose={() => setShowAddEntry(false)}
         />
       )}
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Timesheet"
+        description="Are you sure you want to delete this timesheet? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDelete}
+        loading={deleteTimesheet.isPending}
+      />
     </div>
   );
 }
@@ -1502,8 +1516,15 @@ export default function TimesheetsPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+        <div className="space-y-3 p-6">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 flex-1" />
+            </div>
+          ))}
         </div>
       ) : groupedByWeek.length > 0 ? (
         <div className="space-y-6">

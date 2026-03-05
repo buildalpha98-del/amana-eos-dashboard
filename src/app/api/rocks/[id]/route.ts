@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 
 const updateRockSchema = z.object({
   title: z.string().min(1).optional(),
@@ -107,6 +108,20 @@ export async function PATCH(
       details: parsed.data,
     },
   });
+
+  // Notify new owner if ownerId changed and it's not the current user
+  if (
+    parsed.data.ownerId !== undefined &&
+    parsed.data.ownerId !== existing.ownerId &&
+    parsed.data.ownerId !== session!.user.id
+  ) {
+    sendAssignmentEmail({
+      type: "rock",
+      assigneeId: parsed.data.ownerId,
+      assignerId: session!.user.id,
+      entityTitle: rock.title,
+    });
+  }
 
   return NextResponse.json(rock);
 }

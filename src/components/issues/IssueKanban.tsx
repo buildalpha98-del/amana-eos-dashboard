@@ -6,6 +6,7 @@ import {
   DragOverlay,
   closestCorners,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
@@ -116,6 +117,7 @@ export function IssueKanban({
   const updateIssue = useUpdateIssue();
 
   const sensors = useSensors(
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
@@ -136,15 +138,15 @@ export function IssueKanban({
     const issueId = active.id as string;
     const targetStatus = over.id as IssueStatus;
 
-    // Check if dropped on a column
-    if (columns.some((c) => c.id === targetStatus)) {
-      const issue = issues.find((i) => i.id === issueId);
-      if (issue && issue.status !== targetStatus) {
-        updateIssue.mutate({
-          id: issueId,
-          status: targetStatus,
-        });
-      }
+    // Only accept drops on valid column targets (not other cards)
+    if (!columns.some((c) => c.id === targetStatus)) return;
+
+    const issue = issues.find((i) => i.id === issueId);
+    if (issue && issue.status !== targetStatus) {
+      updateIssue.mutate({
+        id: issueId,
+        status: targetStatus,
+      });
     }
   };
 

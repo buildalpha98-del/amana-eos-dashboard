@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useUpdateTodo, useDeleteTodo, type TodoData } from "@/hooks/useTodos";
 import { useQuery } from "@tanstack/react-query";
 import { X, Mountain, AlertCircle, Lock, Unlock, Trash2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { TodoStatus } from "@prisma/client";
 
 interface UserOption {
@@ -79,7 +80,12 @@ export function TodoDetailPanel({
   };
 
   const handleDelete = () => {
-    deleteTodo.mutate(todo.id, { onSuccess: onClose });
+    deleteTodo.mutate(todo.id, {
+      onSuccess: () => {
+        setShowDeleteConfirm(false);
+        onClose();
+      },
+    });
   };
 
   return (
@@ -303,32 +309,25 @@ export function TodoDetailPanel({
 
         {/* Footer - Delete */}
         <div className="px-6 py-4 border-t border-gray-200">
-          {showDeleteConfirm ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-red-600">Delete this to-do?</span>
-              <button
-                onClick={handleDelete}
-                className="px-3 py-1.5 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Confirm
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete To-Do
-            </button>
-          )}
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete To-Do
+          </button>
         </div>
+
+        <ConfirmDialog
+          open={showDeleteConfirm}
+          onOpenChange={setShowDeleteConfirm}
+          title="Delete To-Do"
+          description="Are you sure you want to delete this to-do? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={handleDelete}
+          loading={deleteTodo.isPending}
+        />
       </div>
     </div>
   );

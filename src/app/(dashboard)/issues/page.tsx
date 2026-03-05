@@ -20,6 +20,7 @@ import {
   Archive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface UserOption {
   id: string;
@@ -257,8 +258,18 @@ export default function IssuesPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, col) => (
+            <div key={col} className="space-y-3">
+              <Skeleton className="h-5 w-24 mb-2" />
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-lg border border-gray-200 p-3 space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       ) : issues && issues.length > 0 ? (
         viewMode === "board" ? (

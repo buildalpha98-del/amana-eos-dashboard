@@ -480,7 +480,7 @@ export default function MyPortalPage() {
               </div>
             )}
             <Link
-              href="/settings"
+              href="/profile"
               className="inline-flex items-center gap-1.5 mt-2 text-sm font-medium text-[#004E64] hover:underline"
             >
               Edit Profile

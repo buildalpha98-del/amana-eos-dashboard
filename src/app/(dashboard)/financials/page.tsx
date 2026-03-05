@@ -21,6 +21,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
 import { RevenueVsCostsChart } from "@/components/charts/RevenueVsCostsChart";
 import { MarginComparisonChart } from "@/components/charts/MarginComparisonChart";
@@ -459,12 +460,28 @@ export default function FinancialsPage() {
           <h3 className="text-lg font-semibold text-gray-900">Revenue by Centre</h3>
         </div>
         {isLoading ? (
-          <div className="p-12 text-center text-gray-400">Loading financial data...</div>
+          <div className="space-y-3 p-6">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 flex-1" />
+              </div>
+            ))}
+          </div>
         ) : sortedData.length === 0 ? (
-          <div className="p-12 text-center">
-            <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">No financial data for this period yet.</p>
-            <p className="text-sm text-gray-400 mt-1">Financial data will appear here once centres start reporting.</p>
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
+              <DollarSign className="w-8 h-8 text-[#004E64]/30" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              No financial data for this period
+            </h3>
+            <p className="text-gray-500 mt-2 max-w-md">
+              Revenue and financial data will appear here once service centres
+              begin reporting or data is synced from Xero.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">

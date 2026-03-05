@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 
 // GET /api/todos/[id]
 export async function GET(
@@ -101,6 +102,20 @@ export async function PATCH(
       details: { changes: Object.keys(data) },
     },
   });
+
+  // Notify new assignee if assigneeId changed and it's not the current user
+  if (
+    body.assigneeId !== undefined &&
+    body.assigneeId !== existing.assigneeId &&
+    body.assigneeId !== session!.user.id
+  ) {
+    sendAssignmentEmail({
+      type: "todo",
+      assigneeId: body.assigneeId,
+      assignerId: session!.user.id,
+      entityTitle: todo.title,
+    });
+  }
 
   return NextResponse.json(todo);
 }

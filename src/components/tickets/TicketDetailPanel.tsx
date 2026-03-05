@@ -25,6 +25,7 @@ import {
   FileText,
   ChevronDown,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { TicketStatus, TicketPriority } from "@prisma/client";
 
 interface UserOption {
@@ -146,7 +147,10 @@ export function TicketDetailPanel({
 
   const handleDelete = () => {
     deleteTicket.mutate(ticketId, {
-      onSuccess: () => onClose(),
+      onSuccess: () => {
+        setConfirmDelete(false);
+        onClose();
+      },
     });
   };
 
@@ -538,33 +542,25 @@ export function TicketDetailPanel({
 
             {/* Delete */}
             <div className="pt-4 border-t border-gray-200">
-              {!confirmDelete ? (
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete Ticket
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-red-600">Confirm delete?</span>
-                  <button
-                    onClick={handleDelete}
-                    disabled={deleteTicket.isPending}
-                    className="px-3 py-1 text-xs bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {deleteTicket.isPending ? "Deleting..." : "Yes, delete"}
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(false)}
-                    className="px-3 py-1 text-xs border border-gray-300 rounded-md hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Ticket
+              </button>
             </div>
+
+            <ConfirmDialog
+              open={confirmDelete}
+              onOpenChange={setConfirmDelete}
+              title="Delete Ticket"
+              description="Are you sure you want to delete this ticket? This action cannot be undone."
+              confirmLabel="Delete"
+              variant="danger"
+              onConfirm={handleDelete}
+              loading={deleteTicket.isPending}
+            />
           </div>
         )}
       </div>

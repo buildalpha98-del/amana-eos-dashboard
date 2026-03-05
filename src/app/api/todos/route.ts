@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope } from "@/lib/service-scope";
 import { createTodoSchema } from "@/lib/schemas/todo";
 import { parsePagination } from "@/lib/pagination";
+import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 
 // GET /api/todos — list todos with optional filters
 export async function GET(req: NextRequest) {
@@ -115,6 +116,16 @@ export async function POST(req: NextRequest) {
       details: { title: todo.title },
     },
   });
+
+  // Notify assignee via email (fire-and-forget)
+  if (todo.assigneeId && todo.assigneeId !== session!.user.id) {
+    sendAssignmentEmail({
+      type: "todo",
+      assigneeId: todo.assigneeId,
+      assignerId: session!.user.id,
+      entityTitle: todo.title,
+    });
+  }
 
   return NextResponse.json(todo, { status: 201 });
 }

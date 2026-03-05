@@ -9,7 +9,11 @@ export interface NotificationItem {
     | "unassigned_ticket"
     | "critical_issue"
     | "sla_warning"
-    | "low_compliance";
+    | "low_compliance"
+    | "compliance_expiring"
+    | "new_todo_assigned"
+    | "new_issue_assigned"
+    | "new_rock_assigned";
   severity: "critical" | "warning" | "info";
   title: string;
   message: string;

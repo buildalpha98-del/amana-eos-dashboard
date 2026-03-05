@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getServiceScope } from "@/lib/service-scope";
 
 const updateTimesheetSchema = z.object({
   notes: z.string().optional().nullable(),
@@ -14,8 +15,8 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireAuth(["owner", "admin"]);
-  if (error) return error;
+  const { session, error } = await requireAuth();
+  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
 
@@ -36,6 +37,11 @@ export async function GET(
     return NextResponse.json({ error: "Timesheet not found" }, { status: 404 });
   }
 
+  const scope = getServiceScope(session);
+  if (scope && timesheet.serviceId !== scope) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   return NextResponse.json(timesheet);
 }
 
@@ -44,8 +50,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireAuth(["owner", "admin"]);
-  if (error) return error;
+  const { session, error } = await requireAuth();
+  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const body = await req.json();
@@ -61,6 +67,11 @@ export async function PATCH(
   const existing = await prisma.timesheet.findUnique({ where: { id } });
   if (!existing || existing.deleted) {
     return NextResponse.json({ error: "Timesheet not found" }, { status: 404 });
+  }
+
+  const scope = getServiceScope(session);
+  if (scope && existing.serviceId !== scope) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   if (existing.status !== "ts_draft" && existing.status !== "submitted") {
