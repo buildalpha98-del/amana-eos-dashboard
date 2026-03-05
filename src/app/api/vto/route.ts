@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+
+const updateVtoSchema = z.object({
+  coreValues: z.array(z.string()).optional(),
+  corePurpose: z.string().nullable().optional(),
+  coreNiche: z.string().nullable().optional(),
+  tenYearTarget: z.string().nullable().optional(),
+  threeYearPicture: z.string().nullable().optional(),
+  marketingStrategy: z.string().nullable().optional(),
+  sectionLabels: z.record(z.string(), z.string()).nullable().optional(),
+});
 
 // GET /api/vto — get the V/TO with 1-year goals
 export async function GET() {
@@ -36,6 +47,10 @@ export async function PATCH(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
+  const parsed = updateVtoSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
 
   const vto = await prisma.visionTractionOrganiser.findFirst();
   if (!vto) {
@@ -44,13 +59,13 @@ export async function PATCH(req: NextRequest) {
 
   const data: Record<string, unknown> = {};
 
-  if (body.coreValues !== undefined) data.coreValues = body.coreValues;
-  if (body.corePurpose !== undefined) data.corePurpose = body.corePurpose;
-  if (body.coreNiche !== undefined) data.coreNiche = body.coreNiche;
-  if (body.tenYearTarget !== undefined) data.tenYearTarget = body.tenYearTarget;
-  if (body.threeYearPicture !== undefined) data.threeYearPicture = body.threeYearPicture;
-  if (body.marketingStrategy !== undefined) data.marketingStrategy = body.marketingStrategy;
-  if (body.sectionLabels !== undefined) data.sectionLabels = body.sectionLabels;
+  if (parsed.data.coreValues !== undefined) data.coreValues = parsed.data.coreValues;
+  if (parsed.data.corePurpose !== undefined) data.corePurpose = parsed.data.corePurpose;
+  if (parsed.data.coreNiche !== undefined) data.coreNiche = parsed.data.coreNiche;
+  if (parsed.data.tenYearTarget !== undefined) data.tenYearTarget = parsed.data.tenYearTarget;
+  if (parsed.data.threeYearPicture !== undefined) data.threeYearPicture = parsed.data.threeYearPicture;
+  if (parsed.data.marketingStrategy !== undefined) data.marketingStrategy = parsed.data.marketingStrategy;
+  if (parsed.data.sectionLabels !== undefined) data.sectionLabels = parsed.data.sectionLabels;
 
   data.updatedById = session!.user.id;
 

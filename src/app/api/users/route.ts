@@ -5,11 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { welcomeEmail } from "@/lib/email-templates";
+import { passwordSchema } from "@/lib/schemas/auth";
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email is required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: passwordSchema,
   role: z.enum(["owner", "admin", "member", "staff"]).default("member"),
   serviceId: z.string().optional().nullable(),
 });

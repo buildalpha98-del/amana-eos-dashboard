@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { parsePagination } from "@/lib/pagination";
 
 export async function GET(req: NextRequest) {
   const { error } = await requireAuth(["owner", "admin"]);
   if (error) return error;
 
+  const { searchParams } = new URL(req.url);
+  const pagination = parsePagination(searchParams);
+
+  const userWhere = { active: true };
+
   const users = await prisma.user.findMany({
-    where: { active: true },
+    where: userWhere,
     select: {
       id: true,
       name: true,
@@ -19,21 +25,22 @@ export async function GET(req: NextRequest) {
           ownedRocks: {
             where: {
               deleted: false,
-              status: { in: ["on_track", "off_track"] },
+              status: { in: ["on_track" as const, "off_track" as const] },
             },
           },
           assignedTodos: { where: { deleted: false } },
           ownedIssues: {
             where: {
               deleted: false,
-              status: { in: ["open", "in_discussion"] },
+              status: { in: ["open" as const, "in_discussion" as const] },
             },
           },
-          managedServices: { where: { status: "active" } },
+          managedServices: { where: { status: "active" as const } },
         },
       },
     },
     orderBy: [{ role: "asc" }, { name: "asc" }],
+    ...(pagination ? { skip: pagination.skip, take: pagination.limit } : {}),
   });
 
   // Todo completion % per user
@@ -93,6 +100,16 @@ export async function GET(req: NextRequest) {
     managedServices: u._count.managedServices,
     rocks: rocksByUser[u.id] || [],
   }));
+
+  if (pagination) {
+    const total = await prisma.user.count({ where: userWhere });
+    return NextResponse.json({
+      items: teamMembers,
+      total,
+      page: pagination.page,
+      totalPages: Math.ceil(total / pagination.limit),
+    });
+  }
 
   return NextResponse.json(teamMembers);
 }

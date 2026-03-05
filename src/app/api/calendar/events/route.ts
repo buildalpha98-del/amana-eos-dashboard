@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { requireAuth } from "@/lib/server-auth";
 import {
   listEvents,
@@ -6,6 +7,26 @@ import {
   isCalendarConnected,
   type CalendarEvent,
 } from "@/lib/microsoft-calendar";
+
+const createCalendarEventSchema = z.object({
+  subject: z.string().min(1, "Subject is required"),
+  body: z.string().optional(),
+  start: z.object({
+    dateTime: z.string().min(1, "Start dateTime is required"),
+    timeZone: z.string().default("Australia/Sydney"),
+  }),
+  end: z.object({
+    dateTime: z.string().min(1, "End dateTime is required"),
+    timeZone: z.string().default("Australia/Sydney"),
+  }),
+  location: z.string().optional(),
+  attendees: z.array(z.object({
+    email: z.string().email(),
+    name: z.string().optional(),
+    optional: z.boolean().optional(),
+  })).optional(),
+  isOnlineMeeting: z.boolean().default(false),
+});
 
 /**
  * GET /api/calendar/events?start=ISO&end=ISO
@@ -63,33 +84,29 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-
-  // Basic validation
-  if (!body.subject || !body.start?.dateTime || !body.end?.dateTime) {
-    return NextResponse.json(
-      { error: "subject, start.dateTime, and end.dateTime are required" },
-      { status: 400 }
-    );
+  const parsed = createCalendarEventSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
   const event: CalendarEvent = {
-    subject: body.subject,
-    body: body.body || undefined,
+    subject: parsed.data.subject,
+    body: parsed.data.body ? { contentType: "HTML" as const, content: parsed.data.body } : undefined,
     start: {
-      dateTime: body.start.dateTime,
-      timeZone: body.start.timeZone || "Australia/Sydney",
+      dateTime: parsed.data.start.dateTime,
+      timeZone: parsed.data.start.timeZone,
     },
     end: {
-      dateTime: body.end.dateTime,
-      timeZone: body.end.timeZone || "Australia/Sydney",
+      dateTime: parsed.data.end.dateTime,
+      timeZone: parsed.data.end.timeZone,
     },
-    location: body.location ? { displayName: body.location } : undefined,
-    attendees: body.attendees?.map((a: { email: string; name?: string; optional?: boolean }) => ({
+    location: parsed.data.location ? { displayName: parsed.data.location } : undefined,
+    attendees: parsed.data.attendees?.map((a) => ({
       emailAddress: { address: a.email, name: a.name },
-      type: a.optional ? "optional" : "required",
+      type: a.optional ? ("optional" as const) : ("required" as const),
     })),
-    isOnlineMeeting: body.isOnlineMeeting ?? false,
-    onlineMeetingProvider: body.isOnlineMeeting ? "teamsForBusiness" : undefined,
+    isOnlineMeeting: parsed.data.isOnlineMeeting,
+    onlineMeetingProvider: parsed.data.isOnlineMeeting ? "teamsForBusiness" : undefined,
   };
 
   const created = await createEvent(session!.user.id, event);

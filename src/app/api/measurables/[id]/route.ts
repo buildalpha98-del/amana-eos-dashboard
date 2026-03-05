@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+
+const updateMeasurableSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  ownerId: z.string().nullable().optional(),
+  goalValue: z.number().optional(),
+  goalDirection: z.enum(["above", "below", "exact"]).optional(),
+  unit: z.string().nullable().optional(),
+  frequency: z.enum(["weekly", "monthly"]).optional(),
+});
 
 // PATCH /api/measurables/[id] — update a measurable
 export async function PATCH(
@@ -12,13 +23,19 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
+  const parsed = updateMeasurableSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
 
   const data: Record<string, unknown> = {};
-  const fields = ["title", "description", "ownerId", "goalValue", "goalDirection", "unit", "frequency"];
-
-  for (const f of fields) {
-    if (body[f] !== undefined) data[f] = body[f];
-  }
+  if (parsed.data.title !== undefined) data.title = parsed.data.title;
+  if (parsed.data.description !== undefined) data.description = parsed.data.description;
+  if (parsed.data.ownerId !== undefined) data.ownerId = parsed.data.ownerId;
+  if (parsed.data.goalValue !== undefined) data.goalValue = parsed.data.goalValue;
+  if (parsed.data.goalDirection !== undefined) data.goalDirection = parsed.data.goalDirection;
+  if (parsed.data.unit !== undefined) data.unit = parsed.data.unit;
+  if (parsed.data.frequency !== undefined) data.frequency = parsed.data.frequency;
 
   const measurable = await prisma.measurable.update({
     where: { id },

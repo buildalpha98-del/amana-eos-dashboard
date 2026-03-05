@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+
+const updateIssueSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  ownerId: z.string().nullable().optional(),
+  priority: z.enum(["critical", "high", "medium", "low"]).optional(),
+  rockId: z.string().nullable().optional(),
+  status: z.enum(["open", "in_discussion", "solved", "closed"]).optional(),
+  resolution: z.string().nullable().optional(),
+});
 
 // GET /api/issues/[id]
 export async function GET(
@@ -45,6 +56,10 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
+  const parsed = updateIssueSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
 
   const existing = await prisma.issue.findUnique({
     where: { id, deleted: false },
@@ -56,20 +71,20 @@ export async function PATCH(
 
   const data: Record<string, unknown> = {};
 
-  if (body.title !== undefined) data.title = body.title;
-  if (body.description !== undefined) data.description = body.description;
-  if (body.ownerId !== undefined) data.ownerId = body.ownerId || null;
-  if (body.priority !== undefined) data.priority = body.priority;
-  if (body.rockId !== undefined) data.rockId = body.rockId || null;
-  if (body.resolution !== undefined) data.resolution = body.resolution;
+  if (parsed.data.title !== undefined) data.title = parsed.data.title;
+  if (parsed.data.description !== undefined) data.description = parsed.data.description;
+  if (parsed.data.ownerId !== undefined) data.ownerId = parsed.data.ownerId || null;
+  if (parsed.data.priority !== undefined) data.priority = parsed.data.priority;
+  if (parsed.data.rockId !== undefined) data.rockId = parsed.data.rockId || null;
+  if (parsed.data.resolution !== undefined) data.resolution = parsed.data.resolution;
 
-  if (body.status !== undefined) {
-    data.status = body.status;
+  if (parsed.data.status !== undefined) {
+    data.status = parsed.data.status;
     // Track IDS timestamps
-    if (body.status === "in_discussion" && !existing.discussedAt) {
+    if (parsed.data.status === "in_discussion" && !existing.discussedAt) {
       data.discussedAt = new Date();
     }
-    if (body.status === "solved" && !existing.solvedAt) {
+    if (parsed.data.status === "solved" && !existing.solvedAt) {
       data.solvedAt = new Date();
     }
   }

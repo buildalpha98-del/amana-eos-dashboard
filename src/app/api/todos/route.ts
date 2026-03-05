@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope } from "@/lib/service-scope";
 import { createTodoSchema } from "@/lib/schemas/todo";
+import { parsePagination } from "@/lib/pagination";
 
 // GET /api/todos — list todos with optional filters
 export async function GET(req: NextRequest) {
@@ -43,16 +44,29 @@ export async function GET(req: NextRequest) {
     ];
   }
 
-  const todos = await prisma.todo.findMany({
-    where,
-    include: {
-      assignee: { select: { id: true, name: true, email: true, avatar: true } },
-      rock: { select: { id: true, title: true } },
-      issue: { select: { id: true, title: true } },
-    },
-    orderBy: [{ status: "asc" }, { dueDate: "asc" }, { createdAt: "desc" }],
-  });
+  const include = {
+    assignee: { select: { id: true, name: true, email: true, avatar: true } },
+    rock: { select: { id: true, title: true } },
+    issue: { select: { id: true, title: true } },
+  };
+  const orderBy = [{ status: "asc" as const }, { dueDate: "asc" as const }, { createdAt: "desc" as const }];
 
+  const pagination = parsePagination(searchParams);
+
+  if (pagination) {
+    const [items, total] = await Promise.all([
+      prisma.todo.findMany({ where, include, orderBy, skip: pagination.skip, take: pagination.limit }),
+      prisma.todo.count({ where }),
+    ]);
+    return NextResponse.json({
+      items,
+      total,
+      page: pagination.page,
+      totalPages: Math.ceil(total / pagination.limit),
+    });
+  }
+
+  const todos = await prisma.todo.findMany({ where, include, orderBy });
   return NextResponse.json(todos);
 }
 

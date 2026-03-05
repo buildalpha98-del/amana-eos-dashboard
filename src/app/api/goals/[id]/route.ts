@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+
+const updateGoalSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  status: z.enum(["on_track", "at_risk", "off_track", "complete"]).optional(),
+  targetDate: z.string().nullable().optional(),
+});
 
 // PATCH /api/goals/[id]
 export async function PATCH(
@@ -12,12 +20,16 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
+  const parsed = updateGoalSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  }
 
   const data: Record<string, unknown> = {};
-  if (body.title !== undefined) data.title = body.title;
-  if (body.description !== undefined) data.description = body.description;
-  if (body.status !== undefined) data.status = body.status;
-  if (body.targetDate !== undefined) data.targetDate = body.targetDate ? new Date(body.targetDate) : null;
+  if (parsed.data.title !== undefined) data.title = parsed.data.title;
+  if (parsed.data.description !== undefined) data.description = parsed.data.description;
+  if (parsed.data.status !== undefined) data.status = parsed.data.status;
+  if (parsed.data.targetDate !== undefined) data.targetDate = parsed.data.targetDate ? new Date(parsed.data.targetDate) : null;
 
   const goal = await prisma.oneYearGoal.update({
     where: { id },

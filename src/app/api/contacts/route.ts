@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { parsePagination } from "@/lib/pagination";
 
 const createContactSchema = z.object({
   waId: z.string().min(1, "WhatsApp ID is required"),
@@ -13,20 +14,35 @@ const createContactSchema = z.object({
 });
 
 // GET /api/contacts — list all WhatsApp contacts
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const { error } = await requireAuth();
   if (error) return error;
 
-  const contacts = await prisma.whatsAppContact.findMany({
-    include: {
-      service: { select: { id: true, name: true, code: true } },
-      _count: {
-        select: { tickets: true },
-      },
+  const { searchParams } = new URL(req.url);
+  const include = {
+    service: { select: { id: true, name: true, code: true } },
+    _count: {
+      select: { tickets: true },
     },
-    orderBy: { createdAt: "desc" },
-  });
+  };
+  const orderBy = { createdAt: "desc" as const };
 
+  const pagination = parsePagination(searchParams);
+
+  if (pagination) {
+    const [items, total] = await Promise.all([
+      prisma.whatsAppContact.findMany({ include, orderBy, skip: pagination.skip, take: pagination.limit }),
+      prisma.whatsAppContact.count(),
+    ]);
+    return NextResponse.json({
+      items,
+      total,
+      page: pagination.page,
+      totalPages: Math.ceil(total / pagination.limit),
+    });
+  }
+
+  const contacts = await prisma.whatsAppContact.findMany({ include, orderBy });
   return NextResponse.json(contacts);
 }
 

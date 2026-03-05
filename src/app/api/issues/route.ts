@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope } from "@/lib/service-scope";
 import { notifyNewIssue } from "@/lib/teams-notify";
 import { createIssueSchema } from "@/lib/schemas/issue";
+import { parsePagination } from "@/lib/pagination";
 
 // GET /api/issues — list issues with optional filters
 export async function GET(req: NextRequest) {
@@ -35,19 +36,32 @@ export async function GET(req: NextRequest) {
     ];
   }
 
-  const issues = await prisma.issue.findMany({
-    where,
-    include: {
-      raisedBy: { select: { id: true, name: true, email: true, avatar: true } },
-      owner: { select: { id: true, name: true, email: true, avatar: true } },
-      rock: { select: { id: true, title: true } },
-      _count: {
-        select: { spawnedTodos: { where: { deleted: false } } },
-      },
+  const include = {
+    raisedBy: { select: { id: true, name: true, email: true, avatar: true } },
+    owner: { select: { id: true, name: true, email: true, avatar: true } },
+    rock: { select: { id: true, title: true } },
+    _count: {
+      select: { spawnedTodos: { where: { deleted: false } } },
     },
-    orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
-  });
+  };
+  const orderBy = [{ priority: "asc" as const }, { createdAt: "desc" as const }];
 
+  const pagination = parsePagination(searchParams);
+
+  if (pagination) {
+    const [items, total] = await Promise.all([
+      prisma.issue.findMany({ where, include, orderBy, skip: pagination.skip, take: pagination.limit }),
+      prisma.issue.count({ where }),
+    ]);
+    return NextResponse.json({
+      items,
+      total,
+      page: pagination.page,
+      totalPages: Math.ceil(total / pagination.limit),
+    });
+  }
+
+  const issues = await prisma.issue.findMany({ where, include, orderBy });
   return NextResponse.json(issues);
 }
 

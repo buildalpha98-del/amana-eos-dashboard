@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope } from "@/lib/service-scope";
 import { notifyNewRock } from "@/lib/teams-notify";
 import { createRockSchema } from "@/lib/schemas/rock";
+import { parsePagination } from "@/lib/pagination";
 
 // GET /api/rocks — list rocks with optional quarter filter
 export async function GET(req: NextRequest) {
@@ -30,22 +31,35 @@ export async function GET(req: NextRequest) {
     ];
   }
 
-  const rocks = await prisma.rock.findMany({
-    where,
-    include: {
-      owner: { select: { id: true, name: true, email: true, avatar: true } },
-      oneYearGoal: { select: { id: true, title: true } },
-      _count: {
-        select: {
-          todos: { where: { deleted: false } },
-          issues: { where: { deleted: false } },
-          milestones: true,
-        },
+  const include = {
+    owner: { select: { id: true, name: true, email: true, avatar: true } },
+    oneYearGoal: { select: { id: true, title: true } },
+    _count: {
+      select: {
+        todos: { where: { deleted: false } },
+        issues: { where: { deleted: false } },
+        milestones: true,
       },
     },
-    orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
-  });
+  };
+  const orderBy = [{ priority: "asc" as const }, { createdAt: "desc" as const }];
 
+  const pagination = parsePagination(searchParams);
+
+  if (pagination) {
+    const [items, total] = await Promise.all([
+      prisma.rock.findMany({ where, include, orderBy, skip: pagination.skip, take: pagination.limit }),
+      prisma.rock.count({ where }),
+    ]);
+    return NextResponse.json({
+      items,
+      total,
+      page: pagination.page,
+      totalPages: Math.ceil(total / pagination.limit),
+    });
+  }
+
+  const rocks = await prisma.rock.findMany({ where, include, orderBy });
   return NextResponse.json(rocks);
 }
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope } from "@/lib/service-scope";
+import { parsePagination } from "@/lib/pagination";
 
 const createServiceSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -36,21 +37,38 @@ export async function GET(req: NextRequest) {
   // Member/staff: only see their assigned service
   if (scope) where.id = scope;
 
-  const services = await prisma.service.findMany({
+  const pagination = parsePagination(searchParams);
+
+  const queryArgs = {
     where,
     include: {
       manager: { select: { id: true, name: true, email: true, avatar: true } },
       _count: {
         select: {
-          todos: { where: { deleted: false, status: { not: "complete" } } },
-          issues: { where: { deleted: false, status: { not: "closed" } } },
-          projects: { where: { deleted: false, status: { not: "complete" } } },
+          todos: { where: { deleted: false, status: { not: "complete" as const } } },
+          issues: { where: { deleted: false, status: { not: "closed" as const } } },
+          projects: { where: { deleted: false, status: { not: "complete" as const } } },
         },
       },
     },
-    orderBy: { name: "asc" },
-  });
+    orderBy: { name: "asc" as const },
+    ...(pagination ? { skip: pagination.skip, take: pagination.limit } : {}),
+  };
 
+  if (pagination) {
+    const [items, total] = await Promise.all([
+      prisma.service.findMany(queryArgs),
+      prisma.service.count({ where }),
+    ]);
+    return NextResponse.json({
+      items,
+      total,
+      page: pagination.page,
+      totalPages: Math.ceil(total / pagination.limit),
+    });
+  }
+
+  const services = await prisma.service.findMany(queryArgs);
   return NextResponse.json(services);
 }
 

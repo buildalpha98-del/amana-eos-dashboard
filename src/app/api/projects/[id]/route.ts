@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+
+const updateProjectSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  status: z.enum(["not_started", "in_progress", "complete", "on_hold", "cancelled"]).optional(),
+  ownerId: z.string().nullable().optional(),
+  serviceId: z.string().nullable().optional(),
+  startDate: z.string().nullable().optional(),
+  targetDate: z.string().nullable().optional(),
+});
 
 // GET /api/projects/[id]
 export async function GET(
@@ -45,27 +56,24 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-
-  const data: Record<string, unknown> = {};
-  const fields = [
-    "name", "description", "status", "ownerId", "serviceId",
-    "startDate", "targetDate",
-  ];
-
-  for (const f of fields) {
-    if (body[f] !== undefined) {
-      if ((f === "startDate" || f === "targetDate") && body[f]) {
-        data[f] = new Date(body[f]);
-      } else {
-        data[f] = body[f];
-      }
-    }
+  const parsed = updateProjectSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
+  const data: Record<string, unknown> = {};
+  if (parsed.data.name !== undefined) data.name = parsed.data.name;
+  if (parsed.data.description !== undefined) data.description = parsed.data.description;
+  if (parsed.data.status !== undefined) data.status = parsed.data.status;
+  if (parsed.data.ownerId !== undefined) data.ownerId = parsed.data.ownerId;
+  if (parsed.data.serviceId !== undefined) data.serviceId = parsed.data.serviceId;
+  if (parsed.data.startDate !== undefined) data.startDate = parsed.data.startDate ? new Date(parsed.data.startDate) : null;
+  if (parsed.data.targetDate !== undefined) data.targetDate = parsed.data.targetDate ? new Date(parsed.data.targetDate) : null;
+
   // Auto-set completedAt when status changes to complete
-  if (body.status === "complete") {
+  if (parsed.data.status === "complete") {
     data.completedAt = new Date();
-  } else if (body.status && body.status !== "complete") {
+  } else if (parsed.data.status) {
     data.completedAt = null;
   }
 

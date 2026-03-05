@@ -1,3 +1,4 @@
+import "@/lib/env"; // validate env vars on first import
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {

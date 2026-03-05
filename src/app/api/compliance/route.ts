@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope } from "@/lib/service-scope";
+import { parsePagination } from "@/lib/pagination";
 
 const createCertSchema = z.object({
   serviceId: z.string().min(1),
@@ -47,15 +48,28 @@ export async function GET(req: NextRequest) {
     where.expiryDate = { lte: futureDate };
   }
 
-  const certificates = await prisma.complianceCertificate.findMany({
-    where,
-    include: {
-      service: { select: { id: true, name: true, code: true } },
-      user: { select: { id: true, name: true, email: true } },
-    },
-    orderBy: { expiryDate: "asc" },
-  });
+  const include = {
+    service: { select: { id: true, name: true, code: true } },
+    user: { select: { id: true, name: true, email: true } },
+  };
+  const orderBy = { expiryDate: "asc" as const };
 
+  const pagination = parsePagination(searchParams);
+
+  if (pagination) {
+    const [items, total] = await Promise.all([
+      prisma.complianceCertificate.findMany({ where, include, orderBy, skip: pagination.skip, take: pagination.limit }),
+      prisma.complianceCertificate.count({ where }),
+    ]);
+    return NextResponse.json({
+      items,
+      total,
+      page: pagination.page,
+      totalPages: Math.ceil(total / pagination.limit),
+    });
+  }
+
+  const certificates = await prisma.complianceCertificate.findMany({ where, include, orderBy });
   return NextResponse.json(certificates);
 }
 
