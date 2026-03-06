@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImportWizard } from "@/components/import/ImportWizard";
 import {
@@ -1604,14 +1604,17 @@ function PermissionsPanel() {
               <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 Member
               </th>
+              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
+                Staff
+              </th>
             </tr>
           </thead>
           <tbody>
             {sections.map((section) => (
-              <>
-                <tr key={`section-${section.name}`}>
+              <Fragment key={`section-${section.name}`}>
+                <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="pt-4 pb-1 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider"
                   >
                     {section.name}
@@ -1625,7 +1628,7 @@ function PermissionsPanel() {
                     <td className="py-2 px-3 text-sm text-gray-700">
                       {row.label}
                     </td>
-                    {(["owner", "admin", "member"] as const).map((role) => (
+                    {(["owner", "admin", "member", "staff"] as const).map((role) => (
                       <td key={role} className="py-2 px-3 text-center">
                         {row[role] ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto" />
@@ -1636,7 +1639,7 @@ function PermissionsPanel() {
                     ))}
                   </tr>
                 ))}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>

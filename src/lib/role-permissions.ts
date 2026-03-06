@@ -400,7 +400,7 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Pages", label: "Onboarding & LMS", owner: true, admin: true, member: true, staff: true },
   { section: "Pages", label: "Financials", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Performance", owner: true, admin: true, member: false, staff: false },
-  { section: "Pages", label: "Compliance", owner: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Compliance", owner: true, admin: true, member: true, staff: true },
   { section: "Pages", label: "Tickets", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Marketing", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Team", owner: true, admin: true, member: false, staff: false },
