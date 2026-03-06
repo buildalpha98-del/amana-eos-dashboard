@@ -39,7 +39,7 @@ const attendanceImportColumns: ColumnConfig[] = [
   { key: "date", label: "Date", required: true },
   { key: "sessionType", label: "Session Type (BSC/ASC/VC)", required: true },
   { key: "enrolled", label: "Enrolled", required: true },
-  { key: "attended", label: "Attended", required: true },
+  { key: "attended", label: "Estimated", required: true },
   { key: "capacity", label: "Capacity" },
   { key: "casual", label: "Casual" },
   { key: "absent", label: "Absent" },
@@ -281,7 +281,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
             <Calendar className="w-4 h-4 text-[#004E64]" />
-            Weekly Attendance Entry
+            Week Starting {weekDates[0].toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
           </h3>
           <div className="flex items-center gap-3">
             <button
@@ -351,7 +351,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                   </tr>
                   <tr className="border-b border-gray-100">
                     <th className="text-left py-1 px-2 text-xs text-gray-400" />
-                    {["Enrolled", "Attended", "Capacity"].map((h) => (
+                    {["Enrolled", "Estimated", "Capacity"].map((h) => (
                       <th
                         key={`bsc-${h}`}
                         className="text-center py-1 px-1 text-xs text-gray-400 border-l border-gray-50"
@@ -359,7 +359,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                         {h}
                       </th>
                     ))}
-                    {["Enrolled", "Attended", "Capacity"].map((h) => (
+                    {["Enrolled", "Estimated", "Capacity"].map((h) => (
                       <th
                         key={`asc-${h}`}
                         className="text-center py-1 px-1 text-xs text-gray-400 border-l border-gray-50"

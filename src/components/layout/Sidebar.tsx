@@ -32,6 +32,7 @@ import {
   CalendarDays,
   FileSignature,
   UserCircle,
+  Library,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canAccessPage } from "@/lib/permissions";
@@ -48,6 +49,7 @@ const navItems = [
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations" },
   { href: "/performance", label: "Performance", icon: Trophy, section: "Operations" },
   { href: "/services", label: "Services", icon: Building2, section: "Operations" },
+  { href: "/activity-library", label: "Activity Library", icon: Library, section: "Operations" },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Operations" },
   { href: "/meetings", label: "Meetings", icon: Presentation, section: "Operations" },
   { href: "/communication", label: "Communication", icon: Radio, section: "Operations" },

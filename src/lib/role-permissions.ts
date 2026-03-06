@@ -22,6 +22,7 @@ export const allPages = [
   "/marketing",
   "/communication",
   "/compliance",
+  "/activity-library",
   "/documents",
   "/onboarding",
   "/timesheets",
@@ -55,6 +56,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/issues",
     "/meetings",
     "/services",
+    "/activity-library",
     "/communication",
     "/compliance",
     "/documents",
@@ -66,6 +68,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   staff: [
     "/dashboard",
     "/my-portal",
+    "/activity-library",
     "/documents",
     "/communication",
     "/onboarding",
@@ -163,6 +166,12 @@ export const features = [
   "projects.view",
   "projects.create",
   "projects.edit",
+
+  // Activity Library
+  "activity_library.view",
+  "activity_library.create",
+  "activity_library.edit",
+  "activity_library.delete",
 
   // Attendance
   "attendance.view",
@@ -273,6 +282,7 @@ const memberFeatures: readonly Feature[] = [
   "services.view",
   "onboarding.view",
   "lms.view",
+  "activity_library.view",
   "attendance.view",
   "attendance.create",
   "attendance.edit",
@@ -290,6 +300,7 @@ const memberFeatures: readonly Feature[] = [
 ];
 
 const staffFeatures: readonly Feature[] = [
+  "activity_library.view",
   "documents.view",
   "communication.view",
   "onboarding.view",
@@ -382,6 +393,7 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Pages", label: "Scorecard", owner: true, admin: true, member: true, staff: false },
   { section: "Pages", label: "Meetings", owner: true, admin: true, member: true, staff: false },
   { section: "Pages", label: "Services", owner: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Activity Library", owner: true, admin: true, member: true, staff: true },
   { section: "Pages", label: "Projects", owner: true, admin: true, member: true, staff: false },
   { section: "Pages", label: "Communication", owner: true, admin: true, member: true, staff: true },
   { section: "Pages", label: "Documents", owner: true, admin: true, member: true, staff: true },

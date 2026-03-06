@@ -232,7 +232,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                 <thead>
                   <tr className="text-left text-gray-500 border-b border-gray-100">
                     <th className="pb-2 font-medium">Session Type</th>
-                    <th className="pb-2 font-medium text-right">Total Attended</th>
+                    <th className="pb-2 font-medium text-right">Total Estimated</th>
                     <th className="pb-2 font-medium text-right">Rate / Head</th>
                     <th className="pb-2 font-medium text-right">Grocery Cost</th>
                   </tr>

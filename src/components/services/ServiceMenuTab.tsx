@@ -1,0 +1,435 @@
+"use client";
+
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { getWeekStart } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Save,
+  Upload,
+  FileText,
+  Download,
+  X,
+  Loader2,
+  ImageIcon,
+} from "lucide-react";
+import { toast } from "@/hooks/useToast";
+import {
+  useMenuWeek,
+  useSaveMenu,
+  useUploadMenuFile,
+  type MenuItemData,
+} from "@/hooks/useMenu";
+
+const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
+const SLOTS = ["morning_tea", "lunch", "afternoon_tea"] as const;
+
+const DAY_LABELS: Record<string, string> = {
+  monday: "Mon",
+  tuesday: "Tue",
+  wednesday: "Wed",
+  thursday: "Thu",
+  friday: "Fri",
+};
+
+const SLOT_LABELS: Record<string, string> = {
+  morning_tea: "Morning Tea",
+  lunch: "Lunch",
+  afternoon_tea: "Afternoon Tea",
+};
+
+const ALLERGEN_OPTIONS = [
+  "gluten",
+  "dairy",
+  "nuts",
+  "eggs",
+  "soy",
+  "shellfish",
+  "vegan",
+  "halal",
+];
+
+const ALLERGEN_COLORS: Record<string, string> = {
+  gluten: "bg-amber-100 text-amber-700",
+  dairy: "bg-blue-100 text-blue-700",
+  nuts: "bg-orange-100 text-orange-700",
+  eggs: "bg-yellow-100 text-yellow-700",
+  soy: "bg-green-100 text-green-700",
+  shellfish: "bg-red-100 text-red-700",
+  vegan: "bg-emerald-100 text-emerald-700",
+  halal: "bg-purple-100 text-purple-700",
+};
+
+type CellKey = string;
+
+interface CellData {
+  description: string;
+  allergens: string[];
+}
+
+function formatWeekLabel(date: Date): string {
+  return `Week of ${date.toLocaleDateString("en-AU", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })}`;
+}
+
+function cellKey(day: string, slot: string): CellKey {
+  return `${day}_${slot}` as CellKey;
+}
+
+export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
+  const [weekOffset, setWeekOffset] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const currentWeek = getWeekStart();
+  const selectedWeek = new Date(currentWeek);
+  selectedWeek.setDate(selectedWeek.getDate() - weekOffset * 7);
+  const weekKey = selectedWeek.toISOString().split("T")[0];
+
+  const { data: menuWeek, isLoading } = useMenuWeek(serviceId, weekKey);
+  const saveMutation = useSaveMenu(serviceId);
+  const uploadMutation = useUploadMenuFile(serviceId);
+
+  // Cell state — keyed by "day_slot"
+  const [cells, setCells] = useState<Record<CellKey, CellData>>({});
+  const [notes, setNotes] = useState("");
+  const [dirty, setDirty] = useState(false);
+
+  // Sync from server data
+  useEffect(() => {
+    const newCells: Record<CellKey, CellData> = {};
+    DAYS.forEach((day) => {
+      SLOTS.forEach((slot) => {
+        const key = cellKey(day, slot);
+        const item = menuWeek?.items?.find(
+          (i: MenuItemData) => i.day === day && i.slot === slot
+        );
+        newCells[key] = {
+          description: item?.description || "",
+          allergens: item?.allergens || [],
+        };
+      });
+    });
+    setCells(newCells);
+    setNotes(menuWeek?.notes || "");
+    setDirty(false);
+  }, [menuWeek]);
+
+  const updateCell = useCallback(
+    (key: CellKey, field: "description" | "allergens", value: string | string[]) => {
+      setCells((prev) => ({
+        ...prev,
+        [key]: { ...prev[key], [field]: value },
+      }));
+      setDirty(true);
+    },
+    []
+  );
+
+  const toggleAllergen = useCallback(
+    (key: CellKey, allergen: string) => {
+      setCells((prev) => {
+        const cell = prev[key];
+        const has = cell.allergens.includes(allergen);
+        return {
+          ...prev,
+          [key]: {
+            ...cell,
+            allergens: has
+              ? cell.allergens.filter((a) => a !== allergen)
+              : [...cell.allergens, allergen],
+          },
+        };
+      });
+      setDirty(true);
+    },
+    []
+  );
+
+  const handleSave = async () => {
+    const items = DAYS.flatMap((day) =>
+      SLOTS.map((slot) => {
+        const key = cellKey(day, slot);
+        const cell = cells[key];
+        return {
+          day,
+          slot,
+          description: cell?.description || "",
+          allergens: cell?.allergens || [],
+        };
+      })
+    );
+
+    try {
+      await saveMutation.mutateAsync({
+        weekStart: weekKey,
+        notes: notes || undefined,
+        fileUrl: menuWeek?.fileUrl,
+        fileName: menuWeek?.fileName,
+        items,
+      });
+      setDirty(false);
+      toast({ description: "Menu saved" });
+    } catch {
+      toast({ description: "Failed to save menu", variant: "destructive" });
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await uploadMutation.mutateAsync({ file, weekStart: weekKey });
+      toast({ description: "Menu file uploaded" });
+    } catch {
+      toast({ description: "Failed to upload file", variant: "destructive" });
+    }
+
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Active cell for allergen editor
+  const [activeCell, setActiveCell] = useState<CellKey | null>(null);
+
+  return (
+    <div className="space-y-6">
+      {/* Week Navigation */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setWeekOffset((o) => o + 1)}
+            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-sm font-semibold text-gray-900 min-w-[220px] text-center">
+            {formatWeekLabel(selectedWeek)}
+          </span>
+          <button
+            onClick={() => setWeekOffset((o) => o - 1)}
+            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+          {weekOffset !== 0 && (
+            <button
+              onClick={() => setWeekOffset(0)}
+              className="text-xs text-[#004E64] hover:underline ml-2"
+            >
+              Today
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg,.webp"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadMutation.isPending}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            {uploadMutation.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Upload className="w-3.5 h-3.5" />
+            )}
+            Upload Menu
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!dirty || saveMutation.isPending}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+          >
+            {saveMutation.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            Save Menu
+          </button>
+        </div>
+      </div>
+
+      {/* Uploaded file preview */}
+      {menuWeek?.fileUrl && (
+        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          {menuWeek.fileUrl.match(/\.(png|jpg|jpeg|webp)$/i) ? (
+            <ImageIcon className="w-5 h-5 text-gray-400" />
+          ) : (
+            <FileText className="w-5 h-5 text-gray-400" />
+          )}
+          <span className="text-sm text-gray-700 flex-1 truncate">
+            {menuWeek.fileName || "Menu file"}
+          </span>
+          <a
+            href={menuWeek.fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-[#004E64] hover:underline"
+          >
+            <Download className="w-3.5 h-3.5" />
+            View
+          </a>
+        </div>
+      )}
+
+      {/* Menu Grid */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-6 h-6 text-[#004E64] animate-spin" />
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-2 w-28">
+                  Meal
+                </th>
+                {DAYS.map((day) => (
+                  <th
+                    key={day}
+                    className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-2"
+                  >
+                    {DAY_LABELS[day]}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {SLOTS.map((slot) => (
+                <tr key={slot} className="border-t border-gray-100">
+                  <td className="p-2 align-top">
+                    <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
+                      {SLOT_LABELS[slot]}
+                    </span>
+                  </td>
+                  {DAYS.map((day) => {
+                    const key = cellKey(day, slot);
+                    const cell = cells[key] || { description: "", allergens: [] };
+                    const isActive = activeCell === key;
+
+                    return (
+                      <td key={day} className="p-1 align-top">
+                        <div
+                          className={cn(
+                            "relative rounded-lg border p-2 min-h-[80px] transition-colors",
+                            isActive
+                              ? "border-[#004E64] ring-1 ring-[#004E64]/20"
+                              : "border-gray-200 hover:border-gray-300"
+                          )}
+                        >
+                          <textarea
+                            value={cell.description}
+                            onChange={(e) =>
+                              updateCell(key, "description", e.target.value)
+                            }
+                            onFocus={() => setActiveCell(key)}
+                            onBlur={() =>
+                              setTimeout(() => setActiveCell(null), 200)
+                            }
+                            placeholder="Enter menu items..."
+                            rows={2}
+                            className="w-full text-xs text-gray-700 resize-none bg-transparent border-0 p-0 focus:outline-none focus:ring-0 placeholder:text-gray-300"
+                          />
+                          {/* Allergen chips */}
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {cell.allergens.map((a) => (
+                              <button
+                                key={a}
+                                type="button"
+                                onClick={() => toggleAllergen(key, a)}
+                                className={cn(
+                                  "px-1.5 py-0.5 text-[10px] font-medium rounded-full",
+                                  ALLERGEN_COLORS[a] || "bg-gray-100 text-gray-600"
+                                )}
+                              >
+                                {a}
+                                <X className="w-2 h-2 inline ml-0.5" />
+                              </button>
+                            ))}
+                          </div>
+                          {/* Allergen picker on focus */}
+                          {isActive && (
+                            <div className="flex flex-wrap gap-1 mt-1 pt-1 border-t border-gray-100">
+                              {ALLERGEN_OPTIONS.filter(
+                                (a) => !cell.allergens.includes(a)
+                              ).map((a) => (
+                                <button
+                                  key={a}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    toggleAllergen(key, a);
+                                  }}
+                                  className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                >
+                                  + {a}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Notes */}
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          Weekly Notes
+        </label>
+        <textarea
+          value={notes}
+          onChange={(e) => {
+            setNotes(e.target.value);
+            setDirty(true);
+          }}
+          rows={2}
+          placeholder="General notes for this week's menu..."
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64] resize-none"
+        />
+      </div>
+
+      {/* Allergen Legend */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-gray-500 font-medium">Allergens:</span>
+        {ALLERGEN_OPTIONS.map((a) => (
+          <span
+            key={a}
+            className={cn(
+              "px-2 py-0.5 text-[10px] font-medium rounded-full capitalize",
+              ALLERGEN_COLORS[a] || "bg-gray-100 text-gray-600"
+            )}
+          >
+            {a}
+          </span>
+        ))}
+      </div>
+
+      {/* Dirty indicator */}
+      {dirty && (
+        <p className="text-xs text-amber-600 text-center">
+          You have unsaved changes. Click &quot;Save Menu&quot; to save.
+        </p>
+      )}
+    </div>
+  );
+}

@@ -23,6 +23,8 @@ import {
   Radio,
   ClipboardList,
   Wallet,
+  LayoutList,
+  UtensilsCrossed,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
@@ -34,6 +36,8 @@ import { WeeklyDataEntry } from "@/components/services/WeeklyDataEntry";
 import { ServiceCommTab } from "@/components/services/ServiceCommTab";
 import { ServiceAttendanceTab } from "@/components/services/ServiceAttendanceTab";
 import { ServiceBudgetTab } from "@/components/services/ServiceBudgetTab";
+import { ServiceProgramTab } from "@/components/services/ServiceProgramTab";
+import { ServiceMenuTab } from "@/components/services/ServiceMenuTab";
 import { ServiceTodayPanel } from "@/components/services/ServiceTodayPanel";
 
 const tabs = [
@@ -46,6 +50,8 @@ const tabs = [
   { key: "projects", label: "Projects", icon: FolderKanban },
   { key: "weekly", label: "Weekly Data", icon: CalendarDays },
   { key: "comms", label: "Comms", icon: Radio },
+  { key: "program", label: "Program", icon: LayoutList },
+  { key: "menu", label: "Menu", icon: UtensilsCrossed },
   { key: "budget", label: "Budget", icon: Wallet },
   { key: "financials", label: "Financials", icon: DollarSign },
 ] as const;
@@ -233,6 +239,14 @@ export default function ServiceDetailPage() {
 
         {activeTab === "comms" && (
           <ServiceCommTab serviceId={service.id} />
+        )}
+
+        {activeTab === "program" && (
+          <ServiceProgramTab serviceId={service.id} />
+        )}
+
+        {activeTab === "menu" && (
+          <ServiceMenuTab serviceId={service.id} />
         )}
 
         {activeTab === "budget" && (

@@ -1,0 +1,105 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
+
+const updateSchema = z.object({
+  day: z.enum(WEEK_DAYS).optional(),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(1000).optional().nullable(),
+  staffName: z.string().max(100).optional().nullable(),
+  location: z.string().max(200).optional().nullable(),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+// PATCH /api/services/[id]/programs/[activityId]
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string; activityId: string }> }
+) {
+  const { session, error } = await requireAuth();
+  if (error) return error;
+
+  const { id, activityId } = await params;
+  const body = await req.json();
+  const parsed = updateSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const existing = await prisma.programActivity.findFirst({
+    where: { id: activityId, serviceId: id },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Activity not found" }, { status: 404 });
+  }
+
+  const data = parsed.data;
+  const updateData: Record<string, unknown> = {};
+  if (data.day !== undefined) updateData.day = data.day;
+  if (data.startTime !== undefined) updateData.startTime = data.startTime;
+  if (data.endTime !== undefined) updateData.endTime = data.endTime;
+  if (data.title !== undefined) updateData.title = data.title;
+  if (data.description !== undefined) updateData.description = data.description;
+  if (data.staffName !== undefined) updateData.staffName = data.staffName;
+  if (data.location !== undefined) updateData.location = data.location;
+  if (data.notes !== undefined) updateData.notes = data.notes;
+
+  const activity = await prisma.programActivity.update({
+    where: { id: activityId },
+    data: updateData,
+    include: { createdBy: { select: { id: true, name: true } } },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      userId: session!.user.id,
+      action: "update",
+      entityType: "ProgramActivity",
+      entityId: activityId,
+      details: { serviceId: id, changes: Object.keys(updateData) },
+    },
+  });
+
+  return NextResponse.json(activity);
+}
+
+// DELETE /api/services/[id]/programs/[activityId]
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string; activityId: string }> }
+) {
+  const { session, error } = await requireAuth();
+  if (error) return error;
+
+  const { id, activityId } = await params;
+
+  const existing = await prisma.programActivity.findFirst({
+    where: { id: activityId, serviceId: id },
+    select: { id: true, title: true },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Activity not found" }, { status: 404 });
+  }
+
+  await prisma.activityLog.create({
+    data: {
+      userId: session!.user.id,
+      action: "delete",
+      entityType: "ProgramActivity",
+      entityId: activityId,
+      details: { serviceId: id, title: existing.title },
+    },
+  });
+
+  await prisma.programActivity.delete({ where: { id: activityId } });
+
+  return NextResponse.json({ success: true });
+}

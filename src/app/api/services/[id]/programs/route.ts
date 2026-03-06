@@ -1,0 +1,187 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
+
+const activitySchema = z.object({
+  weekStart: z.string(),
+  day: z.enum(WEEK_DAYS),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/),
+  title: z.string().min(1).max(200),
+  description: z.string().max(1000).optional(),
+  staffName: z.string().max(100).optional(),
+  location: z.string().max(200).optional(),
+  notes: z.string().max(500).optional(),
+});
+
+const bulkSchema = z.object({
+  weekStart: z.string(),
+  activities: z.array(
+    z.object({
+      day: z.enum(WEEK_DAYS),
+      startTime: z.string().regex(/^\d{2}:\d{2}$/),
+      endTime: z.string().regex(/^\d{2}:\d{2}$/),
+      title: z.string().min(1).max(200),
+      description: z.string().max(1000).optional(),
+      staffName: z.string().max(100).optional(),
+      location: z.string().max(200).optional(),
+      notes: z.string().max(500).optional(),
+    })
+  ),
+});
+
+// GET /api/services/[id]/programs?weekStart=YYYY-MM-DD
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { error } = await requireAuth();
+  if (error) return error;
+
+  const { id } = await params;
+  const url = new URL(req.url);
+  const weekStartParam = url.searchParams.get("weekStart");
+
+  // Default to current week Monday
+  let weekStart: Date;
+  if (weekStartParam) {
+    weekStart = new Date(weekStartParam);
+  } else {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    weekStart = new Date(now);
+    weekStart.setDate(diff);
+    weekStart.setHours(0, 0, 0, 0);
+  }
+
+  const activities = await prisma.programActivity.findMany({
+    where: {
+      serviceId: id,
+      weekStart,
+    },
+    include: {
+      createdBy: { select: { id: true, name: true } },
+    },
+    orderBy: [{ day: "asc" }, { startTime: "asc" }],
+  });
+
+  return NextResponse.json(activities);
+}
+
+// POST /api/services/[id]/programs — create single activity
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { session, error } = await requireAuth();
+  if (error) return error;
+
+  const { id } = await params;
+  const body = await req.json();
+  const parsed = activitySchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const data = parsed.data;
+
+  const activity = await prisma.programActivity.create({
+    data: {
+      serviceId: id,
+      weekStart: new Date(data.weekStart),
+      day: data.day,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      title: data.title,
+      description: data.description || null,
+      staffName: data.staffName || null,
+      location: data.location || null,
+      notes: data.notes || null,
+      createdById: session!.user.id,
+    },
+    include: {
+      createdBy: { select: { id: true, name: true } },
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      userId: session!.user.id,
+      action: "create",
+      entityType: "ProgramActivity",
+      entityId: activity.id,
+      details: { serviceId: id, title: data.title, day: data.day },
+    },
+  });
+
+  return NextResponse.json(activity, { status: 201 });
+}
+
+// PUT /api/services/[id]/programs — bulk upsert (replace all for a week)
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { session, error } = await requireAuth();
+  if (error) return error;
+
+  const { id } = await params;
+  const body = await req.json();
+  const parsed = bulkSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const { weekStart, activities } = parsed.data;
+  const weekDate = new Date(weekStart);
+
+  const result = await prisma.$transaction(async (tx) => {
+    // Delete existing activities for this week
+    await tx.programActivity.deleteMany({
+      where: { serviceId: id, weekStart: weekDate },
+    });
+
+    // Create new activities
+    if (activities.length > 0) {
+      await tx.programActivity.createMany({
+        data: activities.map((a) => ({
+          serviceId: id,
+          weekStart: weekDate,
+          day: a.day,
+          startTime: a.startTime,
+          endTime: a.endTime,
+          title: a.title,
+          description: a.description || null,
+          staffName: a.staffName || null,
+          location: a.location || null,
+          notes: a.notes || null,
+          createdById: session!.user.id,
+        })),
+      });
+    }
+
+    return tx.programActivity.findMany({
+      where: { serviceId: id, weekStart: weekDate },
+      include: { createdBy: { select: { id: true, name: true } } },
+      orderBy: [{ day: "asc" }, { startTime: "asc" }],
+    });
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      userId: session!.user.id,
+      action: "update",
+      entityType: "ProgramActivity",
+      entityId: id,
+      details: { serviceId: id, weekStart, count: activities.length, action: "bulk_upsert" },
+    },
+  });
+
+  return NextResponse.json(result);
+}
