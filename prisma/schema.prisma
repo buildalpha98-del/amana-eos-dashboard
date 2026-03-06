@@ -897,6 +897,9 @@ model Service {
   // ── CRM Relations ──────────────────────────────────────────
   leads              Lead[]                  @relation("LeadService")
 
+  // ── Delivery Relations ────────────────────────────────────
+  centreContacts     CentreContact[]         @relation("ServiceContacts_Email")
+
   @@index([status])
   @@index([managerId])
 }
@@ -2431,4 +2434,65 @@ model TenderScrapeRun {
   leadsCreated Int       @default(0)
   error        String?
   details      Json?
+}
+
+// ============================================================
+// Tier 1 Delivery Automation
+// ============================================================
+
+model CentreContact {
+  id         String   @id @default(cuid())
+  email      String
+  firstName  String?
+  lastName   String?
+  serviceId  String
+  service    Service  @relation("ServiceContacts_Email", fields: [serviceId], references: [id], onDelete: Cascade)
+  subscribed Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([email, serviceId])
+  @@index([serviceId])
+}
+
+model WhatsAppGroup {
+  id               String   @id @default(cuid())
+  groupType        String   // announcements, centre_parents, lunchbox, ccs_help, ideas
+  serviceCode      String?  // null for broadcast groups
+  whatsappGroupJid String   // WhatsApp group JID from 360dialog
+  name             String
+  memberCount      Int      @default(0)
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  @@index([groupType])
+  @@index([serviceCode])
+}
+
+model SocialAccount {
+  id                 String    @id @default(cuid())
+  serviceCode        String    @unique
+  facebookPageId     String?
+  instagramAccountId String?
+  accessToken        String    @db.Text // encrypted via encryptToken()
+  tokenExpiresAt     DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model DeliveryLog {
+  id             String   @id @default(cuid())
+  channel        String   // email, whatsapp, social
+  serviceCode    String?
+  messageType    String?  // week_ahead, newsletter, etc.
+  externalId     String?  // provider message/post ID
+  recipientCount Int      @default(0)
+  status         String   // sent, scheduled, failed
+  errorMessage   String?  @db.Text
+  payload        Json?    // original request body for debugging
+  createdAt      DateTime @default(now())
+
+  @@index([channel])
+  @@index([serviceCode])
+  @@index([createdAt])
 }

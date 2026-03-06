@@ -233,3 +233,120 @@ export async function fetchRecentPosts(
     return [];
   }
 }
+
+// ─── Publishing (Cowork Delivery API) ────────────────────────────────────────
+
+/**
+ * Publish (or schedule) a Facebook page post.
+ * If imageUrl is provided, uploads as a photo post.
+ */
+export async function publishFacebookPost(params: {
+  pageId: string;
+  accessToken: string;
+  message: string;
+  imageUrl?: string;
+  scheduledPublishTime?: number; // unix timestamp
+}): Promise<{ id: string }> {
+  const { pageId, accessToken, message, imageUrl, scheduledPublishTime } =
+    params;
+
+  const formData: Record<string, string> = {
+    message,
+    access_token: accessToken,
+  };
+
+  if (scheduledPublishTime) {
+    formData.published = "false";
+    formData.scheduled_publish_time = String(scheduledPublishTime);
+  }
+
+  let endpoint: string;
+
+  if (imageUrl) {
+    // Photo post
+    endpoint = `${GRAPH_API}/${pageId}/photos`;
+    formData.url = imageUrl;
+  } else {
+    // Text-only post
+    endpoint = `${GRAPH_API}/${pageId}/feed`;
+  }
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(formData),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Facebook publish failed (${res.status}): ${errText}`);
+  }
+
+  const data = (await res.json()) as { id?: string; post_id?: string };
+  return { id: data.id || data.post_id || "unknown" };
+}
+
+/**
+ * Create an Instagram media container (step 1 of 2 for IG publishing).
+ * Instagram requires an image for every post — no text-only posts.
+ */
+export async function createInstagramContainer(params: {
+  igUserId: string;
+  accessToken: string;
+  caption: string;
+  imageUrl: string;
+}): Promise<{ id: string }> {
+  const { igUserId, accessToken, caption, imageUrl } = params;
+
+  const url = `${GRAPH_API}/${igUserId}/media`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image_url: imageUrl,
+      caption,
+      access_token: accessToken,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(
+      `Instagram container creation failed (${res.status}): ${errText}`,
+    );
+  }
+
+  const data = (await res.json()) as { id: string };
+  return { id: data.id };
+}
+
+/**
+ * Publish an Instagram media container (step 2 of 2 for IG publishing).
+ */
+export async function publishInstagramMedia(params: {
+  igUserId: string;
+  accessToken: string;
+  containerId: string;
+}): Promise<{ id: string }> {
+  const { igUserId, accessToken, containerId } = params;
+
+  const url = `${GRAPH_API}/${igUserId}/media_publish`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      creation_id: containerId,
+      access_token: accessToken,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(
+      `Instagram publish failed (${res.status}): ${errText}`,
+    );
+  }
+
+  const data = (await res.json()) as { id: string };
+  return { id: data.id };
+}
