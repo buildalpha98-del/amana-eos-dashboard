@@ -2226,3 +2226,65 @@ model StaffOffboardingProgress {
   @@index([offboardingId])
   @@index([taskId])
 }
+
+// ---------------------------------------------------------------------------
+// Cowork API Integration — external automation pushes content into dashboard
+// ---------------------------------------------------------------------------
+
+model CoworkProgram {
+  id              String   @id @default(cuid())
+  weekCommencing  DateTime @unique
+  theme           String
+  category        String?
+  summary         String?  @db.Text
+  programFileUrl  String?
+  resourceFileUrl String?
+  displayFileUrl  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model CoworkTodo {
+  id           String    @id @default(cuid())
+  centreId     String
+  date         DateTime
+  title        String
+  description  String?   @db.Text
+  category     String    // "morning-prep", "afternoon-prep", "end-of-day"
+  dueTime      String?   // "06:00", "15:00", etc.
+  assignedRole String?   // "educator", "coordinator"
+  completed    Boolean   @default(false)
+  completedAt  DateTime?
+  completedBy  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([centreId, date])
+}
+
+model CoworkAnnouncement {
+  id            String   @id @default(cuid())
+  title         String
+  body          String   @db.Text
+  type          String   // "program-update", "newsletter-summary", "general", "holiday-quest", "reminder"
+  targetCentres String[] // ["all"] or specific centre IDs
+  attachments   String[] // file URLs
+  pinned        Boolean  @default(false)
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model CalendarEvent {
+  id        String    @id @default(cuid())
+  title     String
+  date      DateTime
+  endDate   DateTime?
+  centreId  String?   // null = all centres
+  type      String    // "excursion", "incursion", "public-holiday", etc.
+  details   String?   @db.Text
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([centreId, date])
+}
