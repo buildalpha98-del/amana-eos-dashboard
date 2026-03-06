@@ -243,6 +243,10 @@ export const features = [
 
   // Permissions info table (owner only)
   "permissions.view",
+
+  // API Keys (owner only)
+  "api_keys.view",
+  "api_keys.manage",
 ] as const;
 
 export type Feature = (typeof features)[number];
@@ -261,7 +265,9 @@ const adminFeatures: readonly Feature[] = features.filter(
     f !== "permissions.view" &&
     f !== "xero.connect" &&
     f !== "xero.manage_mappings" &&
-    f !== "timesheets.export_to_xero"
+    f !== "timesheets.export_to_xero" &&
+    f !== "api_keys.view" &&
+    f !== "api_keys.manage"
 );
 
 const memberFeatures: readonly Feature[] = [
@@ -448,4 +454,5 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Admin", label: "Edit organisation settings", owner: true, admin: false, member: false, staff: false },
   { section: "Admin", label: "Connect / manage Xero", owner: true, admin: false, member: false, staff: false },
   { section: "Admin", label: "View permissions overview", owner: true, admin: false, member: false, staff: false },
+  { section: "Admin", label: "Manage API keys", owner: true, admin: false, member: false, staff: false },
 ];

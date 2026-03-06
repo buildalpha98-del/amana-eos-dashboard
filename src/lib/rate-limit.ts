@@ -123,6 +123,54 @@ export async function checkRateLimit(
   return checkMemory(key, maxAttempts, windowMs);
 }
 
+// ---------------------------------------------------------------------------
+// 4. API key rate limiter (100 req / 1 min per key)
+// ---------------------------------------------------------------------------
+
+let apiKeyRatelimit: Ratelimit | null = null;
+
+function getApiKeyRatelimit(): Ratelimit | null {
+  if (apiKeyRatelimit) return apiKeyRatelimit;
+
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+
+  apiKeyRatelimit = new Ratelimit({
+    redis: new Redis({ url, token }),
+    limiter: Ratelimit.slidingWindow(100, "1 m"),
+    analytics: true,
+    prefix: "ratelimit:apikey",
+  });
+
+  return apiKeyRatelimit;
+}
+
+/**
+ * Check if an API key has exceeded its rate limit (100 req / min).
+ */
+export async function checkApiKeyRateLimit(
+  keyId: string,
+): Promise<{ limited: boolean; remaining: number; resetIn: number }> {
+  const upstash = getApiKeyRatelimit();
+
+  if (upstash) {
+    const { success, remaining, reset } = await upstash.limit(`apikey:${keyId}`);
+    return {
+      limited: !success,
+      remaining,
+      resetIn: Math.max(0, reset - Date.now()),
+    };
+  }
+
+  // Fallback: in-memory (dev only) — 100 requests per 60 seconds
+  return checkMemory(`apikey:${keyId}`, 100, 60_000);
+}
+
+// ---------------------------------------------------------------------------
+// 5. Reset
+// ---------------------------------------------------------------------------
+
 /**
  * Reset rate-limit for a key (e.g. on successful login).
  */

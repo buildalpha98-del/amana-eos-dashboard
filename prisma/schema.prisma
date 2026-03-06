@@ -399,6 +399,7 @@ model User {
   timesheetEntries    TimesheetEntry[]        @relation("TimesheetStaff")
   policyAcks          PolicyAcknowledgement[] @relation("PolicyAcknowledger")
   offboardings        StaffOffboarding[]      @relation("OffboardingUser")
+  apiKeys             ApiKey[]                @relation("ApiKeyCreator")
 
   @@index([serviceId])
 }
@@ -2225,6 +2226,28 @@ model StaffOffboardingProgress {
   @@unique([offboardingId, taskId])
   @@index([offboardingId])
   @@index([taskId])
+}
+
+// ---------------------------------------------------------------------------
+// API Key Management — database-backed API keys for external integrations
+// ---------------------------------------------------------------------------
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String                          // human label, e.g. "Cowork Production"
+  keyPrefix   String                          // first 8 hex chars for display
+  keyHash     String    @unique               // SHA-256 hex of the full key
+  scopes      String[]                        // ["programs:write", "menus:write", "announcements:write"]
+  expiresAt   DateTime?                       // null = never expires
+  revokedAt   DateTime?                       // non-null = revoked
+  lastUsedAt  DateTime?
+  createdById String
+  createdBy   User      @relation("ApiKeyCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([keyHash])
+  @@index([createdById])
 }
 
 // ---------------------------------------------------------------------------

@@ -27,6 +27,9 @@ import {
   Lock,
   CheckCircle2,
   XCircle,
+  Key,
+  Copy,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
@@ -44,6 +47,11 @@ import {
   useSaveXeroMappings,
   useXeroSync,
 } from "@/hooks/useXero";
+import {
+  useApiKeys,
+  useCreateApiKey,
+  useRevokeApiKey,
+} from "@/hooks/useApiKeys";
 
 interface UserData {
   id: string;
@@ -1648,6 +1656,340 @@ function PermissionsPanel() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// API Keys management (owner only)
+// ---------------------------------------------------------------------------
+
+const SCOPE_LABELS: Record<string, string> = {
+  "programs:write": "Programs (write)",
+  "programs:read": "Programs (read)",
+  "menus:write": "Menus (write)",
+  "menus:read": "Menus (read)",
+  "announcements:write": "Announcements (write)",
+  "announcements:read": "Announcements (read)",
+};
+
+const WRITE_SCOPES = ["programs:write", "menus:write", "announcements:write"] as const;
+
+function ApiKeysSection() {
+  const { data: keys, isLoading } = useApiKeys();
+  const createKey = useCreateApiKey();
+  const revokeKey = useRevokeApiKey();
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [showReveal, setShowReveal] = useState(false);
+  const [revealKey, setRevealKey] = useState("");
+  const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null);
+
+  // Create form state
+  const [keyName, setKeyName] = useState("");
+  const [keyScopes, setKeyScopes] = useState<string[]>([]);
+  const [keyExpiry, setKeyExpiry] = useState("");
+  const [createError, setCreateError] = useState("");
+
+  function resetCreateForm() {
+    setKeyName("");
+    setKeyScopes([]);
+    setKeyExpiry("");
+    setCreateError("");
+    setShowCreate(false);
+  }
+
+  async function handleCreate() {
+    if (!keyName.trim()) {
+      setCreateError("Name is required");
+      return;
+    }
+    if (keyScopes.length === 0) {
+      setCreateError("Select at least one scope");
+      return;
+    }
+    setCreateError("");
+
+    try {
+      const result = await createKey.mutateAsync({
+        name: keyName.trim(),
+        scopes: keyScopes,
+        expiresAt: keyExpiry ? new Date(keyExpiry).toISOString() : undefined,
+      });
+      setRevealKey(result.plaintext);
+      setShowReveal(true);
+      resetCreateForm();
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Failed to create key");
+    }
+  }
+
+  function handleRevoke(id: string) {
+    revokeKey.mutate(id, {
+      onSuccess: () => setConfirmRevoke(null),
+    });
+  }
+
+  function toggleScope(scope: string) {
+    setKeyScopes((prev) =>
+      prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope],
+    );
+  }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+
+  function getKeyStatus(key: { revokedAt: string | null; expiresAt: string | null }) {
+    if (key.revokedAt) return { label: "Revoked", color: "bg-red-100 text-red-700" };
+    if (key.expiresAt && new Date(key.expiresAt) < new Date())
+      return { label: "Expired", color: "bg-yellow-100 text-yellow-700" };
+    return { label: "Active", color: "bg-emerald-100 text-emerald-700" };
+  }
+
+  function formatDate(d: string | null) {
+    if (!d) return "Never";
+    return new Date(d).toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Key className="w-5 h-5 text-gray-400" />
+          <h3 className="text-lg font-semibold text-gray-900">API Keys</h3>
+        </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="px-3 py-1.5 text-sm font-medium text-white rounded-lg"
+          style={{ backgroundColor: "#003344" }}
+        >
+          Create Key
+        </button>
+      </div>
+
+      <p className="text-sm text-gray-500 mb-4">
+        API keys allow external systems (e.g. Cowork) to push data into the dashboard.
+        Keys are hashed and cannot be viewed after creation.
+      </p>
+
+      {isLoading ? (
+        <div className="py-8 text-center text-gray-500">Loading API keys...</div>
+      ) : !keys?.length ? (
+        <div className="py-8 text-center text-gray-400">
+          No API keys created yet. Click &quot;Create Key&quot; to get started.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Name</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Key</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Scopes</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Last Used</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Status</th>
+                <th className="w-20"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {keys.map((key) => {
+                const status = getKeyStatus(key);
+                return (
+                  <tr key={key.id} className="border-b border-gray-100">
+                    <td className="py-3 px-3">
+                      <div className="text-sm font-medium text-gray-900">{key.name}</div>
+                      <div className="text-xs text-gray-400">
+                        by {key.createdBy.name} &middot; {formatDate(key.createdAt)}
+                      </div>
+                    </td>
+                    <td className="py-3 px-3">
+                      <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono text-gray-600">
+                        {key.keyPrefix}...
+                      </code>
+                    </td>
+                    <td className="py-3 px-3">
+                      <div className="flex flex-wrap gap-1">
+                        {key.scopes.map((scope) => (
+                          <span
+                            key={scope}
+                            className="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-700"
+                          >
+                            {scope.replace(":", " ")}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-3 px-3 text-sm text-gray-500">
+                      {formatDate(key.lastUsedAt)}
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", status.color)}>
+                        {status.label}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      {!key.revokedAt && (
+                        confirmRevoke === key.id ? (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleRevoke(key.id)}
+                              className="text-xs text-red-600 font-medium hover:text-red-800"
+                              disabled={revokeKey.isPending}
+                            >
+                              {revokeKey.isPending ? "..." : "Confirm"}
+                            </button>
+                            <button
+                              onClick={() => setConfirmRevoke(null)}
+                              className="text-xs text-gray-400 hover:text-gray-600"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmRevoke(key.id)}
+                            className="text-xs text-red-500 hover:text-red-700 font-medium"
+                          >
+                            Revoke
+                          </button>
+                        )
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Create Key Modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-semibold text-gray-900">Create API Key</h4>
+              <button onClick={resetCreateForm} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={keyName}
+                  onChange={(e) => setKeyName(e.target.value)}
+                  placeholder="e.g. Cowork Production"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Scopes</label>
+                <div className="space-y-2">
+                  {WRITE_SCOPES.map((scope) => (
+                    <label key={scope} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={keyScopes.includes(scope)}
+                        onChange={() => toggleScope(scope)}
+                        className="rounded border-gray-300 text-[#003344] focus:ring-[#003344]"
+                      />
+                      <span className="text-sm text-gray-700">{SCOPE_LABELS[scope] || scope}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Expiry <span className="text-gray-400">(optional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={keyExpiry}
+                  onChange={(e) => setKeyExpiry(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344] focus:border-transparent"
+                />
+              </div>
+
+              {createError && (
+                <p className="text-sm text-red-600">{createError}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={resetCreateForm}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={createKey.isPending}
+                className="px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50"
+                style={{ backgroundColor: "#003344" }}
+              >
+                {createKey.isPending ? "Creating..." : "Create Key"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Key Reveal Modal — shown ONCE after creation */}
+      {showReveal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 mx-4">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              <h4 className="text-lg font-semibold text-gray-900">API Key Created</h4>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-amber-800 font-medium">
+                Copy this key now. It will not be shown again.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 mb-6">
+              <code className="flex-1 bg-gray-100 rounded-lg px-4 py-3 text-sm font-mono text-gray-800 break-all select-all">
+                {revealKey}
+              </code>
+              <button
+                onClick={() => copyToClipboard(revealKey)}
+                className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                title="Copy to clipboard"
+              >
+                <Copy className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setShowReveal(false);
+                  setRevealKey("");
+                }}
+                className="px-4 py-2 text-sm font-medium text-white rounded-lg"
+                style={{ backgroundColor: "#003344" }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
 export function SettingsContent({ userRole }: { userRole: Role }) {
   const [showInvite, setShowInvite] = useState(false);
   const [showImportStaff, setShowImportStaff] = useState(false);
@@ -1673,6 +2015,9 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       {(userRole === "owner" || userRole === "admin") && (
         <XeroIntegrationSection isOwner={isOwner} />
       )}
+
+      {/* API Keys (owner only) */}
+      {isOwner && <ApiKeysSection />}
 
       {/* User Management (owner only) */}
       {isOwner && (
