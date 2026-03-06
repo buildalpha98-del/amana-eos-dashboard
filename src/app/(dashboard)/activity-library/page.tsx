@@ -116,7 +116,7 @@ export default function ActivityLibraryPage() {
           <Library className="w-7 h-7 text-[#004E64]" />
           Activity Library
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-500 mt-1 line-clamp-2">
           Reusable activity templates for weekly programming. Browse, search, and use templates to pre-fill your program.
         </p>
       </div>

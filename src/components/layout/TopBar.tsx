@@ -13,6 +13,18 @@ const NotificationDropdown = dynamic(
   { ssr: false }
 );
 
+const quarterRelevantPages = new Set([
+  "/dashboard",
+  "/vision",
+  "/rocks",
+  "/todos",
+  "/issues",
+  "/scorecard",
+  "/meetings",
+  "/financials",
+  "/performance",
+]);
+
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/vision": "Vision / V-TO",
@@ -36,13 +48,20 @@ const pageTitles: Record<string, string> = {
   "/timesheets": "Timesheets",
   "/leave": "Leave",
   "/contracts": "Contracts",
+  "/crm": "CRM",
+  "/crm/templates": "Email Templates",
+  "/activity-library": "Activity Library",
   "/my-portal": "My Portal",
   "/profile": "Profile",
 };
 
 export function TopBar() {
   const pathname = usePathname();
-  const title = pageTitles[pathname] || "Dashboard";
+  const title =
+    pageTitles[pathname] ||
+    (pathname.startsWith("/services/") && pathname !== "/services"
+      ? "Service Detail"
+      : "Dashboard");
   const quarter = getCurrentQuarter();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<QuickAddMenuPosition>({ top: 0, right: 0 });
@@ -93,9 +112,11 @@ export function TopBar() {
       <header className="h-16 bg-white border-b border-gray-200 hidden md:flex items-center justify-between px-6 sticky top-0 z-30">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#004E64]/10 text-[#004E64]">
-            {quarter}
-          </span>
+          {quarterRelevantPages.has(pathname) && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#004E64]/10 text-[#004E64]">
+              {quarter}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -123,9 +144,11 @@ export function TopBar() {
       <div className="md:hidden flex items-center justify-between px-4 py-2 bg-white border-b border-gray-100 sticky top-14 z-20">
         <div className="flex items-center gap-2 min-w-0">
           <h1 className="text-base font-semibold text-gray-900 truncate">{title}</h1>
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#004E64]/10 text-[#004E64] shrink-0">
-            {quarter}
-          </span>
+          {quarterRelevantPages.has(pathname) && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#004E64]/10 text-[#004E64] shrink-0">
+              {quarter}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <button

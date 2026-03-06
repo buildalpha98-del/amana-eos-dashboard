@@ -10,7 +10,9 @@ import {
 import type { CrmEmailTemplateData } from "@/hooks/useCrmEmailTemplates";
 import { CrmEmailTemplateForm } from "@/components/crm/CrmEmailTemplateForm";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Plus, Pencil, Trash2, Mail } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
 
 const stageLabels: Record<string, string> = {
   new_lead: "New Lead",
@@ -71,6 +73,14 @@ export default function CrmTemplatesPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "CRM", href: "/crm" },
+          { label: "Email Templates" },
+        ]}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -179,20 +189,13 @@ export default function CrmTemplatesPage() {
           </table>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Mail className="w-16 h-16 text-gray-300 mb-4" />
-          <p className="text-gray-500 text-lg">No email templates yet</p>
-          <p className="text-gray-400 text-sm mt-1">
-            Create templates to automate your lead communication
-          </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Template
-          </button>
-        </div>
+        <EmptyState
+          icon={Mail}
+          title="No email templates yet"
+          description="Create templates to automate your lead communication"
+          variant="inline"
+          action={{ label: "New Template", onClick: () => setShowCreate(true) }}
+        />
       )}
 
       {/* Create Modal */}

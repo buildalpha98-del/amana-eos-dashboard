@@ -228,14 +228,13 @@ function StaffComplianceView() {
         onChange={onFileSelected}
       />
 
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-[#004E64]" />
-          My Compliance Documents
-        </h2>
-        <p className="text-gray-500 mt-1">
-          Upload and manage your required compliance certificates
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">My Compliance Documents</h2>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+            Upload and manage your required compliance certificates
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -481,11 +480,8 @@ function AdminComplianceView() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-[#004E64]" />
-            Compliance Calendar
-          </h2>
-          <p className="text-gray-500 mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Compliance Calendar</h2>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
             Track staff certificates, compliance dates and upcoming renewals
           </p>
         </div>

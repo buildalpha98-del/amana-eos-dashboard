@@ -132,10 +132,10 @@ export default function PerformancePage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Centre Performance</h2>
-          <p className="text-sm md:text-base text-gray-500 mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Centre Performance</h2>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
             Rankings, KPIs, and operational health across all centres
           </p>
         </div>

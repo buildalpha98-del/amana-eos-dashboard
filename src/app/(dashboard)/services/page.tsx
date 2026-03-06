@@ -9,6 +9,7 @@ import { CreateServiceModal } from "@/components/services/CreateServiceModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { hasMinRole } from "@/lib/role-permissions";
 import type { Role } from "@prisma/client";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Building2,
   Plus,
@@ -16,6 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { ServiceSummary } from "@/hooks/useServices";
+import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 /** Swim-lane definitions — order matters for rendering */
@@ -109,7 +111,7 @@ export default function ServicesPage() {
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
             Service Centres
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
             Manage your OSHC centres across all locations
           </p>
         </div>
@@ -124,18 +126,9 @@ export default function ServicesPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {swimLanes.map((lane) => {
-          const count = grouped.get(lane.key)?.length || 0;
-          return (
-            <div
-              key={lane.key}
-              className="bg-white rounded-xl border border-gray-200 p-4"
-            >
-              <p className="text-sm text-gray-500">{lane.label}</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{count}</p>
-            </div>
-          );
-        })}
+        {swimLanes.map((lane) => (
+          <StatCard key={lane.key} title={lane.label} value={grouped.get(lane.key)?.length || 0} />
+        ))}
       </div>
 
       {/* Search */}
@@ -171,24 +164,15 @@ export default function ServicesPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Building2 className="w-16 h-16 text-gray-300 mb-4" />
-          <p className="text-gray-500 text-lg">No service centres found</p>
-          <p className="text-gray-400 text-sm mt-1">
-            {search
-              ? "Try adjusting your search"
-              : "Add your first OSHC centre to get started"}
-          </p>
-          {!search && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Add Centre
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon={Building2}
+          title="No service centres found"
+          description={search ? "Try adjusting your search" : "Add your first OSHC centre to get started"}
+          variant="inline"
+          {...(!search && {
+            action: { label: "Add Centre", onClick: () => setShowCreate(true) },
+          })}
+        />
       ) : (
         <div className="space-y-8">
           {swimLanes.map((lane) => {

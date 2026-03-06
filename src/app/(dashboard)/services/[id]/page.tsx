@@ -9,6 +9,7 @@ import { useService } from "@/hooks/useServices";
 import { hasMinRole } from "@/lib/role-permissions";
 import type { Role } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import {
   ArrowLeft,
   Building2,
@@ -125,14 +126,12 @@ export default function ServiceDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Back button */}
-      <Link
-        href="/services"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#004E64] transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Services
-      </Link>
+      <Breadcrumb
+        items={[
+          { label: "Services", href: "/services" },
+          { label: service.name },
+        ]}
+      />
 
       {/* Header */}
       <div className="flex items-center justify-between">

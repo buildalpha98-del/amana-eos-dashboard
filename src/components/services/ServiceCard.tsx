@@ -36,19 +36,21 @@ export function ServiceCard({
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-base font-semibold text-gray-900 truncate">
-              {service.name}
-            </h3>
+            <p className="text-xs font-semibold text-gray-500 font-mono tracking-wide uppercase">
+              {service.code}
+            </p>
             <span
               className={cn(
-                "inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium",
+                "inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap",
                 status.color
               )}
             >
               {status.label}
             </span>
           </div>
-          <p className="text-xs text-gray-400 font-mono">{service.code}</p>
+          <h3 className="text-base font-semibold text-gray-900 line-clamp-2 leading-snug">
+            {service.name}
+          </h3>
 
           {(service.suburb || service.state) && (
             <div className="flex items-center gap-1 mt-2 text-sm text-gray-500">

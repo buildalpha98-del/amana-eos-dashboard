@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface UserOption {
   id: string;
@@ -287,26 +288,13 @@ export default function IssuesPage() {
           </div>
         )
       ) : (
-        /* Empty State */
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center mb-4">
-            <AlertCircle className="w-8 h-8 text-amber-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            No open issues
-          </h3>
-          <p className="text-gray-500 mt-2 max-w-md">
-            Issues are blockers and problems that need to be identified,
-            discussed, and solved. Raise them here to keep the team aligned.
-          </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Raise Your First Issue
-          </button>
-        </div>
+        <EmptyState
+          icon={AlertCircle}
+          title="No open issues"
+          description="Issues are blockers and problems that need to be identified, discussed, and solved. Raise them here to keep the team aligned."
+          iconColor="#F59E0B"
+          action={{ label: "Raise Your First Issue", onClick: () => setShowCreate(true) }}
+        />
       )}
 
       {/* Create Modal */}

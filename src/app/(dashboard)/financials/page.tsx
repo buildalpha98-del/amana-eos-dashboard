@@ -12,8 +12,6 @@ import {
   TrendingDown,
   BarChart3,
   Building2,
-  ArrowUpRight,
-  ArrowDownRight,
   Plus,
   X,
   RefreshCw,
@@ -21,6 +19,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
 import { RevenueVsCostsChart } from "@/components/charts/RevenueVsCostsChart";
@@ -39,51 +38,6 @@ function formatCurrency(value: number): string {
 
 function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
-}
-
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  trend,
-  color,
-}: {
-  title: string;
-  value: string;
-  subtitle?: string;
-  icon: React.ElementType;
-  trend?: "up" | "down" | "neutral";
-  color: string;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
-      <div className="flex items-start justify-between">
-        <div className="min-w-0">
-          <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">{title}</p>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 truncate">{value}</p>
-          {subtitle && (
-            <div className="flex items-center gap-1 mt-1">
-              {trend === "up" && <ArrowUpRight className="w-3 h-3 text-emerald-500" />}
-              {trend === "down" && <ArrowDownRight className="w-3 h-3 text-red-500" />}
-              <p className={cn(
-                "text-sm",
-                trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-600" : "text-gray-400"
-              )}>
-                {subtitle}
-              </p>
-            </div>
-          )}
-        </div>
-        <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: color + "15", color }}
-        >
-          <Icon className="w-5 h-5" />
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function XeroSyncBadge() {
@@ -334,7 +288,7 @@ export default function FinancialsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Financial Dashboard</h2>
-          <p className="text-sm text-gray-500 mt-1">Revenue, costs, and profitability across all centres</p>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">Revenue, costs, and profitability across all centres</p>
           <div className="mt-2">
             <XeroSyncBadge />
           </div>
@@ -390,7 +344,7 @@ export default function FinancialsPage() {
           subtitle={`${summary?.centreCount || 0} centres reporting`}
           icon={DollarSign}
           trend="neutral"
-          color="#004E64"
+          iconColor="#004E64"
         />
         <StatCard
           title="Total Costs"
@@ -398,7 +352,7 @@ export default function FinancialsPage() {
           subtitle="all operating costs"
           icon={TrendingDown}
           trend="neutral"
-          color="#EF4444"
+          iconColor="#EF4444"
         />
         <StatCard
           title="Gross Profit"
@@ -406,7 +360,7 @@ export default function FinancialsPage() {
           subtitle={summary && summary.totalProfit > 0 ? "profitable" : "needs attention"}
           icon={TrendingUp}
           trend={summary && summary.totalProfit > 0 ? "up" : "down"}
-          color="#10B981"
+          iconColor="#10B981"
         />
         <StatCard
           title="Avg Margin"
@@ -414,7 +368,7 @@ export default function FinancialsPage() {
           subtitle="across all centres"
           icon={BarChart3}
           trend={summary && summary.avgMargin > 15 ? "up" : "down"}
-          color="#FECE00"
+          iconColor="#FECE00"
         />
       </div>
 

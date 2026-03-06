@@ -31,6 +31,7 @@ import {
 import { BulkCreateTodosModal } from "@/components/todos/BulkCreateTodosModal";
 import { TemplateManagerModal } from "@/components/todos/TemplateManagerModal";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface UserOption {
   id: string;
@@ -492,26 +493,12 @@ export default function TodosPage() {
           </div>
         )
       ) : (
-        /* Empty State */
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
-            <CheckSquare className="w-8 h-8 text-[#004E64]/30" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            No To-Dos this week
-          </h3>
-          <p className="text-gray-500 mt-2 max-w-md">
-            To-Dos are the weekly action items that push your Rocks forward. Add
-            them here or spawn them from Issues in your L10 meetings.
-          </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Create Your First To-Do
-          </button>
-        </div>
+        <EmptyState
+          icon={CheckSquare}
+          title="No To-Dos this week"
+          description="To-Dos are the weekly action items that push your Rocks forward. Add them here or spawn them from Issues in your L10 meetings."
+          action={{ label: "Create Your First To-Do", onClick: () => setShowCreate(true) }}
+        />
       )}
 
       {/* Batch Action Bar */}

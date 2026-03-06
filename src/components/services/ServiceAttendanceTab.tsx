@@ -18,6 +18,7 @@ import {
   useBatchUpdateAttendance,
   type AttendanceInput,
 } from "@/hooks/useAttendance";
+import { StatCard } from "@/components/ui/StatCard";
 import {
   LineChart,
   Line,
@@ -191,32 +192,36 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
     <div className="space-y-6">
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard
-          label="BSC Occupancy"
+        <StatCard
+          size="sm"
+          title="BSC Occupancy"
           value={totals ? `${totals.bscOccupancy}%` : "—"}
           icon={Users}
-          color="#3B82F6"
+          iconColor="#3B82F6"
           loading={loadingSummary}
         />
-        <MetricCard
-          label="ASC Occupancy"
+        <StatCard
+          size="sm"
+          title="ASC Occupancy"
           value={totals ? `${totals.ascOccupancy}%` : "—"}
           icon={Users}
-          color="#8B5CF6"
+          iconColor="#8B5CF6"
           loading={loadingSummary}
         />
-        <MetricCard
-          label="Total Enrolled"
+        <StatCard
+          size="sm"
+          title="Total Enrolled"
           value={totals ? `${totals.totalEnrolled}` : "—"}
           icon={TrendingUp}
-          color="#10B981"
+          iconColor="#10B981"
           loading={loadingSummary}
         />
-        <MetricCard
-          label="Overall Occupancy"
+        <StatCard
+          size="sm"
+          title="Overall Occupancy"
           value={totals ? `${totals.overallOccupancy}%` : "—"}
           icon={BarChart3}
-          color="#004E64"
+          iconColor="#004E64"
           loading={loadingSummary}
         />
       </div>
@@ -442,37 +447,3 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
   );
 }
 
-// ── Metric Card ─────────────────────────────────────────────
-
-function MetricCard({
-  label,
-  value,
-  icon: Icon,
-  color,
-  loading,
-}: {
-  label: string;
-  value: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  loading?: boolean;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-      <div
-        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-        style={{ backgroundColor: color + "15", color }}
-      >
-        <Icon className="w-5 h-5" />
-      </div>
-      <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        {loading ? (
-          <Loader2 className="w-4 h-4 animate-spin text-gray-400 mt-1" />
-        ) : (
-          <p className="text-lg font-bold text-gray-900 leading-tight">{value}</p>
-        )}
-      </div>
-    </div>
-  );
-}

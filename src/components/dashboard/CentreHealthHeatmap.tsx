@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowUp, ArrowDown, Minus } from "lucide-react";
 import type { CentreHealthItem } from "@/hooks/useDashboardData";
@@ -16,15 +17,31 @@ const statusColors = {
 };
 
 const trendIcons = {
-  improving: <ArrowUp className="w-3.5 h-3.5 text-emerald-500" />,
-  declining: <ArrowDown className="w-3.5 h-3.5 text-red-500" />,
-  stable: <Minus className="w-3.5 h-3.5 text-gray-400" />,
+  improving: <ArrowUp className="w-4 h-4 text-emerald-500" />,
+  declining: <ArrowDown className="w-4 h-4 text-red-500" />,
+  stable: <Minus className="w-4 h-4 text-gray-400" />,
+};
+
+const trendLabels = {
+  improving: "Improving",
+  declining: "Declining",
+  stable: "Stable",
 };
 
 export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHeatmapProps) {
-  const greenCount = centres.filter((c) => c.status === "green").length;
-  const amberCount = centres.filter((c) => c.status === "amber").length;
-  const redCount = centres.filter((c) => c.status === "red").length;
+  const { greenCount, amberCount, redCount } = useMemo(() => ({
+    greenCount: centres.filter((c) => c.status === "green").length,
+    amberCount: centres.filter((c) => c.status === "amber").length,
+    redCount: centres.filter((c) => c.status === "red").length,
+  }), [centres]);
+
+  // Sort centres by score descending for ranking
+  const { rankedCentres, rankMap } = useMemo(() => {
+    const sorted = [...centres].sort((a, b) => b.score - a.score);
+    const map = new Map<string, number>();
+    sorted.forEach((c, i) => { map.set(c.id, i + 1); });
+    return { rankedCentres: sorted, rankMap: map };
+  }, [centres]);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
@@ -64,15 +81,40 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          {centres.map((centre) => {
+          {rankedCentres.map((centre) => {
             const colors = statusColors[centre.status];
             const trend = centre.trend ?? "stable";
+            const rank = rankMap.get(centre.id) ?? 0;
+            const delta =
+              networkAvgScore !== undefined
+                ? centre.score - networkAvgScore
+                : undefined;
+            const deltaStr =
+              delta !== undefined
+                ? delta > 0
+                  ? `+${delta}`
+                  : `${delta}`
+                : undefined;
+            const deltaColor =
+              delta !== undefined
+                ? delta > 0
+                  ? "text-emerald-600"
+                  : delta < 0
+                    ? "text-red-600"
+                    : "text-gray-400"
+                : "";
+
             return (
               <Link
                 key={centre.id}
                 href={`/performance?centre=${centre.id}`}
-                className={`${colors.bg} ${colors.border} border rounded-lg p-3 hover:shadow-md transition-shadow group`}
+                className={`${colors.bg} ${colors.border} border rounded-lg p-3 hover:shadow-md transition-shadow group relative`}
               >
+                {/* Rank badge */}
+                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-gray-700 text-white text-[9px] font-bold shadow-sm">
+                  #{rank}
+                </span>
+
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
                   <span className="text-xs font-bold text-gray-500 truncate">
@@ -82,11 +124,23 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
                 <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
                   {centre.name}
                 </p>
-                <div className="flex items-center gap-1 mt-1">
+                <div className="flex items-center gap-1.5 mt-1">
                   <p className={`text-2xl font-bold ${colors.text}`}>
                     {centre.score}
                   </p>
-                  {trendIcons[trend]}
+                  <div className="flex flex-col items-start">
+                    <div className="flex items-center gap-0.5">
+                      {trendIcons[trend]}
+                      {deltaStr !== undefined && (
+                        <span className={`text-xs font-semibold ${deltaColor}`}>
+                          {deltaStr}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[9px] text-gray-400 leading-tight">
+                      {deltaStr !== undefined ? "vs avg" : trendLabels[trend]}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex gap-0.5 mt-1.5">
                   {[

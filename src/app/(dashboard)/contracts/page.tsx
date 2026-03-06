@@ -430,7 +430,7 @@ function ContractFormModal({
             disabled={
               !form.userId || !form.contractType || !form.payRate || !form.startDate || isSubmitting
             }
-            className="px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003344] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Saving..." : submitLabel}
           </button>
@@ -881,17 +881,14 @@ export default function ContractsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileSignature className="w-6 h-6 text-[#004E64]" />
-            Contracts
-          </h2>
-          <p className="text-gray-500 mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Contracts</h2>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
             Manage employment contracts, versions and staff acknowledgements
           </p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003344] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Contract
@@ -1002,7 +999,7 @@ export default function ContractsPage() {
           {!search && !statusFilter && !typeFilter && (
             <button
               onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003344] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
             >
               <Plus className="w-4 h-4" />
               Create First Contract

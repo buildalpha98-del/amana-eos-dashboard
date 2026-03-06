@@ -24,6 +24,7 @@ import {
   Check,
   Package,
 } from "lucide-react";
+import { StatCard } from "@/components/ui/StatCard";
 import {
   BarChart,
   Bar,
@@ -81,41 +82,6 @@ function getFYRange(): { from: string; to: string; label: string } {
   const from = `${fyYear}-07-01`;
   const to = now.toISOString().split("T")[0];
   return { from, to, label: `FY ${fyYear}/${fyYear + 1}` };
-}
-
-// ── MetricCard ──────────────────────────────────────────────
-
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  color,
-  loading,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  color: string;
-  loading?: boolean;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-      <div
-        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-        style={{ backgroundColor: color + "15", color }}
-      >
-        <Icon className="w-5 h-5" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs text-gray-500 truncate">{label}</p>
-        {loading ? (
-          <div className="h-7 w-16 bg-gray-100 rounded animate-pulse mt-0.5" />
-        ) : (
-          <p className="text-lg font-bold text-gray-900">{value}</p>
-        )}
-      </div>
-    </div>
-  );
 }
 
 // ── Main Component ──────────────────────────────────────────
@@ -185,32 +151,36 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard
+        <StatCard
+          size="sm"
           icon={ShoppingCart}
-          label="Grocery Budget"
+          title="Grocery Budget"
           value={formatCurrency(summary?.groceryBudget.total || 0)}
-          color={CHART_COLORS.success}
+          iconColor={CHART_COLORS.success}
           loading={summaryLoading}
         />
-        <MetricCard
+        <StatCard
+          size="sm"
           icon={Wrench}
-          label="Equipment Budget"
+          title="Equipment Budget"
           value={formatCurrency(summary?.equipmentBudget.total || 0)}
-          color={CHART_COLORS.info}
+          iconColor={CHART_COLORS.info}
           loading={summaryLoading}
         />
-        <MetricCard
+        <StatCard
+          size="sm"
           icon={DollarSign}
-          label="Combined Total"
+          title="Combined Total"
           value={formatCurrency(summary?.combinedTotal || 0)}
-          color={CHART_COLORS.primary}
+          iconColor={CHART_COLORS.primary}
           loading={summaryLoading}
         />
-        <MetricCard
+        <StatCard
+          size="sm"
           icon={TrendingUp}
-          label="Avg Weekly Cost"
+          title="Avg Weekly Cost"
           value={formatCurrency(avgWeeklyCost)}
-          color={CHART_COLORS.warning}
+          iconColor={CHART_COLORS.warning}
           loading={summaryLoading}
         />
       </div>

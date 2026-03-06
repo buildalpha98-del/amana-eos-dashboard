@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Radio, Bell, MessageCircle, HeartPulse } from "lucide-react";
+import { Bell, MessageCircle, HeartPulse } from "lucide-react";
 import { AnnouncementsTab } from "@/components/communication/AnnouncementsTab";
 import { CascadeBoardTab } from "@/components/communication/CascadeBoardTab";
 import { WeeklyPulseTab } from "@/components/communication/WeeklyPulseTab";
@@ -21,14 +21,13 @@ export default function CommunicationPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <Radio className="w-6 h-6 text-[#004E64]" />
-          <h2 className="text-2xl font-bold text-gray-900">Communication</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Communication</h2>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+            Stay aligned with announcements, cascade messages, and team pulse check-ins
+          </p>
         </div>
-        <p className="text-gray-500 mt-1">
-          Stay aligned with announcements, cascade messages, and team pulse check-ins
-        </p>
       </div>
 
       {/* Tab Bar */}

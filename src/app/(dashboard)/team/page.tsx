@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function TeamPage() {
   const { data: members, isLoading: teamLoading } = useTeam();
@@ -39,7 +40,7 @@ export default function TeamPage() {
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
             Accountability Chart
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
             {viewMode === "chart"
               ? "Organisational structure and seat assignments"
               : "Team performance metrics and individual stats"}
@@ -152,15 +153,12 @@ export default function TeamPage() {
       ) : members && members.length > 0 ? (
         <TeamListView members={members} />
       ) : (
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <Users className="w-16 h-16 text-gray-300 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900">
-            No team members
-          </h3>
-          <p className="text-gray-500 mt-2">
-            Add users in Settings to populate the team list.
-          </p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No team members"
+          description="Add users in Settings to populate the team list."
+          variant="inline"
+        />
       )}
     </div>
   );

@@ -239,6 +239,8 @@ export function ScorecardGrid({ scorecard, groupBy = "person" }: { scorecard: Sc
       </div>
 
       {/* Grid */}
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
       <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto -mx-4 sm:mx-0 scrollbar-thin">
         <table className="w-full min-w-[900px]">
           <thead>
@@ -421,6 +423,7 @@ export function ScorecardGrid({ scorecard, groupBy = "person" }: { scorecard: Sc
             ))}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   );

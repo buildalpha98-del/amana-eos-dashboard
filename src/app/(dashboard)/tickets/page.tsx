@@ -15,6 +15,7 @@ import { AgentWorkloadChart } from "@/components/charts/AgentWorkloadChart";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV, formatDateCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   MessageSquare,
   Plus,
@@ -164,8 +165,8 @@ export default function TicketsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Support Tickets</h2>
-          <p className="text-gray-500 mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Support Tickets</h2>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
             Manage parent enquiries and WhatsApp conversations
           </p>
         </div>
@@ -416,26 +417,13 @@ export default function TicketsPage() {
           </div>
         )
       ) : (
-        /* Empty State */
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-            <MessageSquare className="w-8 h-8 text-blue-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
-            No support tickets
-          </h3>
-          <p className="text-sm text-gray-500 max-w-sm mb-4">
-            When parents message you on WhatsApp, their conversations will appear here
-            as support tickets. You can also create tickets manually.
-          </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Create First Ticket
-          </button>
-        </div>
+        <EmptyState
+          icon={MessageSquare}
+          title="No support tickets"
+          description="When parents message you on WhatsApp, their conversations will appear here as support tickets. You can also create tickets manually."
+          iconColor="#3B82F6"
+          action={{ label: "Create First Ticket", onClick: () => setShowCreate(true) }}
+        />
       )}
 
       {/* Create Modal */}

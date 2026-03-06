@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  Megaphone,
   BarChart3,
   FolderOpen,
   FileText,
@@ -54,13 +53,10 @@ export default function MarketingPage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <div className="flex items-center gap-2">
-            <Megaphone className="w-6 h-6 text-[#004E64]" />
-            <h2 className="text-xl font-semibold text-gray-900">Marketing</h2>
-          </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Marketing</h2>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
             Manage campaigns, posts, and content across all platforms
           </p>
         </div>

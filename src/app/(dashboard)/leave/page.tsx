@@ -1091,10 +1091,10 @@ export default function LeavePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
             Leave Management
           </h2>
-          <p className="text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
             {isAdmin
               ? "Review, approve, and track team leave across all centres"
               : "View your leave balances and submit leave requests"}
@@ -1102,7 +1102,7 @@ export default function LeavePage() {
         </div>
         <button
           onClick={() => setShowRequestModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003344] transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
         >
           <Plus className="w-4 h-4" />
           Request Leave

@@ -10,6 +10,7 @@ import {
 } from "@/hooks/useAccountabilityChart";
 import { SeatEditModal } from "./SeatEditModal";
 import { Plus, Pencil, Trash2, User, ChevronDown, ChevronRight } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // ---------- Seat Card ----------
 
@@ -238,27 +239,15 @@ export function OrgChartView() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 overflow-x-auto">
       {isEmpty ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <Plus className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            No accountability chart yet
-          </h3>
-          <p className="text-gray-500 text-sm mb-4 max-w-md">
-            Define your organisational structure by adding seats. Start with
-            the top-level role (e.g. Visionary) and build your tree.
-          </p>
-          {canEdit && (
-            <button
-              onClick={() => setCreatingParentId("root")}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] transition-colors text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Add First Seat
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon={Plus}
+          title="No accountability chart yet"
+          description="Define your organisational structure by adding seats. Start with the top-level role (e.g. Visionary) and build your tree."
+          variant="inline"
+          {...(canEdit && {
+            action: { label: "Add First Seat", onClick: () => setCreatingParentId("root") },
+          })}
+        />
       ) : (
         <div className="min-w-fit flex flex-col items-center">
           {/* Add root seat button */}

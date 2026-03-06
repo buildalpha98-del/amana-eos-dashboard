@@ -11,6 +11,7 @@ import { CreateRockModal } from "@/components/rocks/CreateRockModal";
 import { Mountain, Plus, LayoutGrid, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function RocksPage() {
   const [quarter, setQuarter] = useState(getCurrentQuarter());
@@ -121,26 +122,12 @@ export default function RocksPage() {
           <RockListView rocks={rocks} onRockClick={handleRockClick} />
         )
       ) : (
-        /* Empty State */
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
-            <Mountain className="w-8 h-8 text-[#004E64]/30" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            No Rocks for {quarter.replace("-", " ")}
-          </h3>
-          <p className="text-gray-500 mt-2 max-w-md">
-            Rocks are your most important 90-day priorities. Set 3-7 Rocks per
-            quarter to keep the team focused on what matters most.
-          </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Create Your First Rock
-          </button>
-        </div>
+        <EmptyState
+          icon={Mountain}
+          title={`No Rocks for ${quarter.replace("-", " ")}`}
+          description="Rocks are your most important 90-day priorities. Set 3-7 Rocks per quarter to keep the team focused on what matters most."
+          action={{ label: "Create Your First Rock", onClick: () => setShowCreate(true) }}
+        />
       )}
 
       {/* Detail Panel */}

@@ -99,7 +99,7 @@ export function DashboardContent() {
           <h2 className="text-2xl font-bold text-gray-900">
             Command Centre
           </h2>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 mt-1 line-clamp-2">
             Welcome back, {session?.user?.name?.split(" ")[0] || "there"} &mdash;{" "}
             {isServiceScoped ? "your centre overview." : "overview across all centres."}
           </p>

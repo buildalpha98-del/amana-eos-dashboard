@@ -6,6 +6,8 @@ import { ProjectCard } from "@/components/projects/ProjectCard";
 import { ProjectDetailPanel } from "@/components/projects/ProjectDetailPanel";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { cn } from "@/lib/utils";
+import { StatCard } from "@/components/ui/StatCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   FolderKanban,
   Plus,
@@ -58,7 +60,7 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 mt-1 line-clamp-2">
             Track project progress across your centres
           </p>
         </div>
@@ -73,22 +75,9 @@ export default function ProjectsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Total Projects</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{counts.all}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">In Progress</p>
-          <p className="text-2xl font-bold text-blue-600 mt-1">
-            {counts.inProgress}
-          </p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">Completed</p>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">
-            {counts.complete}
-          </p>
-        </div>
+        <StatCard title="Total Projects" value={counts.all} />
+        <StatCard title="In Progress" value={counts.inProgress} valueColor="text-blue-600" />
+        <StatCard title="Completed" value={counts.complete} valueColor="text-emerald-600" />
       </div>
 
       {/* Filters */}
@@ -215,24 +204,15 @@ export default function ProjectsPage() {
           </div>
         )
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <FolderKanban className="w-16 h-16 text-gray-300 mb-4" />
-          <p className="text-gray-500 text-lg">No projects found</p>
-          <p className="text-gray-400 text-sm mt-1">
-            {search
-              ? "Try adjusting your search"
-              : "Create your first project to get started"}
-          </p>
-          {!search && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              New Project
-            </button>
-          )}
-        </div>
+        <EmptyState
+          icon={FolderKanban}
+          title="No projects found"
+          description={search ? "Try adjusting your search" : "Create your first project to get started"}
+          variant="inline"
+          {...(!search && {
+            action: { label: "New Project", onClick: () => setShowCreate(true) },
+          })}
+        />
       )}
 
       {/* Detail Panel */}
