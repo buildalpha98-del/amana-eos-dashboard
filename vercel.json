@@ -52,6 +52,14 @@
     {
       "path": "/api/cron/social-sync",
       "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-tenders",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/touchpoint-scheduler",
+      "schedule": "0 */1 * * *"
     }
   ]
 }

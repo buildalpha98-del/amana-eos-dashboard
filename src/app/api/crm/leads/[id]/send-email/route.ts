@@ -1,0 +1,134 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/server-auth";
+import { hasFeature } from "@/lib/role-permissions";
+import { getResend, FROM_EMAIL } from "@/lib/email";
+import { applyMergeTags } from "@/lib/crm/merge-tags";
+import type { Role } from "@prisma/client";
+
+const sendEmailSchema = z.object({
+  subject: z.string().min(1, "Subject is required"),
+  body: z.string().min(1, "Body is required"),
+  templateId: z.string().optional(),
+});
+
+// POST /api/crm/leads/[id]/send-email
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { session, error } = await requireAuth();
+  if (error) return error;
+
+  if (!hasFeature(session!.user.role as Role, "crm.create")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const reqBody = await req.json();
+  const parsed = sendEmailSchema.safeParse(reqBody);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0].message },
+      { status: 400 },
+    );
+  }
+
+  const lead = await prisma.lead.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      schoolName: true,
+      contactName: true,
+      contactEmail: true,
+      deleted: true,
+    },
+  });
+
+  if (!lead || lead.deleted) {
+    return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+  }
+
+  if (!lead.contactEmail) {
+    return NextResponse.json(
+      { error: "Lead has no contact email address" },
+      { status: 400 },
+    );
+  }
+
+  let subject = parsed.data.subject;
+  let body = parsed.data.body;
+
+  // If a template is specified, use it and apply merge tags
+  if (parsed.data.templateId) {
+    const template = await prisma.crmEmailTemplate.findUnique({
+      where: { id: parsed.data.templateId },
+    });
+    if (template) {
+      subject = template.subject;
+      body = template.body;
+    }
+  }
+
+  // Apply merge tags
+  const sender = await prisma.user.findUnique({
+    where: { id: session!.user.id },
+    select: { name: true },
+  });
+
+  const mergeData: Record<string, string> = {
+    schoolName: lead.schoolName,
+    contactName: lead.contactName || "there",
+    senderName: sender?.name || "Amana OSHC",
+    companyName: "Amana OSHC",
+  };
+
+  subject = applyMergeTags(subject, mergeData);
+  body = applyMergeTags(body, mergeData);
+
+  // Send via Resend
+  const resend = getResend();
+  if (!resend) {
+    // Dev mode: log instead of sending
+    console.log("[CRM Email] To:", lead.contactEmail, "Subject:", subject);
+  } else {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: lead.contactEmail,
+      subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+          ${body.replace(/\n/g, "<br>")}
+        </div>
+      `,
+    });
+  }
+
+  // Log the touchpoint
+  const touchpoint = await prisma.touchpointLog.create({
+    data: {
+      leadId: id,
+      type: "email_sent",
+      subject,
+      body,
+      sentById: session!.user.id,
+    },
+    include: {
+      sentBy: { select: { id: true, name: true, avatar: true } },
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      userId: session!.user.id,
+      action: "email_sent",
+      entityType: "Lead",
+      entityId: id,
+      details: { schoolName: lead.schoolName, subject },
+    },
+  });
+
+  return NextResponse.json(touchpoint, { status: 201 });
+}

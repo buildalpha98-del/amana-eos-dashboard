@@ -31,6 +31,8 @@ export const allPages = [
   "/team",
   "/settings",
   "/profile",
+  "/crm",
+  "/crm/templates",
 ] as const;
 
 export type AppPage = (typeof allPages)[number];
@@ -47,7 +49,7 @@ export type AppPage = (typeof allPages)[number];
  */
 export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   owner: allPages,
-  admin: allPages.filter((p) => p !== "/settings"),
+  admin: allPages.filter((p) => p !== "/settings" && p !== "/crm/templates"),
   member: [
     "/dashboard",
     "/my-portal",
@@ -247,6 +249,12 @@ export const features = [
   // API Keys (owner only)
   "api_keys.view",
   "api_keys.manage",
+
+  // CRM
+  "crm.view",
+  "crm.create",
+  "crm.edit",
+  "crm.manage_templates",
 ] as const;
 
 export type Feature = (typeof features)[number];
@@ -267,7 +275,8 @@ const adminFeatures: readonly Feature[] = features.filter(
     f !== "xero.manage_mappings" &&
     f !== "timesheets.export_to_xero" &&
     f !== "api_keys.view" &&
-    f !== "api_keys.manage"
+    f !== "api_keys.manage" &&
+    f !== "crm.manage_templates"
 );
 
 const memberFeatures: readonly Feature[] = [
@@ -455,4 +464,11 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Admin", label: "Connect / manage Xero", owner: true, admin: false, member: false, staff: false },
   { section: "Admin", label: "View permissions overview", owner: true, admin: false, member: false, staff: false },
   { section: "Admin", label: "Manage API keys", owner: true, admin: false, member: false, staff: false },
+
+  // CRM
+  { section: "Pages", label: "CRM Pipeline", owner: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "CRM Email Templates", owner: true, admin: false, member: false, staff: false },
+  { section: "Actions", label: "View leads & pipeline", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Create / edit leads", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Manage CRM email templates", owner: true, admin: false, member: false, staff: false },
 ];

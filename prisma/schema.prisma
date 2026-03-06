@@ -319,6 +319,39 @@ enum ShiftType {
   shift_other
 }
 
+// ============================================================
+// CRM
+// ============================================================
+
+enum LeadSource {
+  tender
+  direct
+}
+
+enum PipelineStage {
+  new_lead
+  reviewing
+  contact_made
+  follow_up_1
+  follow_up_2
+  meeting_booked
+  proposal_sent
+  submitted
+  negotiating
+  won
+  lost
+  on_hold
+}
+
+enum TouchpointType {
+  email_sent
+  call
+  meeting
+  note
+  stage_change
+  auto_email
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -400,6 +433,10 @@ model User {
   policyAcks          PolicyAcknowledgement[] @relation("PolicyAcknowledger")
   offboardings        StaffOffboarding[]      @relation("OffboardingUser")
   apiKeys             ApiKey[]                @relation("ApiKeyCreator")
+
+  // ── CRM Relations ───────────────────────────────────────────
+  assignedLeads       Lead[]                 @relation("LeadAssignee")
+  touchpointsSent     TouchpointLog[]        @relation("TouchpointSender")
 
   @@index([serviceId])
 }
@@ -856,6 +893,9 @@ model Service {
   leaveRequests      LeaveRequest[]          @relation("ServiceLeaveRequests")
   timesheets         Timesheet[]             @relation("ServiceTimesheets")
   offboardingPacks   OffboardingPack[]       @relation("ServiceOffboardingPacks")
+
+  // ── CRM Relations ──────────────────────────────────────────
+  leads              Lead[]                  @relation("LeadService")
 
   @@index([status])
   @@index([managerId])
@@ -2310,4 +2350,85 @@ model CalendarEvent {
   updatedAt DateTime  @updatedAt
 
   @@index([centreId, date])
+}
+
+// ============================================================
+// CRM Models
+// ============================================================
+
+model Lead {
+  id                String        @id @default(cuid())
+  schoolName        String
+  contactName       String?
+  contactEmail      String?
+  contactPhone      String?
+  address           String?
+  suburb            String?
+  state             String?
+  postcode          String?
+  source            LeadSource    @default(direct)
+  pipelineStage     PipelineStage @default(new_lead)
+  tenderRef         String?       @unique
+  tenderCloseDate   DateTime?
+  tenderUrl         String?
+  estimatedCapacity Int?
+  notes             String?       @db.Text
+  assignedToId      String?
+  assignedTo        User?         @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  serviceId         String?
+  service           Service?      @relation("LeadService", fields: [serviceId], references: [id], onDelete: SetNull)
+  wonAt             DateTime?
+  lostAt            DateTime?
+  lostReason        String?
+  stageChangedAt    DateTime      @default(now())
+  nextTouchpointAt  DateTime?
+  deleted           Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  touchpoints TouchpointLog[]
+
+  @@index([pipelineStage])
+  @@index([assignedToId])
+  @@index([source])
+  @@index([state])
+  @@index([nextTouchpointAt])
+}
+
+model TouchpointLog {
+  id       String         @id @default(cuid())
+  leadId   String
+  lead     Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type     TouchpointType
+  subject  String?
+  body     String?        @db.Text
+  sentAt   DateTime       @default(now())
+  sentById String?
+  sentBy   User?          @relation("TouchpointSender", fields: [sentById], references: [id], onDelete: SetNull)
+
+  @@index([leadId])
+  @@index([sentAt])
+}
+
+model CrmEmailTemplate {
+  id           String         @id @default(cuid())
+  name         String
+  subject      String
+  body         String         @db.Text
+  triggerStage PipelineStage?
+  pipeline     LeadSource?
+  sortOrder    Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model TenderScrapeRun {
+  id           String    @id @default(cuid())
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+  status       String    @default("running") // running, completed, failed
+  leadsFound   Int       @default(0)
+  leadsCreated Int       @default(0)
+  error        String?
+  details      Json?
 }

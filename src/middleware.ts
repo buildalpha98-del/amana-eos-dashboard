@@ -34,6 +34,8 @@ const rolePageAccess: Record<string, string[]> = {
     "/contracts",
     "/team",
     "/settings",
+    "/crm",
+    "/crm/templates",
   ],
   admin: [
     "/dashboard",
@@ -58,7 +60,8 @@ const rolePageAccess: Record<string, string[]> = {
     "/leave",
     "/contracts",
     "/team",
-    // No /settings
+    "/crm",
+    // No /settings or /crm/templates
   ],
   member: [
     "/dashboard",
@@ -190,5 +193,7 @@ export const config = {
     "/api/measurables/:path*",
     "/api/lms/:path*",
     "/api/onboarding/:path*",
+    "/crm/:path*",
+    "/api/crm/:path*",
   ],
 };

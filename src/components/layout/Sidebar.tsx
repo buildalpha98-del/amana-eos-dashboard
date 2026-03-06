@@ -33,6 +33,7 @@ import {
   FileSignature,
   UserCircle,
   Library,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canAccessPage } from "@/lib/permissions";
@@ -51,6 +52,7 @@ const navItems = [
   { href: "/services", label: "Services", icon: Building2, section: "Operations" },
   { href: "/activity-library", label: "Activity Library", icon: Library, section: "Operations" },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Operations" },
+  { href: "/crm", label: "CRM", icon: Target, section: "Operations", tooltip: "Sales pipeline & lead management" },
   { href: "/meetings", label: "Meetings", icon: Presentation, section: "Operations" },
   { href: "/communication", label: "Communication", icon: Radio, section: "Operations" },
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Operations" },
