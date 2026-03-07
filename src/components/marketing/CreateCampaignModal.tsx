@@ -13,6 +13,7 @@ const CAMPAIGN_TYPES: MarketingCampaignType[] = [
   "promotion",
   "awareness",
   "partnership",
+  "activation",
 ];
 
 const ALL_PLATFORMS: MarketingPlatform[] = [
@@ -43,6 +44,9 @@ export function CreateCampaignModal({
   const [notes, setNotes] = useState("");
   const [designLink, setDesignLink] = useState("");
   const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [budget, setBudget] = useState("");
+  const [location, setLocation] = useState("");
+  const [deliverables, setDeliverables] = useState("");
   const [error, setError] = useState("");
 
   const resetForm = () => {
@@ -55,6 +59,9 @@ export function CreateCampaignModal({
     setNotes("");
     setDesignLink("");
     setServiceIds([]);
+    setBudget("");
+    setLocation("");
+    setDeliverables("");
     setError("");
   };
 
@@ -91,6 +98,9 @@ export function CreateCampaignModal({
         ...(notes.trim() && { notes: notes.trim() }),
         ...(designLink.trim() && { designLink: designLink.trim() }),
         ...(serviceIds.length > 0 && { serviceIds }),
+        ...(budget && { budget: parseFloat(budget) }),
+        ...(location.trim() && { location: location.trim() }),
+        ...(deliverables.trim() && { deliverables: deliverables.trim() }),
       },
       {
         onSuccess: () => {
@@ -222,6 +232,52 @@ export function CreateCampaignModal({
                   ))}
                 </div>
               </div>
+
+              {/* Activation / Event Fields */}
+              {(type === "activation" || type === "event") && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Budget ($)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={budget}
+                        onChange={(e) => setBudget(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Location
+                      </label>
+                      <input
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="Venue or address"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Deliverables
+                    </label>
+                    <textarea
+                      value={deliverables}
+                      onChange={(e) => setDeliverables(e.target.value)}
+                      rows={2}
+                      placeholder="Key deliverables for this activation..."
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Target Centres */}
               <div>

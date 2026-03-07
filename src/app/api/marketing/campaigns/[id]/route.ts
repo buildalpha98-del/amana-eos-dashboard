@@ -6,7 +6,7 @@ import { requireAuth } from "@/lib/server-auth";
 const updateCampaignSchema = z.object({
   name: z.string().min(1).optional(),
   type: z
-    .enum(["campaign", "event", "launch", "promotion", "awareness", "partnership"])
+    .enum(["campaign", "event", "launch", "promotion", "awareness", "partnership", "activation"])
     .optional(),
   status: z
     .enum(["draft", "scheduled", "active", "completed", "paused", "cancelled"])
@@ -21,6 +21,9 @@ const updateCampaignSchema = z.object({
   goal: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   designLink: z.string().optional().nullable(),
+  budget: z.number().optional().nullable(),
+  location: z.string().optional().nullable(),
+  deliverables: z.string().optional().nullable(),
   serviceIds: z.array(z.string()).optional(),
 });
 
@@ -106,10 +109,39 @@ export async function PATCH(
 
   const { serviceIds, ...updateData } = parsed.data;
 
+  // Track whether campaign is newly becoming active
+  const wasNotActive = existing.status !== "active";
+
   const campaign = await prisma.marketingCampaign.update({
     where: { id },
     data: updateData,
   });
+
+  // Auto-create starter tasks when campaign becomes active
+  if (parsed.data.status === "active" && wasNotActive) {
+    const starterTasks = [
+      { title: "Review campaign brief & goals", daysOffset: 0 },
+      { title: "Create content for campaign", daysOffset: 3 },
+      { title: "Schedule posts across platforms", daysOffset: 5 },
+      { title: "Monitor performance & engagement", daysOffset: 7 },
+    ];
+    const now = new Date();
+    await Promise.all(
+      starterTasks.map((t) => {
+        const dueDate = new Date(now);
+        dueDate.setDate(dueDate.getDate() + t.daysOffset);
+        return prisma.marketingTask.create({
+          data: {
+            title: t.title,
+            status: "todo",
+            priority: "medium",
+            campaignId: id,
+            dueDate,
+          },
+        });
+      })
+    );
+  }
 
   // Sync service join table if serviceIds provided
   if (serviceIds !== undefined) {

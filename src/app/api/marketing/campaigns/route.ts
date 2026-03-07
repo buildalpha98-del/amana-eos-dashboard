@@ -6,7 +6,7 @@ import { requireAuth } from "@/lib/server-auth";
 const createCampaignSchema = z.object({
   name: z.string().min(1, "Name is required"),
   type: z
-    .enum(["campaign", "event", "launch", "promotion", "awareness", "partnership"])
+    .enum(["campaign", "event", "launch", "promotion", "awareness", "partnership", "activation"])
     .default("campaign"),
   status: z
     .enum(["draft", "scheduled", "active", "completed", "paused", "cancelled"])
@@ -21,6 +21,9 @@ const createCampaignSchema = z.object({
   goal: z.string().optional(),
   notes: z.string().optional(),
   designLink: z.string().optional(),
+  budget: z.number().optional(),
+  location: z.string().optional(),
+  deliverables: z.string().optional(),
   serviceIds: z.array(z.string()).optional(),
 });
 
@@ -94,6 +97,9 @@ export async function POST(req: NextRequest) {
       goal: campaignData.goal || null,
       notes: campaignData.notes || null,
       designLink: campaignData.designLink || null,
+      budget: campaignData.budget ?? null,
+      location: campaignData.location || null,
+      deliverables: campaignData.deliverables || null,
     },
   });
 

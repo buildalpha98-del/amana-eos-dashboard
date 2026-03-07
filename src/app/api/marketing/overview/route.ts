@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
     ? { services: { some: { serviceId } } }
     : {};
 
+  const taskServiceFilter = serviceId ? { serviceId } : {};
+
   const [
     totalPosts,
     totalCampaigns,
@@ -25,6 +27,10 @@ export async function GET(req: NextRequest) {
     activeCampaigns,
     upcomingPosts,
     activeCampaignsList,
+    taskCounts,
+    overdueTasks,
+    dueSoonTasks,
+    recentActivity,
   ] = await Promise.all([
     // Total non-deleted posts
     prisma.marketingPost.count({
@@ -91,6 +97,54 @@ export async function GET(req: NextRequest) {
       orderBy: { startDate: "desc" },
       take: 5,
     }),
+
+    // Task status counts
+    prisma.marketingTask.groupBy({
+      by: ["status"],
+      where: { deleted: false, ...taskServiceFilter },
+      _count: { id: true },
+    }),
+
+    // Overdue tasks
+    prisma.marketingTask.findMany({
+      where: {
+        deleted: false,
+        status: { not: "done" },
+        dueDate: { lt: new Date() },
+        ...taskServiceFilter,
+      },
+      take: 10,
+      orderBy: { dueDate: "asc" },
+      include: { assignee: { select: { id: true, name: true } } },
+    }),
+
+    // Due soon tasks (today + next 2 days)
+    prisma.marketingTask.findMany({
+      where: {
+        deleted: false,
+        status: { not: "done" },
+        dueDate: {
+          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          lte: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+        },
+        ...taskServiceFilter,
+      },
+      take: 10,
+      orderBy: { dueDate: "asc" },
+      include: { assignee: { select: { id: true, name: true } } },
+    }),
+
+    // Recent activity
+    prisma.activityLog.findMany({
+      where: {
+        entityType: {
+          in: ["MarketingPost", "MarketingCampaign", "MarketingTask"],
+        },
+      },
+      take: 10,
+      orderBy: { createdAt: "desc" },
+      include: { user: { select: { id: true, name: true } } },
+    }),
   ]);
 
   const response: Record<string, unknown> = {
@@ -100,6 +154,10 @@ export async function GET(req: NextRequest) {
     activeCampaigns,
     upcomingPosts,
     activeCampaignsList,
+    taskCounts,
+    overdueTasks,
+    dueSoonTasks,
+    recentActivity,
   };
 
   // When NOT filtered by service, add centre content stats

@@ -26,6 +26,7 @@ const TYPE_OPTIONS = [
   { value: "promotion", label: "Promotion" },
   { value: "awareness", label: "Awareness" },
   { value: "partnership", label: "Partnership" },
+  { value: "activation", label: "Activation" },
 ];
 
 export function CampaignsTab({
@@ -124,8 +125,13 @@ export function CampaignsTab({
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {campaign.name}
                     </td>
-                    <td className="px-4 py-3 capitalize text-gray-600">
-                      {campaign.type}
+                    <td className="px-4 py-3 text-gray-600">
+                      <span className="capitalize">{campaign.type}</span>
+                      {campaign.type === "activation" && (
+                        <span className="ml-1.5 inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700">
+                          ACT
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge type="campaign" status={campaign.status} />

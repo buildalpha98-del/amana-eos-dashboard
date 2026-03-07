@@ -61,6 +61,7 @@ export async function GET(
         select: { id: true, name: true, email: true, avatar: true },
       },
       campaign: { select: { id: true, name: true } },
+      approvedBy: { select: { id: true, name: true } },
       recurringChildren: {
         where: { deleted: false },
         select: { id: true, title: true, scheduledDate: true, status: true },
@@ -126,6 +127,7 @@ export async function PATCH(
     include: {
       assignee: { select: { id: true, name: true, avatar: true } },
       campaign: { select: { id: true, name: true } },
+      approvedBy: { select: { id: true, name: true } },
       ...serviceInclude,
     },
   });

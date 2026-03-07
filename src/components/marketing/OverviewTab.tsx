@@ -7,6 +7,12 @@ import {
   FolderOpen,
   Building2,
   AlertTriangle,
+  Clock,
+  Activity,
+  ListTodo,
+  Loader2,
+  Eye,
+  CircleCheck,
 } from "lucide-react";
 import { useMarketingOverview } from "@/hooks/useMarketing";
 import type { OverviewData } from "@/hooks/useMarketing";
@@ -62,11 +68,34 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
-interface OverviewTabProps {
-  serviceId: string;
+function relativeTime(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return "just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 30) return `${diffDay}d ago`;
+  const diffMonth = Math.floor(diffDay / 30);
+  return `${diffMonth}mo ago`;
 }
 
-export function OverviewTab({ serviceId }: OverviewTabProps) {
+function daysOverdue(dateStr: string): number {
+  const now = new Date();
+  const due = new Date(dateStr);
+  return Math.floor((now.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+interface OverviewTabProps {
+  serviceId: string;
+  onSelectTask?: (id: string) => void;
+}
+
+export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
   const { data, isLoading, error } = useMarketingOverview(
     serviceId || undefined
   );
@@ -150,6 +179,172 @@ export function OverviewTab({ serviceId }: OverviewTabProps) {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task Status Row */}
+      {data.taskCounts && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {(
+            [
+              { status: "todo", label: "To Do", bg: "bg-gray-50", text: "text-gray-700", icon: ListTodo, iconColor: "text-gray-500" },
+              { status: "in_progress", label: "In Progress", bg: "bg-blue-50", text: "text-blue-700", icon: Loader2, iconColor: "text-blue-500" },
+              { status: "in_review", label: "In Review", bg: "bg-amber-50", text: "text-amber-700", icon: Eye, iconColor: "text-amber-500" },
+              { status: "done", label: "Done", bg: "bg-emerald-50", text: "text-emerald-700", icon: CircleCheck, iconColor: "text-emerald-500" },
+            ] as const
+          ).map((item) => {
+            const count =
+              data.taskCounts?.find((tc) => tc.status === item.status)?._count
+                .id ?? 0;
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.status}
+                className={`rounded-xl p-4 border border-gray-200 ${item.bg}`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-5 h-5 ${item.iconColor}`} />
+                  <div>
+                    <p className={`text-xl font-bold ${item.text}`}>{count}</p>
+                    <p className="text-xs text-gray-500">{item.label}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Overdue Tasks Alert */}
+      {data.overdueTasks && data.overdueTasks.length > 0 && (
+        <div className="rounded-xl border-2 border-red-200 bg-red-50">
+          <div className="px-6 py-4 border-b border-red-200 flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+            <h3 className="text-lg font-semibold text-red-800">
+              Overdue Tasks
+            </h3>
+            <span className="ml-auto text-sm font-medium text-red-600">
+              {data.overdueTasks.length} overdue
+            </span>
+          </div>
+          <div className="divide-y divide-red-100">
+            {data.overdueTasks.map((task) => (
+              <button
+                key={task.id}
+                type="button"
+                onClick={() => onSelectTask?.(task.id)}
+                className="w-full px-6 py-3 flex items-center justify-between hover:bg-red-100 transition-colors text-left"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 truncate">
+                    {task.title}
+                  </p>
+                  <p className="text-sm text-red-600">
+                    {daysOverdue(task.dueDate)} day
+                    {daysOverdue(task.dueDate) !== 1 ? "s" : ""} overdue
+                    {task.assignee && (
+                      <span className="text-gray-500">
+                        {" "}
+                        &middot; {task.assignee.name}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    task.priority === "high"
+                      ? "bg-red-100 text-red-700"
+                      : task.priority === "medium"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {task.priority}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Due Today / Tomorrow */}
+      {data.dueSoonTasks && data.dueSoonTasks.length > 0 && (
+        <div className="rounded-xl border-2 border-amber-200 bg-amber-50">
+          <div className="px-6 py-4 border-b border-amber-200 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-amber-600" />
+            <h3 className="text-lg font-semibold text-amber-800">
+              Due Today / Tomorrow
+            </h3>
+            <span className="ml-auto text-sm font-medium text-amber-600">
+              {data.dueSoonTasks.length} upcoming
+            </span>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {data.dueSoonTasks.map((task) => (
+              <button
+                key={task.id}
+                type="button"
+                onClick={() => onSelectTask?.(task.id)}
+                className="w-full px-6 py-3 flex items-center justify-between hover:bg-amber-100 transition-colors text-left"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 truncate">
+                    {task.title}
+                  </p>
+                  <p className="text-sm text-amber-600">
+                    Due {formatDate(task.dueDate)}
+                    {task.assignee && (
+                      <span className="text-gray-500">
+                        {" "}
+                        &middot; {task.assignee.name}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    task.priority === "high"
+                      ? "bg-red-100 text-red-700"
+                      : task.priority === "medium"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {task.priority}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Activity Feed */}
+      {data.recentActivity && data.recentActivity.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-[#004E64]" />
+            <h3 className="text-lg font-semibold text-gray-900">
+              Recent Activity
+            </h3>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {data.recentActivity.map((entry) => (
+              <div
+                key={entry.id}
+                className="px-6 py-3 flex items-center justify-between"
+              >
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium text-gray-900">
+                    {entry.user.name}
+                  </span>{" "}
+                  {entry.action}
+                </p>
+                <span className="text-xs text-gray-400 whitespace-nowrap ml-4">
+                  {relativeTime(entry.createdAt)}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}

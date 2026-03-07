@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Trash2, Send, Pencil } from "lucide-react";
+import { X, Trash2, Send, Pencil, Plus, CheckSquare } from "lucide-react";
 import {
   useCampaign,
   useUpdateCampaign,
   useDeleteCampaign,
   useAddCampaignComment,
+  useMarketingTasks,
 } from "@/hooks/useMarketing";
 import type { MarketingPlatform } from "@prisma/client";
 import { StatusBadge } from "./StatusBadge";
 import { PlatformBadge } from "./PlatformBadge";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
+import { CreateTaskModal } from "./CreateTaskModal";
+import { ActivationAssignmentGrid } from "./ActivationAssignmentGrid";
 
 const CAMPAIGN_STATUSES = [
   "draft",
@@ -29,6 +32,7 @@ const CAMPAIGN_TYPES = [
   "promotion",
   "awareness",
   "partnership",
+  "activation",
 ] as const;
 
 const ALL_PLATFORMS: MarketingPlatform[] = [
@@ -68,6 +72,14 @@ export function CampaignDetailPanel({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingCentres, setEditingCentres] = useState(false);
   const [serviceIds, setServiceIds] = useState<string[]>([]);
+  const [budget, setBudget] = useState("");
+  const [location, setLocation] = useState("");
+  const [deliverables, setDeliverables] = useState("");
+  const [showCreateTask, setShowCreateTask] = useState(false);
+
+  const { data: campaignTasks } = useMarketingTasks({
+    campaignId: campaignId,
+  });
 
   // Sync local state when data loads or changes
   useEffect(() => {
@@ -92,6 +104,9 @@ export function CampaignDetailPanel({
       setServiceIds(
         campaign.services?.map((s) => s.service.id) ?? []
       );
+      setBudget(campaign.budget != null ? String(campaign.budget) : "");
+      setLocation(campaign.location || "");
+      setDeliverables(campaign.deliverables || "");
     }
   }, [campaign]);
 
@@ -417,6 +432,139 @@ export function CampaignDetailPanel({
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
                 />
               </div>
+              {/* Activation / Event Fields */}
+              {(type === "activation" || type === "event") && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Budget ($)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={budget}
+                        onChange={(e) => setBudget(e.target.value)}
+                        onBlur={() =>
+                          handleUpdate(
+                            "budget",
+                            budget ? parseFloat(budget).toString() : null
+                          )
+                        }
+                        placeholder="0.00"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Location
+                      </label>
+                      <input
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        onBlur={() =>
+                          handleUpdate("location", location || null)
+                        }
+                        placeholder="Venue or address"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Deliverables
+                    </label>
+                    <textarea
+                      value={deliverables}
+                      onChange={(e) => setDeliverables(e.target.value)}
+                      onBlur={() =>
+                        handleUpdate("deliverables", deliverables || null)
+                      }
+                      rows={2}
+                      placeholder="Key deliverables..."
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Centre Assignments (activation / event only) */}
+            {(type === "activation" || type === "event") && (
+              <div>
+                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Centre Assignments
+                </h3>
+                <ActivationAssignmentGrid campaignId={campaignId} />
+              </div>
+            )}
+
+            {/* Tasks */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-medium uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                  <CheckSquare className="h-3.5 w-3.5" />
+                  Tasks{" "}
+                  {campaignTasks && campaignTasks.length > 0
+                    ? `(${campaignTasks.length})`
+                    : ""}
+                </h3>
+                <button
+                  onClick={() => setShowCreateTask(true)}
+                  className="inline-flex items-center gap-1 rounded-md bg-[#004E64]/10 px-2 py-1 text-xs font-medium text-[#004E64] hover:bg-[#004E64]/20 transition-colors"
+                >
+                  <Plus className="h-3 w-3" />
+                  Add Task
+                </button>
+              </div>
+              {campaignTasks && campaignTasks.length > 0 ? (
+                <div className="space-y-1.5">
+                  {campaignTasks.map((task) => {
+                    const statusColors: Record<string, string> = {
+                      todo: "bg-gray-100 text-gray-600",
+                      in_progress: "bg-blue-100 text-blue-700",
+                      in_review: "bg-amber-100 text-amber-700",
+                      done: "bg-emerald-100 text-emerald-700",
+                    };
+                    return (
+                      <div
+                        key={task.id}
+                        className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                      >
+                        <span
+                          className={`text-sm font-medium ${
+                            task.status === "done"
+                              ? "text-gray-400 line-through"
+                              : "text-gray-800"
+                          }`}
+                        >
+                          {task.title}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {task.assignee && (
+                            <span className="text-[10px] text-gray-400">
+                              {task.assignee.name}
+                            </span>
+                          )}
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                              statusColors[task.status] ?? "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {task.status.replace("_", " ")}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">
+                  No tasks linked to this campaign.
+                </p>
+              )}
             </div>
 
             {/* Linked Posts */}
@@ -499,6 +647,13 @@ export function CampaignDetailPanel({
           </div>
         )}
       </div>
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        open={showCreateTask}
+        onClose={() => setShowCreateTask(false)}
+        defaultCampaignId={campaignId}
+      />
     </>
   );
 }

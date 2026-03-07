@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Trash2, Pencil, ExternalLink, Unlink, Link2 } from "lucide-react";
-import { usePost, useUpdatePost, useDeletePost, useSocialConnections } from "@/hooks/useMarketing";
+import { X, Trash2, Pencil, ExternalLink, Unlink, Link2, Check, XCircle, ShieldCheck } from "lucide-react";
+import { usePost, useUpdatePost, useDeletePost, useSocialConnections, useApprovePost, useRejectPost } from "@/hooks/useMarketing";
 import type { PostData } from "@/hooks/useMarketing";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
 import { LinkSocialPostModal } from "./LinkSocialPostModal";
+import { toast } from "@/hooks/useToast";
 
 interface PostDetailPanelProps {
   postId: string;
@@ -34,6 +35,8 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
   const { data: post, isLoading } = usePost(postId);
   const updatePost = useUpdatePost();
   const deletePost = useDeletePost();
+  const approvePost = useApprovePost();
+  const rejectPost = useRejectPost();
 
   const [title, setTitle] = useState("");
   const [platform, setPlatform] = useState("");
@@ -50,6 +53,8 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
   const [editingCentres, setEditingCentres] = useState(false);
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
   const { data: socialConnections } = useSocialConnections();
 
   useEffect(() => {
@@ -199,6 +204,111 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
             </button>
           ))}
         </div>
+
+        {/* Approval Section */}
+        {post.status === "draft" && (
+          <div className="border-b border-gray-200 px-6 py-3">
+            <button
+              onClick={() => handleStatusChange("in_review")}
+              className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Request Approval
+            </button>
+            {post.rejectionReason && (
+              <div className="mt-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+                <p className="text-xs font-medium text-red-700 mb-0.5">
+                  Previously rejected:
+                </p>
+                <p className="text-sm text-red-600">{post.rejectionReason}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {post.status === "in_review" && (
+          <div className="border-b border-gray-200 px-6 py-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  approvePost.mutate(postId, {
+                    onSuccess: () => {
+                      toast({
+                        title: "Post Approved",
+                        description:
+                          "The post has been approved and is ready for scheduling.",
+                      });
+                    },
+                  })
+                }
+                disabled={approvePost.isPending}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                <Check className="h-4 w-4" />
+                {approvePost.isPending ? "Approving..." : "Approve"}
+              </button>
+              <button
+                onClick={() => setShowRejectForm(!showRejectForm)}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition-colors"
+              >
+                <XCircle className="h-4 w-4" />
+                Reject
+              </button>
+            </div>
+            {showRejectForm && (
+              <div className="space-y-2">
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Reason for rejection (optional)..."
+                  rows={2}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-400"
+                />
+                <button
+                  onClick={() => {
+                    rejectPost.mutate(
+                      { postId, reason: rejectionReason || undefined },
+                      {
+                        onSuccess: () => {
+                          setShowRejectForm(false);
+                          setRejectionReason("");
+                          toast({
+                            title: "Post Rejected",
+                            description:
+                              "The post has been sent back for revisions.",
+                            variant: "destructive",
+                          });
+                        },
+                      }
+                    );
+                  }}
+                  disabled={rejectPost.isPending}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {rejectPost.isPending ? "Rejecting..." : "Confirm Rejection"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {post.status === "approved" && post.approvedBy && (
+          <div className="border-b border-gray-200 px-6 py-3">
+            <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
+              <Check className="h-4 w-4 text-emerald-600" />
+              <span className="text-sm text-emerald-700">
+                Approved by{" "}
+                <span className="font-medium">{post.approvedBy.name}</span>
+                {post.approvedAt && (
+                  <span className="text-emerald-500">
+                    {" "}
+                    on {new Date(post.approvedAt).toLocaleDateString()}
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Fields */}
         <div className="space-y-4 px-6 py-4">

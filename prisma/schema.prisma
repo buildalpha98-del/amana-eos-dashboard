@@ -175,6 +175,7 @@ enum MarketingCampaignType {
   promotion
   awareness
   partnership
+  activation
 }
 
 enum MarketingCampaignStatus {
@@ -219,6 +220,19 @@ enum MarketingKPICategory {
   growth
   content
   conversion
+}
+
+enum MarketingTaskStatus {
+  todo
+  in_progress
+  in_review
+  done
+}
+
+enum MarketingTaskPriority {
+  high
+  medium
+  low
 }
 
 // ============================================================
@@ -383,7 +397,9 @@ model User {
   sentMessages      TicketMessage[]   @relation("MessageSender")
   dismissedNotifications NotificationDismissal[]
   marketingPosts    MarketingPost[]   @relation("MarketingPostAssignee")
+  approvedPosts     MarketingPost[]   @relation("MarketingPostApprover")
   marketingComments MarketingComment[] @relation("MarketingCommentAuthor")
+  marketingTasks    MarketingTask[]   @relation("MarketingTaskAssignee")
   announcements     Announcement[]    @relation("AnnouncementAuthor")
   announcementReads AnnouncementRead[] @relation("AnnouncementReader")
   cascadeAcks       CascadeAcknowledgment[] @relation("CascadeAcknowledger")
@@ -437,6 +453,7 @@ model User {
   // ── CRM Relations ───────────────────────────────────────────
   assignedLeads       Lead[]                 @relation("LeadAssignee")
   touchpointsSent     TouchpointLog[]        @relation("TouchpointSender")
+  activationCoordinations CampaignActivationAssignment[] @relation("ActivationCoordinator")
 
   @@index([serviceId])
 }
@@ -709,14 +726,19 @@ model MarketingCampaign {
   platforms   MarketingPlatform[]
   goal        String?                 @db.Text
   notes       String?                 @db.Text
-  designLink  String?
-  deleted     Boolean                 @default(false)
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
+  designLink   String?
+  budget       Float?
+  location     String?
+  deliverables String?                 @db.Text
+  deleted      Boolean                 @default(false)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
 
   posts    MarketingPost[]
   comments MarketingComment[]
   services MarketingCampaignService[]
+  tasks    MarketingTask[]
+  activationAssignments CampaignActivationAssignment[]
 
   @@index([status])
   @@index([startDate])
@@ -751,9 +773,15 @@ model MarketingPost {
   externalPostId   String?
   externalUrl      String?
   engagementSyncedAt DateTime?
+  approvedById    String?
+  approvedBy      User?                 @relation("MarketingPostApprover", fields: [approvedById], references: [id])
+  approvedAt      DateTime?
+  rejectionReason String?               @db.Text
   deleted          Boolean               @default(false)
   createdAt        DateTime              @default(now())
   updatedAt        DateTime              @updatedAt
+
+  tasks    MarketingTask[]
 
   @@index([platform])
   @@index([status])
@@ -832,6 +860,74 @@ model MarketingHashtagSet {
   @@index([category])
 }
 
+model MarketingTask {
+  id          String                @id @default(cuid())
+  title       String
+  description String?               @db.Text
+  status      MarketingTaskStatus   @default(todo)
+  priority    MarketingTaskPriority @default(medium)
+  dueDate     DateTime?
+  assigneeId  String?
+  assignee    User?                 @relation("MarketingTaskAssignee", fields: [assigneeId], references: [id])
+  campaignId  String?
+  campaign    MarketingCampaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  postId      String?
+  post        MarketingPost?        @relation(fields: [postId], references: [id], onDelete: SetNull)
+  serviceId   String?
+  service     Service?              @relation("ServiceMarketingTasks", fields: [serviceId], references: [id], onDelete: SetNull)
+  deleted     Boolean               @default(false)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([campaignId])
+  @@index([dueDate])
+}
+
+model MarketingTaskTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  category    String?
+  items       MarketingTaskTemplateItem[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MarketingTaskTemplateItem {
+  id          String                 @id @default(cuid())
+  templateId  String
+  template    MarketingTaskTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  title       String
+  description String?                @db.Text
+  priority    MarketingTaskPriority  @default(medium)
+  sortOrder   Int                    @default(0)
+  daysOffset  Int                    @default(0)
+
+  @@index([templateId])
+}
+
+model CampaignActivationAssignment {
+  id            String            @id @default(cuid())
+  campaignId    String
+  campaign      MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service           @relation("ServiceActivations", fields: [serviceId], references: [id], onDelete: Cascade)
+  assigned      Boolean           @default(true)
+  coordinatorId String?
+  coordinator   User?             @relation("ActivationCoordinator", fields: [coordinatorId], references: [id])
+  budget        Float?
+  notes         String?           @db.Text
+  status        String            @default("pending")
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([campaignId, serviceId])
+  @@index([campaignId])
+  @@index([serviceId])
+}
+
 // ============================================================
 // Services (OSHC Centres) & Projects
 // ============================================================
@@ -887,7 +983,9 @@ model Service {
   todoTemplates     TodoTemplate[]         @relation("ServiceTemplates")
   marketingPosts    MarketingPostService[]     @relation("ServiceMarketingPosts")
   marketingCampaigns MarketingCampaignService[] @relation("ServiceMarketingCampaigns")
+  marketingTasks    MarketingTask[]            @relation("ServiceMarketingTasks")
   socialConnections SocialConnection[]         @relation("ServiceSocialConnections")
+  activationAssignments CampaignActivationAssignment[] @relation("ServiceActivations")
 
   // ── HR Relations ─────────────────────────────────────────────
   leaveRequests      LeaveRequest[]          @relation("ServiceLeaveRequests")

@@ -13,6 +13,7 @@ import {
   Hash,
   Upload,
   MapPin,
+  CheckSquare,
 } from "lucide-react";
 import { MarketingTabs } from "@/components/marketing/MarketingTabs";
 import { OverviewTab } from "@/components/marketing/OverviewTab";
@@ -20,6 +21,8 @@ import { CampaignsTab } from "@/components/marketing/CampaignsTab";
 import { CampaignDetailPanel } from "@/components/marketing/CampaignDetailPanel";
 import { PostsTab } from "@/components/marketing/PostsTab";
 import { PostDetailPanel } from "@/components/marketing/PostDetailPanel";
+import { TasksTab } from "@/components/marketing/TasksTab";
+import { TaskDetailPanel } from "@/components/marketing/TaskDetailPanel";
 import { CalendarTab } from "@/components/marketing/CalendarTab";
 import { AnalyticsTab } from "@/components/marketing/AnalyticsTab";
 import { KPIsTab } from "@/components/marketing/KPIsTab";
@@ -29,9 +32,14 @@ import { HashtagsTab } from "@/components/marketing/HashtagsTab";
 import { ImportCalendarModal } from "@/components/marketing/ImportCalendarModal";
 import { CoverageTab } from "@/components/marketing/CoverageTab";
 import { ServiceFilter } from "@/components/marketing/ServiceFilter";
+import { QuickAddFAB } from "@/components/marketing/QuickAddFAB";
+import { CreatePostModal } from "@/components/marketing/CreatePostModal";
+import { CreateCampaignModal } from "@/components/marketing/CreateCampaignModal";
+import { CreateTaskModal } from "@/components/marketing/CreateTaskModal";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: BarChart3 },
+  { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "campaigns", label: "Campaigns", icon: FolderOpen },
   { key: "posts", label: "Posts", icon: FileText },
   { key: "calendar", label: "Calendar", icon: Calendar },
@@ -47,8 +55,12 @@ export default function MarketingPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [showQuickPost, setShowQuickPost] = useState(false);
+  const [showQuickTask, setShowQuickTask] = useState(false);
+  const [showQuickCampaign, setShowQuickCampaign] = useState(false);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -81,7 +93,13 @@ export default function MarketingPage() {
       {/* Tab Content */}
       <div className="mt-6">
         {activeTab === "overview" && (
-          <OverviewTab serviceId={selectedServiceId} />
+          <OverviewTab serviceId={selectedServiceId} onSelectTask={setSelectedTaskId} />
+        )}
+        {activeTab === "tasks" && (
+          <TasksTab
+            onSelectTask={setSelectedTaskId}
+            serviceId={selectedServiceId}
+          />
         )}
         {activeTab === "campaigns" && (
           <CampaignsTab
@@ -98,6 +116,8 @@ export default function MarketingPage() {
         {activeTab === "calendar" && (
           <CalendarTab
             onSelectPost={setSelectedPostId}
+            onSelectCampaign={setSelectedCampaignId}
+            onSelectTask={setSelectedTaskId}
             serviceId={selectedServiceId}
           />
         )}
@@ -137,11 +157,38 @@ export default function MarketingPage() {
           onClose={() => setSelectedPostId(null)}
         />
       )}
+      {selectedTaskId && (
+        <TaskDetailPanel
+          taskId={selectedTaskId}
+          onClose={() => setSelectedTaskId(null)}
+        />
+      )}
 
       {/* Import Content Calendar Modal */}
       <ImportCalendarModal
         open={showImport}
         onClose={() => setShowImport(false)}
+      />
+
+      {/* Quick Add FAB */}
+      <QuickAddFAB
+        onNewPost={() => setShowQuickPost(true)}
+        onNewTask={() => setShowQuickTask(true)}
+        onNewCampaign={() => setShowQuickCampaign(true)}
+      />
+
+      {/* Quick Create Modals */}
+      <CreatePostModal
+        open={showQuickPost}
+        onClose={() => setShowQuickPost(false)}
+      />
+      <CreateTaskModal
+        open={showQuickTask}
+        onClose={() => setShowQuickTask(false)}
+      />
+      <CreateCampaignModal
+        open={showQuickCampaign}
+        onClose={() => setShowQuickCampaign(false)}
       />
     </div>
   );

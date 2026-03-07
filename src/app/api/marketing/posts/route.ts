@@ -66,6 +66,7 @@ export async function GET(req: NextRequest) {
     include: {
       assignee: { select: { id: true, name: true, avatar: true } },
       campaign: { select: { id: true, name: true } },
+      approvedBy: { select: { id: true, name: true } },
       ...serviceInclude,
     },
     orderBy: [
@@ -199,6 +200,7 @@ export async function POST(req: NextRequest) {
     include: {
       assignee: { select: { id: true, name: true, avatar: true } },
       campaign: { select: { id: true, name: true } },
+      approvedBy: { select: { id: true, name: true } },
       ...serviceInclude,
     },
   });

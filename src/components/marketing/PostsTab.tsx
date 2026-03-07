@@ -269,7 +269,15 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                         className="px-4 py-3"
                         onClick={() => onSelectPost(post.id)}
                       >
-                        <StatusBadge status={post.status} type="post" />
+                        <div className="flex items-center gap-1.5">
+                          <StatusBadge status={post.status} type="post" />
+                          {post.status === "in_review" && (
+                            <span className="relative flex h-2.5 w-2.5">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td
                         className="px-4 py-3 text-gray-600"

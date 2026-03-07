@@ -7,6 +7,8 @@ import type {
   MarketingCampaignType,
   MarketingCampaignStatus,
   MarketingRecurrence,
+  MarketingTaskStatus,
+  MarketingTaskPriority,
 } from "@prisma/client";
 
 // ── Types ──────────────────────────────────────────────────
@@ -22,6 +24,9 @@ export interface CampaignData {
   goal: string | null;
   notes: string | null;
   designLink: string | null;
+  budget: number | null;
+  location: string | null;
+  deliverables: string | null;
   createdAt: string;
   updatedAt: string;
   _count: { posts: number; comments: number };
@@ -59,6 +64,10 @@ export interface PostData {
   externalPostId?: string;
   externalUrl?: string;
   engagementSyncedAt?: string;
+  approvedById?: string | null;
+  approvedBy?: { id: string; name: string } | null;
+  approvedAt?: string | null;
+  rejectionReason?: string | null;
 }
 
 export interface CommentData {
@@ -77,6 +86,10 @@ export interface OverviewData {
   activeCampaignsList: (CampaignData & { _count: { posts: number } })[];
   centresWithContent?: number;
   centresWithoutContent?: number;
+  taskCounts?: { status: string; _count: { id: number } }[];
+  overdueTasks?: { id: string; title: string; dueDate: string; priority: string; assignee: { id: string; name: string } | null }[];
+  dueSoonTasks?: { id: string; title: string; dueDate: string; priority: string; assignee: { id: string; name: string } | null }[];
+  recentActivity?: { id: string; action: string; entityType: string; entityId: string; details: string | null; createdAt: string; user: { id: string; name: string } }[];
 }
 
 // ── Campaigns ──────────────────────────────────────────────
@@ -127,6 +140,9 @@ export function useCreateCampaign() {
       goal?: string;
       notes?: string;
       designLink?: string;
+      budget?: number;
+      location?: string;
+      deliverables?: string;
       serviceIds?: string[];
     }) => {
       const res = await fetch("/api/marketing/campaigns", {
@@ -164,6 +180,9 @@ export function useUpdateCampaign() {
       goal?: string | null;
       notes?: string | null;
       designLink?: string | null;
+      budget?: number | null;
+      location?: string | null;
+      deliverables?: string | null;
       serviceIds?: string[];
     }) => {
       const res = await fetch(`/api/marketing/campaigns/${id}`, {
@@ -874,6 +893,328 @@ export function useImportCalendar() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+  });
+}
+
+// ── Marketing Tasks ──────────────────────────────────────────
+
+export interface MarketingTaskData {
+  id: string;
+  title: string;
+  description: string | null;
+  status: MarketingTaskStatus;
+  priority: MarketingTaskPriority;
+  dueDate: string | null;
+  assigneeId: string | null;
+  assignee: { id: string; name: string; avatar: string | null } | null;
+  campaignId: string | null;
+  campaign: { id: string; name: string } | null;
+  postId: string | null;
+  post: { id: string; title: string } | null;
+  serviceId: string | null;
+  service: { id: string; name: string; code: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useMarketingTasks(filters?: {
+  status?: string;
+  priority?: string;
+  assigneeId?: string;
+  campaignId?: string;
+  serviceId?: string;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.priority) params.set("priority", filters.priority);
+  if (filters?.assigneeId) params.set("assigneeId", filters.assigneeId);
+  if (filters?.campaignId) params.set("campaignId", filters.campaignId);
+  if (filters?.serviceId) params.set("serviceId", filters.serviceId);
+  const qs = params.toString();
+
+  return useQuery<MarketingTaskData[]>({
+    queryKey: ["marketing-tasks", filters],
+    queryFn: async () => {
+      const res = await fetch(`/api/marketing/tasks${qs ? `?${qs}` : ""}`);
+      if (!res.ok) throw new Error("Failed to fetch tasks");
+      return res.json();
+    },
+  });
+}
+
+export function useMarketingTask(id: string) {
+  return useQuery<MarketingTaskData>({
+    queryKey: ["marketing-task", id],
+    queryFn: async () => {
+      const res = await fetch(`/api/marketing/tasks/${id}`);
+      if (!res.ok) throw new Error("Failed to fetch task");
+      return res.json();
+    },
+    enabled: !!id,
+  });
+}
+
+export function useCreateMarketingTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      title: string;
+      description?: string;
+      status?: MarketingTaskStatus;
+      priority?: MarketingTaskPriority;
+      dueDate?: string;
+      assigneeId?: string;
+      campaignId?: string;
+      postId?: string;
+      serviceId?: string;
+    }) => {
+      const res = await fetch("/api/marketing/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create task");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marketing-tasks"] });
+    },
+  });
+}
+
+export function useUpdateMarketingTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...data
+    }: {
+      id: string;
+      title?: string;
+      description?: string | null;
+      status?: MarketingTaskStatus;
+      priority?: MarketingTaskPriority;
+      dueDate?: string | null;
+      assigneeId?: string | null;
+      campaignId?: string | null;
+      postId?: string | null;
+      serviceId?: string | null;
+    }) => {
+      const res = await fetch(`/api/marketing/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update task");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marketing-tasks"] });
+      qc.invalidateQueries({ queryKey: ["marketing-task"] });
+    },
+  });
+}
+
+export function useDeleteMarketingTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/marketing/tasks/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete task");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marketing-tasks"] });
+    },
+  });
+}
+
+// ── Marketing Task Templates ────────────────────────────────
+
+export interface MarketingTaskTemplateItemData {
+  id: string;
+  title: string;
+  description: string | null;
+  priority: string;
+  sortOrder: number;
+  daysOffset: number;
+}
+
+export interface MarketingTaskTemplateData {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  items: MarketingTaskTemplateItemData[];
+  createdAt: string;
+}
+
+export function useMarketingTaskTemplates() {
+  return useQuery<MarketingTaskTemplateData[]>({
+    queryKey: ["marketing-task-templates"],
+    queryFn: async () => {
+      const res = await fetch("/api/marketing/task-templates");
+      if (!res.ok) throw new Error("Failed to fetch task templates");
+      return res.json();
+    },
+  });
+}
+
+export function useApplyMarketingTaskTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      templateId: string;
+      campaignId?: string;
+      serviceId?: string;
+      startDate?: string;
+    }) => {
+      const { templateId, ...body } = data;
+      const res = await fetch(
+        `/api/marketing/task-templates/${templateId}/apply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to apply template");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marketing-tasks"] });
+      qc.invalidateQueries({ queryKey: ["marketing-overview"] });
+    },
+  });
+}
+
+// ── Activation Assignments ──────────────────────────────────
+
+export interface ActivationAssignmentData {
+  id: string;
+  campaignId: string;
+  serviceId: string;
+  service: { id: string; name: string; code: string };
+  assigned: boolean;
+  coordinatorId: string | null;
+  coordinator: { id: string; name: string } | null;
+  budget: number | null;
+  notes: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useActivationAssignments(campaignId: string) {
+  return useQuery<ActivationAssignmentData[]>({
+    queryKey: ["activation-assignments", campaignId],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/marketing/campaigns/${campaignId}/activations`
+      );
+      if (!res.ok) throw new Error("Failed to fetch activation assignments");
+      return res.json();
+    },
+    enabled: !!campaignId,
+  });
+}
+
+export function useUpdateActivationAssignments() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      campaignId,
+      assignments,
+    }: {
+      campaignId: string;
+      assignments: {
+        serviceId: string;
+        assigned?: boolean;
+        coordinatorId?: string | null;
+        budget?: number | null;
+        notes?: string | null;
+        status?: string;
+      }[];
+    }) => {
+      const res = await fetch(
+        `/api/marketing/campaigns/${campaignId}/activations`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(assignments),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to update assignments");
+      return res.json();
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({
+        queryKey: ["activation-assignments", vars.campaignId],
+      });
+    },
+  });
+}
+
+// ── Post Approval ────────────────────────────────────────────
+
+export function useApprovePost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (postId: string) => {
+      const res = await fetch(`/api/marketing/posts/${postId}/approve`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to approve post");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marketing-posts"] });
+      qc.invalidateQueries({ queryKey: ["post"] });
+      qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+  });
+}
+
+export function useRejectPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      postId,
+      reason,
+    }: {
+      postId: string;
+      reason?: string;
+    }) => {
+      const res = await fetch(`/api/marketing/posts/${postId}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to reject post");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marketing-posts"] });
+      qc.invalidateQueries({ queryKey: ["post"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
     },
   });
