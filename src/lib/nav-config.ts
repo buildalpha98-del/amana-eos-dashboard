@@ -23,6 +23,11 @@ import {
   FileSignature,
   UserCircle,
   Target,
+  Repeat,
+  Palmtree,
+  Calculator,
+  FolderLock,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export interface NavItem {
@@ -51,10 +56,17 @@ export const navItems: NavItem[] = [
   { href: "/performance", label: "Performance", icon: Trophy, section: "Operations" },
   { href: "/services", label: "Services", icon: Building2, section: "Operations" },
   { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations" },
+  { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists" },
+  { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator" },
+  // Strategy
+  { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Strategy", tooltip: "What-if scenario modelling & financial projections" },
+  { href: "/data-room", label: "Data Room", icon: FolderLock, section: "Strategy", tooltip: "Due diligence document tracker & exit readiness scoring" },
+  { href: "/reports/board", label: "Board Reports", icon: FileSpreadsheet, section: "Strategy", tooltip: "Monthly board & investor report generator" },
   // Engagement
   { href: "/crm", label: "CRM", icon: Target, section: "Engagement", tooltip: "Sales pipeline & lead management" },
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Engagement" },
   { href: "/communication", label: "Communication", icon: Radio, section: "Engagement" },
+  { href: "/conversions", label: "Conversions", icon: Repeat, section: "Engagement", tooltip: "Track casual-to-regular booking conversions" },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Engagement" },
   { href: "/meetings", label: "Meetings", icon: Presentation, section: "Engagement" },
   // HR

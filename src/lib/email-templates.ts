@@ -568,3 +568,563 @@ export function weeklyReportEmail(name: string, data: WeeklyReportData) {
 
   return { subject, html };
 }
+
+// ─── Parent Nurture: Welcome ────────────────────────────────
+
+export function nurtureWelcomeEmail(firstName: string, centreName: string) {
+  const subject = `Welcome to ${centreName} — Amana OSHC`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Welcome to ${centreName}!
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      We're so excited to have your family join us at ${centreName}. Our team is here to make sure your child
+      has a safe, fun, and enriching experience in Before and After School Care.
+    </p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Over the next couple of weeks, we'll send you a few helpful emails to get you settled in — from
+      enrolment tips to what to pack and how to set up the parent app.
+    </p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      If you have any questions in the meantime, don't hesitate to reach out to our centre team. We're
+      always happy to help!
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background-color:#f0fdf4;">
+      <tr>
+        <td style="padding:16px;">
+          <p style="margin:0;color:#065f46;font-size:14px;font-weight:600;">
+            What's coming up:
+          </p>
+          <p style="margin:8px 0 0;color:#047857;font-size:13px;line-height:1.8;">
+            1. How to complete your enrolment<br/>
+            2. What to bring on your first day<br/>
+            3. Setting up the parent app<br/>
+            4. Your first week guide
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+// ─── Parent Nurture: How to Enrol ───────────────────────────
+
+export function nurtureHowToEnrolEmail(firstName: string, centreName: string) {
+  const subject = `How to complete your enrolment — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Completing Your Enrolment
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Ready to lock in your child's spot? Here's how to complete the enrolment process:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px;background-color:#f9fafb;">
+          <p style="margin:0 0 12px;color:#111827;font-size:14px;font-weight:600;">Step 1: Complete the enrolment form</p>
+          <p style="margin:0 0 4px;color:#6b7280;font-size:13px;line-height:1.6;">
+            Fill in your child's details, emergency contacts, medical information, and authorised pick-up people.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px;border-top:1px solid #e5e7eb;">
+          <p style="margin:0 0 12px;color:#111827;font-size:14px;font-weight:600;">Step 2: Submit your CCS details</p>
+          <p style="margin:0 0 4px;color:#6b7280;font-size:13px;line-height:1.6;">
+            If you're eligible for the Child Care Subsidy, make sure your CRN (Customer Reference Number)
+            and date of birth are included so we can process your subsidy.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px;border-top:1px solid #e5e7eb;">
+          <p style="margin:0 0 12px;color:#111827;font-size:14px;font-weight:600;">Step 3: Choose your booking days</p>
+          <p style="margin:0 0 4px;color:#6b7280;font-size:13px;line-height:1.6;">
+            Select the days and sessions (Before School Care, After School Care, or both) that suit your family.
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      If you need help at any stage, just reply to this email or call the centre — we're here for you.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+// ─── Parent Nurture: What to Bring ──────────────────────────
+
+export function nurtureWhatToBringEmail(firstName: string, centreName: string) {
+  const subject = `What to bring to ${centreName} — Amana OSHC`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      What to Bring
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Getting ready for your child's first day? Here's a handy checklist of what to pack:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background-color:#f9fafb;">
+      <tr>
+        <td style="padding:16px;">
+          <p style="margin:0 0 8px;color:#111827;font-size:14px;font-weight:600;">Daily essentials:</p>
+          <p style="margin:0;color:#6b7280;font-size:13px;line-height:2;">
+            &#10003; Labelled water bottle<br/>
+            &#10003; Labelled hat (broad-brimmed or legionnaire)<br/>
+            &#10003; A healthy snack or afternoon tea<br/>
+            &#10003; Comfortable clothes suitable for active play<br/>
+            &#10003; A change of clothes (especially for younger children)<br/>
+            &#10003; Sunscreen applied before arrival
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px;border-top:1px solid #e5e7eb;">
+          <p style="margin:0 0 8px;color:#111827;font-size:14px;font-weight:600;">Good to know:</p>
+          <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.8;">
+            &#8226; We provide breakfast during BSC and a light snack during ASC<br/>
+            &#8226; Please label all belongings with your child's name<br/>
+            &#8226; Leave valuables and electronics at home unless needed for homework
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      We can't wait to see your child at the centre!
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+// ─── Parent Nurture: App Setup ──────────────────────────────
+
+export function nurtureAppSetupEmail(firstName: string, centreName: string) {
+  const subject = `Set up the parent app — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Setting Up the Parent App
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Stay connected with ${centreName} through our parent app. You'll be able to:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px;background-color:#eff6ff;">
+          <p style="margin:0;color:#1e40af;font-size:13px;line-height:2;">
+            &#10003; View your child's daily activities and updates<br/>
+            &#10003; Manage bookings and view your schedule<br/>
+            &#10003; Receive important notifications from the centre<br/>
+            &#10003; Update your family details and contacts<br/>
+            &#10003; View statements and payment history
+          </p>
+        </td>
+      </tr>
+    </table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background-color:#f9fafb;">
+      <tr>
+        <td style="padding:16px;">
+          <p style="margin:0 0 8px;color:#111827;font-size:14px;font-weight:600;">How to get started:</p>
+          <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.8;">
+            1. Download the OWNA app from the App Store or Google Play<br/>
+            2. Create your account using the email you enrolled with<br/>
+            3. Follow the prompts to link your child's profile
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      If you run into any issues, our team at the centre can help you get set up.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+// ─── Parent Nurture: First Week Guide ───────────────────────
+
+export function nurtureFirstWeekEmail(firstName: string, centreName: string) {
+  const subject = `Your first week guide — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Your First Week Guide
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Your child's first week is an exciting time! Here are some tips to help everything go smoothly:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px;background-color:#fefce8;border-bottom:1px solid #e5e7eb;">
+          <p style="margin:0 0 4px;color:#854d0e;font-size:14px;font-weight:600;">Before School Care (BSC)</p>
+          <p style="margin:0;color:#713f12;font-size:13px;line-height:1.6;">
+            Drop-off is from 6:30am. We provide a light breakfast, then walk children to their classrooms
+            before the school bell.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px;background-color:#f0fdf4;border-bottom:1px solid #e5e7eb;">
+          <p style="margin:0 0 4px;color:#065f46;font-size:14px;font-weight:600;">After School Care (ASC)</p>
+          <p style="margin:0;color:#047857;font-size:13px;line-height:1.6;">
+            We collect children from their classrooms. Pick-up is available until 6:00pm. We provide
+            afternoon tea and a mix of structured activities and free play.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px;background-color:#eff6ff;">
+          <p style="margin:0 0 4px;color:#1e40af;font-size:14px;font-weight:600;">Tips for a great start</p>
+          <p style="margin:0;color:#1e3a5f;font-size:13px;line-height:1.8;">
+            &#8226; Talk to your child about what to expect — it helps them feel prepared<br/>
+            &#8226; Arrive a few minutes early on the first day so they can settle in<br/>
+            &#8226; Let our educators know about any special needs, allergies, or routines<br/>
+            &#8226; Don't worry if there are a few tears — our team is experienced and caring
+          </p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      We're here to support your family every step of the way. Welcome to the Amana OSHC community!
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+// ─── Holiday Quest Programme ────────────────────────────────
+
+interface HolidayQuestEmailDay {
+  date: string;
+  theme: string;
+  morningActivity: string;
+  afternoonActivity: string;
+  isExcursion: boolean;
+  excursionVenue?: string;
+}
+
+export function holidayQuestProgrammeEmail(
+  centreName: string,
+  periodLabel: string,
+  days: HolidayQuestEmailDay[],
+) {
+  const subject = `Holiday Quest Programme: ${periodLabel} — ${centreName}`;
+
+  const dayRows = days
+    .map((d) => {
+      const dateStr = new Date(d.date).toLocaleDateString("en-AU", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      });
+      const excursionBadge = d.isExcursion
+        ? `<span style="display:inline-block;padding:2px 8px;background-color:#fef3c7;color:#92400e;font-size:11px;font-weight:600;border-radius:4px;margin-left:8px;">EXCURSION${d.excursionVenue ? ` — ${d.excursionVenue}` : ""}</span>`
+        : "";
+      return `
+      <tr>
+        <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;">
+          <p style="margin:0 0 4px;color:#111827;font-size:14px;font-weight:600;">
+            ${dateStr}: ${d.theme}${excursionBadge}
+          </p>
+          <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.6;">
+            <strong>AM:</strong> ${d.morningActivity}<br/>
+            <strong>PM:</strong> ${d.afternoonActivity}
+          </p>
+        </td>
+      </tr>`;
+    })
+    .join("");
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Holiday Quest Programme
+    </h2>
+    <p style="margin:0 0 4px;color:${BRAND_COLOR};font-size:14px;font-weight:600;">
+      ${centreName} — ${periodLabel}
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      We've got an amazing lineup of activities planned for your child! Check out what's
+      coming up during the school holidays:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr style="background-color:${BRAND_COLOR};">
+        <td style="padding:12px 16px;">
+          <p style="margin:0;color:#ffffff;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">
+            Daily Programme
+          </p>
+        </td>
+      </tr>
+      ${dayRows}
+    </table>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background-color:#f0fdf4;">
+      <tr>
+        <td style="padding:16px;text-align:center;">
+          <p style="margin:0 0 4px;color:#065f46;font-size:16px;font-weight:700;">
+            $100 per day
+          </p>
+          <p style="margin:0;color:#047857;font-size:13px;">
+            Child Care Subsidy may apply — check your eligibility
+          </p>
+        </td>
+      </tr>
+    </table>
+    ${buttonHtml("Book Now", `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/holiday-quest`)}
+    <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;text-align:center;">
+      Places are limited — book early to avoid missing out!
+    </p>
+  `);
+
+  return { subject, html };
+}
+
+// ─── Board Report: Draft Notification ───────────────────────
+
+export function boardReportDraftNotificationEmail(
+  name: string,
+  month: number,
+  year: number,
+  reportUrl: string,
+) {
+  const monthName = new Date(year, month - 1).toLocaleDateString("en-AU", { month: "long" });
+  const subject = `${monthName} ${year} Board Report Draft Ready — Amana OSHC`;
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Board Report Draft Ready
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${name}, the <strong>${monthName} ${year}</strong> board report has been automatically generated
+      and is ready for your review.
+    </p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Please review the data, edit the narrative sections as needed, and send to the board when ready.
+    </p>
+    ${buttonHtml("Review Report", reportUrl)}
+    <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
+      This report was auto-generated on the 2nd of the month using data from the previous month.
+    </p>
+  `);
+
+  return { subject, html };
+}
+
+// ─── Board Report: Send to Board ────────────────────────────
+
+export function boardReportEmail(
+  name: string,
+  data: {
+    month: string;
+    year: number;
+    totalRevenue: number;
+    grossProfit: number;
+    avgMargin: number;
+    avgOccupancy: number;
+    activeStaff: number;
+    rocksOnTrack: number;
+    rocksTotal: number;
+    executiveSummary: string;
+    dashboardUrl: string;
+  },
+) {
+  const subject = `${data.month} ${data.year} Board Report — Amana OSHC`;
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Monthly Board Report
+    </h2>
+    <p style="margin:0 0 4px;color:${BRAND_COLOR};font-size:14px;font-weight:600;">
+      ${data.month} ${data.year}
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${name}, please find the monthly board report summary below.
+    </p>
+
+    <!-- KPI Cards -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px;text-align:center;background-color:#f0fdf4;width:33%;">
+          <div style="font-size:22px;font-weight:700;color:#10b981;">$${data.totalRevenue.toLocaleString("en-AU", { minimumFractionDigits: 0 })}</div>
+          <div style="font-size:11px;color:#059669;text-transform:uppercase;margin-top:4px;">Revenue</div>
+        </td>
+        <td style="padding:16px;text-align:center;background-color:#eff6ff;width:33%;">
+          <div style="font-size:22px;font-weight:700;color:#3b82f6;">${Math.round(data.avgMargin)}%</div>
+          <div style="font-size:11px;color:#2563eb;text-transform:uppercase;margin-top:4px;">Margin</div>
+        </td>
+        <td style="padding:16px;text-align:center;background-color:#f5f3ff;width:34%;">
+          <div style="font-size:22px;font-weight:700;color:#8b5cf6;">${data.avgOccupancy}%</div>
+          <div style="font-size:11px;color:#7c3aed;text-transform:uppercase;margin-top:4px;">Occupancy</div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px;text-align:center;background-color:#fffbeb;width:33%;">
+          <div style="font-size:18px;font-weight:700;color:#f59e0b;">${data.activeStaff}</div>
+          <div style="font-size:11px;color:#d97706;text-transform:uppercase;margin-top:2px;">Staff</div>
+        </td>
+        <td colspan="2" style="padding:12px;text-align:center;background-color:#f9fafb;width:67%;">
+          <div style="font-size:18px;font-weight:700;color:${BRAND_COLOR};">${data.rocksOnTrack}/${data.rocksTotal}</div>
+          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;margin-top:2px;">Rocks On Track</div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Executive Summary -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px;background-color:#f9fafb;">
+          <p style="margin:0 0 8px;color:#111827;font-size:14px;font-weight:600;">Executive Summary</p>
+          <p style="margin:0;color:#374151;font-size:13px;line-height:1.7;">
+            ${data.executiveSummary}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    ${buttonHtml("View Full Report", data.dashboardUrl)}
+    <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;text-align:center;">
+      View the complete report with detailed breakdowns on the dashboard.
+    </p>
+  `);
+
+  return { subject, html };
+}
+
+// ─── Staffing Alert ─────────────────────────────────────────
+
+interface StaffingAlertService {
+  name: string;
+  status: "overstaffed" | "understaffed" | "optimal" | "no_data";
+  bscVariance: number;
+  ascVariance: number;
+  totalWaste: number;
+  totalRisk: number;
+}
+
+export function staffingAlertEmail(
+  name: string,
+  date: string,
+  alerts: StaffingAlertService[],
+  dashboardUrl: string,
+) {
+  const wasteAlerts = alerts.filter((a) => a.status === "overstaffed");
+  const riskAlerts = alerts.filter((a) => a.status === "understaffed");
+  const totalAlerts = wasteAlerts.length + riskAlerts.length;
+
+  const subject = `${totalAlerts} staffing alert${totalAlerts !== 1 ? "s" : ""} for ${date} — Amana OSHC`;
+
+  const statusColor: Record<string, string> = {
+    overstaffed: "#f97316",
+    understaffed: "#dc2626",
+    optimal: "#10b981",
+  };
+
+  const alertRows = alerts
+    .filter((a) => a.status !== "optimal" && a.status !== "no_data")
+    .map(
+      (a) => `
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;font-size:13px;font-weight:500;">
+        ${a.name}
+      </td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;">
+        <span style="color:${statusColor[a.status] || "#6b7280"};font-weight:600;text-transform:uppercase;">
+          ${a.status === "overstaffed" ? "OVER" : "UNDER"}
+        </span>
+      </td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;text-align:center;">
+        ${a.bscVariance > 0 ? "+" : ""}${a.bscVariance}
+      </td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;text-align:center;">
+        ${a.ascVariance > 0 ? "+" : ""}${a.ascVariance}
+      </td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;font-weight:600;color:${a.totalWaste > 0 ? "#f97316" : "#dc2626"};">
+        ${a.totalWaste > 0 ? `$${a.totalWaste.toFixed(0)} waste` : `$${a.totalRisk.toFixed(0)} at risk`}
+      </td>
+    </tr>`,
+    )
+    .join("");
+
+  const summaryHtml =
+    wasteAlerts.length > 0 || riskAlerts.length > 0
+      ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        ${
+          wasteAlerts.length > 0
+            ? `<td style="padding:16px;text-align:center;background-color:#fff7ed;width:50%;">
+            <div style="font-size:24px;font-weight:700;color:#f97316;">$${wasteAlerts.reduce((s, a) => s + a.totalWaste, 0).toFixed(0)}</div>
+            <div style="font-size:11px;color:#ea580c;text-transform:uppercase;margin-top:4px;">Overstaffing Waste</div>
+          </td>`
+            : ""
+        }
+        ${
+          riskAlerts.length > 0
+            ? `<td style="padding:16px;text-align:center;background-color:#fef2f2;width:50%;">
+            <div style="font-size:24px;font-weight:700;color:#dc2626;">$${riskAlerts.reduce((s, a) => s + a.totalRisk, 0).toFixed(0)}</div>
+            <div style="font-size:11px;color:#dc2626;text-transform:uppercase;margin-top:4px;">Revenue at Risk</div>
+          </td>`
+            : ""
+        }
+      </tr>
+    </table>`
+      : "";
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Staffing Alerts for ${date}
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${name}, the following centres have staffing imbalances for tomorrow:
+    </p>
+
+    ${summaryHtml}
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr style="background-color:#f9fafb;">
+        <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Centre</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Status</th>
+        <th style="padding:8px 12px;text-align:center;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">BSC</th>
+        <th style="padding:8px 12px;text-align:center;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">ASC</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Impact</th>
+      </tr>
+      ${alertRows}
+    </table>
+
+    <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
+      BSC/ASC values show educator variance (+ = over, - = under). Ratio: 1 educator per 15 children.
+    </p>
+
+    ${buttonHtml("View Staffing Dashboard", dashboardUrl)}
+  `);
+
+  return { subject, html };
+}

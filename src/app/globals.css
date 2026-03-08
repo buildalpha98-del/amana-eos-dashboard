@@ -46,3 +46,12 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb:hover {
   background: #9CA3AF;
 }
+
+/* Print styles for board report PDF export */
+@media print {
+  nav, aside, [data-sidebar], [data-topbar], .no-print { display: none !important; }
+  main { margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
+  .report-section { page-break-inside: avoid; margin-bottom: 24px; }
+  button, .no-print { display: none !important; }
+  body { background: white !important; }
+}

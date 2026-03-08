@@ -60,6 +60,34 @@
     {
       "path": "/api/cron/touchpoint-scheduler",
       "schedule": "0 */1 * * *"
+    },
+    {
+      "path": "/api/cron/owna-sync",
+      "schedule": "*/30 20-23,0-9 * * 1-5"
+    },
+    {
+      "path": "/api/cron/staffing-alerts",
+      "schedule": "0 7 * * 0-4"
+    },
+    {
+      "path": "/api/cron/conversion-analysis",
+      "schedule": "0 20 * * 0"
+    },
+    {
+      "path": "/api/cron/audit-scheduler",
+      "schedule": "0 19 1 * *"
+    },
+    {
+      "path": "/api/cron/audit-followup",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/nurture-send",
+      "schedule": "0 20,22,0,2,4,6,8 * * *"
+    },
+    {
+      "path": "/api/cron/board-report",
+      "schedule": "0 16 2 * *"
     }
   ]
 }

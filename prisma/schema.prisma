@@ -379,81 +379,87 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  ownedRocks        Rock[]            @relation("RockOwner")
-  assignedTodos     Todo[]            @relation("TodoAssignee")
-  createdTodos      Todo[]            @relation("TodoCreator")
-  raisedIssues      Issue[]           @relation("IssueRaiser")
-  ownedIssues       Issue[]           @relation("IssueOwner")
-  ownedMeasurables  Measurable[]      @relation("MeasurableOwner")
-  measurableEntries MeasurableEntry[] @relation("EntryCreator")
-  activityLogs      ActivityLog[]
-  vtoUpdates        VisionTractionOrganiser[] @relation("VTOUpdater")
-  managedServices   Service[]         @relation("ServiceManager")
-  ownedProjects     Project[]         @relation("ProjectOwner")
-  createdMeetings   Meeting[]         @relation("MeetingCreator")
-  uploadedDocuments Document[]        @relation("DocumentUploader")
-  uploadedAttachments Attachment[]    @relation("AttachmentUploader")
-  assignedTickets   SupportTicket[]   @relation("TicketAssignee")
-  sentMessages      TicketMessage[]   @relation("MessageSender")
-  dismissedNotifications NotificationDismissal[]
-  marketingPosts    MarketingPost[]   @relation("MarketingPostAssignee")
-  approvedPosts     MarketingPost[]   @relation("MarketingPostApprover")
-  marketingComments MarketingComment[] @relation("MarketingCommentAuthor")
-  marketingTasks    MarketingTask[]   @relation("MarketingTaskAssignee")
-  announcements     Announcement[]    @relation("AnnouncementAuthor")
-  announcementReads AnnouncementRead[] @relation("AnnouncementReader")
-  cascadeAcks       CascadeAcknowledgment[] @relation("CascadeAcknowledger")
-  weeklyPulses      WeeklyPulse[]     @relation("PulseAuthor")
-  passwordResetTokens PasswordResetToken[]
-  calendarIntegration CalendarIntegration?
-  onboardings       StaffOnboarding[] @relation("OnboardingUser")
-  lmsEnrollments    LMSEnrollment[]   @relation("LMSStudent")
-  certificates      ComplianceCertificate[] @relation("UserCertificates")
-  recordedAttendance DailyAttendance[]     @relation("AttendanceRecorder")
-  budgetItemsCreated BudgetItem[]          @relation("BudgetItemCreator")
-  programActivitiesCreated ProgramActivity[] @relation("ProgramCreator")
-  menuWeeksCreated  MenuWeek[]             @relation("MenuCreator")
-  activityTemplatesCreated ActivityTemplate[] @relation("ActivityTemplateCreator")
-  activityTemplateFilesUploaded ActivityTemplateFile[] @relation("ActivityTemplateFileUploader")
-  seatAssignments    AccountabilitySeatAssignment[]
-  todoTemplatesAssigned TodoTemplate[]  @relation("TemplateAssignee")
-  todoTemplatesCreated  TodoTemplate[]  @relation("TemplateCreator")
+  ownedRocks                    Rock[]                         @relation("RockOwner")
+  assignedTodos                 Todo[]                         @relation("TodoAssignee")
+  createdTodos                  Todo[]                         @relation("TodoCreator")
+  raisedIssues                  Issue[]                        @relation("IssueRaiser")
+  ownedIssues                   Issue[]                        @relation("IssueOwner")
+  ownedMeasurables              Measurable[]                   @relation("MeasurableOwner")
+  measurableEntries             MeasurableEntry[]              @relation("EntryCreator")
+  activityLogs                  ActivityLog[]
+  vtoUpdates                    VisionTractionOrganiser[]      @relation("VTOUpdater")
+  managedServices               Service[]                      @relation("ServiceManager")
+  ownedProjects                 Project[]                      @relation("ProjectOwner")
+  createdMeetings               Meeting[]                      @relation("MeetingCreator")
+  uploadedDocuments             Document[]                     @relation("DocumentUploader")
+  uploadedAttachments           Attachment[]                   @relation("AttachmentUploader")
+  assignedTickets               SupportTicket[]                @relation("TicketAssignee")
+  sentMessages                  TicketMessage[]                @relation("MessageSender")
+  dismissedNotifications        NotificationDismissal[]
+  marketingPosts                MarketingPost[]                @relation("MarketingPostAssignee")
+  approvedPosts                 MarketingPost[]                @relation("MarketingPostApprover")
+  marketingComments             MarketingComment[]             @relation("MarketingCommentAuthor")
+  marketingTasks                MarketingTask[]                @relation("MarketingTaskAssignee")
+  announcements                 Announcement[]                 @relation("AnnouncementAuthor")
+  announcementReads             AnnouncementRead[]             @relation("AnnouncementReader")
+  cascadeAcks                   CascadeAcknowledgment[]        @relation("CascadeAcknowledger")
+  weeklyPulses                  WeeklyPulse[]                  @relation("PulseAuthor")
+  passwordResetTokens           PasswordResetToken[]
+  calendarIntegration           CalendarIntegration?
+  onboardings                   StaffOnboarding[]              @relation("OnboardingUser")
+  lmsEnrollments                LMSEnrollment[]                @relation("LMSStudent")
+  certificates                  ComplianceCertificate[]        @relation("UserCertificates")
+  recordedAttendance            DailyAttendance[]              @relation("AttendanceRecorder")
+  budgetItemsCreated            BudgetItem[]                   @relation("BudgetItemCreator")
+  programActivitiesCreated      ProgramActivity[]              @relation("ProgramCreator")
+  menuWeeksCreated              MenuWeek[]                     @relation("MenuCreator")
+  activityTemplatesCreated      ActivityTemplate[]             @relation("ActivityTemplateCreator")
+  activityTemplateFilesUploaded ActivityTemplateFile[]         @relation("ActivityTemplateFileUploader")
+  seatAssignments               AccountabilitySeatAssignment[]
+  todoTemplatesAssigned         TodoTemplate[]                 @relation("TemplateAssignee")
+  todoTemplatesCreated          TodoTemplate[]                 @relation("TemplateCreator")
 
   // ── Staff Profile Expansion ──────────────────────────────────
   phone             String?
-  dateOfBirth       DateTime?    @db.Date
+  dateOfBirth       DateTime?       @db.Date
   addressStreet     String?
   addressSuburb     String?
   addressState      String?
   addressPostcode   String?
-  taxFileNumber     String?      @db.Text  // AES-256-GCM encrypted
+  taxFileNumber     String?         @db.Text // AES-256-GCM encrypted
   superFundName     String?
   superMemberNumber String?
   superUSI          String?
   visaStatus        VisaStatus?
-  visaExpiry        DateTime?    @db.Date
+  visaExpiry        DateTime?       @db.Date
   employmentType    EmploymentType?
-  startDate         DateTime?    @db.Date
-  probationEndDate  DateTime?    @db.Date
+  startDate         DateTime?       @db.Date
+  probationEndDate  DateTime?       @db.Date
   bankDetailsNote   String?
   xeroEmployeeId    String?
 
   // ── HR Relations ─────────────────────────────────────────────
-  emergencyContacts   EmergencyContact[]
-  qualifications      StaffQualification[]
-  contracts           EmploymentContract[]    @relation("ContractEmployee")
-  leaveRequests       LeaveRequest[]          @relation("LeaveRequester")
-  approvedLeaves      LeaveRequest[]          @relation("LeaveApprover")
-  leaveBalances       LeaveBalance[]
-  timesheetEntries    TimesheetEntry[]        @relation("TimesheetStaff")
-  policyAcks          PolicyAcknowledgement[] @relation("PolicyAcknowledger")
-  offboardings        StaffOffboarding[]      @relation("OffboardingUser")
-  apiKeys             ApiKey[]                @relation("ApiKeyCreator")
+  emergencyContacts EmergencyContact[]
+  qualifications    StaffQualification[]
+  contracts         EmploymentContract[]    @relation("ContractEmployee")
+  leaveRequests     LeaveRequest[]          @relation("LeaveRequester")
+  approvedLeaves    LeaveRequest[]          @relation("LeaveApprover")
+  leaveBalances     LeaveBalance[]
+  timesheetEntries  TimesheetEntry[]        @relation("TimesheetStaff")
+  policyAcks        PolicyAcknowledgement[] @relation("PolicyAcknowledger")
+  offboardings      StaffOffboarding[]      @relation("OffboardingUser")
+  apiKeys           ApiKey[]                @relation("ApiKeyCreator")
 
   // ── CRM Relations ───────────────────────────────────────────
-  assignedLeads       Lead[]                 @relation("LeadAssignee")
-  touchpointsSent     TouchpointLog[]        @relation("TouchpointSender")
+  assignedLeads           Lead[]                         @relation("LeadAssignee")
+  touchpointsSent         TouchpointLog[]                @relation("TouchpointSender")
   activationCoordinations CampaignActivationAssignment[] @relation("ActivationCoordinator")
+
+  // ── Compliance Audit Relations
+  conductedAudits AuditInstance[] @relation("AuditAuditor")
+
+  // ── Scenario Modelling
+  scenarios Scenario[] @relation("ScenarioCreator")
 
   @@index([serviceId])
 }
@@ -494,7 +500,7 @@ model VisionTractionOrganiser {
   tenYearTarget     String?  @db.Text
   threeYearPicture  String?  @db.Text
   marketingStrategy String?  @db.Text
-  sectionLabels     Json?    // Custom section titles e.g. { tenYearTarget: "5-Year Target" }
+  sectionLabels     Json? // Custom section titles e.g. { tenYearTarget: "5-Year Target" }
   updatedAt         DateTime @updatedAt
   updatedById       String?
   updatedBy         User?    @relation("VTOUpdater", fields: [updatedById], references: [id])
@@ -503,15 +509,15 @@ model VisionTractionOrganiser {
 }
 
 model OneYearGoal {
-  id          String     @id @default(cuid())
+  id          String                  @id @default(cuid())
   title       String
-  description String?    @db.Text
+  description String?                 @db.Text
   targetDate  DateTime?
-  status      GoalStatus @default(on_track)
+  status      GoalStatus              @default(on_track)
   vtoId       String
   vto         VisionTractionOrganiser @relation(fields: [vtoId], references: [id], onDelete: Cascade)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
 
   rocks Rock[]
 }
@@ -617,7 +623,7 @@ model Issue {
   updatedAt    DateTime      @updatedAt
 
   spawnedTodos Todo[]
-  attachments Attachment[]
+  attachments  Attachment[]
 
   @@index([priority])
   @@index([status])
@@ -699,13 +705,13 @@ model ActivityLog {
 // ============================================================
 
 model CronRun {
-  id        String   @id @default(cuid())
-  cronName  String
-  period    String   // e.g. "2025-03-05" for daily, "2025-W10" for weekly
-  details   Json?
-  startedAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  cronName    String
+  period      String // e.g. "2025-03-05" for daily, "2025-W10" for weekly
+  details     Json?
+  startedAt   DateTime  @default(now())
   completedAt DateTime?
-  status    String   @default("running") // running | completed | failed
+  status      String    @default("running") // running | completed | failed
 
   @@unique([cronName, period])
   @@index([cronName])
@@ -713,19 +719,57 @@ model CronRun {
 }
 
 // ============================================================
+// Board Reports
+// ============================================================
+
+enum BoardReportStatus {
+  draft
+  final
+  sent
+}
+
+model BoardReport {
+  id        String            @id @default(cuid())
+  month     Int               // 1-12
+  year      Int
+  status    BoardReportStatus @default(draft)
+  data      Json              // Full structured report data snapshot
+
+  executiveSummary    String? @db.Text
+  financialNarrative  String? @db.Text
+  operationsNarrative String? @db.Text
+  complianceNarrative String? @db.Text
+  growthNarrative     String? @db.Text
+  peopleNarrative     String? @db.Text
+  rocksNarrative      String? @db.Text
+
+  generatedAt DateTime  @default(now())
+  finalizedAt DateTime?
+  sentAt      DateTime?
+  sentById    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([month, year])
+  @@index([year])
+  @@index([status])
+}
+
+// ============================================================
 // Marketing
 // ============================================================
 
 model MarketingCampaign {
-  id          String                  @id @default(cuid())
-  name        String
-  type        MarketingCampaignType   @default(campaign)
-  status      MarketingCampaignStatus @default(draft)
-  startDate   DateTime?
-  endDate     DateTime?
-  platforms   MarketingPlatform[]
-  goal        String?                 @db.Text
-  notes       String?                 @db.Text
+  id           String                  @id @default(cuid())
+  name         String
+  type         MarketingCampaignType   @default(campaign)
+  status       MarketingCampaignStatus @default(draft)
+  startDate    DateTime?
+  endDate      DateTime?
+  platforms    MarketingPlatform[]
+  goal         String?                 @db.Text
+  notes        String?                 @db.Text
   designLink   String?
   budget       Float?
   location     String?
@@ -734,10 +778,10 @@ model MarketingCampaign {
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
 
-  posts    MarketingPost[]
-  comments MarketingComment[]
-  services MarketingCampaignService[]
-  tasks    MarketingTask[]
+  posts                 MarketingPost[]
+  comments              MarketingComment[]
+  services              MarketingCampaignService[]
+  tasks                 MarketingTask[]
   activationAssignments CampaignActivationAssignment[]
 
   @@index([status])
@@ -745,43 +789,43 @@ model MarketingCampaign {
 }
 
 model MarketingPost {
-  id               String               @id @default(cuid())
-  title            String
-  platform         MarketingPlatform
-  status           MarketingPostStatus   @default(draft)
-  scheduledDate    DateTime?
-  content          String?               @db.Text
-  notes            String?               @db.Text
-  designLink       String?
-  pillar           String?
-  assigneeId       String?
-  assignee         User?                 @relation("MarketingPostAssignee", fields: [assigneeId], references: [id])
-  campaignId       String?
-  campaign         MarketingCampaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  likes            Int                   @default(0)
-  comments         Int                   @default(0)
-  shares           Int                   @default(0)
-  reach            Int                   @default(0)
-  recurring        MarketingRecurrence   @default(none)
-  recurringParentId String?
-  recurringParent  MarketingPost?        @relation("RecurringPosts", fields: [recurringParentId], references: [id])
-  recurringChildren MarketingPost[]      @relation("RecurringPosts")
-  clonedFromId     String?
-  clonedFrom       MarketingPost?        @relation("PostClones", fields: [clonedFromId], references: [id])
-  clones           MarketingPost[]       @relation("PostClones")
-  services         MarketingPostService[]
-  externalPostId   String?
-  externalUrl      String?
+  id                 String                 @id @default(cuid())
+  title              String
+  platform           MarketingPlatform
+  status             MarketingPostStatus    @default(draft)
+  scheduledDate      DateTime?
+  content            String?                @db.Text
+  notes              String?                @db.Text
+  designLink         String?
+  pillar             String?
+  assigneeId         String?
+  assignee           User?                  @relation("MarketingPostAssignee", fields: [assigneeId], references: [id])
+  campaignId         String?
+  campaign           MarketingCampaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  likes              Int                    @default(0)
+  comments           Int                    @default(0)
+  shares             Int                    @default(0)
+  reach              Int                    @default(0)
+  recurring          MarketingRecurrence    @default(none)
+  recurringParentId  String?
+  recurringParent    MarketingPost?         @relation("RecurringPosts", fields: [recurringParentId], references: [id])
+  recurringChildren  MarketingPost[]        @relation("RecurringPosts")
+  clonedFromId       String?
+  clonedFrom         MarketingPost?         @relation("PostClones", fields: [clonedFromId], references: [id])
+  clones             MarketingPost[]        @relation("PostClones")
+  services           MarketingPostService[]
+  externalPostId     String?
+  externalUrl        String?
   engagementSyncedAt DateTime?
-  approvedById    String?
-  approvedBy      User?                 @relation("MarketingPostApprover", fields: [approvedById], references: [id])
-  approvedAt      DateTime?
-  rejectionReason String?               @db.Text
-  deleted          Boolean               @default(false)
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  approvedById       String?
+  approvedBy         User?                  @relation("MarketingPostApprover", fields: [approvedById], references: [id])
+  approvedAt         DateTime?
+  rejectionReason    String?                @db.Text
+  deleted            Boolean                @default(false)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
 
-  tasks    MarketingTask[]
+  tasks MarketingTask[]
 
   @@index([platform])
   @@index([status])
@@ -849,13 +893,13 @@ model MarketingTemplate {
 }
 
 model MarketingHashtagSet {
-  id        String                  @id @default(cuid())
+  id        String                   @id @default(cuid())
   name      String
   category  MarketingHashtagCategory
-  tags      String                  @db.Text
-  deleted   Boolean                 @default(false)
-  createdAt DateTime                @default(now())
-  updatedAt DateTime                @updatedAt
+  tags      String                   @db.Text
+  deleted   Boolean                  @default(false)
+  createdAt DateTime                 @default(now())
+  updatedAt DateTime                 @updatedAt
 
   @@index([category])
 }
@@ -886,24 +930,24 @@ model MarketingTask {
 }
 
 model MarketingTaskTemplate {
-  id          String   @id @default(cuid())
+  id          String                      @id @default(cuid())
   name        String
-  description String?  @db.Text
+  description String?                     @db.Text
   category    String?
   items       MarketingTaskTemplateItem[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
 }
 
 model MarketingTaskTemplateItem {
-  id          String                 @id @default(cuid())
+  id          String                @id @default(cuid())
   templateId  String
-  template    MarketingTaskTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template    MarketingTaskTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   title       String
-  description String?                @db.Text
-  priority    MarketingTaskPriority  @default(medium)
-  sortOrder   Int                    @default(0)
-  daysOffset  Int                    @default(0)
+  description String?               @db.Text
+  priority    MarketingTaskPriority @default(medium)
+  sortOrder   Int                   @default(0)
+  daysOffset  Int                   @default(0)
 
   @@index([templateId])
 }
@@ -933,70 +977,85 @@ model CampaignActivationAssignment {
 // ============================================================
 
 model Service {
-  id          String        @id @default(cuid())
-  name        String
-  code        String        @unique
-  address     String?
-  suburb      String?
-  state       String?
-  postcode    String?
-  phone       String?
-  email       String?
-  status      ServiceStatus @default(active)
-  managerId   String?
-  manager     User?         @relation("ServiceManager", fields: [managerId], references: [id])
-  capacity    Int?
-  operatingDays String?
-  notes       String?       @db.Text
-  bscDailyRate  Float?
-  ascDailyRate  Float?
-  vcDailyRate   Float?
-  bscCasualRate Float     @default(0)
-  ascCasualRate Float     @default(0)
-  bscGroceryRate Float    @default(0.80)
-  ascGroceryRate Float    @default(1.20)
-  vcGroceryRate  Float    @default(4.50)
+  id                   String        @id @default(cuid())
+  name                 String
+  code                 String        @unique
+  address              String?
+  suburb               String?
+  state                String?
+  postcode             String?
+  phone                String?
+  email                String?
+  status               ServiceStatus @default(active)
+  managerId            String?
+  manager              User?         @relation("ServiceManager", fields: [managerId], references: [id])
+  capacity             Int?
+  operatingDays        String?
+  notes                String?       @db.Text
+  bscDailyRate         Float?
+  ascDailyRate         Float?
+  vcDailyRate          Float?
+  bscCasualRate        Float         @default(0)
+  ascCasualRate        Float         @default(0)
+  bscGroceryRate       Float         @default(0.80)
+  ascGroceryRate       Float         @default(1.20)
+  vcGroceryRate        Float         @default(4.50)
   xeroTrackingOptionId String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  ownaServiceId        String? // OWNA's internal service ID
+  ownaLocationId       String? // OWNA's location reference
+  ownaSyncedAt         DateTime? // Last successful OWNA sync
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
-  todos    Todo[]
-  projects Project[]
-  issues   Issue[]    @relation("ServiceIssues")
-  rocks    Rock[]     @relation("ServiceRocks")
-  measurables Measurable[] @relation("ServiceMeasurables")
-  financials FinancialPeriod[] @relation("ServiceFinancials")
-  metrics    CentreMetrics[]   @relation("ServiceMetrics")
-  documents  Document[] @relation("ServiceDocuments")
-  tickets    SupportTicket[]  @relation("ServiceTickets")
-  whatsappContacts WhatsAppContact[] @relation("ServiceContacts")
-  announcements Announcement[] @relation("ServiceAnnouncements")
-  healthScores      HealthScore[]      @relation("ServiceHealthScores")
-  staffMembers      User[]             @relation("ServiceStaff")
-  onboardingPacks   OnboardingPack[]   @relation("ServiceOnboardingPacks")
-  lmsCourses        LMSCourse[]        @relation("ServiceCourses")
-  certificates      ComplianceCertificate[] @relation("ServiceCertificates")
-  attendance        DailyAttendance[]      @relation("ServiceAttendance")
-  budgetItems       BudgetItem[]           @relation("ServiceBudgetItems")
-  programActivities ProgramActivity[]      @relation("ServicePrograms")
-  menuWeeks         MenuWeek[]             @relation("ServiceMenus")
-  todoTemplates     TodoTemplate[]         @relation("ServiceTemplates")
-  marketingPosts    MarketingPostService[]     @relation("ServiceMarketingPosts")
-  marketingCampaigns MarketingCampaignService[] @relation("ServiceMarketingCampaigns")
-  marketingTasks    MarketingTask[]            @relation("ServiceMarketingTasks")
-  socialConnections SocialConnection[]         @relation("ServiceSocialConnections")
+  todos                 Todo[]
+  projects              Project[]
+  issues                Issue[]                        @relation("ServiceIssues")
+  rocks                 Rock[]                         @relation("ServiceRocks")
+  measurables           Measurable[]                   @relation("ServiceMeasurables")
+  financials            FinancialPeriod[]              @relation("ServiceFinancials")
+  metrics               CentreMetrics[]                @relation("ServiceMetrics")
+  documents             Document[]                     @relation("ServiceDocuments")
+  tickets               SupportTicket[]                @relation("ServiceTickets")
+  whatsappContacts      WhatsAppContact[]              @relation("ServiceContacts")
+  announcements         Announcement[]                 @relation("ServiceAnnouncements")
+  healthScores          HealthScore[]                  @relation("ServiceHealthScores")
+  staffMembers          User[]                         @relation("ServiceStaff")
+  onboardingPacks       OnboardingPack[]               @relation("ServiceOnboardingPacks")
+  lmsCourses            LMSCourse[]                    @relation("ServiceCourses")
+  certificates          ComplianceCertificate[]        @relation("ServiceCertificates")
+  attendance            DailyAttendance[]              @relation("ServiceAttendance")
+  budgetItems           BudgetItem[]                   @relation("ServiceBudgetItems")
+  programActivities     ProgramActivity[]              @relation("ServicePrograms")
+  menuWeeks             MenuWeek[]                     @relation("ServiceMenus")
+  todoTemplates         TodoTemplate[]                 @relation("ServiceTemplates")
+  marketingPosts        MarketingPostService[]         @relation("ServiceMarketingPosts")
+  marketingCampaigns    MarketingCampaignService[]     @relation("ServiceMarketingCampaigns")
+  marketingTasks        MarketingTask[]                @relation("ServiceMarketingTasks")
+  socialConnections     SocialConnection[]             @relation("ServiceSocialConnections")
   activationAssignments CampaignActivationAssignment[] @relation("ServiceActivations")
 
   // ── HR Relations ─────────────────────────────────────────────
-  leaveRequests      LeaveRequest[]          @relation("ServiceLeaveRequests")
-  timesheets         Timesheet[]             @relation("ServiceTimesheets")
-  offboardingPacks   OffboardingPack[]       @relation("ServiceOffboardingPacks")
+  leaveRequests    LeaveRequest[]    @relation("ServiceLeaveRequests")
+  timesheets       Timesheet[]       @relation("ServiceTimesheets")
+  offboardingPacks OffboardingPack[] @relation("ServiceOffboardingPacks")
 
   // ── CRM Relations ──────────────────────────────────────────
-  leads              Lead[]                  @relation("LeadService")
+  leads Lead[] @relation("LeadService")
 
   // ── Delivery Relations ────────────────────────────────────
-  centreContacts     CentreContact[]         @relation("ServiceContacts_Email")
+  centreContacts CentreContact[] @relation("ServiceContacts_Email")
+  nurtureSteps   ParentNurtureStep[] @relation("ServiceNurtureSteps")
+
+  // ── Holiday Quest Relations ──────────────────────────────
+  holidayQuests HolidayQuestDay[] @relation("ServiceHolidayQuest")
+
+  // ── OWNA Integration Relations ──────────────────────────
+  bookingForecasts        BookingForecast[]       @relation("ServiceBookings")
+  rosterShifts            RosterShift[]           @relation("ServiceRosterShifts")
+  conversionOpportunities ConversionOpportunity[] @relation("ServiceConversions")
+
+  // ── Compliance Audit Relations ─────────────────────────
+  audits AuditInstance[] @relation("ServiceAudits")
 
   @@index([status])
   @@index([managerId])
@@ -1028,24 +1087,24 @@ model ProjectTemplateTask {
 }
 
 model Project {
-  id          String        @id @default(cuid())
+  id          String           @id @default(cuid())
   name        String
-  description String?       @db.Text
+  description String?          @db.Text
   serviceId   String?
-  service     Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  service     Service?         @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   templateId  String?
   template    ProjectTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   ownerId     String
-  owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id])
-  status      ProjectStatus @default(not_started)
+  owner       User             @relation("ProjectOwner", fields: [ownerId], references: [id])
+  status      ProjectStatus    @default(not_started)
   startDate   DateTime?
   targetDate  DateTime?
   completedAt DateTime?
-  deleted     Boolean       @default(false)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  deleted     Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
-  todos Todo[]
+  todos       Todo[]
   attachments Attachment[]
 
   @@index([serviceId])
@@ -1058,25 +1117,25 @@ model Project {
 // ============================================================
 
 model Meeting {
-  id            String        @id @default(cuid())
-  title         String
-  date          DateTime
-  status        MeetingStatus @default(scheduled)
-  currentSection Int          @default(0)
-  rating        Float?
-  notes         String?       @db.Text
-  headlines     String?       @db.Text
-  segueNotes    String?       @db.Text
+  id              String        @id @default(cuid())
+  title           String
+  date            DateTime
+  status          MeetingStatus @default(scheduled)
+  currentSection  Int           @default(0)
+  rating          Float?
+  notes           String?       @db.Text
+  headlines       String?       @db.Text
+  segueNotes      String?       @db.Text
   concludeNotes   String?       @db.Text
   cascadeMessages String?       @db.Text
-  serviceIds    String[]      // IDs of services scoped to this meeting
-  rockIds       String[]      // IDs of rocks linked to this meeting
+  serviceIds      String[] // IDs of services scoped to this meeting
+  rockIds         String[] // IDs of rocks linked to this meeting
   startedAt       DateTime?
-  completedAt   DateTime?
-  createdById   String
-  createdBy     User          @relation("MeetingCreator", fields: [createdById], references: [id])
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  completedAt     DateTime?
+  createdById     String
+  createdBy       User          @relation("MeetingCreator", fields: [createdById], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   cascades CascadeMessage[] @relation("MeetingCascade")
 
@@ -1103,25 +1162,25 @@ enum DocumentCategory {
 }
 
 model Document {
-  id          String           @id @default(cuid())
-  title       String
-  description String?          @db.Text
-  category    DocumentCategory @default(other)
-  fileName    String
-  fileUrl     String
-  fileSize    Int?
-  mimeType    String?
-  centreId    String?
-  centre      Service?         @relation("ServiceDocuments", fields: [centreId], references: [id], onDelete: SetNull)
+  id           String           @id @default(cuid())
+  title        String
+  description  String?          @db.Text
+  category     DocumentCategory @default(other)
+  fileName     String
+  fileUrl      String
+  fileSize     Int?
+  mimeType     String?
+  centreId     String?
+  centre       Service?         @relation("ServiceDocuments", fields: [centreId], references: [id], onDelete: SetNull)
   uploadedById String
-  uploadedBy  User             @relation("DocumentUploader", fields: [uploadedById], references: [id])
-  version     Int              @default(1)
-  tags        String[]
-  folderId    String?
-  folder      DocumentFolder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  deleted     Boolean          @default(false)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  uploadedBy   User             @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  version      Int              @default(1)
+  tags         String[]
+  folderId     String?
+  folder       DocumentFolder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  deleted      Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   @@index([category])
   @@index([centreId])
@@ -1143,20 +1202,20 @@ model DocumentFolder {
 }
 
 model Attachment {
-  id          String   @id @default(cuid())
-  fileName    String
-  fileUrl     String
-  fileSize    Int?
-  mimeType    String?
-  rockId      String?
-  rock        Rock?    @relation(fields: [rockId], references: [id], onDelete: Cascade)
-  issueId     String?
-  issue       Issue?   @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  fileName     String
+  fileUrl      String
+  fileSize     Int?
+  mimeType     String?
+  rockId       String?
+  rock         Rock?    @relation(fields: [rockId], references: [id], onDelete: Cascade)
+  issueId      String?
+  issue        Issue?   @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  projectId    String?
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   uploadedById String
-  uploadedBy  User     @relation("AttachmentUploader", fields: [uploadedById], references: [id])
-  createdAt   DateTime @default(now())
+  uploadedBy   User     @relation("AttachmentUploader", fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
 
   @@index([rockId])
   @@index([issueId])
@@ -1174,88 +1233,104 @@ enum FinancialPeriodType {
 }
 
 model FinancialPeriod {
-  id            String              @id @default(cuid())
-  serviceId     String
-  service       Service             @relation("ServiceFinancials", fields: [serviceId], references: [id], onDelete: Cascade)
-  periodType    FinancialPeriodType
-  periodStart   DateTime
-  periodEnd     DateTime
-  
+  id          String              @id @default(cuid())
+  serviceId   String
+  service     Service             @relation("ServiceFinancials", fields: [serviceId], references: [id], onDelete: Cascade)
+  periodType  FinancialPeriodType
+  periodStart DateTime
+  periodEnd   DateTime
+
   // Revenue
-  bscRevenue    Float               @default(0)
-  ascRevenue    Float               @default(0)
-  vcRevenue     Float               @default(0)
-  otherRevenue  Float               @default(0)
-  totalRevenue  Float               @default(0)
-  
+  bscRevenue   Float @default(0)
+  ascRevenue   Float @default(0)
+  vcRevenue    Float @default(0)
+  otherRevenue Float @default(0)
+  totalRevenue Float @default(0)
+
   // Costs
-  staffCosts    Float               @default(0)
-  foodCosts     Float               @default(0)
-  suppliesCosts Float               @default(0)
-  rentCosts     Float               @default(0)
-  adminCosts    Float               @default(0)
-  otherCosts    Float               @default(0)
-  totalCosts    Float               @default(0)
-  
+  staffCosts    Float @default(0)
+  foodCosts     Float @default(0)
+  suppliesCosts Float @default(0)
+  rentCosts     Float @default(0)
+  adminCosts    Float @default(0)
+  otherCosts    Float @default(0)
+  totalCosts    Float @default(0)
+
   // Derived
-  grossProfit   Float               @default(0)
-  margin        Float               @default(0)
+  grossProfit Float @default(0)
+  margin      Float @default(0)
 
   // Budget
   budgetRevenue Float?
   budgetCosts   Float?
 
   // Attendance
-  bscEnrolments Int                 @default(0)
-  ascEnrolments Int                 @default(0)
-  bscAttendance Int                 @default(0)
-  ascAttendance Int                 @default(0)
-  vcAttendance  Int                 @default(0)
+  bscEnrolments Int @default(0)
+  ascEnrolments Int @default(0)
+  bscAttendance Int @default(0)
+  ascAttendance Int @default(0)
+  vcAttendance  Int @default(0)
 
   // Data source
-  dataSource    String              @default("manual")
-  xeroSyncedAt  DateTime?
+  dataSource   String    @default("manual")
+  xeroSyncedAt DateTime?
 
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([serviceId, periodType, periodStart])
   @@index([serviceId])
   @@index([periodStart])
   @@index([periodType])
 }
 
+// ─── Scenario Modelling ──────────────────────────────────────────────────────
+
+model Scenario {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  inputs      Json
+  outputs     Json
+  createdById String
+  createdBy   User     @relation("ScenarioCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdById])
+}
+
 model CentreMetrics {
-  id              String   @id @default(cuid())
-  serviceId       String
-  service         Service  @relation("ServiceMetrics", fields: [serviceId], references: [id], onDelete: Cascade)
-  recordedAt      DateTime @default(now())
-  
+  id         String   @id @default(cuid())
+  serviceId  String
+  service    Service  @relation("ServiceMetrics", fields: [serviceId], references: [id], onDelete: Cascade)
+  recordedAt DateTime @default(now())
+
   // Occupancy
-  bscCapacity     Int      @default(0)
-  ascCapacity     Int      @default(0)
-  bscOccupancy    Float    @default(0)
-  ascOccupancy    Float    @default(0)
-  
+  bscCapacity  Int   @default(0)
+  ascCapacity  Int   @default(0)
+  bscOccupancy Float @default(0)
+  ascOccupancy Float @default(0)
+
   // Staff
-  totalEducators  Int      @default(0)
-  educatorsTurnover Float  @default(0)
-  ratioCompliance Float    @default(100)
-  
+  totalEducators    Int   @default(0)
+  educatorsTurnover Float @default(0)
+  ratioCompliance   Float @default(100)
+
   // Quality
-  parentNps       Float?
-  incidentCount   Int      @default(0)
-  complaintCount  Int      @default(0)
-  
+  parentNps      Float?
+  incidentCount  Int    @default(0)
+  complaintCount Int    @default(0)
+
   // Compliance
-  wwccCompliance  Float    @default(100)
-  firstAidCompliance Float @default(100)
-  overallCompliance Float  @default(100)
-  nqsRating       String?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  wwccCompliance     Float   @default(100)
+  firstAidCompliance Float   @default(100)
+  overallCompliance  Float   @default(100)
+  nqsRating          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([serviceId])
   @@index([recordedAt])
 }
@@ -1310,25 +1385,25 @@ model WhatsAppContact {
 }
 
 model SupportTicket {
-  id             String         @id @default(cuid())
-  ticketNumber   Int            @unique @default(autoincrement())
-  contactId      String
-  contact        WhatsAppContact @relation(fields: [contactId], references: [id])
-  subject        String?
-  status         TicketStatus   @default(new)
-  priority       TicketPriority @default(normal)
-  assignedToId   String?
-  assignedTo     User?          @relation("TicketAssignee", fields: [assignedToId], references: [id])
-  serviceId      String?
-  service        Service?       @relation("ServiceTickets", fields: [serviceId], references: [id], onDelete: SetNull)
+  id              String          @id @default(cuid())
+  ticketNumber    Int             @unique @default(autoincrement())
+  contactId       String
+  contact         WhatsAppContact @relation(fields: [contactId], references: [id])
+  subject         String?
+  status          TicketStatus    @default(new)
+  priority        TicketPriority  @default(normal)
+  assignedToId    String?
+  assignedTo      User?           @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  serviceId       String?
+  service         Service?        @relation("ServiceTickets", fields: [serviceId], references: [id], onDelete: SetNull)
   firstResponseAt DateTime?
-  resolvedAt     DateTime?
-  closedAt       DateTime?
-  lastInboundAt  DateTime?
-  tags           String[]
-  deleted        Boolean        @default(false)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  lastInboundAt   DateTime?
+  tags            String[]
+  deleted         Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   messages TicketMessage[]
 
@@ -1341,21 +1416,21 @@ model SupportTicket {
 }
 
 model TicketMessage {
-  id              String                @id @default(cuid())
-  ticketId        String
-  ticket          SupportTicket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  waMessageId     String?               @unique
-  direction       MessageDirection
-  senderName      String?
-  agentId         String?
-  agent           User?                 @relation("MessageSender", fields: [agentId], references: [id])
-  body            String                @db.Text
-  mediaUrl        String?
-  mediaType       String?
-  deliveryStatus  MessageDeliveryStatus @default(sent)
-  deliveredAt     DateTime?
-  readAt          DateTime?
-  createdAt       DateTime              @default(now())
+  id             String                @id @default(cuid())
+  ticketId       String
+  ticket         SupportTicket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  waMessageId    String?               @unique
+  direction      MessageDirection
+  senderName     String?
+  agentId        String?
+  agent          User?                 @relation("MessageSender", fields: [agentId], references: [id])
+  body           String                @db.Text
+  mediaUrl       String?
+  mediaType      String?
+  deliveryStatus MessageDeliveryStatus @default(sent)
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  createdAt      DateTime              @default(now())
 
   @@index([ticketId])
   @@index([waMessageId])
@@ -1456,18 +1531,18 @@ model CascadeAcknowledgment {
 }
 
 model WeeklyPulse {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation("PulseAuthor", fields: [userId], references: [id])
-  weekOf     DateTime
-  wins       String?  @db.Text
-  priorities String?  @db.Text
-  blockers   String?  @db.Text
-  mood       Int?     // 1-5 scale
-  notes      String?  @db.Text
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation("PulseAuthor", fields: [userId], references: [id])
+  weekOf      DateTime
+  wins        String?   @db.Text
+  priorities  String?   @db.Text
+  blockers    String?   @db.Text
+  mood        Int? // 1-5 scale
+  notes       String?   @db.Text
   submittedAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([userId, weekOf])
   @@index([userId])
@@ -1529,28 +1604,28 @@ model XeroConnection {
 // ============================================================
 
 model HealthScore {
-  id              String   @id @default(cuid())
-  serviceId       String
-  service         Service  @relation("ServiceHealthScores", fields: [serviceId], references: [id], onDelete: Cascade)
-  periodStart     DateTime
-  periodType      String   @default("monthly")
+  id          String   @id @default(cuid())
+  serviceId   String
+  service     Service  @relation("ServiceHealthScores", fields: [serviceId], references: [id], onDelete: Cascade)
+  periodStart DateTime
+  periodType  String   @default("monthly")
 
-  overallScore    Float
-  trend           String   @default("stable") // improving | declining | stable
+  overallScore Float
+  trend        String @default("stable") // improving | declining | stable
 
-  financialScore      Float @default(0)
-  operationalScore    Float @default(0)
-  complianceScore     Float @default(0)
-  satisfactionScore   Float @default(0)
-  teamCultureScore    Float @default(0)
+  financialScore    Float @default(0)
+  operationalScore  Float @default(0)
+  complianceScore   Float @default(0)
+  satisfactionScore Float @default(0)
+  teamCultureScore  Float @default(0)
 
-  financialBreakdown      Json?
-  operationalBreakdown    Json?
-  complianceBreakdown     Json?
-  satisfactionBreakdown   Json?
-  teamCultureBreakdown    Json?
+  financialBreakdown    Json?
+  operationalBreakdown  Json?
+  complianceBreakdown   Json?
+  satisfactionBreakdown Json?
+  teamCultureBreakdown  Json?
 
-  computedAt      DateTime @default(now())
+  computedAt DateTime @default(now())
 
   @@unique([serviceId, periodType, periodStart])
   @@index([serviceId])
@@ -1600,17 +1675,17 @@ model OnboardingPack {
 }
 
 model OnboardingTask {
-  id          String          @id @default(cuid())
+  id          String         @id @default(cuid())
   packId      String
-  pack        OnboardingPack  @relation(fields: [packId], references: [id], onDelete: Cascade)
+  pack        OnboardingPack @relation(fields: [packId], references: [id], onDelete: Cascade)
   title       String
-  description String?         @db.Text
+  description String?        @db.Text
   category    String?
-  sortOrder   Int             @default(0)
-  isRequired  Boolean         @default(true)
+  sortOrder   Int            @default(0)
+  isRequired  Boolean        @default(true)
   documentId  String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   progress StaffOnboardingProgress[]
 
@@ -1618,17 +1693,17 @@ model OnboardingTask {
 }
 
 model StaffOnboarding {
-  id           String            @id @default(cuid())
-  userId       String
-  user         User              @relation("OnboardingUser", fields: [userId], references: [id], onDelete: Cascade)
-  packId       String
-  pack         OnboardingPack    @relation(fields: [packId], references: [id], onDelete: Cascade)
-  status       OnboardingStatus  @default(not_started)
-  startedAt    DateTime?
-  completedAt  DateTime?
-  dueDate      DateTime?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation("OnboardingUser", fields: [userId], references: [id], onDelete: Cascade)
+  packId      String
+  pack        OnboardingPack   @relation(fields: [packId], references: [id], onDelete: Cascade)
+  status      OnboardingStatus @default(not_started)
+  startedAt   DateTime?
+  completedAt DateTime?
+  dueDate     DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   progress StaffOnboardingProgress[]
 
@@ -1639,16 +1714,16 @@ model StaffOnboarding {
 }
 
 model StaffOnboardingProgress {
-  id             String          @id @default(cuid())
-  onboardingId   String
-  onboarding     StaffOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
-  taskId         String
-  task           OnboardingTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  completed      Boolean         @default(false)
-  completedAt    DateTime?
-  notes          String?         @db.Text
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id           String          @id @default(cuid())
+  onboardingId String
+  onboarding   StaffOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  taskId       String
+  task         OnboardingTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  completed    Boolean         @default(false)
+  completedAt  DateTime?
+  notes        String?         @db.Text
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   @@unique([onboardingId, taskId])
   @@index([onboardingId])
@@ -1704,7 +1779,7 @@ model LMSCourse {
 
 model LMSModule {
   id          String        @id @default(cuid())
-  courseId     String
+  courseId    String
   course      LMSCourse     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   title       String
   description String?       @db.Text
@@ -1724,19 +1799,19 @@ model LMSModule {
 }
 
 model LMSEnrollment {
-  id           String              @id @default(cuid())
-  userId       String
-  user         User                @relation("LMSStudent", fields: [userId], references: [id], onDelete: Cascade)
-  courseId      String
-  course       LMSCourse           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  status       LMSEnrollmentStatus @default(enrolled)
-  enrolledAt   DateTime            @default(now())
-  startedAt    DateTime?
-  completedAt  DateTime?
-  dueDate      DateTime?
-  score        Float?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  id          String              @id @default(cuid())
+  userId      String
+  user        User                @relation("LMSStudent", fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      LMSCourse           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status      LMSEnrollmentStatus @default(enrolled)
+  enrolledAt  DateTime            @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  dueDate     DateTime?
+  score       Float?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 
   moduleProgress LMSModuleProgress[]
 
@@ -1747,18 +1822,18 @@ model LMSEnrollment {
 }
 
 model LMSModuleProgress {
-  id            String        @id @default(cuid())
-  enrollmentId  String
-  enrollment    LMSEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  moduleId      String
-  module        LMSModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  completed     Boolean       @default(false)
-  completedAt   DateTime?
-  score         Float?
-  timeSpent     Int?
-  notes         String?       @db.Text
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id           String        @id @default(cuid())
+  enrollmentId String
+  enrollment   LMSEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  moduleId     String
+  module       LMSModule     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  completed    Boolean       @default(false)
+  completedAt  DateTime?
+  score        Float?
+  timeSpent    Int?
+  notes        String?       @db.Text
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@unique([enrollmentId, moduleId])
   @@index([enrollmentId])
@@ -1781,22 +1856,22 @@ enum CertificateType {
 }
 
 model ComplianceCertificate {
-  id          String          @id @default(cuid())
-  serviceId   String
-  service     Service         @relation("ServiceCertificates", fields: [serviceId], references: [id], onDelete: Cascade)
-  userId      String?
-  user        User?           @relation("UserCertificates", fields: [userId], references: [id], onDelete: SetNull)
-  type        CertificateType
-  label       String?
-  issueDate   DateTime
-  expiryDate  DateTime
-  notes       String?         @db.Text
-  fileUrl     String?
-  fileName    String?
-  alertDays   Int             @default(30)
-  acknowledged Boolean        @default(false)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id           String          @id @default(cuid())
+  serviceId    String
+  service      Service         @relation("ServiceCertificates", fields: [serviceId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?           @relation("UserCertificates", fields: [userId], references: [id], onDelete: SetNull)
+  type         CertificateType
+  label        String?
+  issueDate    DateTime
+  expiryDate   DateTime
+  notes        String?         @db.Text
+  fileUrl      String?
+  fileName     String?
+  alertDays    Int             @default(30)
+  acknowledged Boolean         @default(false)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   @@index([serviceId])
   @@index([userId])
@@ -1806,21 +1881,21 @@ model ComplianceCertificate {
 // ── Attendance & Enrolment Tracking ─────────────────────────
 
 model DailyAttendance {
-  id            String      @id @default(cuid())
-  serviceId     String
-  service       Service     @relation("ServiceAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
-  date          DateTime    @db.Date
-  sessionType   SessionType
-  enrolled      Int         @default(0)
-  attended      Int         @default(0)
-  capacity      Int         @default(0)
-  casual        Int         @default(0)
-  absent        Int         @default(0)
-  notes         String?     @db.Text
-  recordedById  String?
-  recordedBy    User?       @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id           String      @id @default(cuid())
+  serviceId    String
+  service      Service     @relation("ServiceAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
+  date         DateTime    @db.Date
+  sessionType  SessionType
+  enrolled     Int         @default(0)
+  attended     Int         @default(0)
+  capacity     Int         @default(0)
+  casual       Int         @default(0)
+  absent       Int         @default(0)
+  notes        String?     @db.Text
+  recordedById String?
+  recordedBy   User?       @relation("AttendanceRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   @@unique([serviceId, date, sessionType])
   @@index([serviceId])
@@ -1859,8 +1934,8 @@ model ProgramActivity {
   service     Service  @relation("ServicePrograms", fields: [serviceId], references: [id], onDelete: Cascade)
   weekStart   DateTime @db.Date
   day         WeekDay
-  startTime   String   // "HH:mm"
-  endTime     String   // "HH:mm"
+  startTime   String // "HH:mm"
+  endTime     String // "HH:mm"
   title       String
   description String?  @db.Text
   staffName   String?
@@ -1915,19 +1990,19 @@ model MenuItem {
 // ============================================================
 
 model ActivityTemplate {
-  id              String            @id @default(cuid())
+  id              String           @id @default(cuid())
   title           String
-  description     String?           @db.Text
-  howTo           String?           @db.Text
-  resourcesNeeded String?           @db.Text
-  category        ActivityCategory  @default(other)
+  description     String?          @db.Text
+  howTo           String?          @db.Text
+  resourcesNeeded String?          @db.Text
+  category        ActivityCategory @default(other)
   ageGroup        String?
   durationMinutes Int?
-  deleted         Boolean           @default(false)
+  deleted         Boolean          @default(false)
   createdById     String?
-  createdBy       User?             @relation("ActivityTemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdBy       User?            @relation("ActivityTemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   files ActivityTemplateFile[]
 
@@ -1936,16 +2011,16 @@ model ActivityTemplate {
 }
 
 model ActivityTemplateFile {
-  id           String            @id @default(cuid())
+  id           String           @id @default(cuid())
   templateId   String
-  template     ActivityTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template     ActivityTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   fileName     String
   fileUrl      String
   fileSize     Int?
   mimeType     String?
   uploadedById String?
-  uploadedBy   User?             @relation("ActivityTemplateFileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
-  createdAt    DateTime          @default(now())
+  uploadedBy   User?            @relation("ActivityTemplateFileUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime         @default(now())
 
   @@index([templateId])
 }
@@ -1963,20 +2038,20 @@ enum RecurrenceRule {
 }
 
 model TodoTemplate {
-  id             String         @id @default(cuid())
-  title          String
-  description    String?        @db.Text
-  assigneeId     String
-  assignee       User           @relation("TemplateAssignee", fields: [assigneeId], references: [id])
-  serviceId      String?
-  service        Service?       @relation("ServiceTemplates", fields: [serviceId], references: [id], onDelete: SetNull)
-  recurrence     RecurrenceRule
-  nextRunAt      DateTime                    // Next date this template should create a todo
-  isActive       Boolean        @default(true)
-  createdById    String?
-  createdBy      User?          @relation("TemplateCreator", fields: [createdById], references: [id])
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id          String         @id @default(cuid())
+  title       String
+  description String?        @db.Text
+  assigneeId  String
+  assignee    User           @relation("TemplateAssignee", fields: [assigneeId], references: [id])
+  serviceId   String?
+  service     Service?       @relation("ServiceTemplates", fields: [serviceId], references: [id], onDelete: SetNull)
+  recurrence  RecurrenceRule
+  nextRunAt   DateTime // Next date this template should create a todo
+  isActive    Boolean        @default(true)
+  createdById String?
+  createdBy   User?          @relation("TemplateCreator", fields: [createdById], references: [id])
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   @@index([isActive, nextRunAt])
   @@index([assigneeId])
@@ -1989,26 +2064,26 @@ model TodoTemplate {
 // ============================================================
 
 model AccountabilitySeat {
-  id               String   @id @default(cuid())
-  title            String                          // "Visionary", "Marketing", "BAK Team Leader"
-  responsibilities String[]                        // PostgreSQL native text array
+  id               String                         @id @default(cuid())
+  title            String // "Visionary", "Marketing", "BAK Team Leader"
+  responsibilities String[] // PostgreSQL native text array
   parentId         String?
-  parent           AccountabilitySeat?  @relation("SeatHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children         AccountabilitySeat[] @relation("SeatHierarchy")
-  order            Int      @default(0)            // Sort order among siblings
+  parent           AccountabilitySeat?            @relation("SeatHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children         AccountabilitySeat[]           @relation("SeatHierarchy")
+  order            Int                            @default(0) // Sort order among siblings
   assignees        AccountabilitySeatAssignment[]
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime                       @default(now())
+  updatedAt        DateTime                       @updatedAt
 
   @@index([parentId])
 }
 
 model AccountabilitySeatAssignment {
-  id     String @id @default(cuid())
+  id     String             @id @default(cuid())
   seatId String
   seat   AccountabilitySeat @relation(fields: [seatId], references: [id], onDelete: Cascade)
   userId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([seatId, userId])
   @@index([userId])
@@ -2049,23 +2124,23 @@ model MarketingCampaignService {
 // ============================================================
 
 model SocialConnection {
-  id              String                  @id @default(cuid())
+  id              String                 @id @default(cuid())
   platform        MarketingPlatform
-  status          SocialConnectionStatus  @default(disconnected)
+  status          SocialConnectionStatus @default(disconnected)
   accountId       String?
   accountName     String?
-  accessToken     String?                 @db.Text
-  refreshToken    String?                 @db.Text
+  accessToken     String?                @db.Text
+  refreshToken    String?                @db.Text
   tokenExpiresAt  DateTime?
-  pageAccessToken String?                 @db.Text
+  pageAccessToken String?                @db.Text
   scopes          String?
   lastSyncAt      DateTime?
   lastSyncStatus  String?
-  lastSyncError   String?                 @db.Text
+  lastSyncError   String?                @db.Text
   serviceId       String?
-  service         Service?                @relation("ServiceSocialConnections", fields: [serviceId], references: [id])
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
+  service         Service?               @relation("ServiceSocialConnections", fields: [serviceId], references: [id])
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
 
   @@unique([platform, accountId])
   @@index([platform])
@@ -2077,13 +2152,13 @@ model SocialConnection {
 // ============================================================
 
 model EmergencyContact {
-  id           String  @id @default(cuid())
+  id           String   @id @default(cuid())
   userId       String
-  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name         String
   phone        String
   relationship String
-  isPrimary    Boolean @default(false)
+  isPrimary    Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -2091,18 +2166,18 @@ model EmergencyContact {
 }
 
 model StaffQualification {
-  id              String            @id @default(cuid())
-  userId          String
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type            QualificationType
-  name            String
-  institution     String?
-  completedDate   DateTime?         @db.Date
-  expiryDate      DateTime?         @db.Date
-  certificateUrl  String?
-  verified        Boolean           @default(false)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  id             String            @id @default(cuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           QualificationType
+  name           String
+  institution    String?
+  completedDate  DateTime?         @db.Date
+  expiryDate     DateTime?         @db.Date
+  certificateUrl String?
+  verified       Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
 
   @@index([userId])
   @@index([type])
@@ -2153,28 +2228,28 @@ model PolicyAcknowledgement {
 // ============================================================
 
 model EmploymentContract {
-  id                  String         @id @default(cuid())
+  id                  String               @id @default(cuid())
   userId              String
-  user                User           @relation("ContractEmployee", fields: [userId], references: [id], onDelete: Cascade)
+  user                User                 @relation("ContractEmployee", fields: [userId], references: [id], onDelete: Cascade)
   contractType        ContractType
   awardLevel          AwardLevel?
   awardLevelCustom    String?
   payRate             Float
   hoursPerWeek        Float?
-  startDate           DateTime       @db.Date
-  endDate             DateTime?      @db.Date
-  status              ContractStatus @default(contract_draft)
+  startDate           DateTime             @db.Date
+  endDate             DateTime?            @db.Date
+  status              ContractStatus       @default(contract_draft)
   documentUrl         String?
   documentId          String?
   signedAt            DateTime?
-  acknowledgedByStaff Boolean        @default(false)
+  acknowledgedByStaff Boolean              @default(false)
   acknowledgedAt      DateTime?
-  notes               String?        @db.Text
+  notes               String?              @db.Text
   previousContractId  String?
   previousContract    EmploymentContract?  @relation("ContractHistory", fields: [previousContractId], references: [id])
   supersededBy        EmploymentContract[] @relation("ContractHistory")
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -2186,24 +2261,24 @@ model EmploymentContract {
 // ============================================================
 
 model LeaveRequest {
-  id            String             @id @default(cuid())
-  userId        String
-  user          User               @relation("LeaveRequester", fields: [userId], references: [id], onDelete: Cascade)
-  leaveType     LeaveType
-  startDate     DateTime           @db.Date
-  endDate       DateTime           @db.Date
-  totalDays     Float
-  isHalfDay     Boolean            @default(false)
-  reason        String?            @db.Text
-  status        LeaveRequestStatus @default(leave_pending)
-  reviewedById  String?
-  reviewedBy    User?              @relation("LeaveApprover", fields: [reviewedById], references: [id])
-  reviewedAt    DateTime?
-  reviewNotes   String?            @db.Text
-  serviceId     String?
-  service       Service?           @relation("ServiceLeaveRequests", fields: [serviceId], references: [id], onDelete: SetNull)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  id           String             @id @default(cuid())
+  userId       String
+  user         User               @relation("LeaveRequester", fields: [userId], references: [id], onDelete: Cascade)
+  leaveType    LeaveType
+  startDate    DateTime           @db.Date
+  endDate      DateTime           @db.Date
+  totalDays    Float
+  isHalfDay    Boolean            @default(false)
+  reason       String?            @db.Text
+  status       LeaveRequestStatus @default(leave_pending)
+  reviewedById String?
+  reviewedBy   User?              @relation("LeaveApprover", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  reviewNotes  String?            @db.Text
+  serviceId    String?
+  service      Service?           @relation("ServiceLeaveRequests", fields: [serviceId], references: [id], onDelete: SetNull)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -2214,19 +2289,19 @@ model LeaveRequest {
 }
 
 model LeaveBalance {
-  id              String    @id @default(cuid())
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  leaveType       LeaveType
-  balance         Float     @default(0)
-  accrued         Float     @default(0)
-  taken           Float     @default(0)
-  pending         Float     @default(0)
-  asOfDate        DateTime  @default(now())
-  source          String    @default("manual")
-  xeroSyncedAt    DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leaveType    LeaveType
+  balance      Float     @default(0)
+  accrued      Float     @default(0)
+  taken        Float     @default(0)
+  pending      Float     @default(0)
+  asOfDate     DateTime  @default(now())
+  source       String    @default("manual")
+  xeroSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@unique([userId, leaveType])
   @@index([userId])
@@ -2264,22 +2339,22 @@ model Timesheet {
 }
 
 model TimesheetEntry {
-  id            String     @id @default(cuid())
-  timesheetId   String
-  timesheet     Timesheet  @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User       @relation("TimesheetStaff", fields: [userId], references: [id])
-  date          DateTime   @db.Date
-  shiftStart    DateTime
-  shiftEnd      DateTime
-  breakMinutes  Int        @default(0)
-  totalHours    Float
-  shiftType     ShiftType
-  notes         String?
-  isOvertime    Boolean    @default(false)
-  payRate       Float?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id           String    @id @default(cuid())
+  timesheetId  String
+  timesheet    Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User      @relation("TimesheetStaff", fields: [userId], references: [id])
+  date         DateTime  @db.Date
+  shiftStart   DateTime
+  shiftEnd     DateTime
+  breakMinutes Int       @default(0)
+  totalHours   Float
+  shiftType    ShiftType
+  notes        String?
+  isOvertime   Boolean   @default(false)
+  payRate      Float?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([timesheetId])
   @@index([userId])
@@ -2308,18 +2383,18 @@ model OffboardingPack {
 }
 
 model OffboardingTask {
-  id          String           @id @default(cuid())
+  id          String          @id @default(cuid())
   packId      String
-  pack        OffboardingPack  @relation(fields: [packId], references: [id], onDelete: Cascade)
+  pack        OffboardingPack @relation(fields: [packId], references: [id], onDelete: Cascade)
   title       String
-  description String?          @db.Text
+  description String?         @db.Text
   category    String?
-  sortOrder   Int              @default(0)
-  isRequired  Boolean          @default(true)
+  sortOrder   Int             @default(0)
+  isRequired  Boolean         @default(true)
   assignedTo  String?
   documentId  String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   progress StaffOffboardingProgress[]
 
@@ -2327,21 +2402,21 @@ model OffboardingTask {
 }
 
 model StaffOffboarding {
-  id                   String            @id @default(cuid())
+  id                   String           @id @default(cuid())
   userId               String
-  user                 User              @relation("OffboardingUser", fields: [userId], references: [id], onDelete: Cascade)
+  user                 User             @relation("OffboardingUser", fields: [userId], references: [id], onDelete: Cascade)
   packId               String
-  pack                 OffboardingPack   @relation(fields: [packId], references: [id], onDelete: Cascade)
-  status               OnboardingStatus  @default(not_started)
+  pack                 OffboardingPack  @relation(fields: [packId], references: [id], onDelete: Cascade)
+  status               OnboardingStatus @default(not_started)
   initiatedById        String?
-  lastDay              DateTime?         @db.Date
+  lastDay              DateTime?        @db.Date
   reason               String?
-  exitInterviewNotes   String?           @db.Text
+  exitInterviewNotes   String?          @db.Text
   startedAt            DateTime?
   completedAt          DateTime?
-  deactivateOnComplete Boolean           @default(true)
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  deactivateOnComplete Boolean          @default(true)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
   progress StaffOffboardingProgress[]
 
@@ -2352,17 +2427,17 @@ model StaffOffboarding {
 }
 
 model StaffOffboardingProgress {
-  id               String            @id @default(cuid())
-  offboardingId    String
-  offboarding      StaffOffboarding  @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
-  taskId           String
-  task             OffboardingTask   @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  completed        Boolean           @default(false)
-  completedAt      DateTime?
-  completedById    String?
-  notes            String?           @db.Text
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id            String           @id @default(cuid())
+  offboardingId String
+  offboarding   StaffOffboarding @relation(fields: [offboardingId], references: [id], onDelete: Cascade)
+  taskId        String
+  task          OffboardingTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  completed     Boolean          @default(false)
+  completedAt   DateTime?
+  completedById String?
+  notes         String?          @db.Text
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   @@unique([offboardingId, taskId])
   @@index([offboardingId])
@@ -2375,12 +2450,12 @@ model StaffOffboardingProgress {
 
 model ApiKey {
   id          String    @id @default(cuid())
-  name        String                          // human label, e.g. "Cowork Production"
-  keyPrefix   String                          // first 8 hex chars for display
-  keyHash     String    @unique               // SHA-256 hex of the full key
-  scopes      String[]                        // ["programs:write", "menus:write", "announcements:write"]
-  expiresAt   DateTime?                       // null = never expires
-  revokedAt   DateTime?                       // non-null = revoked
+  name        String // human label, e.g. "Cowork Production"
+  keyPrefix   String // first 8 hex chars for display
+  keyHash     String    @unique // SHA-256 hex of the full key
+  scopes      String[] // ["programs:write", "menus:write", "announcements:write"]
+  expiresAt   DateTime? // null = never expires
+  revokedAt   DateTime? // non-null = revoked
   lastUsedAt  DateTime?
   createdById String
   createdBy   User      @relation("ApiKeyCreator", fields: [createdById], references: [id])
@@ -2414,9 +2489,9 @@ model CoworkTodo {
   date         DateTime
   title        String
   description  String?   @db.Text
-  category     String    // "morning-prep", "afternoon-prep", "end-of-day"
-  dueTime      String?   // "06:00", "15:00", etc.
-  assignedRole String?   // "educator", "coordinator"
+  category     String // "morning-prep", "afternoon-prep", "end-of-day"
+  dueTime      String? // "06:00", "15:00", etc.
+  assignedRole String? // "educator", "coordinator"
   completed    Boolean   @default(false)
   completedAt  DateTime?
   completedBy  String?
@@ -2427,16 +2502,16 @@ model CoworkTodo {
 }
 
 model CoworkAnnouncement {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   title         String
-  body          String   @db.Text
-  type          String   // "program-update", "newsletter-summary", "general", "holiday-quest", "reminder"
+  body          String    @db.Text
+  type          String // "program-update", "newsletter-summary", "general", "holiday-quest", "reminder"
   targetCentres String[] // ["all"] or specific centre IDs
   attachments   String[] // file URLs
-  pinned        Boolean  @default(false)
+  pinned        Boolean   @default(false)
   expiresAt     DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model CalendarEvent {
@@ -2444,8 +2519,8 @@ model CalendarEvent {
   title     String
   date      DateTime
   endDate   DateTime?
-  centreId  String?   // null = all centres
-  type      String    // "excursion", "incursion", "public-holiday", etc.
+  centreId  String? // null = all centres
+  type      String // "excursion", "incursion", "public-holiday", etc.
   details   String?   @db.Text
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -2549,15 +2624,17 @@ model CentreContact {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  nurtureSteps ParentNurtureStep[] @relation("ContactNurtureSteps")
+
   @@unique([email, serviceId])
   @@index([serviceId])
 }
 
 model WhatsAppGroup {
   id               String   @id @default(cuid())
-  groupType        String   // announcements, centre_parents, lunchbox, ccs_help, ideas
-  serviceCode      String?  // null for broadcast groups
-  whatsappGroupJid String   // WhatsApp group JID from 360dialog
+  groupType        String // announcements, centre_parents, lunchbox, ccs_help, ideas
+  serviceCode      String? // null for broadcast groups
+  whatsappGroupJid String // WhatsApp group JID from 360dialog
   name             String
   memberCount      Int      @default(0)
   active           Boolean  @default(true)
@@ -2580,17 +2657,265 @@ model SocialAccount {
 
 model DeliveryLog {
   id             String   @id @default(cuid())
-  channel        String   // email, whatsapp, social
+  channel        String // email, whatsapp, social
   serviceCode    String?
-  messageType    String?  // week_ahead, newsletter, etc.
-  externalId     String?  // provider message/post ID
+  messageType    String? // week_ahead, newsletter, etc.
+  externalId     String? // provider message/post ID
   recipientCount Int      @default(0)
-  status         String   // sent, scheduled, failed
+  status         String // sent, scheduled, failed
   errorMessage   String?  @db.Text
-  payload        Json?    // original request body for debugging
+  payload        Json? // original request body for debugging
   createdAt      DateTime @default(now())
 
   @@index([channel])
   @@index([serviceCode])
   @@index([createdAt])
+}
+
+// ============================================================
+// Parent Nurture Sequences
+// ============================================================
+
+model ParentNurtureStep {
+  id           String    @id @default(cuid())
+  serviceId    String
+  service      Service   @relation("ServiceNurtureSteps", fields: [serviceId], references: [id], onDelete: Cascade)
+  contactId    String
+  contact      CentreContact @relation("ContactNurtureSteps", fields: [contactId], references: [id], onDelete: Cascade)
+  stepNumber   Int
+  templateKey  String // welcome, how_to_enrol, what_to_bring, app_setup, first_week
+  scheduledFor DateTime
+  sentAt       DateTime?
+  status       String    @default("pending") // pending, sent, failed, cancelled
+  createdAt    DateTime  @default(now())
+
+  @@unique([contactId, templateKey])
+  @@index([serviceId])
+  @@index([scheduledFor])
+  @@index([status])
+}
+
+// ============================================================
+// Holiday Quest — Vacation Care Day Plans
+// ============================================================
+
+model HolidayQuestDay {
+  id                String   @id @default(cuid())
+  serviceId         String
+  service           Service  @relation("ServiceHolidayQuest", fields: [serviceId], references: [id], onDelete: Cascade)
+  date              DateTime @db.Date
+  theme             String
+  morningActivity   String   @db.Text
+  afternoonActivity String   @db.Text
+  isExcursion       Boolean  @default(false)
+  excursionVenue    String?
+  excursionCost     Float?
+  materialsNeeded   String?  @db.Text
+  dietaryNotes      String?  @db.Text
+  maxCapacity       Int      @default(40)
+  currentBookings   Int      @default(0)
+  status            String   @default("draft") // draft, published, full
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([serviceId, date])
+  @@index([serviceId])
+  @@index([date])
+}
+
+// ============================================================
+// OWNA Integration — Booking Forecasts & Roster
+// ============================================================
+
+model BookingForecast {
+  id          String      @id @default(cuid())
+  serviceId   String
+  service     Service     @relation("ServiceBookings", fields: [serviceId], references: [id], onDelete: Cascade)
+  date        DateTime    @db.Date
+  sessionType SessionType
+  regular     Int         @default(0)
+  casual      Int         @default(0)
+  total       Int         @default(0)
+  capacity    Int         @default(0)
+  syncedAt    DateTime    @default(now())
+
+  @@unique([serviceId, date, sessionType])
+  @@index([serviceId])
+  @@index([date])
+}
+
+model RosterShift {
+  id          String      @id @default(cuid())
+  serviceId   String
+  service     Service     @relation("ServiceRosterShifts", fields: [serviceId], references: [id], onDelete: Cascade)
+  date        DateTime    @db.Date
+  sessionType SessionType
+  staffName   String
+  shiftStart  String // "HH:mm"
+  shiftEnd    String // "HH:mm"
+  role        String? // "coordinator", "educator", "assistant"
+  syncedAt    DateTime    @default(now())
+
+  @@unique([serviceId, date, staffName, shiftStart])
+  @@index([serviceId])
+  @@index([date])
+  @@index([serviceId, date])
+}
+
+// ── Conversion Tracking ──────────────────────────────────
+
+model ConversionOpportunity {
+  id          String      @id @default(cuid())
+  serviceId   String
+  service     Service     @relation("ServiceConversions", fields: [serviceId], references: [id], onDelete: Cascade)
+  familyRef   String // identifier from OWNA (family ID or child name)
+  sessionType SessionType
+  casualCount Int         @default(0) // casual bookings in analysis period
+  periodStart DateTime
+  periodEnd   DateTime
+  status      String      @default("identified") // identified, contacted, converted, declined
+  contactedAt DateTime?
+  convertedAt DateTime?
+  notes       String?     @db.Text
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([serviceId, familyRef, sessionType, periodStart])
+  @@index([serviceId])
+  @@index([status])
+}
+
+// ============================================================
+// Compliance Audit System
+// ============================================================
+
+enum AuditFrequency {
+  monthly
+  half_yearly
+  yearly
+}
+
+enum AuditStatus {
+  scheduled
+  in_progress
+  completed
+  overdue
+  skipped
+}
+
+enum AuditItemResult {
+  yes
+  no
+  na
+  not_answered
+}
+
+enum AuditResponseFormat {
+  yes_no
+  rating_1_5
+  compliant
+  reverse_yes_no
+  review_date
+  inventory
+}
+
+model AuditTemplate {
+  id               String              @id @default(cuid())
+  name             String              @unique
+  description      String?             @db.Text
+  qualityArea      Int
+  nqsReference     String
+  frequency        AuditFrequency
+  scheduledMonths  Int[]
+  responseFormat   AuditResponseFormat @default(yes_no)
+  estimatedMinutes Int?
+  sourceFileName   String?
+  isActive         Boolean             @default(true)
+  sortOrder        Int                 @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  items     AuditTemplateItem[]
+  instances AuditInstance[]
+
+  @@index([qualityArea])
+  @@index([frequency])
+}
+
+model AuditTemplateItem {
+  id             String               @id @default(cuid())
+  templateId     String
+  template       AuditTemplate        @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  section        String?
+  question       String               @db.Text
+  guidance       String?              @db.Text
+  responseFormat AuditResponseFormat?
+  sortOrder      Int                  @default(0)
+  isRequired     Boolean              @default(true)
+  createdAt      DateTime             @default(now())
+
+  responses AuditItemResponse[]
+
+  @@index([templateId])
+  @@index([templateId, sortOrder])
+}
+
+model AuditInstance {
+  id                  String        @id @default(cuid())
+  templateId          String
+  template            AuditTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  serviceId           String
+  service             Service       @relation("ServiceAudits", fields: [serviceId], references: [id], onDelete: Cascade)
+  scheduledMonth      Int
+  scheduledYear       Int
+  dueDate             DateTime
+  status              AuditStatus   @default(scheduled)
+  startedAt           DateTime?
+  completedAt         DateTime?
+  auditorId           String?
+  auditor             User?         @relation("AuditAuditor", fields: [auditorId], references: [id], onDelete: SetNull)
+  auditorName         String?
+  totalItems          Int           @default(0)
+  yesCount            Int           @default(0)
+  noCount             Int           @default(0)
+  naCount             Int           @default(0)
+  complianceScore     Float?
+  strengths           String?       @db.Text
+  areasForImprovement String?       @db.Text
+  actionPlan          String?       @db.Text
+  comments            String?       @db.Text
+  reviewedAt          DateTime?
+  reviewedById        String?
+  reviewNotes         String?       @db.Text
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  responses AuditItemResponse[]
+
+  @@unique([templateId, serviceId, scheduledMonth, scheduledYear])
+  @@index([serviceId])
+  @@index([templateId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([serviceId, status])
+}
+
+model AuditItemResponse {
+  id              String            @id @default(cuid())
+  instanceId      String
+  instance        AuditInstance     @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  templateItemId  String
+  templateItem    AuditTemplateItem @relation(fields: [templateItemId], references: [id], onDelete: Cascade)
+  result          AuditItemResult   @default(not_answered)
+  ratingValue     Int?
+  actionRequired  String?           @db.Text
+  evidenceSighted String?           @db.Text
+  notes           String?           @db.Text
+  photoUrl        String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([instanceId, templateItemId])
+  @@index([instanceId])
+  @@index([result])
 }
