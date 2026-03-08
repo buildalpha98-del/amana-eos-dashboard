@@ -38,6 +38,11 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // If the file is a Vercel Blob URL, redirect to it directly
+  if (file.startsWith("https://")) {
+    return NextResponse.redirect(file);
+  }
+
   // Sanitize: prevent directory traversal attacks
   const sanitized = path.basename(file);
   if (sanitized !== file || file.includes("..") || file.includes("/")) {

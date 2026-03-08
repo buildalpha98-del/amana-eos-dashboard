@@ -28,6 +28,7 @@ import {
   Calculator,
   FolderLock,
   FileSpreadsheet,
+  Bot,
 } from "lucide-react";
 
 export interface NavItem {
@@ -62,6 +63,7 @@ export const navItems: NavItem[] = [
   { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Strategy", tooltip: "What-if scenario modelling & financial projections" },
   { href: "/data-room", label: "Data Room", icon: FolderLock, section: "Strategy", tooltip: "Due diligence document tracker & exit readiness scoring" },
   { href: "/reports/board", label: "Board Reports", icon: FileSpreadsheet, section: "Strategy", tooltip: "Monthly board & investor report generator" },
+  { href: "/assistant", label: "AI Assistant", icon: Bot, section: "Strategy", tooltip: "Ask questions about your dashboard data" },
   // Engagement
   { href: "/crm", label: "CRM", icon: Target, section: "Engagement", tooltip: "Sales pipeline & lead management" },
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Engagement" },

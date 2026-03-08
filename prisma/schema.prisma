@@ -757,6 +757,33 @@ model BoardReport {
 }
 
 // ============================================================
+// Email Events & Suppression
+// ============================================================
+
+model EmailEvent {
+  id        String   @id @default(cuid())
+  messageId String   // Resend message ID
+  type      String   // delivered, bounced, complained, opened, clicked
+  email     String   // recipient email
+  payload   Json?    // full webhook payload
+  createdAt DateTime @default(now())
+
+  @@index([messageId])
+  @@index([email, type])
+  @@index([createdAt])
+}
+
+model EmailSuppression {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  reason    String   // bounce, complaint
+  source    String?  // messageId that triggered it
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+// ============================================================
 // Marketing
 // ============================================================
 

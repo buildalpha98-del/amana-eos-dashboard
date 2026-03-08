@@ -5,12 +5,14 @@ import { useProjects } from "@/hooks/useProjects";
 import { ProjectCard } from "@/components/projects/ProjectCard";
 import { ProjectDetailPanel } from "@/components/projects/ProjectDetailPanel";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
+import { TemplatePicker } from "@/components/projects/TemplatePicker";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   FolderKanban,
   Plus,
+  Rocket,
   Search,
   LayoutGrid,
   List,
@@ -31,6 +33,8 @@ export default function ProjectsPage() {
     null
   );
   const [showCreate, setShowCreate] = useState(false);
+  const [showLaunch, setShowLaunch] = useState(false);
+  const [launchTemplateId, setLaunchTemplateId] = useState<string | undefined>();
   const [view, setView] = useState<"grid" | "list">("grid");
 
   const { data: projects, isLoading } = useProjects(
@@ -64,13 +68,22 @@ export default function ProjectsPage() {
             Track project progress across your centres
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New Project
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowLaunch(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-[#004E64] text-[#004E64] text-sm font-medium rounded-lg hover:bg-[#004E64]/5 transition-colors"
+          >
+            <Rocket className="w-4 h-4" />
+            Launch from Template
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New Project
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -223,10 +236,25 @@ export default function ProjectsPage() {
         />
       )}
 
+      {/* Template Picker */}
+      <TemplatePicker
+        open={showLaunch}
+        onClose={() => setShowLaunch(false)}
+        onSelect={(templateId) => {
+          setShowLaunch(false);
+          setLaunchTemplateId(templateId);
+          setShowCreate(true);
+        }}
+      />
+
       {/* Create Modal */}
       <CreateProjectModal
         open={showCreate}
-        onClose={() => setShowCreate(false)}
+        onClose={() => {
+          setShowCreate(false);
+          setLaunchTemplateId(undefined);
+        }}
+        preselectedTemplateId={launchTemplateId}
       />
     </div>
   );

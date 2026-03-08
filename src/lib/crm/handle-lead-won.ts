@@ -56,17 +56,25 @@ export async function handleLeadWon(
     },
   });
 
-  // 2. Create Project from "Onboarding" template (if exists)
+  // 2. Create Project from template (prefer "Centre Launch", fallback to "Onboarding")
   let projectId: string | undefined;
-  const template = await prisma.projectTemplate.findFirst({
-    where: { name: { contains: "Onboarding", mode: "insensitive" } },
-    include: { tasks: { orderBy: { sortOrder: "asc" } } },
-  });
+  const template =
+    (await prisma.projectTemplate.findFirst({
+      where: { name: { contains: "Centre Launch", mode: "insensitive" } },
+      include: { tasks: { orderBy: { sortOrder: "asc" } } },
+    })) ??
+    (await prisma.projectTemplate.findFirst({
+      where: { name: { contains: "Onboarding", mode: "insensitive" } },
+      include: { tasks: { orderBy: { sortOrder: "asc" } } },
+    }));
 
   if (template) {
+    const templateLabel = template.name.toLowerCase().includes("launch")
+      ? "Centre Launch"
+      : "Onboarding";
     const project = await prisma.project.create({
       data: {
-        name: `${lead.schoolName} — Onboarding`,
+        name: `${lead.schoolName} — ${templateLabel}`,
         serviceId: service.id,
         templateId: template.id,
         ownerId: lead.assignedToId || userId,
@@ -155,7 +163,7 @@ export async function handleLeadWon(
             <p><strong>${lead.schoolName}</strong> has been marked as won. Here's what was auto-created:</p>
             <ul>
               <li><strong>Service:</strong> ${service.name} (${service.code})</li>
-              ${projectId ? `<li><strong>Onboarding Project:</strong> created with todos from template</li>` : ""}
+              ${projectId ? `<li><strong>Launch Project:</strong> created with todos from template</li>` : ""}
             </ul>
             <p>
               <a href="${baseUrl}/services" style="display: inline-block; padding: 10px 20px; background: #003344; color: white; text-decoration: none; border-radius: 6px;">

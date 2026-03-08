@@ -9,6 +9,7 @@ import {
   type ScoreInputFinancials,
   type ScoreInputEOS,
 } from "@/lib/health-score";
+import { getNetworkStaffingSummary } from "@/lib/staffing-analysis";
 
 export async function GET() {
   const { session, error } = await requireAuth();
@@ -442,9 +443,180 @@ export async function GET() {
     todosOverdue: overdueCount,
   };
 
-  // Strip financial data for member/staff roles
+  // ── Today's Operations (admin/owner only) ─────────────────
   const role = session!.user.role as string;
   const isServiceScoped = role === "staff" || role === "member";
+
+  const today = new Date(now.toISOString().split("T")[0] + "T00:00:00Z");
+
+  // Run all ops queries in parallel
+  const [
+    todayAttendance,
+    todayBookings,
+    todayRoster,
+    staffingSummary,
+    pipelineLeads,
+    weekAttendanceForRevenue,
+  ] = await Promise.all([
+    // Today's attendance per service per session
+    prisma.dailyAttendance.findMany({
+      where: { date: today },
+      select: {
+        serviceId: true,
+        sessionType: true,
+        enrolled: true,
+        attended: true,
+        capacity: true,
+        casual: true,
+      },
+    }),
+    // Today's booking forecasts
+    prisma.bookingForecast.findMany({
+      where: { date: today },
+      select: {
+        serviceId: true,
+        sessionType: true,
+        total: true,
+        regular: true,
+        casual: true,
+        capacity: true,
+      },
+    }),
+    // Today's roster shifts aggregated by service + session
+    prisma.rosterShift.groupBy({
+      by: ["serviceId", "sessionType"],
+      where: { date: today },
+      _count: { id: true },
+    }),
+    // Network staffing summary for today
+    !isServiceScoped
+      ? getNetworkStaffingSummary(today)
+      : Promise.resolve(null),
+    // Pipeline leads by stage
+    !isServiceScoped
+      ? prisma.lead.groupBy({
+          by: ["pipelineStage"],
+          where: { deleted: false, pipelineStage: { notIn: ["won", "lost"] } },
+          _count: { id: true },
+        })
+      : Promise.resolve([]),
+    // This week's attendance for revenue calculation
+    (() => {
+      const dayOfWeek = now.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const weekStart = new Date(today);
+      weekStart.setUTCDate(today.getUTCDate() + mondayOffset);
+      return prisma.dailyAttendance.findMany({
+        where: {
+          date: { gte: weekStart, lte: today },
+        },
+        include: {
+          service: {
+            select: {
+              bscDailyRate: true,
+              ascDailyRate: true,
+              bscCasualRate: true,
+              ascCasualRate: true,
+            },
+          },
+        },
+      });
+    })(),
+  ]);
+
+  // Build per-centre ops snapshots
+  const todaysOps = services.map((s) => {
+    const sAttendance = todayAttendance.filter((a) => a.serviceId === s.id);
+    const sBookings = todayBookings.filter((b) => b.serviceId === s.id);
+    const sRoster = todayRoster.filter((r) => r.serviceId === s.id);
+    const m = s.metrics[0] ?? null;
+
+    const bscAtt = sAttendance.find((a) => a.sessionType === "bsc");
+    const ascAtt = sAttendance.find((a) => a.sessionType === "asc");
+    const bscBook = sBookings.find((b) => b.sessionType === "bsc");
+    const ascBook = sBookings.find((b) => b.sessionType === "asc");
+    const bscRoster = sRoster.find((r) => r.sessionType === "bsc");
+    const ascRoster = sRoster.find((r) => r.sessionType === "asc");
+
+    const bscAttended = bscAtt?.attended ?? 0;
+    const bscEnrolled = bscAtt?.enrolled ?? bscBook?.total ?? 0;
+    const ascAttended = ascAtt?.attended ?? 0;
+    const ascEnrolled = ascAtt?.enrolled ?? ascBook?.total ?? 0;
+    const educatorsRostered =
+      (bscRoster?._count?.id ?? 0) + (ascRoster?._count?.id ?? 0);
+
+    // Ratio status: check children per educator vs 15
+    const totalChildren = bscAttended + ascAttended;
+    const ratioOk = educatorsRostered > 0
+      ? totalChildren / educatorsRostered <= 15
+      : totalChildren === 0;
+
+    // Status: green/amber/red based on multiple factors
+    let opsStatus: "green" | "amber" | "red" = "green";
+    if (!ratioOk) opsStatus = "red";
+    else if (
+      (bscEnrolled > 0 && bscAttended < bscEnrolled * 0.7) ||
+      (ascEnrolled > 0 && ascAttended < ascEnrolled * 0.7)
+    ) {
+      opsStatus = "amber";
+    }
+
+    return {
+      id: s.id,
+      name: s.name,
+      code: s.code,
+      bscAttended,
+      bscEnrolled,
+      ascAttended,
+      ascEnrolled,
+      educatorsRostered,
+      ratioOk,
+      incidentsToday: m?.incidentCount ?? 0,
+      opsStatus,
+    };
+  });
+
+  // Enrolment pipeline counts
+  const enrolmentPipeline = (pipelineLeads as { pipelineStage: string; _count: { id: number } }[]).map((g) => ({
+    stage: g.pipelineStage,
+    count: g._count.id,
+  }));
+  const pipelineTotal = enrolmentPipeline.reduce((s, p) => s + p.count, 0);
+
+  // Weekly revenue running total from attendance × rates
+  let weeklyRevenueRunning = 0;
+  for (const att of weekAttendanceForRevenue) {
+    const svc = att.service;
+    if (att.sessionType === "bsc") {
+      const regularRev = (att.attended - att.casual) * (svc.bscDailyRate ?? 0);
+      const casualRev = att.casual * (svc.bscCasualRate ?? 0);
+      weeklyRevenueRunning += regularRev + casualRev;
+    } else if (att.sessionType === "asc") {
+      const regularRev = (att.attended - att.casual) * (svc.ascDailyRate ?? 0);
+      const casualRev = att.casual * (svc.ascCasualRate ?? 0);
+      weeklyRevenueRunning += regularRev + casualRev;
+    }
+  }
+
+  // Compliance score — network average from latest metrics
+  const complianceScores = services
+    .map((s) => s.metrics[0]?.overallCompliance)
+    .filter((c): c is number => c != null);
+  const networkComplianceScore =
+    complianceScores.length > 0
+      ? Math.round(
+          complianceScores.reduce((s, c) => s + c, 0) / complianceScores.length,
+        )
+      : 0;
+
+  // Today's total attendance
+  const todayTotalAttended = todayAttendance.reduce((s, a) => s + a.attended, 0);
+  const todayTotalEnrolled = todayAttendance.reduce((s, a) => s + a.enrolled, 0);
+
+  // Staffing alert counts
+  const staffingAlertCount = staffingSummary
+    ? staffingSummary.overstaffedCount + staffingSummary.understaffedCount
+    : 0;
 
   return NextResponse.json({
     centreHealth: isServiceScoped
@@ -461,5 +633,18 @@ export async function GET() {
       ? { ...keyMetrics, totalRevenue: 0, openTickets: 0 }
       : keyMetrics,
     projectTodos: projectTodosFormatted,
+    // New operational data (admin/owner only)
+    todaysOps: isServiceScoped ? [] : todaysOps,
+    opsMetrics: isServiceScoped
+      ? null
+      : {
+          todayAttended: todayTotalAttended,
+          todayExpected: todayTotalEnrolled,
+          staffingAlerts: staffingAlertCount,
+          complianceScore: networkComplianceScore,
+          weeklyRevenue: weeklyRevenueRunning,
+          pipelineLeads: pipelineTotal,
+          enrolmentPipeline,
+        },
   });
 }

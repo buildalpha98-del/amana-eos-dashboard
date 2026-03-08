@@ -16,6 +16,8 @@ import { TrendSparklines } from "@/components/dashboard/TrendSparklines";
 import { ActionItemsFeed } from "@/components/dashboard/ActionItemsFeed";
 import { DashboardProjectTodos } from "@/components/dashboard/DashboardProjectTodos";
 import { StaffDashboard } from "@/components/dashboard/StaffDashboard";
+import { StaffingAlerts } from "@/components/dashboard/StaffingAlerts";
+import { TodaysOps } from "@/components/dashboard/TodaysOps";
 
 // ─── Alert Banner ───────────────────────────────────────────
 
@@ -137,6 +139,14 @@ export function DashboardContent() {
             overdueRocks={data.actionItems.overdueRocks.length}
           />
 
+          {/* ── Staffing Alerts ──────────────────────────────── */}
+          <StaffingAlerts />
+
+          {/* ── Today's Operations ────────────────────────────── */}
+          {!isServiceScoped && data.todaysOps.length > 0 && (
+            <TodaysOps centres={data.todaysOps} />
+          )}
+
           {/* ── Key Metrics Bar ─────────────────────────────── */}
           {isServiceScoped ? (
             <KeyMetricsBar
@@ -148,7 +158,10 @@ export function DashboardContent() {
               hideFinancials
             />
           ) : (
-            <KeyMetricsBar metrics={data.keyMetrics} />
+            <KeyMetricsBar
+              metrics={data.keyMetrics}
+              opsMetrics={data.opsMetrics}
+            />
           )}
 
           {/* ── Company & Personal Rocks at a Glance ─────── */}

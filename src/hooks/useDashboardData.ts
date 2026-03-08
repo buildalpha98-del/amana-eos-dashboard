@@ -30,6 +30,30 @@ export interface TrendPoint {
   value: number;
 }
 
+export interface TodaysOpsItem {
+  id: string;
+  name: string;
+  code: string;
+  bscAttended: number;
+  bscEnrolled: number;
+  ascAttended: number;
+  ascEnrolled: number;
+  educatorsRostered: number;
+  ratioOk: boolean;
+  incidentsToday: number;
+  opsStatus: "green" | "amber" | "red";
+}
+
+export interface OpsMetrics {
+  todayAttended: number;
+  todayExpected: number;
+  staffingAlerts: number;
+  complianceScore: number;
+  weeklyRevenue: number;
+  pipelineLeads: number;
+  enrolmentPipeline: { stage: string; count: number }[];
+}
+
 export interface DashboardResponse {
   centreHealth: CentreHealthItem[];
   networkAvgScore: number;
@@ -54,6 +78,8 @@ export interface DashboardResponse {
     todosOverdue: number;
   };
   projectTodos: ProjectTodoItem[];
+  todaysOps: TodaysOpsItem[];
+  opsMetrics: OpsMetrics | null;
 }
 
 export interface ProjectTodoItem {

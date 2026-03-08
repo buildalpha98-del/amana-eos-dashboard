@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   FileSpreadsheet,
   Send,
@@ -67,6 +67,7 @@ export default function BoardReportsPage() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [aiGenerating, setAiGenerating] = useState<string | null>(null);
 
   const { data: reports, isLoading: listLoading } = useBoardReports();
   const { data: report, isLoading: reportLoading } = useBoardReport(selectedReportId);
@@ -84,6 +85,30 @@ export default function BoardReportsPage() {
   const handleNarrativeUpdate = (field: string, value: string) => {
     if (!selectedReportId) return;
     updateMutation.mutate({ [field]: value });
+  };
+
+  const handleAiGenerate = async (section: string, narrativeField: string) => {
+    if (!selectedReportId || aiGenerating) return;
+    setAiGenerating(section);
+    try {
+      const res = await fetch(`/api/reports/board/${selectedReportId}/ai-narrative`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "AI generation failed");
+      }
+      const { narrative } = await res.json();
+      handleNarrativeUpdate(narrativeField, narrative);
+      toast({ description: "AI narrative generated" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "AI generation failed";
+      toast({ description: msg, variant: "destructive" });
+    } finally {
+      setAiGenerating(null);
+    }
   };
 
   const handleSend = () => {
@@ -186,6 +211,8 @@ export default function BoardReportsPage() {
           title="Executive Summary"
           narrative={report.executiveSummary}
           onNarrativeChange={(v) => handleNarrativeUpdate("executiveSummary", v)}
+          onAiGenerate={() => handleAiGenerate("executive", "executiveSummary")}
+          aiGenerating={aiGenerating === "executive"}
         >
           <p className="text-sm text-gray-500">
             High-level overview of {monthLabel} performance.
@@ -198,6 +225,8 @@ export default function BoardReportsPage() {
           title="Financial Performance"
           narrative={report.financialNarrative}
           onNarrativeChange={(v) => handleNarrativeUpdate("financialNarrative", v)}
+          onAiGenerate={() => handleAiGenerate("financial", "financialNarrative")}
+          aiGenerating={aiGenerating === "financial"}
         >
           {d.financial.revenueByService.length > 0 ? (
             <div className="overflow-x-auto">
@@ -261,6 +290,8 @@ export default function BoardReportsPage() {
           title="Operational Metrics"
           narrative={report.operationsNarrative}
           onNarrativeChange={(v) => handleNarrativeUpdate("operationsNarrative", v)}
+          onAiGenerate={() => handleAiGenerate("operations", "operationsNarrative")}
+          aiGenerating={aiGenerating === "operations"}
         >
           <div className="grid grid-cols-2 gap-4 mb-3">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
@@ -306,6 +337,8 @@ export default function BoardReportsPage() {
           title="Compliance Status"
           narrative={report.complianceNarrative}
           onNarrativeChange={(v) => handleNarrativeUpdate("complianceNarrative", v)}
+          onAiGenerate={() => handleAiGenerate("compliance", "complianceNarrative")}
+          aiGenerating={aiGenerating === "compliance"}
         >
           <div className="grid grid-cols-3 gap-3 mb-3">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
@@ -329,6 +362,8 @@ export default function BoardReportsPage() {
           title="Growth & Pipeline"
           narrative={report.growthNarrative}
           onNarrativeChange={(v) => handleNarrativeUpdate("growthNarrative", v)}
+          onAiGenerate={() => handleAiGenerate("growth", "growthNarrative")}
+          aiGenerating={aiGenerating === "growth"}
         >
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
@@ -356,6 +391,8 @@ export default function BoardReportsPage() {
           title="People"
           narrative={report.peopleNarrative}
           onNarrativeChange={(v) => handleNarrativeUpdate("peopleNarrative", v)}
+          onAiGenerate={() => handleAiGenerate("people", "peopleNarrative")}
+          aiGenerating={aiGenerating === "people"}
         >
           <div className="flex items-center gap-6">
             <div className="text-center">
@@ -386,6 +423,8 @@ export default function BoardReportsPage() {
           title={`Quarterly Rocks — ${d.rocks.quarter}`}
           narrative={report.rocksNarrative}
           onNarrativeChange={(v) => handleNarrativeUpdate("rocksNarrative", v)}
+          onAiGenerate={() => handleAiGenerate("rocks", "rocksNarrative")}
+          aiGenerating={aiGenerating === "rocks"}
         >
           {d.rocks.rockList.length > 0 ? (
             <>

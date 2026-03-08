@@ -29,6 +29,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import ComplianceMatrixView from "@/components/compliance/ComplianceMatrixView";
+import { AuditCalendarTab } from "@/components/compliance/AuditCalendarTab";
+import { AuditResultsTab } from "@/components/compliance/AuditResultsTab";
+import { QualificationRatiosTab } from "@/components/compliance/QualificationRatiosTab";
+import {
+  CalendarDays,
+  BarChart3,
+  GraduationCap,
+  Grid3X3,
+} from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /* Constants                                                           */
@@ -346,16 +355,82 @@ function StaffComplianceView() {
 /* Admin Compliance View                                               */
 /* ------------------------------------------------------------------ */
 
+const complianceTabs = [
+  { key: "certificates", label: "Certificates", icon: ShieldCheck },
+  { key: "audit-calendar", label: "Audit Calendar", icon: CalendarDays },
+  { key: "audit-results", label: "Audit Results", icon: BarChart3 },
+  { key: "qual-ratios", label: "Qualification Ratios", icon: GraduationCap },
+  { key: "matrix", label: "Compliance Matrix", icon: Grid3X3 },
+] as const;
+
+type ComplianceTabKey = (typeof complianceTabs)[number]["key"];
+
 export default function CompliancePage() {
   const { data: session } = useSession();
   const role = (session?.user?.role as string) || "";
   const isServiceScoped = role === "staff" || role === "member";
+  const [activeTab, setActiveTab] = useState<ComplianceTabKey>("certificates");
 
   if (isServiceScoped) {
     return <StaffComplianceView />;
   }
 
-  return <AdminComplianceView />;
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Page header */}
+      <div>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Compliance</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Staff certificates, NQS audits, qualification ratios & compliance tracking
+        </p>
+      </div>
+
+      {/* Tab bar */}
+      <div className="border-b border-gray-200 -mb-px overflow-x-auto">
+        <nav className="flex gap-1" aria-label="Compliance tabs">
+          {complianceTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
+                  isActive
+                    ? "border-[#004E64] text-[#004E64]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Tab content */}
+      {activeTab === "certificates" && <AdminComplianceView />}
+      {activeTab === "audit-calendar" && <AuditCalendarTab />}
+      {activeTab === "audit-results" && <AuditResultsTab />}
+      {activeTab === "qual-ratios" && <QualificationRatiosTab />}
+      {activeTab === "matrix" && <MatrixTabWrapper />}
+    </div>
+  );
+}
+
+function MatrixTabWrapper() {
+  const { data: services = [] } = useQuery<ServiceOption[]>({
+    queryKey: ["services"],
+    queryFn: async () => {
+      const res = await fetch("/api/services?limit=100");
+      if (!res.ok) return [];
+      const d = await res.json();
+      return d.services || d;
+    },
+  });
+  return <ComplianceMatrixView services={services} />;
 }
 
 const complianceImportColumns: ColumnConfig[] = [
@@ -371,7 +446,6 @@ const complianceImportColumns: ColumnConfig[] = [
 function AdminComplianceView() {
   const [showCreate, setShowCreate] = useState(false);
   const [showImportCerts, setShowImportCerts] = useState(false);
-  const [viewMode, setViewMode] = useState<"calendar" | "matrix">("calendar");
   const queryClient = useQueryClient();
   const [serviceFilter, setServiceFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -476,64 +550,27 @@ function AdminComplianceView() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Compliance Calendar</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-            Track staff certificates, compliance dates and upcoming renewals
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* View Toggle */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
-            <button
-              onClick={() => setViewMode("calendar")}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                viewMode === "calendar"
-                  ? "bg-white text-[#004E64] shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              Calendar
-            </button>
-            <button
-              onClick={() => setViewMode("matrix")}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                viewMode === "matrix"
-                  ? "bg-white text-[#004E64] shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              Matrix
-            </button>
-          </div>
-
-          <button
-            onClick={() => setShowImportCerts(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            Import Certificates
-          </button>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Certificate
-          </button>
-        </div>
+    <div>
+      {/* Actions bar */}
+      <div className="flex items-center justify-end gap-3 mb-6">
+        <button
+          onClick={() => setShowImportCerts(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          Import Certificates
+        </button>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Add Certificate
+        </button>
       </div>
 
-      {/* View Content */}
-      {viewMode === "matrix" ? (
-        <ComplianceMatrixView services={services} />
-      ) : (
-        <>
+      {/* Certificate content */}
+      <>
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -747,7 +784,6 @@ function AdminComplianceView() {
             </div>
           )}
         </>
-      )}
 
       {/* Import Wizard */}
       {showImportCerts && (

@@ -164,7 +164,62 @@ export async function GET(req: NextRequest) {
       console.log(`  Due 30d: ${due30d.length}`);
     }
 
-    await guard.complete({ total: expiringCerts.length, emailsSent });
+    // ── Overdue Audit Escalation ──────────────────────────────
+    let overdueAudits = 0;
+    try {
+      const overdue = await prisma.auditInstance.findMany({
+        where: {
+          status: "scheduled",
+          dueDate: { lt: now },
+        },
+        include: {
+          template: { select: { name: true, qualityArea: true } },
+          service: { select: { id: true, name: true } },
+        },
+      });
+
+      if (overdue.length > 0) {
+        // Update status to overdue
+        await prisma.auditInstance.updateMany({
+          where: {
+            id: { in: overdue.map((o) => o.id) },
+          },
+          data: { status: "overdue" },
+        });
+
+        overdueAudits = overdue.length;
+
+        // Create urgent todos for each overdue audit
+        for (const audit of overdue) {
+          await prisma.coworkTodo.create({
+            data: {
+              centreId: audit.service.id,
+              date: now,
+              title: `OVERDUE: ${audit.template.name} (QA${audit.template.qualityArea})`,
+              description: `This audit was due ${audit.dueDate.toLocaleDateString("en-AU")} and has not been completed. Please complete immediately.`,
+              category: "morning-prep",
+              assignedRole: "coordinator",
+            },
+          });
+        }
+
+        // Create escalation announcement
+        const serviceNames = [...new Set(overdue.map((o) => o.service.name))];
+        await prisma.coworkAnnouncement.create({
+          data: {
+            title: `${overdue.length} Overdue Audit${overdue.length === 1 ? "" : "s"} — Action Required`,
+            body: `The following centres have overdue audits: ${serviceNames.join(", ")}. Please complete them immediately to maintain compliance.`,
+            type: "reminder",
+            targetCentres: [...new Set(overdue.map((o) => o.service.id))],
+            pinned: true,
+          },
+        });
+      }
+    } catch (auditErr) {
+      console.error("Overdue audit escalation failed:", auditErr);
+    }
+
+    await guard.complete({ total: expiringCerts.length, emailsSent, overdueAudits });
 
     return NextResponse.json({
       message: "Compliance alerts processed",
@@ -176,6 +231,7 @@ export async function GET(req: NextRequest) {
         total: expiringCerts.length,
       },
       emailsSent,
+      overdueAudits,
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {

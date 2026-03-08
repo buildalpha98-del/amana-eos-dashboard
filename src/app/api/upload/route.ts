@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { requireAuth } from "@/lib/server-auth";
+import { uploadFile } from "@/lib/storage";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -54,19 +54,17 @@ export async function POST(req: NextRequest) {
     .substring(0, 50);
   const uniqueName = `${baseName}-${Date.now()}${ext}`;
 
-  // Ensure uploads directory exists
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadsDir, { recursive: true });
-
-  // Write file
+  // Upload to Vercel Blob
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
-  const filePath = path.join(uploadsDir, uniqueName);
-  await writeFile(filePath, buffer);
+  const { url } = await uploadFile(buffer, uniqueName, {
+    contentType: file.type,
+    folder: "uploads",
+  });
 
   return NextResponse.json({
     fileName: file.name,
-    fileUrl: `/uploads/${uniqueName}`,
+    fileUrl: url,
     fileSize: file.size,
     mimeType: file.type,
   });

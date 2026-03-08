@@ -28,6 +28,8 @@ import {
   CheckCircle2,
   XCircle,
   Key,
+  CloudCog,
+  Save,
   Copy,
   AlertTriangle,
 } from "lucide-react";
@@ -52,6 +54,11 @@ import {
   useCreateApiKey,
   useRevokeApiKey,
 } from "@/hooks/useApiKeys";
+import {
+  useOwnaStatus,
+  useUpdateOwnaMapping,
+  useOwnaSync,
+} from "@/hooks/useOwna";
 
 interface UserData {
   id: string;
@@ -1989,6 +1996,231 @@ function ApiKeysSection() {
 }
 
 // ---------------------------------------------------------------------------
+// OWNA Integration Section
+// ---------------------------------------------------------------------------
+
+function OwnaIntegrationSection() {
+  const { data: status, isLoading } = useOwnaStatus();
+  const updateMapping = useUpdateOwnaMapping();
+  const sync = useOwnaSync();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [syncSuccess, setSyncSuccess] = useState(false);
+
+  const handleSave = (serviceId: string) => {
+    updateMapping.mutate(
+      { serviceId, ownaServiceId: editValue.trim() || null },
+      {
+        onSuccess: () => setEditingId(null),
+      },
+    );
+  };
+
+  const handleSync = () => {
+    sync.mutate(undefined, {
+      onSuccess: () => {
+        setSyncSuccess(true);
+        setTimeout(() => setSyncSuccess(false), 3000);
+      },
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <CloudCog className="w-5 h-5 text-gray-400" />
+          <h3 className="text-lg font-semibold text-gray-900">
+            OWNA Integration
+          </h3>
+        </div>
+        <div className="flex items-center gap-2">
+          {status?.configured ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+              API Configured
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              Not Configured
+            </span>
+          )}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="py-4 text-center text-gray-400 text-sm">
+          <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+          Loading OWNA status...
+        </div>
+      ) : !status?.configured ? (
+        <div>
+          <p className="text-sm text-gray-500 mb-2">
+            Set the <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">OWNA_API_URL</code> and{" "}
+            <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">OWNA_API_KEY</code> environment
+            variables to enable automatic attendance and booking sync from OWNA.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Map each service to its OWNA Service ID to enable automatic
+            attendance, booking, and roster sync every 30 minutes during
+            operating hours.
+          </p>
+
+          {/* Service mapping table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+                    Service
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+                    OWNA Service ID
+                  </th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+                    Last Synced
+                  </th>
+                  <th className="w-20"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {status.services.map((svc) => (
+                  <tr
+                    key={svc.id}
+                    className="border-b border-gray-100 last:border-0"
+                  >
+                    <td className="py-2.5 px-3">
+                      <div className="text-sm font-medium text-gray-900">
+                        {svc.name}
+                      </div>
+                      <div className="text-xs text-gray-400">{svc.code}</div>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      {editingId === svc.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            placeholder="e.g. SVC-001"
+                            className="w-40 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSave(svc.id);
+                              if (e.key === "Escape") setEditingId(null);
+                            }}
+                          />
+                          <button
+                            onClick={() => handleSave(svc.id)}
+                            disabled={updateMapping.isPending}
+                            className="p-1 text-green-600 hover:text-green-800 disabled:opacity-50"
+                          >
+                            {updateMapping.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Check className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="p-1 text-gray-400 hover:text-gray-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span
+                          className={`text-sm ${svc.ownaServiceId ? "text-gray-900 font-mono" : "text-gray-400 italic"}`}
+                        >
+                          {svc.ownaServiceId || "Not mapped"}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span className="text-xs text-gray-400">
+                        {svc.ownaSyncedAt
+                          ? new Date(svc.ownaSyncedAt).toLocaleString("en-AU", {
+                              day: "numeric",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "Never"}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      {editingId !== svc.id && (
+                        <button
+                          onClick={() => {
+                            setEditingId(svc.id);
+                            setEditValue(svc.ownaServiceId || "");
+                          }}
+                          className="text-xs text-[#004E64] hover:text-[#003D52] font-medium"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Sync button */}
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              onClick={handleSync}
+              disabled={sync.isPending || status.mappedCount === 0}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+            >
+              {sync.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  Sync Now
+                </>
+              )}
+            </button>
+            {syncSuccess && (
+              <span className="inline-flex items-center gap-1 text-sm text-green-600">
+                <CheckCircle2 className="w-4 h-4" />
+                Sync completed
+              </span>
+            )}
+            {sync.isError && (
+              <span className="inline-flex items-center gap-1 text-sm text-red-500">
+                <XCircle className="w-4 h-4" />
+                {sync.error?.message || "Sync failed"}
+              </span>
+            )}
+            {status.mappedCount === 0 && (
+              <span className="text-xs text-gray-400">
+                Map at least one service to enable sync
+              </span>
+            )}
+          </div>
+
+          <p className="text-xs text-gray-400">
+            {status.mappedCount} of {status.totalServices} services mapped.
+            Auto-sync runs every 30 minutes during operating hours (6am–7pm
+            AEST, Mon–Fri).
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 
 export function SettingsContent({ userRole }: { userRole: Role }) {
   const [showInvite, setShowInvite] = useState(false);
@@ -2014,6 +2246,11 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       {/* Xero Integration (owner/admin) */}
       {(userRole === "owner" || userRole === "admin") && (
         <XeroIntegrationSection isOwner={isOwner} />
+      )}
+
+      {/* OWNA Integration (owner/admin) */}
+      {(userRole === "owner" || userRole === "admin") && (
+        <OwnaIntegrationSection />
       )}
 
       {/* API Keys (owner only) */}

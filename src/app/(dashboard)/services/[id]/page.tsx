@@ -26,6 +26,7 @@ import {
   Wallet,
   LayoutList,
   UtensilsCrossed,
+  ShieldCheck,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
@@ -39,6 +40,7 @@ import { ServiceAttendanceTab } from "@/components/services/ServiceAttendanceTab
 import { ServiceBudgetTab } from "@/components/services/ServiceBudgetTab";
 import { ServiceProgramTab } from "@/components/services/ServiceProgramTab";
 import { ServiceMenuTab } from "@/components/services/ServiceMenuTab";
+import { ServiceAuditsTab } from "@/components/services/ServiceAuditsTab";
 import { ServiceTodayPanel } from "@/components/services/ServiceTodayPanel";
 
 const tabs = [
@@ -53,6 +55,7 @@ const tabs = [
   { key: "comms", label: "Comms", icon: Radio },
   { key: "program", label: "Program", icon: LayoutList },
   { key: "menu", label: "Menu", icon: UtensilsCrossed },
+  { key: "audits", label: "Audits", icon: ShieldCheck },
   { key: "budget", label: "Budget", icon: Wallet },
   { key: "financials", label: "Financials", icon: DollarSign },
 ] as const;
@@ -246,6 +249,10 @@ export default function ServiceDetailPage() {
 
         {activeTab === "menu" && (
           <ServiceMenuTab serviceId={service.id} />
+        )}
+
+        {activeTab === "audits" && (
+          <ServiceAuditsTab serviceId={service.id} />
         )}
 
         {activeTab === "budget" && (

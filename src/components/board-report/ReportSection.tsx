@@ -10,6 +10,8 @@ interface Props {
   children: ReactNode;
   narrative: string | null;
   onNarrativeChange: (value: string) => void;
+  onAiGenerate?: () => void;
+  aiGenerating?: boolean;
 }
 
 export function ReportSection({
@@ -19,6 +21,8 @@ export function ReportSection({
   children,
   narrative,
   onNarrativeChange,
+  onAiGenerate,
+  aiGenerating,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [localValue, setLocalValue] = useState(narrative ?? "");
@@ -61,9 +65,31 @@ export function ReportSection({
 
       {/* Editable narrative */}
       <div className="px-5 pb-4">
-        <label className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1.5 block">
-          Narrative
-        </label>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+            Narrative
+          </label>
+          {onAiGenerate && (
+            <button
+              onClick={onAiGenerate}
+              disabled={aiGenerating}
+              className="no-print inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md
+                         text-[#004E64] bg-[#004E64]/5 hover:bg-[#004E64]/10 disabled:opacity-50 transition-colors"
+              title="Generate narrative with AI"
+            >
+              {aiGenerating ? (
+                <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                </svg>
+              )}
+              {aiGenerating ? "Generating..." : "AI Generate"}
+            </button>
+          )}
+        </div>
         <textarea
           ref={textareaRef}
           value={localValue}

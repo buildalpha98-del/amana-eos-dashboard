@@ -24,7 +24,7 @@
 
 import { prisma } from "@/lib/prisma";
 
-type CronPeriod = "daily" | "weekly";
+type CronPeriod = "daily" | "weekly" | "monthly";
 
 interface CronGuard {
   acquired: boolean;
@@ -46,6 +46,10 @@ function getPeriodKey(type: CronPeriod): string {
 
   if (type === "daily") {
     return now.toISOString().split("T")[0]; // "YYYY-MM-DD"
+  }
+
+  if (type === "monthly") {
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`; // "YYYY-MM"
   }
 
   // ISO week number
