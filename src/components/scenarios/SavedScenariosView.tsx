@@ -73,7 +73,7 @@ export function SavedScenariosView({ scenarios, isLoading, onLoad }: Props) {
                     onLoad(inputs);
                     toast({ description: `Loaded "${s.name}"` });
                   }}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#004E64] text-white hover:bg-[#003D52] transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand text-white hover:bg-brand-hover transition-colors"
                 >
                   Load <ArrowRight className="w-3 h-3" />
                 </button>

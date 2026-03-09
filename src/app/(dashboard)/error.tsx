@@ -26,7 +26,7 @@ export default function DashboardError({
         </p>
         <button
           onClick={reset}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
           Try again

@@ -127,7 +127,7 @@ function PublishCascadeModal({
                 required
                 value={meetingId}
                 onChange={(e) => setMeetingId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select a meeting...</option>
                 {meetings?.map((m: any) => (
@@ -148,7 +148,7 @@ function PublishCascadeModal({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
               placeholder="Write the cascade message for your team..."
             />
           </div>
@@ -164,7 +164,7 @@ function PublishCascadeModal({
             <button
               type="submit"
               disabled={publishCascade.isPending}
-              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {publishCascade.isPending ? "Publishing..." : "Publish"}
             </button>
@@ -250,7 +250,7 @@ function CascadeCard({
         <div
           className={cn(
             "w-3 h-3 rounded-full mt-1.5 ring-4 ring-white shrink-0",
-            hasAcknowledged ? "bg-emerald-500" : "bg-[#004E64]"
+            hasAcknowledged ? "bg-emerald-500" : "bg-brand"
           )}
         />
         <div className="w-0.5 flex-1 bg-gray-200" />
@@ -267,8 +267,8 @@ function CascadeCard({
           {/* Header: meeting context + time */}
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex items-center gap-2 text-sm text-gray-500">
-              <CalendarDays className="w-4 h-4 shrink-0 text-[#004E64]" />
-              <span className="font-medium text-[#004E64]">
+              <CalendarDays className="w-4 h-4 shrink-0 text-brand" />
+              <span className="font-medium text-brand">
                 {msg.meeting?.title ?? "Meeting"}
               </span>
               {msg.meeting?.date && (
@@ -310,7 +310,7 @@ function CascadeCard({
                 <button
                   onClick={handleAcknowledge}
                   disabled={acknowledgeCascade.isPending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#004E64] bg-[#004E64]/5 border border-[#004E64]/20 rounded-lg hover:bg-[#004E64]/10 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand bg-brand/5 border border-brand/20 rounded-lg hover:bg-brand/10 transition-colors disabled:opacity-50"
                 >
                   {acknowledgeCascade.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -372,8 +372,8 @@ export function CascadeBoardTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#004E64]/10">
-            <ArrowDownCircle className="w-5 h-5 text-[#004E64]" />
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-brand/10">
+            <ArrowDownCircle className="w-5 h-5 text-brand" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -388,7 +388,7 @@ export function CascadeBoardTab() {
         {isAdmin && (
           <button
             onClick={() => setShowPublishModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Publish Cascade
@@ -417,8 +417,8 @@ export function CascadeBoardTab() {
       {!isLoading && !isError && (!messages || messages.length === 0) && (
         <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50/50 p-12 text-center">
           <div className="flex justify-center mb-4">
-            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-[#004E64]/5">
-              <Megaphone className="w-7 h-7 text-[#004E64]/40" />
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-brand/5">
+              <Megaphone className="w-7 h-7 text-brand/40" />
             </div>
           </div>
           <h3 className="text-base font-medium text-gray-600 mb-1">
@@ -431,7 +431,7 @@ export function CascadeBoardTab() {
           {isAdmin && (
             <button
               onClick={() => setShowPublishModal(true)}
-              className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+              className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
             >
               <Plus className="w-4 h-4" />
               Publish First Message
@@ -442,7 +442,7 @@ export function CascadeBoardTab() {
 
       {/* Timeline feed */}
       {!isLoading && !isError && messages && messages.length > 0 && (
-        <div className="border-l-2 border-[#FECE00] ml-1.5 pl-0">
+        <div className="border-l-2 border-accent ml-1.5 pl-0">
           {messages.map((msg: any) => (
             <CascadeCard
               key={msg.id}

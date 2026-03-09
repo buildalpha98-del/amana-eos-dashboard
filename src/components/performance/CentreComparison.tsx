@@ -136,7 +136,7 @@ function CentreSelector({
       {/* Selected chips + trigger */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 min-w-[280px] rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-left hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 transition-colors"
+        className="flex items-center gap-2 min-w-[280px] rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-left hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-colors"
       >
         <BarChart3 className="w-4 h-4 text-gray-400 flex-shrink-0" />
         <div className="flex-1 flex flex-wrap gap-1 min-h-[20px]">
@@ -146,7 +146,7 @@ function CentreSelector({
             selectedCentres.map((c) => (
               <span
                 key={c.id}
-                className="inline-flex items-center gap-1 bg-[#004E64]/10 text-[#004E64] rounded px-1.5 py-0.5 text-xs font-medium"
+                className="inline-flex items-center gap-1 bg-brand/10 text-brand rounded px-1.5 py-0.5 text-xs font-medium"
               >
                 {c.code}
                 <button
@@ -205,7 +205,7 @@ function CentreSelector({
                       className={cn(
                         "w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors",
                         isSelected
-                          ? "bg-[#004E64]/5 text-[#004E64]"
+                          ? "bg-brand/5 text-brand"
                           : "hover:bg-gray-50 text-gray-700",
                         isDisabled && "opacity-40 cursor-not-allowed"
                       )}
@@ -214,7 +214,7 @@ function CentreSelector({
                         className={cn(
                           "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0",
                           isSelected
-                            ? "bg-[#004E64] border-[#004E64]"
+                            ? "bg-brand border-brand"
                             : "border-gray-300"
                         )}
                       >
@@ -366,7 +366,7 @@ export function CentreComparison() {
       {/* Loading */}
       {selectedIds.length >= 2 && compareLoading && (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <div className="w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-sm text-gray-500">Loading comparison data...</p>
         </div>
       )}
@@ -443,7 +443,7 @@ export function CentreComparison() {
                             <div
                               className={cn(
                                 "inline-flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg",
-                                isWinner && "ring-2 ring-[#004E64]/30",
+                                isWinner && "ring-2 ring-brand/30",
                                 getScoreBg(score)
                               )}
                             >
@@ -471,7 +471,7 @@ export function CentreComparison() {
           {/* Legend */}
           <div className="px-4 md:px-6 py-3 border-t border-gray-100 flex flex-wrap items-center gap-4 text-xs text-gray-400">
             <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded ring-2 ring-[#004E64]/30 bg-white" />
+              <span className="w-3 h-3 rounded ring-2 ring-brand/30 bg-white" />
               Highest in row
             </span>
             <span className="flex items-center gap-1">

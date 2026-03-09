@@ -69,7 +69,7 @@ export function ServiceCard({
           )}
         </div>
 
-        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-[#004E64] transition-colors flex-shrink-0 mt-1" />
+        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-brand transition-colors flex-shrink-0 mt-1" />
       </div>
 
       {/* Counts bar */}

@@ -70,7 +70,7 @@ const L10_SECTIONS: L10Section[] = [
   { key: "headlines", label: "Headlines", duration: 5, icon: MessageSquare, color: "text-amber-600" },
   { key: "todos", label: "To-Do List", duration: 5, icon: ListChecks, color: "text-indigo-600" },
   { key: "ids", label: "IDS", duration: 60, icon: Lightbulb, color: "text-red-600" },
-  { key: "conclude", label: "Conclude", duration: 5, icon: Trophy, color: "text-[#004E64]" },
+  { key: "conclude", label: "Conclude", duration: 5, icon: Trophy, color: "text-brand" },
 ];
 
 // ============================================================
@@ -191,7 +191,7 @@ function MeetingListView({
         </div>
         <button
           onClick={onStartNew}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors shadow-sm"
         >
           <Play className="w-4 h-4" />
           Start New Meeting
@@ -202,13 +202,13 @@ function MeetingListView({
       {activeMeeting && (
         <button
           onClick={() => onSelect(activeMeeting)}
-          className="w-full mb-6 p-4 bg-[#004E64]/5 border-2 border-[#004E64] rounded-xl flex items-center gap-4 text-left hover:bg-[#004E64]/10 transition-colors"
+          className="w-full mb-6 p-4 bg-brand/5 border-2 border-brand rounded-xl flex items-center gap-4 text-left hover:bg-brand/10 transition-colors"
         >
-          <div className="w-10 h-10 rounded-full bg-[#004E64] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center">
             <Presentation className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-[#004E64]">
+            <p className="text-sm font-semibold text-brand">
               Meeting In Progress
             </p>
             <p className="text-xs text-gray-600 truncate">
@@ -217,7 +217,7 @@ function MeetingListView({
               {L10_SECTIONS[activeMeeting.currentSection]?.label}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-[#004E64]">
+          <div className="flex items-center gap-2 text-brand">
             <span className="text-sm font-medium">Resume</span>
             <ArrowRight className="w-4 h-4" />
           </div>
@@ -233,7 +233,7 @@ function MeetingListView({
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
             <div className="flex items-center justify-center gap-1">
-              <Star className="w-5 h-5 text-[#FECE00] fill-[#FECE00]" />
+              <Star className="w-5 h-5 text-accent fill-accent" />
               <span className="text-2xl font-bold text-gray-900">
                 {stats.avgRating ?? "—"}
               </span>
@@ -241,7 +241,7 @@ function MeetingListView({
             <div className="text-xs text-gray-500 mt-0.5">Avg Rating</div>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <div className="text-2xl font-bold text-[#004E64]">{stats.streak}</div>
+            <div className="text-2xl font-bold text-brand">{stats.streak}</div>
             <div className="text-xs text-gray-500 mt-0.5">Week Streak</div>
           </div>
         </div>
@@ -276,7 +276,7 @@ function MeetingListView({
                     setVisibleCount(10);
                   }}
                   placeholder="Search meetings..."
-                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
               </div>
               {/* Status filter */}
@@ -317,14 +317,14 @@ function MeetingListView({
                       meeting.status === "completed"
                         ? "bg-emerald-50"
                         : meeting.status === "in_progress"
-                        ? "bg-[#004E64]/10"
+                        ? "bg-brand/10"
                         : "bg-gray-100"
                     )}
                   >
                     {meeting.status === "completed" ? (
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     ) : meeting.status === "in_progress" ? (
-                      <Timer className="w-4 h-4 text-[#004E64]" />
+                      <Timer className="w-4 h-4 text-brand" />
                     ) : meeting.status === "cancelled" ? (
                       <XCircle className="w-4 h-4 text-red-400" />
                     ) : (
@@ -359,7 +359,7 @@ function MeetingListView({
                         className={cn(
                           "w-3.5 h-3.5",
                           meeting.rating >= 8
-                            ? "text-[#FECE00] fill-[#FECE00]"
+                            ? "text-accent fill-accent"
                             : meeting.rating >= 5
                             ? "text-amber-400 fill-amber-400"
                             : "text-gray-300 fill-gray-300"
@@ -369,7 +369,7 @@ function MeetingListView({
                         className={cn(
                           "text-sm font-semibold",
                           meeting.rating >= 8
-                            ? "text-[#004E64]"
+                            ? "text-brand"
                             : meeting.rating >= 5
                             ? "text-amber-600"
                             : "text-gray-400"
@@ -385,7 +385,7 @@ function MeetingListView({
                       meeting.status === "completed"
                         ? "bg-emerald-50 text-emerald-700"
                         : meeting.status === "in_progress"
-                        ? "bg-[#004E64]/10 text-[#004E64]"
+                        ? "bg-brand/10 text-brand"
                         : meeting.status === "cancelled"
                         ? "bg-red-50 text-red-600"
                         : "bg-gray-100 text-gray-600"
@@ -411,7 +411,7 @@ function MeetingListView({
             <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/30 text-center">
               <button
                 onClick={() => setVisibleCount((c) => c + 10)}
-                className="text-sm text-[#004E64] font-medium hover:underline"
+                className="text-sm text-brand font-medium hover:underline"
               >
                 Show more ({pastMeetings.length - visibleCount} remaining)
               </button>
@@ -420,8 +420,8 @@ function MeetingListView({
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-[#004E64]/10 flex items-center justify-center mb-4">
-            <Presentation className="w-8 h-8 text-[#004E64]" />
+          <div className="w-16 h-16 rounded-2xl bg-brand/10 flex items-center justify-center mb-4">
+            <Presentation className="w-8 h-8 text-brand" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">
             No meetings yet
@@ -432,7 +432,7 @@ function MeetingListView({
           </p>
           <button
             onClick={onStartNew}
-            className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
+            className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors shadow-sm"
           >
             <Play className="w-4 h-4" />
             Start Your First L10 Meeting
@@ -469,7 +469,7 @@ function SegueSection({
         value={notes}
         onChange={(e) => onUpdate(e.target.value)}
         placeholder="Capture good news shared by team members..."
-        className="w-full h-40 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+        className="w-full h-40 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
       />
     </div>
   );
@@ -688,7 +688,7 @@ function HeadlinesSection({
         value={headlines}
         onChange={(e) => onUpdate(e.target.value)}
         placeholder="Capture headlines here...&#10;&#10;Example:&#10;- Customer: New enrolment at Greenfield centre (+12 places)&#10;- Employee: Sarah passed her cert III &#10;- Customer: Complaint from parent at Eastside re pickup times (IDS)"
-        className="w-full h-48 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+        className="w-full h-48 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
       />
     </div>
   );
@@ -774,8 +774,8 @@ function TodoReviewSection({
               className={cn(
                 "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
                 todo.status === "complete"
-                  ? "bg-[#004E64] border-[#004E64]"
-                  : "border-gray-300 hover:border-[#004E64]"
+                  ? "bg-brand border-brand"
+                  : "border-gray-300 hover:border-brand"
               )}
             >
               {todo.status === "complete" && (
@@ -847,13 +847,13 @@ function IDSSection({
 
       {/* Create Issue Button / Form */}
       {showCreateIssue ? (
-        <div className="p-3 border border-[#004E64]/20 bg-[#004E64]/5 rounded-lg space-y-2">
+        <div className="p-3 border border-brand/20 bg-brand/5 rounded-lg space-y-2">
           <input
             autoFocus
             value={newIssueTitle}
             onChange={(e) => setNewIssueTitle(e.target.value)}
             placeholder="Describe the issue..."
-            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             onKeyDown={(e) => {
               if (e.key === "Enter" && newIssueTitle.trim()) {
                 onCreateIssue(newIssueTitle.trim());
@@ -873,7 +873,7 @@ function IDSSection({
                 }
               }}
               disabled={!newIssueTitle.trim()}
-              className="text-xs px-3 py-1 bg-[#004E64] text-white rounded-md hover:bg-[#003D52] disabled:opacity-50"
+              className="text-xs px-3 py-1 bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50"
             >
               Create Issue
             </button>
@@ -888,7 +888,7 @@ function IDSSection({
       ) : (
         <button
           onClick={() => setShowCreateIssue(true)}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-[#004E64] hover:text-[#004E64] transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-brand hover:text-brand transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Issue
@@ -908,7 +908,7 @@ function IDSSection({
             className={cn(
               "border rounded-lg transition-all",
               selectedIssue === issue.id
-                ? "border-[#004E64] bg-[#004E64]/5 shadow-sm"
+                ? "border-brand bg-brand/5 shadow-sm"
                 : "border-gray-200 bg-white"
             )}
           >
@@ -1076,11 +1076,11 @@ function ConcludeSection({
 }) {
   return (
     <div className="space-y-6">
-      <div className="bg-[#004E64]/10 border border-[#004E64]/20 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-[#004E64] mb-1">
+      <div className="bg-brand/10 border border-brand/20 rounded-lg p-4">
+        <h4 className="text-sm font-semibold text-brand mb-1">
           Conclude
         </h4>
-        <p className="text-xs text-[#004E64]/70">
+        <p className="text-xs text-brand/70">
           Recap to-dos created, confirm who does what by when. Capture cascade
           messages for the broader team. Then rate the meeting 1-10.
         </p>
@@ -1095,7 +1095,7 @@ function ConcludeSection({
           value={notes}
           onChange={(e) => onUpdate(e.target.value)}
           placeholder="Summary of action items, decisions made, and key takeaways..."
-          className="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+          className="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         />
       </div>
 
@@ -1111,7 +1111,7 @@ function ConcludeSection({
           value={cascadeMessages}
           onChange={(e) => onUpdateCascade(e.target.value)}
           placeholder="Messages to cascade to the team...&#10;&#10;Example:&#10;- New enrolment policy starts next Monday&#10;- Holiday program bookings open this Friday&#10;- Staff training day confirmed for March 15"
-          className="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+          className="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         />
       </div>
 
@@ -1128,10 +1128,10 @@ function ConcludeSection({
               className={cn(
                 "w-10 h-10 rounded-lg border-2 text-sm font-bold transition-all",
                 rating === n
-                  ? "border-[#FECE00] bg-[#FECE00] text-[#004E64] scale-110 shadow-md"
+                  ? "border-accent bg-accent text-brand scale-110 shadow-md"
                   : n <= (rating || 0)
-                  ? "border-[#FECE00]/50 bg-[#FECE00]/20 text-[#004E64]"
-                  : "border-gray-200 bg-white text-gray-400 hover:border-[#FECE00]/50 hover:text-gray-600"
+                  ? "border-accent/50 bg-accent/20 text-brand"
+                  : "border-gray-200 bg-white text-gray-400 hover:border-accent/50 hover:text-gray-600"
               )}
             >
               {n}
@@ -1201,7 +1201,7 @@ function MeetingOutcomesPanel({
             <p className="text-[10px] text-gray-500 uppercase">Issues Solved</p>
           </div>
           <div className="text-center p-2 bg-gray-50 rounded-lg">
-            <p className="text-lg font-bold text-[#FECE00]">{meeting.rating ?? "—"}<span className="text-xs text-gray-400">/10</span></p>
+            <p className="text-lg font-bold text-accent">{meeting.rating ?? "—"}<span className="text-xs text-gray-400">/10</span></p>
             <p className="text-[10px] text-gray-500 uppercase">Rating</p>
           </div>
         </div>
@@ -1217,13 +1217,13 @@ function MeetingOutcomesPanel({
         {/* Cascade Messages */}
         {cascadeLines.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold text-[#004E64] uppercase tracking-wider mb-1">
+            <p className="text-[10px] font-semibold text-brand uppercase tracking-wider mb-1">
               Cascade Messages
             </p>
             <div className="space-y-1">
               {cascadeLines.map((line, i) => (
                 <div key={i} className="flex items-start gap-2">
-                  <ArrowRight className="w-3 h-3 text-[#004E64] mt-0.5 flex-shrink-0" />
+                  <ArrowRight className="w-3 h-3 text-brand mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-gray-700">{line.replace(/^[-•*]\s*/, "")}</p>
                 </div>
               ))}
@@ -1465,7 +1465,7 @@ function ActiveMeetingView({
             {scopedServiceNames.length > 0 && (
               <>
                 &middot;{" "}
-                <span className="text-[#004E64] font-medium">
+                <span className="text-brand font-medium">
                   {scopedServiceNames.join(", ")}
                 </span>
               </>
@@ -1473,7 +1473,7 @@ function ActiveMeetingView({
             {isCompleted && meeting.rating && (
               <>
                 &middot; Rated{" "}
-                <span className="font-semibold text-[#004E64]">
+                <span className="font-semibold text-brand">
                   {meeting.rating}/10
                 </span>
               </>
@@ -1491,7 +1491,7 @@ function ActiveMeetingView({
             className={cn(
               "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
               currentSection === 6
-                ? "bg-[#004E64] text-white hover:bg-[#003D52] shadow-sm"
+                ? "bg-brand text-white hover:bg-brand-hover shadow-sm"
                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
             )}
           >
@@ -1522,9 +1522,9 @@ function ActiveMeetingView({
                   className={cn(
                     "h-2 rounded-full transition-all",
                     isActive
-                      ? "bg-[#004E64]"
+                      ? "bg-brand"
                       : isPast
-                      ? "bg-[#004E64]/40"
+                      ? "bg-brand/40"
                       : "bg-gray-200"
                   )}
                 />
@@ -1532,9 +1532,9 @@ function ActiveMeetingView({
                   className={cn(
                     "flex items-center gap-1 mt-1.5 justify-center",
                     isActive
-                      ? "text-[#004E64]"
+                      ? "text-brand"
                       : isPast
-                      ? "text-[#004E64]/50"
+                      ? "text-brand/50"
                       : "text-gray-400"
                   )}
                 >
@@ -1600,7 +1600,7 @@ function ActiveMeetingView({
                     "p-1.5 rounded-md border transition-colors",
                     timer.isRunning
                       ? "border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100"
-                      : "border-[#004E64] bg-[#004E64]/10 text-[#004E64] hover:bg-[#004E64]/20"
+                      : "border-brand bg-brand/10 text-brand hover:bg-brand/20"
                   )}
                 >
                   {timer.isRunning ? (
@@ -1676,7 +1676,7 @@ function ActiveMeetingView({
               {currentSection < L10_SECTIONS.length - 1 ? (
                 <button
                   onClick={goNext}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg text-[#004E64] hover:bg-[#004E64]/10 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg text-brand hover:bg-brand/10 transition-colors"
                 >
                   Next
                   <ChevronRight className="w-4 h-4" />
@@ -1684,7 +1684,7 @@ function ActiveMeetingView({
               ) : (
                 <button
                   onClick={handleComplete}
-                  className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg bg-[#004E64] text-white hover:bg-[#003D52] transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   End Meeting
@@ -1716,7 +1716,7 @@ function ActiveMeetingView({
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors",
                       isActive
-                        ? "bg-[#004E64]/5"
+                        ? "bg-brand/5"
                         : isCompleted
                         ? ""
                         : "hover:bg-gray-50"
@@ -1726,9 +1726,9 @@ function ActiveMeetingView({
                       className={cn(
                         "w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold",
                         isActive
-                          ? "bg-[#004E64] text-white"
+                          ? "bg-brand text-white"
                           : isPast
-                          ? "bg-[#004E64]/20 text-[#004E64]"
+                          ? "bg-brand/20 text-brand"
                           : "bg-gray-100 text-gray-400"
                       )}
                     >
@@ -1743,7 +1743,7 @@ function ActiveMeetingView({
                         className={cn(
                           "text-sm font-medium truncate",
                           isActive
-                            ? "text-[#004E64]"
+                            ? "text-brand"
                             : isPast
                             ? "text-gray-400"
                             : "text-gray-700"
@@ -1755,7 +1755,7 @@ function ActiveMeetingView({
                     <span
                       className={cn(
                         "text-[10px] font-medium",
-                        isActive ? "text-[#004E64]" : "text-gray-400"
+                        isActive ? "text-brand" : "text-gray-400"
                       )}
                     >
                       {s.duration}m
@@ -1895,7 +1895,7 @@ function StartMeetingDialog({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onStart([])}
-                className="text-xs px-3 py-1.5 border border-[#004E64] text-[#004E64] rounded-lg hover:bg-[#004E64]/5 transition-colors font-medium"
+                className="text-xs px-3 py-1.5 border border-brand text-brand rounded-lg hover:bg-brand/5 transition-colors font-medium"
               >
                 Company-Wide Meeting
               </button>
@@ -1926,7 +1926,7 @@ function StartMeetingDialog({
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left",
                       selected
-                        ? "border-[#004E64] bg-[#004E64]/5"
+                        ? "border-brand bg-brand/5"
                         : "border-gray-200 hover:border-gray-300"
                     )}
                   >
@@ -1934,7 +1934,7 @@ function StartMeetingDialog({
                       className={cn(
                         "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
                         selected
-                          ? "bg-[#004E64] border-[#004E64]"
+                          ? "bg-brand border-brand"
                           : "border-gray-300"
                       )}
                     >
@@ -1979,7 +1979,7 @@ function StartMeetingDialog({
               <button
                 onClick={() => onStart(selectedServiceIds)}
                 disabled={isPending}
-                className="text-xs px-4 py-2 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] transition-colors font-medium disabled:opacity-50"
+                className="text-xs px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors font-medium disabled:opacity-50"
               >
                 {isPending ? "Starting..." : selectedServiceIds.length > 0 ? "Start Service Meeting" : "Start Meeting"}
               </button>
@@ -2029,7 +2029,7 @@ export default function MeetingsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
       </div>
     );
   }

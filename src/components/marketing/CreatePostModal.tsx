@@ -169,7 +169,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 placeholder="Post title"
               />
             </div>
@@ -183,7 +183,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
                 required
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               >
                 <option value="">Select platform</option>
                 {PLATFORM_OPTIONS.map((opt) => (
@@ -203,7 +203,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={4}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64] resize-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
                 placeholder="Post content..."
               />
             </div>
@@ -217,7 +217,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 type="datetime-local"
                 value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               />
             </div>
 
@@ -231,7 +231,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 <select
                   value={assigneeId}
                   onChange={(e) => setAssigneeId(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">Unassigned</option>
                   {users?.map((user) => (
@@ -250,7 +250,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 <select
                   value={campaignId}
                   onChange={(e) => setCampaignId(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">None</option>
                   {campaigns?.map((c) => (
@@ -273,7 +273,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                   type="text"
                   value={pillar}
                   onChange={(e) => setPillar(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   placeholder="Content pillar"
                 />
               </div>
@@ -286,7 +286,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 <select
                   value={recurring}
                   onChange={(e) => setRecurring(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   {RECURRING_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -318,7 +318,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64] resize-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
                 placeholder="Internal notes..."
               />
             </div>
@@ -332,7 +332,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 type="url"
                 value={designLink}
                 onChange={(e) => setDesignLink(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 placeholder="https://..."
               />
             </div>
@@ -346,7 +346,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 type="url"
                 value={canvaDesignUrl}
                 onChange={(e) => setCanvaDesignUrl(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 placeholder="https://www.canva.com/design/..."
               />
             </div>
@@ -363,7 +363,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
               <button
                 type="submit"
                 disabled={createPost.isPending}
-                className="rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#003d4f] transition-colors disabled:opacity-50"
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors disabled:opacity-50"
               >
                 {createPost.isPending ? "Creating..." : "Create Post"}
               </button>

@@ -230,7 +230,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
       {chartData.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#004E64]" />
+            <TrendingUp className="w-4 h-4 text-brand" />
             Occupancy Trend (13 weeks)
           </h3>
           <ResponsiveContainer width="100%" height={260}>
@@ -285,7 +285,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-[#004E64]" />
+            <Calendar className="w-4 h-4 text-brand" />
             Week Starting {weekDates[0].toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
           </h3>
           <div className="flex items-center gap-3">
@@ -301,7 +301,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                 type="checkbox"
                 checked={showVC}
                 onChange={(e) => setShowVC(e.target.checked)}
-                className="rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]"
+                className="rounded border-gray-300 text-brand focus:ring-brand"
               />
               Show Vacation Care
             </label>
@@ -330,7 +330,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
 
         {loadingRecords ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 text-[#004E64] animate-spin" />
+            <Loader2 className="w-6 h-6 text-brand animate-spin" />
           </div>
         ) : (
           <>
@@ -401,7 +401,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                                     parseInt(e.target.value) || 0
                                   )
                                 }
-                                className="w-16 text-center text-sm border border-gray-200 rounded-md px-1 py-1 focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none"
+                                className="w-16 text-center text-sm border border-gray-200 rounded-md px-1 py-1 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
                               />
                             </td>
                           ))
@@ -421,7 +421,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
               <button
                 onClick={handleSave}
                 disabled={!isDirty || batchUpdate.isPending}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-[#004E64] text-white hover:bg-[#003D52] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {batchUpdate.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

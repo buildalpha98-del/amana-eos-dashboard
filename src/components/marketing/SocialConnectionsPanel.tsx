@@ -148,7 +148,7 @@ export function SocialConnectionsPanel() {
             Social Media Connections
           </h3>
           {hasConnections && (
-            <span className="rounded-full bg-[#004E64] px-2 py-0.5 text-xs font-medium text-white">
+            <span className="rounded-full bg-brand px-2 py-0.5 text-xs font-medium text-white">
               {connections.length}
             </span>
           )}

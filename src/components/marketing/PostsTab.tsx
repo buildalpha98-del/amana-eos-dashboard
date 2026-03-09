@@ -134,7 +134,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -146,7 +146,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
         <select
           value={platform}
           onChange={(e) => setPlatform(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           {PLATFORM_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -158,7 +158,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
         <div className="ml-auto">
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#003d4f] transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors"
           >
             <Plus className="h-4 w-4" />
             New Post
@@ -186,7 +186,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                       type="checkbox"
                       checked={selectedPostIds.size === posts.length && posts.length > 0}
                       onChange={toggleSelectAll}
-                      className="rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]"
+                      className="rounded border-gray-300 text-brand focus:ring-brand"
                     />
                   </th>
                   <th className="px-4 py-3">Title</th>
@@ -217,7 +217,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                           type="checkbox"
                           checked={selectedPostIds.has(post.id)}
                           onChange={() => toggleSelect(post.id)}
-                          className="rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]"
+                          className="rounded border-gray-300 text-brand focus:ring-brand"
                         />
                       </td>
                       <td
@@ -228,7 +228,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                           <span>{post.title}</span>
                           {post.externalPostId && (
                             <span aria-label="Linked to social post">
-                              <Link2 className="h-3.5 w-3.5 text-[#004E64] shrink-0" />
+                              <Link2 className="h-3.5 w-3.5 text-brand shrink-0" />
                             </span>
                           )}
                         </div>
@@ -242,7 +242,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                             {post.services.slice(0, 3).map((s) => (
                               <span
                                 key={s.service.id}
-                                className="inline-flex items-center rounded-md bg-[#004E64]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#004E64]"
+                                className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand"
                               >
                                 {s.service.code}
                               </span>

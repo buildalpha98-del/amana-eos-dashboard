@@ -355,7 +355,7 @@ export default function ComplianceMatrixView({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -424,7 +424,7 @@ export default function ComplianceMatrixView({
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Centres</option>
             {services.map((s) => (
@@ -436,7 +436,7 @@ export default function ComplianceMatrixView({
           {serviceFilter && (
             <button
               onClick={() => setServiceFilter("")}
-              className="text-xs text-[#004E64] hover:underline"
+              className="text-xs text-brand hover:underline"
             >
               Clear filter
             </button>
@@ -454,8 +454,8 @@ export default function ComplianceMatrixView({
       {/* Desktop Table */}
       {rows.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-[#004E64]/10 flex items-center justify-center mb-4">
-            <Users className="w-8 h-8 text-[#004E64]" />
+          <div className="w-16 h-16 rounded-2xl bg-brand/10 flex items-center justify-center mb-4">
+            <Users className="w-8 h-8 text-brand" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-1">
             No staff found

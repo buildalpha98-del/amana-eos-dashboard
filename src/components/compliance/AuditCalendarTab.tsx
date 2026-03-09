@@ -105,7 +105,7 @@ export function AuditCalendarTab() {
             {
               label: "Avg Score",
               value: stats.avgScore != null ? `${stats.avgScore}%` : "—",
-              color: "text-[#004E64] bg-[#004E64]/5",
+              color: "text-brand bg-brand/5",
             },
           ].map((s) => (
             <div key={s.label} className={cn("rounded-xl p-4 text-center", s.color)}>
@@ -137,7 +137,7 @@ export function AuditCalendarTab() {
         <select
           value={serviceFilter}
           onChange={(e) => setServiceFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         >
           <option value="">All Centres</option>
           {services.map((s) => (
@@ -150,7 +150,7 @@ export function AuditCalendarTab() {
         <select
           value={qaFilter}
           onChange={(e) => setQaFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         >
           <option value="">All Quality Areas</option>
           {[1, 2, 3, 4, 5, 6, 7].map((qa) => (
@@ -164,7 +164,7 @@ export function AuditCalendarTab() {
       {/* Calendar grid */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 text-[#004E64] animate-spin" />
+          <Loader2 className="w-8 h-8 text-brand animate-spin" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -179,7 +179,7 @@ export function AuditCalendarTab() {
                 className={cn(
                   "rounded-xl border p-4 transition-colors",
                   isCurrent
-                    ? "border-[#004E64] bg-[#004E64]/5 ring-1 ring-[#004E64]/20"
+                    ? "border-brand bg-brand/5 ring-1 ring-brand/20"
                     : "border-gray-200 bg-white"
                 )}
               >
@@ -187,7 +187,7 @@ export function AuditCalendarTab() {
                   <h4
                     className={cn(
                       "text-sm font-semibold",
-                      isCurrent ? "text-[#004E64]" : isPast ? "text-gray-400" : "text-gray-900"
+                      isCurrent ? "text-brand" : isPast ? "text-gray-400" : "text-gray-900"
                     )}
                   >
                     {monthNames[month - 1]}

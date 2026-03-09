@@ -141,7 +141,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as "weekly" | "monthly")}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="monthly">Monthly</option>
             <option value="weekly">Weekly</option>
@@ -289,7 +289,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
       {chartData.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#004E64]" />
+            <TrendingUp className="w-4 h-4 text-brand" />
             Budget Trend ({period === "monthly" ? "Monthly" : "Weekly"})
           </h3>
           <ResponsiveContainer width="100%" height={280}>
@@ -343,7 +343,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
               setEditingItem(null);
               setShowAddModal(true);
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004E64] text-white text-xs font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white text-xs font-medium rounded-lg hover:bg-brand-hover transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Equipment
@@ -357,7 +357,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
             className={cn(
               "px-2.5 py-1 text-xs font-medium rounded-full border transition-colors",
               !categoryFilter
-                ? "bg-[#004E64] text-white border-[#004E64]"
+                ? "bg-brand text-white border-brand"
                 : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
             )}
           >
@@ -484,7 +484,7 @@ function EquipmentRow({
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={onEdit}
-          className="p-1 text-gray-400 hover:text-[#004E64] transition-colors"
+          className="p-1 text-gray-400 hover:text-brand transition-colors"
           title="Edit"
         >
           <Pencil className="w-3.5 h-3.5" />
@@ -608,7 +608,7 @@ function EquipmentModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Kitchen blender"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               required
             />
           </div>
@@ -624,7 +624,7 @@ function EquipmentModal({
                 placeholder="0.00"
                 step="0.01"
                 min="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 required
               />
             </div>
@@ -633,7 +633,7 @@ function EquipmentModal({
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 {ALL_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -651,7 +651,7 @@ function EquipmentModal({
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               required
             />
           </div>
@@ -665,7 +665,7 @@ function EquipmentModal({
               placeholder="Additional details..."
               rows={2}
               maxLength={500}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
             />
           </div>
 
@@ -681,7 +681,7 @@ function EquipmentModal({
             <button
               type="submit"
               disabled={isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

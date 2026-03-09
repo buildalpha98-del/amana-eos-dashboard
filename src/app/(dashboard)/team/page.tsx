@@ -53,7 +53,7 @@ export default function TeamPage() {
             className={cn(
               "p-2 rounded-md transition-colors",
               viewMode === "chart"
-                ? "bg-white text-[#004E64] shadow-sm"
+                ? "bg-white text-brand shadow-sm"
                 : "text-gray-400 hover:text-gray-600"
             )}
             title="Accountability Chart"
@@ -65,7 +65,7 @@ export default function TeamPage() {
             className={cn(
               "p-2 rounded-md transition-colors",
               viewMode === "list"
-                ? "bg-white text-[#004E64] shadow-sm"
+                ? "bg-white text-brand shadow-sm"
                 : "text-gray-400 hover:text-gray-600"
             )}
             title="Performance List"
@@ -80,8 +80,8 @@ export default function TeamPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#004E64]/10">
-                <Users className="w-5 h-5 text-[#004E64]" />
+              <div className="p-2 rounded-lg bg-brand/10">
+                <Users className="w-5 h-5 text-brand" />
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -96,8 +96,8 @@ export default function TeamPage() {
 
           <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#004E64]/10">
-                <Mountain className="w-5 h-5 text-[#004E64]" />
+              <div className="p-2 rounded-lg bg-brand/10">
+                <Mountain className="w-5 h-5 text-brand" />
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -112,8 +112,8 @@ export default function TeamPage() {
 
           <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#004E64]/10">
-                <CheckSquare className="w-5 h-5 text-[#004E64]" />
+              <div className="p-2 rounded-lg bg-brand/10">
+                <CheckSquare className="w-5 h-5 text-brand" />
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -128,8 +128,8 @@ export default function TeamPage() {
 
           <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#004E64]/10">
-                <AlertCircle className="w-5 h-5 text-[#004E64]" />
+              <div className="p-2 rounded-lg bg-brand/10">
+                <AlertCircle className="w-5 h-5 text-brand" />
               </div>
               <div>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
@@ -158,7 +158,7 @@ export default function TeamPage() {
         <OrgChartView />
       ) : teamLoading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
         </div>
       ) : members && members.length > 0 ? (
         <TeamListView members={members} />

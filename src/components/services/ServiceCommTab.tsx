@@ -104,7 +104,7 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -145,14 +145,14 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
               )}
             >
               <div className="flex items-center gap-2 mb-2">
-                <Bell className="w-3.5 h-3.5 text-[#004E64]" />
-                <span className="text-xs font-medium text-[#004E64]">Announcement</span>
+                <Bell className="w-3.5 h-3.5 text-brand" />
+                <span className="text-xs font-medium text-brand">Announcement</span>
                 <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium", priority.bg, priority.text)}>
                   <PriorityIcon className="h-3 w-3" />
                   {priority.label}
                 </span>
                 {a.pinned && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#FECE00]/20 px-2 py-0.5 text-xs font-medium text-[#004E64]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-brand">
                     <Pin className="h-3 w-3" />
                     Pinned
                   </span>
@@ -200,8 +200,8 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
               )}
             >
               <div className="flex items-center gap-2 mb-2">
-                <ArrowDownCircle className="w-3.5 h-3.5 text-[#004E64]" />
-                <span className="text-xs font-medium text-[#004E64]">Cascade Message</span>
+                <ArrowDownCircle className="w-3.5 h-3.5 text-brand" />
+                <span className="text-xs font-medium text-brand">Cascade Message</span>
                 {c.meeting && (
                   <span className="flex items-center gap-1 text-xs text-gray-500">
                     <CalendarDays className="h-3 w-3" />
@@ -223,7 +223,7 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
                   <button
                     onClick={() => handleAcknowledge(c.id)}
                     disabled={acknowledgeCascade.isPending}
-                    className="ml-auto inline-flex items-center gap-1 rounded-md border border-[#004E64]/20 bg-[#004E64]/5 px-2 py-1 text-xs font-medium text-[#004E64] hover:bg-[#004E64]/10 disabled:opacity-50"
+                    className="ml-auto inline-flex items-center gap-1 rounded-md border border-brand/20 bg-brand/5 px-2 py-1 text-xs font-medium text-brand hover:bg-brand/10 disabled:opacity-50"
                   >
                     <CheckCircle2 className="h-3 w-3" />
                     Acknowledge

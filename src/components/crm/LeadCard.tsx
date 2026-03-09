@@ -64,7 +64,7 @@ export function LeadCard({
           )}
           {lead.assignedTo && (
             <div
-              className="w-5 h-5 rounded-full bg-[#003344] text-white flex items-center justify-center text-[10px] font-medium"
+              className="w-5 h-5 rounded-full bg-brand-dark text-white flex items-center justify-center text-[10px] font-medium"
               title={lead.assignedTo.name}
             >
               {lead.assignedTo.name

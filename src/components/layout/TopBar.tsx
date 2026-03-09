@@ -104,7 +104,7 @@ export function TopBar() {
 
   const closeQuickAdd = () => setQuickAddOpen(false);
 
-  const quickAddBtnClasses = "p-2 rounded-lg text-white bg-[#004E64] hover:bg-[#003D52] transition-colors";
+  const quickAddBtnClasses = "p-2 rounded-lg text-white bg-brand hover:bg-brand-hover transition-colors";
 
   return (
     <>
@@ -113,7 +113,7 @@ export function TopBar() {
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
           {quarterRelevantPages.has(pathname) && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#004E64]/10 text-[#004E64]">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand/10 text-brand">
               {quarter}
             </span>
           )}
@@ -145,7 +145,7 @@ export function TopBar() {
         <div className="flex items-center gap-2 min-w-0">
           <h1 className="text-base font-semibold text-gray-900 truncate">{title}</h1>
           {quarterRelevantPages.has(pathname) && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#004E64]/10 text-[#004E64] shrink-0">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand/10 text-brand shrink-0">
               {quarter}
             </span>
           )}

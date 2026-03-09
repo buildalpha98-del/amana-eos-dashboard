@@ -47,7 +47,7 @@ export function VTOSection({
               autoFocus
               value={titleDraft}
               onChange={(e) => setTitleDraft(e.target.value)}
-              className="flex-1 px-2 py-1 text-sm font-semibold border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="flex-1 px-2 py-1 text-sm font-semibold border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSaveTitle();
                 if (e.key === "Escape") setEditingTitle(false);
@@ -70,7 +70,7 @@ export function VTOSection({
           </div>
         ) : (
           <h3
-            className="text-sm font-semibold text-gray-700 cursor-pointer hover:text-[#004E64] transition-colors"
+            className="text-sm font-semibold text-gray-700 cursor-pointer hover:text-brand transition-colors"
             onClick={() => {
               setTitleDraft(displayTitle);
               setEditingTitle(true);
@@ -86,7 +86,7 @@ export function VTOSection({
               setDraft(value || "");
               setEditing(true);
             }}
-            className="p-1 text-gray-400 hover:text-[#004E64] transition-colors"
+            className="p-1 text-gray-400 hover:text-brand transition-colors"
             title="Edit"
           >
             <Pencil className="w-3.5 h-3.5" />
@@ -102,21 +102,21 @@ export function VTOSection({
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
               />
             ) : (
               <input
                 autoFocus
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
               />
             )}
             <div className="flex gap-2">
               <button
                 onClick={handleSave}
                 disabled={updateVTO.isPending}
-                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-[#004E64] text-white rounded-md hover:bg-[#003D52] transition-colors"
+                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-brand text-white rounded-md hover:bg-brand-hover transition-colors"
               >
                 <Check className="w-3 h-3" />
                 Save

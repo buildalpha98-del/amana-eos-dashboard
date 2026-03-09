@@ -165,7 +165,7 @@ export function TicketDetailPanel({
         <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
         <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl border-l border-gray-200 z-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-8 h-8 border-4 border-gray-200 border-t-brand rounded-full animate-spin mx-auto mb-3" />
             <p className="text-sm text-gray-500">Loading ticket...</p>
           </div>
         </div>
@@ -226,7 +226,7 @@ export function TicketDetailPanel({
             className={cn(
               "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
               activeTab === "chat"
-                ? "border-[#004E64] text-[#004E64]"
+                ? "border-brand text-brand"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             )}
           >
@@ -238,7 +238,7 @@ export function TicketDetailPanel({
             className={cn(
               "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
               activeTab === "details"
-                ? "border-[#004E64] text-[#004E64]"
+                ? "border-brand text-brand"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             )}
           >
@@ -279,7 +279,7 @@ export function TicketDetailPanel({
                           className={cn(
                             "max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm",
                             msg.direction === "outbound"
-                              ? "bg-[#004E64] text-white rounded-br-md"
+                              ? "bg-brand text-white rounded-br-md"
                               : "bg-white text-gray-900 border border-gray-200 rounded-bl-md"
                           )}
                         >
@@ -373,12 +373,12 @@ export function TicketDetailPanel({
                   placeholder={isWindowOpen ? "Type a reply..." : "24h window expired"}
                   disabled={!isWindowOpen}
                   rows={1}
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-400"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-400"
                 />
                 <button
                   onClick={handleSendReply}
                   disabled={!replyText.trim() || sendMessage.isPending || !isWindowOpen}
-                  className="p-2.5 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                  className="p-2.5 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -449,7 +449,7 @@ export function TicketDetailPanel({
                     assignedToId: e.target.value || undefined,
                   })
                 }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Unassigned</option>
                 {users.map((u) => (
@@ -473,7 +473,7 @@ export function TicketDetailPanel({
                     serviceId: e.target.value || undefined,
                   })
                 }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Not specified</option>
                 {services.map((s) => (

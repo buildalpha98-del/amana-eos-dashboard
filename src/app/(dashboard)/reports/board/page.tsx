@@ -180,7 +180,7 @@ export default function BoardReportsPage() {
             <button
               onClick={handleSend}
               disabled={sendMutation.isPending}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-white bg-[#004E64] hover:bg-[#003344] disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-white bg-brand hover:bg-brand-dark disabled:opacity-50"
             >
               {sendMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -542,7 +542,7 @@ export default function BoardReportsPage() {
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64]/20"
+                className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/20"
               >
                 {MONTHS.map((m, i) => (
                   <option key={m} value={i + 1}>{m}</option>
@@ -557,7 +557,7 @@ export default function BoardReportsPage() {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64]/20"
+                className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/20"
               >
                 {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
                   <option key={y} value={y}>{y}</option>
@@ -569,7 +569,7 @@ export default function BoardReportsPage() {
           <button
             onClick={handleGenerate}
             disabled={generateMutation.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white bg-[#004E64] hover:bg-[#003344] disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white bg-brand hover:bg-brand-dark disabled:opacity-50"
           >
             {generateMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -622,7 +622,7 @@ export default function BoardReportsPage() {
                     <td className="px-5 py-3">
                       <button
                         onClick={() => setSelectedReportId(r.id)}
-                        className="text-sm text-[#004E64] hover:underline font-medium"
+                        className="text-sm text-brand hover:underline font-medium"
                       >
                         View
                       </button>

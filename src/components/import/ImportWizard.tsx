@@ -152,7 +152,7 @@ export function ImportWizard({
                     className={cn(
                       "w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold",
                       step === s
-                        ? "bg-[#004E64] text-white"
+                        ? "bg-brand text-white"
                         : i < ["upload", "preview", "result"].indexOf(step)
                         ? "bg-emerald-100 text-emerald-700"
                         : "bg-gray-100 text-gray-400"
@@ -186,7 +186,7 @@ export function ImportWizard({
                   "border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors",
                   loading
                     ? "border-gray-200 bg-gray-50"
-                    : "border-gray-300 hover:border-[#004E64] hover:bg-[#004E64]/5"
+                    : "border-gray-300 hover:border-brand hover:bg-brand/5"
                 )}
               >
                 <input
@@ -200,7 +200,7 @@ export function ImportWizard({
                   }}
                 />
                 {loading ? (
-                  <Loader2 className="w-10 h-10 text-[#004E64] animate-spin mx-auto mb-3" />
+                  <Loader2 className="w-10 h-10 text-brand animate-spin mx-auto mb-3" />
                 ) : (
                   <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
                 )}
@@ -418,7 +418,7 @@ export function ImportWizard({
               <button
                 onClick={handleExecute}
                 disabled={loading}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-[#004E64] text-white hover:bg-[#003D52] disabled:opacity-50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-50 transition-colors"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -431,7 +431,7 @@ export function ImportWizard({
             {step === "result" && (
               <button
                 onClick={onClose}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-[#004E64] text-white hover:bg-[#003D52] transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors"
               >
                 Done
                 <ArrowRight className="w-4 h-4" />

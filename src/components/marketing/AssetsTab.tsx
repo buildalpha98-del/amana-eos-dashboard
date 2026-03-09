@@ -96,7 +96,7 @@ export function AssetsTab() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
           >
             {ASSET_TYPES.map((t) => (
               <option key={t} value={t === "all" ? "" : t}>
@@ -112,14 +112,14 @@ export function AssetsTab() {
               placeholder="Search assets..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 w-56"
+              className="pl-9 pr-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 w-56"
             />
           </div>
         </div>
 
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#004E64]/90 transition-colors"
+          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand/90 transition-colors"
         >
           <Plus className="h-4 w-4" />
           New Asset
@@ -129,7 +129,7 @@ export function AssetsTab() {
       {/* ── Loading State ────────────────────────────── */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-[#004E64]" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
         </div>
       )}
 
@@ -159,7 +159,7 @@ export function AssetsTab() {
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-50 text-[#004E64]">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-50 text-brand">
                       {getIcon(asset.type)}
                     </div>
                     <div>
@@ -191,7 +191,7 @@ export function AssetsTab() {
                     {asset.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex px-2 py-0.5 rounded-md bg-[#FECE00]/20 text-[#004E64] text-xs font-medium"
+                        className="inline-flex px-2 py-0.5 rounded-md bg-accent/20 text-brand text-xs font-medium"
                       >
                         {tag}
                       </span>
@@ -204,7 +204,7 @@ export function AssetsTab() {
                   href={asset.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs text-[#004E64] hover:underline truncate mt-auto"
+                  className="flex items-center gap-1.5 text-xs text-brand hover:underline truncate mt-auto"
                 >
                   <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">{asset.url}</span>
@@ -242,7 +242,7 @@ export function AssetsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, name: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="Asset name"
                 />
               </div>
@@ -256,7 +256,7 @@ export function AssetsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, type: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                 >
                   {ASSET_TYPES.filter((t) => t !== "all").map((t) => (
                     <option key={t} value={t}>
@@ -276,7 +276,7 @@ export function AssetsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, url: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="https://..."
                 />
               </div>
@@ -291,7 +291,7 @@ export function AssetsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, tags: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="tag1, tag2, tag3"
                 />
                 <p className="text-xs text-gray-400 mt-1">
@@ -314,7 +314,7 @@ export function AssetsTab() {
                   !form.url.trim() ||
                   createAsset.isPending
                 }
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-[#004E64] hover:bg-[#004E64]/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand hover:bg-brand/90 disabled:opacity-50 transition-colors flex items-center gap-2"
               >
                 {createAsset.isPending && (
                   <Loader2 className="h-4 w-4 animate-spin" />

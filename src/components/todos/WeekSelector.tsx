@@ -69,7 +69,7 @@ export function WeekSelector({
           <ChevronLeft className="w-4 h-4 text-gray-600" />
         </button>
         <div className="px-4 py-2 flex items-center gap-2 min-w-[220px] justify-center">
-          <Calendar className="w-4 h-4 text-[#004E64]" />
+          <Calendar className="w-4 h-4 text-brand" />
           <span className="text-sm font-medium text-gray-900">
             {formatWeekLabel(value)}
           </span>
@@ -86,7 +86,7 @@ export function WeekSelector({
       {!current && (
         <button
           onClick={goToday}
-          className="px-3 py-2 text-sm font-medium text-[#004E64] bg-[#004E64]/5 hover:bg-[#004E64]/10 rounded-lg transition-colors"
+          className="px-3 py-2 text-sm font-medium text-brand bg-brand/5 hover:bg-brand/10 rounded-lg transition-colors"
         >
           This Week
         </button>

@@ -28,8 +28,8 @@ const PILLAR_KEYS = [
 function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) {
     return (
-      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FECE00]/20">
-        <Trophy className="w-4 h-4 text-[#FECE00]" />
+      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-accent/20">
+        <Trophy className="w-4 h-4 text-accent" />
       </div>
     );
   }
@@ -148,7 +148,7 @@ export function CentreLeaderboard({ centres, stateFilter }: CentreLeaderboardPro
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="appearance-none rounded-lg border border-gray-200 bg-white px-3 py-1.5 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64]/20"
+              className="appearance-none rounded-lg border border-gray-200 bg-white px-3 py-1.5 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/20"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>

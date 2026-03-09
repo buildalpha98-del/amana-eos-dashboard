@@ -59,7 +59,7 @@ export function ServiceDetailPanel({
   if (isLoading || !service) {
     return (
       <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 z-50 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -97,7 +97,7 @@ export function ServiceDetailPanel({
               className={cn(
                 "px-3 py-2.5 text-xs font-medium border-b-2 transition-colors",
                 activeTab === tab.key
-                  ? "border-[#004E64] text-[#004E64]"
+                  ? "border-brand text-brand"
                   : "border-transparent text-gray-400 hover:text-gray-600"
               )}
             >
@@ -207,7 +207,7 @@ export function ServiceDetailPanel({
                   managerId: e.target.value || null,
                 })
               }
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="">Unassigned</option>
               {users?.map((u) => (
@@ -230,7 +230,7 @@ export function ServiceDetailPanel({
                     setNotes(service.notes || "");
                     setEditing(true);
                   }}
-                  className="text-gray-400 hover:text-[#004E64]"
+                  className="text-gray-400 hover:text-brand"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                 </button>
@@ -243,7 +243,7 @@ export function ServiceDetailPanel({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
                 />
                 <div className="flex gap-2">
                   <button
@@ -251,7 +251,7 @@ export function ServiceDetailPanel({
                       updateService.mutate({ id: serviceId, notes });
                       setEditing(false);
                     }}
-                    className="text-xs px-3 py-1 bg-[#004E64] text-white rounded-md"
+                    className="text-xs px-3 py-1 bg-brand text-white rounded-md"
                   >
                     Save
                   </button>
@@ -352,10 +352,10 @@ export function ServiceDetailPanel({
                   <button
                     key={project.id}
                     onClick={() => onNavigateToProject?.(project.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2 bg-[#004E64]/5 rounded-lg text-sm text-left hover:bg-[#004E64]/10 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 bg-brand/5 rounded-lg text-sm text-left hover:bg-brand/10 transition-colors"
                   >
-                    <FolderKanban className="w-4 h-4 text-[#004E64] flex-shrink-0" />
-                    <span className="flex-1 truncate text-[#004E64] font-medium">
+                    <FolderKanban className="w-4 h-4 text-brand flex-shrink-0" />
+                    <span className="flex-1 truncate text-brand font-medium">
                       {project.name}
                     </span>
                     <span className="text-xs text-gray-400 capitalize">
@@ -385,7 +385,7 @@ export function ServiceDetailPanel({
                     const val = parseFloat(e.target.value);
                     updateService.mutate({ id: serviceId, bscDailyRate: isNaN(val) ? null : val });
                   }}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="$0"
                 />
               </div>
@@ -400,7 +400,7 @@ export function ServiceDetailPanel({
                     const val = parseFloat(e.target.value);
                     updateService.mutate({ id: serviceId, ascDailyRate: isNaN(val) ? null : val });
                   }}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="$0"
                 />
               </div>
@@ -415,7 +415,7 @@ export function ServiceDetailPanel({
                     const val = parseFloat(e.target.value);
                     updateService.mutate({ id: serviceId, vcDailyRate: isNaN(val) ? null : val });
                   }}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="$0"
                 />
               </div>

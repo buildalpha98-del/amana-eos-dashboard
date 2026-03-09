@@ -105,7 +105,7 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin w-6 h-6 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="animate-spin w-6 h-6 border-2 border-brand border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -115,14 +115,14 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Mountain className="w-5 h-5 text-[#004E64]" />
+          <Mountain className="w-5 h-5 text-brand" />
           <h3 className="text-base font-semibold text-gray-900">Service Rocks</h3>
         </div>
         <div className="flex items-center gap-2">
           <select
             value={selectedQuarter}
             onChange={(e) => setSelectedQuarter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] text-gray-700"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand text-gray-700"
           >
             {quarterOptions.map((q) => (
               <option key={q} value={q}>
@@ -132,7 +132,7 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
           </select>
           <button
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Rock
@@ -167,7 +167,7 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
 
                 {/* Owner */}
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 rounded-full bg-[#004E64] flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center">
                     {rock.owner.avatar ? (
                       <img
                         src={rock.owner.avatar}
@@ -215,7 +215,7 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
                   </div>
                   <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#004E64] rounded-full transition-all"
+                      className="h-full bg-brand rounded-full transition-all"
                       style={{ width: `${rock.percentComplete}%` }}
                     />
                   </div>
@@ -346,7 +346,7 @@ function AddRockModal({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="e.g., Improve NQS quality rating"
             />
           </div>
@@ -359,7 +359,7 @@ function AddRockModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
               placeholder="Describe this rock's goal and key outcomes..."
             />
           </div>
@@ -372,7 +372,7 @@ function AddRockModal({
               <select
                 value={ownerId}
                 onChange={(e) => setOwnerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select owner...</option>
                 {users.map((u) => (
@@ -390,7 +390,7 @@ function AddRockModal({
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
@@ -422,7 +422,7 @@ function AddRockModal({
             <button
               type="submit"
               disabled={createRock.isPending}
-              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {createRock.isPending ? "Adding..." : "Add Rock"}
             </button>

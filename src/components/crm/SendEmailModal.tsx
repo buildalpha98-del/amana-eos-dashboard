@@ -79,7 +79,7 @@ export function SendEmailModal({
               <select
                 value={selectedTemplateId}
                 onChange={(e) => handleTemplateChange(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
               >
                 <option value="">No template (compose manually)</option>
                 {templates.map((t) => (
@@ -99,7 +99,7 @@ export function SendEmailModal({
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344] focus:border-transparent"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent"
               placeholder="Email subject"
               required
             />
@@ -113,7 +113,7 @@ export function SendEmailModal({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={8}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344] focus:border-transparent"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent"
               placeholder="Compose your email..."
               required
             />
@@ -133,7 +133,7 @@ export function SendEmailModal({
             <button
               type="submit"
               disabled={sendEmail.isPending || !subject.trim() || !body.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-[#003344] hover:bg-[#004E64] rounded-lg disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-brand-dark hover:bg-brand rounded-lg disabled:opacity-50"
             >
               {sendEmail.isPending ? "Sending..." : "Send Email"}
             </button>

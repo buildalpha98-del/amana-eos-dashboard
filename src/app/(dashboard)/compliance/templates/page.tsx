@@ -137,25 +137,25 @@ function SortableItemRow({
               value={editSection}
               onChange={(e) => setEditSection(e.target.value)}
               placeholder="Section (optional)"
-              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-brand"
             />
             <textarea
               value={editQuestion}
               onChange={(e) => setEditQuestion(e.target.value)}
               rows={2}
-              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-brand"
             />
             <textarea
               value={editGuidance}
               onChange={(e) => setEditGuidance(e.target.value)}
               placeholder="Guidance (optional)"
               rows={1}
-              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-brand"
             />
             <div className="flex gap-2">
               <button
                 onClick={handleSave}
-                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-[#004E64] rounded hover:bg-[#003D52]"
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-brand rounded hover:bg-brand-hover"
               >
                 <Check className="w-3 h-3" /> Save
               </button>
@@ -170,7 +170,7 @@ function SortableItemRow({
         ) : (
           <>
             {item.section && (
-              <span className="text-[10px] font-medium text-[#004E64] bg-[#004E64]/10 px-1.5 py-0.5 rounded mb-0.5 inline-block">
+              <span className="text-[10px] font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded mb-0.5 inline-block">
                 {item.section}
               </span>
             )}
@@ -195,7 +195,7 @@ function SortableItemRow({
               setEditGuidance(item.guidance || "");
               setEditing(true);
             }}
-            className="p-1 text-gray-400 hover:text-[#004E64] transition-colors"
+            className="p-1 text-gray-400 hover:text-brand transition-colors"
             title="Edit"
           >
             <Pencil className="w-3.5 h-3.5" />
@@ -258,7 +258,7 @@ function TemplateDetail({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-5 h-5 text-[#004E64] animate-spin" />
+        <Loader2 className="w-5 h-5 text-brand animate-spin" />
       </div>
     );
   }
@@ -282,7 +282,7 @@ function TemplateDetail({
         </div>
         <button
           onClick={onUpload}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
         >
           <Upload className="w-3.5 h-3.5" />
           Upload Items
@@ -393,7 +393,7 @@ function ParsePreviewModal({
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleFileDrop}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-[#004E64] transition-colors cursor-pointer"
+                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-brand transition-colors cursor-pointer"
                 onClick={() => document.getElementById("parse-file-input")?.click()}
               >
                 <FileUp className="w-10 h-10 text-gray-400 mx-auto mb-3" />
@@ -418,7 +418,7 @@ function ParsePreviewModal({
                 <button
                   onClick={handleParse}
                   disabled={parseMut.isPending}
-                  className="mt-4 w-full py-2.5 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="mt-4 w-full py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {parseMut.isPending ? (
                     <>
@@ -488,7 +488,7 @@ function ParsePreviewModal({
                       <span className="text-xs text-gray-400 mt-0.5 w-6 shrink-0">{idx + 1}</span>
                       <div className="flex-1 min-w-0">
                         {item.section && (
-                          <span className="text-[10px] font-medium text-[#004E64] bg-[#004E64]/10 px-1.5 py-0.5 rounded mr-1">
+                          <span className="text-[10px] font-medium text-brand bg-brand/10 px-1.5 py-0.5 rounded mr-1">
                             {item.section}
                           </span>
                         )}
@@ -526,7 +526,7 @@ function ParsePreviewModal({
                     name="mode"
                     checked={mode === "replace"}
                     onChange={() => setMode("replace")}
-                    className="accent-[#004E64]"
+                    className="accent-brand"
                   />
                   Replace existing
                 </label>
@@ -536,7 +536,7 @@ function ParsePreviewModal({
                     name="mode"
                     checked={mode === "append"}
                     onChange={() => setMode("append")}
-                    className="accent-[#004E64]"
+                    className="accent-brand"
                   />
                   Append to existing
                 </label>
@@ -557,7 +557,7 @@ function ParsePreviewModal({
             <button
               onClick={handleImport}
               disabled={importMut.isPending || filteredItems.length === 0}
-              className="px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 flex items-center gap-2"
             >
               {importMut.isPending ? (
                 <>
@@ -668,7 +668,7 @@ function BulkUploadModal({
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleFileDrop}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-[#004E64] transition-colors cursor-pointer"
+                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-brand transition-colors cursor-pointer"
                 onClick={() => document.getElementById("bulk-file-input")?.click()}
               >
                 <Package className="w-10 h-10 text-gray-400 mx-auto mb-3" />
@@ -701,7 +701,7 @@ function BulkUploadModal({
                   <button
                     onClick={handleParse}
                     disabled={bulkParse.isPending}
-                    className="mt-3 w-full py-2.5 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="mt-3 w-full py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {bulkParse.isPending ? (
                       <>
@@ -755,7 +755,7 @@ function BulkUploadModal({
                             onChange={(e) =>
                               setTemplateOverrides((prev) => ({ ...prev, [idx]: e.target.value }))
                             }
-                            className="px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#004E64] max-w-[200px]"
+                            className="px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand max-w-[200px]"
                           >
                             <option value="">— Select template —</option>
                             {templates.map((t) => (
@@ -792,7 +792,7 @@ function BulkUploadModal({
               <button
                 onClick={handleImportAll}
                 disabled={importing}
-                className="px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {importing ? (
                   <>
@@ -851,7 +851,7 @@ export default function AuditTemplatesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-[#004E64]" />
+            <ShieldCheck className="w-5 h-5 text-brand" />
             Audit Templates
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -860,7 +860,7 @@ export default function AuditTemplatesPage() {
         </div>
         <button
           onClick={() => setShowBulkUpload(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
         >
           <Package className="w-4 h-4" />
           Bulk Upload
@@ -876,14 +876,14 @@ export default function AuditTemplatesPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search templates..."
-            className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
 
         <select
           value={qaFilter}
           onChange={(e) => setQaFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All Quality Areas</option>
           {[1, 2, 3, 4, 5, 6, 7].map((qa) => (
@@ -894,7 +894,7 @@ export default function AuditTemplatesPage() {
         <select
           value={freqFilter}
           onChange={(e) => setFreqFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All Frequencies</option>
           <option value="monthly">Monthly</option>
@@ -912,7 +912,7 @@ export default function AuditTemplatesPage() {
         />
       ) : isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 text-[#004E64] animate-spin" />
+          <Loader2 className="w-8 h-8 text-brand animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
@@ -949,7 +949,7 @@ export default function AuditTemplatesPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs font-mono bg-[#004E64]/10 text-[#004E64] px-1.5 py-0.5 rounded">
+                      <span className="text-xs font-mono bg-brand/10 text-brand px-1.5 py-0.5 rounded">
                         QA{template.qualityArea}
                       </span>
                       <span className="text-xs text-gray-500">{template.nqsReference}</span>
@@ -972,7 +972,7 @@ export default function AuditTemplatesPage() {
                       e.stopPropagation();
                       setUploadTarget({ id: template.id, name: template.name });
                     }}
-                    className="p-1.5 text-gray-400 hover:text-[#004E64] hover:bg-[#004E64]/10 rounded-lg transition-colors shrink-0"
+                    className="p-1.5 text-gray-400 hover:text-brand hover:bg-brand/10 rounded-lg transition-colors shrink-0"
                     title="Upload items"
                   >
                     <Upload className="w-4 h-4" />

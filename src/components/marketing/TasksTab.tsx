@@ -209,7 +209,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
             onClick={() => setView("kanban")}
             className={`px-3 py-2 text-sm font-medium transition-colors ${
               view === "kanban"
-                ? "bg-[#004E64] text-white"
+                ? "bg-brand text-white"
                 : "bg-white text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -219,7 +219,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
             onClick={() => setView("list")}
             className={`px-3 py-2 text-sm font-medium border-l border-gray-300 transition-colors ${
               view === "list"
-                ? "bg-[#004E64] text-white"
+                ? "bg-brand text-white"
                 : "bg-white text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -231,7 +231,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="">All Statuses</option>
           <option value="todo">To Do</option>
@@ -243,7 +243,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="">All Priorities</option>
           <option value="high">High</option>
@@ -254,14 +254,14 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => setShowTemplates(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#004E64] bg-white px-4 py-2 text-sm font-medium text-[#004E64] hover:bg-[#004E64]/5 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-brand bg-white px-4 py-2 text-sm font-medium text-brand hover:bg-brand/5 transition-colors"
           >
             <Zap className="h-4 w-4" />
             Quick Start
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#003d4f] transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors"
           >
             <Plus className="h-4 w-4" />
             New Task
@@ -286,7 +286,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                 key={col.key}
                 className={`rounded-xl border-2 min-h-[200px] flex flex-col transition-all duration-150 ${
                   dragOverColumn === col.key
-                    ? "border-[#004E64] bg-[#004E64]/5 ring-2 ring-[#004E64]/20 scale-[1.01]"
+                    ? "border-brand bg-brand/5 ring-2 ring-brand/20 scale-[1.01]"
                     : `${col.color} ${col.bg}`
                 }`}
                 onDragOver={handleDragOver}
@@ -333,13 +333,13 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                       }}
                       placeholder="Task title..."
                       autoFocus
-                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                     <div className="flex gap-1.5 mt-1.5">
                       <button
                         onClick={() => handleQuickAdd(col.key)}
                         disabled={!quickAddTitle.trim()}
-                        className="rounded bg-[#004E64] px-2.5 py-1 text-xs font-medium text-white hover:bg-[#003d4f] disabled:opacity-50"
+                        className="rounded bg-brand px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-hover disabled:opacity-50"
                       >
                         Add
                       </button>
@@ -401,7 +401,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                             </span>
                           )}
                           {task.campaign && (
-                            <span className="inline-flex items-center rounded-full bg-[#004E64]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#004E64]">
+                            <span className="inline-flex items-center rounded-full bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand">
                               {task.campaign.name}
                             </span>
                           )}

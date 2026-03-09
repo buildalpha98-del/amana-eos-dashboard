@@ -155,7 +155,7 @@ export function ImportCalendarModal({
                   <ArrowLeft className="h-4 w-4" />
                 </button>
               )}
-              <FileSpreadsheet className="h-5 w-5 text-[#004E64]" />
+              <FileSpreadsheet className="h-5 w-5 text-brand" />
               <h2 className="text-lg font-semibold text-gray-900">
                 {step === "upload" && "Import Content Calendar"}
                 {step === "preview" && "Preview Import"}
@@ -189,13 +189,13 @@ export function ImportCalendarModal({
                   onClick={() => fileInputRef.current?.click()}
                   className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition-colors ${
                     dragActive
-                      ? "border-[#004E64] bg-[#004E64]/5"
-                      : "border-gray-300 hover:border-[#004E64] hover:bg-gray-50"
+                      ? "border-brand bg-brand/5"
+                      : "border-gray-300 hover:border-brand hover:bg-gray-50"
                   }`}
                 >
                   {previewMutation.isPending ? (
                     <>
-                      <Loader2 className="h-10 w-10 text-[#004E64] animate-spin mb-3" />
+                      <Loader2 className="h-10 w-10 text-brand animate-spin mb-3" />
                       <p className="text-sm font-medium text-gray-700">
                         Parsing file...
                       </p>
@@ -275,7 +275,7 @@ export function ImportCalendarModal({
                   </div>
                   <div className="h-4 w-px bg-gray-300" />
                   <div className="text-sm">
-                    <span className="font-semibold text-[#004E64]">
+                    <span className="font-semibold text-brand">
                       {previewData.summary.validPosts}
                     </span>{" "}
                     <span className="text-gray-600">posts ready</span>
@@ -284,7 +284,7 @@ export function ImportCalendarModal({
                     <>
                       <div className="h-4 w-px bg-gray-300" />
                       <div className="text-sm">
-                        <span className="font-semibold text-[#004E64]">
+                        <span className="font-semibold text-brand">
                           {previewData.summary.campaigns.length}
                         </span>{" "}
                         <span className="text-gray-600">
@@ -337,7 +337,7 @@ export function ImportCalendarModal({
                     {previewData.summary.campaigns.map((name) => (
                       <span
                         key={name}
-                        className="inline-flex items-center rounded-full bg-[#004E64]/10 px-2.5 py-0.5 text-xs font-medium text-[#004E64]"
+                        className="inline-flex items-center rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-medium text-brand"
                       >
                         {name}
                       </span>
@@ -417,7 +417,7 @@ export function ImportCalendarModal({
                 </h3>
                 <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-600">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-[#004E64]">
+                    <div className="text-2xl font-bold text-brand">
                       {importResult.summary.postsCreated}
                     </div>
                     <div>
@@ -427,7 +427,7 @@ export function ImportCalendarModal({
                   </div>
                   <div className="h-10 w-px bg-gray-200" />
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-[#004E64]">
+                    <div className="text-2xl font-bold text-brand">
                       {importResult.summary.campaignsMatched}
                     </div>
                     <div>
@@ -505,7 +505,7 @@ export function ImportCalendarModal({
                     !previewData ||
                     previewData.posts.length === 0
                   }
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#003d4f] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors disabled:opacity-50"
                 >
                   {importMutation.isPending ? (
                     <>
@@ -526,7 +526,7 @@ export function ImportCalendarModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#003d4f] transition-colors"
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors"
               >
                 Done
               </button>

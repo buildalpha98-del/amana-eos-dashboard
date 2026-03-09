@@ -135,8 +135,8 @@ export function ScenarioComparisonView({ savedScenarios }: Props) {
                 onClick={() => toggleScenario(opt.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   active
-                    ? "bg-[#004E64] text-white border-[#004E64]"
-                    : "bg-white text-gray-600 border-gray-300 hover:border-[#004E64] hover:text-[#004E64]"
+                    ? "bg-brand text-white border-brand"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-brand hover:text-brand"
                 } ${!active && selectedIds.length >= 3 ? "opacity-40 cursor-not-allowed" : ""}`}
                 disabled={!active && selectedIds.length >= 3}
               >

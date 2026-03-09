@@ -19,7 +19,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       <div
         className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
           isUser
-            ? "bg-[#004E64] text-white rounded-br-md"
+            ? "bg-brand text-white rounded-br-md"
             : "bg-gray-100 text-gray-800 rounded-bl-md"
         }`}
       >
@@ -151,7 +151,7 @@ export default function AssistantPage() {
               rows={1}
               disabled={isStreaming}
               className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 pr-12 text-sm text-gray-700
-                         focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]/40
+                         focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40
                          placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
@@ -167,7 +167,7 @@ export default function AssistantPage() {
             <button
               onClick={() => handleSubmit()}
               disabled={!input.trim()}
-              className="flex-shrink-0 w-10 h-10 rounded-xl bg-[#004E64] hover:bg-[#003344] text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex-shrink-0 w-10 h-10 rounded-xl bg-brand hover:bg-brand-dark text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               <Send className="w-4 h-4" />
             </button>

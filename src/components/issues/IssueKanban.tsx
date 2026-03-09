@@ -58,7 +58,7 @@ function DroppableColumn({
       <div
         ref={setNodeRef}
         className={`space-y-3 min-h-[200px] p-2 mt-2 rounded-xl transition-colors duration-200 ${
-          isOver ? "bg-[#004E64]/5 ring-2 ring-[#004E64]/20" : "bg-gray-50/30"
+          isOver ? "bg-brand/5 ring-2 ring-brand/20" : "bg-gray-50/30"
         }`}
       >
         <SortableContext

@@ -19,6 +19,7 @@ import { DashboardProjectTodos } from "@/components/dashboard/DashboardProjectTo
 import { StaffDashboard } from "@/components/dashboard/StaffDashboard";
 import { StaffingAlerts } from "@/components/dashboard/StaffingAlerts";
 import { TodaysOps } from "@/components/dashboard/TodaysOps";
+import { WidgetErrorBoundary } from "@/components/dashboard/WidgetErrorBoundary";
 
 // ─── Alert Banner ───────────────────────────────────────────
 
@@ -115,7 +116,7 @@ export function DashboardContent() {
                 onClick={() => setPeriod(opt.value)}
                 className={`px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                   period === opt.value
-                    ? "bg-white text-[#004E64] shadow-sm"
+                    ? "bg-white text-brand shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
@@ -166,69 +167,89 @@ export function DashboardContent() {
       ) : data ? (
         <>
           {/* ── Alert Banner ────────────────────────────────── */}
-          <AlertBanner
-            overdueTodos={data.actionItems.overdueTodos.length}
-            criticalIssues={data.actionItems.idsIssues.filter((i) => i.priority === "critical").length}
-            overdueRocks={data.actionItems.overdueRocks.length}
-          />
+          <WidgetErrorBoundary widgetName="Alert Banner">
+            <AlertBanner
+              overdueTodos={data.actionItems.overdueTodos.length}
+              criticalIssues={data.actionItems.idsIssues.filter((i) => i.priority === "critical").length}
+              overdueRocks={data.actionItems.overdueRocks.length}
+            />
+          </WidgetErrorBoundary>
 
           {/* ── Staffing Alerts ──────────────────────────────── */}
-          <StaffingAlerts />
+          <WidgetErrorBoundary widgetName="Staffing Alerts">
+            <StaffingAlerts />
+          </WidgetErrorBoundary>
 
           {/* ── Today's Operations ────────────────────────────── */}
           {!isServiceScoped && data.todaysOps.length > 0 && (
-            <TodaysOps centres={data.todaysOps} />
+            <WidgetErrorBoundary widgetName="Today's Operations">
+              <TodaysOps centres={data.todaysOps} />
+            </WidgetErrorBoundary>
           )}
 
           {/* ── Key Metrics Bar ─────────────────────────────── */}
-          {isServiceScoped ? (
-            <KeyMetricsBar
-              metrics={{
-                ...data.keyMetrics,
-                totalRevenue: 0,
-                openTickets: 0,
-              }}
-              hideFinancials
-            />
-          ) : (
-            <KeyMetricsBar
-              metrics={data.keyMetrics}
-              opsMetrics={data.opsMetrics}
-            />
-          )}
+          <WidgetErrorBoundary widgetName="Key Metrics">
+            {isServiceScoped ? (
+              <KeyMetricsBar
+                metrics={{
+                  ...data.keyMetrics,
+                  totalRevenue: 0,
+                  openTickets: 0,
+                }}
+                hideFinancials
+              />
+            ) : (
+              <KeyMetricsBar
+                metrics={data.keyMetrics}
+                opsMetrics={data.opsMetrics}
+              />
+            )}
+          </WidgetErrorBoundary>
 
           {/* ── Company & Personal Rocks at a Glance ─────── */}
-          <DashboardRocks />
+          <WidgetErrorBoundary widgetName="Rocks">
+            <DashboardRocks />
+          </WidgetErrorBoundary>
 
           {/* ── Latest Announcements ───────────────────────── */}
-          <DashboardAnnouncements />
+          <WidgetErrorBoundary widgetName="Announcements">
+            <DashboardAnnouncements />
+          </WidgetErrorBoundary>
 
           {/* ── Centre Health Heatmap ──────────────────────── */}
           {!isServiceScoped && (
-            <CentreHealthHeatmap centres={data.centreHealth} networkAvgScore={data.networkAvgScore} />
+            <WidgetErrorBoundary widgetName="Centre Health">
+              <CentreHealthHeatmap centres={data.centreHealth} networkAvgScore={data.networkAvgScore} />
+            </WidgetErrorBoundary>
           )}
 
           {/* ── Project To-Dos ─────────────────────────────── */}
           {!isServiceScoped && (
-            <DashboardProjectTodos todos={data.projectTodos} />
+            <WidgetErrorBoundary widgetName="Project To-Dos">
+              <DashboardProjectTodos todos={data.projectTodos} />
+            </WidgetErrorBoundary>
           )}
 
           {/* ── Sparklines + Action Items ──────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
             <div className="lg:col-span-3">
-              <TrendSparklines
-                revenue={isServiceScoped ? [] : data.trends.revenue}
-                enrolments={data.trends.enrolments}
-                tickets={isServiceScoped ? [] : data.trends.tickets}
-              />
+              <WidgetErrorBoundary widgetName="Trends">
+                <TrendSparklines
+                  revenue={isServiceScoped ? [] : data.trends.revenue}
+                  enrolments={data.trends.enrolments}
+                  tickets={isServiceScoped ? [] : data.trends.tickets}
+                />
+              </WidgetErrorBoundary>
             </div>
             <div className="lg:col-span-2">
-              <ActionItemsFeed
-                overdueTodos={data.actionItems.overdueTodos}
-                unassignedTickets={isServiceScoped ? [] : data.actionItems.unassignedTickets}
-                idsIssues={data.actionItems.idsIssues}
-                overdueRocks={isServiceScoped ? [] : data.actionItems.overdueRocks}
-              />
+              <WidgetErrorBoundary widgetName="Action Items">
+                <ActionItemsFeed
+                  overdueTodos={data.actionItems.overdueTodos}
+                  unassignedTickets={isServiceScoped ? [] : data.actionItems.unassignedTickets}
+                  idsIssues={data.actionItems.idsIssues}
+                  overdueRocks={isServiceScoped ? [] : data.actionItems.overdueRocks}
+                />
+              </WidgetErrorBoundary>
             </div>
           </div>
         </>

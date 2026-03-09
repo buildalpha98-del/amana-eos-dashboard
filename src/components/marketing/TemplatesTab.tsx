@@ -88,7 +88,7 @@ export function TemplatesTab() {
         <select
           value={platformFilter}
           onChange={(e) => setPlatformFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
         >
           {PLATFORMS.map((p) => (
             <option key={p} value={p === "all" ? "" : p}>
@@ -99,7 +99,7 @@ export function TemplatesTab() {
 
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#004E64]/90 transition-colors"
+          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand/90 transition-colors"
         >
           <Plus className="h-4 w-4" />
           New Template
@@ -109,7 +109,7 @@ export function TemplatesTab() {
       {/* ── Loading State ────────────────────────────── */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-[#004E64]" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
         </div>
       )}
 
@@ -141,7 +141,7 @@ export function TemplatesTab() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <PlatformBadge platform={tpl.platform} />
                     {tpl.pillar && (
-                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-[#FECE00]/20 text-[#004E64]">
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-accent/20 text-brand">
                         {tpl.pillar}
                       </span>
                     )}
@@ -178,7 +178,7 @@ export function TemplatesTab() {
                 <button
                   onClick={() => handleUseTemplate(tpl.id)}
                   disabled={useTemplate.isPending}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#004E64] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#004E64]/90 disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand/90 disabled:opacity-50 transition-colors"
                 >
                   {useTemplate.isPending ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -220,7 +220,7 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, name: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="Template name"
                 />
               </div>
@@ -234,7 +234,7 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, platform: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                 >
                   {PLATFORMS.filter((p) => p !== "all").map((p) => (
                     <option key={p} value={p}>
@@ -254,7 +254,7 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, pillar: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="e.g. Education, Community"
                 />
               </div>
@@ -269,7 +269,7 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, content: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 resize-none"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
                   placeholder="Template content..."
                 />
               </div>
@@ -284,7 +284,7 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, notes: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 resize-none"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
                   placeholder="Internal notes..."
                 />
               </div>
@@ -299,7 +299,7 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, hashtags: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="#amana #oshc #childcare"
                 />
               </div>
@@ -319,7 +319,7 @@ export function TemplatesTab() {
                   !form.content.trim() ||
                   createTemplate.isPending
                 }
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-[#004E64] hover:bg-[#004E64]/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand hover:bg-brand/90 disabled:opacity-50 transition-colors flex items-center gap-2"
               >
                 {createTemplate.isPending && (
                   <Loader2 className="h-4 w-4 animate-spin" />

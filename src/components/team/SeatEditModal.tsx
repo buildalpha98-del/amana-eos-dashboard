@@ -139,7 +139,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Marketing, Operations, State Manager"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
@@ -151,7 +151,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
             <select
               value={selectedParentId || ""}
               onChange={(e) => setSelectedParentId(e.target.value || null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent bg-white"
             >
               <option value="">None (Top Level)</option>
               {parentOptions.map((s) => (
@@ -183,11 +183,11 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
                       type="checkbox"
                       checked={assigneeIds.includes(u.id)}
                       onChange={() => toggleAssignee(u.id)}
-                      className="w-4 h-4 rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]"
+                      className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
                     />
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-6 h-6 rounded-full bg-[#004E64]/10 flex items-center justify-center shrink-0">
-                        <span className="text-[9px] font-bold text-[#004E64]">
+                      <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+                        <span className="text-[9px] font-bold text-brand">
                           {u.name
                             .split(" ")
                             .map((n) => n[0])
@@ -224,7 +224,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
                     value={r}
                     onChange={(e) => updateResponsibility(i, e.target.value)}
                     placeholder="e.g. LMA, Revenue & GP, Compliance..."
-                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -245,7 +245,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
             </div>
             <button
               onClick={addResponsibility}
-              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[#004E64] hover:text-[#003D52]"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-hover"
             >
               <Plus className="w-3.5 h-3.5" />
               Add responsibility
@@ -264,7 +264,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
           <button
             onClick={handleSave}
             disabled={saving || !title.trim()}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? "Saving..." : isNew ? "Create Seat" : "Save Changes"}
           </button>

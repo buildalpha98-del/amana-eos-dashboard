@@ -181,12 +181,12 @@ export function CampaignDetailPanel({
                   if (e.key === "Enter") handleNameBlur();
                 }}
                 autoFocus
-                className="w-full rounded border border-[#004E64] px-2 py-1 text-lg font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                className="w-full rounded border border-brand px-2 py-1 text-lg font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand"
               />
             ) : (
               <h2
                 onClick={() => setEditingName(true)}
-                className="cursor-pointer truncate text-lg font-semibold text-gray-900 hover:text-[#004E64]"
+                className="cursor-pointer truncate text-lg font-semibold text-gray-900 hover:text-brand"
               >
                 {isLoading ? "Loading..." : name}
               </h2>
@@ -197,7 +197,7 @@ export function CampaignDetailPanel({
                 {campaign.services.map((s) => (
                   <span
                     key={s.service.id}
-                    className="inline-flex items-center rounded-md bg-[#004E64]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#004E64]"
+                    className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand"
                   >
                     {s.service.code}
                   </span>
@@ -248,7 +248,7 @@ export function CampaignDetailPanel({
                     setStatus(e.target.value);
                     handleUpdate("status", e.target.value);
                   }}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   {CAMPAIGN_STATUSES.map((s) => (
                     <option key={s} value={s} className="capitalize">
@@ -269,7 +269,7 @@ export function CampaignDetailPanel({
                     setType(e.target.value);
                     handleUpdate("type", e.target.value);
                   }}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   {CAMPAIGN_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -294,7 +294,7 @@ export function CampaignDetailPanel({
                       startDate ? new Date(startDate).toISOString() : null
                     )
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -313,7 +313,7 @@ export function CampaignDetailPanel({
                       endDate ? new Date(endDate).toISOString() : null
                     )
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -328,7 +328,7 @@ export function CampaignDetailPanel({
                       key={p}
                       className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                         platforms.includes(p)
-                          ? "border-[#004E64] bg-[#004E64]/10 text-[#004E64]"
+                          ? "border-brand bg-brand/10 text-brand"
                           : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
                       }`}
                     >
@@ -353,7 +353,7 @@ export function CampaignDetailPanel({
                   <button
                     type="button"
                     onClick={() => setEditingCentres(!editingCentres)}
-                    className="text-xs text-[#004E64] hover:underline inline-flex items-center gap-1"
+                    className="text-xs text-brand hover:underline inline-flex items-center gap-1"
                   >
                     <Pencil className="h-3 w-3" />
                     {editingCentres ? "Done" : "Edit"}
@@ -375,7 +375,7 @@ export function CampaignDetailPanel({
                         {campaign?.services?.map((s) => (
                           <span
                             key={s.service.id}
-                            className="inline-flex items-center rounded-md bg-[#004E64]/10 px-2 py-0.5 text-xs font-medium text-[#004E64]"
+                            className="inline-flex items-center rounded-md bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand"
                           >
                             {s.service.name} ({s.service.code})
                           </span>
@@ -397,7 +397,7 @@ export function CampaignDetailPanel({
                   onBlur={() => handleUpdate("goal", goal || null)}
                   rows={2}
                   placeholder="Campaign goal..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -412,7 +412,7 @@ export function CampaignDetailPanel({
                   onBlur={() => handleUpdate("notes", notes || null)}
                   rows={2}
                   placeholder="Additional notes..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -429,7 +429,7 @@ export function CampaignDetailPanel({
                     handleUpdate("designLink", designLink || null)
                   }
                   placeholder="https://..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
               {/* Activation / Event Fields */}
@@ -453,7 +453,7 @@ export function CampaignDetailPanel({
                           )
                         }
                         placeholder="0.00"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                     <div>
@@ -468,7 +468,7 @@ export function CampaignDetailPanel({
                           handleUpdate("location", location || null)
                         }
                         placeholder="Venue or address"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                   </div>
@@ -484,7 +484,7 @@ export function CampaignDetailPanel({
                       }
                       rows={2}
                       placeholder="Key deliverables..."
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </>
@@ -513,7 +513,7 @@ export function CampaignDetailPanel({
                 </h3>
                 <button
                   onClick={() => setShowCreateTask(true)}
-                  className="inline-flex items-center gap-1 rounded-md bg-[#004E64]/10 px-2 py-1 text-xs font-medium text-[#004E64] hover:bg-[#004E64]/20 transition-colors"
+                  className="inline-flex items-center gap-1 rounded-md bg-brand/10 px-2 py-1 text-xs font-medium text-brand hover:bg-brand/20 transition-colors"
                 >
                   <Plus className="h-3 w-3" />
                   Add Task
@@ -633,12 +633,12 @@ export function CampaignDetailPanel({
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Add a comment..."
                   rows={2}
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
                 <button
                   type="submit"
                   disabled={!commentText.trim() || addComment.isPending}
-                  className="self-end rounded-lg bg-[#004E64] p-2.5 text-white transition-colors hover:bg-[#003d4f] disabled:opacity-50"
+                  className="self-end rounded-lg bg-brand p-2.5 text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
                 </button>

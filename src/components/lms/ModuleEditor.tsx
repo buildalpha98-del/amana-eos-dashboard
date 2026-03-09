@@ -117,19 +117,19 @@ function ModuleCard({
 
   if (isEditing) {
     return (
-      <div className="bg-white border border-[#004E64]/30 rounded-lg p-4 space-y-3">
+      <div className="bg-white border border-brand/30 rounded-lg p-4 space-y-3">
         <input
           type="text"
           value={editTitle}
           onChange={(e) => setEditTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand"
           placeholder="Module title"
         />
         <div className="grid grid-cols-2 gap-3">
           <select
             value={editType}
             onChange={(e) => setEditType(e.target.value as LMSModuleData["type"])}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
           >
             {Object.entries(typeConfig).map(([key, cfg]) => (
               <option key={key} value={key}>{cfg.label}</option>
@@ -140,7 +140,7 @@ function ModuleCard({
             value={editDuration}
             onChange={(e) => setEditDuration(e.target.value)}
             placeholder="Duration (min)"
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
           />
         </div>
         {(editType === "document" || editType === "checklist" || editType === "quiz") && (
@@ -149,7 +149,7 @@ function ModuleCard({
             onChange={(e) => setEditContent(e.target.value)}
             rows={3}
             placeholder="Content / instructions..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none"
           />
         )}
         {(editType === "video" || editType === "external_link") && (
@@ -158,7 +158,7 @@ function ModuleCard({
             value={editUrl}
             onChange={(e) => setEditUrl(e.target.value)}
             placeholder="URL..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
           />
         )}
         <div className="flex items-center justify-between">
@@ -167,7 +167,7 @@ function ModuleCard({
               type="checkbox"
               checked={editRequired}
               onChange={(e) => setEditRequired(e.target.checked)}
-              className="rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]"
+              className="rounded border-gray-300 text-brand focus:ring-brand"
             />
             Required
           </label>
@@ -189,7 +189,7 @@ function ModuleCard({
                   isRequired: editRequired,
                 })
               }
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-[#004E64] text-white rounded-lg hover:bg-[#003D52]"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-brand text-white rounded-lg hover:bg-brand-hover"
             >
               <Save className="w-3.5 h-3.5" />
               Save
@@ -237,7 +237,7 @@ function ModuleCard({
       </div>
 
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={onEdit} className="p-1.5 text-gray-400 hover:text-[#004E64] rounded-md hover:bg-gray-100">
+        <button onClick={onEdit} className="p-1.5 text-gray-400 hover:text-brand rounded-md hover:bg-gray-100">
           <Pencil className="w-3.5 h-3.5" />
         </button>
         {confirmDel ? (
@@ -340,7 +340,7 @@ export function ModuleEditor({ courseId, modules }: ModuleEditorProps) {
         </h4>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="text-xs text-[#004E64] hover:text-[#003D52] font-medium flex items-center gap-0.5"
+          className="text-xs text-brand hover:text-brand-hover font-medium flex items-center gap-0.5"
         >
           <Plus className="w-3.5 h-3.5" />
           Add Module
@@ -403,14 +403,14 @@ export function ModuleEditor({ courseId, modules }: ModuleEditorProps) {
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="Module title..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             autoFocus
           />
           <div className="grid grid-cols-2 gap-3">
             <select
               value={newType}
               onChange={(e) => setNewType(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             >
               {Object.entries(typeConfig).map(([key, cfg]) => (
                 <option key={key} value={key}>{cfg.label}</option>
@@ -421,7 +421,7 @@ export function ModuleEditor({ courseId, modules }: ModuleEditorProps) {
               value={newDuration}
               onChange={(e) => setNewDuration(e.target.value)}
               placeholder="Duration (min)"
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
           {(newType === "document" || newType === "checklist" || newType === "quiz") && (
@@ -430,7 +430,7 @@ export function ModuleEditor({ courseId, modules }: ModuleEditorProps) {
               onChange={(e) => setNewContent(e.target.value)}
               rows={3}
               placeholder="Content / instructions..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none"
             />
           )}
           {(newType === "video" || newType === "external_link") && (
@@ -439,7 +439,7 @@ export function ModuleEditor({ courseId, modules }: ModuleEditorProps) {
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
               placeholder="URL..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             />
           )}
           <div className="flex items-center justify-between">
@@ -448,7 +448,7 @@ export function ModuleEditor({ courseId, modules }: ModuleEditorProps) {
                 type="checkbox"
                 checked={newRequired}
                 onChange={(e) => setNewRequired(e.target.checked)}
-                className="rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]"
+                className="rounded border-gray-300 text-brand focus:ring-brand"
               />
               Required
             </label>
@@ -462,7 +462,7 @@ export function ModuleEditor({ courseId, modules }: ModuleEditorProps) {
               <button
                 onClick={handleAdd}
                 disabled={!newTitle.trim() || createModule.isPending}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50"
               >
                 <Plus className="w-3.5 h-3.5" />
                 {createModule.isPending ? "Adding..." : "Add Module"}

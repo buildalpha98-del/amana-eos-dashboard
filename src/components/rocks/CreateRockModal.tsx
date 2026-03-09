@@ -112,7 +112,7 @@ export function CreateRockModal({
                 onClick={() => setValue("rockType", "company")}
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   rockType === "company"
-                    ? "bg-[#004E64] text-white border-[#004E64]"
+                    ? "bg-brand text-white border-brand"
                     : "border-gray-300 text-gray-700 hover:bg-gray-50"
                 }`}
               >
@@ -123,7 +123,7 @@ export function CreateRockModal({
                 onClick={() => setValue("rockType", "personal")}
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   rockType === "personal"
-                    ? "bg-[#004E64] text-white border-[#004E64]"
+                    ? "bg-brand text-white border-brand"
                     : "border-gray-300 text-gray-700 hover:bg-gray-50"
                 }`}
               >
@@ -167,7 +167,7 @@ export function CreateRockModal({
             <button
               type="submit"
               disabled={createRock.isPending}
-              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {createRock.isPending ? "Creating..." : "Create Rock"}
             </button>

@@ -61,7 +61,7 @@ function TemplateTaskPreview({ template }: { template: ProjectTemplate }) {
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          className="text-xs text-[#004E64] font-medium flex items-center gap-0.5 hover:underline"
+          className="text-xs text-brand font-medium flex items-center gap-0.5 hover:underline"
         >
           {expanded ? "Collapse" : "View all"}
           {expanded ? (
@@ -266,23 +266,23 @@ export function CreateProjectModal({
                       className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${
                         isSelected
                           ? isFeatured
-                            ? "border-[#004E64] bg-[#004E64]/5 ring-1 ring-[#004E64]/20"
-                            : "border-[#004E64] bg-[#004E64]/5"
+                            ? "border-brand bg-brand/5 ring-1 ring-brand/20"
+                            : "border-brand bg-brand/5"
                           : isFeatured
-                            ? "border-[#004E64]/30 bg-[#004E64]/[0.02] hover:border-[#004E64]/50"
+                            ? "border-brand/30 bg-brand/[0.02] hover:border-brand/50"
                             : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
                       {isFeatured ? (
                         <Rocket
                           className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                            isSelected ? "text-[#004E64]" : "text-[#004E64]/60"
+                            isSelected ? "text-brand" : "text-brand/60"
                           }`}
                         />
                       ) : (
                         <FileText
                           className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                            isSelected ? "text-[#004E64]" : "text-gray-400"
+                            isSelected ? "text-brand" : "text-gray-400"
                           }`}
                         />
                       )}
@@ -292,7 +292,7 @@ export function CreateProjectModal({
                             {t.name}
                           </p>
                           {isFeatured && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-[#004E64] text-white">
+                            <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-brand text-white">
                               FEATURED
                             </span>
                           )}
@@ -320,7 +320,7 @@ export function CreateProjectModal({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="e.g., Lakemba Centre Opening"
             />
           </div>
@@ -334,7 +334,7 @@ export function CreateProjectModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
             />
           </div>
 
@@ -347,7 +347,7 @@ export function CreateProjectModal({
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">No linked centre</option>
                 {services?.map((s) => (
@@ -365,7 +365,7 @@ export function CreateProjectModal({
                 required
                 value={ownerId}
                 onChange={(e) => setOwnerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select owner...</option>
                 {users?.map((u) => (
@@ -386,7 +386,7 @@ export function CreateProjectModal({
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
             <div>
@@ -398,7 +398,7 @@ export function CreateProjectModal({
                 type="date"
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
           </div>
@@ -419,7 +419,7 @@ export function CreateProjectModal({
             <button
               type="submit"
               disabled={createProject.isPending}
-              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {createProject.isPending
                 ? "Creating..."

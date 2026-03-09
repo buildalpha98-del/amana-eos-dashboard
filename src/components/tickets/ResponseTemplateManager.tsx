@@ -61,7 +61,7 @@ export function ResponseTemplateManager({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowForm(!showForm)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-[#004E64] text-white rounded-md hover:bg-[#003D52]"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-brand text-white rounded-md hover:bg-brand-hover"
             >
               <Plus className="w-3.5 h-3.5" />
               New Template
@@ -84,7 +84,7 @@ export function ResponseTemplateManager({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Greeting"
-                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
               <div>
@@ -95,7 +95,7 @@ export function ResponseTemplateManager({
                   onChange={(e) => setCategory(e.target.value)}
                   placeholder="e.g. General"
                   list="template-categories"
-                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                 />
                 <datalist id="template-categories">
                   {categories.map((c) => <option key={c} value={c} />)}
@@ -110,7 +110,7 @@ export function ResponseTemplateManager({
                 onChange={(e) => setBody(e.target.value)}
                 rows={3}
                 placeholder="Hi {name}, thank you for reaching out..."
-                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
+                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand resize-none"
               />
             </div>
             <div className="flex justify-end gap-2">
@@ -124,7 +124,7 @@ export function ResponseTemplateManager({
               <button
                 type="submit"
                 disabled={createTemplate.isPending}
-                className="px-4 py-1.5 text-sm bg-[#004E64] text-white rounded-md hover:bg-[#003D52] disabled:opacity-50"
+                className="px-4 py-1.5 text-sm bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50"
               >
                 {createTemplate.isPending ? "Creating..." : "Create"}
               </button>

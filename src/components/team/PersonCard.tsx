@@ -61,7 +61,7 @@ export function PersonCard({ member, compact = false }: PersonCardProps) {
         onClick={() => !compact && setExpanded((e) => !e)}
       >
         {/* Avatar */}
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#004E64]/10 flex items-center justify-center">
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
           {member.avatar ? (
             <img
               src={member.avatar}
@@ -69,7 +69,7 @@ export function PersonCard({ member, compact = false }: PersonCardProps) {
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (
-            <span className="text-sm font-semibold text-[#004E64]">
+            <span className="text-sm font-semibold text-brand">
               {getInitials(member.name)}
             </span>
           )}

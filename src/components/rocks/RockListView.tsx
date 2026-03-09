@@ -8,7 +8,7 @@ import { ArrowUpDown, ChevronDown, ChevronUp } from "lucide-react";
 const statusConfig = {
   on_track: { label: "On Track", bg: "bg-emerald-50", text: "text-emerald-700" },
   off_track: { label: "Off Track", bg: "bg-red-50", text: "text-red-700" },
-  complete: { label: "Complete", bg: "bg-[#004E64]/10", text: "text-[#004E64]" },
+  complete: { label: "Complete", bg: "bg-brand/10", text: "text-brand" },
   dropped: { label: "Dropped", bg: "bg-gray-100", text: "text-gray-500" },
 };
 
@@ -121,8 +121,8 @@ export function RockListView({
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-[#004E64]/10 flex items-center justify-center">
-                      <span className="text-[10px] font-medium text-[#004E64]">
+                    <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center">
+                      <span className="text-[10px] font-medium text-brand">
                         {rock.owner.name
                           .split(" ")
                           .map((n) => n[0])
@@ -175,7 +175,7 @@ export function RockListView({
                 </td>
                 <td className="py-3 px-4">
                   {rock.oneYearGoal ? (
-                    <span className="text-xs text-[#004E64] bg-[#004E64]/5 px-2 py-0.5 rounded">
+                    <span className="text-xs text-brand bg-brand/5 px-2 py-0.5 rounded">
                       {rock.oneYearGoal.title}
                     </span>
                   ) : (

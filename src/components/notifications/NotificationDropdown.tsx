@@ -96,7 +96,7 @@ export function NotificationDropdown() {
             <span
               className={cn(
                 "absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white",
-                critical > 0 ? "bg-red-500" : "bg-[#FECE00] text-gray-900"
+                critical > 0 ? "bg-red-500" : "bg-accent text-gray-900"
               )}
             >
               {total > 99 ? "99+" : total}

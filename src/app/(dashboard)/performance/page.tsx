@@ -166,7 +166,7 @@ export default function PerformancePage() {
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                 viewMode === "centres"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
               )}
             >
@@ -178,7 +178,7 @@ export default function PerformancePage() {
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                 viewMode === "leaderboard"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
               )}
             >
@@ -190,7 +190,7 @@ export default function PerformancePage() {
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                 viewMode === "compare"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
               )}
             >
@@ -209,14 +209,14 @@ export default function PerformancePage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center gap-2 mb-2">
-            <Building2 className="w-5 h-5 text-[#004E64]" />
+            <Building2 className="w-5 h-5 text-brand" />
             <p className="text-sm font-medium text-gray-500">Total Centres</p>
           </div>
           <p className="text-3xl font-bold text-gray-900">{centres?.length || 0}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center gap-2 mb-2">
-            <Star className="w-5 h-5 text-[#FECE00]" />
+            <Star className="w-5 h-5 text-accent" />
             <p className="text-sm font-medium text-gray-500">Avg Performance Score</p>
           </div>
           <div className="flex items-baseline gap-2">
@@ -264,7 +264,7 @@ export default function PerformancePage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64]/20"
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/20"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -285,8 +285,8 @@ export default function PerformancePage() {
           </div>
         ) : !sortedCentres || sortedCentres.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
-              <Building2 className="w-8 h-8 text-[#004E64]/30" />
+            <div className="w-16 h-16 rounded-2xl bg-brand/5 flex items-center justify-center mb-4">
+              <Building2 className="w-8 h-8 text-brand/30" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900">
               No performance data available yet
@@ -334,7 +334,7 @@ export default function PerformancePage() {
                     <td className="px-3 md:px-4 py-3">
                       <span className={cn(
                         "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold",
-                        index === 0 ? "bg-[#FECE00] text-[#004E64]" :
+                        index === 0 ? "bg-accent text-brand" :
                         index === 1 ? "bg-gray-200 text-gray-700" :
                         index === 2 ? "bg-amber-100 text-amber-700" :
                         "text-gray-400"

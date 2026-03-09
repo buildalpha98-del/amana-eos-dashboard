@@ -115,7 +115,7 @@ export function ServiceOverviewTab({
                 });
                 setEditingDetails(true);
               }}
-              className="text-gray-400 hover:text-[#004E64]"
+              className="text-gray-400 hover:text-brand"
             >
               <Edit3 className="w-3.5 h-3.5" />
             </button>
@@ -131,7 +131,7 @@ export function ServiceOverviewTab({
                   type="text"
                   value={detailsForm.name}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Service name"
                 />
               </div>
@@ -141,7 +141,7 @@ export function ServiceOverviewTab({
                   type="text"
                   value={detailsForm.code}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, code: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Service code"
                 />
               </div>
@@ -152,7 +152,7 @@ export function ServiceOverviewTab({
                 type="text"
                 value={detailsForm.address}
                 onChange={(e) => setDetailsForm((f) => ({ ...f, address: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                 placeholder="Street address"
               />
             </div>
@@ -163,7 +163,7 @@ export function ServiceOverviewTab({
                   type="text"
                   value={detailsForm.suburb}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, suburb: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Suburb"
                 />
               </div>
@@ -173,7 +173,7 @@ export function ServiceOverviewTab({
                   type="text"
                   value={detailsForm.state}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, state: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="State"
                 />
               </div>
@@ -183,7 +183,7 @@ export function ServiceOverviewTab({
                   type="text"
                   value={detailsForm.postcode}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, postcode: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Postcode"
                 />
               </div>
@@ -195,7 +195,7 @@ export function ServiceOverviewTab({
                   type="text"
                   value={detailsForm.phone}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, phone: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Phone number"
                 />
               </div>
@@ -205,7 +205,7 @@ export function ServiceOverviewTab({
                   type="text"
                   value={detailsForm.email}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, email: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Email address"
                 />
               </div>
@@ -218,7 +218,7 @@ export function ServiceOverviewTab({
                   min={0}
                   value={detailsForm.capacity}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, capacity: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Max children"
                 />
               </div>
@@ -228,7 +228,7 @@ export function ServiceOverviewTab({
                   type="text"
                   value={detailsForm.operatingDays}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, operatingDays: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="e.g. Mon-Fri"
                 />
               </div>
@@ -254,7 +254,7 @@ export function ServiceOverviewTab({
                   });
                   setEditingDetails(false);
                 }}
-                className="text-xs px-3 py-1 bg-[#004E64] text-white rounded-md"
+                className="text-xs px-3 py-1 bg-brand text-white rounded-md"
               >
                 Save
               </button>
@@ -328,7 +328,7 @@ export function ServiceOverviewTab({
               managerId: e.target.value || null,
             })
           }
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">Unassigned</option>
           {users.map((u) => (
@@ -351,7 +351,7 @@ export function ServiceOverviewTab({
                 setNotes(service.notes || "");
                 setEditing(true);
               }}
-              className="text-gray-400 hover:text-[#004E64]"
+              className="text-gray-400 hover:text-brand"
             >
               <Edit3 className="w-3.5 h-3.5" />
             </button>
@@ -364,7 +364,7 @@ export function ServiceOverviewTab({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
             />
             <div className="flex gap-2">
               <button
@@ -372,7 +372,7 @@ export function ServiceOverviewTab({
                   updateService.mutate({ id: service.id, notes });
                   setEditing(false);
                 }}
-                className="text-xs px-3 py-1 bg-[#004E64] text-white rounded-md"
+                className="text-xs px-3 py-1 bg-brand text-white rounded-md"
               >
                 Save
               </button>
@@ -412,7 +412,7 @@ export function ServiceOverviewTab({
                   bscDailyRate: isNaN(val) ? null : val,
                 });
               }}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               placeholder="$0"
             />
           </div>
@@ -430,7 +430,7 @@ export function ServiceOverviewTab({
                   ascDailyRate: isNaN(val) ? null : val,
                 });
               }}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               placeholder="$0"
             />
           </div>
@@ -448,7 +448,7 @@ export function ServiceOverviewTab({
                   vcDailyRate: isNaN(val) ? null : val,
                 });
               }}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               placeholder="$0"
             />
           </div>
@@ -476,7 +476,7 @@ export function ServiceOverviewTab({
                   bscCasualRate: isNaN(val) ? 0 : val,
                 });
               }}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               placeholder="$0"
             />
           </div>
@@ -494,7 +494,7 @@ export function ServiceOverviewTab({
                   ascCasualRate: isNaN(val) ? 0 : val,
                 });
               }}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               placeholder="$0"
             />
           </div>
@@ -510,8 +510,8 @@ export function ServiceOverviewTab({
           Summary
         </label>
         <div className="grid grid-cols-2 gap-2">
-          <div className="flex items-center gap-2 px-3 py-2.5 bg-[#004E64]/5 rounded-lg">
-            <Target className="w-4 h-4 text-[#004E64]" />
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-brand/5 rounded-lg">
+            <Target className="w-4 h-4 text-brand" />
             <div>
               <p className="text-lg font-semibold text-gray-900">
                 {service._count?.rocks ?? 0}
@@ -521,8 +521,8 @@ export function ServiceOverviewTab({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 px-3 py-2.5 bg-[#004E64]/5 rounded-lg">
-            <AlertCircle className="w-4 h-4 text-[#004E64]" />
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-brand/5 rounded-lg">
+            <AlertCircle className="w-4 h-4 text-brand" />
             <div>
               <p className="text-lg font-semibold text-gray-900">
                 {service._count?.issues ?? 0}
@@ -532,8 +532,8 @@ export function ServiceOverviewTab({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 px-3 py-2.5 bg-[#004E64]/5 rounded-lg">
-            <CheckSquare className="w-4 h-4 text-[#004E64]" />
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-brand/5 rounded-lg">
+            <CheckSquare className="w-4 h-4 text-brand" />
             <div>
               <p className="text-lg font-semibold text-gray-900">
                 {service._count?.todos ?? 0}
@@ -543,8 +543,8 @@ export function ServiceOverviewTab({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 px-3 py-2.5 bg-[#004E64]/5 rounded-lg">
-            <FolderKanban className="w-4 h-4 text-[#004E64]" />
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-brand/5 rounded-lg">
+            <FolderKanban className="w-4 h-4 text-brand" />
             <div>
               <p className="text-lg font-semibold text-gray-900">
                 {service._count?.projects ?? 0}
@@ -574,10 +574,10 @@ export function ServiceOverviewTab({
               }) => (
                 <button
                   key={project.id}
-                  className="w-full flex items-center gap-2 px-3 py-2 bg-[#004E64]/5 rounded-lg text-sm text-left hover:bg-[#004E64]/10 transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 bg-brand/5 rounded-lg text-sm text-left hover:bg-brand/10 transition-colors"
                 >
-                  <FolderKanban className="w-4 h-4 text-[#004E64] flex-shrink-0" />
-                  <span className="flex-1 truncate text-[#004E64] font-medium">
+                  <FolderKanban className="w-4 h-4 text-brand flex-shrink-0" />
+                  <span className="flex-1 truncate text-brand font-medium">
                     {project.name}
                   </span>
                   <span

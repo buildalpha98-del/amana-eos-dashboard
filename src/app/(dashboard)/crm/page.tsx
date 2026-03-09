@@ -105,7 +105,7 @@ export default function CrmPage() {
           <ScraperStatusWidget />
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
           >
             <Plus className="w-4 h-4" />
             New Lead
@@ -159,7 +159,7 @@ export default function CrmPage() {
             className={cn(
               "sm:hidden inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border transition-colors",
               showFilters || activeFilterCount > 0
-                ? "bg-[#004E64] text-white border-[#004E64]"
+                ? "bg-brand text-white border-brand"
                 : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
             )}
           >
@@ -184,7 +184,7 @@ export default function CrmPage() {
               onChange={(e) =>
                 setFilters((f) => ({ ...f, source: e.target.value || undefined }))
               }
-              className="border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-[#003344]"
+              className="border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-brand-dark"
             >
               {sourceOptions.map((o) => (
                 <option key={o.key} value={o.key}>
@@ -199,7 +199,7 @@ export default function CrmPage() {
               onChange={(e) =>
                 setFilters((f) => ({ ...f, state: e.target.value || undefined }))
               }
-              className="border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-[#003344]"
+              className="border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-brand-dark"
             >
               <option value="">All States</option>
               {AU_STATES.map((s) => (
@@ -215,7 +215,7 @@ export default function CrmPage() {
               onChange={(e) =>
                 setFilters((f) => ({ ...f, assigneeId: e.target.value || undefined }))
               }
-              className="border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-[#003344]"
+              className="border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-brand-dark"
             >
               <option value="">All Assignees</option>
               {users?.map((u) => (
@@ -232,7 +232,7 @@ export default function CrmPage() {
                 onChange={(e) =>
                   setFilters((f) => ({ ...f, stage: e.target.value || undefined }))
                 }
-                className="border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-[#003344]"
+                className="border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-brand-dark"
               >
                 {stageTabs.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -251,7 +251,7 @@ export default function CrmPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search leads..."
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
         </div>
@@ -265,7 +265,7 @@ export default function CrmPage() {
               onChange={(e) =>
                 setFilters((f) => ({ ...f, source: e.target.value || undefined }))
               }
-              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-[#003344]"
+              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-dark"
             >
               {sourceOptions.map((o) => (
                 <option key={o.key} value={o.key}>
@@ -280,7 +280,7 @@ export default function CrmPage() {
               onChange={(e) =>
                 setFilters((f) => ({ ...f, state: e.target.value || undefined }))
               }
-              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-[#003344]"
+              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-dark"
             >
               <option value="">All States</option>
               {AU_STATES.map((s) => (
@@ -296,7 +296,7 @@ export default function CrmPage() {
               onChange={(e) =>
                 setFilters((f) => ({ ...f, assigneeId: e.target.value || undefined }))
               }
-              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-[#003344]"
+              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-dark"
             >
               <option value="">All Assignees</option>
               {users?.map((u) => (
@@ -313,7 +313,7 @@ export default function CrmPage() {
                 onChange={(e) =>
                   setFilters((f) => ({ ...f, stage: e.target.value || undefined }))
                 }
-                className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-[#003344]"
+                className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-dark"
               >
                 {stageTabs.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -348,7 +348,7 @@ export default function CrmPage() {
         />
       ) : isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
         </div>
       ) : leads && leads.length > 0 ? (
         view === "pipeline" ? (

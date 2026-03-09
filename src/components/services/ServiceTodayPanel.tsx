@@ -95,7 +95,7 @@ function AttendanceBar({
             pct >= 90
               ? "bg-emerald-500"
               : pct >= 60
-                ? "bg-[#004E64]"
+                ? "bg-brand"
                 : "bg-amber-500"
           )}
           style={{ width: `${pct}%` }}
@@ -180,7 +180,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
             {/* Attendance Today */}
             <div className="bg-slate-50 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <ClipboardList className="w-4 h-4 text-[#004E64]" />
+                <ClipboardList className="w-4 h-4 text-brand" />
                 <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Attendance Today
                 </h4>
@@ -205,7 +205,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
             {/* Staff On Duty */}
             <div className="bg-blue-50/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#004E64]" />
+                <Users className="w-4 h-4 text-brand" />
                 <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Staff On Duty
                 </h4>
@@ -228,7 +228,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                           className="w-7 h-7 rounded-full object-cover border border-white shadow-sm"
                         />
                       ) : (
-                        <div className="w-7 h-7 rounded-full bg-[#004E64] flex items-center justify-center text-white text-[10px] font-medium border border-white shadow-sm">
+                        <div className="w-7 h-7 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-medium border border-white shadow-sm">
                           {getInitials(staff.name)}
                         </div>
                       )}
@@ -248,7 +248,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
             {/* To-Dos Due */}
             <div className="bg-amber-50/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <CheckSquare className="w-4 h-4 text-[#004E64]" />
+                <CheckSquare className="w-4 h-4 text-brand" />
                 <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   To-Dos Due
                 </h4>
@@ -301,7 +301,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
             {/* Open Tickets */}
             <div className="bg-rose-50/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <Ticket className="w-4 h-4 text-[#004E64]" />
+                <Ticket className="w-4 h-4 text-brand" />
                 <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Open Tickets
                 </h4>

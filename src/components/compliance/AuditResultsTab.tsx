@@ -161,14 +161,14 @@ export function AuditResultsTab() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search audits..."
-            className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
 
         <select
           value={serviceFilter}
           onChange={(e) => setServiceFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All Centres</option>
           {services.map((s) => (
@@ -179,7 +179,7 @@ export function AuditResultsTab() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All Statuses</option>
           <option value="scheduled">Scheduled</option>
@@ -192,7 +192,7 @@ export function AuditResultsTab() {
         <select
           value={qaFilter}
           onChange={(e) => setQaFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All QAs</option>
           {[1, 2, 3, 4, 5, 6, 7].map((qa) => (
@@ -213,7 +213,7 @@ export function AuditResultsTab() {
       {/* Table */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-8 h-8 text-[#004E64] animate-spin" />
+          <Loader2 className="w-8 h-8 text-brand animate-spin" />
         </div>
       ) : filteredInstances.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
@@ -249,7 +249,7 @@ export function AuditResultsTab() {
                       </td>
                       <td className="px-4 py-3 text-gray-600">{inst.service.code}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className="text-xs font-mono font-medium bg-[#004E64]/10 text-[#004E64] px-2 py-0.5 rounded">
+                        <span className="text-xs font-mono font-medium bg-brand/10 text-brand px-2 py-0.5 rounded">
                           QA{inst.template.qualityArea}
                         </span>
                       </td>
@@ -277,7 +277,7 @@ export function AuditResultsTab() {
                       <td className="px-4 py-3">
                         <Link
                           href={`/compliance/audit/${inst.id}`}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-[#004E64] hover:text-[#003D52] transition-colors"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
                         >
                           View
                           <ExternalLink className="w-3 h-3" />

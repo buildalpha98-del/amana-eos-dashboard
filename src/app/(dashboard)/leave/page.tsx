@@ -393,7 +393,7 @@ function RequestLeaveModal({
             <select
               value={leaveType}
               onChange={(e) => setLeaveType(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               {leaveTypeOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -413,7 +413,7 @@ function RequestLeaveModal({
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 required
               />
             </div>
@@ -426,7 +426,7 @@ function RequestLeaveModal({
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 min={startDate || undefined}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 required
               />
             </div>
@@ -438,7 +438,7 @@ function RequestLeaveModal({
               type="checkbox"
               checked={isHalfDay}
               onChange={(e) => setIsHalfDay(e.target.checked)}
-              className="w-4 h-4 text-[#004E64] border-gray-300 rounded focus:ring-[#004E64]"
+              className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
             />
             <span className="text-sm text-gray-700">Half day only</span>
           </label>
@@ -454,7 +454,7 @@ function RequestLeaveModal({
               onChange={(e) => setReason(e.target.value)}
               rows={3}
               placeholder="Brief reason for leave..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
             />
           </div>
 
@@ -480,7 +480,7 @@ function RequestLeaveModal({
             <button
               type="submit"
               disabled={createRequest.isPending || !startDate || !endDate}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#004E64] text-white rounded-lg hover:bg-[#003344] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4" />
               {createRequest.isPending ? "Submitting..." : "Submit Request"}
@@ -516,7 +516,7 @@ function MyRequestsTab({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -524,8 +524,8 @@ function MyRequestsTab({
   if (myRequests.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-        <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
-          <FileText className="w-8 h-8 text-[#004E64]/30" />
+        <div className="w-16 h-16 rounded-2xl bg-brand/5 flex items-center justify-center mb-4">
+          <FileText className="w-8 h-8 text-brand/30" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900">
           No leave requests
@@ -664,7 +664,7 @@ function ApprovalsTab({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -701,7 +701,7 @@ function ApprovalsTab({
               {/* Left side */}
               <div className="flex items-start gap-3 min-w-0 flex-1">
                 {/* Avatar */}
-                <div className="w-9 h-9 rounded-full bg-[#004E64]/10 flex items-center justify-center text-sm font-semibold text-[#004E64] shrink-0">
+                <div className="w-9 h-9 rounded-full bg-brand/10 flex items-center justify-center text-sm font-semibold text-brand shrink-0">
                   {req.user.name
                     .split(" ")
                     .map((n) => n[0])
@@ -764,7 +764,7 @@ function ApprovalsTab({
                         [req.id]: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                    className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
                   <div className="flex items-center gap-2">
                     <button
@@ -899,7 +899,7 @@ function TeamCalendarTab({
         <select
           value={selectedService}
           onChange={(e) => setSelectedService(e.target.value)}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         >
           <option value="">All Centres</option>
           {services.map((s) => (
@@ -912,7 +912,7 @@ function TeamCalendarTab({
 
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -953,14 +953,14 @@ function TeamCalendarTab({
                   className={cn(
                     "min-h-[80px] sm:min-h-[100px] border-b border-r border-gray-100 p-1",
                     isWeekend && "bg-gray-50/50",
-                    isToday && "bg-[#004E64]/5"
+                    isToday && "bg-brand/5"
                   )}
                 >
                   <span
                     className={cn(
                       "inline-flex items-center justify-center w-6 h-6 text-xs font-medium rounded-full mb-0.5",
                       isToday
-                        ? "bg-[#004E64] text-white"
+                        ? "bg-brand text-white"
                         : "text-gray-600"
                     )}
                   >
@@ -1127,7 +1127,7 @@ export default function LeavePage() {
         </div>
         <button
           onClick={() => setShowRequestModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
         >
           <Plus className="w-4 h-4" />
           Request Leave
@@ -1199,7 +1199,7 @@ export default function LeavePage() {
             className={cn(
               "ml-2 p-2 rounded-lg border transition-colors",
               showFilters || hasActiveFilters
-                ? "bg-[#004E64] text-white border-[#004E64]"
+                ? "bg-brand text-white border-brand"
                 : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
             )}
           >
@@ -1214,7 +1214,7 @@ export default function LeavePage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Statuses</option>
             <option value="leave_pending">Pending</option>
@@ -1226,7 +1226,7 @@ export default function LeavePage() {
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Centres</option>
             {services.map((s) => (
@@ -1239,7 +1239,7 @@ export default function LeavePage() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Types</option>
             {leaveTypeOptions.map((opt) => (
@@ -1256,7 +1256,7 @@ export default function LeavePage() {
                 setServiceFilter("");
                 setTypeFilter("");
               }}
-              className="text-xs text-[#004E64] hover:underline"
+              className="text-xs text-brand hover:underline"
             >
               Clear filters
             </button>

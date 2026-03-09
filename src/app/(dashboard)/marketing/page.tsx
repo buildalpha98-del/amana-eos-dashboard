@@ -82,7 +82,7 @@ export default function MarketingPage() {
           />
           <button
             onClick={() => setShowImport(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-[#004E64] px-4 py-2 text-sm font-medium text-[#004E64] hover:bg-[#004E64] hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand hover:bg-brand hover:text-white transition-colors"
           >
             <Upload className="h-4 w-4" />
             Import Content Calendar

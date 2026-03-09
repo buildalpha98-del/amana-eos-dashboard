@@ -209,8 +209,8 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-              <FileSpreadsheet className="w-4 h-4 text-[#004E64]" />
+            <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+              <FileSpreadsheet className="w-4 h-4 text-brand" />
             </div>
             <div>
               <h3 className="text-base font-semibold text-gray-900">Import from OWNA</h3>
@@ -245,7 +245,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                       className={cn(
                         "px-4 py-2 text-sm font-medium rounded-lg border transition-colors",
                         periodType === pt
-                          ? "border-[#004E64] bg-[#004E64]/5 text-[#004E64]"
+                          ? "border-brand bg-brand/5 text-brand"
                           : "border-gray-200 text-gray-600 hover:border-gray-300"
                       )}
                     >
@@ -267,7 +267,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                 className={cn(
                   "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
                   dragOver
-                    ? "border-[#004E64] bg-[#004E64]/5"
+                    ? "border-brand bg-brand/5"
                     : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
                 )}
               >
@@ -283,7 +283,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                 />
                 {loading ? (
                   <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-10 h-10 text-[#004E64] animate-spin" />
+                    <Loader2 className="w-10 h-10 text-brand animate-spin" />
                     <p className="text-sm text-gray-600">Parsing file...</p>
                   </div>
                 ) : (
@@ -296,7 +296,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                       Supports .xlsx, .xls, and .csv files
                     </p>
                     {file && (
-                      <p className="text-xs text-[#004E64] mt-2 font-medium">
+                      <p className="text-xs text-brand mt-2 font-medium">
                         Selected: {file.name}
                       </p>
                     )}
@@ -350,7 +350,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
             <div className="space-y-4">
               {/* File info */}
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <FileSpreadsheet className="w-5 h-5 text-[#004E64]" />
+                <FileSpreadsheet className="w-5 h-5 text-brand" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {preview.fileName}
@@ -389,7 +389,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
               {/* Column mapping toggle */}
               <button
                 onClick={() => setShowColumnMapping(!showColumnMapping)}
-                className="flex items-center gap-2 text-sm text-[#004E64] font-medium hover:underline"
+                className="flex items-center gap-2 text-sm text-brand font-medium hover:underline"
               >
                 {showColumnMapping ? (
                   <ChevronUp className="w-4 h-4" />
@@ -410,7 +410,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                         {cm.original}
                       </span>
                       <ArrowRight className="w-3 h-3 text-gray-400 shrink-0" />
-                      <span className="text-[#004E64] font-medium truncate flex-1">
+                      <span className="text-brand font-medium truncate flex-1">
                         {FIELD_LABELS[cm.mapped] || cm.mapped}
                       </span>
                     </div>
@@ -556,7 +556,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
           {/* Step: Importing */}
           {step === "importing" && (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <Loader2 className="w-10 h-10 text-[#004E64] animate-spin" />
+              <Loader2 className="w-10 h-10 text-brand animate-spin" />
               <p className="text-sm text-gray-600">
                 Importing financial data...
               </p>
@@ -705,7 +705,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                 <button
                   onClick={handleImport}
                   disabled={!preview || preview.matchedCount === 0 || loading}
-                  className="inline-flex items-center gap-2 px-5 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] disabled:opacity-50 transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover disabled:opacity-50 transition-colors"
                 >
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -730,7 +730,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
               <div />
               <button
                 onClick={handleClose}
-                className="px-5 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+                className="px-5 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
               >
                 Done
               </button>

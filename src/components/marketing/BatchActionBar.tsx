@@ -31,7 +31,7 @@ export function BatchActionBar({
     <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white shadow-lg">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-6 py-3 overflow-x-auto">
         {/* Count */}
-        <span className="shrink-0 rounded-full bg-[#004E64] px-3 py-1 text-sm font-semibold text-white">
+        <span className="shrink-0 rounded-full bg-brand px-3 py-1 text-sm font-semibold text-white">
           {selectedCount} selected
         </span>
 
@@ -44,7 +44,7 @@ export function BatchActionBar({
               e.target.value = "";
             }
           }}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="" disabled>
             Change Status
@@ -65,7 +65,7 @@ export function BatchActionBar({
               e.target.value = "";
             }
           }}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="" disabled>
             Assign Campaign
@@ -89,13 +89,13 @@ export function BatchActionBar({
             }
           }}
           title="Reschedule"
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         />
 
         {/* Duplicate to Centres */}
         <button
           onClick={() => onAction("duplicate_to_centres", {})}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#004E64] px-3 py-2 text-sm font-medium text-white hover:bg-[#003d4f] transition-colors"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors"
         >
           <Copy className="h-4 w-4" />
           Duplicate to Centres

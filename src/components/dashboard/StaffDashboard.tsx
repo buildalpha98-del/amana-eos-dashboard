@@ -258,11 +258,11 @@ function TodoRow({ todo }: { todo: TodoItem }) {
       <button
         onClick={handleToggle}
         disabled={updateTodo.isPending}
-        className="flex-shrink-0 text-gray-400 hover:text-[#004E64] transition-colors disabled:opacity-50"
+        className="flex-shrink-0 text-gray-400 hover:text-brand transition-colors disabled:opacity-50"
         aria-label={isComplete ? "Mark incomplete" : "Mark complete"}
       >
         {isComplete ? (
-          <CheckSquare className="w-4.5 h-4.5 text-[#004E64]" />
+          <CheckSquare className="w-4.5 h-4.5 text-brand" />
         ) : (
           <Square className="w-4.5 h-4.5" />
         )}
@@ -332,7 +332,7 @@ export function StaffDashboard() {
     return (
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#004E64] animate-spin" />
+          <Loader2 className="w-8 h-8 text-brand animate-spin" />
           <span className="ml-3 text-gray-500">
             Loading your dashboard...
           </span>
@@ -443,7 +443,7 @@ export function StaffDashboard() {
         >
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Bell className="w-10 h-10 text-[#004E64]" />
+              <Bell className="w-10 h-10 text-brand" />
               {data.unreadAnnouncements.length > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                   {data.unreadAnnouncements.length}
@@ -464,12 +464,12 @@ export function StaffDashboard() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-[#004E64]" />
+            <ShieldCheck className="w-4 h-4 text-brand" />
             Compliance Detail
           </h3>
           <Link
             href="/compliance"
-            className="text-xs font-medium text-[#004E64] hover:underline flex items-center gap-1"
+            className="text-xs font-medium text-brand hover:underline flex items-center gap-1"
           >
             View all <ChevronRight className="w-3.5 h-3.5" />
           </Link>
@@ -487,12 +487,12 @@ export function StaffDashboard() {
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-              <CheckSquare className="w-4 h-4 text-[#004E64]" />
+              <CheckSquare className="w-4 h-4 text-brand" />
               My To-Dos This Week
             </h3>
             <Link
               href="/todos"
-              className="text-xs font-medium text-[#004E64] hover:underline flex items-center gap-1"
+              className="text-xs font-medium text-brand hover:underline flex items-center gap-1"
             >
               View all <ChevronRight className="w-3.5 h-3.5" />
             </Link>
@@ -517,12 +517,12 @@ export function StaffDashboard() {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[#004E64]" />
+                <Calendar className="w-4 h-4 text-brand" />
                 Upcoming Meetings
               </h3>
               <Link
                 href="/meetings"
-                className="text-xs font-medium text-[#004E64] hover:underline flex items-center gap-1"
+                className="text-xs font-medium text-brand hover:underline flex items-center gap-1"
               >
                 View all <ChevronRight className="w-3.5 h-3.5" />
               </Link>
@@ -540,8 +540,8 @@ export function StaffDashboard() {
                       key={meeting.id}
                       className="flex items-center gap-3 py-3"
                     >
-                      <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-                        <Calendar className="w-4 h-4 text-[#004E64]" />
+                      <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center">
+                        <Calendar className="w-4 h-4 text-brand" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">
@@ -563,12 +563,12 @@ export function StaffDashboard() {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <Megaphone className="w-4 h-4 text-[#004E64]" />
+                <Megaphone className="w-4 h-4 text-brand" />
                 Unread Announcements
               </h3>
               <Link
                 href="/communication"
-                className="text-xs font-medium text-[#004E64] hover:underline flex items-center gap-1"
+                className="text-xs font-medium text-brand hover:underline flex items-center gap-1"
               >
                 View all <ChevronRight className="w-3.5 h-3.5" />
               </Link>

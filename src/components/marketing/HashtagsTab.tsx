@@ -77,7 +77,7 @@ export function HashtagsTab() {
                 onClick={() => setCategoryFilter(value)}
                 className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-[#004E64] text-white"
+                    ? "bg-brand text-white"
                     : "bg-white border border-gray-300 text-gray-600 hover:bg-gray-50"
                 }`}
               >
@@ -89,7 +89,7 @@ export function HashtagsTab() {
 
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#004E64]/90 transition-colors"
+          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand/90 transition-colors"
         >
           <Plus className="h-4 w-4" />
           New Set
@@ -99,7 +99,7 @@ export function HashtagsTab() {
       {/* ── Loading State ────────────────────────────── */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-[#004E64]" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
         </div>
       )}
 
@@ -213,7 +213,7 @@ export function HashtagsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, name: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="Set name"
                 />
               </div>
@@ -227,7 +227,7 @@ export function HashtagsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, category: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                 >
                   {CATEGORIES.filter((c) => c !== "All").map((c) => (
                     <option key={c} value={c.toLowerCase()}>
@@ -247,7 +247,7 @@ export function HashtagsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, tags: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/30 resize-none"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
                   placeholder="Enter hashtags, one per line or comma-separated"
                 />
               </div>
@@ -267,7 +267,7 @@ export function HashtagsTab() {
                   !form.tags.trim() ||
                   createHashtagSet.isPending
                 }
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-[#004E64] hover:bg-[#004E64]/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand hover:bg-brand/90 disabled:opacity-50 transition-colors flex items-center gap-2"
               >
                 {createHashtagSet.isPending && (
                   <Loader2 className="h-4 w-4 animate-spin" />

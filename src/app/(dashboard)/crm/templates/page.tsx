@@ -92,7 +92,7 @@ export default function CrmTemplatesPage() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Template
@@ -120,7 +120,7 @@ export default function CrmTemplatesPage() {
         />
       ) : isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
         </div>
       ) : templates && templates.length > 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

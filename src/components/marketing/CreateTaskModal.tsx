@@ -154,7 +154,7 @@ export function CreateTaskModal({
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Task title"
                   required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -168,7 +168,7 @@ export function CreateTaskModal({
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   placeholder="What needs to be done..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -183,7 +183,7 @@ export function CreateTaskModal({
                     onChange={(e) =>
                       setPriority(e.target.value as MarketingTaskPriority)
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   >
                     {PRIORITY_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -201,7 +201,7 @@ export function CreateTaskModal({
                     onChange={(e) =>
                       setStatus(e.target.value as MarketingTaskStatus)
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   >
                     {STATUS_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -221,7 +221,7 @@ export function CreateTaskModal({
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -233,7 +233,7 @@ export function CreateTaskModal({
                 <select
                   value={assigneeId}
                   onChange={(e) => setAssigneeId(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">Unassigned</option>
                   {users.map((user) => (
@@ -252,7 +252,7 @@ export function CreateTaskModal({
                 <select
                   value={campaignId}
                   onChange={(e) => setCampaignId(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">None</option>
                   {(campaigns ?? []).map((c) => (
@@ -283,7 +283,7 @@ export function CreateTaskModal({
               <button
                 type="submit"
                 disabled={createTask.isPending}
-                className="rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#003d4f] disabled:opacity-50"
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
               >
                 {createTask.isPending ? "Creating..." : "Create Task"}
               </button>

@@ -69,7 +69,7 @@ export function TicketAnalytics() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -90,7 +90,7 @@ export function TicketAnalytics() {
             className={cn(
               "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
               rangeDays === days
-                ? "bg-[#004E64] text-white"
+                ? "bg-brand text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             )}
           >
@@ -103,7 +103,7 @@ export function TicketAnalytics() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-2">
-            <MessageSquare className="w-4 h-4 text-[#004E64]" />
+            <MessageSquare className="w-4 h-4 text-brand" />
             <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Tickets</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{data.totalTickets}</p>
@@ -180,7 +180,7 @@ export function TicketAnalytics() {
               {data.byCentre.map((centre) => (
                 <div key={centre.code} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-gray-50">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-[#004E64] bg-[#004E64]/10 px-1.5 py-0.5 rounded">{centre.code}</span>
+                    <span className="text-xs font-mono text-brand bg-brand/10 px-1.5 py-0.5 rounded">{centre.code}</span>
                     <span className="text-sm text-gray-700">{centre.name}</span>
                   </div>
                   <span className="text-sm font-semibold text-gray-900">{centre.count}</span>

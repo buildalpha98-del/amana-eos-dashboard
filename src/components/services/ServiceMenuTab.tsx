@@ -220,7 +220,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
           {weekOffset !== 0 && (
             <button
               onClick={() => setWeekOffset(0)}
-              className="text-xs text-[#004E64] hover:underline ml-2"
+              className="text-xs text-brand hover:underline ml-2"
             >
               Today
             </button>
@@ -249,7 +249,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
           <button
             onClick={handleSave}
             disabled={!dirty || saveMutation.isPending}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
           >
             {saveMutation.isPending ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -276,7 +276,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
             href={menuWeek.fileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-[#004E64] hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-brand hover:underline"
           >
             <Download className="w-3.5 h-3.5" />
             View
@@ -287,7 +287,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
       {/* Menu Grid */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 text-[#004E64] animate-spin" />
+          <Loader2 className="w-6 h-6 text-brand animate-spin" />
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -326,7 +326,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
                           className={cn(
                             "relative rounded-lg border p-2 min-h-[80px] transition-colors",
                             isActive
-                              ? "border-[#004E64] ring-1 ring-[#004E64]/20"
+                              ? "border-brand ring-1 ring-brand/20"
                               : "border-gray-200 hover:border-gray-300"
                           )}
                         >
@@ -404,7 +404,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
           }}
           rows={2}
           placeholder="General notes for this week's menu..."
-          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64] resize-none"
+          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand resize-none"
         />
       </div>
 

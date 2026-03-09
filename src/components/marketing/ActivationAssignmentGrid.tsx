@@ -216,7 +216,7 @@ export function ActivationAssignmentGrid({
                     onChange={(e) =>
                       updateRow(row.serviceId, "assigned", e.target.checked)
                     }
-                    className="h-4 w-4 rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]"
+                    className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                   />
                 </td>
 
@@ -232,7 +232,7 @@ export function ActivationAssignmentGrid({
                       )
                     }
                     disabled={!row.assigned}
-                    className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-xs focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-xs focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     <option value="">--</option>
                     {users.map((u) => (
@@ -263,7 +263,7 @@ export function ActivationAssignmentGrid({
                       }
                       disabled={!row.assigned}
                       placeholder="0"
-                      className="w-full rounded border border-gray-200 bg-white pl-5 pr-2 py-1 text-xs focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="w-full rounded border border-gray-200 bg-white pl-5 pr-2 py-1 text-xs focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-gray-100 disabled:cursor-not-allowed"
                     />
                   </div>
                 </td>
@@ -276,7 +276,7 @@ export function ActivationAssignmentGrid({
                       updateRow(row.serviceId, "status", e.target.value)
                     }
                     disabled={!row.assigned}
-                    className={`w-full rounded-full px-2 py-1 text-[10px] font-medium border-0 focus:outline-none focus:ring-1 focus:ring-[#004E64] disabled:cursor-not-allowed ${
+                    className={`w-full rounded-full px-2 py-1 text-[10px] font-medium border-0 focus:outline-none focus:ring-1 focus:ring-brand disabled:cursor-not-allowed ${
                       STATUS_OPTIONS.find((s) => s.value === row.status)
                         ?.color ?? "bg-gray-100 text-gray-600"
                     }`}
@@ -303,7 +303,7 @@ export function ActivationAssignmentGrid({
                     }
                     disabled={!row.assigned}
                     placeholder="Notes..."
-                    className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-xs focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-xs focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </td>
               </tr>
@@ -317,7 +317,7 @@ export function ActivationAssignmentGrid({
         <button
           onClick={handleSave}
           disabled={!dirty || updateAssignments.isPending}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[#004E64] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[#003d4f] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="h-3.5 w-3.5" />
           {updateAssignments.isPending ? "Saving..." : "Save All"}

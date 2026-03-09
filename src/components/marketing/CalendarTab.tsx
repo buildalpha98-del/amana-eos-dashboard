@@ -140,7 +140,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
               <div className="ml-2 flex rounded-lg border border-gray-200 overflow-hidden">
                 <button
                   onClick={() => setViewMode("calendar")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#004E64] text-white"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand text-white"
                 >
                   <CalendarDays className="w-3.5 h-3.5" />
                   Calendar
@@ -168,7 +168,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
               </button>
               <button
                 onClick={() => setViewMode("timeline")}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#004E64] text-white"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand text-white"
               >
                 <GanttChart className="w-3.5 h-3.5" />
                 Timeline
@@ -220,13 +220,13 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
                     setSelectedDate(`${yyyy}-${mm}-${dd}T09:00`);
                     setShowCreateModal(true);
                   }}
-                  className={`min-h-[100px] border-b border-r border-gray-100 p-1 cursor-pointer transition-colors hover:bg-[#004E64]/[0.03] ${
+                  className={`min-h-[100px] border-b border-r border-gray-100 p-1 cursor-pointer transition-colors hover:bg-brand/[0.03] ${
                     !isCurrentMonth ? "bg-gray-50 hover:bg-gray-100/80" : ""
-                  } ${isToday ? "ring-2 ring-inset ring-[#004E64]" : ""}`}
+                  } ${isToday ? "ring-2 ring-inset ring-brand" : ""}`}
                 >
                   <div className={`text-xs font-medium mb-1 ${
                     isCurrentMonth ? "text-gray-900" : "text-gray-400"
-                  } ${isToday ? "text-[#004E64] font-bold" : ""}`}>
+                  } ${isToday ? "text-brand font-bold" : ""}`}>
                     {day.getDate()}
                   </div>
                   <div className="space-y-0.5">
@@ -246,7 +246,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
                       <button
                         key={task.id}
                         onClick={(e) => { e.stopPropagation(); onSelectTask?.(task.id); }}
-                        className="w-full text-left px-1.5 py-0.5 rounded text-[10px] leading-tight border-l-2 border-[#004E64] bg-[#004E64]/5 hover:bg-[#004E64]/10 transition-colors truncate flex items-center gap-1"
+                        className="w-full text-left px-1.5 py-0.5 rounded text-[10px] leading-tight border-l-2 border-brand bg-brand/5 hover:bg-brand/10 transition-colors truncate flex items-center gap-1"
                       >
                         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
                           task.status === "done" ? "bg-green-400" : task.status === "in_progress" ? "bg-blue-400" : "bg-gray-400"

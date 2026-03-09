@@ -32,7 +32,7 @@ export function EmptyState({
         {action && (
           <button
             onClick={action.onClick}
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
           >
             {action.icon ? (
               <action.icon className="w-4 h-4" />
@@ -64,7 +64,7 @@ export function EmptyState({
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
+          className="mt-6 inline-flex items-center gap-1.5 px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors shadow-sm"
         >
           {action.icon ? (
             <action.icon className="w-4 h-4" />

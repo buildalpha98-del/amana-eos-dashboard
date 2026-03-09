@@ -118,7 +118,7 @@ export default function ServicesPage() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           Add Centre
@@ -141,7 +141,7 @@ export default function ServicesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search centres..."
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
         <p className="text-sm text-gray-400">

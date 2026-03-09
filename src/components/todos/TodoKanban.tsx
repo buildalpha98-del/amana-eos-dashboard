@@ -73,7 +73,7 @@ function DroppableColumn({
         ref={setNodeRef}
         className={cn(
           "space-y-2 min-h-[200px] p-2 mt-2 rounded-xl transition-colors duration-200",
-          isOver ? "bg-[#004E64]/5 ring-2 ring-[#004E64]/20" : "bg-gray-50/30"
+          isOver ? "bg-brand/5 ring-2 ring-brand/20" : "bg-gray-50/30"
         )}
       >
         <SortableContext
@@ -148,7 +148,7 @@ function TodoKanbanCard({
       onClick={onClick}
       className={cn(
         "bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:shadow-sm transition-shadow",
-        isDragging && "opacity-50 shadow-lg ring-2 ring-[#004E64]/30"
+        isDragging && "opacity-50 shadow-lg ring-2 ring-brand/30"
       )}
     >
       <p className="text-sm font-medium text-gray-900 line-clamp-2">

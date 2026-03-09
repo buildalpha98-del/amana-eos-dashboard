@@ -152,7 +152,7 @@ export function IssueCard({
 
             {/* Linked Rock */}
             {issue.rock && (
-              <span className="inline-flex items-center gap-1 text-xs text-[#004E64] bg-[#004E64]/5 px-1.5 py-0.5 rounded">
+              <span className="inline-flex items-center gap-1 text-xs text-brand bg-brand/5 px-1.5 py-0.5 rounded">
                 <Mountain className="w-3 h-3" />
                 <span className="truncate max-w-[100px]">{issue.rock.title}</span>
               </span>

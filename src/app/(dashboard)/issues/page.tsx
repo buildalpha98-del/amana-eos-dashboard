@@ -112,7 +112,7 @@ export default function IssuesPage() {
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 viewMode === "board"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="Board view"
@@ -124,7 +124,7 @@ export default function IssuesPage() {
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 viewMode === "list"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="List view"
@@ -139,7 +139,7 @@ export default function IssuesPage() {
             className={cn(
               "p-2 rounded-lg border transition-colors",
               showArchived
-                ? "border-[#004E64] bg-[#004E64]/5 text-[#004E64]"
+                ? "border-brand bg-brand/5 text-brand"
                 : "border-gray-200 text-gray-400 hover:text-gray-600"
             )}
             title={showArchived ? "Hide closed issues" : "Show closed issues"}
@@ -153,7 +153,7 @@ export default function IssuesPage() {
             className={cn(
               "p-2 rounded-lg border transition-colors",
               hasActiveFilters
-                ? "border-[#004E64] bg-[#004E64]/5 text-[#004E64]"
+                ? "border-brand bg-brand/5 text-brand"
                 : "border-gray-200 text-gray-400 hover:text-gray-600"
             )}
             title="Filters"
@@ -163,7 +163,7 @@ export default function IssuesPage() {
 
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Raise Issue
@@ -204,7 +204,7 @@ export default function IssuesPage() {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="">All Priorities</option>
             <option value="critical">Critical</option>
@@ -216,7 +216,7 @@ export default function IssuesPage() {
           <select
             value={ownerFilter}
             onChange={(e) => setOwnerFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="">All Owners</option>
             {users?.map((u) => (

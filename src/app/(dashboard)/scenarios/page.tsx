@@ -112,7 +112,7 @@ export default function ScenariosPage() {
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                   active
-                    ? "bg-white text-[#004E64] shadow-sm"
+                    ? "bg-white text-brand shadow-sm"
                     : "text-gray-500 hover:text-gray-700",
                 )}
               >

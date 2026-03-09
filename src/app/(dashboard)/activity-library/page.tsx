@@ -114,7 +114,7 @@ export default function ActivityLibraryPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Library className="w-7 h-7 text-[#004E64]" />
+          <Library className="w-7 h-7 text-brand" />
           Activity Library
         </h1>
         <p className="text-sm text-gray-500 mt-1 line-clamp-2">
@@ -131,13 +131,13 @@ export default function ActivityLibraryPage() {
             placeholder="Search activities..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none"
+            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
           />
         </div>
         <select
           value={categoryFilter}
           onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none"
+          className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
         >
           <option value="">All Categories</option>
           {CATEGORIES.map((c) => (
@@ -147,7 +147,7 @@ export default function ActivityLibraryPage() {
         {isAdmin && (
           <button
             onClick={() => { setEditingTemplate(null); setModalOpen(true); }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-[#004E64] text-white hover:bg-[#003D52] transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Template
@@ -164,7 +164,7 @@ export default function ActivityLibraryPage() {
         />
       ) : isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#004E64] animate-spin" />
+          <Loader2 className="w-8 h-8 text-brand animate-spin" />
         </div>
       ) : !data?.templates.length ? (
         <div className="text-center py-20 text-gray-400">
@@ -403,7 +403,7 @@ function TemplateModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={!isAdmin}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none disabled:bg-gray-50"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50"
               placeholder="e.g. Obstacle Course Relay"
             />
           </div>
@@ -416,7 +416,7 @@ function TemplateModal({
               onChange={(e) => setDescription(e.target.value)}
               disabled={!isAdmin}
               rows={2}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none disabled:bg-gray-50 resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50 resize-none"
               placeholder="Short description of the activity"
             />
           </div>
@@ -429,7 +429,7 @@ function TemplateModal({
               onChange={(e) => setHowTo(e.target.value)}
               disabled={!isAdmin}
               rows={5}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none disabled:bg-gray-50 resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50 resize-none"
               placeholder="Step-by-step instructions for running this activity..."
             />
           </div>
@@ -442,7 +442,7 @@ function TemplateModal({
               onChange={(e) => setResourcesNeeded(e.target.value)}
               disabled={!isAdmin}
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none disabled:bg-gray-50 resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50 resize-none"
               placeholder="List materials, equipment, or resources needed..."
             />
           </div>
@@ -458,7 +458,7 @@ function TemplateModal({
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 disabled={!isAdmin}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none disabled:bg-gray-50"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -475,7 +475,7 @@ function TemplateModal({
                 value={ageGroup}
                 onChange={(e) => setAgeGroup(e.target.value)}
                 disabled={!isAdmin}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none disabled:bg-gray-50"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50"
                 placeholder="e.g. 5-8"
               />
             </div>
@@ -491,7 +491,7 @@ function TemplateModal({
                 disabled={!isAdmin}
                 min={1}
                 max={480}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none disabled:bg-gray-50"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50"
                 placeholder="30"
               />
             </div>
@@ -574,7 +574,7 @@ function TemplateModal({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-[#004E64] text-white hover:bg-[#003D52] disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-50 transition-colors"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               {isEdit ? "Save Changes" : "Create Template"}

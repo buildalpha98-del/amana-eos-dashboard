@@ -191,7 +191,7 @@ function CompliantInput({
           type="text"
           value={response.evidenceSighted || ""}
           onChange={(e) => onChange(response.id, { evidenceSighted: e.target.value } as Partial<AuditItemResponseData>)}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           placeholder="Describe evidence reviewed..."
         />
       </div>
@@ -299,7 +299,7 @@ function ReviewDateInput({
               result: e.target.value ? "yes" : "pending",
             } as Partial<AuditItemResponseData>)
           }
-          className="w-full max-w-xs px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+          className="w-full max-w-xs px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         />
       </div>
       <div>
@@ -310,7 +310,7 @@ function ReviewDateInput({
           value={response.actionRequired || ""}
           onChange={(e) => onChange(response.id, { actionRequired: e.target.value } as Partial<AuditItemResponseData>)}
           rows={2}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
           placeholder="Any actions required from review..."
         />
       </div>
@@ -507,7 +507,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 text-[#004E64] animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand animate-spin" />
       </div>
     );
   }
@@ -520,7 +520,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
         <p className="text-gray-500 text-sm mb-6">This audit may have been deleted.</p>
         <button
           onClick={() => router.push("/compliance")}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Compliance
@@ -542,7 +542,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
       {/* Back link */}
       <button
         onClick={() => router.back()}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#004E64] transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Back
@@ -553,13 +553,13 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5 text-[#004E64]" />
+              <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5 text-brand" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">{audit.template.name}</h1>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs font-mono font-medium bg-[#004E64]/10 text-[#004E64] px-2 py-0.5 rounded">
+                  <span className="text-xs font-mono font-medium bg-brand/10 text-brand px-2 py-0.5 rounded">
                     QA{audit.template.qualityArea}
                   </span>
                   <span className="text-xs text-gray-500">{audit.template.nqsReference}</span>
@@ -605,7 +605,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
             <button
               onClick={handleStart}
               disabled={updateAudit.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               <Play className="w-4 h-4" />
               Start Audit
@@ -646,7 +646,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-500",
-                progressPercent === 100 ? "bg-emerald-500" : progressPercent >= 50 ? "bg-[#004E64]" : "bg-amber-500"
+                progressPercent === 100 ? "bg-emerald-500" : progressPercent >= 50 ? "bg-brand" : "bg-amber-500"
               )}
               style={{ width: `${progressPercent}%` }}
             />
@@ -729,7 +729,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
                                   onChange={(e) =>
                                     handleResponseChange(response.id, { notes: e.target.value } as Partial<AuditItemResponseData>)
                                   }
-                                  className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#004E64] text-gray-600"
+                                  className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand text-gray-600"
                                   placeholder="Notes (optional)"
                                 />
                               </div>
@@ -780,7 +780,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
       {(isEditable || isComplete) && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-[#004E64]" />
+            <FileText className="w-4 h-4 text-brand" />
             Audit Summary
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -791,7 +791,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
                 onChange={(e) => setSummaryFields((f) => ({ ...f, strengths: e.target.value }))}
                 disabled={!isEditable}
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
                 placeholder="What was done well..."
               />
             </div>
@@ -802,7 +802,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
                 onChange={(e) => setSummaryFields((f) => ({ ...f, areasForImprovement: e.target.value }))}
                 disabled={!isEditable}
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
                 placeholder="What needs attention..."
               />
             </div>
@@ -813,7 +813,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
                 onChange={(e) => setSummaryFields((f) => ({ ...f, actionPlan: e.target.value }))}
                 disabled={!isEditable}
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
                 placeholder="Steps to address issues..."
               />
             </div>
@@ -824,7 +824,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
                 onChange={(e) => setSummaryFields((f) => ({ ...f, comments: e.target.value }))}
                 disabled={!isEditable}
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
                 placeholder="Additional notes..."
               />
             </div>

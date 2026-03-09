@@ -117,7 +117,7 @@ export function IssueDetailPanel({
         <SheetContent>
           <SheetTitle className="sr-only">Issue Details</SheetTitle>
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+            <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
           </div>
         </SheetContent>
       </Sheet>
@@ -170,7 +170,7 @@ export function IssueDetailPanel({
                 autoFocus
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 text-lg font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                className="w-full px-3 py-2 text-lg font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     updateIssue.mutate({ id: issueId, title });
@@ -185,7 +185,7 @@ export function IssueDetailPanel({
                     updateIssue.mutate({ id: issueId, title });
                     setEditTitle(false);
                   }}
-                  className="text-xs px-3 py-1 bg-[#004E64] text-white rounded-md"
+                  className="text-xs px-3 py-1 bg-brand text-white rounded-md"
                 >
                   Save
                 </button>
@@ -199,7 +199,7 @@ export function IssueDetailPanel({
             </div>
           ) : (
             <h2
-              className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-[#004E64] transition-colors"
+              className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-brand transition-colors"
               onClick={() => {
                 setTitle(issue.title);
                 setEditTitle(true);
@@ -351,7 +351,7 @@ export function IssueDetailPanel({
                   ownerId: e.target.value || null,
                 })
               }
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="">Unassigned</option>
               {users?.map((u) => (
@@ -376,7 +376,7 @@ export function IssueDetailPanel({
                 })
               }
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
               placeholder="Describe the issue..."
             />
           </div>
@@ -397,7 +397,7 @@ export function IssueDetailPanel({
                   })
                 }
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
                 placeholder="How was this resolved?"
               />
             </div>
@@ -409,14 +409,14 @@ export function IssueDetailPanel({
               Linked Rock
             </label>
             {issue.rock && !showRockPicker ? (
-              <div className="flex items-center gap-2 px-3 py-2 bg-[#004E64]/5 rounded-lg">
-                <Mountain className="w-4 h-4 text-[#004E64]" />
-                <span className="text-sm text-[#004E64] font-medium flex-1 truncate">
+              <div className="flex items-center gap-2 px-3 py-2 bg-brand/5 rounded-lg">
+                <Mountain className="w-4 h-4 text-brand" />
+                <span className="text-sm text-brand font-medium flex-1 truncate">
                   {issue.rock.title}
                 </span>
                 <button
                   onClick={() => setShowRockPicker(true)}
-                  className="p-1 text-gray-400 hover:text-[#004E64] transition-colors"
+                  className="p-1 text-gray-400 hover:text-brand transition-colors"
                   title="Change rock"
                 >
                   <Link2 className="w-3.5 h-3.5" />
@@ -437,7 +437,7 @@ export function IssueDetailPanel({
                     updateIssue.mutate({ id: issueId, rockId: e.target.value || null });
                     setShowRockPicker(false);
                   }}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                 >
                   <option value="">No linked rock</option>
                   {rocks?.map((r) => (
@@ -467,7 +467,7 @@ export function IssueDetailPanel({
               {!showAddTodo && (
                 <button
                   onClick={() => setShowAddTodo(true)}
-                  className="inline-flex items-center gap-1 text-xs text-[#004E64] hover:text-[#003D52] font-medium transition-colors"
+                  className="inline-flex items-center gap-1 text-xs text-brand hover:text-brand-hover font-medium transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add To-Do
@@ -477,13 +477,13 @@ export function IssueDetailPanel({
 
             {/* Inline Add Todo Form */}
             {showAddTodo && (
-              <div className="mb-3 p-3 border border-[#004E64]/20 bg-[#004E64]/5 rounded-lg space-y-2">
+              <div className="mb-3 p-3 border border-brand/20 bg-brand/5 rounded-lg space-y-2">
                 <input
                   autoFocus
                   value={newTodoTitle}
                   onChange={(e) => setNewTodoTitle(e.target.value)}
                   placeholder="To-do title..."
-                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleAddTodo();
                     if (e.key === "Escape") setShowAddTodo(false);
@@ -493,7 +493,7 @@ export function IssueDetailPanel({
                   <select
                     value={newTodoAssignee}
                     onChange={(e) => setNewTodoAssignee(e.target.value)}
-                    className="px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                    className="px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="">Assignee...</option>
                     {users?.map((u) => (
@@ -504,14 +504,14 @@ export function IssueDetailPanel({
                     type="date"
                     value={newTodoDueDate}
                     onChange={(e) => setNewTodoDueDate(e.target.value)}
-                    className="px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                    className="px-2 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={handleAddTodo}
                     disabled={!newTodoTitle.trim() || !newTodoAssignee || createTodo.isPending}
-                    className="text-xs px-3 py-1 bg-[#004E64] text-white rounded-md hover:bg-[#003D52] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-xs px-3 py-1 bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {createTodo.isPending ? "Creating..." : "Create To-Do"}
                   </button>

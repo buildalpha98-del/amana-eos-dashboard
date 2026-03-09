@@ -110,3 +110,54 @@ export function useDashboardData(period?: string) {
     refetchInterval: 30000,
   });
 }
+
+// ─── Per-Widget Selector Hooks ────────────────────────────────
+// Each hook selects a slice of the dashboard response.
+// React Query deduplicates: all hooks share one network request.
+
+function useDashboardSlice<T>(
+  period: string | undefined,
+  selector: (data: DashboardResponse) => T
+) {
+  const params = period ? `?period=${encodeURIComponent(period)}` : "";
+  return useQuery<DashboardResponse, Error, T>({
+    queryKey: ["dashboard-command-centre", period],
+    queryFn: async () => {
+      const res = await fetch(`/api/dashboard${params}`);
+      if (!res.ok) throw new Error("Failed to fetch dashboard data");
+      return res.json();
+    },
+    refetchInterval: 30000,
+    select: selector,
+  });
+}
+
+export function useCentreHealth(period?: string) {
+  return useDashboardSlice(period, (d) => ({
+    centreHealth: d.centreHealth,
+    networkAvgScore: d.networkAvgScore,
+  }));
+}
+
+export function useKeyMetrics(period?: string) {
+  return useDashboardSlice(period, (d) => ({
+    keyMetrics: d.keyMetrics,
+    opsMetrics: d.opsMetrics,
+  }));
+}
+
+export function useTrendSparklines(period?: string) {
+  return useDashboardSlice(period, (d) => d.trends);
+}
+
+export function useActionItems(period?: string) {
+  return useDashboardSlice(period, (d) => d.actionItems);
+}
+
+export function useProjectTodos(period?: string) {
+  return useDashboardSlice(period, (d) => d.projectTodos);
+}
+
+export function useTodaysOps(period?: string) {
+  return useDashboardSlice(period, (d) => d.todaysOps);
+}

@@ -211,7 +211,7 @@ export function AnnouncementsTab() {
         {isPrivileged && (
           <button
             onClick={openCreate}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#003d4f]"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover"
           >
             <Plus className="h-4 w-4" />
             New Announcement
@@ -272,7 +272,7 @@ export function AnnouncementsTab() {
 
                   {/* Pinned indicator */}
                   {announcement.pinned && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#FECE00]/20 px-2.5 py-0.5 text-xs font-medium text-[#004E64]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-accent/20 px-2.5 py-0.5 text-xs font-medium text-brand">
                       <Pin className="h-3 w-3" />
                       Pinned
                     </span>
@@ -318,7 +318,7 @@ export function AnnouncementsTab() {
                         className="h-5 w-5 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#004E64] text-[10px] font-medium text-white">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-[10px] font-medium text-white">
                         {announcement.author?.name?.charAt(0) || "?"}
                       </div>
                     )}
@@ -430,7 +430,7 @@ export function AnnouncementsTab() {
                       onChange={(e) => setFormTitle(e.target.value)}
                       placeholder="Announcement title"
                       required
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
 
@@ -445,7 +445,7 @@ export function AnnouncementsTab() {
                       rows={5}
                       placeholder="Write your announcement..."
                       required
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
 
@@ -458,7 +458,7 @@ export function AnnouncementsTab() {
                       <select
                         value={formAudience}
                         onChange={(e) => setFormAudience(e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       >
                         {AUDIENCE_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -474,7 +474,7 @@ export function AnnouncementsTab() {
                       <select
                         value={formPriority}
                         onChange={(e) => setFormPriority(e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       >
                         {PRIORITY_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -491,7 +491,7 @@ export function AnnouncementsTab() {
                       type="checkbox"
                       checked={formPublish}
                       onChange={(e) => setFormPublish(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]"
+                      className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                     />
                     Publish immediately
                     {!formPublish && (
@@ -521,7 +521,7 @@ export function AnnouncementsTab() {
                   <button
                     type="submit"
                     disabled={isPending}
-                    className="rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#003d4f] disabled:opacity-50"
+                    className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
                   >
                     {isPending
                       ? editingAnnouncement

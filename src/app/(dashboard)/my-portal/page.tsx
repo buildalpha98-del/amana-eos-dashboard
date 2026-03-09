@@ -218,7 +218,7 @@ function PolicyAckModal({
             understood this policy and agree to abide by its terms.
           </p>
           <label className="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" className="mt-0.5 w-4 h-4 accent-[#004E64]" id="policy-ack-checkbox" />
+            <input type="checkbox" className="mt-0.5 w-4 h-4 accent-brand" id="policy-ack-checkbox" />
             <span className="text-sm text-gray-700 select-none">
               I have read and understood this policy
             </span>
@@ -242,7 +242,7 @@ function PolicyAckModal({
               onConfirm();
             }}
             disabled={isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
           >
             {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             {isPending ? "Acknowledging..." : "Confirm Acknowledgement"}
@@ -359,7 +359,7 @@ export default function MyPortalPage() {
           Welcome back, {firstName}
         </h1>
         <div className="flex flex-wrap items-center gap-2 mt-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-[#004E64]/10 text-[#004E64] capitalize">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-brand/10 text-brand capitalize">
             <UserCircle className="w-3.5 h-3.5" />
             {profile.role}
           </span>
@@ -421,7 +421,7 @@ export default function MyPortalPage() {
         <div className="flex flex-col sm:flex-row gap-5">
           {/* Left: Avatar + core info */}
           <div className="flex items-start gap-4 flex-1 min-w-0">
-            <div className="flex-shrink-0 w-14 h-14 rounded-full bg-[#004E64] flex items-center justify-center text-white text-lg font-bold">
+            <div className="flex-shrink-0 w-14 h-14 rounded-full bg-brand flex items-center justify-center text-white text-lg font-bold">
               {getInitials(profile.name)}
             </div>
             <div className="min-w-0 flex-1">
@@ -481,7 +481,7 @@ export default function MyPortalPage() {
             )}
             <Link
               href="/profile"
-              className="inline-flex items-center gap-1.5 mt-2 text-sm font-medium text-[#004E64] hover:underline"
+              className="inline-flex items-center gap-1.5 mt-2 text-sm font-medium text-brand hover:underline"
             >
               Edit Profile
               <ChevronRight className="w-3.5 h-3.5" />
@@ -497,12 +497,12 @@ export default function MyPortalPage() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Plane className="w-5 h-5 text-[#004E64]" />
+              <Plane className="w-5 h-5 text-brand" />
               Leave Balances
             </h3>
             <Link
               href="/leave"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#004E64] hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
             >
               Request Leave
               <ChevronRight className="w-3.5 h-3.5" />
@@ -546,7 +546,7 @@ export default function MyPortalPage() {
         <div id="section-contract" className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-[#004E64]" />
+              <FileText className="w-5 h-5 text-brand" />
               Active Contract
             </h3>
             {activeContract.acknowledgedByStaff ? (
@@ -566,7 +566,7 @@ export default function MyPortalPage() {
             <div>
               <p className="text-xs text-gray-400 mb-0.5">Contract Type</p>
               <p className="text-sm font-semibold text-gray-800">
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold rounded-full bg-[#004E64]/10 text-[#004E64]">
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold rounded-full bg-brand/10 text-brand">
                   {formatContractType(activeContract.contractType)}
                 </span>
               </p>
@@ -612,7 +612,7 @@ export default function MyPortalPage() {
             <button
               onClick={() => ackContractMutation.mutate(activeContract.id)}
               disabled={ackContractMutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {ackContractMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -632,7 +632,7 @@ export default function MyPortalPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-[#004E64]" />
+              <GraduationCap className="w-5 h-5 text-brand" />
               Onboarding Progress
             </h3>
             <span
@@ -658,13 +658,13 @@ export default function MyPortalPage() {
                 <span>
                   {onboardingProgress.completedTasks} / {onboardingProgress.totalTasks} tasks complete
                 </span>
-                <span className="font-semibold text-[#004E64]">
+                <span className="font-semibold text-brand">
                   {Math.round(((onboardingProgress.completedTasks || 0) / onboardingProgress.totalTasks) * 100)}%
                 </span>
               </div>
               <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#004E64] rounded-full transition-all duration-500"
+                  className="h-full bg-brand rounded-full transition-all duration-500"
                   style={{
                     width: `${Math.round(((onboardingProgress.completedTasks || 0) / onboardingProgress.totalTasks) * 100)}%`,
                   }}
@@ -675,7 +675,7 @@ export default function MyPortalPage() {
 
           <Link
             href="/onboarding"
-            className="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-[#004E64] hover:underline"
+            className="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-brand hover:underline"
           >
             Go to Onboarding
             <ExternalLink className="w-3.5 h-3.5" />
@@ -690,12 +690,12 @@ export default function MyPortalPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-[#004E64]" />
+              <BookOpen className="w-5 h-5 text-brand" />
               Training &amp; Courses
             </h3>
             <Link
               href="/onboarding"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#004E64] hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:underline"
             >
               View All
               <ChevronRight className="w-3.5 h-3.5" />
@@ -733,7 +733,7 @@ export default function MyPortalPage() {
                       <div
                         className={cn(
                           "h-full rounded-full transition-all",
-                          enrollment.status === "completed" ? "bg-emerald-500" : "bg-[#004E64]"
+                          enrollment.status === "completed" ? "bg-emerald-500" : "bg-brand"
                         )}
                         style={{ width: `${enrollment.progress}%` }}
                       />
@@ -767,7 +767,7 @@ export default function MyPortalPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-[#004E64]" />
+              <ShieldCheck className="w-5 h-5 text-brand" />
               Compliance Certificates
             </h3>
             <div className="flex items-center gap-2 text-xs">
@@ -849,7 +849,7 @@ export default function MyPortalPage() {
 
           <Link
             href="/compliance"
-            className="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-[#004E64] hover:underline"
+            className="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-brand hover:underline"
           >
             Manage Certificates
             <ExternalLink className="w-3.5 h-3.5" />
@@ -901,7 +901,7 @@ export default function MyPortalPage() {
                     setAckPolicyId(policy.id);
                     setAckPolicyTitle(policy.title);
                   }}
-                  className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#004E64] border border-[#004E64]/20 rounded-lg hover:bg-[#004E64]/5 transition-colors flex-shrink-0"
+                  className="inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold text-brand border border-brand/20 rounded-lg hover:bg-brand/5 transition-colors flex-shrink-0"
                 >
                   <ClipboardCheck className="w-3.5 h-3.5" />
                   Acknowledge
@@ -961,7 +961,7 @@ export default function MyPortalPage() {
 
           <Link
             href="/onboarding"
-            className="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-[#004E64] hover:underline"
+            className="inline-flex items-center gap-1.5 mt-4 text-sm font-medium text-brand hover:underline"
           >
             Go to Offboarding
             <ExternalLink className="w-3.5 h-3.5" />

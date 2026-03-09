@@ -299,7 +299,7 @@ export function RockDetailPanel({
         <SheetContent>
           <SheetTitle className="sr-only">Rock Details</SheetTitle>
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin w-6 h-6 border-2 border-[#004E64] border-t-transparent rounded-full" />
+            <div className="animate-spin w-6 h-6 border-2 border-brand border-t-transparent rounded-full" />
           </div>
         </SheetContent>
       </Sheet>
@@ -364,11 +364,11 @@ export function RockDetailPanel({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full text-lg font-semibold text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                className="w-full text-lg font-semibold text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand"
               />
             ) : (
               <h2
-                className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-[#004E64]"
+                className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-brand"
                 onClick={() => {
                   setTitle(rock.title);
                   setDescription(rock.description || "");
@@ -383,7 +383,7 @@ export function RockDetailPanel({
               {rock.oneYearGoal && (
                 <>
                   <span className="text-gray-300">·</span>
-                  <span className="text-xs text-[#004E64]">
+                  <span className="text-xs text-brand">
                     {rock.oneYearGoal.title}
                   </span>
                 </>
@@ -403,7 +403,7 @@ export function RockDetailPanel({
             <button
               onClick={handleSave}
               disabled={updateRock.isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover disabled:opacity-50"
             >
               <Save className="w-3.5 h-3.5" />
               Save
@@ -491,7 +491,7 @@ export function RockDetailPanel({
             step={5}
             value={rock.percentComplete}
             onChange={(e) => handleProgressChange(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-[#004E64]"
+            className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-brand"
           />
         </div>
 
@@ -506,7 +506,7 @@ export function RockDetailPanel({
             onChange={(e) =>
               updateRock.mutate({ id: rock.id, ownerId: e.target.value })
             }
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
           >
             {users?.map((u) => (
               <option key={u.id} value={u.id}>
@@ -527,7 +527,7 @@ export function RockDetailPanel({
               className={cn(
                 "flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors",
                 rock.rockType === "company"
-                  ? "bg-[#004E64] text-white border-[#004E64]"
+                  ? "bg-brand text-white border-brand"
                   : "text-gray-600 border-gray-200 hover:border-gray-300"
               )}
             >
@@ -538,7 +538,7 @@ export function RockDetailPanel({
               className={cn(
                 "flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors",
                 rock.rockType === "personal"
-                  ? "bg-[#004E64] text-white border-[#004E64]"
+                  ? "bg-brand text-white border-brand"
                   : "text-gray-600 border-gray-200 hover:border-gray-300"
               )}
             >
@@ -557,7 +557,7 @@ export function RockDetailPanel({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand resize-none"
               placeholder="Describe the Rock in detail..."
             />
           ) : (
@@ -587,7 +587,7 @@ export function RockDetailPanel({
             </label>
             <button
               onClick={() => setShowAddMilestone(!showAddMilestone)}
-              className="text-xs text-[#004E64] hover:text-[#003D52] font-medium flex items-center gap-0.5"
+              className="text-xs text-brand hover:text-brand-hover font-medium flex items-center gap-0.5"
             >
               <Plus className="w-3.5 h-3.5" />
               Add
@@ -602,14 +602,14 @@ export function RockDetailPanel({
                   value={newMilestoneTitle}
                   onChange={(e) => setNewMilestoneTitle(e.target.value)}
                   placeholder="Milestone title..."
-                  className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
               <input
                 type="date"
                 value={newMilestoneDue}
                 onChange={(e) => setNewMilestoneDue(e.target.value)}
-                className="px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                className="px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               />
               <button
                 onClick={() => {
@@ -617,7 +617,7 @@ export function RockDetailPanel({
                     addMilestone.mutate({ title: newMilestoneTitle.trim(), dueDate: newMilestoneDue });
                 }}
                 disabled={!newMilestoneTitle.trim() || !newMilestoneDue || addMilestone.isPending}
-                className="px-3 py-1.5 text-sm bg-[#004E64] text-white rounded-md hover:bg-[#003D52] disabled:opacity-50"
+                className="px-3 py-1.5 text-sm bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50"
               >
                 {addMilestone.isPending ? "..." : "Add"}
               </button>
@@ -642,8 +642,8 @@ export function RockDetailPanel({
                       className={cn(
                         "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
                         m.completed
-                          ? "border-[#004E64] bg-[#004E64]"
-                          : "border-gray-300 hover:border-[#004E64]"
+                          ? "border-brand bg-brand"
+                          : "border-gray-300 hover:border-brand"
                       )}
                     >
                       {m.completed && (
@@ -696,7 +696,7 @@ export function RockDetailPanel({
                   setNewTodoAssignee(session.user.id);
                 }
               }}
-              className="text-xs text-[#004E64] hover:text-[#003D52] font-medium flex items-center gap-0.5"
+              className="text-xs text-brand hover:text-brand-hover font-medium flex items-center gap-0.5"
             >
               <Plus className="w-3.5 h-3.5" />
               Add
@@ -710,13 +710,13 @@ export function RockDetailPanel({
                 value={newTodoTitle}
                 onChange={(e) => setNewTodoTitle(e.target.value)}
                 placeholder="To-do title..."
-                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               />
               <div className="flex gap-2">
                 <select
                   value={newTodoAssignee}
                   onChange={(e) => setNewTodoAssignee(e.target.value)}
-                  className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                 >
                   <option value="">Assignee...</option>
                   {users?.map((u) => (
@@ -729,7 +729,7 @@ export function RockDetailPanel({
                   type="date"
                   value={newTodoDue || getDefaultDueDate()}
                   onChange={(e) => setNewTodoDue(e.target.value)}
-                  className="px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
               <div className="flex gap-2">
@@ -749,7 +749,7 @@ export function RockDetailPanel({
                     }
                   }}
                   disabled={!newTodoTitle.trim() || !newTodoAssignee || addLinkedTodo.isPending}
-                  className="px-3 py-1.5 text-sm bg-[#004E64] text-white rounded-md hover:bg-[#003D52] disabled:opacity-50"
+                  className="px-3 py-1.5 text-sm bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50"
                 >
                   {addLinkedTodo.isPending ? "..." : "Add To-Do"}
                 </button>
@@ -786,8 +786,8 @@ export function RockDetailPanel({
                       className={cn(
                         "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
                         todo.status === "complete"
-                          ? "border-[#004E64] bg-[#004E64]"
-                          : "border-gray-300 hover:border-[#004E64]"
+                          ? "border-brand bg-brand"
+                          : "border-gray-300 hover:border-brand"
                       )}
                     >
                       {todo.status === "complete" && (
@@ -851,7 +851,7 @@ export function RockDetailPanel({
                   setShowAddIssue(false);
                   setIssueSearchQuery("");
                 }}
-                className="text-xs text-[#004E64] hover:text-[#003D52] font-medium flex items-center gap-0.5"
+                className="text-xs text-brand hover:text-brand-hover font-medium flex items-center gap-0.5"
               >
                 <Link className="w-3.5 h-3.5" />
                 Link Existing
@@ -861,7 +861,7 @@ export function RockDetailPanel({
                   setShowAddIssue(!showAddIssue);
                   setShowLinkIssue(false);
                 }}
-                className="text-xs text-[#004E64] hover:text-[#003D52] font-medium flex items-center gap-0.5"
+                className="text-xs text-brand hover:text-brand-hover font-medium flex items-center gap-0.5"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Create New
@@ -883,7 +883,7 @@ export function RockDetailPanel({
                   }}
                   onFocus={() => setIssueDropdownOpen(true)}
                   placeholder="Search unlinked issues..."
-                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                   autoFocus
                 />
               </div>
@@ -899,7 +899,7 @@ export function RockDetailPanel({
                         key={issue.id}
                         onClick={() => linkExistingIssue.mutate(issue.id)}
                         disabled={linkExistingIssue.isPending}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-[#004E64]/5 flex items-center gap-2 border-b border-gray-100 last:border-0 disabled:opacity-50"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-brand/5 flex items-center gap-2 border-b border-gray-100 last:border-0 disabled:opacity-50"
                       >
                         <div
                           className={cn(
@@ -952,13 +952,13 @@ export function RockDetailPanel({
                 value={newIssueTitle}
                 onChange={(e) => setNewIssueTitle(e.target.value)}
                 placeholder="Issue title..."
-                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               />
               <div className="flex gap-2">
                 <select
                   value={newIssuePriority}
                   onChange={(e) => setNewIssuePriority(e.target.value as typeof newIssuePriority)}
-                  className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -976,7 +976,7 @@ export function RockDetailPanel({
                     }
                   }}
                   disabled={!newIssueTitle.trim() || addLinkedIssue.isPending}
-                  className="px-3 py-1.5 text-sm bg-[#004E64] text-white rounded-md hover:bg-[#003D52] disabled:opacity-50"
+                  className="px-3 py-1.5 text-sm bg-brand text-white rounded-md hover:bg-brand-hover disabled:opacity-50"
                 >
                   {addLinkedIssue.isPending ? "..." : "Add Issue"}
                 </button>

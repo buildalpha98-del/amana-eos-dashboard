@@ -86,7 +86,7 @@ export function CreateLeadModal({
               type="text"
               value={schoolName}
               onChange={(e) => setSchoolName(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344] focus:border-transparent"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent"
               placeholder="e.g. Sunshine Primary School"
               required
             />
@@ -100,7 +100,7 @@ export function CreateLeadModal({
               <select
                 value={source}
                 onChange={(e) => setSource(e.target.value as "direct" | "tender")}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
               >
                 <option value="direct">Direct</option>
                 <option value="tender">Tender</option>
@@ -114,7 +114,7 @@ export function CreateLeadModal({
                 type="number"
                 value={estimatedCapacity}
                 onChange={(e) => setEstimatedCapacity(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
                 placeholder="e.g. 60"
               />
             </div>
@@ -130,7 +130,7 @@ export function CreateLeadModal({
                   type="text"
                   value={tenderRef}
                   onChange={(e) => setTenderRef(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
               <div>
@@ -141,7 +141,7 @@ export function CreateLeadModal({
                   type="url"
                   value={tenderUrl}
                   onChange={(e) => setTenderUrl(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
             </div>
@@ -156,7 +156,7 @@ export function CreateLeadModal({
                   type="text"
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
               <div>
@@ -165,7 +165,7 @@ export function CreateLeadModal({
                   type="email"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
               <div className="col-span-2">
@@ -174,7 +174,7 @@ export function CreateLeadModal({
                   type="tel"
                   value={contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
             </div>
@@ -188,7 +188,7 @@ export function CreateLeadModal({
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Street address"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
               />
               <div className="grid grid-cols-3 gap-3">
                 <input
@@ -196,12 +196,12 @@ export function CreateLeadModal({
                   value={suburb}
                   onChange={(e) => setSuburb(e.target.value)}
                   placeholder="Suburb"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
                 />
                 <select
                   value={state}
                   onChange={(e) => setState(e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
                 >
                   <option value="">State</option>
                   {AU_STATES.map((s) => (
@@ -215,7 +215,7 @@ export function CreateLeadModal({
                   value={postcode}
                   onChange={(e) => setPostcode(e.target.value)}
                   placeholder="Postcode"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
                 />
               </div>
             </div>
@@ -229,7 +229,7 @@ export function CreateLeadModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
             />
           </div>
 
@@ -244,7 +244,7 @@ export function CreateLeadModal({
             <button
               type="submit"
               disabled={createLead.isPending || !schoolName.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-[#003344] hover:bg-[#004E64] rounded-lg disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-brand-dark hover:bg-brand rounded-lg disabled:opacity-50"
             >
               {createLead.isPending ? "Creating..." : "Create Lead"}
             </button>

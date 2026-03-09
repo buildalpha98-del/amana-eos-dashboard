@@ -194,7 +194,7 @@ export default function TicketsPage() {
               className={cn(
                 "p-2 rounded-md transition-colors",
                 viewMode === "board"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
             >
@@ -205,7 +205,7 @@ export default function TicketsPage() {
               className={cn(
                 "p-2 rounded-md transition-colors",
                 viewMode === "list"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
             >
@@ -216,7 +216,7 @@ export default function TicketsPage() {
               className={cn(
                 "p-2 rounded-md transition-colors",
                 viewMode === "analytics"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
             >
@@ -230,7 +230,7 @@ export default function TicketsPage() {
             className={cn(
               "p-2 rounded-lg border transition-colors",
               showFilters || hasActiveFilters
-                ? "bg-[#004E64] text-white border-[#004E64]"
+                ? "bg-brand text-white border-brand"
                 : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
             )}
           >
@@ -249,7 +249,7 @@ export default function TicketsPage() {
           {/* Create */}
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
           >
             <Plus className="w-4 h-4" />
             New Ticket
@@ -267,7 +267,7 @@ export default function TicketsPage() {
               placeholder="Search tickets by subject or contact..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
         </div>
@@ -305,7 +305,7 @@ export default function TicketsPage() {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Priorities</option>
             <option value="urgent">Urgent</option>
@@ -316,7 +316,7 @@ export default function TicketsPage() {
           <select
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Assignees</option>
             {users.map((u) => (
@@ -328,7 +328,7 @@ export default function TicketsPage() {
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Centres</option>
             {services.map((s) => (
@@ -344,7 +344,7 @@ export default function TicketsPage() {
                 setAssigneeFilter("");
                 setServiceFilter("");
               }}
-              className="text-xs text-[#004E64] hover:underline"
+              className="text-xs text-brand hover:underline"
             >
               Clear filters
             </button>
@@ -382,7 +382,7 @@ export default function TicketsPage() {
       ) : isLoading ? (
         <div className="flex items-center justify-center py-24">
           <div className="text-center">
-            <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin mx-auto mb-3" />
             <p className="text-sm text-gray-500">Loading tickets...</p>
           </div>
         </div>

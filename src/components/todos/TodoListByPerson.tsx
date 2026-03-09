@@ -81,8 +81,8 @@ function PersonSection({
         ) : (
           <ChevronRight className="w-4 h-4 text-gray-400" />
         )}
-        <div className="w-8 h-8 rounded-full bg-[#004E64]/10 flex items-center justify-center flex-shrink-0">
-          <span className="text-xs font-medium text-[#004E64]">
+        <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
+          <span className="text-xs font-medium text-brand">
             {group.assignee.name
               .split(" ")
               .map((n) => n[0])

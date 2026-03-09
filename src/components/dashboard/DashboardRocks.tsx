@@ -99,7 +99,7 @@ function RockRow({ rock, onClick }: { rock: RockData; onClick: () => void }) {
       </span>
 
       {/* Chevron */}
-      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#004E64] transition-colors flex-shrink-0" />
+      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-brand transition-colors flex-shrink-0" />
     </button>
   );
 }
@@ -127,8 +127,8 @@ function RockSection({
       {/* Section header */}
       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-            <Icon className="w-4 h-4 text-[#004E64]" />
+          <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
+            <Icon className="w-4 h-4 text-brand" />
           </div>
           <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
           <span className="text-xs text-gray-400 ml-1">({rocks.length})</span>
@@ -148,7 +148,7 @@ function RockSection({
           )}
           {complete > 0 && (
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#004E64]" />
+              <span className="w-2 h-2 rounded-full bg-brand" />
               <span className="text-gray-500">{complete} done</span>
             </span>
           )}
@@ -177,7 +177,7 @@ function RockSection({
       <div className="px-5 py-2.5 border-t border-gray-100">
         <Link
           href="/rocks"
-          className="flex items-center justify-center gap-1 text-xs font-medium text-[#004E64] hover:text-[#003D52] transition-colors"
+          className="flex items-center justify-center gap-1 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
         >
           View all rocks
           <ArrowRight className="w-3.5 h-3.5" />

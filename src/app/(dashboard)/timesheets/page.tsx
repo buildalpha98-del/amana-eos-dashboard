@@ -290,7 +290,7 @@ function AddEntryModal({
               required
               value={form.userId}
               onChange={(e) => setForm({ ...form, userId: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Select staff...</option>
               {users?.map((u) => (
@@ -311,7 +311,7 @@ function AddEntryModal({
                 required
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
             <div>
@@ -321,7 +321,7 @@ function AddEntryModal({
               <select
                 value={form.shiftType}
                 onChange={(e) => setForm({ ...form, shiftType: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="shift_bsc">BSC</option>
                 <option value="shift_asc">ASC</option>
@@ -343,7 +343,7 @@ function AddEntryModal({
                 onChange={(e) =>
                   setForm({ ...form, shiftStart: e.target.value })
                 }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
             <div>
@@ -355,7 +355,7 @@ function AddEntryModal({
                 required
                 value={form.shiftEnd}
                 onChange={(e) => setForm({ ...form, shiftEnd: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
             <div>
@@ -369,7 +369,7 @@ function AddEntryModal({
                 onChange={(e) =>
                   setForm({ ...form, breakMinutes: Number(e.target.value) })
                 }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
           </div>
@@ -382,7 +382,7 @@ function AddEntryModal({
               type="text"
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
@@ -397,7 +397,7 @@ function AddEntryModal({
             <button
               type="submit"
               disabled={addEntry.isPending || !form.userId}
-              className="px-4 py-2 text-sm font-medium bg-[#004E64] text-white rounded-lg hover:bg-[#003344] transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50"
             >
               {addEntry.isPending ? "Adding..." : "Add Entry"}
             </button>
@@ -453,7 +453,7 @@ function NewTimesheetModal({
               required
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Select a service...</option>
               {services.map((s) => (
@@ -473,7 +473,7 @@ function NewTimesheetModal({
               required
               value={weekEnding}
               onChange={(e) => setWeekEnding(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
@@ -488,7 +488,7 @@ function NewTimesheetModal({
             <button
               type="submit"
               disabled={createTimesheet.isPending || !serviceId || !weekEnding}
-              className="px-4 py-2 text-sm font-medium bg-[#004E64] text-white rounded-lg hover:bg-[#003344] transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50"
             >
               {createTimesheet.isPending ? "Creating..." : "Create Timesheet"}
             </button>
@@ -714,7 +714,7 @@ function ImportFromOWNAModal({
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select a service...</option>
                 {services.map((s) => (
@@ -733,7 +733,7 @@ function ImportFromOWNAModal({
                 type="date"
                 value={weekEnding}
                 onChange={(e) => setWeekEnding(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
 
@@ -749,7 +749,7 @@ function ImportFromOWNAModal({
               className={cn(
                 "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors",
                 dragOver
-                  ? "border-[#004E64] bg-[#004E64]/5"
+                  ? "border-brand bg-brand/5"
                   : "border-gray-300 hover:border-gray-400"
               )}
             >
@@ -869,7 +869,7 @@ function ImportFromOWNAModal({
                 disabled={
                   importTimesheet.isPending || !serviceId || !weekEnding
                 }
-                className="px-4 py-2 text-sm font-medium bg-[#004E64] text-white rounded-lg hover:bg-[#003344] transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50"
               >
                 {importTimesheet.isPending
                   ? "Importing..."
@@ -934,7 +934,7 @@ function ImportFromOWNAModal({
             <div className="flex justify-end pt-2">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium bg-[#004E64] text-white rounded-lg hover:bg-[#003344] transition-colors"
+                className="px-4 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors"
               >
                 Done
               </button>
@@ -972,7 +972,7 @@ function TimesheetDetail({
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6 mt-2">
         <div className="flex items-center justify-center py-12">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -1146,7 +1146,7 @@ function TimesheetDetail({
             <button
               onClick={handleSubmit}
               disabled={submitTimesheet.isPending || entries.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-[#004E64] text-white rounded-lg hover:bg-[#003344] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
               {submitTimesheet.isPending ? "Submitting..." : "Submit"}
@@ -1215,7 +1215,7 @@ function TimesheetDetail({
             <button
               onClick={handleSubmit}
               disabled={submitTimesheet.isPending || entries.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-[#004E64] text-white rounded-lg hover:bg-[#003344] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
               {submitTimesheet.isPending ? "Re-submitting..." : "Re-submit"}
@@ -1401,7 +1401,7 @@ export default function TimesheetsPage() {
             className={cn(
               "p-2 rounded-lg border transition-colors",
               hasActiveFilters
-                ? "border-[#004E64] bg-[#004E64]/5 text-[#004E64]"
+                ? "border-brand bg-brand/5 text-brand"
                 : "border-gray-200 text-gray-400 hover:text-gray-600"
             )}
             title="Filters"
@@ -1418,7 +1418,7 @@ export default function TimesheetsPage() {
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
           >
             <Plus className="w-4 h-4" />
             New Timesheet
@@ -1436,7 +1436,7 @@ export default function TimesheetsPage() {
             <select
               value={filterService}
               onChange={(e) => setFilterService(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All Services</option>
               {services?.map((s) => (
@@ -1454,7 +1454,7 @@ export default function TimesheetsPage() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All Statuses</option>
               <option value="ts_draft">Draft</option>
@@ -1473,7 +1473,7 @@ export default function TimesheetsPage() {
               type="date"
               value={filterFrom}
               onChange={(e) => setFilterFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
@@ -1485,7 +1485,7 @@ export default function TimesheetsPage() {
               type="date"
               value={filterTo}
               onChange={(e) => setFilterTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
@@ -1572,7 +1572,7 @@ export default function TimesheetsPage() {
                       }
                       className={cn(
                         "w-full bg-white rounded-xl border border-gray-200 p-4 text-left hover:border-gray-300 transition-all",
-                        expandedId === ts.id && "border-[#004E64]/30 ring-1 ring-[#004E64]/10"
+                        expandedId === ts.id && "border-brand/30 ring-1 ring-brand/10"
                       )}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1619,8 +1619,8 @@ export default function TimesheetsPage() {
       ) : (
         /* Empty State */
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
-            <FileSpreadsheet className="w-8 h-8 text-[#004E64]/30" />
+          <div className="w-16 h-16 rounded-2xl bg-brand/5 flex items-center justify-center mb-4">
+            <FileSpreadsheet className="w-8 h-8 text-brand/30" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">
             No Timesheets Yet
@@ -1639,7 +1639,7 @@ export default function TimesheetsPage() {
             </button>
             <button
               onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003344] transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors shadow-sm"
             >
               <Plus className="w-4 h-4" />
               New Timesheet

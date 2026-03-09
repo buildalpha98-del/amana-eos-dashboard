@@ -30,7 +30,7 @@ export function DataRoomSection({ section, config, expanded, onToggle }: Props) 
       {/* Header — always visible */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-3 px-4 py-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#004E64]/30"
+        className="w-full flex items-center gap-3 px-4 py-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
       >
         {/* Icon badge */}
         <div

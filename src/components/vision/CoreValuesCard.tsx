@@ -36,7 +36,7 @@ export function CoreValuesCard({ values }: { values: string[] }) {
               setDraft([...values]);
               setEditing(true);
             }}
-            className="p-1 text-gray-400 hover:text-[#004E64] transition-colors"
+            className="p-1 text-gray-400 hover:text-brand transition-colors"
             title="Edit"
           >
             <Pencil className="w-3.5 h-3.5" />
@@ -49,7 +49,7 @@ export function CoreValuesCard({ values }: { values: string[] }) {
             <div className="space-y-2">
               {draft.map((val, idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-[#004E64] w-5 text-center">
+                  <span className="text-xs font-semibold text-brand w-5 text-center">
                     {idx + 1}
                   </span>
                   <input
@@ -59,7 +59,7 @@ export function CoreValuesCard({ values }: { values: string[] }) {
                       next[idx] = e.target.value;
                       setDraft(next);
                     }}
-                    className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                    className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                   <button
                     onClick={() => removeValue(idx)}
@@ -81,12 +81,12 @@ export function CoreValuesCard({ values }: { values: string[] }) {
                   }
                 }}
                 placeholder="Add a core value..."
-                className="flex-1 px-3 py-1.5 text-sm border border-dashed border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                className="flex-1 px-3 py-1.5 text-sm border border-dashed border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
               />
               <button
                 onClick={addValue}
                 type="button"
-                className="p-1.5 text-[#004E64] hover:bg-[#004E64]/5 rounded-md"
+                className="p-1.5 text-brand hover:bg-brand/5 rounded-md"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -95,7 +95,7 @@ export function CoreValuesCard({ values }: { values: string[] }) {
               <button
                 onClick={handleSave}
                 disabled={updateVTO.isPending}
-                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-[#004E64] text-white rounded-md hover:bg-[#003D52]"
+                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 bg-brand text-white rounded-md hover:bg-brand-hover"
               >
                 <Check className="w-3 h-3" />
                 Save
@@ -113,8 +113,8 @@ export function CoreValuesCard({ values }: { values: string[] }) {
           <div className="space-y-2.5">
             {values.map((val, idx) => (
               <div key={idx} className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#004E64]/10 flex items-center justify-center mt-0.5">
-                  <Star className="w-3 h-3 text-[#004E64]" />
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center mt-0.5">
+                  <Star className="w-3 h-3 text-brand" />
                 </div>
                 <span className="text-sm text-gray-700 font-medium">{val}</span>
               </div>

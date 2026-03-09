@@ -115,7 +115,7 @@ export function CrmEmailTemplateForm({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344] focus:border-transparent"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent"
               placeholder="e.g. Initial Contact Email"
               required
             />
@@ -129,7 +129,7 @@ export function CrmEmailTemplateForm({
               <select
                 value={triggerStage}
                 onChange={(e) => setTriggerStage(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
               >
                 {stageOptions.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -145,7 +145,7 @@ export function CrmEmailTemplateForm({
               <select
                 value={pipeline}
                 onChange={(e) => setPipeline(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
               >
                 {pipelineOptions.map((p) => (
                   <option key={p.key} value={p.key}>
@@ -164,7 +164,7 @@ export function CrmEmailTemplateForm({
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344] focus:border-transparent"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent"
               placeholder="e.g. Introduction to Amana OSHC — {{schoolName}}"
               required
             />
@@ -178,7 +178,7 @@ export function CrmEmailTemplateForm({
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={10}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344] focus:border-transparent font-mono"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent font-mono"
               placeholder="Write your email template here..."
               required
             />
@@ -195,7 +195,7 @@ export function CrmEmailTemplateForm({
               type="number"
               value={sortOrder}
               onChange={(e) => setSortOrder(Number(e.target.value))}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
             />
           </div>
 
@@ -210,7 +210,7 @@ export function CrmEmailTemplateForm({
             <button
               type="submit"
               disabled={isPending || !name.trim() || !subject.trim() || !body.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-[#003344] hover:bg-[#004E64] rounded-lg disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-white bg-brand-dark hover:bg-brand rounded-lg disabled:opacity-50"
             >
               {isPending ? "Saving..." : "Save Template"}
             </button>

@@ -205,7 +205,7 @@ export function CreateTodoModal({
             <button
               type="submit"
               disabled={createTodo.isPending}
-              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {createTodo.isPending ? "Creating..." : "Create To-Do"}
             </button>

@@ -254,7 +254,7 @@ export default function ProfilePage() {
         <p className="text-gray-500">Unable to load your profile.</p>
         <Link
           href="/my-portal"
-          className="text-sm text-[#004E64] hover:underline"
+          className="text-sm text-brand hover:underline"
         >
           Back to My Portal
         </Link>
@@ -283,7 +283,7 @@ export default function ProfilePage() {
         <button
           onClick={handleSave}
           disabled={!hasChanges || updateMutation.isPending}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-[#004E64] hover:bg-[#003d50] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-brand hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {updateMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -306,7 +306,7 @@ export default function ProfilePage() {
                 className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
               />
             ) : (
-              <div className="w-14 h-14 rounded-full bg-[#004E64] flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-14 h-14 rounded-full bg-brand flex items-center justify-center text-white font-bold text-lg">
                 {profile.name
                   .split(" ")
                   .map((w) => w[0])
@@ -387,7 +387,7 @@ export default function ProfilePage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. 0412 345 678"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
         </div>
@@ -406,7 +406,7 @@ export default function ProfilePage() {
               value={addressStreet}
               onChange={(e) => setAddressStreet(e.target.value)}
               placeholder="123 Main Street"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -416,14 +416,14 @@ export default function ProfilePage() {
                 value={addressSuburb}
                 onChange={(e) => setAddressSuburb(e.target.value)}
                 placeholder="Suburb"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </FieldRow>
             <FieldRow label="State">
               <select
                 value={addressState}
                 onChange={(e) => setAddressState(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64] bg-white"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand bg-white"
               >
                 <option value="">Select</option>
                 <option value="NSW">NSW</option>
@@ -443,7 +443,7 @@ export default function ProfilePage() {
                 onChange={(e) => setAddressPostcode(e.target.value)}
                 placeholder="2000"
                 maxLength={4}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </FieldRow>
           </div>
@@ -463,7 +463,7 @@ export default function ProfilePage() {
               value={superFundName}
               onChange={(e) => setSuperFundName(e.target.value)}
               placeholder="e.g. AustralianSuper"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -473,7 +473,7 @@ export default function ProfilePage() {
                 value={superMemberNumber}
                 onChange={(e) => setSuperMemberNumber(e.target.value)}
                 placeholder="Member number"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </FieldRow>
             <FieldRow label="USI">
@@ -482,7 +482,7 @@ export default function ProfilePage() {
                 value={superUSI}
                 onChange={(e) => setSuperUSI(e.target.value)}
                 placeholder="Unique Superannuation Identifier"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </FieldRow>
           </div>
@@ -502,7 +502,7 @@ export default function ProfilePage() {
               value={bankAccountName}
               onChange={(e) => setBankAccountName(e.target.value)}
               placeholder="e.g. John Smith"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
           <FieldRow label="BSB">
@@ -512,7 +512,7 @@ export default function ProfilePage() {
               onChange={(e) => setBankBSB(e.target.value)}
               placeholder="e.g. 062-000"
               maxLength={7}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
           <FieldRow label="Account Number">
@@ -521,7 +521,7 @@ export default function ProfilePage() {
               value={bankAccountNumber}
               onChange={(e) => setBankAccountNumber(e.target.value)}
               placeholder="e.g. 12345678"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
         </div>
@@ -531,7 +531,7 @@ export default function ProfilePage() {
             onChange={(e) => setBankDetailsNote(e.target.value)}
             placeholder="Any additional bank details or notes for payroll..."
             rows={2}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64] resize-none"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand resize-none"
           />
         </FieldRow>
         <p className="text-xs text-gray-400 mt-2">
@@ -541,12 +541,12 @@ export default function ProfilePage() {
 
       {/* Bottom save bar */}
       {hasChanges && (
-        <div className="sticky bottom-4 bg-[#004E64] text-white rounded-xl p-4 flex items-center justify-between shadow-lg">
+        <div className="sticky bottom-4 bg-brand text-white rounded-xl p-4 flex items-center justify-between shadow-lg">
           <p className="text-sm font-medium">You have unsaved changes</p>
           <button
             onClick={handleSave}
             disabled={updateMutation.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white text-[#004E64] hover:bg-gray-100 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white text-brand hover:bg-gray-100 disabled:opacity-50 transition-colors"
           >
             {updateMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />

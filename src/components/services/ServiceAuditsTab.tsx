@@ -59,7 +59,7 @@ export function ServiceAuditsTab({ serviceId }: { serviceId: string }) {
             {
               label: "Avg Score",
               value: stats.avgScore != null ? `${stats.avgScore}%` : "—",
-              color: "text-[#004E64] bg-[#004E64]/5",
+              color: "text-brand bg-brand/5",
             },
           ].map((s) => (
             <div key={s.label} className={cn("rounded-lg p-3 text-center", s.color)}>
@@ -90,7 +90,7 @@ export function ServiceAuditsTab({ serviceId }: { serviceId: string }) {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All Statuses</option>
           <option value="scheduled">Scheduled</option>
@@ -103,7 +103,7 @@ export function ServiceAuditsTab({ serviceId }: { serviceId: string }) {
       {/* Audit list */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 text-[#004E64] animate-spin" />
+          <Loader2 className="w-6 h-6 text-brand animate-spin" />
         </div>
       ) : instances.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
@@ -119,17 +119,17 @@ export function ServiceAuditsTab({ serviceId }: { serviceId: string }) {
               <Link
                 key={inst.id}
                 href={`/compliance/audit/${inst.id}`}
-                className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-[#004E64]/20 transition-all"
+                className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-brand/20 transition-all"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-[#004E64]/10 flex items-center justify-center shrink-0">
-                      <ShieldCheck className="w-4 h-4 text-[#004E64]" />
+                    <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-4 h-4 text-brand" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">{inst.template.name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs font-mono bg-[#004E64]/10 text-[#004E64] px-1.5 py-0.5 rounded">
+                        <span className="text-xs font-mono bg-brand/10 text-brand px-1.5 py-0.5 rounded">
                           QA{inst.template.qualityArea}
                         </span>
                         <span className="text-xs text-gray-500">{inst.template.nqsReference}</span>

@@ -139,7 +139,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
         {isLoading && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <div className="w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-3" />
               <p className="text-sm text-gray-500">Loading health score...</p>
             </div>
           </div>
@@ -255,7 +255,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                               <div className="flex items-center gap-2">
                                 <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
                                   <div
-                                    className="h-full bg-[#004E64] rounded-full"
+                                    className="h-full bg-brand rounded-full"
                                     style={{ width: `${value}%` }}
                                   />
                                 </div>
@@ -321,7 +321,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                   {/* Legend */}
                   <div className="flex flex-wrap items-center gap-4 mb-2">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-sm bg-[#004E64]" />
+                      <div className="w-3 h-3 rounded-sm bg-brand" />
                       <span className="text-xs text-gray-600">Centre</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -340,7 +340,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                             style={{ width: `${vals.networkAvg}%` }}
                           />
                           <div
-                            className="absolute h-full bg-[#004E64] rounded-full"
+                            className="absolute h-full bg-brand rounded-full"
                             style={{ width: `${vals.centre}%` }}
                           />
                         </div>
@@ -382,7 +382,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                             <div className="flex items-center gap-2 mt-2">
                               <div className="flex-1 h-1.5 bg-white/60 rounded-full overflow-hidden">
                                 <div
-                                  className="h-full bg-[#004E64] rounded-full"
+                                  className="h-full bg-brand rounded-full"
                                   style={{ width: `${progress}%` }}
                                 />
                               </div>

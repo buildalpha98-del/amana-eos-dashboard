@@ -153,7 +153,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin w-6 h-6 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="animate-spin w-6 h-6 border-2 border-brand border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -163,14 +163,14 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-[#004E64]" />
+          <BarChart3 className="w-5 h-5 text-brand" />
           <h3 className="text-base font-semibold text-gray-900">
             Service Scorecard
           </h3>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#004E64] text-white text-xs font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white text-xs font-medium rounded-lg hover:bg-brand-hover transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           Add Measurable
@@ -189,7 +189,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
           </p>
           <button
             onClick={() => setShowAddModal(true)}
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-xs font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-xs font-medium rounded-lg hover:bg-brand-hover transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Measurable
@@ -216,7 +216,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                     className={cn(
                       "px-1 py-3 text-center text-[10px] font-medium w-[70px]",
                       week.getTime() === getWeekStart().getTime()
-                        ? "text-[#004E64] bg-[#004E64]/5 font-semibold"
+                        ? "text-brand bg-brand/5 font-semibold"
                         : "text-gray-400"
                     )}
                   >
@@ -234,8 +234,8 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                   {/* Owner */}
                   <td className="sticky left-0 z-10 bg-white px-4 py-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#004E64]/10 flex items-center justify-center flex-shrink-0">
-                        <span className="text-[10px] font-medium text-[#004E64]">
+                      <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-medium text-brand">
                           {m.owner.name
                             .split(" ")
                             .map((n) => n[0])
@@ -386,7 +386,7 @@ function EntryCell({
             if (e.key === "Enter") handleSave();
             if (e.key === "Escape") setEditing(false);
           }}
-          className="w-full px-1.5 py-1 text-xs text-center border border-[#004E64] rounded bg-white focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+          className="w-full px-1.5 py-1 text-xs text-center border border-brand rounded bg-white focus:outline-none focus:ring-1 focus:ring-brand"
         />
       </td>
     );
@@ -521,7 +521,7 @@ function AddMeasurableForm({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="e.g., Weekly enrolments"
             />
           </div>
@@ -535,7 +535,7 @@ function AddMeasurableForm({
               required
               value={ownerId}
               onChange={(e) => setOwnerId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Select person...</option>
               {users.map((u) => (
@@ -558,7 +558,7 @@ function AddMeasurableForm({
                 step="any"
                 value={goalValue}
                 onChange={(e) => setGoalValue(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="100"
               />
             </div>
@@ -573,7 +573,7 @@ function AddMeasurableForm({
                     e.target.value as "above" | "below" | "exact"
                   )
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="above">Above</option>
                 <option value="below">Below</option>
@@ -591,7 +591,7 @@ function AddMeasurableForm({
                 type="text"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="$, %, etc."
               />
             </div>
@@ -607,7 +607,7 @@ function AddMeasurableForm({
               onChange={(e) =>
                 setFrequency(e.target.value as "weekly" | "monthly")
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
@@ -626,7 +626,7 @@ function AddMeasurableForm({
             <button
               type="submit"
               disabled={isPending}
-              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {isPending ? "Adding..." : "Add Measurable"}
             </button>

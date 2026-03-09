@@ -301,7 +301,7 @@ export default function DocumentsPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-500">Loading documents...</p>
         </div>
       </div>
@@ -339,7 +339,7 @@ export default function DocumentsPage() {
             </button>
             <button
               onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
             >
               <Plus className="w-4 h-4" />
               Upload Document
@@ -353,7 +353,7 @@ export default function DocumentsPage() {
             onClick={() => setCurrentFolderId(null)}
             className={cn(
               "flex items-center gap-1 px-2 py-1 rounded-md transition-colors",
-              !currentFolderId ? "text-[#004E64] font-medium" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              !currentFolderId ? "text-brand font-medium" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
             )}
           >
             <Home className="w-3.5 h-3.5" />
@@ -366,7 +366,7 @@ export default function DocumentsPage() {
                 onClick={() => setCurrentFolderId(folder.id)}
                 className={cn(
                   "px-2 py-1 rounded-md transition-colors",
-                  folder.id === currentFolderId ? "text-[#004E64] font-medium" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  folder.id === currentFolderId ? "text-brand font-medium" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                 )}
               >
                 {folder.name}
@@ -378,7 +378,7 @@ export default function DocumentsPage() {
         {/* New Folder Inline Form */}
         {showNewFolder && (
           <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3 border border-gray-200">
-            <Folder className="w-5 h-5 text-[#004E64]" />
+            <Folder className="w-5 h-5 text-brand" />
             <input
               type="text"
               value={newFolderName}
@@ -389,12 +389,12 @@ export default function DocumentsPage() {
                 if (e.key === "Enter") handleCreateFolder();
                 if (e.key === "Escape") { setShowNewFolder(false); setNewFolderName(""); }
               }}
-              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
             <button
               onClick={handleCreateFolder}
               disabled={!newFolderName.trim() || createFolder.isPending}
-              className="px-3 py-1.5 bg-[#004E64] text-white text-sm font-medium rounded-md hover:bg-[#003D52] disabled:opacity-50"
+              className="px-3 py-1.5 bg-brand text-white text-sm font-medium rounded-md hover:bg-brand-hover disabled:opacity-50"
             >
               Create
             </button>
@@ -414,8 +414,8 @@ export default function DocumentsPage() {
             className={cn(
               "px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-colors",
               !selectedCategory
-                ? "bg-[#004E64] text-white border-[#004E64]"
-                : "bg-white text-gray-600 border-gray-300 hover:border-[#004E64] hover:text-[#004E64]"
+                ? "bg-brand text-white border-brand"
+                : "bg-white text-gray-600 border-gray-300 hover:border-brand hover:text-brand"
             )}
           >
             All
@@ -448,13 +448,13 @@ export default function DocumentsPage() {
               placeholder="Search documents..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
           <select
             value={selectedCentre}
             onChange={(e) => setSelectedCentre(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Centres</option>
             {services.map(service => (
@@ -491,11 +491,11 @@ export default function DocumentsPage() {
             {currentSubfolders.map((folder) => (
               <div
                 key={folder.id}
-                className="group bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md hover:border-[#004E64]/30 transition-all cursor-pointer relative"
+                className="group bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md hover:border-brand/30 transition-all cursor-pointer relative"
                 onClick={() => setCurrentFolderId(folder.id)}
               >
                 <div className="flex items-center gap-2.5 mb-1.5">
-                  <Folder className="w-5 h-5 text-[#004E64]" />
+                  <Folder className="w-5 h-5 text-brand" />
                   <span className="text-sm font-medium text-gray-900 truncate">{folder.name}</span>
                 </div>
                 <p className="text-xs text-gray-400">
@@ -531,7 +531,7 @@ export default function DocumentsPage() {
             {!searchTerm && !selectedCategory && !selectedCentre && (
               <button
                 onClick={() => setShowModal(true)}
-                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+                className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Upload Document
@@ -594,7 +594,7 @@ export default function DocumentsPage() {
                       href={getDownloadUrl(doc.fileUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 bg-[#004E64] hover:bg-[#003D52] text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                      className="flex-1 bg-brand hover:bg-brand-hover text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
                     >
                       <ExternalLink className="w-4 h-4" /> View
                     </a>
@@ -678,7 +678,7 @@ export default function DocumentsPage() {
                               href={getDownloadUrl(doc.fileUrl)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[#004E64] hover:text-[#003D52] transition-colors"
+                              className="text-brand hover:text-brand-hover transition-colors"
                               title="View document"
                             >
                               <ExternalLink className="w-4 h-4" />
@@ -766,7 +766,7 @@ export default function DocumentsPage() {
                   className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-gray-100 transition-colors"
                   style={{ paddingLeft: folder.parentId ? "2rem" : undefined }}
                 >
-                  <Folder className="w-4 h-4 text-[#004E64]" />
+                  <Folder className="w-4 h-4 text-brand" />
                   <span className="text-gray-700">{folder.name}</span>
                   <span className="text-xs text-gray-400 ml-auto">{folder._count.documents}</span>
                 </button>
@@ -786,7 +786,7 @@ export default function DocumentsPage() {
                 <p className="text-sm text-gray-500 mt-0.5">
                   Upload a file to the library
                   {currentFolderId && breadcrumbs.length > 0 && (
-                    <span className="text-[#004E64]"> in {breadcrumbs[breadcrumbs.length - 1].name}</span>
+                    <span className="text-brand"> in {breadcrumbs[breadcrumbs.length - 1].name}</span>
                   )}
                 </p>
               </div>
@@ -807,7 +807,7 @@ export default function DocumentsPage() {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="E.g., Staff Handbook 2025"
                   required
                 />
@@ -820,7 +820,7 @@ export default function DocumentsPage() {
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="Brief description of the document..."
                   rows={3}
                 />
@@ -834,7 +834,7 @@ export default function DocumentsPage() {
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   >
                     {CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>
@@ -851,7 +851,7 @@ export default function DocumentsPage() {
                   <select
                     value={formData.centreId}
                     onChange={(e) => setFormData({ ...formData, centreId: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   >
                     <option value="">Not centre-specific</option>
                     {services.map(service => (
@@ -887,13 +887,13 @@ export default function DocumentsPage() {
                     </button>
                   </div>
                 ) : uploadingFile ? (
-                  <div className="flex items-center justify-center gap-2 p-6 border-2 border-dashed border-[#004E64]/30 rounded-lg bg-[#004E64]/5">
-                    <Loader2 className="w-5 h-5 text-[#004E64] animate-spin" />
-                    <span className="text-sm text-[#004E64] font-medium">Uploading...</span>
+                  <div className="flex items-center justify-center gap-2 p-6 border-2 border-dashed border-brand/30 rounded-lg bg-brand/5">
+                    <Loader2 className="w-5 h-5 text-brand animate-spin" />
+                    <span className="text-sm text-brand font-medium">Uploading...</span>
                   </div>
                 ) : (
                   <label
-                    className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#004E64] hover:bg-[#004E64]/5 transition-colors"
+                    className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-brand hover:bg-brand/5 transition-colors"
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                     onDrop={(e) => {
                       e.preventDefault();
@@ -904,7 +904,7 @@ export default function DocumentsPage() {
                   >
                     <Upload className="w-8 h-8 text-gray-400" />
                     <div className="text-center">
-                      <span className="text-sm font-medium text-[#004E64]">Click to upload</span>
+                      <span className="text-sm font-medium text-brand">Click to upload</span>
                       <span className="text-sm text-gray-500"> or drag and drop</span>
                     </div>
                     <p className="text-xs text-gray-400">PDF, Word, Excel, PowerPoint, images up to 10MB</p>
@@ -929,7 +929,7 @@ export default function DocumentsPage() {
                   type="text"
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="E.g., staff, mandatory, 2025"
                 />
               </div>
@@ -945,7 +945,7 @@ export default function DocumentsPage() {
                 <button
                   type="submit"
                   disabled={createDocument.isPending || !uploadedFile}
-                  className="flex-1 bg-[#004E64] hover:bg-[#003D52] text-white font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex-1 bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                 >
                   {createDocument.isPending ? "Saving..." : "Upload Document"}
                 </button>
@@ -972,7 +972,7 @@ export default function DocumentsPage() {
                   type="text"
                   value={editDocForm.title}
                   onChange={(e) => setEditDocForm({ ...editDocForm, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
               </div>
               <div>
@@ -980,7 +980,7 @@ export default function DocumentsPage() {
                 <textarea
                   value={editDocForm.description}
                   onChange={(e) => setEditDocForm({ ...editDocForm, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   rows={3}
                 />
               </div>
@@ -989,7 +989,7 @@ export default function DocumentsPage() {
                 <select
                   value={editDocForm.category}
                   onChange={(e) => setEditDocForm({ ...editDocForm, category: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 >
                   <option value="">No category</option>
                   {["program", "policy", "procedure", "template", "guide", "compliance", "financial", "marketing", "hr", "other"].map(cat => (
@@ -1008,7 +1008,7 @@ export default function DocumentsPage() {
                 <button
                   onClick={handleSaveDoc}
                   disabled={updateDocument.isPending || !editDocForm.title.trim()}
-                  className="flex-1 bg-[#004E64] hover:bg-[#003D52] text-white font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex-1 bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2.5 rounded-lg transition-colors disabled:opacity-50"
                 >
                   {updateDocument.isPending ? "Saving..." : "Save Changes"}
                 </button>

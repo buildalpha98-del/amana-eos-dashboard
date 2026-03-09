@@ -92,7 +92,7 @@ export function QuickAddFAB({ onNewPost, onNewTask, onNewCampaign }: Props) {
       {/* Main FAB */}
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-[#004E64] text-white shadow-lg transition-transform duration-200 hover:bg-[#003d4f]"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-white shadow-lg transition-transform duration-200 hover:bg-brand-hover"
       >
         <Plus
           className={`h-6 w-6 transition-transform duration-200 ${open ? "rotate-45" : "rotate-0"}`}

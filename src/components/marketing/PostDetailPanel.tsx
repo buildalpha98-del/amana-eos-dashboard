@@ -156,7 +156,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                 {post.services.map((s) => (
                   <span
                     key={s.service.id}
-                    className="inline-flex items-center rounded-md bg-[#004E64]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#004E64]"
+                    className="inline-flex items-center rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-medium text-brand"
                   >
                     {s.service.code}
                   </span>
@@ -196,7 +196,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               onClick={() => handleStatusChange(s.value)}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                 post.status === s.value
-                  ? "bg-[#004E64] text-white"
+                  ? "bg-brand text-white"
                   : "border border-gray-300 text-gray-600 hover:bg-gray-50"
               }`}
             >
@@ -323,7 +323,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                 setPlatform(e.target.value);
                 autoSave("platform", e.target.value);
               }}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             >
               {PLATFORM_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -348,7 +348,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                   scheduledDate ? new Date(scheduledDate).toISOString() : null
                 )
               }
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
 
@@ -361,7 +361,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               <button
                 type="button"
                 onClick={() => setEditingCentres(!editingCentres)}
-                className="text-xs text-[#004E64] hover:underline inline-flex items-center gap-1"
+                className="text-xs text-brand hover:underline inline-flex items-center gap-1"
               >
                 <Pencil className="h-3 w-3" />
                 {editingCentres ? "Done" : "Edit"}
@@ -383,7 +383,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                     {post.services?.map((s) => (
                       <span
                         key={s.service.id}
-                        className="inline-flex items-center rounded-md bg-[#004E64]/10 px-2 py-0.5 text-xs font-medium text-[#004E64]"
+                        className="inline-flex items-center rounded-md bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand"
                       >
                         {s.service.name} ({s.service.code})
                       </span>
@@ -404,7 +404,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               onChange={(e) => setContent(e.target.value)}
               onBlur={() => autoSave("content", content || null)}
               rows={4}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64] resize-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
             />
           </div>
 
@@ -418,7 +418,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               value={pillar}
               onChange={(e) => setPillar(e.target.value)}
               onBlur={() => autoSave("pillar", pillar || null)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
 
@@ -452,7 +452,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               onChange={(e) => setNotes(e.target.value)}
               onBlur={() => autoSave("notes", notes || null)}
               rows={3}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64] resize-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
             />
           </div>
 
@@ -467,7 +467,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               onChange={(e) => setDesignLink(e.target.value)}
               onBlur={() => autoSave("designLink", designLink || null)}
               placeholder="https://..."
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
 
@@ -576,7 +576,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                           href={post.externalUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-[#004E64] hover:underline"
+                          className="inline-flex items-center gap-1 text-xs text-brand hover:underline"
                         >
                           <ExternalLink className="h-3 w-3" />
                           View on{" "}
@@ -623,7 +623,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               ) : (
                 <button
                   onClick={() => setShowLinkModal(true)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-[#004E64] px-4 py-2 text-sm font-medium text-[#004E64] hover:bg-[#004E64]/5 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand hover:bg-brand/5 transition-colors"
                 >
                   <Link2 className="h-4 w-4" />
                   Link to Social Post

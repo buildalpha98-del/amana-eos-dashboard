@@ -110,7 +110,7 @@ export default function DataRoomPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={allExpanded ? collapseAll : expandAll}
-            className="text-sm text-[#004E64] hover:underline font-medium"
+            className="text-sm text-brand hover:underline font-medium"
           >
             {allExpanded ? "Collapse All" : "Expand All"}
           </button>

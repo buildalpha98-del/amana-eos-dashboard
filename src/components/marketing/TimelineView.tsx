@@ -154,15 +154,15 @@ export function TimelineView({
                   key={key}
                   className={`flex-shrink-0 text-center py-2 text-xs font-medium border-r border-gray-100 ${
                     isToday
-                      ? "bg-[#004E64]/5 border-l-2 border-l-[#004E64]"
+                      ? "bg-brand/5 border-l-2 border-l-brand"
                       : ""
                   }`}
                   style={{ width: COL_W }}
                 >
-                  <div className={isToday ? "text-[#004E64] font-bold" : "text-gray-900"}>
+                  <div className={isToday ? "text-brand font-bold" : "text-gray-900"}>
                     {d.getDate()}
                   </div>
-                  <div className={isToday ? "text-[#004E64]" : "text-gray-400"}>
+                  <div className={isToday ? "text-brand" : "text-gray-400"}>
                     {DAY_NAMES[d.getDay()]}
                   </div>
                 </div>
@@ -185,7 +185,7 @@ export function TimelineView({
                     <div
                       key={key}
                       className={`flex-shrink-0 border-r border-gray-100 ${
-                        isToday ? "border-l-2 border-l-[#004E64] bg-[#004E64]/5" : ""
+                        isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                       }`}
                       style={{ width: COL_W }}
                     />
@@ -221,7 +221,7 @@ export function TimelineView({
                         <div
                           key={key}
                           className={`flex-shrink-0 border-r border-gray-100 ${
-                            isToday ? "border-l-2 border-l-[#004E64] bg-[#004E64]/5" : ""
+                            isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                           }`}
                           style={{ width: COL_W }}
                         />
@@ -262,7 +262,7 @@ export function TimelineView({
                     <div
                       key={key}
                       className={`flex-shrink-0 border-r border-gray-100 ${
-                        isToday ? "border-l-2 border-l-[#004E64] bg-[#004E64]/5" : ""
+                        isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                       }`}
                       style={{ width: COL_W }}
                     />
@@ -282,7 +282,7 @@ export function TimelineView({
                   <div
                     key={key}
                     className={`flex-shrink-0 border-r border-gray-100 flex flex-wrap items-start justify-center gap-1 py-2 px-0.5 ${
-                      isToday ? "border-l-2 border-l-[#004E64] bg-[#004E64]/5" : ""
+                      isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                     }`}
                     style={{ width: COL_W }}
                   >
@@ -317,7 +317,7 @@ export function TimelineView({
                     <div
                       key={key}
                       className={`flex-shrink-0 border-r border-gray-100 ${
-                        isToday ? "border-l-2 border-l-[#004E64] bg-[#004E64]/5" : ""
+                        isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                       }`}
                       style={{ width: COL_W }}
                     />
@@ -337,7 +337,7 @@ export function TimelineView({
                   <div
                     key={key}
                     className={`flex-shrink-0 border-r border-gray-100 flex flex-wrap items-start justify-center gap-1 py-2 px-0.5 ${
-                      isToday ? "border-l-2 border-l-[#004E64] bg-[#004E64]/5" : ""
+                      isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                     }`}
                     style={{ width: COL_W }}
                   >

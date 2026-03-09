@@ -152,7 +152,7 @@ export function CreateTicketModal({
                 <select
                   value={contactId}
                   onChange={(e) => setContactId(e.target.value)}
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 >
                   <option value="">Select a contact...</option>
                   {contacts.map((c) => (
@@ -181,21 +181,21 @@ export function CreateTicketModal({
                   placeholder="Parent name *"
                   value={newParentName}
                   onChange={(e) => setNewParentName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
                 <input
                   type="text"
                   placeholder="Phone number *"
                   value={newPhone}
                   onChange={(e) => setNewPhone(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
                 <input
                   type="text"
                   placeholder="Child name (optional)"
                   value={newChildName}
                   onChange={(e) => setNewChildName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
                 <div className="flex gap-2">
                   <button
@@ -209,7 +209,7 @@ export function CreateTicketModal({
                     type="button"
                     onClick={handleCreateContact}
                     disabled={!newPhone || !newParentName || createContact.isPending}
-                    className="px-3 py-1.5 text-xs bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] disabled:opacity-50"
+                    className="px-3 py-1.5 text-xs bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50"
                   >
                     {createContact.isPending ? "Creating..." : "Add Contact"}
                   </button>
@@ -227,7 +227,7 @@ export function CreateTicketModal({
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="Brief description of the enquiry..."
             />
           </div>
@@ -241,7 +241,7 @@ export function CreateTicketModal({
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TicketPriority)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="low">Low</option>
                 <option value="normal">Normal</option>
@@ -256,7 +256,7 @@ export function CreateTicketModal({
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Not specified</option>
                 {services.map((s) => (
@@ -276,7 +276,7 @@ export function CreateTicketModal({
             <select
               value={assignedToId}
               onChange={(e) => setAssignedToId(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Unassigned</option>
               {users.map((u) => (
@@ -299,7 +299,7 @@ export function CreateTicketModal({
             <button
               type="submit"
               disabled={createTicket.isPending}
-              className="flex-1 px-4 py-2.5 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {createTicket.isPending ? "Creating..." : "Create Ticket"}
             </button>

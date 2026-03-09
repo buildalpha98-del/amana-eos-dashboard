@@ -148,7 +148,7 @@ export function ProjectDetailPanel({
   if (isLoading || !project) {
     return (
       <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 z-50 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -219,7 +219,7 @@ export function ProjectDetailPanel({
             </div>
             <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className={cn("h-full rounded-full transition-all", progress === 100 ? "bg-emerald-500" : progress > 50 ? "bg-[#004E64]" : "bg-blue-500")}
+                className={cn("h-full rounded-full transition-all", progress === 100 ? "bg-emerald-500" : progress > 50 ? "bg-brand" : "bg-blue-500")}
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -242,7 +242,7 @@ export function ProjectDetailPanel({
               </label>
               <button
                 onClick={() => setShowAddTask(true)}
-                className="inline-flex items-center gap-1 text-xs font-medium text-[#004E64] hover:text-[#003D52] transition-colors"
+                className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Task
@@ -250,7 +250,7 @@ export function ProjectDetailPanel({
             </div>
 
             {showAddTask && (
-              <form onSubmit={handleAddTask} className="mb-3 p-3 bg-[#004E64]/5 rounded-lg border border-[#004E64]/20 space-y-2">
+              <form onSubmit={handleAddTask} className="mb-3 p-3 bg-brand/5 rounded-lg border border-brand/20 space-y-2">
                 <input
                   type="text"
                   autoFocus
@@ -258,14 +258,14 @@ export function ProjectDetailPanel({
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
                   placeholder="Task title..."
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <select
                     required
                     value={newTaskAssignee}
                     onChange={(e) => setNewTaskAssignee(e.target.value)}
-                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="">Assign to...</option>
                     {users?.map((u) => (
@@ -277,11 +277,11 @@ export function ProjectDetailPanel({
                     required
                     value={newTaskDueDate}
                     onChange={(e) => setNewTaskDueDate(e.target.value)}
-                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                    className="w-full px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
                 <div className="flex gap-2">
-                  <button type="submit" disabled={addTask.isPending} className="px-3 py-1.5 text-xs bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] disabled:opacity-50">
+                  <button type="submit" disabled={addTask.isPending} className="px-3 py-1.5 text-xs bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50">
                     {addTask.isPending ? "Adding..." : "Add"}
                   </button>
                   <button type="button" onClick={() => setShowAddTask(false)} className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700">
@@ -300,7 +300,7 @@ export function ProjectDetailPanel({
                   >
                     <button
                       onClick={() => toggleTodo.mutate({ id: todo.id, status: todo.status })}
-                      className={cn("w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors", todo.status === "complete" ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-300 hover:border-[#004E64]")}
+                      className={cn("w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors", todo.status === "complete" ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-300 hover:border-brand")}
                     >
                       {todo.status === "complete" && (
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -329,7 +329,7 @@ export function ProjectDetailPanel({
             ) : !showAddTask ? (
               <button
                 onClick={() => setShowAddTask(true)}
-                className="w-full py-6 text-center text-sm text-gray-400 border-2 border-dashed border-gray-200 rounded-lg hover:border-[#004E64] hover:text-[#004E64] transition-colors"
+                className="w-full py-6 text-center text-sm text-gray-400 border-2 border-dashed border-gray-200 rounded-lg hover:border-brand hover:text-brand transition-colors"
               >
                 <Plus className="w-5 h-5 mx-auto mb-1" />
                 Add the first task

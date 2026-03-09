@@ -138,7 +138,7 @@ export function LeadDetailDrawer({
       <>
         <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
         <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 z-50 flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
         </div>
       </>
     );
@@ -217,7 +217,7 @@ export function LeadDetailDrawer({
               onChange={(e) =>
                 updateLead.mutate({ id: leadId, assignedToId: e.target.value || null })
               }
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344]"
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
             >
               <option value="">Unassigned</option>
               {users?.map((u) => (
@@ -245,7 +245,7 @@ export function LeadDetailDrawer({
                   <Mail className="w-4 h-4 text-gray-400" />
                   <a
                     href={`mailto:${lead.contactEmail}`}
-                    className="text-[#004E64] hover:underline"
+                    className="text-brand hover:underline"
                   >
                     {lead.contactEmail}
                   </a>
@@ -301,7 +301,7 @@ export function LeadDetailDrawer({
                     href={lead.tenderUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[#004E64] hover:underline"
+                    className="inline-flex items-center gap-1 text-brand hover:underline"
                   >
                     View Tender <ExternalLink className="w-3 h-3" />
                   </a>
@@ -320,7 +320,7 @@ export function LeadDetailDrawer({
                 <Building2 className="w-4 h-4 text-gray-400" />
                 <a
                   href={`/services/${lead.service.id}`}
-                  className="text-[#004E64] hover:underline font-medium"
+                  className="text-brand hover:underline font-medium"
                 >
                   {lead.service.name} ({lead.service.code})
                 </a>
@@ -343,7 +343,7 @@ export function LeadDetailDrawer({
             <button
               onClick={onSendEmail}
               disabled={!lead.contactEmail}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <Send className="w-3.5 h-3.5" />
               Send Email
@@ -358,7 +358,7 @@ export function LeadDetailDrawer({
               </h4>
               <button
                 onClick={() => setShowAddTouchpoint(true)}
-                className="inline-flex items-center gap-1 text-xs font-medium text-[#004E64] hover:text-[#003D52] transition-colors"
+                className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add
@@ -368,12 +368,12 @@ export function LeadDetailDrawer({
             {showAddTouchpoint && (
               <form
                 onSubmit={handleAddTouchpoint}
-                className="mb-4 p-3 bg-[#004E64]/5 rounded-lg border border-[#004E64]/20 space-y-2"
+                className="mb-4 p-3 bg-brand/5 rounded-lg border border-brand/20 space-y-2"
               >
                 <select
                   value={tpType}
                   onChange={(e) => setTpType(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#003344]"
+                  className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-brand-dark"
                 >
                   {touchpointTypeOptions.map((t) => (
                     <option key={t.key} value={t.key}>
@@ -386,20 +386,20 @@ export function LeadDetailDrawer({
                   value={tpSubject}
                   onChange={(e) => setTpSubject(e.target.value)}
                   placeholder="Subject (optional)"
-                  className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#003344]"
+                  className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-brand-dark"
                 />
                 <textarea
                   value={tpBody}
                   onChange={(e) => setTpBody(e.target.value)}
                   placeholder="Notes (optional)"
                   rows={2}
-                  className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-[#003344]"
+                  className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-brand-dark"
                 />
                 <div className="flex gap-2">
                   <button
                     type="submit"
                     disabled={createTouchpoint.isPending}
-                    className="px-3 py-1.5 text-xs bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] disabled:opacity-50"
+                    className="px-3 py-1.5 text-xs bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50"
                   >
                     {createTouchpoint.isPending ? "Adding..." : "Add Touchpoint"}
                   </button>

@@ -156,7 +156,7 @@ export function CreateCampaignModal({
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Campaign name"
                   required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -170,7 +170,7 @@ export function CreateCampaignModal({
                   onChange={(e) =>
                     setType(e.target.value as MarketingCampaignType)
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   {CAMPAIGN_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -190,7 +190,7 @@ export function CreateCampaignModal({
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </div>
                 <div>
@@ -201,7 +201,7 @@ export function CreateCampaignModal({
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </div>
               </div>
@@ -217,7 +217,7 @@ export function CreateCampaignModal({
                       key={p}
                       className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                         platforms.includes(p)
-                          ? "border-[#004E64] bg-[#004E64]/10 text-[#004E64]"
+                          ? "border-brand bg-brand/10 text-brand"
                           : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
                       }`}
                     >
@@ -248,7 +248,7 @@ export function CreateCampaignModal({
                         value={budget}
                         onChange={(e) => setBudget(e.target.value)}
                         placeholder="0.00"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                     <div>
@@ -260,7 +260,7 @@ export function CreateCampaignModal({
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
                         placeholder="Venue or address"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                   </div>
@@ -273,7 +273,7 @@ export function CreateCampaignModal({
                       onChange={(e) => setDeliverables(e.target.value)}
                       rows={2}
                       placeholder="Key deliverables for this activation..."
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </>
@@ -301,7 +301,7 @@ export function CreateCampaignModal({
                   onChange={(e) => setGoal(e.target.value)}
                   rows={2}
                   placeholder="What is the campaign goal?"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -315,7 +315,7 @@ export function CreateCampaignModal({
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                   placeholder="Additional notes..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -329,7 +329,7 @@ export function CreateCampaignModal({
                   value={designLink}
                   onChange={(e) => setDesignLink(e.target.value)}
                   placeholder="https://..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -353,7 +353,7 @@ export function CreateCampaignModal({
               <button
                 type="submit"
                 disabled={createCampaign.isPending}
-                className="rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#003d4f] disabled:opacity-50"
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
               >
                 {createCampaign.isPending ? "Creating..." : "Create Campaign"}
               </button>

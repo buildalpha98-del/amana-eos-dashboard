@@ -326,7 +326,7 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
       {data.recentActivity && data.recentActivity.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-[#004E64]" />
+            <Activity className="w-5 h-5 text-brand" />
             <h3 className="text-lg font-semibold text-gray-900">
               Recent Activity
             </h3>

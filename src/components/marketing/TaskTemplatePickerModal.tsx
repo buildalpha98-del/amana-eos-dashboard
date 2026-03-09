@@ -109,7 +109,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-[#004E64]" />
+            <Zap className="h-5 w-5 text-brand" />
             <h2 className="text-lg font-semibold text-gray-900">
               Quick Start from Template
             </h2>
@@ -142,7 +142,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
                   key={template.id}
                   className={`rounded-xl border-2 transition-all cursor-pointer ${
                     isSelected
-                      ? "border-[#004E64] bg-[#004E64]/5"
+                      ? "border-brand bg-brand/5"
                       : "border-gray-200 hover:border-gray-300 bg-white"
                   }`}
                   onClick={() =>
@@ -247,7 +247,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
                   value={campaignId}
                   onChange={(e) => setCampaignId(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">None</option>
                   {(campaigns ?? []).map((c) => (
@@ -268,7 +268,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
                   value={serviceId}
                   onChange={(e) => setServiceId(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">None</option>
                   {sortedServices.map((s) => (
@@ -290,7 +290,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
             </div>
@@ -308,7 +308,7 @@ export function TaskTemplatePickerModal({ open, onClose }: Props) {
           <button
             onClick={handleApply}
             disabled={!selectedId || applyTemplate.isPending}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#003d4f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Zap className="h-4 w-4" />
             {applyTemplate.isPending ? "Applying..." : "Apply Template"}

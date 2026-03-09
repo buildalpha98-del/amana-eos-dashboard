@@ -79,7 +79,7 @@ export function ProjectCard({
           </div>
         </div>
 
-        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-[#004E64] transition-colors flex-shrink-0 mt-1" />
+        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-brand transition-colors flex-shrink-0 mt-1" />
       </div>
 
       {/* Progress bar */}
@@ -99,7 +99,7 @@ export function ProjectCard({
               project.progress.percent === 100
                 ? "bg-emerald-500"
                 : project.progress.percent > 50
-                ? "bg-[#004E64]"
+                ? "bg-brand"
                 : project.progress.percent > 0
                 ? "bg-blue-500"
                 : "bg-gray-200"

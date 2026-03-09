@@ -193,7 +193,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                 <ChevronLeft className="w-5 h-5" />
               </button>
             )}
-            <Repeat className="w-5 h-5 text-[#004E64]" />
+            <Repeat className="w-5 h-5 text-brand" />
             <h2 className="text-lg font-semibold text-gray-900">
               {view === "form"
                 ? editingId
@@ -216,7 +216,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
             <>
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#004E64]" />
+                  <Loader2 className="w-6 h-6 animate-spin text-brand" />
                 </div>
               ) : templates && templates.length > 0 ? (
                 <div className="space-y-3">
@@ -265,7 +265,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                       <button
                         onClick={() => handleToggleActive(template)}
                         className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
-                          template.isActive ? "bg-[#004E64]" : "bg-gray-300"
+                          template.isActive ? "bg-brand" : "bg-gray-300"
                         }`}
                         title={template.isActive ? "Active" : "Paused"}
                       >
@@ -279,7 +279,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                       {/* Edit */}
                       <button
                         onClick={() => openEditForm(template)}
-                        className="p-1.5 text-gray-400 hover:text-[#004E64] rounded-md hover:bg-gray-100"
+                        className="p-1.5 text-gray-400 hover:text-brand rounded-md hover:bg-gray-100"
                         title="Edit template"
                       >
                         <Pencil className="w-4 h-4" />
@@ -298,8 +298,8 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <div className="w-14 h-14 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mx-auto mb-4">
-                    <Repeat className="w-7 h-7 text-[#004E64]/30" />
+                  <div className="w-14 h-14 rounded-2xl bg-brand/5 flex items-center justify-center mx-auto mb-4">
+                    <Repeat className="w-7 h-7 text-brand/30" />
                   </div>
                   <h3 className="text-base font-semibold text-gray-900 mb-1">
                     No templates yet
@@ -331,7 +331,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, title: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="e.g., Weekly service report"
                 />
               </div>
@@ -347,7 +347,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                     setForm((f) => ({ ...f, description: e.target.value }))
                   }
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
                   placeholder="Add details..."
                 />
               </div>
@@ -363,7 +363,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, assigneeId: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   >
                     <option value="">Select person...</option>
                     {users.map((u) => (
@@ -384,7 +384,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, serviceId: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   >
                     <option value="">No service</option>
                     {services.map((s) => (
@@ -410,7 +410,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                         recurrence: e.target.value as RecurrenceRule,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   >
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
@@ -431,7 +431,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, nextRunAt: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
                 </div>
               </div>
@@ -448,7 +448,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
               </p>
               <button
                 onClick={openCreateForm}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-[#004E64] text-white hover:bg-[#003D52] transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add Template
@@ -466,7 +466,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                 type="submit"
                 form="template-form"
                 disabled={isSaving}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-[#004E64] text-white hover:bg-[#003D52] disabled:opacity-50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-50 transition-colors"
               >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

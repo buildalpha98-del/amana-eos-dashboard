@@ -54,7 +54,7 @@ function SliderInput({
           step={meta.step}
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value))}
-          className="flex-1 h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer accent-[#004E64]"
+          className="flex-1 h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer accent-brand"
         />
         <input
           type="number"
@@ -66,7 +66,7 @@ function SliderInput({
             const v = parseFloat(e.target.value);
             if (!isNaN(v)) onChange(Math.min(meta.max, Math.max(meta.min, v)));
           }}
-          className="w-20 rounded-md border border-gray-300 px-2 py-1 text-xs text-right tabular-nums focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+          className="w-20 rounded-md border border-gray-300 px-2 py-1 text-xs text-right tabular-nums focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         />
       </div>
     </div>
@@ -122,7 +122,7 @@ export function ScenarioInputPanel({ inputs, onChange, onLoadPreset, onSave }: P
             if (preset) onLoadPreset(preset.inputs);
           }}
           defaultValue=""
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="" disabled>Select a preset scenario...</option>
           {PRESET_SCENARIOS.map((p) => (
@@ -139,7 +139,7 @@ export function ScenarioInputPanel({ inputs, onChange, onLoadPreset, onSave }: P
       {/* Save Button */}
       <button
         onClick={onSave}
-        className="flex items-center justify-center gap-2 w-full rounded-xl bg-[#004E64] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#003D52] transition-colors"
+        className="flex items-center justify-center gap-2 w-full rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-hover transition-colors"
       >
         <Save className="w-4 h-4" />
         Save Scenario

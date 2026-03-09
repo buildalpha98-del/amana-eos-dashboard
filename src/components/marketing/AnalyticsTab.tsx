@@ -101,7 +101,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
             onClick={() => setPeriod(opt.value)}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               period === opt.value
-                ? "bg-[#004E64] text-white"
+                ? "bg-brand text-white"
                 : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
             }`}
           >
@@ -115,7 +115,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
         {/* Platform Distribution */}
         <div className="rounded-xl border border-gray-200 bg-white">
           <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
-            <BarChart3 className="h-5 w-5 text-[#004E64]" />
+            <BarChart3 className="h-5 w-5 text-brand" />
             <h3 className="text-lg font-semibold text-gray-900">
               Platform Distribution
             </h3>
@@ -157,7 +157,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
         {/* Content Pillars */}
         <div className="rounded-xl border border-gray-200 bg-white">
           <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
-            <BarChart3 className="h-5 w-5 text-[#004E64]" />
+            <BarChart3 className="h-5 w-5 text-brand" />
             <h3 className="text-lg font-semibold text-gray-900">
               Content Pillars
             </h3>
@@ -182,7 +182,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                     </div>
                     <div className="h-3 w-full rounded-full bg-gray-100">
                       <div
-                        className="h-3 rounded-full bg-[#004E64] transition-all duration-500"
+                        className="h-3 rounded-full bg-brand transition-all duration-500"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -197,7 +197,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
       {/* Status Breakdown */}
       <div className="rounded-xl border border-gray-200 bg-white">
         <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
-          <TrendingUp className="h-5 w-5 text-[#004E64]" />
+          <TrendingUp className="h-5 w-5 text-brand" />
           <h3 className="text-lg font-semibold text-gray-900">
             Status Breakdown
           </h3>
@@ -238,7 +238,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
       {/* Monthly Trend */}
       <div className="rounded-xl border border-gray-200 bg-white">
         <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
-          <TrendingUp className="h-5 w-5 text-[#004E64]" />
+          <TrendingUp className="h-5 w-5 text-brand" />
           <h3 className="text-lg font-semibold text-gray-900">
             Monthly Trend
           </h3>
@@ -261,7 +261,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                       {item.posts}
                     </span>
                     <div
-                      className="w-full max-w-[48px] rounded-t-md bg-[#004E64] transition-all duration-500"
+                      className="w-full max-w-[48px] rounded-t-md bg-brand transition-all duration-500"
                       style={{ height: `${Math.max(heightPct, 4)}%` }}
                     />
                     <span className="mt-2 text-xs text-gray-500 truncate w-full text-center">
@@ -278,7 +278,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
       {/* Leaderboard */}
       <div className="rounded-xl border border-gray-200 bg-white">
         <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
-          <Trophy className="h-5 w-5 text-[#FECE00]" />
+          <Trophy className="h-5 w-5 text-accent" />
           <h3 className="text-lg font-semibold text-gray-900">
             Top 5 Posts by Engagement
           </h3>
@@ -306,7 +306,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                       <span
                         className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
                           idx === 0
-                            ? "bg-[#FECE00] text-[#004E64]"
+                            ? "bg-accent text-brand"
                             : idx === 1
                             ? "bg-gray-200 text-gray-700"
                             : idx === 2
@@ -358,7 +358,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
         return (
           <div className="rounded-xl border border-gray-200 bg-white">
             <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
-              <Trophy className="h-5 w-5 text-[#004E64]" />
+              <Trophy className="h-5 w-5 text-brand" />
               <h3 className="text-lg font-semibold text-gray-900">Centre Performance</h3>
             </div>
             <div className="px-6 py-5 space-y-3">
@@ -401,7 +401,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
                     </span>
                     <div className="flex-1 h-4 rounded-full bg-gray-100 overflow-hidden">
                       <div
-                        className="h-4 rounded-full bg-[#004E64] transition-all duration-500"
+                        className="h-4 rounded-full bg-brand transition-all duration-500"
                         style={{
                           width: `${Math.max(barPct, 2)}%`,
                           opacity: Math.max(0.4, 1 - idx * 0.05),
@@ -435,7 +435,7 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
         return (
           <div className="rounded-xl border border-gray-200 bg-white">
             <div className="flex items-center gap-2 border-b border-gray-200 px-6 py-4">
-              <Grid3X3 className="h-5 w-5 text-[#004E64]" />
+              <Grid3X3 className="h-5 w-5 text-brand" />
               <h3 className="text-lg font-semibold text-gray-900">Content Coverage</h3>
             </div>
             <div className="px-6 py-5">

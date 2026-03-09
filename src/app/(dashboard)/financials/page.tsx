@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { ScrollableTable } from "@/components/ui/ScrollableTable";
 import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
 import { RevenueVsCostsChart } from "@/components/charts/RevenueVsCostsChart";
 import { MarginComparisonChart } from "@/components/charts/MarginComparisonChart";
@@ -61,7 +62,7 @@ function XeroSyncBadge() {
       <button
         onClick={() => sync.mutate(1)}
         disabled={sync.isPending}
-        className="flex items-center gap-1 text-xs text-[#004E64] hover:text-[#003D52] font-medium disabled:opacity-50"
+        className="flex items-center gap-1 text-xs text-brand hover:text-brand-hover font-medium disabled:opacity-50"
       >
         <RefreshCw className={cn("w-3.5 h-3.5", sync.isPending && "animate-spin")} />
         {sync.isPending ? "Syncing..." : "Sync Now"}
@@ -130,7 +131,7 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
           {/* Centre */}
           <div>
             <label className="text-xs font-medium text-gray-500 block mb-1">Centre</label>
-            <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]">
+            <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
               <option value="">Select centre...</option>
               {services?.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
             </select>
@@ -139,18 +140,18 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">Period Type</label>
-              <select value={periodType} onChange={(e) => setPeriodType(e.target.value as "monthly" | "quarterly")} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]">
+              <select value={periodType} onChange={(e) => setPeriodType(e.target.value as "monthly" | "quarterly")} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
               </select>
             </div>
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">Start Date</label>
-              <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+              <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">End Date</label>
-              <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+              <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
           </div>
           {/* Revenue */}
@@ -165,11 +166,11 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
               ].map((f) => (
                 <div key={f.label}>
                   <label className="text-[10px] text-gray-400">{f.label}</label>
-                  <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+                  <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
                 </div>
               ))}
             </div>
-            <p className="text-xs text-[#004E64] font-medium mt-1">Total Revenue: {formatCurrency(totalRev)}</p>
+            <p className="text-xs text-brand font-medium mt-1">Total Revenue: {formatCurrency(totalRev)}</p>
           </div>
           {/* Costs */}
           <div>
@@ -185,7 +186,7 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
               ].map((f) => (
                 <div key={f.label}>
                   <label className="text-[10px] text-gray-400">{f.label}</label>
-                  <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+                  <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
                 </div>
               ))}
             </div>
@@ -197,11 +198,11 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[10px] text-gray-400">Budget Revenue</label>
-                <input type="number" min={0} value={budgetRevenue || ""} onChange={(e) => setBudgetRevenue(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+                <input type="number" min={0} value={budgetRevenue || ""} onChange={(e) => setBudgetRevenue(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
                 <label className="text-[10px] text-gray-400">Budget Costs</label>
-                <input type="number" min={0} value={budgetCosts || ""} onChange={(e) => setBudgetCosts(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+                <input type="number" min={0} value={budgetCosts || ""} onChange={(e) => setBudgetCosts(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
             </div>
           </div>
@@ -228,7 +229,7 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
           <button
             onClick={() => submit.mutate()}
             disabled={!serviceId || !periodStart || !periodEnd || submit.isPending}
-            className="px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] disabled:opacity-50"
+            className="px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover disabled:opacity-50"
           >
             {submit.isPending ? "Saving..." : "Save Data"}
           </button>
@@ -314,7 +315,7 @@ export default function FinancialsPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowImportOWNA(true)}
-              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 border border-[#004E64] text-[#004E64] text-sm font-medium rounded-lg hover:bg-[#004E64]/5 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 border border-brand text-brand text-sm font-medium rounded-lg hover:bg-brand/5 transition-colors"
             >
               <FileSpreadsheet className="w-4 h-4" />
               <span className="hidden sm:inline">Import from OWNA</span>
@@ -322,7 +323,7 @@ export default function FinancialsPage() {
             </button>
             <button
               onClick={() => setShowEnterData(true)}
-              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Enter Data</span>
@@ -342,7 +343,7 @@ export default function FinancialsPage() {
               className={cn(
                 "px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors",
                 period === opt.value
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
               )}
             >
@@ -393,7 +394,7 @@ export default function FinancialsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-2">
-            <Building2 className="w-5 h-5 text-[#004E64]" />
+            <Building2 className="w-5 h-5 text-brand" />
             <h3 className="text-sm font-medium text-gray-500">Active Centres</h3>
           </div>
           <p className="text-3xl font-bold text-gray-900">{summary?.centreCount || 0}</p>
@@ -443,8 +444,8 @@ export default function FinancialsPage() {
           </div>
         ) : sortedData.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
-              <DollarSign className="w-8 h-8 text-[#004E64]/30" />
+            <div className="w-16 h-16 rounded-2xl bg-brand/5 flex items-center justify-center mb-4">
+              <DollarSign className="w-8 h-8 text-brand/30" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900">
               No financial data for this period
@@ -455,15 +456,15 @@ export default function FinancialsPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+          <ScrollableTable>
             <table className="w-full min-w-[900px] text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left">
                   <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Centre</th>
-                  <th className="px-2 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center w-12">Source</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">State</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">BSC Rev</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">ASC Rev</th>
+                  <th className="hidden md:table-cell px-2 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center w-12">Source</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">State</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">BSC Rev</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">ASC Rev</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Total Rev</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Costs</th>
                   <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Profit</th>
@@ -482,20 +483,20 @@ export default function FinancialsPage() {
                     )}
                   >
                     <td className="px-6 py-3 font-medium text-gray-900">{row.service.name}</td>
-                    <td className="px-2 py-3 text-center">
+                    <td className="hidden md:table-cell px-2 py-3 text-center">
                       {row.dataSource === "xero" ? (
                         <span title="Synced from Xero"><RefreshCw className="w-3.5 h-3.5 text-[#13B5EA] inline-block" /></span>
                       ) : (
                         <span title="Manually entered"><Pencil className="w-3.5 h-3.5 text-gray-400 inline-block" /></span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="hidden md:table-cell px-4 py-3">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                         {row.service.state}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(row.bscRevenue)}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(row.ascRevenue)}</td>
+                    <td className="hidden lg:table-cell px-4 py-3 text-right text-gray-600">{formatCurrency(row.bscRevenue)}</td>
+                    <td className="hidden lg:table-cell px-4 py-3 text-right text-gray-600">{formatCurrency(row.ascRevenue)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(row.totalRevenue)}</td>
                     <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(row.totalCosts)}</td>
                     <td className={cn(
@@ -527,14 +528,14 @@ export default function FinancialsPage() {
               </tbody>
               {/* Totals row */}
               <tfoot>
-                <tr className="bg-[#004E64]/5 font-semibold">
+                <tr className="bg-brand/5 font-semibold">
                   <td className="px-6 py-3 text-gray-900">Total</td>
-                  <td className="px-2 py-3"></td>
-                  <td className="px-4 py-3"></td>
-                  <td className="px-4 py-3 text-right text-gray-900">
+                  <td className="hidden md:table-cell px-2 py-3"></td>
+                  <td className="hidden md:table-cell px-4 py-3"></td>
+                  <td className="hidden lg:table-cell px-4 py-3 text-right text-gray-900">
                     {formatCurrency(sortedData.reduce((s, r) => s + r.bscRevenue, 0))}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-900">
+                  <td className="hidden lg:table-cell px-4 py-3 text-right text-gray-900">
                     {formatCurrency(sortedData.reduce((s, r) => s + r.ascRevenue, 0))}
                   </td>
                   <td className="px-4 py-3 text-right text-gray-900">
@@ -578,7 +579,7 @@ export default function FinancialsPage() {
                 </tr>
               </tfoot>
             </table>
-          </div>
+          </ScrollableTable>
         )}
       </div>
 

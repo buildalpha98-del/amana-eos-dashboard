@@ -68,8 +68,8 @@ export function DashboardAnnouncements() {
       {/* Header */}
       <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-            <Bell className="w-4 h-4 text-[#004E64]" />
+          <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
+            <Bell className="w-4 h-4 text-brand" />
           </div>
           <h3 className="text-sm font-semibold text-gray-900">
             Announcements
@@ -118,7 +118,7 @@ export function DashboardAnnouncements() {
                 {/* Title row with badges */}
                 <div className="flex items-center gap-2 mb-1">
                   {announcement.pinned && (
-                    <Pin className="w-3 h-3 text-[#004E64] flex-shrink-0" />
+                    <Pin className="w-3 h-3 text-brand flex-shrink-0" />
                   )}
                   <h4 className="text-sm font-medium text-gray-900 truncate flex-1">
                     {announcement.title}
@@ -149,7 +149,7 @@ export function DashboardAnnouncements() {
                       className="h-4 w-4 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-[#004E64] text-[8px] font-medium text-white">
+                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[8px] font-medium text-white">
                       {announcement.author?.name?.charAt(0) || "?"}
                     </div>
                   )}
@@ -169,7 +169,7 @@ export function DashboardAnnouncements() {
       <div className="px-5 py-2.5 border-t border-gray-100">
         <Link
           href="/communication"
-          className="flex items-center justify-center gap-1 text-xs font-medium text-[#004E64] hover:text-[#003D52] transition-colors"
+          className="flex items-center justify-center gap-1 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
         >
           View all announcements
           <ArrowRight className="w-3.5 h-3.5" />

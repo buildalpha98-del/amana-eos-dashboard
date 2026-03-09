@@ -81,7 +81,7 @@ export function LinkSocialPostModal({
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
             <div className="flex items-center gap-2">
-              <Link2 className="h-5 w-5 text-[#004E64]" />
+              <Link2 className="h-5 w-5 text-brand" />
               <h2 className="text-lg font-semibold text-gray-900">
                 Link to Social Post
               </h2>
@@ -106,7 +106,7 @@ export function LinkSocialPostModal({
               </p>
               <button
                 onClick={onClose}
-                className="rounded-lg bg-[#004E64] px-6 py-2 text-sm font-medium text-white hover:bg-[#003d4f] transition-colors"
+                className="rounded-lg bg-brand px-6 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors"
               >
                 Close
               </button>
@@ -119,7 +119,7 @@ export function LinkSocialPostModal({
                   onClick={() => setTab("browse")}
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     tab === "browse"
-                      ? "border-[#004E64] text-[#004E64]"
+                      ? "border-brand text-brand"
                       : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -129,7 +129,7 @@ export function LinkSocialPostModal({
                   onClick={() => setTab("manual")}
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     tab === "manual"
-                      ? "border-[#004E64] text-[#004E64]"
+                      ? "border-brand text-brand"
                       : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -189,7 +189,7 @@ export function LinkSocialPostModal({
                                         href={sp.permalink}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-gray-400 hover:text-[#004E64]"
+                                        className="text-gray-400 hover:text-brand"
                                       >
                                         <ExternalLink className="h-3.5 w-3.5" />
                                       </a>
@@ -214,7 +214,7 @@ export function LinkSocialPostModal({
                                       )
                                     }
                                     disabled={linkPost.isPending}
-                                    className="rounded-lg bg-[#004E64] px-3 py-1 text-xs font-medium text-white hover:bg-[#003d4f] transition-colors disabled:opacity-50"
+                                    className="rounded-lg bg-brand px-3 py-1 text-xs font-medium text-white hover:bg-brand-hover transition-colors disabled:opacity-50"
                                   >
                                     Link
                                   </button>
@@ -237,7 +237,7 @@ export function LinkSocialPostModal({
                         value={manualPostId}
                         onChange={(e) => setManualPostId(e.target.value)}
                         placeholder="e.g. 123456789012345_987654321098765"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                     <div>
@@ -249,13 +249,13 @@ export function LinkSocialPostModal({
                         value={manualUrl}
                         onChange={(e) => setManualUrl(e.target.value)}
                         placeholder="https://www.facebook.com/..."
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                     <button
                       onClick={handleManualLink}
                       disabled={!manualPostId.trim() || linkPost.isPending}
-                      className="rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#003d4f] transition-colors disabled:opacity-50"
+                      className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors disabled:opacity-50"
                     >
                       {linkPost.isPending ? "Linking..." : "Link Post"}
                     </button>

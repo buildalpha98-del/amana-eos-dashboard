@@ -107,7 +107,7 @@ export function TermCalendarTab({ serviceId }: TermCalendarTabProps) {
         </select>
         <button
           onClick={resetToCurrent}
-          className="rounded-lg border border-[#004E64] px-3 py-1.5 text-sm font-medium text-[#004E64] hover:bg-[#004E64] hover:text-white transition-colors"
+          className="rounded-lg border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-brand hover:text-white transition-colors"
         >
           Current Term
         </button>
@@ -154,7 +154,7 @@ function TermGrid({ weeks }: { weeks: Record<string, TermCalendarEntry[]> }) {
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="bg-[#004E64] text-white">
+        <tr className="bg-brand text-white">
           <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide w-16">
             Week
           </th>

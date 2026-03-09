@@ -189,7 +189,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               onClick={() => handleStatusChange(s.value)}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                 status === s.value
-                  ? "bg-[#004E64] text-white"
+                  ? "bg-brand text-white"
                   : "border border-gray-300 text-gray-600 hover:bg-gray-50"
               }`}
             >
@@ -211,7 +211,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               onBlur={() => autoSave("description", description || null)}
               rows={4}
               placeholder="Add a description..."
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64] resize-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
             />
           </div>
 
@@ -227,7 +227,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 setPriority(val);
                 updateTask.mutate({ id: taskId, priority: val });
               }}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             >
               {PRIORITIES.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -265,7 +265,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                   dueDate ? new Date(dueDate).toISOString() : null
                 )
               }
-              className={`w-full rounded-lg border px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64] ${
+              className={`w-full rounded-lg border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand ${
                 isOverdue
                   ? "border-red-300 bg-red-50"
                   : isToday
@@ -289,7 +289,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 setAssigneeId(e.target.value);
                 autoSave("assigneeId", e.target.value || null);
               }}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             >
               <option value="">Unassigned</option>
               {users.map((user) => (
@@ -314,7 +314,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 setCampaignId(e.target.value);
                 autoSave("campaignId", e.target.value || null);
               }}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             >
               <option value="">None</option>
               {(campaigns ?? []).map((c) => (
@@ -349,7 +349,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 Centre
               </label>
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                <span className="inline-flex items-center rounded-md bg-[#004E64]/10 px-2 py-0.5 text-xs font-medium text-[#004E64]">
+                <span className="inline-flex items-center rounded-md bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
                   {task.service.name} ({task.service.code})
                 </span>
               </div>

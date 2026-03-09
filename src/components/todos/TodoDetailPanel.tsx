@@ -128,7 +128,7 @@ export function TodoDetailPanel({
               onBlur={() => {
                 if (title !== todo.title && title.trim()) saveField("title", title);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
@@ -145,7 +145,7 @@ export function TodoDetailPanel({
                   saveField("description", description || null);
               }}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
               placeholder="Add details..."
             />
           </div>
@@ -187,7 +187,7 @@ export function TodoDetailPanel({
                   setAssigneeId(e.target.value);
                   saveField("assigneeId", e.target.value);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="" disabled>Select assignee</option>
                 {users?.map((u) => (
@@ -208,7 +208,7 @@ export function TodoDetailPanel({
                   setDueDate(e.target.value);
                   saveField("dueDate", e.target.value);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
           </div>
@@ -225,7 +225,7 @@ export function TodoDetailPanel({
                 setRockId(e.target.value);
                 saveField("rockId", e.target.value || null);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">No linked Rock</option>
               {rocks?.map((r) => (

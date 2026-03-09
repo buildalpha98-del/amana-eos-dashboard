@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { TeamMember } from "@/hooks/useTeam";
 import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
+import { ScrollableTable } from "@/components/ui/ScrollableTable";
 
 const roleBadge: Record<string, { label: string; className: string }> = {
   owner: {
@@ -39,19 +40,19 @@ interface TeamListViewProps {
 export function TeamListView({ members }: TeamListViewProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="overflow-x-auto">
+      <ScrollableTable>
         <table className="w-full min-w-[700px] text-sm">
           <thead>
             <tr className="bg-gray-50 text-left">
               <th className="px-4 py-3 font-medium text-gray-500">Name</th>
               <th className="px-4 py-3 font-medium text-gray-500">Role</th>
-              <th className="px-4 py-3 font-medium text-gray-500 text-center">
+              <th className="hidden md:table-cell px-4 py-3 font-medium text-gray-500 text-center">
                 Active Rocks
               </th>
               <th className="px-4 py-3 font-medium text-gray-500">
                 Todo Completion
               </th>
-              <th className="px-4 py-3 font-medium text-gray-500 text-center">
+              <th className="hidden md:table-cell px-4 py-3 font-medium text-gray-500 text-center">
                 Open Issues
               </th>
               <th className="px-4 py-3 font-medium text-gray-500 text-center">
@@ -70,7 +71,7 @@ export function TeamListView({ members }: TeamListViewProps) {
                   {/* Name + avatar + email */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#004E64]/10 flex items-center justify-center">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center">
                         {member.avatar ? (
                           <img
                             src={member.avatar}
@@ -78,7 +79,7 @@ export function TeamListView({ members }: TeamListViewProps) {
                             className="w-8 h-8 rounded-full object-cover"
                           />
                         ) : (
-                          <span className="text-xs font-semibold text-[#004E64]">
+                          <span className="text-xs font-semibold text-brand">
                             {getInitials(member.name)}
                           </span>
                         )}
@@ -105,7 +106,7 @@ export function TeamListView({ members }: TeamListViewProps) {
                   </td>
 
                   {/* Active Rocks */}
-                  <td className="px-4 py-3 text-center font-medium text-gray-700">
+                  <td className="hidden md:table-cell px-4 py-3 text-center font-medium text-gray-700">
                     {member.activeRocks}
                   </td>
 
@@ -114,7 +115,7 @@ export function TeamListView({ members }: TeamListViewProps) {
                     <div className="flex items-center gap-2">
                       <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-[#004E64] rounded-full transition-all"
+                          className="h-full bg-brand rounded-full transition-all"
                           style={{
                             width: `${member.todoCompletionPct}%`,
                           }}
@@ -127,7 +128,7 @@ export function TeamListView({ members }: TeamListViewProps) {
                   </td>
 
                   {/* Open Issues */}
-                  <td className="px-4 py-3 text-center">
+                  <td className="hidden md:table-cell px-4 py-3 text-center">
                     {member.openIssues > 0 ? (
                       <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
                         {member.openIssues}
@@ -148,7 +149,7 @@ export function TeamListView({ members }: TeamListViewProps) {
             })}
           </tbody>
         </table>
-      </div>
+      </ScrollableTable>
     </div>
   );
 }

@@ -58,7 +58,7 @@ export function SaveScenarioDialog({ open, onClose, inputs, outputs }: Props) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Q3 Growth Scenario"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 autoFocus
               />
             </div>
@@ -69,7 +69,7 @@ export function SaveScenarioDialog({ open, onClose, inputs, outputs }: Props) {
                 onChange={(e) => setDescription(e.target.value)}
                 rows={2}
                 placeholder="Optional notes about this scenario..."
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               />
             </div>
             <div className="flex gap-3 pt-2">
@@ -83,7 +83,7 @@ export function SaveScenarioDialog({ open, onClose, inputs, outputs }: Props) {
               <button
                 type="submit"
                 disabled={save.isPending || !name.trim()}
-                className="flex-1 rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#003D52] disabled:opacity-50"
+                className="flex-1 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
               >
                 {save.isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Save"}
               </button>

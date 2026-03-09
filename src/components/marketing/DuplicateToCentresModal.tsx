@@ -80,7 +80,7 @@ export function DuplicateToCentresModal({
               <button
                 type="submit"
                 disabled={selectedServiceIds.length === 0 || isLoading}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white hover:bg-[#003d4f] transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors disabled:opacity-50"
               >
                 {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {isLoading ? "Duplicating..." : "Duplicate"}

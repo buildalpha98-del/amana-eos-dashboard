@@ -235,7 +235,7 @@ export function KPIsTab() {
             onClick={() => setCategoryFilter(cat)}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               categoryFilter === cat
-                ? "bg-[#004E64] text-white"
+                ? "bg-brand text-white"
                 : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
             }`}
           >
@@ -250,7 +250,7 @@ export function KPIsTab() {
               setFormError("");
               setShowCreateModal(true);
             }}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#003d4f]"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover"
           >
             <Plus className="h-4 w-4" />
             New KPI
@@ -282,7 +282,7 @@ export function KPIsTab() {
               return (
                 <div
                   key={kpi.id}
-                  className="rounded-xl border border-[#004E64] bg-white p-5"
+                  className="rounded-xl border border-brand bg-white p-5"
                 >
                   <div className="space-y-3">
                     <div>
@@ -295,7 +295,7 @@ export function KPIsTab() {
                         onChange={(e) =>
                           setEditForm({ ...editForm, name: e.target.value })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
 
@@ -311,7 +311,7 @@ export function KPIsTab() {
                             setEditForm({ ...editForm, target: e.target.value })
                           }
                           min="0"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                         />
                       </div>
                       <div>
@@ -328,7 +328,7 @@ export function KPIsTab() {
                             })
                           }
                           min="0"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                         />
                       </div>
                     </div>
@@ -344,7 +344,7 @@ export function KPIsTab() {
                           setEditForm({ ...editForm, unit: e.target.value })
                         }
                         placeholder="e.g. %, followers, posts"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
 
@@ -358,7 +358,7 @@ export function KPIsTab() {
                           onChange={(e) =>
                             setEditForm({ ...editForm, period: e.target.value })
                           }
-                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                         >
                           {PERIOD_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
@@ -379,7 +379,7 @@ export function KPIsTab() {
                               category: e.target.value,
                             })
                           }
-                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                         >
                           {CATEGORY_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
@@ -408,7 +408,7 @@ export function KPIsTab() {
                         type="button"
                         onClick={() => handleSaveEdit(kpi.id)}
                         disabled={updateKPI.isPending}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-[#004E64] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#003d4f] disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
                       >
                         <Check className="h-3.5 w-3.5" />
                         {updateKPI.isPending ? "Saving..." : "Save"}
@@ -474,7 +474,7 @@ export function KPIsTab() {
                   <div className="h-3 w-full rounded-full bg-gray-100">
                     <div
                       className={`h-3 rounded-full transition-all duration-500 ${
-                        isComplete ? "bg-green-500" : "bg-[#004E64]"
+                        isComplete ? "bg-green-500" : "bg-brand"
                       }`}
                       style={{ width: `${pct}%` }}
                     />
@@ -497,7 +497,7 @@ export function KPIsTab() {
                   </span>
                   <span
                     className={`text-sm font-semibold ${
-                      isComplete ? "text-green-600" : "text-[#004E64]"
+                      isComplete ? "text-green-600" : "text-brand"
                     }`}
                   >
                     {Math.round(pct)}%
@@ -588,7 +588,7 @@ export function KPIsTab() {
                       }
                       placeholder="e.g. Monthly Engagement Rate"
                       required
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
 
@@ -610,7 +610,7 @@ export function KPIsTab() {
                         min="0"
                         placeholder="0"
                         required
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                     <div>
@@ -627,7 +627,7 @@ export function KPIsTab() {
                           })
                         }
                         min="0"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                   </div>
@@ -644,7 +644,7 @@ export function KPIsTab() {
                         setCreateForm({ ...createForm, unit: e.target.value })
                       }
                       placeholder="e.g. %, followers, posts"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
 
@@ -662,7 +662,7 @@ export function KPIsTab() {
                             period: e.target.value,
                           })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       >
                         {PERIOD_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -683,7 +683,7 @@ export function KPIsTab() {
                             category: e.target.value,
                           })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       >
                         {CATEGORY_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -717,7 +717,7 @@ export function KPIsTab() {
                   <button
                     type="submit"
                     disabled={createKPI.isPending}
-                    className="rounded-lg bg-[#004E64] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#003d4f] disabled:opacity-50"
+                    className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
                   >
                     {createKPI.isPending ? "Creating..." : "Create KPI"}
                   </button>

@@ -250,7 +250,7 @@ function ContractFormModal({
   };
 
   const inputCls =
-    "w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent";
+    "w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -431,7 +431,7 @@ function ContractFormModal({
             disabled={
               !form.userId || !form.contractType || !form.payRate || !form.startDate || isSubmitting
             }
-            className="px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Saving..." : submitLabel}
           </button>
@@ -642,7 +642,7 @@ function ContractDetail({
                   className={cn(
                     "w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 mt-0.5 z-10",
                     v.id === contract.id
-                      ? "bg-[#004E64] border-[#004E64]"
+                      ? "bg-brand border-brand"
                       : v.status === "active"
                       ? "bg-emerald-500 border-emerald-500"
                       : v.status === "superseded"
@@ -657,7 +657,7 @@ function ContractDetail({
                     <span
                       className={cn(
                         "text-sm font-medium",
-                        v.id === contract.id ? "text-[#004E64]" : "text-gray-700"
+                        v.id === contract.id ? "text-brand" : "text-gray-700"
                       )}
                     >
                       {CONTRACT_TYPE_LABELS[v.contractType]} &mdash;{" "}
@@ -665,7 +665,7 @@ function ContractDetail({
                     </span>
                     <StatusBadge status={v.status} />
                     {v.id === contract.id && (
-                      <span className="text-xs text-[#004E64] font-medium">(current)</span>
+                      <span className="text-xs text-brand font-medium">(current)</span>
                     )}
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
@@ -685,7 +685,7 @@ function ContractDetail({
           {canSupersede && (
             <button
               onClick={() => setShowSupersede(true)}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-[#004E64] border border-[#004E64]/20 rounded-lg hover:bg-[#004E64]/5 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-brand border border-brand/20 rounded-lg hover:bg-brand/5 transition-colors"
             >
               <ArrowRightLeft className="w-4 h-4" />
               Supersede
@@ -871,7 +871,7 @@ export default function ContractsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -889,7 +889,7 @@ export default function ContractsPage() {
   }
 
   const inputCls =
-    "px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent";
+    "px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent";
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -903,7 +903,7 @@ export default function ContractsPage() {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Contract
@@ -952,7 +952,7 @@ export default function ContractsPage() {
               setStatusFilter("");
               setTypeFilter("");
             }}
-            className="text-xs text-[#004E64] hover:underline font-medium"
+            className="text-xs text-brand hover:underline font-medium"
           >
             Clear filters
           </button>
@@ -990,7 +990,7 @@ export default function ContractsPage() {
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Users className="w-4 h-4 text-[#004E64]" />
+            <Users className="w-4 h-4 text-brand" />
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
               Total Staff
             </p>
@@ -1002,8 +1002,8 @@ export default function ContractsPage() {
       {/* Contract List */}
       {filteredContracts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-[#004E64]/10 flex items-center justify-center mb-4">
-            <FileSignature className="w-8 h-8 text-[#004E64]" />
+          <div className="w-16 h-16 rounded-2xl bg-brand/10 flex items-center justify-center mb-4">
+            <FileSignature className="w-8 h-8 text-brand" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-1">No contracts found</h3>
           <p className="text-sm text-gray-500 max-w-sm mb-4">
@@ -1014,7 +1014,7 @@ export default function ContractsPage() {
           {!search && !statusFilter && !typeFilter && (
             <button
               onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
             >
               <Plus className="w-4 h-4" />
               Create First Contract

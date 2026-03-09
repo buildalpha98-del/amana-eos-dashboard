@@ -30,7 +30,7 @@ function SeatCard({
   return (
     <div className="bg-white border-2 border-[#D4A843] rounded-xl shadow-sm w-56 group/card hover:shadow-md transition-shadow">
       {/* Title bar */}
-      <div className="bg-[#004E64] rounded-t-[10px] px-3 py-2 flex items-center justify-between">
+      <div className="bg-brand rounded-t-[10px] px-3 py-2 flex items-center justify-between">
         <h3 className="text-sm font-bold text-white truncate">{seat.title}</h3>
         {canEdit && (
           <div className="flex items-center gap-0.5 opacity-0 group-hover/card:opacity-100 transition-opacity">
@@ -72,8 +72,8 @@ function SeatCard({
                     className="w-5 h-5 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-5 h-5 rounded-full bg-[#004E64]/10 flex items-center justify-center">
-                    <span className="text-[8px] font-bold text-[#004E64]">
+                  <div className="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center">
+                    <span className="text-[8px] font-bold text-brand">
                       {a.name
                         .split(" ")
                         .map((n) => n[0])
@@ -223,7 +223,7 @@ export function OrgChartView() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -255,7 +255,7 @@ export function OrgChartView() {
             <div className="flex justify-end w-full mb-4">
               <button
                 onClick={() => setCreatingParentId("root")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#004E64] border border-[#004E64]/30 rounded-lg hover:bg-[#004E64]/5 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand border border-brand/30 rounded-lg hover:bg-brand/5 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Root Seat

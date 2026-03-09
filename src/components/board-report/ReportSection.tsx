@@ -74,7 +74,7 @@ export function ReportSection({
               onClick={onAiGenerate}
               disabled={aiGenerating}
               className="no-print inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium rounded-md
-                         text-[#004E64] bg-[#004E64]/5 hover:bg-[#004E64]/10 disabled:opacity-50 transition-colors"
+                         text-brand bg-brand/5 hover:bg-brand/10 disabled:opacity-50 transition-colors"
               title="Generate narrative with AI"
             >
               {aiGenerating ? (
@@ -97,7 +97,7 @@ export function ReportSection({
           onBlur={handleBlur}
           rows={2}
           className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 leading-relaxed
-                     focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]/40
+                     focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40
                      placeholder:text-gray-400"
           placeholder="Add commentary..."
         />

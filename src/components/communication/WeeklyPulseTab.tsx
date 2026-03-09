@@ -156,7 +156,7 @@ export function WeeklyPulseTab() {
         <div className="text-sm font-medium text-gray-700 min-w-[200px] text-center">
           {formatWeekLabel(weekOf)}
           {weekOffset === 0 && (
-            <span className="ml-2 text-xs text-[#004E64] font-semibold">(Current)</span>
+            <span className="ml-2 text-xs text-brand font-semibold">(Current)</span>
           )}
         </div>
         <button
@@ -198,7 +198,7 @@ export function WeeklyPulseTab() {
             onChange={(e) => setWins(e.target.value)}
             placeholder="Share your wins and achievements..."
             rows={3}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] resize-none"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:ring-1 focus:ring-brand resize-none"
           />
         </div>
 
@@ -211,7 +211,7 @@ export function WeeklyPulseTab() {
             onChange={(e) => setPriorities(e.target.value)}
             placeholder="What are you focusing on next..."
             rows={3}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] resize-none"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:ring-1 focus:ring-brand resize-none"
           />
         </div>
 
@@ -224,7 +224,7 @@ export function WeeklyPulseTab() {
             onChange={(e) => setBlockers(e.target.value)}
             placeholder="Anything blocking your progress..."
             rows={2}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] resize-none"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:ring-1 focus:ring-brand resize-none"
           />
         </div>
 
@@ -243,7 +243,7 @@ export function WeeklyPulseTab() {
                   className={cn(
                     "flex flex-col items-center gap-1 rounded-lg border-2 px-3 py-2 transition-all",
                     mood === value
-                      ? "border-[#004E64] bg-[#004E64]/5 scale-110"
+                      ? "border-brand bg-brand/5 scale-110"
                       : "border-gray-200 hover:border-gray-300"
                   )}
                   title={m.label}
@@ -265,7 +265,7 @@ export function WeeklyPulseTab() {
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Additional thoughts, shout-outs, or feedback..."
             rows={2}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] resize-none"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:ring-1 focus:ring-brand resize-none"
           />
         </div>
 
@@ -286,7 +286,7 @@ export function WeeklyPulseTab() {
             className={cn(
               "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors",
               canSubmit && !submitPulse.isPending
-                ? "bg-[#004E64] hover:bg-[#004E64]/90"
+                ? "bg-brand hover:bg-brand/90"
                 : "bg-gray-300 cursor-not-allowed"
             )}
           >
@@ -331,8 +331,8 @@ export function WeeklyPulseTab() {
 
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-[#FECE00]/20 p-2">
-                <BarChart3 className="h-5 w-5 text-[#004E64]" />
+              <div className="rounded-full bg-accent/20 p-2">
+                <BarChart3 className="h-5 w-5 text-brand" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">
@@ -371,7 +371,7 @@ export function WeeklyPulseTab() {
             </div>
             <div className="h-2.5 w-full rounded-full bg-gray-200 overflow-hidden">
               <div
-                className="h-full rounded-full bg-[#004E64] transition-all duration-500"
+                className="h-full rounded-full bg-brand transition-all duration-500"
                 style={{ width: `${submissionRate}%` }}
               />
             </div>
@@ -399,7 +399,7 @@ export function WeeklyPulseTab() {
                         className="h-9 w-9 rounded-full object-cover flex-shrink-0"
                       />
                     ) : (
-                      <div className="h-9 w-9 rounded-full bg-[#004E64] flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                      <div className="h-9 w-9 rounded-full bg-brand flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
                         {pulse.user?.name
                           ?.split(" ")
                           .map((n: string) => n[0])
@@ -466,7 +466,7 @@ export function WeeklyPulseTab() {
             onClick={() => setView("my")}
             className={cn(
               "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
-              view === "my" ? "bg-[#004E64] text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+              view === "my" ? "bg-brand text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
             )}
           >
             My Pulse
@@ -476,7 +476,7 @@ export function WeeklyPulseTab() {
               onClick={() => setView("team")}
               className={cn(
                 "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
-                view === "team" ? "bg-[#004E64] text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+                view === "team" ? "bg-brand text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
               )}
             >
               Team Pulse

@@ -223,7 +223,7 @@ function StaffComplianceView() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -325,7 +325,7 @@ function StaffComplianceView() {
                       href={cert.fileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-[#004E64] hover:underline"
+                      className="flex items-center gap-2 text-sm text-brand hover:underline"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       {cert.fileName || "View document"}
@@ -335,7 +335,7 @@ function StaffComplianceView() {
                   <button
                     onClick={() => handleUpload(type)}
                     disabled={isUploading}
-                    className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-[#004E64] border border-[#004E64]/20 rounded-lg hover:bg-[#004E64]/5 transition-colors disabled:opacity-50"
+                    className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-brand border border-brand/20 rounded-lg hover:bg-brand/5 transition-colors disabled:opacity-50"
                   >
                     <Upload className="w-4 h-4" />
                     {isUploading ? "Uploading..." : "Upload New Version"}
@@ -349,7 +349,7 @@ function StaffComplianceView() {
                   <button
                     onClick={() => handleUpload(type)}
                     disabled={isUploading}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
                   >
                     <Upload className="w-4 h-4" />
                     {isUploading ? "Uploading..." : "Upload Document"}
@@ -411,7 +411,7 @@ export default function CompliancePage() {
                 className={cn(
                   "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
                   isActive
-                    ? "border-[#004E64] text-[#004E64]"
+                    ? "border-brand text-brand"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 )}
               >
@@ -587,7 +587,7 @@ function AdminComplianceView() {
         </button>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Certificate
@@ -629,7 +629,7 @@ function AdminComplianceView() {
             <select
               value={serviceFilter}
               onChange={(e) => setServiceFilter(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All Centres</option>
               {services.map((s) => (
@@ -641,7 +641,7 @@ function AdminComplianceView() {
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All Types</option>
               {certTypes.map((t) => (
@@ -656,7 +656,7 @@ function AdminComplianceView() {
                   setServiceFilter("");
                   setTypeFilter("");
                 }}
-                className="text-xs text-[#004E64] hover:underline"
+                className="text-xs text-brand hover:underline"
               >
                 Clear filters
               </button>
@@ -666,12 +666,12 @@ function AdminComplianceView() {
           {/* Content */}
           {isLoading ? (
             <div className="flex items-center justify-center py-24">
-              <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+              <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
             </div>
           ) : grouped.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-              <div className="w-16 h-16 rounded-2xl bg-[#004E64]/10 flex items-center justify-center mb-4">
-                <ShieldCheck className="w-8 h-8 text-[#004E64]" />
+              <div className="w-16 h-16 rounded-2xl bg-brand/10 flex items-center justify-center mb-4">
+                <ShieldCheck className="w-8 h-8 text-brand" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">
                 No certificates found
@@ -682,7 +682,7 @@ function AdminComplianceView() {
               </p>
               <button
                 onClick={() => setShowCreate(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add First Certificate
@@ -741,7 +741,7 @@ function AdminComplianceView() {
                                     href={cert.fileUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-xs text-[#004E64] hover:underline flex-shrink-0"
+                                    className="flex items-center gap-1 text-xs text-brand hover:underline flex-shrink-0"
                                   >
                                     <FileText className="w-3 h-3" />
                                     File
@@ -847,7 +847,7 @@ function AdminComplianceView() {
                   onChange={(e) =>
                     setForm({ ...form, serviceId: e.target.value })
                   }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 >
                   <option value="">Select centre...</option>
                   {services.map((s) => (
@@ -868,7 +868,7 @@ function AdminComplianceView() {
                   onChange={(e) =>
                     setForm({ ...form, userId: e.target.value })
                   }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 >
                   <option value="">No specific staff member</option>
                   {users.map((u) => (
@@ -887,7 +887,7 @@ function AdminComplianceView() {
                 <select
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 >
                   {certTypes.map((t) => (
                     <option key={t} value={t}>
@@ -907,7 +907,7 @@ function AdminComplianceView() {
                   value={form.label}
                   onChange={(e) => setForm({ ...form, label: e.target.value })}
                   placeholder="e.g. WWCC renewal for John"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
               </div>
 
@@ -923,7 +923,7 @@ function AdminComplianceView() {
                     onChange={(e) =>
                       setForm({ ...form, issueDate: e.target.value })
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -936,7 +936,7 @@ function AdminComplianceView() {
                     onChange={(e) =>
                       setForm({ ...form, expiryDate: e.target.value })
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
                 </div>
               </div>
@@ -950,7 +950,7 @@ function AdminComplianceView() {
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   rows={2}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
                 />
               </div>
 
@@ -967,7 +967,7 @@ function AdminComplianceView() {
                   }
                   min={1}
                   max={365}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
               </div>
             </div>
@@ -987,7 +987,7 @@ function AdminComplianceView() {
                   !form.expiryDate ||
                   createCert.isPending
                 }
-                className="px-4 py-2 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {createCert.isPending ? "Creating..." : "Add Certificate"}
               </button>

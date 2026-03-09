@@ -260,7 +260,7 @@ function OpportunityRow({
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               placeholder="Add notes about this conversion opportunity..."
-              className="flex-1 px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent resize-none"
+              className="flex-1 px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
             />
             <button
               onClick={() => {
@@ -272,7 +272,7 @@ function OpportunityRow({
                 setShowNotes(false);
               }}
               disabled={updateConversion.isPending}
-              className="px-3 py-1 text-xs font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50 self-end"
+              className="px-3 py-1 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 self-end"
             >
               Save
             </button>
@@ -404,7 +404,7 @@ export default function ConversionsPage() {
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="">All Centres</option>
             {services?.map((s) => (
@@ -417,7 +417,7 @@ export default function ConversionsPage() {
           <select
             value={sessionFilter}
             onChange={(e) => setSessionFilter(e.target.value)}
-            className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="">All Sessions</option>
             <option value="bsc">BSC</option>
@@ -429,7 +429,7 @@ export default function ConversionsPage() {
       {/* Opportunity List */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#004E64] animate-spin" />
+          <Loader2 className="w-8 h-8 text-brand animate-spin" />
           <span className="ml-3 text-gray-500">Loading conversions...</span>
         </div>
       ) : opportunities.length > 0 ? (

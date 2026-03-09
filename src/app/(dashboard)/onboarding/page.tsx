@@ -104,7 +104,7 @@ function StaffLMSView() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -114,7 +114,7 @@ function StaffLMSView() {
       {/* My Courses */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-[#004E64]" />
+          <BookOpen className="w-5 h-5 text-brand" />
           My Courses
           <span className="text-sm font-normal text-gray-400">({myEnrollments.length})</span>
         </h3>
@@ -153,7 +153,7 @@ function StaffLMSView() {
                         <div
                           className={cn(
                             "h-full rounded-full transition-all",
-                            progress >= 100 ? "bg-emerald-500" : progress > 0 ? "bg-[#004E64]" : "bg-gray-200"
+                            progress >= 100 ? "bg-emerald-500" : progress > 0 ? "bg-brand" : "bg-gray-200"
                           )}
                           style={{ width: `${progress}%` }}
                         />
@@ -186,7 +186,7 @@ function StaffLMSView() {
                                 {isComplete ? (
                                   <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                                 ) : (
-                                  <Circle className="w-5 h-5 text-gray-300 hover:text-[#004E64]" />
+                                  <Circle className="w-5 h-5 text-gray-300 hover:text-brand" />
                                 )}
                               </button>
                               <ModIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -201,7 +201,7 @@ function StaffLMSView() {
                               {mod.content && (
                                 <button
                                   onClick={() => setExpandedModuleId(isModExpanded ? null : mod.id)}
-                                  className="text-xs text-[#004E64] hover:underline flex-shrink-0"
+                                  className="text-xs text-brand hover:underline flex-shrink-0"
                                 >
                                   {isModExpanded ? "Hide" : "View"}
                                 </button>
@@ -213,7 +213,7 @@ function StaffLMSView() {
                                   {mod.content}
                                 </div>
                                 {mod.resourceUrl && (
-                                  <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#004E64] hover:underline mt-2">
+                                  <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-brand hover:underline mt-2">
                                     <ExternalLink className="w-3 h-3" /> Open resource
                                   </a>
                                 )}
@@ -259,7 +259,7 @@ function StaffLMSView() {
                 <button
                   onClick={() => selfEnrol.mutate(course.id)}
                   disabled={selfEnrol.isPending}
-                  className="mt-4 w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+                  className="mt-4 w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
                 >
                   <UserPlus className="w-4 h-4" />
                   {selfEnrol.isPending ? "Enrolling..." : "Enrol"}
@@ -500,7 +500,7 @@ export default function OnboardingPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-500">Loading onboarding & training...</p>
         </div>
       </div>
@@ -540,7 +540,7 @@ export default function OnboardingPage() {
             </button>
             <button
               onClick={() => activeTab === "onboarding" ? setShowCreatePack(true) : setShowCreateCourse(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
             >
               <Plus className="w-4 h-4" />
               {activeTab === "onboarding" ? "Create Pack" : "Create Course"}
@@ -608,8 +608,8 @@ export default function OnboardingPage() {
                         className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-                            <ClipboardList className="w-5 h-5 text-[#004E64]" />
+                          <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center">
+                            <ClipboardList className="w-5 h-5 text-brand" />
                           </div>
                           <div>
                             <p className="font-semibold text-gray-900">{assignment.pack.name}</p>
@@ -640,7 +640,7 @@ export default function OnboardingPage() {
                           <div className="w-20">
                             <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-[#004E64] rounded-full transition-all duration-500"
+                                className="h-full bg-brand rounded-full transition-all duration-500"
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
@@ -661,7 +661,7 @@ export default function OnboardingPage() {
                                 {p.completed ? (
                                   <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                                 ) : (
-                                  <Circle className="w-5 h-5 text-gray-300 hover:text-[#004E64]" />
+                                  <Circle className="w-5 h-5 text-gray-300 hover:text-brand" />
                                 )}
                               </button>
                               <div className="flex-1">
@@ -700,13 +700,13 @@ export default function OnboardingPage() {
                 <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {packs.map((pack) => (
-                    <div key={pack.id} onClick={() => setSelectedPackId(selectedPackId === pack.id ? null : pack.id)} className={cn("bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer", selectedPackId === pack.id && "ring-2 ring-[#004E64] border-[#004E64]")}>
+                    <div key={pack.id} onClick={() => setSelectedPackId(selectedPackId === pack.id ? null : pack.id)} className={cn("bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer", selectedPackId === pack.id && "ring-2 ring-brand border-brand")}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
                           <ClipboardList className="w-5 h-5 text-cyan-700" />
                         </div>
                         {pack.isDefault && (
-                          <span className="text-[10px] font-bold uppercase bg-[#FECE00] text-[#004E64] px-2 py-0.5 rounded-full">Default</span>
+                          <span className="text-[10px] font-bold uppercase bg-accent text-brand px-2 py-0.5 rounded-full">Default</span>
                         )}
                       </div>
                       <h4 className="font-semibold text-gray-900 mb-1">{pack.name}</h4>
@@ -735,20 +735,20 @@ export default function OnboardingPage() {
                             <input
                               value={editPackName}
                               onChange={(e) => setEditPackName(e.target.value)}
-                              className="w-full text-lg font-semibold text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-[#004E64] focus:border-[#004E64] outline-none"
+                              className="w-full text-lg font-semibold text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                               placeholder="Pack name"
                             />
                             <input
                               value={editPackDesc}
                               onChange={(e) => setEditPackDesc(e.target.value)}
-                              className="w-full text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-[#004E64] focus:border-[#004E64] outline-none"
+                              className="w-full text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                               placeholder="Description (optional)"
                             />
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={saveEditPack}
                                 disabled={editPackMutation.isPending}
-                                className="px-3 py-1 text-xs font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#004E64]/90 disabled:opacity-50"
+                                className="px-3 py-1 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand/90 disabled:opacity-50"
                               >
                                 {editPackMutation.isPending ? "Saving..." : "Save"}
                               </button>
@@ -766,7 +766,7 @@ export default function OnboardingPage() {
                               {selectedPackData?.name ?? packs.find(p => p.id === selectedPackId)?.name ?? "Pack Details"}
                             </h4>
                             {selectedPackData?.isDefault && (
-                              <span className="text-[10px] font-bold uppercase bg-[#FECE00] text-[#004E64] px-2 py-0.5 rounded-full">Default</span>
+                              <span className="text-[10px] font-bold uppercase bg-accent text-brand px-2 py-0.5 rounded-full">Default</span>
                             )}
                           </div>
                         )}
@@ -780,7 +780,7 @@ export default function OnboardingPage() {
                                 const pack = selectedPackData ?? packs.find(p => p.id === selectedPackId);
                                 if (pack) startEditPack({ id: pack.id, name: pack.name, description: pack.description });
                               }}
-                              className="p-1.5 text-gray-400 hover:text-[#004E64] hover:bg-gray-100 rounded-lg transition-colors"
+                              className="p-1.5 text-gray-400 hover:text-brand hover:bg-gray-100 rounded-lg transition-colors"
                               title="Edit pack"
                             >
                               <Pencil className="w-4 h-4" />
@@ -896,7 +896,7 @@ export default function OnboardingPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {courses.map((course) => (
-                <div key={course.id} onClick={() => { setSelectedCourseId(selectedCourseId === course.id ? null : course.id); setExpandedModuleId(null); setExpandedEnrollmentId(null); }} className={cn("bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer", selectedCourseId === course.id && "ring-2 ring-[#004E64] border-[#004E64]")}>
+                <div key={course.id} onClick={() => { setSelectedCourseId(selectedCourseId === course.id ? null : course.id); setExpandedModuleId(null); setExpandedEnrollmentId(null); }} className={cn("bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer", selectedCourseId === course.id && "ring-2 ring-brand border-brand")}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                       <BookOpen className="w-5 h-5 text-purple-700" />
@@ -965,7 +965,7 @@ export default function OnboardingPage() {
                   {isAdmin && selectedCourseData && (
                     <button
                       onClick={() => { setEnrollForm({ userIds: [], dueDate: "" }); setShowEnroll(true); }}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
                     >
                       <UserPlus className="w-4 h-4" />
                       Enrol Staff
@@ -1045,7 +1045,7 @@ export default function OnboardingPage() {
                                         <span>{pct}%</span>
                                       </div>
                                       <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                        <div className="h-full bg-[#004E64] rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                        <div className="h-full bg-brand rounded-full transition-all" style={{ width: `${pct}%` }} />
                                       </div>
                                     </div>
                                     {enrollment.dueDate && (
@@ -1109,7 +1109,7 @@ export default function OnboardingPage() {
                           <p className="text-sm text-gray-500">No staff enrolled yet.</p>
                           <button
                             onClick={() => { setEnrollForm({ userIds: [], dueDate: "" }); setShowEnroll(true); }}
-                            className="text-sm text-[#004E64] hover:underline mt-1"
+                            className="text-sm text-brand hover:underline mt-1"
                           >
                             Enrol staff now →
                           </button>
@@ -1152,23 +1152,23 @@ export default function OnboardingPage() {
             <form onSubmit={handleCreatePack} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                <input type="text" value={packForm.name} onChange={(e) => setPackForm({ ...packForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]" placeholder="E.g., New Staff Induction Pack" required />
+                <input type="text" value={packForm.name} onChange={(e) => setPackForm({ ...packForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" placeholder="E.g., New Staff Induction Pack" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea value={packForm.description} onChange={(e) => setPackForm({ ...packForm, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]" rows={2} />
+                <textarea value={packForm.description} onChange={(e) => setPackForm({ ...packForm, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" rows={2} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Centre (Optional)</label>
-                  <select value={packForm.serviceId} onChange={(e) => setPackForm({ ...packForm, serviceId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]">
+                  <select value={packForm.serviceId} onChange={(e) => setPackForm({ ...packForm, serviceId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand">
                     <option value="">Company-wide</option>
                     {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 <div className="flex items-end">
                   <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={packForm.isDefault} onChange={(e) => setPackForm({ ...packForm, isDefault: e.target.checked })} className="rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]" />
+                    <input type="checkbox" checked={packForm.isDefault} onChange={(e) => setPackForm({ ...packForm, isDefault: e.target.checked })} className="rounded border-gray-300 text-brand focus:ring-brand" />
                     Default pack for new staff
                   </label>
                 </div>
@@ -1176,7 +1176,7 @@ export default function OnboardingPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-gray-700">Tasks</label>
-                  <button type="button" onClick={() => setPackForm({ ...packForm, tasks: [...packForm.tasks, { title: "", description: "", category: "general", isRequired: true }] })} className="text-xs text-[#004E64] hover:underline flex items-center gap-1">
+                  <button type="button" onClick={() => setPackForm({ ...packForm, tasks: [...packForm.tasks, { title: "", description: "", category: "general", isRequired: true }] })} className="text-xs text-brand hover:underline flex items-center gap-1">
                     <Plus className="w-3 h-3" /> Add Task
                   </button>
                 </div>
@@ -1191,7 +1191,7 @@ export default function OnboardingPage() {
                           tasks[i] = { ...tasks[i], title: e.target.value };
                           setPackForm({ ...packForm, tasks });
                         }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
                         placeholder={`Task ${i + 1}...`}
                       />
                       <select
@@ -1201,7 +1201,7 @@ export default function OnboardingPage() {
                           tasks[i] = { ...tasks[i], category: e.target.value };
                           setPackForm({ ...packForm, tasks });
                         }}
-                        className="px-2 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                        className="px-2 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand"
                       >
                         <option value="general">General</option>
                         <option value="documentation">Documentation</option>
@@ -1220,7 +1220,7 @@ export default function OnboardingPage() {
               </div>
               <div className="flex gap-3 pt-4 border-t">
                 <button type="button" onClick={() => setShowCreatePack(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">Cancel</button>
-                <button type="submit" disabled={createPack.isPending} className="flex-1 bg-[#004E64] hover:bg-[#003D52] text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
+                <button type="submit" disabled={createPack.isPending} className="flex-1 bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
                   {createPack.isPending ? "Creating..." : "Create Pack"}
                 </button>
               </div>
@@ -1240,32 +1240,32 @@ export default function OnboardingPage() {
             <form onSubmit={handleCreateCourse} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                <input type="text" value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]" placeholder="E.g., Workplace Health & Safety" required />
+                <input type="text" value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" placeholder="E.g., Workplace Health & Safety" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]" rows={3} />
+                <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" rows={3} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <input type="text" value={courseForm.category} onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]" placeholder="E.g., Safety, Compliance" />
+                  <input type="text" value={courseForm.category} onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" placeholder="E.g., Safety, Compliance" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Centre (Optional)</label>
-                  <select value={courseForm.serviceId} onChange={(e) => setCourseForm({ ...courseForm, serviceId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]">
+                  <select value={courseForm.serviceId} onChange={(e) => setCourseForm({ ...courseForm, serviceId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand">
                     <option value="">Company-wide</option>
                     {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
               </div>
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={courseForm.isRequired} onChange={(e) => setCourseForm({ ...courseForm, isRequired: e.target.checked })} className="rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]" />
+                <input type="checkbox" checked={courseForm.isRequired} onChange={(e) => setCourseForm({ ...courseForm, isRequired: e.target.checked })} className="rounded border-gray-300 text-brand focus:ring-brand" />
                 Required course for all staff
               </label>
               <div className="flex gap-3 pt-4 border-t">
                 <button type="button" onClick={() => setShowCreateCourse(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">Cancel</button>
-                <button type="submit" disabled={createCourse.isPending} className="flex-1 bg-[#004E64] hover:bg-[#003D52] text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
+                <button type="submit" disabled={createCourse.isPending} className="flex-1 bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
                   {createCourse.isPending ? "Creating..." : "Create Course"}
                 </button>
               </div>
@@ -1285,21 +1285,21 @@ export default function OnboardingPage() {
             <form onSubmit={handleAssign} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Staff Member *</label>
-                <select value={assignForm.userId} onChange={(e) => setAssignForm({ ...assignForm, userId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]" required>
+                <select value={assignForm.userId} onChange={(e) => setAssignForm({ ...assignForm, userId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" required>
                   <option value="">Select user...</option>
                   {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Onboarding Pack *</label>
-                <select value={assignForm.packId} onChange={(e) => setAssignForm({ ...assignForm, packId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]" required>
+                <select value={assignForm.packId} onChange={(e) => setAssignForm({ ...assignForm, packId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" required>
                   <option value="">Select pack...</option>
                   {packs.map(p => <option key={p.id} value={p.id}>{p.name} ({p._count.tasks} tasks)</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Due Date (Optional)</label>
-                <input type="date" value={assignForm.dueDate} onChange={(e) => setAssignForm({ ...assignForm, dueDate: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]" />
+                <input type="date" value={assignForm.dueDate} onChange={(e) => setAssignForm({ ...assignForm, dueDate: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
               {assignPack.isError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
@@ -1308,7 +1308,7 @@ export default function OnboardingPage() {
               )}
               <div className="flex gap-3 pt-4 border-t">
                 <button type="button" onClick={() => setShowAssign(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">Cancel</button>
-                <button type="submit" disabled={assignPack.isPending} className="flex-1 bg-[#004E64] hover:bg-[#003D52] text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
+                <button type="submit" disabled={assignPack.isPending} className="flex-1 bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
                   {assignPack.isPending ? "Assigning..." : "Assign"}
                 </button>
               </div>
@@ -1346,7 +1346,7 @@ export default function OnboardingPage() {
                               setEnrollForm({ ...enrollForm, userIds: enrollForm.userIds.filter(id => id !== u.id) });
                             }
                           }}
-                          className="rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]"
+                          className="rounded border-gray-300 text-brand focus:ring-brand"
                         />
                         <span className="text-sm text-gray-900">{u.name}</span>
                         <span className="text-xs text-gray-400">({u.role})</span>
@@ -1367,7 +1367,7 @@ export default function OnboardingPage() {
                   type="date"
                   value={enrollForm.dueDate}
                   onChange={(e) => setEnrollForm({ ...enrollForm, dueDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
               {enrollStaff.isError && (
@@ -1377,7 +1377,7 @@ export default function OnboardingPage() {
               )}
               <div className="flex gap-3 pt-4 border-t">
                 <button type="button" onClick={() => setShowEnroll(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">Cancel</button>
-                <button type="submit" disabled={enrollStaff.isPending || enrollForm.userIds.length === 0} className="flex-1 bg-[#004E64] hover:bg-[#003D52] text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
+                <button type="submit" disabled={enrollStaff.isPending || enrollForm.userIds.length === 0} className="flex-1 bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
                   {enrollStaff.isPending ? "Enrolling..." : `Enrol ${enrollForm.userIds.length} Staff`}
                 </button>
               </div>
@@ -1444,7 +1444,7 @@ function StaffCourseViewer({
     <div className="space-y-4">
       {/* Progress bar */}
       {myEnrollment && (
-        <div className="bg-gradient-to-r from-[#004E64]/5 to-transparent rounded-lg p-4">
+        <div className="bg-gradient-to-r from-brand/5 to-transparent rounded-lg p-4">
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="font-medium text-gray-700">Your Progress</span>
             <span className="text-gray-500">
@@ -1456,7 +1456,7 @@ function StaffCourseViewer({
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-500",
-                pct === 100 ? "bg-emerald-500" : "bg-[#004E64]"
+                pct === 100 ? "bg-emerald-500" : "bg-brand"
               )}
               style={{ width: `${pct}%` }}
             />
@@ -1579,13 +1579,13 @@ function StaffCourseViewer({
                                         return next;
                                       });
                                     }}
-                                    className="text-xs text-[#004E64] hover:underline flex items-center gap-1"
+                                    className="text-xs text-brand hover:underline flex items-center gap-1"
                                   >
                                     {isRevealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                                     {isRevealed ? "Hide Answer" : "Show Answer"}
                                   </button>
                                   {isRevealed && (
-                                    <p className="text-sm text-gray-600 mt-1.5 pl-3 border-l-2 border-[#004E64]/20 whitespace-pre-wrap">
+                                    <p className="text-sm text-gray-600 mt-1.5 pl-3 border-l-2 border-brand/20 whitespace-pre-wrap">
                                       {answer}
                                     </p>
                                   )}
@@ -1601,7 +1601,7 @@ function StaffCourseViewer({
                     {mod.type === "video" && (
                       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         {mod.resourceUrl ? (
-                          <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] transition-colors text-sm">
+                          <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors text-sm">
                             <Play className="w-4 h-4" /> Watch Video
                           </a>
                         ) : mod.content ? (
@@ -1616,7 +1616,7 @@ function StaffCourseViewer({
                     {mod.type === "external_link" && (
                       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         {mod.resourceUrl ? (
-                          <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] transition-colors text-sm">
+                          <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors text-sm">
                             <ExternalLink className="w-4 h-4" /> Open Resource
                           </a>
                         ) : (

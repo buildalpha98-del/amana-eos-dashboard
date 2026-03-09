@@ -61,7 +61,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed left-0 top-0 h-screen bg-[#003344] text-white flex flex-col transition-all duration-300 z-50",
+          "fixed left-0 top-0 h-screen bg-brand-dark text-white flex flex-col transition-all duration-300 z-50",
           // Mobile: off-canvas drawer via translate
           "w-64 -translate-x-full md:translate-x-0",
           // Desktop: collapse toggle
@@ -144,7 +144,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-150",
                         isActive
-                          ? "bg-white/10 text-[#FECE00]"
+                          ? "bg-white/10 text-accent"
                           : "text-white/70 hover:bg-white/5 hover:text-white"
                       )}
                       title={
@@ -171,7 +171,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       <div className="border-t border-white/10 p-3">
         {session?.user && (
           <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#004E64] flex items-center justify-center text-xs font-medium">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand flex items-center justify-center text-xs font-medium">
               {session.user.name
                 ?.split(" ")
                 .map((n) => n[0])
@@ -203,7 +203,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       {/* Collapse Toggle (desktop only) */}
       <button
         onClick={toggleCollapsed}
-        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-[#003344] border border-white/20 hidden md:flex items-center justify-center text-white/60 hover:text-white transition-colors"
+        className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-brand-dark border border-white/20 hidden md:flex items-center justify-center text-white/60 hover:text-white transition-colors"
       >
         {collapsed ? (
           <ChevronRight className="w-3 h-3" />

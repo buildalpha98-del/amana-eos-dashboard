@@ -77,7 +77,7 @@ export function ServiceMultiSelect({
         onClick={() => setOpen(!open)}
         className={cn(
           "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left flex items-center justify-between gap-2",
-          "focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+          "focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         )}
       >
         <div className="flex flex-wrap gap-1 min-h-[20px] flex-1">
@@ -87,7 +87,7 @@ export function ServiceMultiSelect({
             selectedServices.map((s) => (
               <span
                 key={s.id}
-                className="inline-flex items-center gap-1 rounded-md bg-[#004E64]/10 px-2 py-0.5 text-xs font-medium text-[#004E64]"
+                className="inline-flex items-center gap-1 rounded-md bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand"
               >
                 {s.code}
                 <button
@@ -106,7 +106,7 @@ export function ServiceMultiSelect({
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {selectedIds.length > 0 && (
-            <span className="inline-flex items-center justify-center rounded-full bg-[#004E64] px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+            <span className="inline-flex items-center justify-center rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
               {selectedIds.length}
             </span>
           )}
@@ -130,7 +130,7 @@ export function ServiceMultiSelect({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search centres..."
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 py-1.5 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
 
@@ -139,7 +139,7 @@ export function ServiceMultiSelect({
             <button
               type="button"
               onClick={selectAll}
-              className="text-xs font-medium text-[#004E64] hover:underline"
+              className="text-xs font-medium text-brand hover:underline"
             >
               Select All
             </button>
@@ -173,7 +173,7 @@ export function ServiceMultiSelect({
                     type="checkbox"
                     checked={selectedIds.includes(s.id)}
                     onChange={() => toggleId(s.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-[#004E64] focus:ring-[#004E64]"
+                    className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                   />
                   <span className="text-sm text-gray-700">
                     {s.name}{" "}

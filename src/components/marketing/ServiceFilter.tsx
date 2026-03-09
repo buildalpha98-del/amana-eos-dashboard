@@ -18,7 +18,7 @@ export function ServiceFilter({ value, onChange }: ServiceFilterProps) {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-lg border border-gray-300 bg-white text-sm px-3 py-2 focus:ring-[#004E64] focus:border-transparent focus:outline-none focus:ring-1"
+      className="rounded-lg border border-gray-300 bg-white text-sm px-3 py-2 focus:ring-brand focus:border-transparent focus:outline-none focus:ring-1"
     >
       <option value="">All Centres</option>
       {sorted.map((s) => (

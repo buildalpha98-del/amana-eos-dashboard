@@ -62,7 +62,7 @@ export function DashboardProjectTodos({
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <FolderKanban className="w-5 h-5 text-[#004E64]" />
+          <FolderKanban className="w-5 h-5 text-brand" />
           <h3 className="text-lg font-semibold text-gray-900">
             Project To-Dos
           </h3>
@@ -72,7 +72,7 @@ export function DashboardProjectTodos({
         </div>
         <Link
           href="/projects"
-          className="text-sm text-[#004E64] hover:text-[#003D52] font-medium inline-flex items-center gap-1 transition-colors"
+          className="text-sm text-brand hover:text-brand-hover font-medium inline-flex items-center gap-1 transition-colors"
         >
           View All Projects
           <ChevronRight className="w-4 h-4" />
@@ -88,7 +88,7 @@ export function DashboardProjectTodos({
               <div className="flex items-center gap-2 mb-2">
                 <Link
                   href="/projects"
-                  className="text-sm font-semibold text-gray-800 hover:text-[#004E64] transition-colors"
+                  className="text-sm font-semibold text-gray-800 hover:text-brand transition-colors"
                 >
                   {first.projectName}
                 </Link>
@@ -120,10 +120,10 @@ export function DashboardProjectTodos({
                       <button
                         onClick={() => toggleTodo.mutate(todo.id)}
                         disabled={toggleTodo.isPending}
-                        className="w-4.5 h-4.5 rounded border-2 border-gray-300 hover:border-[#004E64] flex items-center justify-center flex-shrink-0 transition-colors"
+                        className="w-4.5 h-4.5 rounded border-2 border-gray-300 hover:border-brand flex items-center justify-center flex-shrink-0 transition-colors"
                         title="Mark complete"
                       >
-                        <CheckSquare className="w-0 h-0 group-hover:w-3 group-hover:h-3 text-[#004E64] transition-all" />
+                        <CheckSquare className="w-0 h-0 group-hover:w-3 group-hover:h-3 text-brand transition-all" />
                       </button>
 
                       {/* Title + meta */}

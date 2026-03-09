@@ -44,7 +44,7 @@ export default function RocksPage() {
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 view === "kanban"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="Kanban view"
@@ -56,7 +56,7 @@ export default function RocksPage() {
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 view === "list"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="List view"
@@ -68,7 +68,7 @@ export default function RocksPage() {
           {/* Add Rock */}
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             Add Rock
@@ -104,7 +104,7 @@ export default function RocksPage() {
           <span className="text-sm text-red-600">
             {rocks.filter((r) => r.status === "off_track").length} off track
           </span>
-          <span className="text-sm text-[#004E64]">
+          <span className="text-sm text-brand">
             {rocks.filter((r) => r.status === "complete").length} complete
           </span>
         </div>

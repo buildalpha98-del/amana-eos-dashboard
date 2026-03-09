@@ -179,7 +179,7 @@ function QuickAddToDoModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What needs to be done?"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
               autoFocus
               required
             />
@@ -193,7 +193,7 @@ function QuickAddToDoModal({
               <select
                 value={assigneeId}
                 onChange={(e) => setAssigneeId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
                 required
               >
                 <option value="">Select assignee...</option>
@@ -210,7 +210,7 @@ function QuickAddToDoModal({
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
                 required
               />
             </div>
@@ -225,7 +225,7 @@ function QuickAddToDoModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Additional notes..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
             />
           </div>
 
@@ -240,7 +240,7 @@ function QuickAddToDoModal({
             <button
               type="submit"
               disabled={createTodoMutation.isPending || !title || !dueDate || !assigneeId}
-              className="flex-1 px-4 py-2 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] disabled:opacity-50 transition-colors font-medium"
+              className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50 transition-colors font-medium"
             >
               {createTodoMutation.isPending ? "Creating..." : "Create To-Do"}
             </button>
@@ -359,7 +359,7 @@ function QuickAddIssueModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What's the issue?"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
               autoFocus
               required
             />
@@ -372,7 +372,7 @@ function QuickAddIssueModal({
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as typeof priority)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -390,7 +390,7 @@ function QuickAddIssueModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the issue..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
             />
           </div>
 
@@ -405,7 +405,7 @@ function QuickAddIssueModal({
             <button
               type="submit"
               disabled={createIssueMutation.isPending || !title}
-              className="flex-1 px-4 py-2 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] disabled:opacity-50 transition-colors font-medium"
+              className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50 transition-colors font-medium"
             >
               {createIssueMutation.isPending ? "Creating..." : "Report Issue"}
             </button>
@@ -535,7 +535,7 @@ function QuickAddRockModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What's your rock goal?"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
               autoFocus
               required
             />
@@ -551,7 +551,7 @@ function QuickAddRockModal({
                 onClick={() => setRockType("company")}
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   rockType === "company"
-                    ? "bg-[#004E64] text-white border-[#004E64]"
+                    ? "bg-brand text-white border-brand"
                     : "border-gray-300 text-gray-700 hover:bg-gray-50"
                 }`}
               >
@@ -562,7 +562,7 @@ function QuickAddRockModal({
                 onClick={() => setRockType("personal")}
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   rockType === "personal"
-                    ? "bg-[#004E64] text-white border-[#004E64]"
+                    ? "bg-brand text-white border-brand"
                     : "border-gray-300 text-gray-700 hover:bg-gray-50"
                 }`}
               >
@@ -578,7 +578,7 @@ function QuickAddRockModal({
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as typeof priority)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
             >
               <option value="medium">Medium</option>
               <option value="high">High</option>
@@ -595,7 +595,7 @@ function QuickAddRockModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Details and context..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]/50"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
             />
           </div>
 
@@ -610,7 +610,7 @@ function QuickAddRockModal({
             <button
               type="submit"
               disabled={createRockMutation.isPending || !title}
-              className="flex-1 px-4 py-2 bg-[#004E64] text-white rounded-lg hover:bg-[#003D52] disabled:opacity-50 transition-colors font-medium"
+              className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50 transition-colors font-medium"
             >
               {createRockMutation.isPending ? "Creating..." : "Create Rock"}
             </button>

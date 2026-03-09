@@ -103,7 +103,7 @@ export function RegionalRollup({
         {activeState && (
           <button
             onClick={() => onStateSelect(null)}
-            className="text-xs text-[#004E64] hover:text-[#004E64]/70 font-medium transition-colors px-2 py-1 rounded-lg hover:bg-gray-50"
+            className="text-xs text-brand hover:text-brand/70 font-medium transition-colors px-2 py-1 rounded-lg hover:bg-gray-50"
           >
             Clear filter
           </button>
@@ -124,7 +124,7 @@ export function RegionalRollup({
               className={cn(
                 "text-left rounded-xl border-2 p-4 transition-all hover:shadow-sm",
                 isActive
-                  ? "border-[#004E64] bg-[#004E64]/5 shadow-sm"
+                  ? "border-brand bg-brand/5 shadow-sm"
                   : cn("hover:border-gray-300", getScoreBorderColor(group.avgScore)),
                 !isActive && getScoreBgAccent(group.avgScore)
               )}
@@ -135,14 +135,14 @@ export function RegionalRollup({
                   <MapPin
                     className={cn(
                       "w-4 h-4",
-                      isActive ? "text-[#004E64]" : "text-gray-400"
+                      isActive ? "text-brand" : "text-gray-400"
                     )}
                   />
                   <div>
                     <p
                       className={cn(
                         "text-sm font-bold",
-                        isActive ? "text-[#004E64]" : "text-gray-900"
+                        isActive ? "text-brand" : "text-gray-900"
                       )}
                     >
                       {group.state}
@@ -155,7 +155,7 @@ export function RegionalRollup({
                 <ChevronRight
                   className={cn(
                     "w-4 h-4 transition-transform",
-                    isActive ? "text-[#004E64] rotate-90" : "text-gray-300"
+                    isActive ? "text-brand rotate-90" : "text-gray-300"
                   )}
                 />
               </div>
@@ -189,7 +189,7 @@ export function RegionalRollup({
                 {/* Top Performer */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500 flex items-center gap-1">
-                    <Trophy className="w-3 h-3 text-[#FECE00]" />
+                    <Trophy className="w-3 h-3 text-accent" />
                     Top
                   </span>
                   <span

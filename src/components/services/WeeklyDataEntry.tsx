@@ -138,7 +138,7 @@ export function WeeklyDataEntry({
             Week of {weekLabel}
           </p>
           {weekOffset === 0 && (
-            <p className="text-[10px] text-[#004E64] font-medium">Current Week</p>
+            <p className="text-[10px] text-brand font-medium">Current Week</p>
           )}
         </div>
         <button
@@ -166,7 +166,7 @@ export function WeeklyDataEntry({
               min={0}
               value={bscRecurring === 0 ? "" : bscRecurring}
               onChange={(e) => setBscRecurring(Number(e.target.value) || 0)}
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
@@ -176,7 +176,7 @@ export function WeeklyDataEntry({
               min={0}
               value={bscCasual === 0 ? "" : bscCasual}
               onChange={(e) => setBscCasual(Number(e.target.value) || 0)}
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
@@ -186,7 +186,7 @@ export function WeeklyDataEntry({
               min={0}
               value={ascRecurring === 0 ? "" : ascRecurring}
               onChange={(e) => setAscRecurring(Number(e.target.value) || 0)}
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
@@ -196,7 +196,7 @@ export function WeeklyDataEntry({
               min={0}
               value={ascCasual === 0 ? "" : ascCasual}
               onChange={(e) => setAscCasual(Number(e.target.value) || 0)}
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
           <div className="col-span-2">
@@ -206,7 +206,7 @@ export function WeeklyDataEntry({
               min={0}
               value={vcAttendance === 0 ? "" : vcAttendance}
               onChange={(e) => setVcAttendance(Number(e.target.value) || 0)}
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
         </div>
@@ -225,7 +225,7 @@ export function WeeklyDataEntry({
               min={0}
               value={staffCosts === 0 ? "" : staffCosts}
               onChange={(e) => setStaffCosts(Number(e.target.value) || 0)}
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
@@ -235,7 +235,7 @@ export function WeeklyDataEntry({
               min={0}
               value={foodCosts === 0 ? "" : foodCosts}
               onChange={(e) => setFoodCosts(Number(e.target.value) || 0)}
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
@@ -245,7 +245,7 @@ export function WeeklyDataEntry({
               min={0}
               value={suppliesCosts === 0 ? "" : suppliesCosts}
               onChange={(e) => setSuppliesCosts(Number(e.target.value) || 0)}
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
           <div>
@@ -255,17 +255,17 @@ export function WeeklyDataEntry({
               min={0}
               value={otherCosts === 0 ? "" : otherCosts}
               onChange={(e) => setOtherCosts(Number(e.target.value) || 0)}
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
           </div>
         </div>
       </div>
 
       {/* Revenue Preview */}
-      <div className="bg-[#004E64]/5 rounded-lg p-3 space-y-1.5">
+      <div className="bg-brand/5 rounded-lg p-3 space-y-1.5">
         <div className="flex items-center gap-2 mb-2">
-          <DollarSign className="w-4 h-4 text-[#004E64]" />
-          <h4 className="text-xs font-semibold text-[#004E64] uppercase">Revenue Preview</h4>
+          <DollarSign className="w-4 h-4 text-brand" />
+          <h4 className="text-xs font-semibold text-brand uppercase">Revenue Preview</h4>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-gray-500">BSC ({bscTotal} × ${bscRate} × 5d)</span>
@@ -279,10 +279,10 @@ export function WeeklyDataEntry({
           <span className="text-gray-500">VC ({vcAttendance} × ${vcRate} × 5d)</span>
           <span className="font-medium text-gray-700">{formatCurrency(estVcRevenue)}</span>
         </div>
-        <div className="border-t border-[#004E64]/10 pt-1.5 mt-1.5">
+        <div className="border-t border-brand/10 pt-1.5 mt-1.5">
           <div className="flex justify-between text-xs font-semibold">
-            <span className="text-[#004E64]">Total Revenue</span>
-            <span className="text-[#004E64]">{formatCurrency(estTotalRevenue)}</span>
+            <span className="text-brand">Total Revenue</span>
+            <span className="text-brand">{formatCurrency(estTotalRevenue)}</span>
           </div>
           <div className="flex justify-between text-xs">
             <span className="text-gray-500">Total Costs</span>
@@ -303,7 +303,7 @@ export function WeeklyDataEntry({
       <button
         onClick={() => submitWeekly.mutate()}
         disabled={submitWeekly.isPending}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
       >
         <Save className="w-4 h-4" />
         {submitWeekly.isPending ? "Saving..." : "Save Weekly Data"}

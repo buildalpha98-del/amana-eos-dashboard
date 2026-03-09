@@ -4,6 +4,7 @@
   --color-brand: #004E64;
   --color-brand-dark: #003344;
   --color-brand-light: #1A6A82;
+  --color-brand-hover: #003D52;
   --color-accent: #FECE00;
   --color-accent-light: #FBBF24;
   --color-background: #F8F9FA;
@@ -45,6 +46,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #9CA3AF;
+}
+
+/* Scrollbar-hide utility for horizontal scroll containers */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Print styles for board report PDF export */

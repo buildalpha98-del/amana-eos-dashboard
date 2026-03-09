@@ -127,14 +127,14 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
-          <AlertCircle className="w-4 h-4 text-[#004E64]" />
+          <AlertCircle className="w-4 h-4 text-brand" />
           Service Issues
         </h3>
         <div className="flex items-center gap-2">
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             {priorityFilters.map((f) => (
               <option key={f} value={f}>
@@ -144,7 +144,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
           </select>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-[#004E64] text-white rounded-md hover:bg-[#004E64]/90 transition-colors"
+            className="flex items-center gap-1 text-xs px-3 py-1.5 bg-brand text-white rounded-md hover:bg-brand/90 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             Raise Issue
@@ -155,7 +155,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
       {/* Issues List */}
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin w-6 h-6 border-2 border-[#004E64] border-t-transparent rounded-full" />
+          <div className="animate-spin w-6 h-6 border-2 border-brand border-t-transparent rounded-full" />
         </div>
       ) : filteredIssues.length === 0 ? (
         <div className="text-center py-8 text-sm text-gray-400">
@@ -202,7 +202,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
 
                 {/* Spawned Todos Count */}
                 {issue._count.spawnedTodos > 0 && (
-                  <span className="text-[10px] px-1.5 py-0.5 bg-[#004E64]/10 text-[#004E64] rounded whitespace-nowrap">
+                  <span className="text-[10px] px-1.5 py-0.5 bg-brand/10 text-brand rounded whitespace-nowrap">
                     {issue._count.spawnedTodos} to-do{issue._count.spawnedTodos !== 1 ? "s" : ""}
                   </span>
                 )}
@@ -214,7 +214,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                       updateStatus.mutate({ id: issue.id, status: nextStatus })
                     }
                     disabled={updateStatus.isPending}
-                    className="flex items-center gap-0.5 text-[10px] text-[#004E64] hover:text-[#004E64]/80 font-medium whitespace-nowrap"
+                    className="flex items-center gap-0.5 text-[10px] text-brand hover:text-brand/80 font-medium whitespace-nowrap"
                     title={`Move to ${statusConfig[nextStatus]?.label || nextStatus}`}
                   >
                     <ArrowRight className="w-3 h-3" />
@@ -260,7 +260,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                     onChange={(e) =>
                       setFormData((p) => ({ ...p, title: e.target.value }))
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                     placeholder="Describe the issue..."
                   />
                 </div>
@@ -276,7 +276,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                       setFormData((p) => ({ ...p, description: e.target.value }))
                     }
                     rows={3}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64] resize-none"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
                     placeholder="Additional context..."
                   />
                 </div>
@@ -291,7 +291,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                     onChange={(e) =>
                       setFormData((p) => ({ ...p, priority: e.target.value }))
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="critical">Critical</option>
                     <option value="high">High</option>
@@ -310,7 +310,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                     onChange={(e) =>
                       setFormData((p) => ({ ...p, ownerId: e.target.value }))
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="">Unassigned</option>
                     {users.map((u) => (
@@ -335,7 +335,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                   className={cn(
                     "text-xs px-4 py-2 rounded-lg font-medium transition-colors",
                     formData.title
-                      ? "bg-[#004E64] text-white hover:bg-[#004E64]/90"
+                      ? "bg-brand text-white hover:bg-brand/90"
                       : "bg-gray-100 text-gray-400 cursor-not-allowed"
                   )}
                 >

@@ -100,7 +100,7 @@ export default function ScorecardPage() {
               className={cn(
                 "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
                 groupBy === "person"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="Group by person"
@@ -113,7 +113,7 @@ export default function ScorecardPage() {
               className={cn(
                 "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
                 groupBy === "service"
-                  ? "bg-white text-[#004E64] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-gray-400 hover:text-gray-600"
               )}
               title="Group by centre"
@@ -129,7 +129,7 @@ export default function ScorecardPage() {
           />
           <button
             onClick={() => setShowAddMeasurable(true)}
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Add Measurable</span>

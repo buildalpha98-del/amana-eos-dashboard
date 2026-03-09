@@ -50,7 +50,7 @@ export function TemplatePicker({
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 text-[#004E64] animate-spin" />
+            <Loader2 className="w-6 h-6 text-brand animate-spin" />
           </div>
         ) : sorted.length === 0 ? (
           <div className="text-center py-12">
@@ -74,13 +74,13 @@ export function TemplatePicker({
                   onClick={() => onSelect(t.id)}
                   className={`w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all group ${
                     isFeatured
-                      ? "border-[#004E64]/30 bg-[#004E64]/[0.02] hover:border-[#004E64] hover:bg-[#004E64]/5"
+                      ? "border-brand/30 bg-brand/[0.02] hover:border-brand hover:bg-brand/5"
                       : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                   }`}
                 >
                   {isFeatured ? (
-                    <div className="w-10 h-10 rounded-lg bg-[#004E64]/10 flex items-center justify-center flex-shrink-0">
-                      <Rocket className="w-5 h-5 text-[#004E64]" />
+                    <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center flex-shrink-0">
+                      <Rocket className="w-5 h-5 text-brand" />
                     </div>
                   ) : (
                     <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -93,7 +93,7 @@ export function TemplatePicker({
                         {t.name}
                       </p>
                       {isFeatured && (
-                        <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-[#004E64] text-white">
+                        <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-brand text-white">
                           FEATURED
                         </span>
                       )}

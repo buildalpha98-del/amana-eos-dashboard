@@ -67,12 +67,12 @@ export default function VisionPage() {
       {/* Content */}
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-[#004E64]/5 flex items-center justify-center mb-4">
-            <Eye className="w-8 h-8 text-[#004E64]/30" />
+          <div className="w-16 h-16 rounded-2xl bg-brand/5 flex items-center justify-center mb-4">
+            <Eye className="w-8 h-8 text-brand/30" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900">
             V/TO not available
@@ -88,8 +88,8 @@ export default function VisionPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-6">
               <div className="flex items-center gap-2 px-1">
-                <div className="w-1.5 h-6 rounded-full bg-[#004E64]" />
-                <h3 className="text-sm font-bold text-[#004E64] uppercase tracking-wider">
+                <div className="w-1.5 h-6 rounded-full bg-brand" />
+                <h3 className="text-sm font-bold text-brand uppercase tracking-wider">
                   Vision
                 </h3>
               </div>
@@ -122,7 +122,7 @@ export default function VisionPage() {
             {/* Traction Side */}
             <div className="space-y-6">
               <div className="flex items-center gap-2 px-1">
-                <div className="w-1.5 h-6 rounded-full bg-[#FECE00]" />
+                <div className="w-1.5 h-6 rounded-full bg-accent" />
                 <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
                   Traction
                 </h3>
@@ -152,14 +152,14 @@ export default function VisionPage() {
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Mountain className="w-5 h-5 text-[#004E64]" />
+                <Mountain className="w-5 h-5 text-brand" />
                 <h3 className="text-sm font-bold text-gray-900">
                   {quarter} Rocks
                 </h3>
               </div>
               <Link
                 href="/rocks"
-                className="inline-flex items-center gap-1 text-xs font-medium text-[#004E64] hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
               >
                 View all <ArrowRight className="w-3 h-3" />
               </Link>
@@ -173,13 +173,13 @@ export default function VisionPage() {
                     <span className="text-xs text-gray-500">
                       Average completion
                     </span>
-                    <span className="text-sm font-semibold text-[#004E64]">
+                    <span className="text-sm font-semibold text-brand">
                       {rockStats.avgProgress}%
                     </span>
                   </div>
                   <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#004E64] rounded-full transition-all"
+                      className="h-full bg-brand rounded-full transition-all"
                       style={{ width: `${rockStats.avgProgress}%` }}
                     />
                   </div>
@@ -212,10 +212,10 @@ export default function VisionPage() {
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-lg font-bold text-[#004E64]">
+                    <div className="text-lg font-bold text-brand">
                       {rockStats.done}
                     </div>
-                    <div className="text-[10px] text-[#004E64] uppercase tracking-wider">
+                    <div className="text-[10px] text-brand uppercase tracking-wider">
                       Done
                     </div>
                   </div>
@@ -244,7 +244,7 @@ export default function VisionPage() {
               </div>
               <Link
                 href="/issues"
-                className="inline-flex items-center gap-1 text-xs font-medium text-[#004E64] hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
               >
                 View all <ArrowRight className="w-3 h-3" />
               </Link>
@@ -279,7 +279,7 @@ export default function VisionPage() {
                 {companyIssues.length > 5 && (
                   <Link
                     href="/issues"
-                    className="block text-center text-xs text-[#004E64] hover:underline py-1"
+                    className="block text-center text-xs text-brand hover:underline py-1"
                   >
                     +{companyIssues.length - 5} more issues
                   </Link>

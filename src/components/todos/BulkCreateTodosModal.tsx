@@ -148,7 +148,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <ListPlus className="w-5 h-5 text-[#004E64]" />
+            <ListPlus className="w-5 h-5 text-brand" />
             <h2 className="text-lg font-semibold text-gray-900">
               Bulk Create To-Dos
             </h2>
@@ -176,7 +176,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
               </p>
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium rounded-lg bg-[#004E64] text-white hover:bg-[#003D52] transition-colors"
+                className="px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors"
               >
                 Done
               </button>
@@ -197,14 +197,14 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
                       placeholder="To-Do title *"
                       value={row.title}
                       onChange={(e) => updateRow(i, "title", e.target.value)}
-                      className="sm:col-span-2 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none"
+                      className="sm:col-span-2 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
                     />
                     <select
                       value={row.assigneeId}
                       onChange={(e) =>
                         updateRow(i, "assigneeId", e.target.value)
                       }
-                      className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none"
+                      className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
                     >
                       <option value="">Assignee *</option>
                       {users.map((u) => (
@@ -218,7 +218,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
                       onChange={(e) =>
                         updateRow(i, "serviceId", e.target.value)
                       }
-                      className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#004E64] focus:ring-1 focus:ring-[#004E64] focus:outline-none"
+                      className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
                     >
                       <option value="">Centre (optional)</option>
                       {services.map((s) => (
@@ -242,7 +242,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
               <button
                 onClick={addRow}
                 disabled={rows.length >= 50}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-dashed border-gray-300 rounded-lg hover:border-[#004E64] hover:text-[#004E64] transition-colors disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-dashed border-gray-300 rounded-lg hover:border-brand hover:text-brand transition-colors disabled:opacity-50"
               >
                 <Plus className="w-4 h-4" />
                 Add Row ({rows.length}/50)
@@ -273,7 +273,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
               <button
                 onClick={handleSubmit}
                 disabled={validRows.length === 0 || loading}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-[#004E64] text-white hover:bg-[#003D52] disabled:opacity-50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-50 transition-colors"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

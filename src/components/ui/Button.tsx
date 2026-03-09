@@ -6,11 +6,11 @@ import { Loader2 } from "lucide-react";
 
 const variantStyles = {
   primary:
-    "bg-[#004E64] text-white hover:bg-[#003D52] focus-visible:ring-[#004E64]/50",
+    "bg-brand text-white hover:bg-brand-hover focus-visible:ring-brand/50",
   secondary:
     "border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus-visible:ring-gray-300",
   outline:
-    "border border-[#004E64] text-[#004E64] bg-white hover:bg-[#004E64]/5 focus-visible:ring-[#004E64]/50",
+    "border border-brand text-brand bg-white hover:bg-brand/5 focus-visible:ring-brand/50",
   ghost:
     "text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-gray-300",
   destructive:

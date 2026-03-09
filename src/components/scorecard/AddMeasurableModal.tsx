@@ -232,7 +232,7 @@ export function AddMeasurableModal({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="e.g., Weekly enrolments"
             />
           </div>
@@ -246,7 +246,7 @@ export function AddMeasurableModal({
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="Brief description"
             />
           </div>
@@ -259,7 +259,7 @@ export function AddMeasurableModal({
               required
               value={ownerId}
               onChange={(e) => setOwnerId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Select person...</option>
               {users?.map((u) => (
@@ -278,7 +278,7 @@ export function AddMeasurableModal({
             <select
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All centres (global)</option>
               {services?.map((s) => (
@@ -300,7 +300,7 @@ export function AddMeasurableModal({
                 step="any"
                 value={goalValue}
                 onChange={(e) => setGoalValue(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="100"
               />
             </div>
@@ -313,7 +313,7 @@ export function AddMeasurableModal({
                 onChange={(e) =>
                   setGoalDirection(e.target.value as "above" | "below" | "exact")
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="above">{"\u2265"} Above</option>
                 <option value="below">{"\u2264"} Below</option>
@@ -327,7 +327,7 @@ export function AddMeasurableModal({
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">None</option>
                 <option value="$">$ Dollar</option>
@@ -349,7 +349,7 @@ export function AddMeasurableModal({
             <button
               type="submit"
               disabled={isPending}
-              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {isPending
                 ? isEditMode

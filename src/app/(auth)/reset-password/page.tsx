@@ -87,7 +87,7 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#003344] via-[#004E64] to-[#1A6A82]">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-dark via-brand to-brand-light">
       <div className="w-full max-w-md mx-4">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
@@ -106,7 +106,7 @@ function ResetPasswordForm() {
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {validating ? (
             <div className="text-center py-8">
-              <svg className="animate-spin h-8 w-8 text-[#004E64] mx-auto mb-3" viewBox="0 0 24 24" fill="none">
+              <svg className="animate-spin h-8 w-8 text-brand mx-auto mb-3" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
@@ -127,7 +127,7 @@ function ResetPasswordForm() {
               </p>
               <Link
                 href="/login"
-                className="inline-block px-6 py-2.5 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+                className="inline-block px-6 py-2.5 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors"
               >
                 Sign In
               </Link>
@@ -147,7 +147,7 @@ function ResetPasswordForm() {
               </p>
               <Link
                 href="/forgot-password"
-                className="inline-block px-6 py-2.5 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+                className="inline-block px-6 py-2.5 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors"
               >
                 Request New Link
               </Link>
@@ -182,7 +182,7 @@ function ResetPasswordForm() {
                     minLength={12}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent transition-shadow"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-shadow"
                     placeholder="At least 12 characters"
                     autoComplete="new-password"
                   />
@@ -229,7 +229,7 @@ function ResetPasswordForm() {
                     minLength={12}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent transition-shadow"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-shadow"
                     placeholder="Re-enter your password"
                     autoComplete="new-password"
                   />
@@ -238,7 +238,7 @@ function ResetPasswordForm() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-2.5 px-4 bg-[#004E64] hover:bg-[#003D52] text-white font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#004E64]"
+                  className="w-full py-2.5 px-4 bg-brand hover:bg-brand-hover text-white font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand"
                 >
                   {loading ? (
                     <span className="inline-flex items-center gap-2">

@@ -105,7 +105,7 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-[#004E64]" />
+          <Activity className="w-4 h-4 text-brand" />
           <h3 className="text-sm font-semibold text-gray-900">
             Today&apos;s Operations
           </h3>
@@ -241,7 +241,7 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
                 <td className="px-2 py-2.5">
                   <Link
                     href={`/services/${c.id}`}
-                    className="text-gray-400 hover:text-[#004E64] transition-colors"
+                    className="text-gray-400 hover:text-brand transition-colors"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </Link>

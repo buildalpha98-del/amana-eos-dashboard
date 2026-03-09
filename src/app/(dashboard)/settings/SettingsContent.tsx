@@ -170,7 +170,7 @@ function InviteUserModal({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="John Smith"
             />
           </div>
@@ -184,7 +184,7 @@ function InviteUserModal({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="john@amanaoshc.com.au"
             />
           </div>
@@ -198,7 +198,7 @@ function InviteUserModal({
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="Set a temporary password"
               minLength={8}
             />
@@ -211,7 +211,7 @@ function InviteUserModal({
             <select
               value={role}
               onChange={(e) => { setRole(e.target.value as Role); if (e.target.value !== "staff" && e.target.value !== "member") setServiceId(""); }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="staff">{ROLE_DISPLAY_NAMES.staff}</option>
               <option value="member">{ROLE_DISPLAY_NAMES.member}</option>
@@ -229,7 +229,7 @@ function InviteUserModal({
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select a service...</option>
                 {services?.map((svc) => (
@@ -255,7 +255,7 @@ function InviteUserModal({
             <button
               type="submit"
               disabled={createUser.isPending}
-              className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {createUser.isPending ? "Creating..." : "Create User"}
             </button>
@@ -269,9 +269,9 @@ function InviteUserModal({
 function RoleIcon({ role }: { role: Role }) {
   switch (role) {
     case "owner":
-      return <ShieldCheck className="w-4 h-4 text-[#FECE00]" />;
+      return <ShieldCheck className="w-4 h-4 text-accent" />;
     case "admin":
-      return <Shield className="w-4 h-4 text-[#004E64]" />;
+      return <Shield className="w-4 h-4 text-brand" />;
     default:
       return <User className="w-4 h-4 text-gray-400" />;
   }
@@ -357,7 +357,7 @@ function UserRow({
     <tr className="border-b border-gray-100 last:border-0">
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#004E64]/10 flex items-center justify-center text-xs font-medium text-[#004E64]">
+          <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-xs font-medium text-brand">
             {user.name
               .split(" ")
               .map((n) => n[0])
@@ -478,7 +478,7 @@ function UserRow({
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="New password (min 8 characters)"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent mb-4"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent mb-4"
                     minLength={8}
                   />
                   <div className="flex gap-3">
@@ -491,7 +491,7 @@ function UserRow({
                     <button
                       onClick={() => resetPassword.mutate(newPassword)}
                       disabled={newPassword.length < 8 || resetPassword.isPending}
-                      className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50 text-sm"
+                      className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 text-sm"
                     >
                       {resetPassword.isPending ? "Resetting..." : "Reset"}
                     </button>
@@ -618,7 +618,7 @@ function ActivityLogPanel() {
           <select
             value={entityType}
             onChange={(e) => { setEntityType(e.target.value); setPage(1); }}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
           >
             {entityTypeOptions.map((t) => (
               <option key={t} value={t === "All" ? "" : t}>
@@ -811,7 +811,7 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
               className={cn(
                 "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                 hasChanges
-                  ? "bg-[#004E64] text-white hover:bg-[#003D52]"
+                  ? "bg-brand text-white hover:bg-brand-hover"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
               )}
             >
@@ -836,7 +836,7 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
               onChange={(e) => setOrgName(e.target.value)}
               readOnly={!isOwner}
               className={cn(
-                "w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent",
+                "w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent",
                 !isOwner && "bg-gray-50 cursor-not-allowed"
               )}
             />
@@ -863,7 +863,7 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
                   }}
                   readOnly={!isOwner}
                   className={cn(
-                    "w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]",
+                    "w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand",
                     !isOwner && "bg-gray-50 cursor-not-allowed"
                   )}
                   maxLength={7}
@@ -891,7 +891,7 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
                   }}
                   readOnly={!isOwner}
                   className={cn(
-                    "w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]",
+                    "w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand",
                     !isOwner && "bg-gray-50 cursor-not-allowed"
                   )}
                   maxLength={7}
@@ -1195,7 +1195,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
             <div className="flex items-center gap-3">
               <button
                 onClick={openModal}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
               >
                 <MapPin className="w-4 h-4" />
                 Configure Mappings
@@ -1258,7 +1258,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
               <button
                 onClick={handleSync}
                 disabled={sync.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
               >
                 {sync.isPending ? (
                   <>
@@ -1327,7 +1327,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                 className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
                   mappingStep === 1
-                    ? "bg-[#004E64] text-white"
+                    ? "bg-brand text-white"
                     : "bg-green-100 text-green-700"
                 )}
               >
@@ -1340,7 +1340,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
               <div className="flex-1 h-0.5 bg-gray-200">
                 <div
                   className={cn(
-                    "h-full bg-[#004E64] transition-all",
+                    "h-full bg-brand transition-all",
                     mappingStep === 2 ? "w-full" : "w-0"
                   )}
                 />
@@ -1349,7 +1349,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                 className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
                   mappingStep === 2
-                    ? "bg-[#004E64] text-white"
+                    ? "bg-brand text-white"
                     : "bg-gray-100 text-gray-400"
                 )}
               >
@@ -1374,7 +1374,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                       <select
                         value={selectedCategoryId}
                         onChange={(e) => setSelectedCategoryId(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                       >
                         <option value="">Select a tracking category</option>
                         {trackingCategories?.map(
@@ -1423,7 +1423,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                                         });
                                         setCentreMappings(newMappings);
                                       }}
-                                      className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                                      className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                                     >
                                       <option value="">Not mapped</option>
                                       {(
@@ -1455,7 +1455,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                         className={cn(
                           "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                           selectedCategoryId
-                            ? "bg-[#004E64] text-white hover:bg-[#003D52]"
+                            ? "bg-brand text-white hover:bg-brand-hover"
                             : "bg-gray-100 text-gray-400 cursor-not-allowed"
                         )}
                       >
@@ -1522,7 +1522,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                                       });
                                       setAccountMappings(newMappings);
                                     }}
-                                    className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                                    className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                                   >
                                     <option value="">Not mapped</option>
                                     {Object.entries(
@@ -1586,7 +1586,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                                       });
                                       setAccountMappings(newMappings);
                                     }}
-                                    className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                                    className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                                   >
                                     <option value="">Not mapped</option>
                                     {Object.entries(
@@ -1616,7 +1616,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                       <button
                         onClick={handleSaveMappings}
                         disabled={saveMappings.isPending}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
                       >
                         {saveMappings.isPending ? (
                           <>
@@ -1956,7 +1956,7 @@ function ApiKeysSection() {
                   value={keyName}
                   onChange={(e) => setKeyName(e.target.value)}
                   placeholder="e.g. Cowork Production"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344] focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent"
                 />
               </div>
 
@@ -1969,7 +1969,7 @@ function ApiKeysSection() {
                         type="checkbox"
                         checked={keyScopes.includes(scope)}
                         onChange={() => toggleScope(scope)}
-                        className="rounded border-gray-300 text-[#003344] focus:ring-[#003344]"
+                        className="rounded border-gray-300 text-brand-dark focus:ring-brand-dark"
                       />
                       <span className="text-sm text-gray-700">{SCOPE_LABELS[scope] || scope}</span>
                     </label>
@@ -1985,7 +1985,7 @@ function ApiKeysSection() {
                   type="date"
                   value={keyExpiry}
                   onChange={(e) => setKeyExpiry(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#003344] focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent"
                 />
               </div>
 
@@ -2173,7 +2173,7 @@ function OwnaIntegrationSection() {
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                             placeholder="e.g. SVC-001"
-                            className="w-40 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
+                            className="w-40 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === "Enter") handleSave(svc.id);
@@ -2225,7 +2225,7 @@ function OwnaIntegrationSection() {
                             setEditingId(svc.id);
                             setEditValue(svc.ownaServiceId || "");
                           }}
-                          className="text-xs text-[#004E64] hover:text-[#003D52] font-medium"
+                          className="text-xs text-brand hover:text-brand-hover font-medium"
                         >
                           Edit
                         </button>
@@ -2242,7 +2242,7 @@ function OwnaIntegrationSection() {
             <button
               onClick={handleSync}
               disabled={sync.isPending || status.mappedCount === 0}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
             >
               {sync.isPending ? (
                 <>
@@ -2342,7 +2342,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
               </button>
               <button
                 onClick={() => setShowInvite(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
               >
                 <UserPlus className="w-4 h-4" />
                 Invite User
