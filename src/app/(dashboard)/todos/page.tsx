@@ -33,6 +33,7 @@ import { BulkCreateTodosModal } from "@/components/todos/BulkCreateTodosModal";
 import { TemplateManagerModal } from "@/components/todos/TemplateManagerModal";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 interface UserOption {
   id: string;
@@ -61,7 +62,7 @@ export default function TodosPage() {
   const deleteTodo = useDeleteTodo();
   const createTodo = useCreateTodo();
 
-  const { data: todos, isLoading } = useTodos({
+  const { data: todos, isLoading, error, refetch } = useTodos({
     ...(showAll ? {} : { weekOf: weekOf.toISOString() }),
     ...(filterAssignee ? { assigneeId: filterAssignee } : {}),
     ...(filterStatus ? { status: filterStatus } : {}),
@@ -423,8 +424,17 @@ export default function TodosPage() {
         </div>
       )}
 
+      {/* Error State */}
+      {error && (
+        <ErrorState
+          title="Failed to load to-dos"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      )}
+
       {/* Summary Bar */}
-      {todos && todos.length > 0 && (
+      {!error && todos && todos.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 px-1">
           <span className="text-sm text-gray-500">
             <span className="font-semibold text-gray-900">{stats.total}</span>{" "}
@@ -451,7 +461,7 @@ export default function TodosPage() {
       )}
 
       {/* Quick-Add Input */}
-      {session?.user?.id && (
+      {!error && session?.user?.id && (
         <div className="mb-4">
           <form
             onSubmit={(e) => {
@@ -489,7 +499,7 @@ export default function TodosPage() {
       )}
 
       {/* Content */}
-      {isLoading ? (
+      {error ? null : isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 px-4 py-3">
@@ -597,6 +607,7 @@ export default function TodosPage() {
       {/* Detail Panel */}
       {selectedTodo && (
         <TodoDetailPanel
+          open={!!selectedTodo}
           todo={selectedTodo}
           onClose={() => setSelectedTodo(null)}
         />

@@ -15,6 +15,7 @@ import { AgentWorkloadChart } from "@/components/charts/AgentWorkloadChart";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV, formatDateCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   MessageSquare,
@@ -64,7 +65,7 @@ export default function TicketsPage() {
   const [viewMode, setViewMode] = useState<"board" | "list" | "analytics">("list");
   const [analyticsDays, setAnalyticsDays] = useState(30);
 
-  const { data: tickets, isLoading } = useTickets({
+  const { data: tickets, isLoading, error, refetch } = useTickets({
     ...(statusFilter ? { status: statusFilter } : {}),
     ...(priorityFilter ? { priority: priorityFilter } : {}),
     ...(assigneeFilter ? { assignedToId: assigneeFilter } : {}),
@@ -159,6 +160,18 @@ export default function TicketsPage() {
     { key: "resolved" as const, label: "Resolved", color: "border-emerald-400", icon: CheckCircle, iconColor: "text-emerald-500" },
     { key: "closed" as const, label: "Closed", color: "border-gray-300", icon: XCircle, iconColor: "text-gray-400" },
   ];
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <ErrorState
+          title="Failed to load tickets"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto">

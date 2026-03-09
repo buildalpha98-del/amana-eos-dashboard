@@ -5,6 +5,7 @@ import { useUpdateTodo, useDeleteTodo, type TodoData } from "@/hooks/useTodos";
 import { useQuery } from "@tanstack/react-query";
 import { X, Mountain, AlertCircle, Lock, Unlock, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/Sheet";
 import type { TodoStatus } from "@prisma/client";
 
 interface UserOption {
@@ -24,9 +25,11 @@ const statusOptions: { value: TodoStatus; label: string; color: string }[] = [
 ];
 
 export function TodoDetailPanel({
+  open,
   todo,
   onClose,
 }: {
+  open: boolean;
   todo: TodoData;
   onClose: () => void;
 }) {
@@ -89,12 +92,9 @@ export function TodoDetailPanel({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
-      <div className="flex-1 bg-black/30" onClick={onClose} />
-
-      {/* Panel */}
-      <div className="w-full max-w-md bg-white shadow-2xl border-l border-gray-200 flex flex-col overflow-y-auto">
+    <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <SheetContent width="max-w-md">
+        <SheetTitle className="sr-only">To-Do Detail</SheetTitle>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
@@ -328,7 +328,7 @@ export function TodoDetailPanel({
           onConfirm={handleDelete}
           loading={deleteTodo.isPending}
         />
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }

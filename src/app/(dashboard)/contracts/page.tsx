@@ -32,6 +32,7 @@ import {
   Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { hasMinRole } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 
@@ -785,6 +786,8 @@ export default function ContractsPage() {
   const {
     data: contracts = [],
     isLoading,
+    error,
+    refetch,
   } = useContracts({
     status: statusFilter || undefined,
     contractType: typeFilter || undefined,
@@ -869,6 +872,18 @@ export default function ContractsPage() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <ErrorState
+          title="Failed to load contracts"
+          error={error as Error}
+          onRetry={refetch}
+        />
       </div>
     );
   }

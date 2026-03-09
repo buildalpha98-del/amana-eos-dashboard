@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createRockSchema, type CreateRockInput } from "@/lib/schemas/rock";
 import { useCreateRock } from "@/hooks/useRocks";
 import { useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { FormField } from "@/components/ui/form/FormField";
 import { FormInput } from "@/components/ui/form/FormInput";
 import { FormSelect } from "@/components/ui/form/FormSelect";
@@ -59,8 +59,6 @@ export function CreateRockModal({
     },
   });
 
-  if (!open) return null;
-
   const onSubmit = (data: CreateRockInput) => {
     createRock.mutate(
       {
@@ -78,21 +76,13 @@ export function CreateRockModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Create New Rock
-            </h3>
-            <p className="text-sm text-gray-500 mt-0.5">{quarter.replace("-", " ")}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
-          >
-            <X className="w-5 h-5" />
-          </button>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent size="lg">
+        <div className="mb-6">
+          <DialogTitle className="text-lg font-semibold text-gray-900">
+            Create New Rock
+          </DialogTitle>
+          <p className="text-sm text-gray-500 mt-0.5">{quarter.replace("-", " ")}</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -183,7 +173,7 @@ export function CreateRockModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

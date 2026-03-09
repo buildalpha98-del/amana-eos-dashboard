@@ -18,6 +18,7 @@ import {
   Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { toast } from "@/hooks/useToast";
 import { hasMinRole } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
@@ -82,7 +83,7 @@ export default function ActivityLibraryPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<ActivityTemplate | null>(null);
 
-  const { data, isLoading } = useActivityTemplates({
+  const { data, isLoading, error, refetch } = useActivityTemplates({
     search: search || undefined,
     category: categoryFilter || undefined,
     page,
@@ -155,7 +156,13 @@ export default function ActivityLibraryPage() {
       </div>
 
       {/* Grid */}
-      {isLoading ? (
+      {error ? (
+        <ErrorState
+          title="Failed to load activity library"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      ) : isLoading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 text-[#004E64] animate-spin" />
         </div>

@@ -36,6 +36,7 @@ import {
   Package,
 } from "lucide-react";
 
+import { ErrorState } from "@/components/ui/ErrorState";
 import {
   DndContext,
   closestCenter,
@@ -823,7 +824,7 @@ export default function AuditTemplatesPage() {
   const [uploadTarget, setUploadTarget] = useState<{ id: string; name: string } | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
 
-  const { data: templates = [], isLoading } = useAuditTemplates();
+  const { data: templates = [], isLoading, error, refetch } = useAuditTemplates();
 
   const filtered = useMemo(() => {
     let list = templates;
@@ -903,7 +904,13 @@ export default function AuditTemplatesPage() {
       </div>
 
       {/* Template List */}
-      {isLoading ? (
+      {error ? (
+        <ErrorState
+          title="Failed to load audit templates"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      ) : isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-8 h-8 text-[#004E64] animate-spin" />
         </div>

@@ -12,9 +12,10 @@ import { exportToCSV } from "@/lib/csv-export";
 import { BarChart3, Plus, Users, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 export default function ScorecardPage() {
-  const { data: scorecard, isLoading, error } = useScorecard();
+  const { data: scorecard, isLoading, error, refetch } = useScorecard();
   const [showAddMeasurable, setShowAddMeasurable] = useState(false);
   const [editingMeasurable, setEditingMeasurable] = useState<MeasurableData | null>(null);
   const [deletingMeasurable, setDeletingMeasurable] = useState<MeasurableData | null>(null);
@@ -158,25 +159,11 @@ export default function ScorecardPage() {
           ))}
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
-            <BarChart3 className="w-8 h-8 text-red-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            Scorecard not available
-          </h3>
-          <p className="text-gray-500 mt-2 max-w-md">
-            No scorecard has been configured yet. Add a measurable to create
-            your scorecard automatically.
-          </p>
-          <button
-            onClick={() => setShowAddMeasurable(true)}
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] text-white text-sm font-medium rounded-lg hover:bg-[#003D52] transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add First Measurable
-          </button>
-        </div>
+        <ErrorState
+          title="Failed to load scorecard"
+          error={error as Error}
+          onRetry={refetch}
+        />
       ) : scorecard ? (
         <ScorecardGrid
           scorecard={scorecard}

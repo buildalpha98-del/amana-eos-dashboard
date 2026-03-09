@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
 import { RevenueVsCostsChart } from "@/components/charts/RevenueVsCostsChart";
 import { MarginComparisonChart } from "@/components/charts/MarginComparisonChart";
@@ -241,7 +242,7 @@ export default function FinancialsPage() {
   const [period, setPeriod] = useState<string>("monthly");
   const [showEnterData, setShowEnterData] = useState(false);
   const [showImportOWNA, setShowImportOWNA] = useState(false);
-  const { data, isLoading } = useFinancials({ period });
+  const { data, isLoading, error, refetch } = useFinancials({ period });
 
   const summary = data?.summary;
   const financials = data?.financials || [];
@@ -281,6 +282,22 @@ export default function FinancialsPage() {
       ]
     );
   };
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Financial Dashboard</h2>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">Revenue, costs, and profitability across all centres</p>
+        </div>
+        <ErrorState
+          title="Failed to load financials"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

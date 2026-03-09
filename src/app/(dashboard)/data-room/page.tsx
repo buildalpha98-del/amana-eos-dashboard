@@ -9,9 +9,10 @@ import { DataRoomSection } from "@/components/data-room/DataRoomSection";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV, type CsvColumn } from "@/lib/csv-export";
 import { toast } from "@/hooks/useToast";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 export default function DataRoomPage() {
-  const { data, isLoading } = useDataRoom();
+  const { data, isLoading, error, refetch } = useDataRoom();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = useCallback((key: string) => {
@@ -32,6 +33,35 @@ export default function DataRoomPage() {
   }, []);
 
   const allExpanded = expandedSections.size === DATA_ROOM_SECTIONS.length;
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: "#004E6415", color: "#004E64" }}
+            >
+              <FolderLock className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Due Diligence Data Room</h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Investor-ready document tracking and exit readiness scoring
+              </p>
+            </div>
+          </div>
+        </div>
+        <ErrorState
+          title="Failed to load data room"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
 
   const handleExport = useCallback(() => {
     if (!data) return;

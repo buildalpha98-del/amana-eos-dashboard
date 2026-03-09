@@ -19,6 +19,7 @@ import {
 import type { ServiceSummary } from "@/hooks/useServices";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 /** Swim-lane definitions — order matters for rendering */
 const swimLanes = [
@@ -71,7 +72,7 @@ export default function ServicesPage() {
   }, [role, serviceId, router]);
 
   // Fetch all services (no status filter — we group client-side)
-  const { data: services, isLoading } = useServices();
+  const { data: services, isLoading, error, refetch } = useServices();
 
   // Apply search filter
   const filtered = useMemo(() => {
@@ -148,8 +149,17 @@ export default function ServicesPage() {
         </p>
       </div>
 
+      {/* Error State */}
+      {error && (
+        <ErrorState
+          title="Failed to load services"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      )}
+
       {/* Swim Lanes */}
-      {isLoading ? (
+      {error ? null : isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">

@@ -30,6 +30,7 @@ import { CentreComparison } from "@/components/performance/CentreComparison";
 import { RegionalRollup } from "@/components/performance/RegionalRollup";
 import { LayoutGrid, ListOrdered, BarChart3 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 type ViewMode = "centres" | "leaderboard" | "compare";
 
@@ -70,7 +71,7 @@ function MetricCell({ value, suffix, good, threshold }: { value: number | null |
 }
 
 export default function PerformancePage() {
-  const { data: centres, isLoading } = usePerformance();
+  const { data: centres, isLoading, error, refetch } = usePerformance();
   const [sortBy, setSortBy] = useState<string>("overall");
   const [selectedCentreId, setSelectedCentreId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("centres");
@@ -128,6 +129,24 @@ export default function PerformancePage() {
       ]
     );
   };
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Centre Performance</h2>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+            Rankings, KPIs, and operational health across all centres
+          </p>
+        </div>
+        <ErrorState
+          title="Failed to load performance"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

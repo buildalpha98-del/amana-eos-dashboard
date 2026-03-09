@@ -9,6 +9,7 @@ import { TemplatePicker } from "@/components/projects/TemplatePicker";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import {
   FolderKanban,
   Plus,
@@ -37,7 +38,7 @@ export default function ProjectsPage() {
   const [launchTemplateId, setLaunchTemplateId] = useState<string | undefined>();
   const [view, setView] = useState<"grid" | "list">("grid");
 
-  const { data: projects, isLoading } = useProjects(
+  const { data: projects, isLoading, error, refetch } = useProjects(
     statusFilter ? { status: statusFilter } : undefined
   );
 
@@ -57,6 +58,24 @@ export default function ProjectsPage() {
       projects?.filter((p) => p.status === "in_progress").length || 0,
     complete: projects?.filter((p) => p.status === "complete").length || 0,
   };
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
+          <p className="text-gray-500 mt-1 line-clamp-2">
+            Track project progress across your centres
+          </p>
+        </div>
+        <ErrorState
+          title="Failed to load projects"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

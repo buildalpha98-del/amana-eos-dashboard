@@ -21,6 +21,7 @@ import {
   Clock,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/Sheet";
 
 interface UserOption {
   id: string;
@@ -37,9 +38,11 @@ const statusSteps = [
 const priorities = ["critical", "high", "medium", "low"] as const;
 
 export function IssueDetailPanel({
+  open,
   issueId,
   onClose,
 }: {
+  open: boolean;
   issueId: string;
   onClose: () => void;
 }) {
@@ -110,19 +113,21 @@ export function IssueDetailPanel({
 
   if (isLoading || !issue) {
     return (
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl border-l border-gray-200 z-50 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
-      </div>
+      <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+        <SheetContent>
+          <SheetTitle className="sr-only">Issue Details</SheetTitle>
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+          </div>
+        </SheetContent>
+      </Sheet>
     );
   }
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-
-      {/* Panel */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-lg bg-white shadow-2xl border-l border-gray-200 z-50 flex flex-col overflow-hidden">
+    <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <SheetContent>
+        <SheetTitle className="sr-only">Issue Details</SheetTitle>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -617,7 +622,7 @@ export function IssueDetailPanel({
           onConfirm={handleDelete}
           loading={deleteIssue.isPending}
         />
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

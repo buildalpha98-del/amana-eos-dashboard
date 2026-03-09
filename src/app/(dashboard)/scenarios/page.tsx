@@ -14,6 +14,7 @@ import { ScenarioOutputPanel } from "@/components/scenarios/ScenarioOutputPanel"
 import { ScenarioComparisonView } from "@/components/scenarios/ScenarioComparisonView";
 import { SavedScenariosView } from "@/components/scenarios/SavedScenariosView";
 import { SaveScenarioDialog } from "@/components/scenarios/SaveScenarioDialog";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 
@@ -34,7 +35,7 @@ export default function ScenariosPage() {
 
   const outputs = useMemo(() => calculateScenario(inputs), [inputs]);
 
-  const { data: savedScenarios = [], isLoading: scenariosLoading } = useScenarios();
+  const { data: savedScenarios = [], isLoading: scenariosLoading, error, refetch } = useScenarios();
 
   const handleInputChange = useCallback((key: keyof ScenarioInputs, value: number) => {
     setInputs((prev) => ({ ...prev, [key]: value }));
@@ -48,6 +49,35 @@ export default function ScenariosPage() {
     setInputs({ ...savedInputs });
     setActiveTab("modeller");
   }, []);
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-1">
+            <div
+              className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: "#004E6415", color: "#004E64" }}
+            >
+              <Calculator className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Scenario Modelling</h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                What-if analysis — adjust inputs and see real-time financial projections
+              </p>
+            </div>
+          </div>
+        </div>
+        <ErrorState
+          title="Failed to load scenarios"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto">

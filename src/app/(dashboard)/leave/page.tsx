@@ -15,6 +15,7 @@ import {
 } from "@/hooks/useLeave";
 import { hasMinRole } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/ErrorState";
 import type { Role } from "@prisma/client";
 import {
   CalendarDays,
@@ -1033,6 +1034,8 @@ export default function LeavePage() {
     data: requests,
     isLoading: requestsLoading,
     isError: requestsError,
+    error: requestsErrorObj,
+    refetch: refetchRequests,
   } = useLeaveRequests(
     isAdmin
       ? {
@@ -1085,6 +1088,28 @@ export default function LeavePage() {
   }, [requests, isAdmin]);
 
   const hasActiveFilters = statusFilter || serviceFilter || typeFilter;
+
+  if (requestsError) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+            Leave Management
+          </h2>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+            {isAdmin
+              ? "Review, approve, and track team leave across all centres"
+              : "View your leave balances and submit leave requests"}
+          </p>
+        </div>
+        <ErrorState
+          title="Failed to load leave"
+          error={requestsErrorObj as Error}
+          onRetry={refetchRequests}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto">

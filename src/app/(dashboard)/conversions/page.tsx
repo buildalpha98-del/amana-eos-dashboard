@@ -10,6 +10,7 @@ import { useServices } from "@/hooks/useServices";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 import {
   Repeat,
   Phone,
@@ -290,7 +291,7 @@ export default function ConversionsPage() {
   const [sessionFilter, setSessionFilter] = useState("");
 
   const { data: services } = useServices();
-  const { data, isLoading } = useConversions({
+  const { data, isLoading, error, refetch } = useConversions({
     serviceId: serviceFilter || undefined,
     status: statusFilter || undefined,
     sessionType: sessionFilter || undefined,
@@ -314,6 +315,26 @@ export default function ConversionsPage() {
   const handleUpdateStatus = (id: string, status: string) => {
     updateConversion.mutate({ id, status });
   };
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Casual &rarr; Regular Conversions
+          </h2>
+          <p className="text-gray-500 mt-1 line-clamp-2">
+            Identify and convert repeat casual families to regular bookings
+          </p>
+        </div>
+        <ErrorState
+          title="Failed to load conversions"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

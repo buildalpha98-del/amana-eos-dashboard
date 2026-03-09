@@ -40,6 +40,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/hooks/useToast";
 
@@ -100,7 +101,7 @@ export default function DocumentsPage() {
     tags: "",
   });
 
-  const { data: docResult, isLoading } = useDocuments({
+  const { data: docResult, isLoading, error, refetch } = useDocuments({
     category: selectedCategory || undefined,
     centreId: selectedCentre || undefined,
     folderId: searchTerm ? undefined : (currentFolderId || "root"),
@@ -303,6 +304,18 @@ export default function DocumentsPage() {
           <div className="w-12 h-12 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-500">Loading documents...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <ErrorState
+          title="Failed to load documents"
+          error={error as Error}
+          onRetry={refetch}
+        />
       </div>
     );
   }

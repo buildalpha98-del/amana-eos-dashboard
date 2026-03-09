@@ -19,6 +19,7 @@ import {
   Link,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/Sheet";
 import type { RockStatus, RockPriority, RockType } from "@prisma/client";
 
 const statusOptions: { value: RockStatus; label: string; color: string }[] = [
@@ -35,9 +36,11 @@ const priorityOptions: { value: RockPriority; label: string; color: string }[] =
 ];
 
 export function RockDetailPanel({
+  open,
   rockId,
   onClose,
 }: {
+  open: boolean;
   rockId: string;
   onClose: () => void;
 }) {
@@ -292,19 +295,25 @@ export function RockDetailPanel({
 
   if (isLoading) {
     return (
-      <Panel onClose={onClose}>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin w-6 h-6 border-2 border-[#004E64] border-t-transparent rounded-full" />
-        </div>
-      </Panel>
+      <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+        <SheetContent>
+          <SheetTitle className="sr-only">Rock Details</SheetTitle>
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin w-6 h-6 border-2 border-[#004E64] border-t-transparent rounded-full" />
+          </div>
+        </SheetContent>
+      </Sheet>
     );
   }
 
   if (!rock) {
     return (
-      <Panel onClose={onClose}>
-        <p className="text-gray-500 text-center py-12">Rock not found</p>
-      </Panel>
+      <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+        <SheetContent>
+          <SheetTitle className="sr-only">Rock Details</SheetTitle>
+          <p className="text-gray-500 text-center py-12">Rock not found</p>
+        </SheetContent>
+      </Sheet>
     );
   }
 
@@ -343,9 +352,11 @@ export function RockDetailPanel({
   };
 
   return (
-    <Panel onClose={onClose}>
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
+    <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <SheetContent>
+        <SheetTitle className="sr-only">Rock Details</SheetTitle>
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             {editing ? (
@@ -1057,26 +1068,7 @@ export function RockDetailPanel({
           loading={deleteRock.isPending}
         />
       </div>
-    </Panel>
-  );
-}
-
-function Panel({
-  onClose,
-  children,
-}: {
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <>
-      <div
-        className="fixed inset-0 bg-black/30 z-40"
-        onClick={onClose}
-      />
-      <div className="fixed right-0 top-0 h-screen w-full max-w-lg bg-white shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-200">
-        {children}
-      </div>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

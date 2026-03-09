@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 interface UserOption {
   id: string;
@@ -46,7 +47,7 @@ export default function IssuesPage() {
   const [viewMode, setViewMode] = useState<"board" | "list">("board");
   const [showArchived, setShowArchived] = useState(false);
 
-  const { data: issues, isLoading } = useIssues({
+  const { data: issues, isLoading, error, refetch } = useIssues({
     ...(statusFilter ? { status: statusFilter } : {}),
     ...(priorityFilter ? { priority: priorityFilter } : {}),
     ...(ownerFilter ? { ownerId: ownerFilter } : {}),
@@ -239,8 +240,17 @@ export default function IssuesPage() {
         </div>
       )}
 
+      {/* Error State */}
+      {error && (
+        <ErrorState
+          title="Failed to load issues"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      )}
+
       {/* Summary Bar */}
-      {issues && issues.length > 0 && (
+      {!error && issues && issues.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 px-1">
           <span className="text-sm text-gray-500">
             <span className="font-semibold text-gray-900">{stats.total}</span> Issues
@@ -258,7 +268,7 @@ export default function IssuesPage() {
       )}
 
       {/* Content */}
-      {isLoading ? (
+      {error ? null : isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, col) => (
             <div key={col} className="space-y-3">
@@ -301,12 +311,11 @@ export default function IssuesPage() {
       <CreateIssueModal open={showCreate} onClose={() => setShowCreate(false)} />
 
       {/* Detail Panel */}
-      {selectedId && (
-        <IssueDetailPanel
-          issueId={selectedId}
-          onClose={() => setSelectedId(null)}
-        />
-      )}
+      <IssueDetailPanel
+        open={!!selectedId}
+        issueId={selectedId ?? ""}
+        onClose={() => setSelectedId(null)}
+      />
     </div>
   );
 }

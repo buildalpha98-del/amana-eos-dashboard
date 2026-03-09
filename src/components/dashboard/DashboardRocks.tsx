@@ -231,12 +231,11 @@ export function DashboardRocks() {
         />
       </div>
 
-      {selectedRockId && (
-        <RockDetailPanel
-          rockId={selectedRockId}
-          onClose={() => setSelectedRockId(null)}
-        />
-      )}
+      <RockDetailPanel
+        open={!!selectedRockId}
+        rockId={selectedRockId ?? ""}
+        onClose={() => setSelectedRockId(null)}
+      />
     </>
   );
 }

@@ -40,6 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ErrorState } from "@/components/ui/ErrorState";
 import * as XLSX from "xlsx";
 
 /* ------------------------------------------------------------------ */
@@ -1295,7 +1296,7 @@ export default function TimesheetsPage() {
     return Object.keys(f).length > 0 ? f : undefined;
   }, [filterService, filterStatus, filterFrom, filterTo]);
 
-  const { data: timesheets, isLoading } = useTimesheets(filters as any);
+  const { data: timesheets, isLoading, error, refetch } = useTimesheets(filters as any);
   const { data: summaryData } = useTimesheetsSummary(
     filterService || undefined,
     filterFrom || undefined,
@@ -1361,6 +1362,24 @@ export default function TimesheetsPage() {
             Timesheets are only accessible to Owners and Admins.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Timesheets</h2>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+            Manage staff timesheets, import from OWNA, and export to Xero
+          </p>
+        </div>
+        <ErrorState
+          title="Failed to load timesheets"
+          error={error as Error}
+          onRetry={refetch}
+        />
       </div>
     );
   }

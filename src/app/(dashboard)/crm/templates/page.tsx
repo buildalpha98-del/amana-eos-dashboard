@@ -10,6 +10,7 @@ import {
 import type { CrmEmailTemplateData } from "@/hooks/useCrmEmailTemplates";
 import { CrmEmailTemplateForm } from "@/components/crm/CrmEmailTemplateForm";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Plus, Pencil, Trash2, Mail } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
@@ -27,7 +28,7 @@ const stageLabels: Record<string, string> = {
 };
 
 export default function CrmTemplatesPage() {
-  const { data: templates, isLoading } = useCrmEmailTemplates();
+  const { data: templates, isLoading, error, refetch } = useCrmEmailTemplates();
   const createTemplate = useCreateCrmEmailTemplate();
   const updateTemplate = useUpdateCrmEmailTemplate();
   const deleteTemplate = useDeleteCrmEmailTemplate();
@@ -111,7 +112,13 @@ export default function CrmTemplatesPage() {
       </div>
 
       {/* Templates Table */}
-      {isLoading ? (
+      {error ? (
+        <ErrorState
+          title="Failed to load templates"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      ) : isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
         </div>

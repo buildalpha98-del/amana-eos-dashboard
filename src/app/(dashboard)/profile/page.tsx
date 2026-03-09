@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/Skeleton";
 import type { ProfileData } from "@/hooks/useMyPortal";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 /* ------------------------------------------------------------------ */
 /* Profile Page                                                        */
@@ -34,6 +35,7 @@ export default function ProfilePage() {
     data: profile,
     isLoading,
     error,
+    refetch,
   } = useQuery<ProfileData>({
     queryKey: ["profile", userId],
     queryFn: async () => {
@@ -219,7 +221,33 @@ export default function ProfilePage() {
     );
   }
 
-  if (error || !profile) {
+  if (error) {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/my-portal"
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-500" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Update your personal details and superannuation information
+            </p>
+          </div>
+        </div>
+        <ErrorState
+          title="Failed to load profile"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
+
+  if (!profile) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
         <User className="w-12 h-12 text-gray-300" />

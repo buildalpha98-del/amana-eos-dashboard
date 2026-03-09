@@ -27,6 +27,7 @@ import {
   useSendBoardReport,
 } from "@/hooks/useBoardReports";
 import { toast } from "@/hooks/useToast";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -69,7 +70,7 @@ export default function BoardReportsPage() {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [aiGenerating, setAiGenerating] = useState<string | null>(null);
 
-  const { data: reports, isLoading: listLoading } = useBoardReports();
+  const { data: reports, isLoading: listLoading, error: listError, refetch } = useBoardReports();
   const { data: report, isLoading: reportLoading } = useBoardReport(selectedReportId);
   const generateMutation = useGenerateBoardReport();
   const updateMutation = useUpdateBoardReport(selectedReportId || "");
@@ -482,6 +483,35 @@ export default function BoardReportsPage() {
   }
 
   // ── History View (default) ──────────────────────────────────
+  if (listError) {
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: "#004E6415", color: "#004E64" }}
+            >
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Board Reports</h2>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Monthly board & investor report generator
+              </p>
+            </div>
+          </div>
+        </div>
+        <ErrorState
+          title="Failed to load board reports"
+          error={listError as Error}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}

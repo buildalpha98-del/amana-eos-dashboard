@@ -27,6 +27,7 @@ import {
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import ComplianceMatrixView from "@/components/compliance/ComplianceMatrixView";
 import { AuditCalendarTab } from "@/components/compliance/AuditCalendarTab";
@@ -158,7 +159,7 @@ function monthLabel(key: string) {
 /* ------------------------------------------------------------------ */
 
 function StaffComplianceView() {
-  const { data: certs = [], isLoading } = useComplianceCerts();
+  const { data: certs = [], isLoading, error, refetch } = useComplianceCerts();
   const createCert = useCreateCert();
   const [uploading, setUploading] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -223,6 +224,18 @@ function StaffComplianceView() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="w-10 h-10 border-4 border-gray-200 border-t-[#004E64] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <ErrorState
+          title="Failed to load compliance"
+          error={error as Error}
+          onRetry={refetch}
+        />
       </div>
     );
   }
@@ -451,7 +464,7 @@ function AdminComplianceView() {
   const [typeFilter, setTypeFilter] = useState("");
   const [deleteCertId, setDeleteCertId] = useState<string | null>(null);
 
-  const { data: certs = [], isLoading } = useComplianceCerts(
+  const { data: certs = [], isLoading, error, refetch } = useComplianceCerts(
     serviceFilter ? { serviceId: serviceFilter } : undefined
   );
   const createCert = useCreateCert();
@@ -548,6 +561,18 @@ function AdminComplianceView() {
     });
     setShowCreate(false);
   };
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <ErrorState
+          title="Failed to load compliance"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
 
   return (
     <div>

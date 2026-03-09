@@ -19,6 +19,7 @@ import type { ScorecardData, MeasurableData } from "@/hooks/useScorecard";
 import { useServices } from "@/hooks/useServices";
 import type { ServiceSummary } from "@/hooks/useServices";
 import { cn, formatDateAU, getWeekStart, getCurrentQuarter } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/ErrorState";
 import {
   Presentation,
   Play,
@@ -1994,7 +1995,7 @@ export default function MeetingsPage() {
   const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null);
   const [showStartDialog, setShowStartDialog] = useState(false);
 
-  const { data: meetings, isLoading } = useMeetings({ limit: 100 });
+  const { data: meetings, isLoading, error, refetch } = useMeetings({ limit: 100 });
   const createMeeting = useCreateMeeting();
 
   const activeMeeting = meetings?.find((m) => m.id === activeMeetingId);
@@ -2029,6 +2030,18 @@ export default function MeetingsPage() {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <ErrorState
+          title="Failed to load meetings"
+          error={error as Error}
+          onRetry={refetch}
+        />
       </div>
     );
   }

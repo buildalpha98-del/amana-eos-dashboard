@@ -15,6 +15,7 @@ import {
   CircleCheck,
 } from "lucide-react";
 import { useMarketingOverview } from "@/hooks/useMarketing";
+import { ErrorState } from "@/components/ui/ErrorState";
 import type { OverviewData } from "@/hooks/useMarketing";
 import { StatusBadge } from "./StatusBadge";
 import { PlatformBadge } from "./PlatformBadge";
@@ -96,7 +97,7 @@ interface OverviewTabProps {
 }
 
 export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
-  const { data, isLoading, error } = useMarketingOverview(
+  const { data, isLoading, error, refetch } = useMarketingOverview(
     serviceId || undefined
   );
 
@@ -110,9 +111,11 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-20 text-red-500">
-        {error instanceof Error ? error.message : "Failed to load overview"}
-      </div>
+      <ErrorState
+        title="Failed to load marketing"
+        error={error as Error}
+        onRetry={refetch}
+      />
     );
   }
 

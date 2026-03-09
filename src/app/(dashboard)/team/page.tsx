@@ -14,9 +14,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 export default function TeamPage() {
-  const { data: members, isLoading: teamLoading } = useTeam();
+  const { data: members, isLoading: teamLoading, error, refetch } = useTeam();
   const [viewMode, setViewMode] = useState<"chart" | "list">("chart");
 
   // Compute summary stats (from team performance data)
@@ -143,8 +144,17 @@ export default function TeamPage() {
         </div>
       )}
 
+      {/* Error State */}
+      {error && (
+        <ErrorState
+          title="Failed to load team"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      )}
+
       {/* Content */}
-      {viewMode === "chart" ? (
+      {error ? null : viewMode === "chart" ? (
         <OrgChartView />
       ) : teamLoading ? (
         <div className="flex items-center justify-center py-24">

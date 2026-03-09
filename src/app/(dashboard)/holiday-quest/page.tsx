@@ -21,6 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { useServices } from "@/hooks/useServices";
 import {
   useHolidayQuestDays,
@@ -165,7 +166,7 @@ export default function HolidayQuestPage() {
   const from = toISODate(weekDates[0]);
   const to = toISODate(weekDates[4]);
 
-  const { data: days, isLoading } = useHolidayQuestDays(selectedServiceId, from, to);
+  const { data: days, isLoading, error, refetch } = useHolidayQuestDays(selectedServiceId, from, to);
   const createDays = useCreateHolidayQuestDays();
   const updateDay = useUpdateHolidayQuestDay();
   const deleteDay = useDeleteHolidayQuestDay();
@@ -403,6 +404,12 @@ export default function HolidayQuestPage() {
           <Palmtree className="mx-auto h-12 w-12 text-gray-300" />
           <p className="mt-3 text-sm text-gray-500">Select a centre to view Holiday Quest plans</p>
         </div>
+      ) : error ? (
+        <ErrorState
+          title="Failed to load holiday quest"
+          error={error as Error}
+          onRetry={refetch}
+        />
       ) : isLoading ? (
         <div className="grid grid-cols-5 gap-3">
           {Array.from({ length: 5 }).map((_, i) => (

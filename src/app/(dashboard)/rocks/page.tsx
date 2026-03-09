@@ -12,6 +12,7 @@ import { Mountain, Plus, LayoutGrid, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 export default function RocksPage() {
   const [quarter, setQuarter] = useState(getCurrentQuarter());
@@ -19,7 +20,7 @@ export default function RocksPage() {
   const [selectedRockId, setSelectedRockId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
-  const { data: rocks, isLoading } = useRocks(quarter);
+  const { data: rocks, isLoading, error, refetch } = useRocks(quarter);
 
   const handleRockClick = (rock: RockData) => {
     setSelectedRockId(rock.id);
@@ -80,8 +81,17 @@ export default function RocksPage() {
         <QuarterSelector value={quarter} onChange={setQuarter} />
       </div>
 
+      {/* Error State */}
+      {error && (
+        <ErrorState
+          title="Failed to load rocks"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      )}
+
       {/* Summary Bar */}
-      {rocks && rocks.length > 0 && (
+      {!error && rocks && rocks.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 px-1">
           <span className="text-sm text-gray-500">
             <span className="font-semibold text-gray-900">{rocks.length}</span>{" "}
@@ -101,7 +111,7 @@ export default function RocksPage() {
       )}
 
       {/* Content */}
-      {isLoading ? (
+      {error ? null : isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
@@ -131,12 +141,11 @@ export default function RocksPage() {
       )}
 
       {/* Detail Panel */}
-      {selectedRockId && (
-        <RockDetailPanel
-          rockId={selectedRockId}
-          onClose={() => setSelectedRockId(null)}
-        />
-      )}
+      <RockDetailPanel
+        open={!!selectedRockId}
+        rockId={selectedRockId ?? ""}
+        onClose={() => setSelectedRockId(null)}
+      />
 
       {/* Create Modal */}
       <CreateRockModal

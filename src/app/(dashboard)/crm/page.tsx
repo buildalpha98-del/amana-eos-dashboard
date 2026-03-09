@@ -10,6 +10,7 @@ import { CreateLeadModal } from "@/components/crm/CreateLeadModal";
 import { SendEmailModal } from "@/components/crm/SendEmailModal";
 import { ScraperStatusWidget } from "@/components/crm/ScraperStatusWidget";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useQuery } from "@tanstack/react-query";
@@ -68,7 +69,7 @@ export default function CrmPage() {
     search: search || undefined,
   };
 
-  const { data: leads, isLoading } = useLeads(activeFilters);
+  const { data: leads, isLoading, error, refetch } = useLeads(activeFilters);
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
     queryFn: async () => {
@@ -339,7 +340,13 @@ export default function CrmPage() {
       </div>
 
       {/* Content */}
-      {isLoading ? (
+      {error ? (
+        <ErrorState
+          title="Failed to load CRM"
+          error={error as Error}
+          onRetry={refetch}
+        />
+      ) : isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
         </div>
