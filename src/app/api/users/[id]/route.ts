@@ -7,9 +7,10 @@ import type { PrismaClient } from "@prisma/client";
 
 const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
-  role: z.enum(["owner", "admin", "member", "staff"]).optional(),
+  role: z.enum(["owner", "head_office", "admin", "member", "staff"]).optional(),
   active: z.boolean().optional(),
   newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
+  state: z.string().optional().nullable(),
 });
 
 // PATCH /api/users/:id — update a user (owner + admin)
@@ -17,7 +18,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const { id } = await params;
@@ -36,18 +37,18 @@ export async function PATCH(
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // Guard: admins cannot promote users to owner
-  if (session!.user.role !== "owner" && parsed.data.role === "owner") {
+  // Guard: only owners can promote to owner or head_office
+  if (session!.user.role !== "owner" && (parsed.data.role === "owner" || parsed.data.role === "head_office")) {
     return NextResponse.json(
-      { error: "Only owners can assign the owner role." },
+      { error: "Only owners can assign the owner or head office role." },
       { status: 403 }
     );
   }
 
-  // Guard: admins cannot modify other admins or owners
+  // Guard: only owners can modify other admins, head_office, or owners
   if (
     session!.user.role !== "owner" &&
-    (user.role === "owner" || user.role === "admin") &&
+    (user.role === "owner" || user.role === "head_office" || user.role === "admin") &&
     user.id !== session!.user.id
   ) {
     return NextResponse.json(
@@ -72,6 +73,7 @@ export async function PATCH(
       email: true,
       role: true,
       active: true,
+      state: true,
       createdAt: true,
     },
   });
@@ -139,6 +141,14 @@ export async function DELETE(
     await tx.service.updateMany({ where: { managerId: id }, data: { managerId: null } }).catch(() => {});
     await tx.leaveRequest.updateMany({ where: { approverId: id }, data: { approverId: null } }).catch(() => {});
     await tx.lead.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } }).catch(() => {});
+    await tx.measurable.updateMany({ where: { ownerId: id }, data: { ownerId: null } }).catch(() => {});
+    await tx.measurableEntry.updateMany({ where: { enteredById: id }, data: { enteredById: null } }).catch(() => {});
+    await tx.project.updateMany({ where: { ownerId: id }, data: { ownerId: null } }).catch(() => {});
+    await tx.meeting.updateMany({ where: { createdById: id }, data: { createdById: null } }).catch(() => {});
+    await tx.document.updateMany({ where: { uploadedById: id }, data: { uploadedById: null } }).catch(() => {});
+    await tx.attachment.updateMany({ where: { uploadedById: id }, data: { uploadedById: null } }).catch(() => {});
+    await tx.announcement.updateMany({ where: { authorId: id }, data: { authorId: null } }).catch(() => {});
+    await tx.todoTemplate.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } }).catch(() => {});
 
     // Delete owned cascadeable records
     await tx.activityLog.deleteMany({ where: { userId: id } }).catch(() => {});

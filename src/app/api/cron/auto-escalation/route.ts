@@ -62,11 +62,12 @@ export async function GET(req: NextRequest) {
     >();
 
     for (const todo of overdueTodos) {
-      const userId = todo.assignee.id;
+      const userId = todo.assignee?.id;
+      if (!userId) continue;
       if (!todosByUser.has(userId)) {
         todosByUser.set(userId, {
-          name: todo.assignee.name,
-          email: todo.assignee.email,
+          name: todo.assignee?.name ?? "Unknown",
+          email: todo.assignee?.email ?? "",
           todos: [],
         });
       }
@@ -144,7 +145,7 @@ export async function GET(req: NextRequest) {
         // Teams notification
         notifyRockOffTrack({
           title: rock.title,
-          owner: rock.owner.name,
+          owner: rock.owner?.name ?? "Unknown",
           quarter: rock.quarter,
           percentComplete: rock.percentComplete,
           url: `${baseUrl}/rocks`,

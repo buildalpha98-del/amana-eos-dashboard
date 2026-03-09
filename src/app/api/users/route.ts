@@ -13,6 +13,7 @@ const createUserSchema = z.object({
   password: passwordSchema,
   role: z.enum(["owner", "admin", "member", "staff"]).default("member"),
   serviceId: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
 });
 
 // GET /api/users — list all users (any authenticated user)
@@ -42,6 +43,7 @@ export async function GET(req: NextRequest) {
       active: true,
       avatar: true,
       serviceId: true,
+      state: true,
       service: { select: { id: true, name: true, code: true } },
       createdAt: true,
     },
@@ -53,7 +55,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/users — create a new user (owner + admin)
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { name, email, password, role, serviceId } = parsed.data;
+  const { name, email, password, role, serviceId, state } = parsed.data;
 
   // Guard: admins cannot create owner-level users
   if (session!.user.role !== "owner" && role === "owner") {
@@ -101,6 +103,7 @@ export async function POST(req: NextRequest) {
       passwordHash,
       role,
       serviceId: (role === "staff" || role === "member") ? (serviceId || null) : null,
+      state: role === "admin" ? (state || null) : null,
     },
     select: {
       id: true,
@@ -109,6 +112,7 @@ export async function POST(req: NextRequest) {
       role: true,
       active: true,
       serviceId: true,
+      state: true,
       service: { select: { id: true, name: true, code: true } },
       createdAt: true,
     },

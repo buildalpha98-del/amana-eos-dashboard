@@ -7,6 +7,7 @@ import type { Role } from "@prisma/client";
 /** Maps database role values → user-facing display names */
 export const ROLE_DISPLAY_NAMES: Record<Role, string> = {
   owner: "Owner",
+  head_office: "Head Office",
   admin: "State Manager",
   member: "Centre Director",
   staff: "Educator",
@@ -60,15 +61,15 @@ export type AppPage = (typeof allPages)[number];
 /**
  * Pages each role is allowed to visit.
  *
- * - **owner**  : full access
- * - **admin**  : everything except Settings (org settings, user role management)
- * - **member** : a limited subset; no Financials, Performance, Team, Settings,
- *                Marketing, or Tickets unless explicitly granted later.
- * - **staff**  : very limited — only their service context, documents, communication,
- *                onboarding/LMS, and a simplified dashboard.
+ * - **owner**        : full access
+ * - **head_office**  : full access (org settings / API keys hidden in UI, not page-blocked)
+ * - **admin**        : everything except Settings & CRM templates
+ * - **member**       : limited subset; no Financials, Performance, Team, Settings, Marketing, or Tickets
+ * - **staff**        : very limited — service-scoped
  */
 export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   owner: allPages,
+  head_office: allPages,
   admin: allPages.filter((p) => p !== "/settings" && p !== "/crm/templates"),
   member: [
     "/dashboard",
@@ -277,6 +278,20 @@ export type Feature = (typeof features)[number];
 
 const ownerFeatures: readonly Feature[] = features; // everything
 
+// Head Office: same as owner MINUS org settings, imports, API keys, Xero, permissions table
+const headOfficeFeatures: readonly Feature[] = features.filter(
+  (f) =>
+    f !== "org_settings.edit" &&
+    f !== "users.import" &&
+    f !== "permissions.view" &&
+    f !== "api_keys.view" &&
+    f !== "api_keys.manage" &&
+    f !== "xero.connect" &&
+    f !== "xero.manage_mappings" &&
+    f !== "timesheets.export_to_xero" &&
+    f !== "crm.manage_templates"
+);
+
 const adminFeatures: readonly Feature[] = features.filter(
   (f) =>
     // Admins (State Managers) can NOT do:
@@ -353,6 +368,7 @@ const staffFeatures: readonly Feature[] = [
 
 export const roleFeatures: Record<Role, readonly Feature[]> = {
   owner: ownerFeatures,
+  head_office: headOfficeFeatures,
   admin: adminFeatures,
   member: memberFeatures,
   staff: staffFeatures,
@@ -381,9 +397,10 @@ export function hasFeature(role: Role | undefined, feature: Feature): boolean {
   return (roleFeatures[role] as readonly string[]).includes(feature);
 }
 
-/** Does the role meet a minimum level? owner > admin > member > staff */
+/** Does the role meet a minimum level? owner > head_office > admin > member > staff */
 const rolePriority: Record<Role, number> = {
-  owner: 4,
+  owner: 5,
+  head_office: 4,
   admin: 3,
   member: 2,
   staff: 1,
@@ -407,6 +424,7 @@ export interface PermissionRow {
   /** Human description */
   label: string;
   owner: boolean;
+  head_office: boolean;
   admin: boolean;
   member: boolean;
   staff: boolean;
@@ -415,75 +433,75 @@ export interface PermissionRow {
 /** Informational table data for the Settings > Permissions panel */
 export const permissionsTable: PermissionRow[] = [
   // Pages
-  { section: "Pages", label: "Dashboard", owner: true, admin: true, member: true, staff: true },
-  { section: "Pages", label: "Vision / V-TO", owner: true, admin: true, member: true, staff: false },
-  { section: "Pages", label: "Rocks", owner: true, admin: true, member: true, staff: false },
-  { section: "Pages", label: "To-Dos", owner: true, admin: true, member: true, staff: true },
-  { section: "Pages", label: "Issues", owner: true, admin: true, member: true, staff: false },
-  { section: "Pages", label: "Scorecard", owner: true, admin: true, member: true, staff: false },
-  { section: "Pages", label: "Meetings", owner: true, admin: true, member: true, staff: false },
-  { section: "Pages", label: "Services", owner: true, admin: true, member: true, staff: false },
-  { section: "Pages", label: "Activity Library", owner: true, admin: true, member: true, staff: true },
-  { section: "Pages", label: "Projects", owner: true, admin: true, member: true, staff: false },
-  { section: "Pages", label: "Communication", owner: true, admin: true, member: true, staff: true },
-  { section: "Pages", label: "Documents", owner: true, admin: true, member: true, staff: true },
-  { section: "Pages", label: "Onboarding & LMS", owner: true, admin: true, member: true, staff: true },
-  { section: "Pages", label: "Financials", owner: true, admin: true, member: false, staff: false },
-  { section: "Pages", label: "Performance", owner: true, admin: true, member: false, staff: false },
-  { section: "Pages", label: "Compliance", owner: true, admin: true, member: true, staff: true },
-  { section: "Pages", label: "Tickets", owner: true, admin: true, member: false, staff: false },
-  { section: "Pages", label: "Marketing", owner: true, admin: true, member: false, staff: false },
-  { section: "Pages", label: "Team", owner: true, admin: true, member: false, staff: false },
-  { section: "Pages", label: "Settings", owner: true, admin: false, member: false, staff: false },
-  { section: "Pages", label: "My Portal", owner: true, admin: true, member: true, staff: true },
-  { section: "Pages", label: "Timesheets", owner: true, admin: true, member: false, staff: false },
-  { section: "Pages", label: "Leave Management", owner: true, admin: true, member: false, staff: false },
-  { section: "Pages", label: "Contracts", owner: true, admin: true, member: false, staff: false },
-  { section: "Pages", label: "Profile", owner: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Dashboard", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Vision / V-TO", owner: true, head_office: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Rocks", owner: true, head_office: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "To-Dos", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Issues", owner: true, head_office: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Scorecard", owner: true, head_office: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Meetings", owner: true, head_office: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Services", owner: true, head_office: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Activity Library", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Projects", owner: true, head_office: true, admin: true, member: true, staff: false },
+  { section: "Pages", label: "Communication", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Documents", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Onboarding & LMS", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Financials", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Performance", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Compliance", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Tickets", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Marketing", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Team", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Settings", owner: true, head_office: true, admin: false, member: false, staff: false },
+  { section: "Pages", label: "My Portal", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Timesheets", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Leave Management", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Contracts", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Profile", owner: true, head_office: true, admin: true, member: true, staff: true },
 
   // Actions
-  { section: "Actions", label: "View / edit Attendance", owner: true, admin: true, member: true, staff: false },
-  { section: "Actions", label: "Create / edit Rocks", owner: true, admin: true, member: true, staff: false },
-  { section: "Actions", label: "Create / edit To-Dos", owner: true, admin: true, member: true, staff: true },
-  { section: "Actions", label: "Create / edit Issues", owner: true, admin: true, member: true, staff: false },
-  { section: "Actions", label: "Edit Scorecard", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Create / edit financial data", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Create / edit Marketing posts", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Manage Tickets", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Create / edit Documents", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "View Onboarding & LMS", owner: true, admin: true, member: true, staff: true },
-  { section: "Actions", label: "Manage Onboarding & LMS", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "View / edit Attendance", owner: true, head_office: true, admin: true, member: true, staff: false },
+  { section: "Actions", label: "Create / edit Rocks", owner: true, head_office: true, admin: true, member: true, staff: false },
+  { section: "Actions", label: "Create / edit To-Dos", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Actions", label: "Create / edit Issues", owner: true, head_office: true, admin: true, member: true, staff: false },
+  { section: "Actions", label: "Edit Scorecard", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Create / edit financial data", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Create / edit Marketing posts", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Manage Tickets", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Create / edit Documents", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "View Onboarding & LMS", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Actions", label: "Manage Onboarding & LMS", owner: true, head_office: true, admin: true, member: false, staff: false },
 
-  // Admin
-  { section: "Actions", label: "Import staff (CSV/XLSX)", owner: true, admin: false, member: false, staff: false },
-  { section: "Actions", label: "Import attendance data", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Import compliance certs", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Bulk create To-Dos", owner: true, admin: true, member: false, staff: false },
+  // Import / Bulk
+  { section: "Actions", label: "Import staff (CSV/XLSX)", owner: true, head_office: false, admin: false, member: false, staff: false },
+  { section: "Actions", label: "Import attendance data", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Import compliance certs", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Bulk create To-Dos", owner: true, head_office: true, admin: true, member: false, staff: false },
 
-  // Admin
   // HR Actions
-  { section: "Actions", label: "Import timesheets (OWNA)", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Approve timesheets", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Export timesheets to Xero", owner: true, admin: false, member: false, staff: false },
-  { section: "Actions", label: "Request leave", owner: true, admin: true, member: true, staff: true },
-  { section: "Actions", label: "Approve / reject leave", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Manage contracts", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Acknowledge contracts", owner: true, admin: true, member: true, staff: true },
-  { section: "Actions", label: "Manage policies", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Acknowledge policies", owner: true, admin: true, member: true, staff: true },
-  { section: "Actions", label: "Manage offboarding", owner: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Import timesheets (OWNA)", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Approve timesheets", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Export timesheets to Xero", owner: true, head_office: false, admin: false, member: false, staff: false },
+  { section: "Actions", label: "Request leave", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Actions", label: "Approve / reject leave", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Manage contracts", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Acknowledge contracts", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Actions", label: "Manage policies", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Acknowledge policies", owner: true, head_office: true, admin: true, member: true, staff: true },
+  { section: "Actions", label: "Manage offboarding", owner: true, head_office: true, admin: true, member: false, staff: false },
 
-  { section: "Admin", label: "View activity log", owner: true, admin: true, member: false, staff: false },
-  { section: "Admin", label: "Manage users (invite, roles, deactivate)", owner: true, admin: true, member: false, staff: false },
-  { section: "Admin", label: "Edit organisation settings", owner: true, admin: false, member: false, staff: false },
-  { section: "Admin", label: "Connect / manage Xero", owner: true, admin: false, member: false, staff: false },
-  { section: "Admin", label: "View permissions overview", owner: true, admin: false, member: false, staff: false },
-  { section: "Admin", label: "Manage API keys", owner: true, admin: false, member: false, staff: false },
+  { section: "Admin", label: "View activity log", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Admin", label: "Manage users (invite, roles, deactivate)", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Admin", label: "Delete users permanently", owner: true, head_office: false, admin: false, member: false, staff: false },
+  { section: "Admin", label: "Edit organisation settings", owner: true, head_office: false, admin: false, member: false, staff: false },
+  { section: "Admin", label: "Connect / manage Xero", owner: true, head_office: false, admin: false, member: false, staff: false },
+  { section: "Admin", label: "View permissions overview", owner: true, head_office: false, admin: false, member: false, staff: false },
+  { section: "Admin", label: "Manage API keys", owner: true, head_office: false, admin: false, member: false, staff: false },
 
   // CRM
-  { section: "Pages", label: "CRM Pipeline", owner: true, admin: true, member: false, staff: false },
-  { section: "Pages", label: "CRM Email Templates", owner: true, admin: false, member: false, staff: false },
-  { section: "Actions", label: "View leads & pipeline", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Create / edit leads", owner: true, admin: true, member: false, staff: false },
-  { section: "Actions", label: "Manage CRM email templates", owner: true, admin: false, member: false, staff: false },
+  { section: "Pages", label: "CRM Pipeline", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "CRM Email Templates", owner: true, head_office: false, admin: false, member: false, staff: false },
+  { section: "Actions", label: "View leads & pipeline", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Create / edit leads", owner: true, head_office: true, admin: true, member: false, staff: false },
+  { section: "Actions", label: "Manage CRM email templates", owner: true, head_office: false, admin: false, member: false, staff: false },
 ];

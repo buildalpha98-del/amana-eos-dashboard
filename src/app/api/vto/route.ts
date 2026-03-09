@@ -43,7 +43,7 @@ export async function GET() {
 
 // PATCH /api/vto — update V/TO fields
 export async function PATCH(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

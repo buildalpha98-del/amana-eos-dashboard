@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 
 // POST /api/timesheets/[id]/submit — submit timesheet for approval
 export async function POST(
@@ -21,6 +21,15 @@ export async function POST(
   const scope = getServiceScope(session);
   if (scope && timesheet.serviceId !== scope) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // State Manager: verify timesheet's service is in their assigned state
+  const stateScope = getStateScope(session);
+  if (stateScope) {
+    const svc = await prisma.service.findUnique({ where: { id: timesheet.serviceId }, select: { state: true } });
+    if (!svc || svc.state !== stateScope) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   if (timesheet.status !== "ts_draft") {

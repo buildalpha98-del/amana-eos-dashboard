@@ -815,7 +815,7 @@ export function RockDetailPanel({
                       {todo.title}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {todo.assignee.name}
+                      {todo.assignee?.name ?? "Unassigned"}
                     </span>
                     <button
                       onClick={() => unlinkTodo.mutate(todo.id)}

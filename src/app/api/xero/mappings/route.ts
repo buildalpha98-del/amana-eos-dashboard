@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // ─── GET /api/xero/mappings ─────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   try {

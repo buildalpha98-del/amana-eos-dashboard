@@ -52,7 +52,7 @@ const entryIncludes = {
 
 // GET /api/marketing/term-calendar — fetch entries grouped by week
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const { searchParams } = new URL(req.url);
@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/marketing/term-calendar — create a single entry
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

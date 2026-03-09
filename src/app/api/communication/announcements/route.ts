@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 
 const createAnnouncementSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -41,9 +41,18 @@ export async function GET(req: NextRequest) {
 
   // Member/staff: only see announcements for their service or company-wide (serviceId = null)
   const scope = getServiceScope(session);
+  const stateScope = getStateScope(session);
   if (scope) {
     where.OR = [
       { serviceId: scope },
+      { serviceId: null },
+    ];
+  }
+
+  // State Manager: only see announcements for services in their state or company-wide
+  if (stateScope) {
+    where.OR = [
+      { service: { state: stateScope } },
       { serviceId: null },
     ];
   }
@@ -65,7 +74,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/communication/announcements — create announcement
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

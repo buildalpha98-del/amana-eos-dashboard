@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
  * Body: { month: 1-12, year: number }
  */
 export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   try {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
  * GET /api/reports/board — List all board reports (summary)
  */
 export async function GET() {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   try {

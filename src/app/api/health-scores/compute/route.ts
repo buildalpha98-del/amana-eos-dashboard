@@ -10,7 +10,7 @@ import {
 
 export async function POST(request: NextRequest) {
   // ── Auth: session OR cron secret ──────────────────────────
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
 
   if (error) {
     // Fallback: check CRON_SECRET bearer token

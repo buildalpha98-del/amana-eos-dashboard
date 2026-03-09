@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 
 /**
  * GET /api/attendance/summary
@@ -25,6 +25,7 @@ export async function GET(req: Request) {
 
   // Service scope
   const scope = getServiceScope(session);
+  const stateScope = getStateScope(session);
   const effectiveServiceId = scope || serviceId;
 
   if (scope && serviceId && serviceId !== scope) {
@@ -41,6 +42,8 @@ export async function GET(req: Request) {
     date: { gte: fromDate, lte: toDate },
   };
   if (effectiveServiceId) where.serviceId = effectiveServiceId;
+  // State Manager: only see attendance for services in their assigned state
+  if (stateScope) where.service = { state: stateScope };
 
   const records = await prisma.dailyAttendance.findMany({
     where,

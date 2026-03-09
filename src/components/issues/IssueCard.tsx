@@ -188,12 +188,12 @@ export function IssueCard({
           <div className="flex items-center gap-3 mt-2">
             {issue.owner && (
               <span className="text-xs text-gray-400">
-                Owner: <span className="text-gray-600">{issue.owner.name}</span>
+                Owner: <span className="text-gray-600">{issue.owner?.name ?? "Unassigned"}</span>
               </span>
             )}
             <span className="text-xs text-gray-400">
               Raised by{" "}
-              <span className="text-gray-500">{issue.raisedBy.name}</span>
+              <span className="text-gray-500">{issue.raisedBy?.name ?? "Unknown"}</span>
             </span>
           </div>
         </div>

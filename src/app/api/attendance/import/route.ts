@@ -47,7 +47,7 @@ function parseSessionType(val: string): SessionType | null {
 }
 
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const formData = await req.formData();

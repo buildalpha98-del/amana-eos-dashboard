@@ -32,6 +32,7 @@ import {
   Save,
   Copy,
   AlertTriangle,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
@@ -60,6 +61,7 @@ import {
   useUpdateOwnaMapping,
   useOwnaSync,
 } from "@/hooks/useOwna";
+import { AUSTRALIAN_STATES } from "@/lib/service-scope";
 
 interface UserData {
   id: string;
@@ -73,9 +75,11 @@ interface UserData {
 function InviteUserModal({
   open,
   onClose,
+  currentUserRole,
 }: {
   open: boolean;
   onClose: () => void;
+  currentUserRole: Role;
 }) {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
@@ -83,6 +87,7 @@ function InviteUserModal({
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>("member");
   const [serviceId, setServiceId] = useState("");
+  const [state, setState] = useState("");
   const [error, setError] = useState("");
 
   // Fetch services for the service picker
@@ -96,6 +101,7 @@ function InviteUserModal({
   });
 
   const needsService = role === "staff" || role === "member";
+  const needsState = role === "admin";
 
   const createUser = useMutation({
     mutationFn: async (data: {
@@ -104,6 +110,7 @@ function InviteUserModal({
       password: string;
       role: Role;
       serviceId?: string | null;
+      state?: string | null;
     }) => {
       const res = await fetch("/api/users", {
         method: "POST",
@@ -123,6 +130,7 @@ function InviteUserModal({
       setPassword("");
       setRole("member");
       setServiceId("");
+      setState("");
       setError("");
       onClose();
     },
@@ -157,7 +165,7 @@ function InviteUserModal({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            createUser.mutate({ name, email, password, role, serviceId: needsService ? serviceId || null : null });
+            createUser.mutate({ name, email, password, role, serviceId: needsService ? serviceId || null : null, state: needsState ? state || null : null });
           }}
           className="space-y-4"
         >
@@ -210,13 +218,14 @@ function InviteUserModal({
             </label>
             <select
               value={role}
-              onChange={(e) => { setRole(e.target.value as Role); if (e.target.value !== "staff" && e.target.value !== "member") setServiceId(""); }}
+              onChange={(e) => { setRole(e.target.value as Role); if (e.target.value !== "staff" && e.target.value !== "member") setServiceId(""); if (e.target.value !== "admin") setState(""); }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="staff">{ROLE_DISPLAY_NAMES.staff}</option>
               <option value="member">{ROLE_DISPLAY_NAMES.member}</option>
               <option value="admin">{ROLE_DISPLAY_NAMES.admin}</option>
-              <option value="owner">{ROLE_DISPLAY_NAMES.owner}</option>
+              {currentUserRole === "owner" && <option value="head_office">{ROLE_DISPLAY_NAMES.head_office}</option>}
+              {currentUserRole === "owner" && <option value="owner">{ROLE_DISPLAY_NAMES.owner}</option>}
             </select>
           </div>
 
@@ -240,6 +249,30 @@ function InviteUserModal({
               </select>
               <p className="mt-1 text-xs text-gray-500">
                 {role === "staff" ? ROLE_DISPLAY_NAMES.staff + "s" : ROLE_DISPLAY_NAMES.member + "s"} are scoped to their assigned service
+              </p>
+            </div>
+          )}
+
+          {needsState && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                State <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              >
+                <option value="">Select a state...</option>
+                {AUSTRALIAN_STATES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label} ({s.value})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                {ROLE_DISPLAY_NAMES.admin}s are scoped to services within their assigned state
               </p>
             </div>
           )}
@@ -270,6 +303,8 @@ function RoleIcon({ role }: { role: Role }) {
   switch (role) {
     case "owner":
       return <ShieldCheck className="w-4 h-4 text-accent" />;
+    case "head_office":
+      return <Building2 className="w-4 h-4 text-purple-500" />;
     case "admin":
       return <Shield className="w-4 h-4 text-brand" />;
     default:
@@ -280,9 +315,11 @@ function RoleIcon({ role }: { role: Role }) {
 function UserRow({
   user,
   isOwner,
+  canManageUsers,
 }: {
   user: UserData;
   isOwner: boolean;
+  canManageUsers: boolean;
 }) {
   const queryClient = useQueryClient();
   const [showMenu, setShowMenu] = useState(false);
@@ -392,7 +429,7 @@ function UserRow({
         {new Date(user.createdAt).toLocaleDateString("en-AU")}
       </td>
       <td className="py-3 px-4">
-        {isOwner && (
+        {canManageUsers && (
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
@@ -419,12 +456,22 @@ function UserRow({
                   >
                     Set as {ROLE_DISPLAY_NAMES.admin}
                   </button>
-                  <button
-                    onClick={() => updateRole.mutate("owner")}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    Set as {ROLE_DISPLAY_NAMES.owner}
-                  </button>
+                  {isOwner && (
+                    <button
+                      onClick={() => updateRole.mutate("head_office")}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      Set as {ROLE_DISPLAY_NAMES.head_office}
+                    </button>
+                  )}
+                  {isOwner && (
+                    <button
+                      onClick={() => updateRole.mutate("owner")}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      Set as {ROLE_DISPLAY_NAMES.owner}
+                    </button>
+                  )}
                   <hr className="my-1" />
                   <button
                     onClick={() => toggleActive.mutate()}
@@ -1670,7 +1717,7 @@ function PermissionsPanel() {
       </p>
 
       <div className="overflow-x-auto -mx-6 px-6">
-        <table className="w-full text-sm min-w-[480px]">
+        <table className="w-full text-sm min-w-[580px]">
           <thead>
             <tr className="border-b border-gray-200">
               <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
@@ -1678,6 +1725,9 @@ function PermissionsPanel() {
               </th>
               <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 {ROLE_DISPLAY_NAMES.owner}
+              </th>
+              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
+                {ROLE_DISPLAY_NAMES.head_office}
               </th>
               <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 {ROLE_DISPLAY_NAMES.admin}
@@ -1695,7 +1745,7 @@ function PermissionsPanel() {
               <Fragment key={`section-${section.name}`}>
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="pt-4 pb-1 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider"
                   >
                     {section.name}
@@ -1709,7 +1759,7 @@ function PermissionsPanel() {
                     <td className="py-2 px-3 text-sm text-gray-700">
                       {row.label}
                     </td>
-                    {(["owner", "admin", "member", "staff"] as const).map((role) => (
+                    {(["owner", "head_office", "admin", "member", "staff"] as const).map((role) => (
                       <td key={role} className="py-2 px-3 text-center">
                         {row[role] ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto" />
@@ -1873,7 +1923,7 @@ function ApiKeysSection() {
                     <td className="py-3 px-3">
                       <div className="text-sm font-medium text-gray-900">{key.name}</div>
                       <div className="text-xs text-gray-400">
-                        by {key.createdBy.name} &middot; {formatDate(key.createdAt)}
+                        by {key.createdBy?.name ?? "Unknown"} &middot; {formatDate(key.createdAt)}
                       </div>
                     </td>
                     <td className="py-3 px-3">
@@ -2292,6 +2342,8 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
   const [showInvite, setShowInvite] = useState(false);
   const [showImportStaff, setShowImportStaff] = useState(false);
   const isOwner = userRole === "owner";
+  const isHeadOffice = userRole === "head_office";
+  const canManageUsers = isOwner || isHeadOffice;
   const queryClient = useQueryClient();
 
   const { data: users, isLoading } = useQuery<UserData[]>({
@@ -2301,16 +2353,16 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       if (!res.ok) throw new Error("Failed to fetch users");
       return res.json();
     },
-    enabled: isOwner,
+    enabled: canManageUsers,
   });
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {/* Organisation Settings */}
-      <OrgSettingsSection isOwner={isOwner} />
+      {/* Organisation Settings (owner only) */}
+      {isOwner && <OrgSettingsSection isOwner={isOwner} />}
 
-      {/* Xero Integration (owner/admin) */}
-      {(userRole === "owner" || userRole === "admin") && (
+      {/* Xero Integration (owner only) */}
+      {isOwner && (
         <XeroIntegrationSection isOwner={isOwner} />
       )}
 
@@ -2322,8 +2374,8 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       {/* API Keys (owner only) */}
       {isOwner && <ApiKeysSection />}
 
-      {/* User Management (owner only) */}
-      {isOwner && (
+      {/* User Management (owner + head_office) */}
+      {canManageUsers && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -2333,13 +2385,15 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
               </h3>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowImportStaff(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                Import Staff
-              </button>
+              {isOwner && (
+                <button
+                  onClick={() => setShowImportStaff(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Import Staff
+                </button>
+              )}
               <button
                 onClick={() => setShowInvite(true)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
@@ -2374,7 +2428,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
                 </thead>
                 <tbody>
                   {users?.map((user) => (
-                    <UserRow key={user.id} user={user} isOwner={isOwner} />
+                    <UserRow key={user.id} user={user} isOwner={isOwner} canManageUsers={canManageUsers} />
                   ))}
                 </tbody>
               </table>
@@ -2384,6 +2438,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
           <InviteUserModal
             open={showInvite}
             onClose={() => setShowInvite(false)}
+            currentUserRole={userRole}
           />
 
           {showImportStaff && (
@@ -2403,7 +2458,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
         </div>
       )}
 
-      {!isOwner && (
+      {!canManageUsers && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-5 h-5 text-gray-400" />
@@ -2412,14 +2467,14 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
             </h3>
           </div>
           <p className="text-sm text-gray-500">
-            Only owners can manage users. Contact your organisation owner to
+            Only owners and head office users can manage users. Contact your organisation owner to
             invite new team members or change roles.
           </p>
         </div>
       )}
 
-      {/* Activity Log (owner/admin) */}
-      {(userRole === "owner" || userRole === "admin") && <ActivityLogPanel />}
+      {/* Activity Log (owner/head_office/admin) */}
+      {(userRole === "owner" || userRole === "head_office" || userRole === "admin") && <ActivityLogPanel />}
 
       {/* Permissions overview (owner only) */}
       {isOwner && <PermissionsPanel />}

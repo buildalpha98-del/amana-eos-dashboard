@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/onboarding/packs — create a new pack (owner/admin only)
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

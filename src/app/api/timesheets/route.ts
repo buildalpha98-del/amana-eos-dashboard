@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 
 const createTimesheetSchema = z.object({
   serviceId: z.string().min(1, "Service ID is required"),
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
   if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const scope = getServiceScope(session);
+  const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const status = searchParams.get("status");
@@ -28,6 +29,8 @@ export async function GET(req: NextRequest) {
   if (scope) where.serviceId = scope;
   else if (serviceId) where.serviceId = serviceId;
   if (status) where.status = status;
+  // State Manager: only see timesheets for services in their assigned state
+  if (stateScope) where.service = { state: stateScope };
 
   if (weekEndingAfter || weekEndingBefore) {
     where.weekEnding = {};

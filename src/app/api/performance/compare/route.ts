@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const url = new URL(req.url);

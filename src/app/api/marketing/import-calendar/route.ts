@@ -153,7 +153,7 @@ function parseDate(raw: unknown): Date | null {
 // POST with ?preview=true returns parsed rows without creating records.
 
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const { searchParams } = new URL(req.url);

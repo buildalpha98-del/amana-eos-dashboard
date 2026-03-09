@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 
 const createMeetingSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -16,15 +16,28 @@ export async function GET(req: NextRequest) {
   if (error) return error;
 
   const scope = getServiceScope(session);
+  const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const limit = parseInt(searchParams.get("limit") || "20", 10);
+
+  // State Manager: pre-fetch service IDs in their state to filter meetings
+  let stateServiceIds: string[] | null = null;
+  if (stateScope) {
+    const stateServices = await prisma.service.findMany({
+      where: { state: stateScope },
+      select: { id: true },
+    });
+    stateServiceIds = stateServices.map((s) => s.id);
+  }
 
   const meetings = await prisma.meeting.findMany({
     where: {
       ...(status ? { status: status as "scheduled" | "in_progress" | "completed" | "cancelled" } : {}),
       // Member/staff: only see meetings linked to their service
       ...(scope ? { serviceIds: { has: scope } } : {}),
+      // State Manager: only see meetings linked to services in their state
+      ...(stateServiceIds ? { serviceIds: { hasSome: stateServiceIds } } : {}),
     },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },
@@ -38,7 +51,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/meetings — create a new meeting
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

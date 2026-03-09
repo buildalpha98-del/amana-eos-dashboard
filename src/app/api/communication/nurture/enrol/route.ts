@@ -9,7 +9,7 @@ import { requireAuth } from "@/lib/server-auth";
  * ParentNurtureStep records (Day 0, 2, 5, 7, 14, 30).
  */
 export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

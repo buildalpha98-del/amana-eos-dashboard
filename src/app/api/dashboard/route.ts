@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import {
   computeHealthScore,
   getScoreStatus,
@@ -17,12 +17,14 @@ export async function GET() {
 
   const now = new Date();
   const scope = getServiceScope(session);
+  const stateScope = getStateScope(session);
 
   // ── Centre Health ──────────────────────────────────────────
   const services = await prisma.service.findMany({
     where: {
       status: { in: ["active", "onboarding"] },
       ...(scope ? { id: scope } : {}),
+      ...(stateScope ? { state: stateScope } : {}),
     },
     include: {
       metrics: { orderBy: { recordedAt: "desc" }, take: 1 },
@@ -277,7 +279,7 @@ export async function GET() {
     overdueTodos: overdueTodos.map((t) => ({
       id: t.id,
       title: t.title,
-      assigneeName: t.assignee.name,
+      assigneeName: t.assignee?.name ?? "Unknown",
       dueDate: t.dueDate.toISOString(),
     })),
     unassignedTickets: unassignedTickets.map((t) => ({
@@ -293,7 +295,7 @@ export async function GET() {
     overdueRocks: overdueRocks.map((r) => ({
       id: r.id,
       title: r.title,
-      ownerName: r.owner.name,
+      ownerName: r.owner?.name ?? "Unknown",
       quarter: r.quarter,
     })),
   };
@@ -330,8 +332,8 @@ export async function GET() {
     title: t.title,
     status: t.status,
     dueDate: t.dueDate.toISOString(),
-    assigneeName: t.assignee.name,
-    assigneeId: t.assignee.id,
+    assigneeName: t.assignee?.name ?? "Unknown",
+    assigneeId: t.assignee?.id ?? "",
     projectId: t.project!.id,
     projectName: t.project!.name,
     projectStatus: t.project!.status,

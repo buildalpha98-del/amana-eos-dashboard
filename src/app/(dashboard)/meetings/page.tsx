@@ -170,7 +170,7 @@ function MeetingListView({
       filtered = filtered.filter(
         (m) =>
           m.title.toLowerCase().includes(q) ||
-          m.createdBy.name.toLowerCase().includes(q)
+          (m.createdBy?.name ?? "").toLowerCase().includes(q)
       );
     }
     return filtered;
@@ -337,7 +337,7 @@ function MeetingListView({
                     </p>
                     <p className="text-xs text-gray-500">
                       {formatDateAU(meeting.date)} &middot;{" "}
-                      {meeting.createdBy.name}
+                      {meeting.createdBy?.name ?? "Unknown"}
                       {meeting.completedAt && (
                         <>
                           {" "}&middot;{" "}
@@ -528,7 +528,7 @@ function ScorecardSection({
                   {m.title}
                 </span>
                 <span className="text-xs text-gray-500 text-center truncate">
-                  {m.owner.name.split(" ")[0]}
+                  {(m.owner?.name ?? "Unassigned").split(" ")[0]}
                 </span>
                 <span className="text-xs text-gray-600 text-center font-mono">
                   {m.goalDirection === "above" ? ">=" : m.goalDirection === "below" ? "<=" : "="}{" "}
@@ -642,7 +642,7 @@ function RockReviewSection({ rocks }: { rocks: RockData[] | undefined }) {
                 {rock.title}
               </p>
               <p className="text-xs text-gray-500">
-                {rock.owner.name} &middot; {rock.percentComplete}% complete
+                {rock.owner?.name ?? "Unassigned"} &middot; {rock.percentComplete}% complete
               </p>
             </div>
             <span
@@ -795,7 +795,7 @@ function TodoReviewSection({
               </p>
             </div>
             <span className="text-xs text-gray-400 flex-shrink-0">
-              {todo.assignee.name.split(" ")[0]}
+              {(todo.assignee?.name ?? "Unassigned").split(" ")[0]}
             </span>
           </div>
         ))}
@@ -937,8 +937,8 @@ function IDSSection({
                   {issue.title}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Raised by {issue.raisedBy.name}
-                  {issue.owner ? ` \u00B7 Owner: ${issue.owner.name}` : ""}
+                  Raised by {issue.raisedBy?.name ?? "Unknown"}
+                  {issue.owner ? ` \u00B7 Owner: ${issue.owner?.name ?? "Unassigned"}` : ""}
                 </p>
               </div>
               <span

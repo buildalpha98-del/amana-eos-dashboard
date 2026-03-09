@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/server-auth";
 
 // GET /api/marketing/photo-compliance — last 7 days of photo compliance per centre
 export async function GET() {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   // Build last 7 dates (today minus 1..7, since today isn't complete yet)

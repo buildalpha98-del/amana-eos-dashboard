@@ -48,7 +48,7 @@ export function RockListView({
         cmp = a.title.localeCompare(b.title);
         break;
       case "owner":
-        cmp = a.owner.name.localeCompare(b.owner.name);
+        cmp = (a.owner?.name ?? "").localeCompare(b.owner?.name ?? "");
         break;
       case "priority":
         cmp = priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -123,7 +123,7 @@ export function RockListView({
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center">
                       <span className="text-[10px] font-medium text-brand">
-                        {rock.owner.name
+                        {(rock.owner?.name ?? "Unassigned")
                           .split(" ")
                           .map((n) => n[0])
                           .join("")
@@ -132,7 +132,7 @@ export function RockListView({
                       </span>
                     </div>
                     <span className="text-sm text-gray-600">
-                      {rock.owner.name}
+                      {rock.owner?.name ?? "Unassigned"}
                     </span>
                   </div>
                 </td>

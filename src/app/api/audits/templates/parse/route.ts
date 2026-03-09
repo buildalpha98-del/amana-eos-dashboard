@@ -14,7 +14,7 @@ const ALLOWED_TYPES = [
  * Returns parsed preview (no DB writes).
  */
 export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const formData = await req.formData();

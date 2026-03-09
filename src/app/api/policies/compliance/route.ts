@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/server-auth";
 
 // GET /api/policies/compliance — compliance dashboard (owner/admin only)
 export async function GET() {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const totalStaff = await prisma.user.count({

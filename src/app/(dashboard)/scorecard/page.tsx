@@ -66,7 +66,7 @@ export default function ScorecardPage() {
 
     const rows = scorecard.measurables.map((m) => {
       const row: Record<string, unknown> = {
-        owner: m.owner.name,
+        owner: m.owner?.name ?? "Unassigned",
         title: m.title,
         goal: `${m.goalDirection === "above" ? ">=" : m.goalDirection === "below" ? "<=" : "="} ${m.goalValue}`,
         unit: m.unit || "",

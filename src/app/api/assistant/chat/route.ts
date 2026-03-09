@@ -11,7 +11,7 @@ import { buildDashboardContext } from "@/lib/ai-context";
  * Returns a Server-Sent Events stream of text deltas.
  */
 export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const ai = getAI();

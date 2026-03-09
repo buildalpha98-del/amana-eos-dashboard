@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import {
   analyseStaffingForWeek,
   SHIFT_COST,
@@ -25,6 +25,15 @@ export async function GET(req: NextRequest) {
   const scope = getServiceScope(session);
   if (scope && scope !== serviceId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // State Manager: verify service is in their assigned state
+  const stateScope = getStateScope(session);
+  if (stateScope) {
+    const svc = await prisma.service.findUnique({ where: { id: serviceId }, select: { state: true } });
+    if (!svc || svc.state !== stateScope) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   // Default to current week (Monday)

@@ -64,7 +64,7 @@ export function ServiceCard({
           {service.manager && (
             <div className="flex items-center gap-1 mt-1.5 text-sm text-gray-500">
               <Users className="w-3.5 h-3.5" />
-              <span>{service.manager.name}</span>
+              <span>{service.manager?.name ?? "Unassigned"}</span>
             </div>
           )}
         </div>

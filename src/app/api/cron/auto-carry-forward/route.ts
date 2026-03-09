@@ -67,10 +67,12 @@ export async function GET(req: NextRequest) {
     // Group by assignee for notification context
     const assigneeCounts = new Map<string, number>();
     for (const todo of staleTodos) {
-      assigneeCounts.set(
-        todo.assigneeId,
-        (assigneeCounts.get(todo.assigneeId) || 0) + 1
-      );
+      if (todo.assigneeId) {
+        assigneeCounts.set(
+          todo.assigneeId,
+          (assigneeCounts.get(todo.assigneeId) || 0) + 1
+        );
+      }
     }
 
     await guard.complete({

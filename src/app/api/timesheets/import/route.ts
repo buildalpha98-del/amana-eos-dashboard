@@ -27,7 +27,7 @@ const importSchema = z.object({
 
 // POST /api/timesheets/import — bulk import entries from parsed data
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

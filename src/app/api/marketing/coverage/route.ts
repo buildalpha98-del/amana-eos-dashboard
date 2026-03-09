@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/server-auth";
 
 // GET /api/marketing/coverage — centre content coverage report
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const now = new Date();

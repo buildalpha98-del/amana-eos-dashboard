@@ -193,7 +193,7 @@ export function ProjectDetailPanel({
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <User className="w-4 h-4 text-gray-400" />
-              <span>Owner: {project.owner.name}</span>
+              <span>Owner: {project.owner?.name ?? "Unassigned"}</span>
             </div>
             {project.service && (
               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -315,7 +315,7 @@ export function ProjectDetailPanel({
                       </p>
                     </div>
                     <select
-                      value={todo.assignee.id}
+                      value={todo.assignee?.id ?? ""}
                       onChange={(e) => reassignTodo.mutate({ id: todo.id, assigneeId: e.target.value })}
                       className="text-xs text-gray-500 border-none bg-transparent focus:outline-none cursor-pointer"
                     >

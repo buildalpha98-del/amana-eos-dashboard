@@ -168,19 +168,19 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
                 {/* Owner */}
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-6 h-6 rounded-full bg-brand flex items-center justify-center">
-                    {rock.owner.avatar ? (
+                    {rock.owner?.avatar ? (
                       <img
-                        src={rock.owner.avatar}
-                        alt={rock.owner.name}
+                        src={rock.owner?.avatar}
+                        alt={rock.owner?.name ?? "Unassigned"}
                         className="w-6 h-6 rounded-full object-cover"
                       />
                     ) : (
                       <span className="text-[10px] font-medium text-white">
-                        {getInitials(rock.owner.name)}
+                        {getInitials(rock.owner?.name ?? "Unassigned")}
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-gray-600">{rock.owner.name}</span>
+                  <span className="text-xs text-gray-600">{rock.owner?.name ?? "Unassigned"}</span>
                 </div>
 
                 {/* Badges */}

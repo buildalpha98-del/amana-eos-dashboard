@@ -10,7 +10,7 @@ import {
 
 // GET /api/performance/history — returns last 6 months of scores per centre
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const months = parseInt(new URL(req.url).searchParams.get("months") || "6", 10);

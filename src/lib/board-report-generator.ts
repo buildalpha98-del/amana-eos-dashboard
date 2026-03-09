@@ -309,7 +309,7 @@ export async function generateBoardReport({
 
   const rockList = rocks.map((r) => ({
     title: r.title,
-    owner: r.owner.name,
+    owner: r.owner?.name ?? "Unassigned",
     status: r.status,
     percentComplete: r.percentComplete,
   }));

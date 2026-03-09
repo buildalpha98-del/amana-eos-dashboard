@@ -397,7 +397,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                           )}
                           {task.assignee && (
                             <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
-                              {task.assignee.name.split(" ")[0]}
+                              {(task.assignee?.name ?? "Unassigned").split(" ")[0]}
                             </span>
                           )}
                           {task.campaign && (

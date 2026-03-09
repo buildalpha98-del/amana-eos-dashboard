@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getStateScope } from "@/lib/service-scope";
 import { z } from "zod";
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
+  const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const period = searchParams.get("period") || "monthly";
   const serviceId = searchParams.get("serviceId");
@@ -15,6 +17,8 @@ export async function GET(req: NextRequest) {
     periodType: period,
   };
   if (serviceId) where.serviceId = serviceId;
+  // State Manager: only see financials for services in their assigned state
+  if (stateScope) where.service = { state: stateScope };
 
   // dataSource and xeroSyncedAt are included automatically as scalar fields
   const financials = await prisma.financialPeriod.findMany({
@@ -77,7 +81,7 @@ const financialEntrySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

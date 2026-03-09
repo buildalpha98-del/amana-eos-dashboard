@@ -249,7 +249,7 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
                     {task.assignee && (
                       <span className="text-gray-500">
                         {" "}
-                        &middot; {task.assignee.name}
+                        &middot; {task.assignee?.name ?? "Unassigned"}
                       </span>
                     )}
                   </p>
@@ -300,7 +300,7 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
                     {task.assignee && (
                       <span className="text-gray-500">
                         {" "}
-                        &middot; {task.assignee.name}
+                        &middot; {task.assignee?.name ?? "Unassigned"}
                       </span>
                     )}
                   </p>

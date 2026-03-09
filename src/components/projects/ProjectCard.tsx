@@ -57,7 +57,7 @@ export function ProjectCard({
           <div className="flex items-center gap-3 mt-3 text-xs text-gray-500">
             <div className="flex items-center gap-1">
               <User className="w-3.5 h-3.5" />
-              <span>{project.owner.name}</span>
+              <span>{project.owner?.name ?? "Unassigned"}</span>
             </div>
             {project.service && (
               <div className="flex items-center gap-1">

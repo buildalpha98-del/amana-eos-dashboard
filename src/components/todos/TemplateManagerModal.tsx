@@ -239,7 +239,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                           </span>
                         </div>
                         <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <span>{template.assignee.name}</span>
+                          <span>{template.assignee?.name ?? "Unassigned"}</span>
                           {template.service && (
                             <>
                               <span className="text-gray-300">|</span>

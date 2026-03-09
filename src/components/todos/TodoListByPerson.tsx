@@ -43,13 +43,13 @@ export function TodoListByPerson({
   }
 
   const sortedGroups = Object.values(groups).sort((a, b) =>
-    a.assignee.name.localeCompare(b.assignee.name)
+    (a.assignee?.name ?? "").localeCompare(b.assignee?.name ?? "")
   );
 
   return (
     <div className="space-y-4">
       {sortedGroups.map((group) => (
-        <PersonSection key={group.assignee.id} group={group} onTodoClick={onTodoClick} selectedIds={selectedIds} onToggleSelect={onToggleSelect} />
+        <PersonSection key={group.assignee?.id ?? "unassigned"} group={group} onTodoClick={onTodoClick} selectedIds={selectedIds} onToggleSelect={onToggleSelect} />
       ))}
     </div>
   );
@@ -83,7 +83,7 @@ function PersonSection({
         )}
         <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
           <span className="text-xs font-medium text-brand">
-            {group.assignee.name
+            {(group.assignee?.name ?? "Unassigned")
               .split(" ")
               .map((n) => n[0])
               .join("")
@@ -93,7 +93,7 @@ function PersonSection({
         </div>
         <div className="flex-1 text-left">
           <span className="text-sm font-semibold text-gray-900">
-            {group.assignee.name}
+            {group.assignee?.name ?? "Unassigned"}
           </span>
         </div>
         <div className="flex items-center gap-2">

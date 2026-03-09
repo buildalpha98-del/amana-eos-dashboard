@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { z } from "zod";
 import type { SessionType } from "@prisma/client";
 
@@ -19,6 +19,7 @@ export async function GET(req: Request) {
 
   // Scope to user's service if staff/member
   const scope = getServiceScope(session);
+  const stateScope = getStateScope(session);
 
   const where: Record<string, unknown> = {};
 
@@ -31,6 +32,9 @@ export async function GET(req: Request) {
   } else if (serviceId) {
     where.serviceId = serviceId;
   }
+
+  // State Manager: only see attendance for services in their assigned state
+  if (stateScope) where.service = { state: stateScope };
 
   if (from || to) {
     where.date = {};

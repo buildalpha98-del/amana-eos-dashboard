@@ -145,7 +145,7 @@ export function DashboardAnnouncements() {
                   {announcement.author?.avatar ? (
                     <img
                       src={announcement.author.avatar}
-                      alt={announcement.author.name}
+                      alt={announcement.author?.name ?? "Unknown"}
                       className="h-4 w-4 rounded-full object-cover"
                     />
                   ) : (

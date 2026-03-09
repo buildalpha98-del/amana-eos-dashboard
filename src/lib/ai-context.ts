@@ -100,7 +100,7 @@ export async function buildDashboardContext(): Promise<string> {
     lines.push(
       `Quarterly Rocks (${currentQuarter}): ${rocks.length} total`,
       `  On Track: ${onTrack}, Complete: ${complete}, Off Track: ${offTrack}`,
-      rocks.map((r) => `  - ${r.title} (${r.owner.name}, ${r.percentComplete}%, ${r.status})`).join("\n"),
+      rocks.map((r) => `  - ${r.title} (${r.owner?.name ?? "Unassigned"}, ${r.percentComplete}%, ${r.status})`).join("\n"),
       "",
     );
   }

@@ -10,6 +10,7 @@ import {
   useCreateFolder,
   useDeleteFolder,
   useMoveDocument,
+  useBulkCreateDocuments,
   DocumentData,
   DocumentFolder,
 } from "@/hooks/useDocuments";
@@ -38,10 +39,12 @@ import {
   CheckCircle2,
   Loader2,
   Pencil,
+  Files,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { BulkUploadModal } from "@/components/documents/BulkUploadModal";
 import { toast } from "@/hooks/useToast";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
@@ -123,12 +126,15 @@ export default function DocumentsPage() {
     },
   });
 
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+
   const createDocument = useCreateDocument();
   const deleteDocument = useDeleteDocument();
   const updateDocument = useUpdateDocument();
   const createFolder = useCreateFolder();
   const deleteFolder = useDeleteFolder();
   const moveDocument = useMoveDocument();
+  const bulkCreate = useBulkCreateDocuments();
   const [editingDoc, setEditingDoc] = useState<DocumentData | null>(null);
   const [editDocForm, setEditDocForm] = useState({ title: "", description: "", category: "" });
   const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
@@ -280,7 +286,7 @@ export default function DocumentsPage() {
         category: doc.category,
         centre: doc.centre?.name || "",
         folder: doc.folder?.name || "",
-        uploadedBy: doc.uploadedBy.name,
+        uploadedBy: doc.uploadedBy?.name ?? "Unknown",
         date: doc.createdAt,
         fileSize: doc.fileSize,
       })),
@@ -336,6 +342,13 @@ export default function DocumentsPage() {
             >
               <FolderPlus className="w-4 h-4" />
               New Folder
+            </button>
+            <button
+              onClick={() => setShowBulkUpload(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Files className="w-4 h-4" />
+              Bulk Upload
             </button>
             <button
               onClick={() => setShowModal(true)}
@@ -578,7 +591,7 @@ export default function DocumentsPage() {
                   )}
                   <div className="space-y-1 mb-4 text-xs text-gray-400">
                     <div className="flex items-center gap-2">
-                      <User className="w-3 h-3" /> {doc.uploadedBy.name}
+                      <User className="w-3 h-3" /> {doc.uploadedBy?.name ?? "Unknown"}
                     </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-3 h-3" /> {formatDate(doc.createdAt)}
@@ -664,7 +677,7 @@ export default function DocumentsPage() {
                           {doc.centre?.name || "—"}
                         </td>
                         <td className="px-4 py-3 text-gray-600">
-                          {doc.uploadedBy.name}
+                          {doc.uploadedBy?.name ?? "Unknown"}
                         </td>
                         <td className="px-4 py-3 text-gray-600">
                           {formatDate(doc.createdAt)}
@@ -1016,6 +1029,20 @@ export default function DocumentsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Bulk Upload Modal */}
+      {showBulkUpload && (
+        <BulkUploadModal
+          open={showBulkUpload}
+          onClose={() => setShowBulkUpload(false)}
+          categories={CATEGORIES}
+          services={services}
+          currentFolderId={currentFolderId}
+          breadcrumbs={breadcrumbs}
+          bulkCreate={bulkCreate}
+          formatFileSize={formatFileSize}
+        />
       )}
 
       <ConfirmDialog

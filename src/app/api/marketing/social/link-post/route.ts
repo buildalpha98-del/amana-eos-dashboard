@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { decryptToken, fetchPostMetrics } from "@/lib/meta";
 
 export async function POST(req: Request) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   try {

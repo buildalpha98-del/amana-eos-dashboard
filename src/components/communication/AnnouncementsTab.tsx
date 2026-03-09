@@ -314,7 +314,7 @@ export function AnnouncementsTab() {
                     {announcement.author?.avatar ? (
                       <img
                         src={announcement.author.avatar}
-                        alt={announcement.author.name}
+                        alt={announcement.author?.name ?? "Unknown"}
                         className="h-5 w-5 rounded-full object-cover"
                       />
                     ) : (

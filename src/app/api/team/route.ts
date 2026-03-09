@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/server-auth";
 import { parsePagination } from "@/lib/pagination";
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const { searchParams } = new URL(req.url);
@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
 
   const todoMap: Record<string, { total: number; completed: number }> = {};
   todoStats.forEach((stat) => {
+    if (!stat.assigneeId) return;
     if (!todoMap[stat.assigneeId])
       todoMap[stat.assigneeId] = { total: 0, completed: 0 };
     todoMap[stat.assigneeId].total += stat._count;
@@ -79,6 +80,7 @@ export async function GET(req: NextRequest) {
 
   const rocksByUser: Record<string, typeof rocks> = {};
   rocks.forEach((r) => {
+    if (!r.ownerId) return;
     if (!rocksByUser[r.ownerId]) rocksByUser[r.ownerId] = [];
     rocksByUser[r.ownerId].push(r);
   });

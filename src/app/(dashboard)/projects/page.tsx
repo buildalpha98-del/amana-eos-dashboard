@@ -47,7 +47,7 @@ export default function ProjectsPage() {
     const q = search.toLowerCase();
     return (
       p.name.toLowerCase().includes(q) ||
-      p.owner.name.toLowerCase().includes(q) ||
+      (p.owner?.name ?? "").toLowerCase().includes(q) ||
       p.service?.name.toLowerCase().includes(q)
     );
   });
@@ -205,7 +205,7 @@ export default function ProjectsPage() {
                       {project.name}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {project.owner.name}
+                      {project.owner?.name ?? "Unassigned"}
                       {project.service && ` • ${project.service.name}`}
                     </p>
                   </div>

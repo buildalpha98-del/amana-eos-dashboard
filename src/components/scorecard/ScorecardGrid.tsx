@@ -158,8 +158,8 @@ export function ScorecardGrid({
     for (const m of scorecard.measurables) {
       if (!groups[m.ownerId]) {
         groups[m.ownerId] = {
-          key: m.owner.id,
-          label: m.owner.name,
+          key: m.owner?.id ?? m.ownerId,
+          label: m.owner?.name ?? "Unassigned",
           icon: "person",
           measurables: [],
         };

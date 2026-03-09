@@ -27,7 +27,7 @@ const schoolCommIncludes = {
 
 // GET /api/marketing/school-comms — list school comms with optional filters
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const { searchParams } = new URL(req.url);
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/marketing/school-comms — create a new school comm
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

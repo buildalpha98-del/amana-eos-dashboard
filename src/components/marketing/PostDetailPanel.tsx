@@ -298,7 +298,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               <Check className="h-4 w-4 text-emerald-600" />
               <span className="text-sm text-emerald-700">
                 Approved by{" "}
-                <span className="font-medium">{post.approvedBy.name}</span>
+                <span className="font-medium">{post.approvedBy?.name ?? "Unknown"}</span>
                 {post.approvedAt && (
                   <span className="text-emerald-500">
                     {" "}

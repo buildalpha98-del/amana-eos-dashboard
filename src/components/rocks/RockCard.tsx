@@ -101,7 +101,7 @@ export function RockCard({
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center">
             <span className="text-[10px] font-medium text-brand">
-              {rock.owner.name
+              {(rock.owner?.name ?? "Unassigned")
                 .split(" ")
                 .map((n) => n[0])
                 .join("")
@@ -110,7 +110,7 @@ export function RockCard({
             </span>
           </div>
           <span className="text-xs text-gray-500 truncate max-w-[100px]">
-            {rock.owner.name}
+            {rock.owner?.name ?? "Unassigned"}
           </span>
         </div>
 

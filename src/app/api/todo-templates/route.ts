@@ -14,7 +14,7 @@ const createTemplateSchema = z.object({
 
 // GET /api/todo-templates — list all active templates
 export async function GET() {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const templates = await prisma.todoTemplate.findMany({
@@ -31,7 +31,7 @@ export async function GET() {
 
 // POST /api/todo-templates — create a new template
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

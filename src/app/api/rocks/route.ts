@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { notifyNewRock } from "@/lib/teams-notify";
 import { createRockSchema } from "@/lib/schemas/rock";
 import { parsePagination } from "@/lib/pagination";
@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
   if (error) return error;
 
   const scope = getServiceScope(session);
+  const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const quarter = searchParams.get("quarter");
   const serviceId = searchParams.get("serviceId");
@@ -31,6 +32,9 @@ export async function GET(req: NextRequest) {
       { ownerId: session!.user.id },
     ];
   }
+
+  // State Manager: only see rocks for services in their assigned state
+  if (stateScope) where.service = { state: stateScope };
 
   const include = {
     owner: { select: { id: true, name: true, email: true, avatar: true } },
@@ -66,7 +70,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/rocks — create a new rock
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

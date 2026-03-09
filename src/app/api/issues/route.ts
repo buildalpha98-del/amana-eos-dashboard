@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { notifyNewIssue } from "@/lib/teams-notify";
 import { createIssueSchema } from "@/lib/schemas/issue";
 import { parsePagination } from "@/lib/pagination";
@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
   if (error) return error;
 
   const scope = getServiceScope(session);
+  const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const priority = searchParams.get("priority");
@@ -36,6 +37,9 @@ export async function GET(req: NextRequest) {
       { ownerId: session!.user.id },
     ];
   }
+
+  // State Manager: only see issues for services in their assigned state
+  if (stateScope) where.service = { state: stateScope };
 
   const include = {
     raisedBy: { select: { id: true, name: true, email: true, avatar: true } },

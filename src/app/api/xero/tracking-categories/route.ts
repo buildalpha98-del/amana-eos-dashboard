@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/server-auth";
 import { xeroApiRequest } from "@/lib/xero";
 
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   try {

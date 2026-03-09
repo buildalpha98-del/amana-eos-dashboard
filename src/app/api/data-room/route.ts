@@ -8,7 +8,7 @@ import { DATA_ROOM_SECTIONS, TOTAL_WEIGHT, type DocumentStatus } from "@/lib/dat
  * Restricted to owner / admin roles.
  */
 export async function GET() {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   // ── Run all queries in parallel ──────────────────────────────────────────

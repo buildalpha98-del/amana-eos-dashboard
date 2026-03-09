@@ -158,7 +158,7 @@ function TodoKanbanCard({
       <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
         {todo.assignee && (
           <span className="truncate max-w-[120px]">
-            {todo.assignee.name}
+            {todo.assignee?.name ?? "Unassigned"}
           </span>
         )}
         {isOverdue && (

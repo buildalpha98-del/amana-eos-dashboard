@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 
 const updateTimesheetSchema = z.object({
   notes: z.string().optional().nullable(),
@@ -42,6 +42,15 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // State Manager: verify timesheet's service is in their assigned state
+  const stateScope = getStateScope(session);
+  if (stateScope) {
+    const svc = await prisma.service.findUnique({ where: { id: timesheet.serviceId }, select: { state: true } });
+    if (!svc || svc.state !== stateScope) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   return NextResponse.json(timesheet);
 }
 
@@ -74,6 +83,15 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // State Manager: verify timesheet's service is in their assigned state
+  const stateScopePatch = getStateScope(session);
+  if (stateScopePatch) {
+    const svc = await prisma.service.findUnique({ where: { id: existing.serviceId }, select: { state: true } });
+    if (!svc || svc.state !== stateScopePatch) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   if (existing.status !== "ts_draft" && existing.status !== "submitted") {
     return NextResponse.json(
       { error: "Can only edit draft or submitted timesheets" },
@@ -98,7 +116,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const { id } = await params;

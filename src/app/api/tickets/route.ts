@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getStateScope } from "@/lib/service-scope";
 
 const createTicketSchema = z.object({
   contactId: z.string().min(1, "Contact is required"),
@@ -13,9 +14,10 @@ const createTicketSchema = z.object({
 
 // GET /api/tickets — list tickets with optional filters
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
+  const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const priority = searchParams.get("priority");
@@ -29,6 +31,8 @@ export async function GET(req: NextRequest) {
   if (priority) where.priority = priority;
   if (assignedToId) where.assignedToId = assignedToId;
   if (serviceId) where.serviceId = serviceId;
+  // State Manager: only see tickets for services in their assigned state
+  if (stateScope) where.service = { state: stateScope };
 
   if (search) {
     where.OR = [
@@ -56,7 +60,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/tickets — create a manual ticket
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

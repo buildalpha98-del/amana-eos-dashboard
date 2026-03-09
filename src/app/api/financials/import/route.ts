@@ -135,7 +135,7 @@ function getLastDayOfMonth(date: Date): Date {
 }
 
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   try {

@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/server-auth";
 
 // GET /api/marketing/analytics — aggregated analytics data
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const { searchParams } = new URL(req.url);

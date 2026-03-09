@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/server-auth";
 
 // GET /api/org-settings — fetch org settings (singleton)
 export async function GET() {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   let settings = await prisma.orgSettings.findUnique({

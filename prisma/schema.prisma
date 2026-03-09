@@ -9,6 +9,7 @@ datasource db {
 
 enum Role {
   owner
+  head_office
   admin
   member
   staff
@@ -377,6 +378,7 @@ model User {
   active       Boolean  @default(true)
   serviceId    String?
   service      Service? @relation("ServiceStaff", fields: [serviceId], references: [id], onDelete: SetNull)
+  state        String?  // Australian state for State Manager scoping (VIC, NSW, QLD, etc.)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -535,8 +537,8 @@ model Rock {
   id              String       @id @default(cuid())
   title           String
   description     String?      @db.Text
-  ownerId         String
-  owner           User         @relation("RockOwner", fields: [ownerId], references: [id])
+  ownerId         String?
+  owner           User?        @relation("RockOwner", fields: [ownerId], references: [id])
   quarter         String
   status          RockStatus   @default(on_track)
   percentComplete Int          @default(0)
@@ -578,8 +580,8 @@ model Todo {
   id          String     @id @default(cuid())
   title       String
   description String?    @db.Text
-  assigneeId  String
-  assignee    User       @relation("TodoAssignee", fields: [assigneeId], references: [id])
+  assigneeId  String?
+  assignee    User?      @relation("TodoAssignee", fields: [assigneeId], references: [id])
   createdById String?
   createdBy   User?      @relation("TodoCreator", fields: [createdById], references: [id])
   rockId      String?
@@ -613,8 +615,8 @@ model Issue {
   id           String        @id @default(cuid())
   title        String
   description  String?       @db.Text
-  raisedById   String
-  raisedBy     User          @relation("IssueRaiser", fields: [raisedById], references: [id])
+  raisedById   String?
+  raisedBy     User?         @relation("IssueRaiser", fields: [raisedById], references: [id])
   ownerId      String?
   owner        User?         @relation("IssueOwner", fields: [ownerId], references: [id])
   rockId       String?
@@ -655,8 +657,8 @@ model Measurable {
   id            String              @id @default(cuid())
   title         String
   description   String?
-  ownerId       String
-  owner         User                @relation("MeasurableOwner", fields: [ownerId], references: [id])
+  ownerId       String?
+  owner         User?               @relation("MeasurableOwner", fields: [ownerId], references: [id])
   goalValue     Float
   goalDirection GoalDirection       @default(above)
   unit          String?
@@ -685,8 +687,8 @@ model MeasurableEntry {
   value        Float
   onTrack      Boolean
   notes        String?
-  enteredById  String
-  enteredBy    User       @relation("EntryCreator", fields: [enteredById], references: [id])
+  enteredById  String?
+  enteredBy    User?      @relation("EntryCreator", fields: [enteredById], references: [id])
   createdAt    DateTime   @default(now())
 
   @@unique([measurableId, weekOf])
@@ -1224,8 +1226,8 @@ model Project {
   service     Service?         @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   templateId  String?
   template    ProjectTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  ownerId     String
-  owner       User             @relation("ProjectOwner", fields: [ownerId], references: [id])
+  ownerId     String?
+  owner       User?            @relation("ProjectOwner", fields: [ownerId], references: [id])
   status      ProjectStatus    @default(not_started)
   startDate   DateTime?
   targetDate  DateTime?
@@ -1262,8 +1264,8 @@ model Meeting {
   rockIds         String[] // IDs of rocks linked to this meeting
   startedAt       DateTime?
   completedAt     DateTime?
-  createdById     String
-  createdBy       User          @relation("MeetingCreator", fields: [createdById], references: [id])
+  createdById     String?
+  createdBy       User?         @relation("MeetingCreator", fields: [createdById], references: [id])
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -1302,8 +1304,8 @@ model Document {
   mimeType     String?
   centreId     String?
   centre       Service?         @relation("ServiceDocuments", fields: [centreId], references: [id], onDelete: SetNull)
-  uploadedById String
-  uploadedBy   User             @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  uploadedById String?
+  uploadedBy   User?            @relation("DocumentUploader", fields: [uploadedById], references: [id])
   version      Int              @default(1)
   tags         String[]
   folderId     String?
@@ -1343,8 +1345,8 @@ model Attachment {
   issue        Issue?   @relation(fields: [issueId], references: [id], onDelete: Cascade)
   projectId    String?
   project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  uploadedById String
-  uploadedBy   User     @relation("AttachmentUploader", fields: [uploadedById], references: [id])
+  uploadedById String?
+  uploadedBy   User?    @relation("AttachmentUploader", fields: [uploadedById], references: [id])
   createdAt    DateTime @default(now())
 
   @@index([rockId])
@@ -1597,8 +1599,8 @@ model Announcement {
   id          String               @id @default(cuid())
   title       String
   body        String               @db.Text
-  authorId    String
-  author      User                 @relation("AnnouncementAuthor", fields: [authorId], references: [id])
+  authorId    String?
+  author      User?                @relation("AnnouncementAuthor", fields: [authorId], references: [id])
   audience    AnnouncementAudience @default(all)
   priority    AnnouncementPriority @default(normal)
   pinned      Boolean              @default(false)
@@ -2171,8 +2173,8 @@ model TodoTemplate {
   id          String         @id @default(cuid())
   title       String
   description String?        @db.Text
-  assigneeId  String
-  assignee    User           @relation("TemplateAssignee", fields: [assigneeId], references: [id])
+  assigneeId  String?
+  assignee    User?          @relation("TemplateAssignee", fields: [assigneeId], references: [id])
   serviceId   String?
   service     Service?       @relation("ServiceTemplates", fields: [serviceId], references: [id], onDelete: SetNull)
   recurrence  RecurrenceRule

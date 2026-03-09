@@ -407,7 +407,7 @@ export default function TodosPage() {
                       {todo.title}
                     </p>
                     <span className="text-xs text-gray-400">
-                      {todo.assignee.name}
+                      {todo.assignee?.name ?? "Unassigned"}
                     </span>
                   </div>
                   <button

@@ -236,7 +236,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
                         <span className="text-[10px] font-medium text-brand">
-                          {m.owner.name
+                          {(m.owner?.name ?? "Unassigned")
                             .split(" ")
                             .map((n) => n[0])
                             .join("")
@@ -245,7 +245,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                         </span>
                       </div>
                       <span className="text-xs text-gray-700 truncate max-w-[90px]">
-                        {m.owner.name}
+                        {m.owner?.name ?? "Unassigned"}
                       </span>
                     </div>
                   </td>

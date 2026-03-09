@@ -135,7 +135,7 @@ export async function GET(
     todosToday: todosToday.map((t) => ({
       id: t.id,
       title: t.title,
-      assigneeName: t.assignee.name,
+      assigneeName: t.assignee?.name ?? "Unknown",
       dueDate: t.dueDate.toISOString(),
       status: t.status,
     })),

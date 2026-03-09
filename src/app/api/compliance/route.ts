@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { parsePagination } from "@/lib/pagination";
 
 const createCertSchema = z.object({
@@ -27,8 +27,12 @@ export async function GET(req: NextRequest) {
   const upcoming = searchParams.get("upcoming"); // "30" = next 30 days
 
   const scope = getServiceScope(session);
+  const stateScope = getStateScope(session);
   const role = session!.user.role as string;
   const where: Record<string, unknown> = {};
+
+  // State Manager: only see compliance certs for services in their state
+  if (stateScope) where.service = { state: stateScope };
 
   if (scope) {
     // Staff only see their own certs; member sees their service's certs

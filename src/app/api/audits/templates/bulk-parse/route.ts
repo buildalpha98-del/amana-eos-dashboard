@@ -12,7 +12,7 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10 MB per file
  * and match each to existing templates.
  */
 export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const formData = await req.formData();

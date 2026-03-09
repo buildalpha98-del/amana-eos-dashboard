@@ -86,7 +86,7 @@ function RockRow({ rock, onClick }: { rock: RockData; onClick: () => void }) {
           >
             {priority.label}
           </span>
-          <span className="text-xs text-gray-400">{rock.owner.name}</span>
+          <span className="text-xs text-gray-400">{rock.owner?.name ?? "Unassigned"}</span>
         </div>
       </div>
 

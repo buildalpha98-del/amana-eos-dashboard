@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { createTodoSchema } from "@/lib/schemas/todo";
 import { parsePagination } from "@/lib/pagination";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
@@ -38,12 +38,16 @@ export async function GET(req: NextRequest) {
 
   // Staff scoping: only see todos assigned to them or related to their centre
   const scope = getServiceScope(session);
+  const stateScope = getStateScope(session);
   if (scope) {
     where.OR = [
       { assigneeId: session!.user.id },
       { serviceId: scope },
     ];
   }
+
+  // State Manager: only see todos for services in their assigned state
+  if (stateScope) where.service = { state: stateScope };
 
   const include = {
     assignee: { select: { id: true, name: true, email: true, avatar: true } },

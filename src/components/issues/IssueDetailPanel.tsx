@@ -556,7 +556,7 @@ export function IssueDetailPanel({
                       {todo.title}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {todo.assignee.name}
+                      {todo.assignee?.name ?? "Unassigned"}
                     </span>
                   </div>
                 ))}
@@ -598,7 +598,7 @@ export function IssueDetailPanel({
                 })}
               </p>
             )}
-            <p>Raised by: {issue.raisedBy.name}</p>
+            <p>Raised by: {issue.raisedBy?.name ?? "Unknown"}</p>
           </div>
         </div>
 

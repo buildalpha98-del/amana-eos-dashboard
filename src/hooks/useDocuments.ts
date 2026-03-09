@@ -207,6 +207,32 @@ export function useMoveDocument() {
   });
 }
 
+export function useBulkCreateDocuments() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (formData: FormData) => {
+      const res = await fetch("/api/documents/bulk", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Bulk upload failed");
+      }
+      return res.json() as Promise<{
+        created: number;
+        failed: number;
+        documents: { id: string; title: string }[];
+        failedFiles?: string[];
+      }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.invalidateQueries({ queryKey: ["document-folders"] });
+    },
+  });
+}
+
 export function useDeleteDocument() {
   const queryClient = useQueryClient();
   return useMutation({

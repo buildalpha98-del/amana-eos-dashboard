@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope } from "@/lib/service-scope";
+import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { parsePagination } from "@/lib/pagination";
 
 const createServiceSchema = z.object({
@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
   if (error) return error;
 
   const scope = getServiceScope(session);
+  const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
 
@@ -36,6 +37,8 @@ export async function GET(req: NextRequest) {
 
   // Member/staff: only see their assigned service
   if (scope) where.id = scope;
+  // State Manager: only see services in their assigned state
+  if (stateScope) where.state = stateScope;
 
   const pagination = parsePagination(searchParams);
 
@@ -74,7 +77,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/services
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
   if (error) return error;
 
   const body = await req.json();

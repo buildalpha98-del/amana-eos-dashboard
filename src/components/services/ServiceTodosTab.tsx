@@ -222,7 +222,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
 
               {/* Assignee */}
               <span className="text-xs text-gray-400 whitespace-nowrap">
-                {todo.assignee.name}
+                {todo.assignee?.name ?? "Unassigned"}
               </span>
 
               {/* Due Date */}

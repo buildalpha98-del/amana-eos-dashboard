@@ -545,7 +545,7 @@ export function CampaignDetailPanel({
                         <div className="flex items-center gap-2">
                           {task.assignee && (
                             <span className="text-[10px] text-gray-400">
-                              {task.assignee.name}
+                              {task.assignee?.name ?? "Unassigned"}
                             </span>
                           )}
                           <span
@@ -610,7 +610,7 @@ export function CampaignDetailPanel({
                     >
                       <div className="mb-1 flex items-center gap-2">
                         <span className="text-xs font-semibold text-gray-700">
-                          {comment.author.name}
+                          {comment.author?.name ?? "Unknown"}
                         </span>
                         <span className="text-xs text-gray-400">
                           {new Date(comment.createdAt).toLocaleDateString()}
