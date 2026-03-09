@@ -11,6 +11,7 @@ import { TodoItem } from "@/components/todos/TodoItem";
 import { CreateTodoModal } from "@/components/todos/CreateTodoModal";
 import { TodoDetailPanel } from "@/components/todos/TodoDetailPanel";
 import { TodoKanban } from "@/components/todos/TodoKanban";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   CheckSquare,
   Plus,
@@ -489,8 +490,15 @@ export default function TodosPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 px-4 py-3">
+              <Skeleton className="h-5 w-5 rounded" />
+              <Skeleton className="h-4 flex-1 max-w-xs" />
+              <Skeleton className="h-6 w-6 rounded-full" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          ))}
         </div>
       ) : todos && todos.length > 0 ? (
         viewMode === "board" ? (

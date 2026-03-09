@@ -18,6 +18,7 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { ProfileData } from "@/hooks/useMyPortal";
 
 /* ------------------------------------------------------------------ */
@@ -177,8 +178,43 @@ export default function ProfilePage() {
   // ---- Loading / Error ----
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      <div className="space-y-6 max-w-3xl mx-auto">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-10 h-10 rounded-lg" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-3 w-56" />
+            </div>
+          </div>
+          <Skeleton className="h-9 w-28 rounded-lg" />
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-14 h-14 rounded-full" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="h-3 w-48" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-1">
+                <Skeleton className="h-3 w-12" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            ))}
+          </div>
+        </div>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+            <Skeleton className="h-5 w-32" />
+            <div className="space-y-3">
+              <Skeleton className="h-9 w-full rounded-lg" />
+              <Skeleton className="h-9 w-full rounded-lg" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

@@ -4,7 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo } from "react";
+import { useSidebar } from "@/components/layout/SidebarContext";
 import {
   LogOut,
   ChevronLeft,
@@ -24,20 +25,7 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [collapsed, setCollapsed] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-
-  const toggleSection = useCallback((section: string) => {
-    setCollapsedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(section)) {
-        next.delete(section);
-      } else {
-        next.add(section);
-      }
-      return next;
-    });
-  }, []);
+  const { collapsed, toggleCollapsed, collapsedSections, toggleSection } = useSidebar();
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -214,7 +202,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
       {/* Collapse Toggle (desktop only) */}
       <button
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={toggleCollapsed}
         className="absolute -right-3 top-20 w-6 h-6 rounded-full bg-[#003344] border border-white/20 hidden md:flex items-center justify-center text-white/60 hover:text-white transition-colors"
       >
         {collapsed ? (

@@ -1,7 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { Loader2, AlertTriangle, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 import Link from "next/link";
 import { getCurrentQuarter } from "@/lib/utils";
 import { useState } from "react";
@@ -126,9 +127,41 @@ export function DashboardContent() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-[#004E64] animate-spin" />
-          <span className="ml-3 text-gray-500">Loading dashboard...</span>
+        <div className="space-y-6">
+          {/* Key metrics bar skeleton */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-6 w-12" />
+              </div>
+            ))}
+          </div>
+          {/* Rocks section skeleton */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+            <Skeleton className="h-5 w-32" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="space-y-2 p-3 border border-gray-100 rounded-lg">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-2 w-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Sparklines + Action items skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="lg:col-span-3 bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+            <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+              <Skeleton className="h-5 w-28" />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          </div>
         </div>
       ) : data ? (
         <>

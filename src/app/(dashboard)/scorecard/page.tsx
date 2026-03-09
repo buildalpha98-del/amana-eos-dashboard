@@ -11,6 +11,7 @@ import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { BarChart3, Plus, Users, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function ScorecardPage() {
   const { data: scorecard, isLoading, error } = useScorecard();
@@ -138,8 +139,23 @@ export default function ScorecardPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="animate-spin w-8 h-8 border-2 border-[#004E64] border-t-transparent rounded-full" />
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-100 bg-gray-50">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-16" />
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-4 w-12" />
+            ))}
+          </div>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-gray-50">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-16" />
+              {Array.from({ length: 6 }).map((_, j) => (
+                <Skeleton key={j} className="h-4 w-12" />
+              ))}
+            </div>
+          ))}
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
