@@ -8,6 +8,7 @@ import {
   nurtureWhatToBringEmail,
   nurtureAppSetupEmail,
   nurtureFirstWeekEmail,
+  nurtureNpsSurveyEmail,
 } from "@/lib/email-templates";
 
 const TEMPLATE_MAP: Record<string, (firstName: string, centreName: string) => { subject: string; html: string }> = {
@@ -16,6 +17,7 @@ const TEMPLATE_MAP: Record<string, (firstName: string, centreName: string) => { 
   what_to_bring: nurtureWhatToBringEmail,
   app_setup: nurtureAppSetupEmail,
   first_week: nurtureFirstWeekEmail,
+  nps_survey: nurtureNpsSurveyEmail,
 };
 
 /**

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { Building2, CheckCircle2, AlertTriangle, XCircle, Globe, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import { useCentreCoverage } from "@/hooks/useMarketing";
 import { cn } from "@/lib/utils";
+import { PhotoComplianceWidget } from "./PhotoComplianceWidget";
 
 interface CoverageService {
   id: string;
@@ -204,6 +205,14 @@ export function CoverageTab({ onSelectService }: CoverageTabProps) {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Daily Photo Compliance (Last 7 Days) */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+          Daily Photo Compliance (Last 7 Days)
+        </h3>
+        <PhotoComplianceWidget />
       </div>
 
       {/* Table */}

@@ -1128,3 +1128,176 @@ export function staffingAlertEmail(
 
   return { subject, html };
 }
+
+// ─── Marketing Weekly Digest ──────────────────────────────────
+
+export function marketingDigestEmail(data: {
+  weekEnding: string;
+  centres: Array<{
+    name: string;
+    posts: number;
+    status: string;
+    bookingDelta: number;
+  }>;
+  summary: {
+    activeCentres: number;
+    moderateCentres: number;
+    neglectedCentres: number;
+    postsPublished: number;
+    tasksCompleted: number;
+    tasksOverdue: number;
+    newLeads: number;
+    conversions: number;
+  };
+  actionItems: string[];
+}): { subject: string; html: string } {
+  const { weekEnding, centres, summary, actionItems } = data;
+  const subject = `Amana OSHC — Marketing Digest: Week Ending ${weekEnding}`;
+  const dashboardUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://eos.amanaoshc.com.au") + "/marketing";
+
+  const statusColor = (s: string) =>
+    s === "active" ? "#16a34a" : s === "moderate" ? "#d97706" : "#dc2626";
+  const statusBg = (s: string) =>
+    s === "active" ? "#f0fdf4" : s === "moderate" ? "#fffbeb" : "#fef2f2";
+  const deltaStr = (d: number) =>
+    d > 0 ? `+${d}` : d === 0 ? "—" : String(d);
+  const deltaColor = (d: number) =>
+    d > 0 ? "#16a34a" : d < 0 ? "#dc2626" : "#6b7280";
+
+  const centreRows = centres
+    .map(
+      (c) => `
+    <tr style="background-color:${statusBg(c.status)};">
+      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#111827;">${c.name}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;text-align:center;">${c.posts}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;text-align:center;">
+        <span style="color:${statusColor(c.status)};font-weight:600;text-transform:capitalize;">${c.status}</span>
+      </td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;text-align:center;color:${deltaColor(c.bookingDelta)};font-weight:600;">${deltaStr(c.bookingDelta)}</td>
+    </tr>`,
+    )
+    .join("");
+
+  const actionHtml = actionItems.length
+    ? actionItems
+        .map(
+          (item, i) =>
+            `<tr>
+          <td style="padding:6px 0;font-size:13px;color:#111827;vertical-align:top;">
+            <span style="display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;background-color:${BRAND_COLOR};color:#fff;border-radius:50%;font-size:11px;font-weight:700;margin-right:8px;">${i + 1}</span>
+            ${item}
+          </td>
+        </tr>`,
+        )
+        .join("")
+    : `<tr><td style="padding:6px 0;font-size:13px;color:#6b7280;">No urgent actions this week.</td></tr>`;
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 4px;color:#111827;font-size:18px;font-weight:600;">
+      Marketing Weekly Digest
+    </h2>
+    <p style="margin:0 0 20px;color:#6b7280;font-size:13px;">
+      Week ending ${weekEnding}
+    </p>
+
+    <!-- Summary Cards -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:12px;background-color:#f0fdf4;border-radius:8px;text-align:center;width:33%;">
+          <div style="font-size:22px;font-weight:700;color:#16a34a;">${summary.activeCentres}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">Active</div>
+        </td>
+        <td style="width:8px;"></td>
+        <td style="padding:12px;background-color:#fffbeb;border-radius:8px;text-align:center;width:33%;">
+          <div style="font-size:22px;font-weight:700;color:#d97706;">${summary.moderateCentres}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">Moderate</div>
+        </td>
+        <td style="width:8px;"></td>
+        <td style="padding:12px;background-color:#fef2f2;border-radius:8px;text-align:center;width:33%;">
+          <div style="font-size:22px;font-weight:700;color:#dc2626;">${summary.neglectedCentres}</div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px;">Neglected</div>
+        </td>
+      </tr>
+    </table>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+      <tr>
+        <td style="padding:8px 12px;background-color:#f9fafb;border-radius:6px;font-size:13px;color:#374151;">
+          <strong>${summary.postsPublished}</strong> posts published &nbsp;·&nbsp;
+          <strong>${summary.tasksCompleted}</strong> tasks done &nbsp;·&nbsp;
+          <strong style="color:${summary.tasksOverdue > 0 ? "#dc2626" : "#6b7280"};">${summary.tasksOverdue}</strong> overdue &nbsp;·&nbsp;
+          <strong>${summary.newLeads}</strong> new leads &nbsp;·&nbsp;
+          <strong>${summary.conversions}</strong> conversions
+        </td>
+      </tr>
+    </table>
+
+    <!-- Centre Coverage Table -->
+    <h3 style="margin:0 0 8px;color:#111827;font-size:14px;font-weight:600;">
+      Centre Coverage
+    </h3>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:24px;">
+      <tr style="background-color:${BRAND_COLOR};">
+        <th style="padding:10px 12px;text-align:left;font-size:12px;color:#ffffff;font-weight:600;">Centre</th>
+        <th style="padding:10px 12px;text-align:center;font-size:12px;color:#ffffff;font-weight:600;">Posts</th>
+        <th style="padding:10px 12px;text-align:center;font-size:12px;color:#ffffff;font-weight:600;">Status</th>
+        <th style="padding:10px 12px;text-align:center;font-size:12px;color:#ffffff;font-weight:600;">Bookings WoW</th>
+      </tr>
+      ${centreRows}
+    </table>
+
+    <!-- Action Items -->
+    <h3 style="margin:0 0 8px;color:#111827;font-size:14px;font-weight:600;">
+      Top Actions for Next Week
+    </h3>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      ${actionHtml}
+    </table>
+
+    ${buttonHtml("Open Marketing Dashboard", dashboardUrl)}
+  `);
+
+  return { subject, html };
+}
+
+// ─── Parent Nurture: NPS Survey (Day 30) ─────────────────────
+
+export function nurtureNpsSurveyEmail(firstName: string, centreName: string) {
+  const surveyUrl = process.env.NPS_SURVEY_URL || "https://eos.amanaoshc.com.au/survey/nps";
+  const subject = `How are things going? — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      We'd Love Your Feedback
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      It's been about a month since your child started at Amana OSHC ${centreName}.
+      We'd love to hear how things are going! Please take 30 seconds to share your feedback
+      — it helps us improve the experience for every family.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background-color:#f0fdf4;">
+      <tr>
+        <td style="padding:20px;text-align:center;">
+          <p style="margin:0 0 4px;color:#065f46;font-size:16px;font-weight:700;">
+            One quick question
+          </p>
+          <p style="margin:0;color:#047857;font-size:13px;">
+            How likely are you to recommend Amana OSHC to a friend? (0–10)
+          </p>
+        </td>
+      </tr>
+    </table>
+    ${buttonHtml("Share Your Feedback", surveyUrl)}
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Your response is anonymous and takes less than a minute. Thank you for being part of the
+      Amana OSHC community!
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}

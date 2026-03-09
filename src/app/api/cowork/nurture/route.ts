@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Create 5 staggered steps
+    // Create 6 staggered steps
     const now = new Date();
     const steps = [
       { stepNumber: 1, templateKey: "welcome", daysOffset: 0 },
@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
       { stepNumber: 3, templateKey: "what_to_bring", daysOffset: 5 },
       { stepNumber: 4, templateKey: "app_setup", daysOffset: 7 },
       { stepNumber: 5, templateKey: "first_week", daysOffset: 14 },
+      { stepNumber: 6, templateKey: "nps_survey", daysOffset: 30 },
     ];
 
     const created = await prisma.parentNurtureStep.createMany({

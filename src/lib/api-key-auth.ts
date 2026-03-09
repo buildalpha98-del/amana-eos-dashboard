@@ -36,6 +36,13 @@ export const API_SCOPES = [
   "holiday-quest:write",
   "holiday-quest:read",
   "reports:write",
+  // ── Marketing (Cowork integration) ──
+  "marketing:write",
+  "marketing:read",
+  "marketing-tasks:write",
+  "marketing-tasks:read",
+  "marketing-campaigns:write",
+  "marketing-campaigns:read",
 ] as const;
 
 export type ApiScope = (typeof API_SCOPES)[number];

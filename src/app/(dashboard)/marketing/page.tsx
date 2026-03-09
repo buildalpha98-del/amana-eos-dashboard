@@ -14,6 +14,7 @@ import {
   Upload,
   MapPin,
   CheckSquare,
+  CalendarDays,
 } from "lucide-react";
 import { MarketingTabs } from "@/components/marketing/MarketingTabs";
 import { OverviewTab } from "@/components/marketing/OverviewTab";
@@ -31,6 +32,7 @@ import { TemplatesTab } from "@/components/marketing/TemplatesTab";
 import { HashtagsTab } from "@/components/marketing/HashtagsTab";
 import { ImportCalendarModal } from "@/components/marketing/ImportCalendarModal";
 import { CoverageTab } from "@/components/marketing/CoverageTab";
+import { TermCalendarTab } from "@/components/marketing/TermCalendarTab";
 import { ServiceFilter } from "@/components/marketing/ServiceFilter";
 import { QuickAddFAB } from "@/components/marketing/QuickAddFAB";
 import { CreatePostModal } from "@/components/marketing/CreatePostModal";
@@ -49,6 +51,7 @@ const tabs = [
   { key: "assets", label: "Assets", icon: Image },
   { key: "templates", label: "Templates", icon: Layout },
   { key: "hashtags", label: "Hashtags", icon: Hash },
+  { key: "termCalendar", label: "Term Plan", icon: CalendarDays },
 ];
 
 export default function MarketingPage() {
@@ -142,6 +145,9 @@ export default function MarketingPage() {
         {activeTab === "assets" && <AssetsTab />}
         {activeTab === "templates" && <TemplatesTab />}
         {activeTab === "hashtags" && <HashtagsTab />}
+        {activeTab === "termCalendar" && (
+          <TermCalendarTab serviceId={selectedServiceId} />
+        )}
       </div>
 
       {/* Detail Panels */}

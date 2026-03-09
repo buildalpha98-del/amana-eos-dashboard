@@ -68,6 +68,9 @@ export interface PostData {
   approvedBy?: { id: string; name: string } | null;
   approvedAt?: string | null;
   rejectionReason?: string | null;
+  canvaDesignId?: string | null;
+  canvaDesignUrl?: string | null;
+  canvaExportUrl?: string | null;
 }
 
 export interface CommentData {
@@ -332,6 +335,7 @@ export function useCreatePost() {
       campaignId?: string;
       recurring?: MarketingRecurrence;
       serviceIds?: string[];
+      canvaDesignUrl?: string;
     }) => {
       const res = await fetch("/api/marketing/posts", {
         method: "POST",
@@ -1344,5 +1348,82 @@ export function useFetchSocialPosts(connectionId?: string) {
       return res.json();
     },
     enabled: !!connectionId,
+  });
+}
+
+// ── Term Calendar ───────────────────────────────────────────
+
+export interface TermCalendarEntry {
+  id: string;
+  year: number;
+  term: number;
+  week: number;
+  channel: string;
+  title: string;
+  description: string | null;
+  status: string;
+  service: { id: string; name: string; code: string } | null;
+  assignee: { id: string; name: string; avatar: string | null } | null;
+  campaign: { id: string; name: string } | null;
+}
+
+export interface TermCalendarData {
+  year: number;
+  term: number;
+  weeks: Record<string, TermCalendarEntry[]>;
+  summary: {
+    totalEntries: number;
+    byStatus: Record<string, number>;
+    byChannel: Record<string, number>;
+  };
+}
+
+export function useTermCalendar(year?: number, term?: number, serviceId?: string) {
+  return useQuery<TermCalendarData>({
+    queryKey: ["term-calendar", year, term, serviceId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (year) params.set("year", String(year));
+      if (term) params.set("term", String(term));
+      if (serviceId) params.set("serviceId", serviceId);
+      const qs = params.toString();
+      const res = await fetch(`/api/marketing/term-calendar${qs ? `?${qs}` : ""}`);
+      if (!res.ok) throw new Error("Failed to fetch term calendar");
+      return res.json();
+    },
+  });
+}
+
+// ── Photo Compliance ────────────────────────────────────────
+
+export interface PhotoComplianceDay {
+  date: string;
+  confirmed: boolean;
+  confirmedAt: string | null;
+}
+
+export interface PhotoComplianceService {
+  id: string;
+  name: string;
+  code: string;
+  days: PhotoComplianceDay[];
+  streak: number;
+  complianceRate: number;
+}
+
+export interface PhotoComplianceData {
+  dateRange: { start: string; end: string };
+  services: PhotoComplianceService[];
+  overallRate: number;
+}
+
+export function usePhotoCompliance() {
+  return useQuery<PhotoComplianceData>({
+    queryKey: ["photo-compliance"],
+    queryFn: async () => {
+      const res = await fetch("/api/marketing/photo-compliance");
+      if (!res.ok) throw new Error("Failed to fetch photo compliance");
+      return res.json();
+    },
   });
 }

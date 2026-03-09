@@ -147,6 +147,7 @@ enum MarketingPlatform {
   facebook
   instagram
   linkedin
+  tiktok
   email
   newsletter
   website
@@ -460,6 +461,11 @@ model User {
 
   // ── Scenario Modelling
   scenarios Scenario[] @relation("ScenarioCreator")
+
+  // ── Marketing Operations ──────────────────────────────
+  schoolCommsSent       SchoolComm[]           @relation("SchoolCommSender")
+  photoComplianceConfs  PhotoComplianceLog[]   @relation("PhotoComplianceConfirmer")
+  termCalendarAssigned  TermCalendarEntry[]    @relation("TermCalendarAssignee")
 
   @@index([serviceId])
 }
@@ -810,6 +816,7 @@ model MarketingCampaign {
   services              MarketingCampaignService[]
   tasks                 MarketingTask[]
   activationAssignments CampaignActivationAssignment[]
+  termCalendarEntries   TermCalendarEntry[]            @relation("TermCalendarCampaign")
 
   @@index([status])
   @@index([startDate])
@@ -824,6 +831,9 @@ model MarketingPost {
   content            String?                @db.Text
   notes              String?                @db.Text
   designLink         String?
+  canvaDesignId      String?               // Canva design ID (e.g., "DAGoPem3X54")
+  canvaDesignUrl     String?               // Direct edit URL in Canva
+  canvaExportUrl     String?               // Exported image URL for publishing
   pillar             String?
   assigneeId         String?
   assignee           User?                  @relation("MarketingPostAssignee", fields: [assigneeId], references: [id])
@@ -929,6 +939,90 @@ model MarketingHashtagSet {
   updatedAt DateTime                 @updatedAt
 
   @@index([category])
+}
+
+model SchoolComm {
+  id           String    @id @default(cuid())
+  serviceId    String
+  service      Service   @relation("ServiceSchoolComms", fields: [serviceId], references: [id], onDelete: Cascade)
+  type         String    // "newsletter", "program_overview", "open_day", "holiday_quest", "end_of_term", "custom"
+  subject      String
+  body         String    @db.Text
+  schoolName   String?   // The school admin this is addressed to
+  contactEmail String?   // School admin email
+  status       String    @default("draft") // draft, sent, confirmed
+  sentAt       DateTime?
+  sentById     String?
+  sentBy       User?     @relation("SchoolCommSender", fields: [sentById], references: [id], onDelete: SetNull)
+  termWeek     Int?      // Which term week this relates to (1-10)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([serviceId])
+  @@index([status])
+  @@index([type])
+}
+
+model PhotoComplianceLog {
+  id            String    @id @default(cuid())
+  serviceId     String
+  service       Service   @relation("ServicePhotoCompliance", fields: [serviceId], references: [id], onDelete: Cascade)
+  date          DateTime  @db.Date
+  confirmed     Boolean   @default(false)
+  confirmedAt   DateTime?
+  confirmedById String?
+  confirmedBy   User?     @relation("PhotoComplianceConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
+  notes         String?
+  createdAt     DateTime  @default(now())
+
+  @@unique([serviceId, date])
+  @@index([serviceId])
+  @@index([date])
+  @@index([confirmed])
+}
+
+model NpsSurveyResponse {
+  id             String        @id @default(cuid())
+  serviceId      String
+  service        Service       @relation("ServiceNpsResponses", fields: [serviceId], references: [id], onDelete: Cascade)
+  contactId      String
+  contact        CentreContact @relation("ContactNpsResponses", fields: [contactId], references: [id], onDelete: Cascade)
+  score          Int           // 0-10 NPS score
+  comment        String?       @db.Text
+  category       String        // "promoter" (9-10), "passive" (7-8), "detractor" (0-6)
+  followUpStatus String        @default("pending") // pending, contacted, resolved
+  followUpNote   String?       @db.Text
+  respondedAt    DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+
+  @@index([serviceId])
+  @@index([contactId])
+  @@index([category])
+  @@index([respondedAt])
+}
+
+model TermCalendarEntry {
+  id          String              @id @default(cuid())
+  year        Int
+  term        Int                 // 1-4
+  week        Int                 // 1-10
+  channel     String              // "social", "newsletter", "school_comms", "activation", "whatsapp", "holiday_quest"
+  serviceId   String?             // null = all centres
+  service     Service?            @relation("ServiceTermCalendar", fields: [serviceId], references: [id], onDelete: Cascade)
+  title       String
+  description String?             @db.Text
+  status      String              @default("planned") // planned, in_progress, completed, skipped
+  assigneeId  String?
+  assignee    User?               @relation("TermCalendarAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  campaignId  String?
+  campaign    MarketingCampaign?  @relation("TermCalendarCampaign", fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([year, term, week])
+  @@index([channel])
+  @@index([serviceId])
+  @@index([status])
 }
 
 model MarketingTask {
@@ -1083,6 +1177,12 @@ model Service {
 
   // ── Compliance Audit Relations ─────────────────────────
   audits AuditInstance[] @relation("ServiceAudits")
+
+  // ── Marketing Operations Relations ─────────────────────
+  schoolComms          SchoolComm[]          @relation("ServiceSchoolComms")
+  photoComplianceLogs  PhotoComplianceLog[]  @relation("ServicePhotoCompliance")
+  npsResponses         NpsSurveyResponse[]   @relation("ServiceNpsResponses")
+  termCalendarEntries  TermCalendarEntry[]   @relation("ServiceTermCalendar")
 
   @@index([status])
   @@index([managerId])
@@ -2652,6 +2752,7 @@ model CentreContact {
   updatedAt  DateTime @updatedAt
 
   nurtureSteps ParentNurtureStep[] @relation("ContactNurtureSteps")
+  npsResponses NpsSurveyResponse[] @relation("ContactNpsResponses")
 
   @@unique([email, serviceId])
   @@index([serviceId])

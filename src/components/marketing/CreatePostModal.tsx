@@ -50,6 +50,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
   const [recurring, setRecurring] = useState("none");
   const [notes, setNotes] = useState("");
   const [designLink, setDesignLink] = useState("");
+  const [canvaDesignUrl, setCanvaDesignUrl] = useState("");
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [error, setError] = useState("");
 
@@ -64,6 +65,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
     setRecurring("none");
     setNotes("");
     setDesignLink("");
+    setCanvaDesignUrl("");
     setServiceIds([]);
     setError("");
   }
@@ -100,6 +102,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
         recurring: recurring as (typeof RECURRING_OPTIONS)[number]["value"],
         notes: notes || undefined,
         designLink: designLink || undefined,
+        canvaDesignUrl: canvaDesignUrl || undefined,
         serviceIds: serviceIds.length > 0 ? serviceIds : undefined,
       },
       {
@@ -323,6 +326,20 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
                 onChange={(e) => setDesignLink(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
                 placeholder="https://..."
+              />
+            </div>
+
+            {/* Canva Design URL */}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Canva Design URL
+              </label>
+              <input
+                type="url"
+                value={canvaDesignUrl}
+                onChange={(e) => setCanvaDesignUrl(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
+                placeholder="https://www.canva.com/design/..."
               />
             </div>
 

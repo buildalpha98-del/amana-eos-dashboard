@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Trash2, Pencil, ExternalLink, Unlink, Link2, Check, XCircle, ShieldCheck } from "lucide-react";
+import { X, Trash2, Pencil, ExternalLink, Unlink, Link2, Check, XCircle, ShieldCheck, Palette, Image } from "lucide-react";
 import { usePost, useUpdatePost, useDeletePost, useSocialConnections, useApprovePost, useRejectPost } from "@/hooks/useMarketing";
 import type { PostData } from "@/hooks/useMarketing";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
@@ -470,6 +470,43 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#004E64] focus:outline-none focus:ring-1 focus:ring-[#004E64]"
             />
           </div>
+
+          {/* Canva Design */}
+          {(post.canvaDesignUrl || post.canvaDesignId) && (
+            <div className="p-3 rounded-lg bg-purple-50 border border-purple-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Palette className="h-4 w-4 text-purple-600" />
+                <span className="text-sm font-medium text-purple-900">Canva Design</span>
+              </div>
+              <div className="flex gap-2">
+                {post.canvaDesignUrl && (
+                  <a
+                    href={post.canvaDesignUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Edit in Canva
+                  </a>
+                )}
+                {post.canvaExportUrl && (
+                  <a
+                    href={post.canvaExportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-purple-300 text-purple-700 hover:bg-purple-100 transition-colors"
+                  >
+                    <Image className="h-3 w-3" />
+                    View Export
+                  </a>
+                )}
+              </div>
+              {post.canvaDesignId && (
+                <p className="text-xs text-purple-500 mt-1.5">Design ID: {post.canvaDesignId}</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Engagement Stats */}
