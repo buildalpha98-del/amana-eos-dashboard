@@ -13,7 +13,7 @@ export async function uploadFile(
   const path = options?.folder ? `${options.folder}/${filename}` : filename;
 
   const blob = await put(path, file, {
-    access: "public",
+    access: "private",
     contentType: options?.contentType,
     addRandomSuffix: true,
   });
