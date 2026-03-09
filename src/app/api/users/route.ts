@@ -16,11 +16,24 @@ const createUserSchema = z.object({
 });
 
 // GET /api/users — list all users (any authenticated user)
-export async function GET() {
+// Optional filters: ?serviceId=xxx&role=xxx&active=true
+export async function GET(req: NextRequest) {
   const { error } = await requireAuth();
   if (error) return error;
 
+  const { searchParams } = new URL(req.url);
+  const serviceId = searchParams.get("serviceId");
+  const role = searchParams.get("role");
+  const active = searchParams.get("active");
+
   const users = await prisma.user.findMany({
+    where: {
+      ...(serviceId ? { serviceId } : {}),
+      ...(role ? { role: role as any } : {}),
+      ...(active !== null && active !== undefined
+        ? { active: active === "true" }
+        : {}),
+    },
     select: {
       id: true,
       name: true,
@@ -38,9 +51,9 @@ export async function GET() {
   return NextResponse.json(users);
 }
 
-// POST /api/users — create a new user (owner only)
+// POST /api/users — create a new user (owner + admin)
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner"]);
+  const { session, error } = await requireAuth(["owner", "admin"]);
   if (error) return error;
 
   const body = await req.json();
@@ -54,6 +67,14 @@ export async function POST(req: NextRequest) {
   }
 
   const { name, email, password, role, serviceId } = parsed.data;
+
+  // Guard: admins cannot create owner-level users
+  if (session!.user.role !== "owner" && role === "owner") {
+    return NextResponse.json(
+      { error: "Only owners can create other owner accounts." },
+      { status: 403 }
+    );
+  }
 
   // Validate: staff and member roles require a serviceId
   if ((role === "staff" || role === "member") && !serviceId) {

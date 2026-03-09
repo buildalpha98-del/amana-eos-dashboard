@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import type { MeasurableData } from "@/hooks/useScorecard";
 
 interface UserOption {
   id: string;
@@ -17,11 +18,15 @@ interface ServiceOption {
 export function AddMeasurableModal({
   open,
   onClose,
+  editingMeasurable,
 }: {
   open: boolean;
   onClose: () => void;
+  editingMeasurable?: MeasurableData | null;
 }) {
   const queryClient = useQueryClient();
+  const isEditMode = !!editingMeasurable;
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [ownerId, setOwnerId] = useState("");
@@ -30,6 +35,28 @@ export function AddMeasurableModal({
   const [unit, setUnit] = useState("");
   const [serviceId, setServiceId] = useState("");
   const [error, setError] = useState("");
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (editingMeasurable) {
+      setTitle(editingMeasurable.title);
+      setDescription(editingMeasurable.description || "");
+      setOwnerId(editingMeasurable.ownerId);
+      setGoalValue(String(editingMeasurable.goalValue));
+      setGoalDirection(editingMeasurable.goalDirection);
+      setUnit(editingMeasurable.unit || "");
+      setServiceId(editingMeasurable.serviceId || "");
+    } else {
+      setTitle("");
+      setDescription("");
+      setOwnerId("");
+      setGoalValue("");
+      setGoalDirection("above");
+      setUnit("");
+      setServiceId("");
+    }
+    setError("");
+  }, [editingMeasurable, open]);
 
   const createMeasurable = useMutation({
     mutationFn: async (data: {
@@ -49,6 +76,34 @@ export function AddMeasurableModal({
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Failed to create measurable");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["scorecard"] });
+    },
+  });
+
+  const updateMeasurable = useMutation({
+    mutationFn: async (data: {
+      id: string;
+      title?: string;
+      description?: string | null;
+      ownerId?: string;
+      goalValue?: number;
+      goalDirection?: string;
+      unit?: string | null;
+      serviceId?: string | null;
+    }) => {
+      const { id, ...body } = data;
+      const res = await fetch(`/api/measurables/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update measurable");
       }
       return res.json();
     },
@@ -93,30 +148,51 @@ export function AddMeasurableModal({
       return;
     }
 
-    createMeasurable.mutate(
-      {
-        title,
-        description: description || undefined,
-        ownerId,
-        goalValue: numGoal,
-        goalDirection,
-        unit: unit || undefined,
-        serviceId: serviceId || undefined,
-      },
-      {
-        onSuccess: () => {
-          setTitle("");
-          setDescription("");
-          setOwnerId("");
-          setGoalValue("");
-          setUnit("");
-          setServiceId("");
-          onClose();
+    if (isEditMode && editingMeasurable) {
+      updateMeasurable.mutate(
+        {
+          id: editingMeasurable.id,
+          title,
+          description: description || null,
+          ownerId,
+          goalValue: numGoal,
+          goalDirection,
+          unit: unit || null,
+          serviceId: serviceId || null,
         },
-        onError: (err: Error) => setError(err.message),
-      }
-    );
+        {
+          onSuccess: () => onClose(),
+          onError: (err: Error) => setError(err.message),
+        }
+      );
+    } else {
+      createMeasurable.mutate(
+        {
+          title,
+          description: description || undefined,
+          ownerId,
+          goalValue: numGoal,
+          goalDirection,
+          unit: unit || undefined,
+          serviceId: serviceId || undefined,
+        },
+        {
+          onSuccess: () => {
+            setTitle("");
+            setDescription("");
+            setOwnerId("");
+            setGoalValue("");
+            setUnit("");
+            setServiceId("");
+            onClose();
+          },
+          onError: (err: Error) => setError(err.message),
+        }
+      );
+    }
   };
+
+  const isPending = isEditMode ? updateMeasurable.isPending : createMeasurable.isPending;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -124,10 +200,12 @@ export function AddMeasurableModal({
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
-              Add Measurable
+              {isEditMode ? "Edit Measurable" : "Add Measurable"}
             </h3>
             <p className="text-sm text-gray-500 mt-0.5">
-              Add a new weekly metric to your scorecard
+              {isEditMode
+                ? "Update this metric on your scorecard"
+                : "Add a new weekly metric to your scorecard"}
             </p>
           </div>
           <button
@@ -237,8 +315,8 @@ export function AddMeasurableModal({
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
               >
-                <option value="above">≥ Above</option>
-                <option value="below">≤ Below</option>
+                <option value="above">{"\u2265"} Above</option>
+                <option value="below">{"\u2264"} Below</option>
                 <option value="exact">= Exact</option>
               </select>
             </div>
@@ -270,10 +348,16 @@ export function AddMeasurableModal({
             </button>
             <button
               type="submit"
-              disabled={createMeasurable.isPending}
+              disabled={isPending}
               className="flex-1 px-4 py-2 bg-[#004E64] text-white font-medium rounded-lg hover:bg-[#003D52] transition-colors disabled:opacity-50"
             >
-              {createMeasurable.isPending ? "Adding..." : "Add Measurable"}
+              {isPending
+                ? isEditMode
+                  ? "Saving..."
+                  : "Adding..."
+                : isEditMode
+                ? "Save Changes"
+                : "Add Measurable"}
             </button>
           </div>
         </form>

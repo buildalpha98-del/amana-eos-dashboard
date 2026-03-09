@@ -436,7 +436,10 @@ model User {
   employmentType    EmploymentType?
   startDate         DateTime?       @db.Date
   probationEndDate  DateTime?       @db.Date
-  bankDetailsNote   String?
+  bankDetailsNote      String?
+  bankAccountName      String?
+  bankBSB              String?
+  bankAccountNumber    String?
   xeroEmployeeId    String?
 
   // ── HR Relations ─────────────────────────────────────────────

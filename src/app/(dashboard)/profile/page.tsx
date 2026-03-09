@@ -14,6 +14,8 @@ import {
   ArrowLeft,
   Shield,
   Landmark,
+  Camera,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import type { ProfileData } from "@/hooks/useMyPortal";
@@ -43,6 +45,50 @@ export default function ProfilePage() {
 
   const isAdmin = session?.user?.role === "owner" || session?.user?.role === "admin";
 
+  // ---- Avatar upload ----
+  const avatarUpload = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/users/${userId}/avatar`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to upload avatar");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      toast({ title: "Avatar updated!", description: "Your profile photo has been changed." });
+    },
+    onError: (err) => {
+      toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
+    },
+  });
+
+  const avatarRemove = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${userId}/avatar`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to remove avatar");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      toast({ title: "Avatar removed", description: "Your profile photo has been cleared." });
+    },
+  });
+
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) avatarUpload.mutate(file);
+    e.target.value = "";
+  }
+
   // ---- Form state ----
   const [phone, setPhone] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
@@ -53,6 +99,9 @@ export default function ProfilePage() {
   const [superMemberNumber, setSuperMemberNumber] = useState("");
   const [superUSI, setSuperUSI] = useState("");
   const [bankDetailsNote, setBankDetailsNote] = useState("");
+  const [bankAccountName, setBankAccountName] = useState("");
+  const [bankBSB, setBankBSB] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
 
   // Populate form when profile loads
   useEffect(() => {
@@ -66,6 +115,9 @@ export default function ProfilePage() {
       setSuperMemberNumber(profile.superMemberNumber ?? "");
       setSuperUSI(profile.superUSI ?? "");
       setBankDetailsNote(profile.bankDetailsNote ?? "");
+      setBankAccountName(profile.bankAccountName ?? "");
+      setBankBSB(profile.bankBSB ?? "");
+      setBankAccountNumber(profile.bankAccountNumber ?? "");
     }
   }, [profile]);
 
@@ -100,6 +152,9 @@ export default function ProfilePage() {
       superMemberNumber,
       superUSI,
       bankDetailsNote,
+      bankAccountName,
+      bankBSB,
+      bankAccountNumber,
     });
   };
 
@@ -114,7 +169,10 @@ export default function ProfilePage() {
       superFundName !== (profile.superFundName ?? "") ||
       superMemberNumber !== (profile.superMemberNumber ?? "") ||
       superUSI !== (profile.superUSI ?? "") ||
-      bankDetailsNote !== (profile.bankDetailsNote ?? ""));
+      bankDetailsNote !== (profile.bankDetailsNote ?? "") ||
+      bankAccountName !== (profile.bankAccountName ?? "") ||
+      bankBSB !== (profile.bankBSB ?? "") ||
+      bankAccountNumber !== (profile.bankAccountNumber ?? ""));
 
   // ---- Loading / Error ----
   if (isLoading) {
@@ -175,13 +233,50 @@ export default function ProfilePage() {
       {/* Read-only info */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-[#004E64] flex items-center justify-center text-white font-bold text-lg">
-            {profile.name
-              .split(" ")
-              .map((w) => w[0])
-              .join("")
-              .slice(0, 2)
-              .toUpperCase()}
+          {/* Avatar with upload */}
+          <div className="relative group">
+            {profile.avatar ? (
+              <img
+                src={profile.avatar}
+                alt={profile.name}
+                className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-[#004E64] flex items-center justify-center text-white font-bold text-lg">
+                {profile.name
+                  .split(" ")
+                  .map((w) => w[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+            )}
+            {/* Upload overlay */}
+            <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              {avatarUpload.isPending ? (
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
+              ) : (
+                <Camera className="w-5 h-5 text-white" />
+              )}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={handleAvatarChange}
+                disabled={avatarUpload.isPending}
+              />
+            </label>
+            {/* Remove button */}
+            {profile.avatar && (
+              <button
+                type="button"
+                onClick={() => avatarRemove.mutate()}
+                className="absolute -bottom-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                title="Remove avatar"
+              >
+                <Trash2 className="w-3 h-3 text-white" />
+              </button>
+            )}
           </div>
           <div>
             <h2 className="font-semibold text-gray-900">{profile.name}</h2>
@@ -330,23 +425,53 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Bank Details Note */}
+      {/* Bank Details */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
           <Landmark className="w-4 h-4 text-gray-400" />
           Bank Details
         </h3>
-        <FieldRow label="Notes for Admin">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <FieldRow label="Account Name">
+            <input
+              type="text"
+              value={bankAccountName}
+              onChange={(e) => setBankAccountName(e.target.value)}
+              placeholder="e.g. John Smith"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+            />
+          </FieldRow>
+          <FieldRow label="BSB">
+            <input
+              type="text"
+              value={bankBSB}
+              onChange={(e) => setBankBSB(e.target.value)}
+              placeholder="e.g. 062-000"
+              maxLength={7}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+            />
+          </FieldRow>
+          <FieldRow label="Account Number">
+            <input
+              type="text"
+              value={bankAccountNumber}
+              onChange={(e) => setBankAccountNumber(e.target.value)}
+              placeholder="e.g. 12345678"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64]"
+            />
+          </FieldRow>
+        </div>
+        <FieldRow label="Additional Notes">
           <textarea
             value={bankDetailsNote}
             onChange={(e) => setBankDetailsNote(e.target.value)}
-            placeholder="Provide your bank details or notes for payroll (e.g. BSB, Account Number). This is visible to administrators only."
-            rows={3}
+            placeholder="Any additional bank details or notes for payroll..."
+            rows={2}
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#004E64]/20 focus:border-[#004E64] resize-none"
           />
         </FieldRow>
         <p className="text-xs text-gray-400 mt-2">
-          This note is shared with your administrator for payroll processing.
+          Bank details are visible to administrators only for payroll processing.
         </p>
       </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useCreatePost, useCampaigns } from "@/hooks/useMarketing";
@@ -9,6 +9,7 @@ import { ServiceMultiSelect } from "./ServiceMultiSelect";
 interface CreatePostModalProps {
   open: boolean;
   onClose: () => void;
+  defaultDate?: string;
 }
 
 const PLATFORM_OPTIONS = [
@@ -28,7 +29,7 @@ const RECURRING_OPTIONS = [
   { value: "monthly", label: "Monthly" },
 ] as const;
 
-export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
+export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalProps) {
   const createPost = useCreatePost();
   const { data: campaigns } = useCampaigns();
   const { data: users } = useQuery<{ id: string; name: string }[]>({
@@ -43,7 +44,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
   const [title, setTitle] = useState("");
   const [platform, setPlatform] = useState("");
   const [content, setContent] = useState("");
-  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledDate, setScheduledDate] = useState(defaultDate ?? "");
   const [assigneeId, setAssigneeId] = useState("");
   const [campaignId, setCampaignId] = useState("");
   const [pillar, setPillar] = useState("");
@@ -53,6 +54,13 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
   const [canvaDesignUrl, setCanvaDesignUrl] = useState("");
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [error, setError] = useState("");
+
+  // Sync scheduledDate when the modal opens with a defaultDate
+  useEffect(() => {
+    if (open && defaultDate) {
+      setScheduledDate(defaultDate);
+    }
+  }, [open, defaultDate]);
 
   function resetForm() {
     setTitle("");

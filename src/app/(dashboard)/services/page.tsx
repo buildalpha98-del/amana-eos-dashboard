@@ -220,7 +220,7 @@ export default function ServicesPage() {
                               e.stopPropagation();
                               setDeleteTarget(service);
                             }}
-                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 opacity-0 group-hover/card:opacity-100 transition-all z-10"
+                            className="absolute bottom-2 left-2 p-1.5 rounded-lg bg-white/90 border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 opacity-0 group-hover/card:opacity-100 transition-all z-10"
                             title="Delete centre"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

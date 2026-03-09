@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, CalendarDays, GanttChart } from "lucide-reac
 import { usePosts, useCampaigns, useMarketingTasks } from "@/hooks/useMarketing";
 import type { PostData } from "@/hooks/useMarketing";
 import { TimelineView } from "./TimelineView";
+import { CreatePostModal } from "./CreatePostModal";
 
 const PLATFORM_COLORS: Record<string, string> = {
   facebook: "border-blue-500",
@@ -37,6 +38,8 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [viewMode, setViewMode] = useState<"calendar" | "timeline">("calendar");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
 
   const { data: posts, isLoading } = usePosts({
     serviceId: serviceId || undefined,
@@ -90,6 +93,19 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
     }
     return map;
   }, [posts]);
+
+  // Group tasks by due date
+  const tasksByDate = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    if (!tasks) return map;
+    for (const task of tasks) {
+      if (!task.dueDate) continue;
+      const dateKey = new Date(task.dueDate).toISOString().split("T")[0];
+      if (!map[dateKey]) map[dateKey] = [];
+      map[dateKey].push(task);
+    }
+    return map;
+  }, [tasks]);
 
   const today = new Date().toISOString().split("T")[0];
   const currentMonth = currentDate.getMonth();
@@ -190,12 +206,22 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
               const isToday = dateKey === today;
               const isCurrentMonth = day.getMonth() === currentMonth;
               const dayPosts = postsByDate[dateKey] || [];
+              const dayTasks = tasksByDate[dateKey] || [];
+              const totalItems = dayPosts.length + dayTasks.length;
 
               return (
                 <div
                   key={i}
-                  className={`min-h-[100px] border-b border-r border-gray-100 p-1 ${
-                    !isCurrentMonth ? "bg-gray-50" : ""
+                  onClick={() => {
+                    // Format as datetime-local value: YYYY-MM-DDT09:00
+                    const yyyy = day.getFullYear();
+                    const mm = String(day.getMonth() + 1).padStart(2, "0");
+                    const dd = String(day.getDate()).padStart(2, "0");
+                    setSelectedDate(`${yyyy}-${mm}-${dd}T09:00`);
+                    setShowCreateModal(true);
+                  }}
+                  className={`min-h-[100px] border-b border-r border-gray-100 p-1 cursor-pointer transition-colors hover:bg-[#004E64]/[0.03] ${
+                    !isCurrentMonth ? "bg-gray-50 hover:bg-gray-100/80" : ""
                   } ${isToday ? "ring-2 ring-inset ring-[#004E64]" : ""}`}
                 >
                   <div className={`text-xs font-medium mb-1 ${
@@ -207,7 +233,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
                     {dayPosts.slice(0, 3).map((post) => (
                       <button
                         key={post.id}
-                        onClick={() => onSelectPost(post.id)}
+                        onClick={(e) => { e.stopPropagation(); onSelectPost(post.id); }}
                         className={`w-full text-left px-1.5 py-0.5 rounded text-[10px] leading-tight border-l-2 ${
                           PLATFORM_COLORS[post.platform] || "border-gray-300"
                         } bg-gray-50 hover:bg-gray-100 transition-colors truncate flex items-center gap-1`}
@@ -216,8 +242,20 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
                         <span className="truncate">{post.title}</span>
                       </button>
                     ))}
-                    {dayPosts.length > 3 && (
-                      <div className="text-[10px] text-gray-400 px-1">+{dayPosts.length - 3} more</div>
+                    {dayTasks.slice(0, Math.max(1, 3 - dayPosts.length)).map((task: any) => (
+                      <button
+                        key={task.id}
+                        onClick={(e) => { e.stopPropagation(); onSelectTask?.(task.id); }}
+                        className="w-full text-left px-1.5 py-0.5 rounded text-[10px] leading-tight border-l-2 border-[#004E64] bg-[#004E64]/5 hover:bg-[#004E64]/10 transition-colors truncate flex items-center gap-1"
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                          task.status === "done" ? "bg-green-400" : task.status === "in_progress" ? "bg-blue-400" : "bg-gray-400"
+                        }`} />
+                        <span className="truncate">{task.title}</span>
+                      </button>
+                    ))}
+                    {totalItems > 3 && (
+                      <div className="text-[10px] text-gray-400 px-1">+{totalItems - 3} more</div>
                     )}
                   </div>
                 </div>
@@ -226,6 +264,13 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
           </div>
         </div>
       )}
+
+      {/* Create Post Modal — opened by clicking a day cell */}
+      <CreatePostModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        defaultDate={selectedDate}
+      />
     </div>
   );
 }

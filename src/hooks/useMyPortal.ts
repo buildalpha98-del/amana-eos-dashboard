@@ -41,6 +41,9 @@ export interface ProfileData {
   superMemberNumber: string | null;
   superUSI: string | null;
   bankDetailsNote: string | null;
+  bankAccountName: string | null;
+  bankBSB: string | null;
+  bankAccountNumber: string | null;
   xeroEmployeeId: string | null;
   service: { id: string; name: string; code: string } | null;
   emergencyContacts: EmergencyContactData[];

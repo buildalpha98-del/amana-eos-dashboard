@@ -32,6 +32,9 @@ const profileUpdateSchema = z.object({
   startDate: z.string().optional(),
   probationEndDate: z.string().optional(),
   bankDetailsNote: z.string().optional(),
+  bankAccountName: z.string().optional(),
+  bankBSB: z.string().optional(),
+  bankAccountNumber: z.string().optional(),
   xeroEmployeeId: z.string().optional(),
 });
 
@@ -46,6 +49,9 @@ const STAFF_SELF_FIELDS = new Set([
   "superMemberNumber",
   "superUSI",
   "bankDetailsNote",
+  "bankAccountName",
+  "bankBSB",
+  "bankAccountNumber",
 ]);
 
 // GET /api/users/[id]/profile
@@ -92,6 +98,9 @@ export async function GET(
       startDate: true,
       probationEndDate: true,
       bankDetailsNote: true,
+      bankAccountName: true,
+      bankBSB: true,
+      bankAccountNumber: true,
       xeroEmployeeId: true,
       createdAt: true,
       updatedAt: true,
@@ -204,6 +213,9 @@ export async function PATCH(
       startDate: true,
       probationEndDate: true,
       bankDetailsNote: true,
+      bankAccountName: true,
+      bankBSB: true,
+      bankAccountNumber: true,
       xeroEmployeeId: true,
       updatedAt: true,
     },

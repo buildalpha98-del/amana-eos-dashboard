@@ -5,7 +5,7 @@ import type { ScorecardData, MeasurableEntry } from "@/hooks/useScorecard";
 import { DataEntryCell } from "./DataEntryCell";
 import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Minus, Building2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Building2, Pencil, Trash2 } from "lucide-react";
 
 function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goalDirection: "above" | "below" | "exact" }) {
   // values are newest-first; find the two most recent non-null values
@@ -108,7 +108,17 @@ function isCurrentWeek(date: Date): boolean {
   return date.getTime() === current.getTime();
 }
 
-export function ScorecardGrid({ scorecard, groupBy = "person" }: { scorecard: ScorecardData; groupBy?: "person" | "service" }) {
+export function ScorecardGrid({
+  scorecard,
+  groupBy = "person",
+  onEdit,
+  onDelete,
+}: {
+  scorecard: ScorecardData;
+  groupBy?: "person" | "service";
+  onEdit?: (measurable: ScorecardData["measurables"][number]) => void;
+  onDelete?: (measurable: ScorecardData["measurables"][number]) => void;
+}) {
   const weeks = useMemo(() => getTrailing13Weeks(), []);
 
   // Group measurables by owner or service
@@ -333,12 +343,12 @@ export function ScorecardGrid({ scorecard, groupBy = "person" }: { scorecard: Sc
                   return (
                   <tr
                     key={m.id}
-                    className="border-b border-gray-100 hover:bg-gray-50/50"
+                    className="group/row border-b border-gray-100 hover:bg-gray-50/50"
                   >
                     {/* Title */}
-                    <td className="sticky left-0 z-10 bg-white px-4 py-2">
+                    <td className="sticky left-0 z-10 bg-white group-hover/row:bg-gray-50/50 px-4 py-2">
                       <div className="flex items-center gap-1.5">
-                        <div className="text-sm font-medium text-gray-900 truncate max-w-[160px]">
+                        <div className="text-sm font-medium text-gray-900 truncate max-w-[130px]">
                           {m.title}
                         </div>
                         <TrendArrow
@@ -348,6 +358,31 @@ export function ScorecardGrid({ scorecard, groupBy = "person" }: { scorecard: Sc
                           })}
                           goalDirection={m.goalDirection}
                         />
+                        {/* Edit / Delete actions — visible on row hover */}
+                        {(onEdit || onDelete) && (
+                          <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                            {onEdit && (
+                              <button
+                                type="button"
+                                onClick={() => onEdit(m)}
+                                className="p-1 rounded text-gray-400 hover:text-[#004E64] hover:bg-[#004E64]/10 transition-colors"
+                                title="Edit measurable"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {onDelete && (
+                              <button
+                                type="button"
+                                onClick={() => onDelete(m)}
+                                className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                title="Delete measurable"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                       {m.description && (
                         <div className="text-[10px] text-gray-400 truncate max-w-[180px]">

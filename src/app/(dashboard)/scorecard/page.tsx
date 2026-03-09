@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useScorecard } from "@/hooks/useScorecard";
+import type { MeasurableData } from "@/hooks/useScorecard";
 import { ScorecardGrid } from "@/components/scorecard/ScorecardGrid";
 import { AddMeasurableModal } from "@/components/scorecard/AddMeasurableModal";
+import { DeleteMeasurableDialog } from "@/components/scorecard/DeleteMeasurableDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV } from "@/lib/csv-export";
 import { BarChart3, Plus, Users, Building2 } from "lucide-react";
@@ -12,7 +15,25 @@ import { cn } from "@/lib/utils";
 export default function ScorecardPage() {
   const { data: scorecard, isLoading, error } = useScorecard();
   const [showAddMeasurable, setShowAddMeasurable] = useState(false);
+  const [editingMeasurable, setEditingMeasurable] = useState<MeasurableData | null>(null);
+  const [deletingMeasurable, setDeletingMeasurable] = useState<MeasurableData | null>(null);
   const [groupBy, setGroupBy] = useState<"person" | "service">("person");
+  const queryClient = useQueryClient();
+
+  const deleteMeasurable = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/measurables/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to delete measurable");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["scorecard"] });
+      setDeletingMeasurable(null);
+    },
+  });
 
   const handleExport = () => {
     if (!scorecard?.measurables || scorecard.measurables.length === 0) return;
@@ -141,12 +162,35 @@ export default function ScorecardPage() {
           </button>
         </div>
       ) : scorecard ? (
-        <ScorecardGrid scorecard={scorecard} groupBy={groupBy} />
+        <ScorecardGrid
+          scorecard={scorecard}
+          groupBy={groupBy}
+          onEdit={(m) => {
+            setEditingMeasurable(m);
+            setShowAddMeasurable(true);
+          }}
+          onDelete={(m) => setDeletingMeasurable(m)}
+        />
       ) : null}
 
       <AddMeasurableModal
         open={showAddMeasurable}
-        onClose={() => setShowAddMeasurable(false)}
+        onClose={() => {
+          setShowAddMeasurable(false);
+          setEditingMeasurable(null);
+        }}
+        editingMeasurable={editingMeasurable}
+      />
+
+      <DeleteMeasurableDialog
+        measurable={deletingMeasurable}
+        onClose={() => setDeletingMeasurable(null)}
+        onConfirm={() => {
+          if (deletingMeasurable) {
+            deleteMeasurable.mutate(deletingMeasurable.id);
+          }
+        }}
+        isDeleting={deleteMeasurable.isPending}
       />
     </div>
   );

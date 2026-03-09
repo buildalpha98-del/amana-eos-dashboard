@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSession } from "next-auth/react";
 import {
   ChevronLeft,
@@ -80,21 +80,36 @@ export function WeeklyPulseTab() {
   const myPulse: any = myPulses?.[0];
   const isSubmitted = !!myPulse?.submittedAt;
 
+  // Track which weekOf we've already loaded data for to prevent re-setting
+  // form state on every refetch (which was clearing user input mid-typing)
+  const loadedWeekRef = useRef<string | null>(null);
+
   useEffect(() => {
+    // Only populate form from server data on initial load or week change
+    if (loadedWeekRef.current === weekOf) return;
+
     if (myPulse) {
       setWins(myPulse.wins ?? "");
       setPriorities(myPulse.priorities ?? "");
       setBlockers(myPulse.blockers ?? "");
       setMood(myPulse.mood ?? 0);
       setNotes(myPulse.notes ?? "");
-    } else {
+      loadedWeekRef.current = weekOf;
+    } else if (myPulses && myPulses.length === 0) {
+      // No pulse for this week — clear form
       setWins("");
       setPriorities("");
       setBlockers("");
       setMood(0);
       setNotes("");
+      loadedWeekRef.current = weekOf;
     }
-  }, [myPulse]);
+  }, [myPulse, myPulses, weekOf]);
+
+  // Reset loaded tracking when week changes so we re-populate from server
+  useEffect(() => {
+    loadedWeekRef.current = null;
+  }, [weekOf]);
 
   const submitPulse = useSubmitPulse();
 

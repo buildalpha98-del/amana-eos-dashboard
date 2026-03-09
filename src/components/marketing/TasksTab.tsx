@@ -113,6 +113,8 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
   const [priorityFilter, setPriorityFilter] = useState("");
   const [quickAddColumn, setQuickAddColumn] = useState<string | null>(null);
   const [quickAddTitle, setQuickAddTitle] = useState("");
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
 
   const { data: tasks, isLoading } = useMarketingTasks({
     status: statusFilter || undefined,
@@ -126,13 +128,21 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
     (e: React.DragEvent, taskId: string) => {
       e.dataTransfer.setData("text/plain", taskId);
       e.dataTransfer.effectAllowed = "move";
+      setDraggingTaskId(taskId);
     },
     []
   );
 
+  const handleDragEnd = useCallback(() => {
+    setDraggingTaskId(null);
+    setDragOverColumn(null);
+  }, []);
+
   const handleDrop = useCallback(
     (e: React.DragEvent, newStatus: string) => {
       e.preventDefault();
+      setDragOverColumn(null);
+      setDraggingTaskId(null);
       const taskId = e.dataTransfer.getData("text/plain");
       if (taskId) {
         updateTask.mutate({
@@ -147,6 +157,18 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent, columnKey: string) => {
+    e.preventDefault();
+    setDragOverColumn(columnKey);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent, columnElement: HTMLElement) => {
+    // Only clear if leaving the column itself, not just a child element
+    if (!columnElement.contains(e.relatedTarget as Node)) {
+      setDragOverColumn(null);
+    }
   }, []);
 
   const handleQuickAdd = useCallback(
@@ -262,8 +284,14 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
             return (
               <div
                 key={col.key}
-                className={`rounded-xl border-2 ${col.color} ${col.bg} min-h-[200px] flex flex-col`}
+                className={`rounded-xl border-2 min-h-[200px] flex flex-col transition-all duration-150 ${
+                  dragOverColumn === col.key
+                    ? "border-[#004E64] bg-[#004E64]/5 ring-2 ring-[#004E64]/20 scale-[1.01]"
+                    : `${col.color} ${col.bg}`
+                }`}
                 onDragOver={handleDragOver}
+                onDragEnter={(e) => handleDragEnter(e, col.key)}
+                onDragLeave={(e) => handleDragLeave(e, e.currentTarget)}
                 onDrop={(e) => handleDrop(e, col.key)}
               >
                 {/* Column Header */}
@@ -340,8 +368,11 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                         key={task.id}
                         draggable
                         onDragStart={(e) => handleDragStart(e, task.id)}
+                        onDragEnd={handleDragEnd}
                         onClick={() => onSelectTask(task.id)}
-                        className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm hover:shadow-md cursor-pointer transition-shadow group"
+                        className={`rounded-lg border border-gray-200 bg-white p-3 shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing transition-all group ${
+                          draggingTaskId === task.id ? "opacity-40 scale-95 rotate-1" : ""
+                        }`}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <p className="text-sm font-medium text-gray-900 leading-snug line-clamp-2">

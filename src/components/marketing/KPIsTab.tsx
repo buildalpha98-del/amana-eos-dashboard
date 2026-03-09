@@ -89,7 +89,7 @@ export function KPIsTab() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
 
-  const { data: kpis, isLoading } = useKPIs();
+  const { data: kpis, isLoading, isError } = useKPIs();
   const createKPI = useCreateKPI();
   const updateKPI = useUpdateKPI();
   const deleteKPI = useDeleteKPI();
@@ -97,8 +97,8 @@ export function KPIsTab() {
   // ── Filtered list ─────────────────────────────────────────
   const filteredKPIs =
     categoryFilter === "All"
-      ? kpis
-      : kpis?.filter(
+      ? (kpis ?? [])
+      : (kpis ?? []).filter(
           (k: KPIData) =>
             k.category.toLowerCase() === categoryFilter.toLowerCase()
         );
@@ -209,6 +209,18 @@ export function KPIsTab() {
     return (
       <div className="flex items-center justify-center py-20 text-gray-500">
         Loading KPIs...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-xl border bg-white py-16">
+        <Target className="mb-3 h-10 w-10 text-red-300" />
+        <p className="text-lg font-medium text-gray-700">Failed to load KPIs</p>
+        <p className="mt-1 text-sm text-gray-500">
+          Something went wrong. Please try refreshing the page.
+        </p>
       </div>
     );
   }

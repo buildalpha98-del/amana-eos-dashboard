@@ -8,6 +8,8 @@ import {
   useCreateOnboardingPack,
   useAssignOnboarding,
   useUpdateOnboardingProgress,
+  useUpdateOnboardingPack,
+  useDeleteOnboardingPack,
   type StaffOnboardingData,
 } from "@/hooks/useOnboarding";
 import {
@@ -48,6 +50,7 @@ import {
   Play,
   Trash2,
   UserPlus,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hasMinRole } from "@/lib/permissions";
@@ -333,12 +336,38 @@ export default function OnboardingPage() {
   const { data: selectedCourseData, isLoading: selectedCourseLoading } = useLMSCourse(selectedCourseId);
 
   const createPack = useCreateOnboardingPack();
+  const editPackMutation = useUpdateOnboardingPack();
+  const deletePackMutation = useDeleteOnboardingPack();
   const createCourse = useCreateLMSCourse();
   const assignPack = useAssignOnboarding();
   const updateProgress = useUpdateOnboardingProgress();
   const enrollStaff = useEnrollStaff();
   const unenrollStaff = useUnenrollStaff();
   const updateModuleProgress = useUpdateModuleProgress();
+
+  // Edit pack state
+  const [editingPackId, setEditingPackId] = useState<string | null>(null);
+  const [editPackName, setEditPackName] = useState("");
+  const [editPackDesc, setEditPackDesc] = useState("");
+  const [confirmDeletePackId, setConfirmDeletePackId] = useState<string | null>(null);
+
+  function startEditPack(pack: { id: string; name: string; description: string | null }) {
+    setEditingPackId(pack.id);
+    setEditPackName(pack.name);
+    setEditPackDesc(pack.description ?? "");
+  }
+
+  async function saveEditPack() {
+    if (!editingPackId || !editPackName.trim()) return;
+    await editPackMutation.mutateAsync({ id: editingPackId, name: editPackName, description: editPackDesc || null });
+    setEditingPackId(null);
+  }
+
+  async function handleDeletePack(id: string) {
+    await deletePackMutation.mutateAsync(id);
+    setConfirmDeletePackId(null);
+    if (selectedPackId === id) setSelectedPackId(null);
+  }
 
   // Form state
   const [packForm, setPackForm] = useState({ name: "", description: "", serviceId: "", isDefault: false, tasks: [{ title: "", description: "", category: "general", isRequired: true }] });
@@ -701,18 +730,93 @@ export default function OnboardingPage() {
                         <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
                           <ClipboardList className="w-5 h-5 text-cyan-700" />
                         </div>
-                        <div>
-                          <h4 className="text-lg font-semibold text-gray-900">
-                            {selectedPackData?.name ?? packs.find(p => p.id === selectedPackId)?.name ?? "Pack Details"}
-                          </h4>
-                          {selectedPackData?.isDefault && (
-                            <span className="text-[10px] font-bold uppercase bg-[#FECE00] text-[#004E64] px-2 py-0.5 rounded-full">Default</span>
-                          )}
-                        </div>
+                        {editingPackId === selectedPackId ? (
+                          <div className="flex-1 space-y-2">
+                            <input
+                              value={editPackName}
+                              onChange={(e) => setEditPackName(e.target.value)}
+                              className="w-full text-lg font-semibold text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-[#004E64] focus:border-[#004E64] outline-none"
+                              placeholder="Pack name"
+                            />
+                            <input
+                              value={editPackDesc}
+                              onChange={(e) => setEditPackDesc(e.target.value)}
+                              className="w-full text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-[#004E64] focus:border-[#004E64] outline-none"
+                              placeholder="Description (optional)"
+                            />
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={saveEditPack}
+                                disabled={editPackMutation.isPending}
+                                className="px-3 py-1 text-xs font-medium text-white bg-[#004E64] rounded-lg hover:bg-[#004E64]/90 disabled:opacity-50"
+                              >
+                                {editPackMutation.isPending ? "Saving..." : "Save"}
+                              </button>
+                              <button
+                                onClick={() => setEditingPackId(null)}
+                                className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <h4 className="text-lg font-semibold text-gray-900">
+                              {selectedPackData?.name ?? packs.find(p => p.id === selectedPackId)?.name ?? "Pack Details"}
+                            </h4>
+                            {selectedPackData?.isDefault && (
+                              <span className="text-[10px] font-bold uppercase bg-[#FECE00] text-[#004E64] px-2 py-0.5 rounded-full">Default</span>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); setSelectedPackId(null); }} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                        <X className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {isAdmin && editingPackId !== selectedPackId && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const pack = selectedPackData ?? packs.find(p => p.id === selectedPackId);
+                                if (pack) startEditPack({ id: pack.id, name: pack.name, description: pack.description });
+                              }}
+                              className="p-1.5 text-gray-400 hover:text-[#004E64] hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Edit pack"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            {confirmDeletePackId === selectedPackId ? (
+                              <div className="flex items-center gap-1 bg-red-50 border border-red-200 rounded-lg px-2 py-1">
+                                <span className="text-xs text-red-600 font-medium">Delete?</span>
+                                <button
+                                  onClick={() => handleDeletePack(selectedPackId!)}
+                                  disabled={deletePackMutation.isPending}
+                                  className="px-2 py-0.5 text-xs font-medium text-white bg-red-500 rounded hover:bg-red-600 disabled:opacity-50"
+                                >
+                                  {deletePackMutation.isPending ? "..." : "Yes"}
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDeletePackId(null)}
+                                  className="px-2 py-0.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded hover:bg-gray-50"
+                                >
+                                  No
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setConfirmDeletePackId(selectedPackId); }}
+                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete pack"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </>
+                        )}
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedPackId(null); setEditingPackId(null); setConfirmDeletePackId(null); }} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
 
                     {selectedPackLoading ? (

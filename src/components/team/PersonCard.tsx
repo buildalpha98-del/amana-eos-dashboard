@@ -11,19 +11,24 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TeamMember } from "@/hooks/useTeam";
+import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
 
 const roleBadge: Record<string, { label: string; className: string }> = {
   owner: {
-    label: "Visionary",
+    label: ROLE_DISPLAY_NAMES.owner,
     className: "bg-amber-100 text-amber-800",
   },
   admin: {
-    label: "Integrator",
+    label: ROLE_DISPLAY_NAMES.admin,
     className: "bg-teal-100 text-teal-800",
   },
   member: {
-    label: "Member",
+    label: ROLE_DISPLAY_NAMES.member,
     className: "bg-gray-100 text-gray-700",
+  },
+  staff: {
+    label: ROLE_DISPLAY_NAMES.staff,
+    className: "bg-blue-100 text-blue-800",
   },
 };
 

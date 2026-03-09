@@ -11,6 +11,7 @@ const updateMeasurableSchema = z.object({
   goalDirection: z.enum(["above", "below", "exact"]).optional(),
   unit: z.string().nullable().optional(),
   frequency: z.enum(["weekly", "monthly"]).optional(),
+  serviceId: z.string().nullable().optional(),
 });
 
 // PATCH /api/measurables/[id] — update a measurable
@@ -36,6 +37,7 @@ export async function PATCH(
   if (parsed.data.goalDirection !== undefined) data.goalDirection = parsed.data.goalDirection;
   if (parsed.data.unit !== undefined) data.unit = parsed.data.unit;
   if (parsed.data.frequency !== undefined) data.frequency = parsed.data.frequency;
+  if (parsed.data.serviceId !== undefined) data.serviceId = parsed.data.serviceId;
 
   const measurable = await prisma.measurable.update({
     where: { id },

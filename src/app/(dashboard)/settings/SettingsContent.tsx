@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
 import {
   permissionsTable,
+  ROLE_DISPLAY_NAMES,
   type PermissionRow,
 } from "@/lib/role-permissions";
 import {
@@ -212,10 +213,10 @@ function InviteUserModal({
               onChange={(e) => { setRole(e.target.value as Role); if (e.target.value !== "staff" && e.target.value !== "member") setServiceId(""); }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#004E64] focus:border-transparent"
             >
-              <option value="staff">Staff</option>
-              <option value="member">Member</option>
-              <option value="admin">Admin</option>
-              <option value="owner">Owner</option>
+              <option value="staff">{ROLE_DISPLAY_NAMES.staff}</option>
+              <option value="member">{ROLE_DISPLAY_NAMES.member}</option>
+              <option value="admin">{ROLE_DISPLAY_NAMES.admin}</option>
+              <option value="owner">{ROLE_DISPLAY_NAMES.owner}</option>
             </select>
           </div>
 
@@ -238,7 +239,7 @@ function InviteUserModal({
                 ))}
               </select>
               <p className="mt-1 text-xs text-gray-500">
-                {role === "staff" ? "Staff" : "Members"} are scoped to their assigned service
+                {role === "staff" ? ROLE_DISPLAY_NAMES.staff + "s" : ROLE_DISPLAY_NAMES.member + "s"} are scoped to their assigned service
               </p>
             </div>
           )}
@@ -286,8 +287,24 @@ function UserRow({
   const queryClient = useQueryClient();
   const [showMenu, setShowMenu] = useState(false);
   const [showResetPw, setShowResetPw] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
+
+  const deleteUser = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/users/${user.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to delete user");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setShowDeleteConfirm(false);
+    },
+  });
 
   const toggleActive = useMutation({
     mutationFn: async () => {
@@ -357,7 +374,7 @@ function UserRow({
       <td className="py-3 px-4">
         <span className="inline-flex items-center gap-1.5 text-xs font-medium capitalize">
           <RoleIcon role={user.role} />
-          {user.role}
+          {ROLE_DISPLAY_NAMES[user.role] ?? user.role}
         </span>
       </td>
       <td className="py-3 px-4">
@@ -394,19 +411,19 @@ function UserRow({
                     onClick={() => updateRole.mutate("member")}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    Set as Member
+                    Set as {ROLE_DISPLAY_NAMES.member}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("admin")}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    Set as Admin
+                    Set as {ROLE_DISPLAY_NAMES.admin}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("owner")}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    Set as Owner
+                    Set as {ROLE_DISPLAY_NAMES.owner}
                   </button>
                   <hr className="my-1" />
                   <button
@@ -423,6 +440,17 @@ function UserRow({
                     <Lock className="w-3.5 h-3.5" />
                     Reset Password
                   </button>
+                  {isOwner && (
+                    <>
+                      <hr className="my-1" />
+                      <button
+                        onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium"
+                      >
+                        Delete Permanently
+                      </button>
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -470,6 +498,44 @@ function UserRow({
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        )}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Delete User</h3>
+                  <p className="text-sm text-gray-500">This action cannot be undone</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Are you sure you want to permanently delete <span className="font-medium text-gray-900">{user.name}</span>? All their data (todos, rocks, issues, timesheets, etc.) will be removed or unlinked.
+              </p>
+              {deleteUser.isError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  {deleteUser.error instanceof Error ? deleteUser.error.message : "Failed to delete user"}
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => deleteUser.mutate()}
+                  disabled={deleteUser.isPending}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 text-sm"
+                >
+                  {deleteUser.isPending ? "Deleting..." : "Delete Permanently"}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1611,16 +1677,16 @@ function PermissionsPanel() {
                 Permission
               </th>
               <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                Owner
+                {ROLE_DISPLAY_NAMES.owner}
               </th>
               <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                Admin
+                {ROLE_DISPLAY_NAMES.admin}
               </th>
               <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                Member
+                {ROLE_DISPLAY_NAMES.member}
               </th>
               <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
-                Staff
+                {ROLE_DISPLAY_NAMES.staff}
               </th>
             </tr>
           </thead>

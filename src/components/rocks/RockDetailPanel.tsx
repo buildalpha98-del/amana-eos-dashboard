@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRock, useUpdateRock, useDeleteRock } from "@/hooks/useRocks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +15,8 @@ import {
   Trash2,
   Save,
   Plus,
+  Search,
+  Link,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { RockStatus, RockPriority, RockType } from "@prisma/client";
@@ -221,6 +223,72 @@ export function RockDetailPanel({
       queryClient.invalidateQueries({ queryKey: ["issues"] });
     },
   });
+
+  // ── Link Existing Issue state & logic ──
+  const [showLinkIssue, setShowLinkIssue] = useState(false);
+  const [issueSearchQuery, setIssueSearchQuery] = useState("");
+  const [issueDropdownOpen, setIssueDropdownOpen] = useState(false);
+  const issueSearchRef = useRef<HTMLDivElement>(null);
+
+  // Fetch unlinked issues (no rockId) for the search dropdown
+  const { data: unlinkedIssues, isLoading: isLoadingUnlinked } = useQuery<
+    {
+      id: string;
+      title: string;
+      priority: string;
+      status: string;
+      raisedBy: { name: string };
+    }[]
+  >({
+    queryKey: ["issues-unlinked"],
+    queryFn: async () => {
+      const res = await fetch("/api/issues");
+      if (!res.ok) return [];
+      const data = await res.json();
+      // Filter to open/in_discussion issues with no rockId (unlinked)
+      const issues = Array.isArray(data) ? data : data.items || [];
+      return issues.filter(
+        (issue: { rockId: string | null; status: string }) =>
+          !issue.rockId &&
+          (issue.status === "open" || issue.status === "in_discussion")
+      );
+    },
+    enabled: showLinkIssue,
+    staleTime: 30_000,
+  });
+
+  const linkExistingIssue = useMutation({
+    mutationFn: async (issueId: string) => {
+      const res = await fetch(`/api/issues/${issueId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rockId }),
+      });
+      if (!res.ok) throw new Error("Failed to link issue");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
+      queryClient.invalidateQueries({ queryKey: ["issues"] });
+      queryClient.invalidateQueries({ queryKey: ["issues-unlinked"] });
+      setIssueSearchQuery("");
+      setIssueDropdownOpen(false);
+      setShowLinkIssue(false);
+    },
+  });
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (issueSearchRef.current && !issueSearchRef.current.contains(e.target as Node)) {
+        setIssueDropdownOpen(false);
+      }
+    }
+    if (issueDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [issueDropdownOpen]);
 
   if (isLoading) {
     return (
@@ -765,14 +833,106 @@ export function RockDetailPanel({
               <AlertCircle className="w-3.5 h-3.5 inline mr-1" />
               Linked Issues ({rock.issues?.length || 0})
             </label>
-            <button
-              onClick={() => setShowAddIssue(!showAddIssue)}
-              className="text-xs text-[#004E64] hover:text-[#003D52] font-medium flex items-center gap-0.5"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setShowLinkIssue(!showLinkIssue);
+                  setShowAddIssue(false);
+                  setIssueSearchQuery("");
+                }}
+                className="text-xs text-[#004E64] hover:text-[#003D52] font-medium flex items-center gap-0.5"
+              >
+                <Link className="w-3.5 h-3.5" />
+                Link Existing
+              </button>
+              <button
+                onClick={() => {
+                  setShowAddIssue(!showAddIssue);
+                  setShowLinkIssue(false);
+                }}
+                className="text-xs text-[#004E64] hover:text-[#003D52] font-medium flex items-center gap-0.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Create New
+              </button>
+            </div>
           </div>
+
+          {/* Link Existing Issue search */}
+          {showLinkIssue && (
+            <div ref={issueSearchRef} className="mb-3 p-3 bg-gray-50 rounded-lg">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  type="text"
+                  value={issueSearchQuery}
+                  onChange={(e) => {
+                    setIssueSearchQuery(e.target.value);
+                    setIssueDropdownOpen(true);
+                  }}
+                  onFocus={() => setIssueDropdownOpen(true)}
+                  placeholder="Search unlinked issues..."
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#004E64]"
+                  autoFocus
+                />
+              </div>
+              {issueDropdownOpen && (
+                <div className="mt-1 max-h-48 overflow-y-auto border border-gray-200 rounded-md bg-white shadow-sm">
+                  {isLoadingUnlinked ? (
+                    <div className="px-3 py-2 text-sm text-gray-400 text-center">
+                      Searching...
+                    </div>
+                  ) : unlinkedIssues && unlinkedIssues.filter(i => !issueSearchQuery || i.title.toLowerCase().includes(issueSearchQuery.toLowerCase())).length > 0 ? (
+                    unlinkedIssues.filter(i => !issueSearchQuery || i.title.toLowerCase().includes(issueSearchQuery.toLowerCase())).map((issue) => (
+                      <button
+                        key={issue.id}
+                        onClick={() => linkExistingIssue.mutate(issue.id)}
+                        disabled={linkExistingIssue.isPending}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-[#004E64]/5 flex items-center gap-2 border-b border-gray-100 last:border-0 disabled:opacity-50"
+                      >
+                        <div
+                          className={cn(
+                            "w-2 h-2 rounded-full flex-shrink-0",
+                            issue.priority === "critical"
+                              ? "bg-red-500"
+                              : issue.priority === "high"
+                              ? "bg-amber-500"
+                              : issue.priority === "medium"
+                              ? "bg-blue-500"
+                              : "bg-gray-400"
+                          )}
+                        />
+                        <span className="flex-1 truncate text-gray-700">
+                          {issue.title}
+                        </span>
+                        <span className="text-xs text-gray-400 flex-shrink-0">
+                          {issue.status.replace("_", " ")}
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-sm text-gray-400 text-center">
+                      {issueSearchQuery
+                        ? "No unlinked issues match your search"
+                        : "No unlinked open issues available"}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={() => {
+                    setShowLinkIssue(false);
+                    setIssueSearchQuery("");
+                    setIssueDropdownOpen(false);
+                  }}
+                  className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-md"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           {showAddIssue && (
             <div className="space-y-2 mb-3 p-3 bg-gray-50 rounded-lg">
@@ -867,7 +1027,7 @@ export function RockDetailPanel({
               )}
             </div>
           ) : (
-            !showAddIssue && (
+            !showAddIssue && !showLinkIssue && (
               <p className="text-sm text-gray-400 italic">
                 No linked Issues yet — report issues blocking this rock
               </p>

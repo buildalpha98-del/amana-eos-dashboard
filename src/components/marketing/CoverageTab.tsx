@@ -6,6 +6,30 @@ import { useCentreCoverage } from "@/hooks/useMarketing";
 import { cn } from "@/lib/utils";
 import { PhotoComplianceWidget } from "./PhotoComplianceWidget";
 
+interface CoverageServiceRaw {
+  serviceId: string;
+  serviceName: string;
+  serviceCode: string;
+  totalPosts: number;
+  postsThisMonth: number;
+  postsLastMonth: number;
+  activeCampaigns: number;
+  lastPostDate: string | null;
+  status: "active" | "moderate" | "neglected";
+}
+
+interface CoverageDataRaw {
+  centres: CoverageServiceRaw[];
+  summary: {
+    totalCentres: number;
+    activeCentres: number;
+    moderateCentres: number;
+    neglectedCentres: number;
+    globalPosts: number;
+  };
+}
+
+// Normalised shape used internally by the component
 interface CoverageService {
   id: string;
   name: string;
@@ -41,7 +65,30 @@ export function CoverageTab({ onSelectService }: CoverageTabProps) {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  const coverage = data as CoverageData | undefined;
+  // Normalise API shape → internal CoverageData
+  const coverage: CoverageData | undefined = useMemo(() => {
+    if (!data) return undefined;
+    const raw = data as CoverageDataRaw;
+    // Handle both old (flat) and new (nested summary) response shapes
+    if (raw.centres && raw.summary) {
+      return {
+        ...raw.summary,
+        services: raw.centres.map((c) => ({
+          id: c.serviceId,
+          name: c.serviceName,
+          code: c.serviceCode,
+          state: null, // API doesn't return state yet
+          postsThisMonth: c.postsThisMonth,
+          postsLastMonth: c.postsLastMonth,
+          activeCampaigns: c.activeCampaigns,
+          lastPostDate: c.lastPostDate,
+          status: c.status,
+        })),
+      };
+    }
+    // Fallback: data might already be in the flat shape
+    return data as unknown as CoverageData;
+  }, [data]);
 
   const sorted = useMemo(() => {
     if (!coverage?.services) return [];

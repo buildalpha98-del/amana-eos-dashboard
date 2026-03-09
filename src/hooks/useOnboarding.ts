@@ -97,6 +97,46 @@ export function useCreateOnboardingPack() {
   });
 }
 
+export function useUpdateOnboardingPack() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string } & Record<string, unknown>) => {
+      const res = await fetch(`/api/onboarding/packs/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update pack");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["onboarding-packs"] });
+      qc.invalidateQueries({ queryKey: ["onboarding-pack"] });
+      qc.invalidateQueries({ queryKey: ["onboarding-pack-detail"] });
+    },
+  });
+}
+
+export function useDeleteOnboardingPack() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/onboarding/packs/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to delete pack");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["onboarding-packs"] });
+    },
+  });
+}
+
 export function useOnboardingAssignments(userId?: string) {
   return useQuery<StaffOnboardingData[]>({
     queryKey: ["onboarding-assignments", userId],

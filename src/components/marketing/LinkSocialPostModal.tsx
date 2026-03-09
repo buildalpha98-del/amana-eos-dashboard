@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Link2, CheckCircle2, ExternalLink } from "lucide-react";
 import {
   useSocialAccounts,
@@ -66,7 +67,7 @@ export function LinkSocialPostModal({
     return str.slice(0, len) + "...";
   }
 
-  return (
+  return createPortal(
     <>
       {/* Overlay */}
       <div
@@ -75,7 +76,7 @@ export function LinkSocialPostModal({
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-[61] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[61] flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
         <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl max-h-[85vh] flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
@@ -271,6 +272,7 @@ export function LinkSocialPostModal({
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

@@ -52,6 +52,7 @@ export default function TodosPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showCarryForward, setShowCarryForward] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [quickAddTitle, setQuickAddTitle] = useState("");
 
@@ -60,7 +61,7 @@ export default function TodosPage() {
   const createTodo = useCreateTodo();
 
   const { data: todos, isLoading } = useTodos({
-    weekOf: weekOf.toISOString(),
+    ...(showAll ? {} : { weekOf: weekOf.toISOString() }),
     ...(filterAssignee ? { assigneeId: filterAssignee } : {}),
     ...(filterStatus ? { status: filterStatus } : {}),
   });
@@ -182,7 +183,9 @@ export default function TodosPage() {
         <div>
           <h2 className="text-xl font-semibold text-gray-900">To-Dos</h2>
           <p className="text-sm text-gray-500">
-            Weekly action items for the L10 meeting rhythm
+            {showAll
+              ? "All active action items across every week"
+              : "Weekly action items for the L10 meeting rhythm"}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -285,9 +288,33 @@ export default function TodosPage() {
         </div>
       </div>
 
-      {/* Week Selector */}
-      <div className="mb-6">
-        <WeekSelector value={weekOf} onChange={setWeekOf} />
+      {/* Week Selector with All toggle */}
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+          <button
+            onClick={() => setShowAll(true)}
+            className={cn(
+              "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+              showAll
+                ? "bg-white text-[#004E64] shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setShowAll(false)}
+            className={cn(
+              "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+              !showAll
+                ? "bg-white text-[#004E64] shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+            )}
+          >
+            Weekly
+          </button>
+        </div>
+        {!showAll && <WeekSelector value={weekOf} onChange={setWeekOf} />}
       </div>
 
       {/* Filters */}
@@ -332,8 +359,8 @@ export default function TodosPage() {
         </div>
       )}
 
-      {/* Carry Forward Section */}
-      {carryForwardTodos.length > 0 && (
+      {/* Carry Forward Section (weekly mode only) */}
+      {!showAll && carryForwardTodos.length > 0 && (
         <div className="mb-4 bg-amber-50/50 border border-amber-200 rounded-xl overflow-hidden">
           <button
             onClick={() => setShowCarryForward(!showCarryForward)}
@@ -495,7 +522,7 @@ export default function TodosPage() {
       ) : (
         <EmptyState
           icon={CheckSquare}
-          title="No To-Dos this week"
+          title={showAll ? "No active To-Dos" : "No To-Dos this week"}
           description="To-Dos are the weekly action items that push your Rocks forward. Add them here or spawn them from Issues in your L10 meetings."
           action={{ label: "Create Your First To-Do", onClick: () => setShowCreate(true) }}
         />

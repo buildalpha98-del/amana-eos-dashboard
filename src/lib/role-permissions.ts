@@ -1,6 +1,26 @@
 import type { Role } from "@prisma/client";
 
 // ---------------------------------------------------------------------------
+// 0. Role display names (human-readable labels for the UI)
+// ---------------------------------------------------------------------------
+
+/** Maps database role values → user-facing display names */
+export const ROLE_DISPLAY_NAMES: Record<Role, string> = {
+  owner: "Owner",
+  admin: "State Manager",
+  member: "Centre Director",
+  staff: "Educator",
+};
+
+/** Inverse lookup: display name → role key */
+export function roleFromDisplayName(displayName: string): Role | undefined {
+  const entry = (Object.entries(ROLE_DISPLAY_NAMES) as [Role, string][]).find(
+    ([, label]) => label.toLowerCase() === displayName.toLowerCase()
+  );
+  return entry?.[0];
+}
+
+// ---------------------------------------------------------------------------
 // 1. Page-level access
 // ---------------------------------------------------------------------------
 
@@ -63,8 +83,6 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/compliance",
     "/documents",
     "/onboarding",
-    "/leave",
-    "/timesheets",
     "/profile",
   ],
   staff: [
@@ -76,8 +94,6 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/onboarding",
     "/todos",
     "/compliance",
-    "/leave",
-    "/timesheets",
     "/profile",
   ],
 };
@@ -263,11 +279,10 @@ const ownerFeatures: readonly Feature[] = features; // everything
 
 const adminFeatures: readonly Feature[] = features.filter(
   (f) =>
-    // Admins can NOT do:
+    // Admins (State Managers) can NOT do:
     f !== "org_settings.edit" &&
-    f !== "users.create" &&
-    f !== "users.edit_role" &&
-    f !== "users.deactivate" &&
+    // Admins CAN now manage users (create, edit role, deactivate)
+    // but NOT import users or change someone to owner
     f !== "users.import" &&
     f !== "settings.view" &&
     f !== "permissions.view" &&
@@ -421,8 +436,8 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Pages", label: "Team", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Settings", owner: true, admin: false, member: false, staff: false },
   { section: "Pages", label: "My Portal", owner: true, admin: true, member: true, staff: true },
-  { section: "Pages", label: "Timesheets", owner: true, admin: true, member: true, staff: true },
-  { section: "Pages", label: "Leave Management", owner: true, admin: true, member: true, staff: true },
+  { section: "Pages", label: "Timesheets", owner: true, admin: true, member: false, staff: false },
+  { section: "Pages", label: "Leave Management", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Contracts", owner: true, admin: true, member: false, staff: false },
   { section: "Pages", label: "Profile", owner: true, admin: true, member: true, staff: true },
 
@@ -459,7 +474,7 @@ export const permissionsTable: PermissionRow[] = [
   { section: "Actions", label: "Manage offboarding", owner: true, admin: true, member: false, staff: false },
 
   { section: "Admin", label: "View activity log", owner: true, admin: true, member: false, staff: false },
-  { section: "Admin", label: "Manage users (invite, roles, deactivate)", owner: true, admin: false, member: false, staff: false },
+  { section: "Admin", label: "Manage users (invite, roles, deactivate)", owner: true, admin: true, member: false, staff: false },
   { section: "Admin", label: "Edit organisation settings", owner: true, admin: false, member: false, staff: false },
   { section: "Admin", label: "Connect / manage Xero", owner: true, admin: false, member: false, staff: false },
   { section: "Admin", label: "View permissions overview", owner: true, admin: false, member: false, staff: false },

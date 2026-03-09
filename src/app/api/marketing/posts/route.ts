@@ -93,6 +93,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Platform-specific content validation — require content for social platforms
+  // unless the post is still a draft
+  const socialPlatforms = ["instagram", "facebook", "linkedin"];
+  if (
+    socialPlatforms.includes(parsed.data.platform) &&
+    parsed.data.status !== "draft" &&
+    !parsed.data.content?.trim()
+  ) {
+    return NextResponse.json(
+      { error: `Content is required for ${parsed.data.platform} posts before publishing.` },
+      { status: 400 }
+    );
+  }
+
   const {
     title,
     platform,
