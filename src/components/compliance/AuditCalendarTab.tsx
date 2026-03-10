@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useAuditInstances, type AuditInstanceSummary } from "@/hooks/useAudits";
+import {
+  useAuditInstances,
+  usePreviewCalendar,
+  useImportCalendar,
+  type AuditInstanceSummary,
+  type CalendarTemplatePreview,
+} from "@/hooks/useAudits";
 import { cn } from "@/lib/utils";
 import {
   ChevronLeft,
@@ -16,6 +22,10 @@ import {
   SkipForward,
   Loader2,
   Filter,
+  Upload,
+  X,
+  FileText,
+  Check,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -51,6 +61,269 @@ interface ServiceOption {
   code: string;
 }
 
+const freqLabels: Record<string, string> = {
+  monthly: "Monthly",
+  half_yearly: "Half Yearly",
+  yearly: "Yearly",
+};
+
+/* ------------------------------------------------------------------ */
+/* Upload Calendar Dialog                                              */
+/* ------------------------------------------------------------------ */
+
+function UploadCalendarDialog({
+  open,
+  onClose,
+  currentYear,
+}: {
+  open: boolean;
+  onClose: () => void;
+  currentYear: number;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [generateInstances, setGenerateInstances] = useState(true);
+  const [year, setYear] = useState(currentYear);
+  const [preview, setPreview] = useState<CalendarTemplatePreview[] | null>(null);
+  const [result, setResult] = useState<{
+    templatesCreated: number;
+    templatesUpdated: number;
+    instancesCreated: number;
+  } | null>(null);
+
+  const previewMutation = usePreviewCalendar();
+  const importMutation = useImportCalendar();
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+    setFile(selected);
+    setPreview(null);
+    setResult(null);
+
+    // Auto-preview
+    try {
+      const data = await previewMutation.mutateAsync(selected);
+      setPreview(data.templates);
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleImport = async () => {
+    if (!file) return;
+    try {
+      const data = await importMutation.mutateAsync({
+        file,
+        generateInstances,
+        year,
+      });
+      setResult({
+        templatesCreated: data.templatesCreated,
+        templatesUpdated: data.templatesUpdated,
+        instancesCreated: data.instancesCreated,
+      });
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleClose = () => {
+    setFile(null);
+    setPreview(null);
+    setResult(null);
+    if (fileRef.current) fileRef.current.value = "";
+    onClose();
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-brand" />
+            <h2 className="text-lg font-semibold text-gray-900">Upload Compliance Calendar</h2>
+          </div>
+          <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-gray-100">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {/* Success state */}
+          {result ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-emerald-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Calendar Imported Successfully</h3>
+              <div className="space-y-1 text-sm text-gray-600">
+                <p>{result.templatesCreated} new template{result.templatesCreated !== 1 ? "s" : ""} created</p>
+                <p>{result.templatesUpdated} existing template{result.templatesUpdated !== 1 ? "s" : ""} updated</p>
+                {result.instancesCreated > 0 && (
+                  <p>{result.instancesCreated} audit instance{result.instancesCreated !== 1 ? "s" : ""} generated for {year}</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* File upload */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1.5">
+                  Compliance Calendar Document
+                </label>
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-brand hover:bg-brand/5 transition-colors"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".docx,.doc"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
+                  {file ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <FileText className="w-5 h-5 text-brand" />
+                      <span className="text-sm font-medium text-gray-900">{file.name}</span>
+                      <span className="text-xs text-gray-500">
+                        ({(file.size / 1024).toFixed(0)} KB)
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">
+                        Click to upload a <strong>.docx</strong> compliance calendar
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">Max 10 MB</p>
+                    </>
+                  )}
+                </div>
+                {previewMutation.isError && (
+                  <p className="text-sm text-red-600 mt-2">
+                    {previewMutation.error?.message || "Failed to parse document"}
+                  </p>
+                )}
+              </div>
+
+              {/* Loading preview */}
+              {previewMutation.isPending && (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-6 h-6 text-brand animate-spin mr-2" />
+                  <span className="text-sm text-gray-600">Parsing document...</span>
+                </div>
+              )}
+
+              {/* Preview table */}
+              {preview && preview.length > 0 && (
+                <>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                      {preview.length} Templates Detected
+                    </h3>
+                    <div className="border rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 sticky top-0">
+                          <tr>
+                            <th className="text-left px-3 py-2 font-medium text-gray-600">Name</th>
+                            <th className="text-left px-3 py-2 font-medium text-gray-600 w-16">QA</th>
+                            <th className="text-left px-3 py-2 font-medium text-gray-600 w-24">Frequency</th>
+                            <th className="text-left px-3 py-2 font-medium text-gray-600 w-32">Months</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {preview.map((t, i) => (
+                            <tr key={i} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 text-gray-900">{t.name}</td>
+                              <td className="px-3 py-2 text-gray-600">QA{t.qualityArea}</td>
+                              <td className="px-3 py-2 text-gray-600">{freqLabels[t.frequency] || t.frequency}</td>
+                              <td className="px-3 py-2 text-gray-500 text-xs">
+                                {t.scheduledMonths.length === 12
+                                  ? "Every month"
+                                  : t.scheduledMonths
+                                      .map((m) => monthNames[m - 1]?.slice(0, 3))
+                                      .join(", ")}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Options */}
+                  <div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={generateInstances}
+                        onChange={(e) => setGenerateInstances(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
+                      />
+                      <span className="text-gray-700">Generate audit instances for</span>
+                    </label>
+                    <select
+                      value={year}
+                      onChange={(e) => setYear(parseInt(e.target.value, 10))}
+                      className="px-2 py-1 text-sm border border-gray-300 rounded-lg"
+                    >
+                      {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50">
+          {result ? (
+            <button
+              onClick={handleClose}
+              className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90"
+            >
+              Done
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={!preview || preview.length === 0 || importMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {importMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Import Calendar
+              </button>
+            </>
+          )}
+          {importMutation.isError && (
+            <p className="text-sm text-red-600">
+              {importMutation.error?.message || "Import failed"}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Component                                                           */
 /* ------------------------------------------------------------------ */
@@ -60,6 +333,7 @@ export function AuditCalendarTab() {
   const [year, setYear] = useState(now.getFullYear());
   const [serviceFilter, setServiceFilter] = useState("");
   const [qaFilter, setQaFilter] = useState("");
+  const [showUploadCalendar, setShowUploadCalendar] = useState(false);
 
   const { data, isLoading } = useAuditInstances({
     year,
@@ -159,6 +433,16 @@ export function AuditCalendarTab() {
             </option>
           ))}
         </select>
+
+        <div className="ml-auto">
+          <button
+            onClick={() => setShowUploadCalendar(true)}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            Upload Calendar
+          </button>
+        </div>
       </div>
 
       {/* Calendar grid */}
@@ -238,6 +522,13 @@ export function AuditCalendarTab() {
           })}
         </div>
       )}
+
+      {/* Upload Calendar Dialog */}
+      <UploadCalendarDialog
+        open={showUploadCalendar}
+        onClose={() => setShowUploadCalendar(false)}
+        currentYear={year}
+      />
     </div>
   );
 }

@@ -458,6 +458,95 @@ export function useBulkParseAudit() {
   });
 }
 
+// ── Calendar Import ─────────────────────────────────────
+
+export interface CalendarTemplatePreview {
+  name: string;
+  description: string;
+  frequency: "monthly" | "half_yearly" | "yearly";
+  qualityArea: number;
+  nqsReference: string;
+  scheduledMonths: number[];
+}
+
+export interface CalendarPreviewResult {
+  preview: true;
+  templates: CalendarTemplatePreview[];
+  metadata: {
+    totalTemplates: number;
+    qualityAreas: number[];
+  };
+}
+
+export interface CalendarImportResult {
+  message: string;
+  templatesCreated: number;
+  templatesUpdated: number;
+  totalTemplates: number;
+  instancesCreated: number;
+  instancesSkipped: number;
+  templates: Array<{
+    id: string;
+    name: string;
+    qualityArea: number;
+    frequency: string;
+    scheduledMonths: number[];
+    isNew: boolean;
+  }>;
+}
+
+export function usePreviewCalendar() {
+  return useMutation({
+    mutationFn: async (file: File): Promise<CalendarPreviewResult> => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("preview", "true");
+      const res = await fetch("/api/audits/calendar/import", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to preview calendar");
+      }
+      return res.json();
+    },
+  });
+}
+
+export function useImportCalendar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      file,
+      generateInstances,
+      year,
+    }: {
+      file: File;
+      generateInstances?: boolean;
+      year?: number;
+    }): Promise<CalendarImportResult> => {
+      const formData = new FormData();
+      formData.append("file", file);
+      if (generateInstances) formData.append("generateInstances", "true");
+      if (year) formData.append("year", String(year));
+      const res = await fetch("/api/audits/calendar/import", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to import calendar");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-instances"] });
+    },
+  });
+}
+
 // ── Qualification Ratios ─────────────────────────────────
 
 export function useQualificationRatios() {

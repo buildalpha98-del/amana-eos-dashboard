@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server-auth";
-import { docxToText } from "@/lib/pandoc";
-import { parseAuditDocument } from "@/lib/audit-parser";
+import { parseAuditDocumentHybrid } from "@/lib/audit-parser";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = [
@@ -40,8 +39,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const text = await docxToText(buffer);
-    const parsed = parseAuditDocument(text);
+    const parsed = await parseAuditDocumentHybrid(buffer);
 
     return NextResponse.json({
       filename: file.name,

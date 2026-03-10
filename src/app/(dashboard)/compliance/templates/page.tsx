@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useRef } from "react";
 import {
   useAuditTemplates,
   useAuditTemplateDetail,
@@ -10,10 +10,13 @@ import {
   useDeleteTemplateItem,
   useUpdateTemplateItem,
   useReorderTemplateItems,
+  usePreviewCalendar,
+  useImportCalendar,
   type AuditTemplateSummary,
   type ParsedItem,
   type ParsedAuditResult,
   type BulkParseResult,
+  type CalendarTemplatePreview,
 } from "@/hooks/useAudits";
 import { cn } from "@/lib/utils";
 import {
@@ -34,6 +37,7 @@ import {
   CheckCircle2,
   ArrowUpDown,
   Package,
+  Calendar,
 } from "lucide-react";
 
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -823,6 +827,7 @@ export default function AuditTemplatesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [uploadTarget, setUploadTarget] = useState<{ id: string; name: string } | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showCalendarUpload, setShowCalendarUpload] = useState(false);
 
   const { data: templates = [], isLoading, error, refetch } = useAuditTemplates();
 
@@ -858,13 +863,22 @@ export default function AuditTemplatesPage() {
             Manage checklist items for {templates.length} audit templates
           </p>
         </div>
-        <button
-          onClick={() => setShowBulkUpload(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
-        >
-          <Package className="w-4 h-4" />
-          Bulk Upload
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCalendarUpload(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-brand/5 transition-colors"
+          >
+            <Calendar className="w-4 h-4" />
+            Upload Calendar
+          </button>
+          <button
+            onClick={() => setShowBulkUpload(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+          >
+            <Package className="w-4 h-4" />
+            Bulk Upload
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -1007,6 +1021,228 @@ export default function AuditTemplatesPage() {
           onClose={() => setShowBulkUpload(false)}
         />
       )}
+
+      {/* Calendar Upload Modal */}
+      {showCalendarUpload && (
+        <CalendarUploadModal onClose={() => setShowCalendarUpload(false)} />
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Calendar Upload Modal                                               */
+/* ------------------------------------------------------------------ */
+
+const monthNamesShort = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+const frequencyDisplayLabels: Record<string, string> = {
+  monthly: "Monthly",
+  half_yearly: "Half Yearly",
+  yearly: "Yearly",
+};
+
+function CalendarUploadModal({ onClose }: { onClose: () => void }) {
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const [file, setFile] = React.useState<File | null>(null);
+  const [generateInstances, setGenerateInstances] = React.useState(true);
+  const [year, setYear] = React.useState(new Date().getFullYear());
+  const [preview, setPreview] = React.useState<CalendarTemplatePreview[] | null>(null);
+  const [result, setResult] = React.useState<{
+    templatesCreated: number;
+    templatesUpdated: number;
+    instancesCreated: number;
+  } | null>(null);
+
+  const previewMutation = usePreviewCalendar();
+  const importMutation = useImportCalendar();
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+    setFile(selected);
+    setPreview(null);
+    setResult(null);
+    try {
+      const data = await previewMutation.mutateAsync(selected);
+      setPreview(data.templates);
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleImport = async () => {
+    if (!file) return;
+    try {
+      const data = await importMutation.mutateAsync({ file, generateInstances, year });
+      setResult({
+        templatesCreated: data.templatesCreated,
+        templatesUpdated: data.templatesUpdated,
+        instancesCreated: data.instancesCreated,
+      });
+    } catch {
+      // Error handled by mutation
+    }
+  };
+
+  const handleClose = () => {
+    setFile(null);
+    setPreview(null);
+    setResult(null);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-brand" />
+            <h2 className="text-lg font-semibold text-gray-900">Upload Compliance Calendar</h2>
+          </div>
+          <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-gray-100">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {result ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-emerald-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Calendar Imported</h3>
+              <div className="space-y-1 text-sm text-gray-600">
+                <p>{result.templatesCreated} template{result.templatesCreated !== 1 ? "s" : ""} created</p>
+                <p>{result.templatesUpdated} template{result.templatesUpdated !== 1 ? "s" : ""} updated</p>
+                {result.instancesCreated > 0 && (
+                  <p>{result.instancesCreated} instance{result.instancesCreated !== 1 ? "s" : ""} generated for {year}</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-brand hover:bg-brand/5 transition-colors"
+                onClick={() => fileRef.current?.click()}
+              >
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".docx,.doc"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                {file ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <FileText className="w-5 h-5 text-brand" />
+                    <span className="text-sm font-medium text-gray-900">{file.name}</span>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">Upload compliance calendar <strong>.docx</strong></p>
+                  </>
+                )}
+              </div>
+
+              {previewMutation.isError && (
+                <p className="text-sm text-red-600">{previewMutation.error?.message || "Failed to parse"}</p>
+              )}
+
+              {previewMutation.isPending && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 text-brand animate-spin mr-2" />
+                  <span className="text-sm text-gray-600">Parsing...</span>
+                </div>
+              )}
+
+              {preview && preview.length > 0 && (
+                <>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">{preview.length} Templates Detected</h3>
+                    <div className="border rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 sticky top-0">
+                          <tr>
+                            <th className="text-left px-3 py-2 font-medium text-gray-600">Name</th>
+                            <th className="text-left px-3 py-2 font-medium text-gray-600 w-16">QA</th>
+                            <th className="text-left px-3 py-2 font-medium text-gray-600 w-24">Freq</th>
+                            <th className="text-left px-3 py-2 font-medium text-gray-600 w-32">Months</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {preview.map((t, i) => (
+                            <tr key={i} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 text-gray-900">{t.name}</td>
+                              <td className="px-3 py-2 text-gray-600">QA{t.qualityArea}</td>
+                              <td className="px-3 py-2 text-gray-600">{frequencyDisplayLabels[t.frequency] || t.frequency}</td>
+                              <td className="px-3 py-2 text-gray-500 text-xs">
+                                {t.scheduledMonths.length === 12
+                                  ? "Every month"
+                                  : t.scheduledMonths.map((m) => monthNamesShort[m - 1]).join(", ")}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={generateInstances}
+                        onChange={(e) => setGenerateInstances(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
+                      />
+                      <span className="text-gray-700">Generate audit instances for</span>
+                    </label>
+                    <select
+                      value={year}
+                      onChange={(e) => setYear(parseInt(e.target.value, 10))}
+                      className="px-2 py-1 text-sm border border-gray-300 rounded-lg"
+                    >
+                      {[new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1].map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50">
+          {result ? (
+            <button onClick={handleClose} className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90">
+              Done
+            </button>
+          ) : (
+            <>
+              <button onClick={handleClose} className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+                Cancel
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={!preview || preview.length === 0 || importMutation.isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {importMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Import Calendar
+              </button>
+            </>
+          )}
+          {importMutation.isError && (
+            <p className="text-sm text-red-600">{importMutation.error?.message || "Import failed"}</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,10 @@
 /**
- * Audit document parser — extracts checklist items from plain-text
- * converted .docx audit templates.
+ * Audit document parser — extracts checklist items from .docx audit templates.
+ *
+ * Two parsing strategies:
+ *  A. **HTML table parser** (preferred) — uses mammoth HTML + jsdom to preserve
+ *     table structure.  Most audit documents are table-based.
+ *  B. **Plain-text parser** (fallback) — line-by-line regex for non-table docs.
  *
  * Supports 4 structural patterns:
  *  1. YES / NO table           → yes_no
@@ -9,7 +13,18 @@
  *  4. Date of Review            → review_date
  *
  * Special case: sections with "must answer NO" → reverse_yes_no
+ *
+ * Entry point:  `parseAuditDocumentHybrid(buffer)` — tries HTML first,
+ *               falls back to plain text.
  */
+
+import { docxToHtml, docxToText } from "@/lib/pandoc";
+
+// Dynamic import to avoid ESM bundling issues in Next.js
+async function getJSDOM() {
+  const { JSDOM } = await import("jsdom");
+  return JSDOM;
+}
 
 export type AuditResponseFormat =
   | "yes_no"
@@ -300,4 +315,397 @@ export function parseAuditDocument(text: string): ParsedAuditResult {
       hasReverseYesNo,
     },
   };
+}
+
+/* ================================================================== */
+/* HTML table parser                                                    */
+/* ================================================================== */
+
+/** Column-role labels we try to detect in header rows. */
+const RESPONSE_HEADERS = /^(yes|no|n\/a|na|rating|compliant|non[- ]?compliant|comments?|action|evidence|notes?|guidance|status|date|score)$/i;
+
+/** Check if a header cell text is a response / meta column (not questions). */
+function isResponseHeader(text: string): boolean {
+  const h = text.replace(/\s+/g, " ").trim();
+  if (!h) return false;
+  if (RESPONSE_HEADERS.test(h)) return true;
+  // Compound patterns common in audit documents
+  if (/^yes\s*[\/&]\s*no$/i.test(h)) return true;
+  if (/^action\s+(required|needed|plan|items?)/i.test(h)) return true;
+  if (/^follow[- ]?up(\s+action)?$/i.test(h)) return true;
+  if (/^corrective\s+action/i.test(h)) return true;
+  if (/^further\s+action/i.test(h)) return true;
+  return false;
+}
+
+/** Footer / metadata rows to skip when extracting questions from tables. */
+const FOOTER_ROW_PATTERNS =
+  /^(strengths?|areas?\s+(for|of)\s+improvement|action\s*(plan)?|comments?|name\s+(of\s+)?(auditor|assessor|reviewer)|signature|date(\s+(of\s+)?(audit|review))?|sign(ed)?(\s+by)?|endorsed|approved|reviewed|conducted|completed|assessed|auditor|assessor|overall\s+(rating|score|result)|centre\s*name|center\s*name|service\s*name|room|location|position|role|recommendation)$/i;
+
+/** Patterns that identify the "question / item" column header. */
+const QUESTION_COL_HEADERS = /^(question|item|criteria|checklist|description|standard|requirement|element|indicator|practice|area|detail|task|observation|audit item|audit question)/i;
+
+/** Number-only cells (used to detect numbering columns). */
+const NUMBER_ONLY = /^\d{1,4}\.?$/;
+
+/**
+ * Detect the response format from an array of header cell texts.
+ */
+function detectFormatFromHeaders(headers: string[]): AuditResponseFormat {
+  const joined = headers.join(" ").toUpperCase();
+
+  if (
+    (joined.includes("RATING") && (joined.includes("1-5") || joined.includes("(1-5)"))) ||
+    /RATING\s*[:.]?\s*[([]?1[\s-]+5/i.test(joined)
+  ) {
+    return "rating_1_5";
+  }
+  if (joined.includes("COMPLIANT") && joined.includes("NON")) {
+    return "compliant";
+  }
+  if (joined.includes("DATE OF REVIEW") || joined.includes("REVIEW DATE")) {
+    return "review_date";
+  }
+  // Default: any table with Yes/No-like columns
+  return "yes_no";
+}
+
+/**
+ * Determine whether a `<table>` looks like a question/checklist table.
+ * Returns the detected column index for questions, or -1 if not a question table.
+ */
+function analyseTable(
+  table: Element,
+): {
+  isQuestionTable: boolean;
+  questionColIdx: number;
+  guidanceColIdx: number;
+  responseFormat: AuditResponseFormat;
+  headerTexts: string[];
+  sectionFromHeader: string | null;
+} {
+  const rows = Array.from(table.querySelectorAll("tr"));
+  const neg = {
+    isQuestionTable: false,
+    questionColIdx: -1,
+    guidanceColIdx: -1,
+    responseFormat: "yes_no" as AuditResponseFormat,
+    headerTexts: [],
+    sectionFromHeader: null,
+  };
+
+  if (rows.length < 2) return neg; // need header + at least 1 data row
+
+  // Grab first row as header candidate
+  const headerCells = Array.from(rows[0].querySelectorAll("th, td"));
+  if (headerCells.length < 2) return neg; // too few columns
+
+  const headerTexts = headerCells.map((c) => (c.textContent || "").trim());
+
+  // Phase 1: Classify each header column
+  let responseMatches = 0;
+  let questionColIdx = -1;
+  let guidanceColIdx = -1;
+  const isResp: boolean[] = headerTexts.map(() => false);
+  const isNum: boolean[] = headerTexts.map(() => false);
+
+  for (let i = 0; i < headerTexts.length; i++) {
+    const h = headerTexts[i];
+    if (isResponseHeader(h)) {
+      isResp[i] = true;
+      responseMatches++;
+    } else if (QUESTION_COL_HEADERS.test(h)) {
+      questionColIdx = i;
+    } else if (/^(guidance|hint|reference|notes?)$/i.test(h)) {
+      guidanceColIdx = i;
+    } else if (/^(#|no\.?|item\s*#?|s\.?\s*no\.?)$/i.test(h)) {
+      isNum[i] = true;
+    }
+  }
+
+  // Phase 2: If question column not found but we have response columns,
+  // the remaining non-response, non-numbering, non-guidance column is the question column
+  if (questionColIdx === -1 && responseMatches > 0) {
+    for (let i = 0; i < headerTexts.length; i++) {
+      if (!isResp[i] && !isNum[i] && i !== guidanceColIdx && headerTexts[i].length >= 2) {
+        questionColIdx = i;
+        break;
+      }
+    }
+  }
+
+  // Phase 3: Try the column after a "#" / "No" / "No." numbering column
+  if (questionColIdx === -1) {
+    for (let i = 0; i < headerTexts.length; i++) {
+      if (isNum[i] && i + 1 < headerTexts.length && !isResp[i + 1]) {
+        questionColIdx = i + 1;
+        break;
+      }
+    }
+  }
+
+  // Phase 4: Longest-text heuristic as last resort
+  if (questionColIdx === -1 && rows.length > 1) {
+    const colCount = headerTexts.length;
+    const avgLen = new Array(colCount).fill(0);
+    const dataRows = rows.slice(1, Math.min(rows.length, 6)); // sample up to 5 rows
+    for (const r of dataRows) {
+      const cells = Array.from(r.querySelectorAll("th, td"));
+      for (let c = 0; c < Math.min(cells.length, colCount); c++) {
+        avgLen[c] += (cells[c].textContent || "").trim().length;
+      }
+    }
+    // Normalise
+    for (let c = 0; c < colCount; c++) avgLen[c] /= dataRows.length || 1;
+
+    // Skip columns that look like numbering or response columns
+    let best = -1;
+    let bestLen = 0;
+    for (let c = 0; c < colCount; c++) {
+      if (isResp[c]) continue;
+      if (isNum[c]) continue;
+      if (avgLen[c] > bestLen) {
+        bestLen = avgLen[c];
+        best = c;
+      }
+    }
+    if (best >= 0 && bestLen > 10) {
+      questionColIdx = best;
+    }
+  }
+
+  // Determine section name from question column header
+  // If the header text is NOT a standard column label (like "Question", "Item"),
+  // it is likely a section name (e.g. "BATHROOM REQUIREMENTS")
+  let sectionFromHeader: string | null = null;
+  if (questionColIdx >= 0) {
+    const qHeader = headerTexts[questionColIdx];
+    if (qHeader && !QUESTION_COL_HEADERS.test(qHeader) && qHeader.length >= 3) {
+      sectionFromHeader = qHeader.replace(/:$/, "").trim();
+    }
+  }
+
+  // Need at least 1 response-like header AND a question column to be a question table
+  const isQuestionTable = (responseMatches >= 1 && questionColIdx >= 0) || responseMatches >= 2;
+
+  const responseFormat = detectFormatFromHeaders(headerTexts);
+
+  return { isQuestionTable, questionColIdx, guidanceColIdx, responseFormat, headerTexts, sectionFromHeader };
+}
+
+/**
+ * Extract text from an HTML element, collapsing whitespace.
+ */
+function cellText(el: Element): string {
+  return (el.textContent || "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Parse a mammoth-generated HTML string and extract audit items from tables.
+ */
+export async function parseAuditHtml(html: string): Promise<ParsedAuditResult> {
+  const JSDOM = await getJSDOM();
+  const dom = new JSDOM(html);
+  const doc = dom.window.document;
+
+  const items: ParsedItem[] = [];
+  const sections: string[] = [];
+  let globalFormat: AuditResponseFormat = "yes_no";
+  let hasReverseYesNo = false;
+
+  // Check for reverse YES/NO anywhere in the full text
+  const fullText = doc.body.textContent || "";
+  if (/MUST\s+ANSWER\s+NO/i.test(fullText) || /ANSWER\s+NO/i.test(fullText)) {
+    hasReverseYesNo = true;
+  }
+
+  // Walk through the body's children in order so we can track section headings
+  let currentSection: string | null = null;
+  const body = doc.body;
+
+  // Collect all top-level nodes (headings, paragraphs, tables)
+  const walk = (parent: Element) => {
+    for (const node of Array.from(parent.children)) {
+      const tag = node.tagName.toLowerCase();
+
+      // Heading elements → section names
+      if (/^h[1-6]$/.test(tag)) {
+        const text = cellText(node);
+        if (text.length >= 3 && text.length <= 120) {
+          currentSection = text.replace(/:$/, "").trim();
+          if (!sections.includes(currentSection)) {
+            sections.push(currentSection);
+          }
+        }
+        continue;
+      }
+
+      // Bold / all-caps paragraphs before a table → section names
+      if (tag === "p") {
+        const text = cellText(node);
+        const trimmed = text.trim();
+        if (!trimmed) continue;
+
+        // Check if the paragraph is a section header
+        const isBold = node.querySelector("strong, b") !== null && cellText(node.querySelector("strong, b")!) === trimmed;
+        const isAllCaps = trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed) && trimmed.length >= 5 && trimmed.length <= 80;
+
+        if ((isBold || isAllCaps) && trimmed.length <= 120 && trimmed.length >= 3) {
+          // Check if next sibling is a table (strong indicator of section header)
+          const nextEl = node.nextElementSibling;
+          if (nextEl && nextEl.tagName.toLowerCase() === "table") {
+            currentSection = trimmed.replace(/:$/, "").trim();
+            if (!sections.includes(currentSection)) {
+              sections.push(currentSection);
+            }
+            continue;
+          }
+          // Even without a following table, all-caps lines are likely sections
+          if (isAllCaps) {
+            currentSection = trimmed.replace(/:$/, "").trim();
+            if (!sections.includes(currentSection)) {
+              sections.push(currentSection);
+            }
+            continue;
+          }
+        }
+        continue;
+      }
+
+      // Tables → extract questions
+      if (tag === "table") {
+        const analysis = analyseTable(node);
+        if (!analysis.isQuestionTable || analysis.questionColIdx < 0) continue;
+
+        globalFormat = analysis.responseFormat;
+
+        // If the question column header contains a section name, use it
+        if (analysis.sectionFromHeader) {
+          currentSection = analysis.sectionFromHeader;
+          if (!sections.includes(currentSection)) {
+            sections.push(currentSection);
+          }
+        }
+
+        const rows = Array.from(node.querySelectorAll("tr"));
+        // Skip header row
+        for (let r = 1; r < rows.length; r++) {
+          const cells = Array.from(rows[r].querySelectorAll("th, td"));
+
+          // Detect section rows: rows where one cell spans multiple columns (colspan)
+          // or row has bold/all-caps text in the first cell with short text
+          if (cells.length === 1 || (cells.length >= 1 && cells[0].getAttribute("colspan"))) {
+            const spanText = cellText(cells[0]).trim();
+            if (spanText.length >= 3 && spanText.length <= 120) {
+              // Check if this is a section header row
+              const isAllCaps = spanText === spanText.toUpperCase() && /[A-Z]/.test(spanText) && spanText.length >= 3;
+              const hasBold = cells[0].querySelector("strong, b") !== null;
+              if (isAllCaps || hasBold) {
+                currentSection = spanText.replace(/:$/, "").trim();
+                if (!sections.includes(currentSection)) {
+                  sections.push(currentSection);
+                }
+                continue;
+              }
+            }
+          }
+
+          if (analysis.questionColIdx >= cells.length) continue;
+
+          const questionCell = cells[analysis.questionColIdx];
+          let question = cellText(questionCell);
+
+          // Skip empty cells, cells with just numbers, response-like cells, or footer rows
+          if (!question || question.length < 5) continue;
+          if (NUMBER_ONLY.test(question)) continue;
+          if (isResponseHeader(question)) continue;
+          if (FOOTER_ROW_PATTERNS.test(question)) continue;
+
+          // Remove leading numbering
+          question = question.replace(/^\d+[.):\s]\s*/, "");
+          question = question.replace(/^[a-z][.)]\s*/, "");
+          question = question.replace(/^\([a-z]\)\s*/, "");
+          question = question.replace(/^[-•●◦▪]\s+/, "");
+          question = question.trim();
+
+          if (question.length < 5) continue;
+
+          // Check for guidance column
+          let guidance: string | null = null;
+          if (analysis.guidanceColIdx >= 0 && analysis.guidanceColIdx < cells.length) {
+            const g = cellText(cells[analysis.guidanceColIdx]);
+            if (g && g.length > 0) {
+              guidance = g;
+            }
+          }
+
+          // Determine format for this item
+          let itemFormat: AuditResponseFormat = analysis.responseFormat;
+          if (
+            itemFormat === "yes_no" &&
+            hasReverseYesNo &&
+            currentSection &&
+            /HAZARD|RISK|DANGER|UNSAFE|DAMAGE/i.test(currentSection)
+          ) {
+            itemFormat = "reverse_yes_no";
+          }
+
+          items.push({
+            section: currentSection,
+            question,
+            guidance,
+            responseFormat: itemFormat,
+          });
+        }
+        continue;
+      }
+
+      // Recurse into div/section wrappers
+      if (tag === "div" || tag === "section" || tag === "article") {
+        walk(node);
+      }
+    }
+  };
+
+  walk(body);
+
+  return {
+    detectedFormat: globalFormat,
+    items,
+    metadata: {
+      totalItems: items.length,
+      sections,
+      hasReverseYesNo,
+    },
+  };
+}
+
+/* ================================================================== */
+/* Hybrid orchestrator                                                  */
+/* ================================================================== */
+
+/**
+ * Parse a .docx audit document.
+ * Tries the HTML table parser first (preserves table structure),
+ * falls back to the plain-text parser for non-table documents.
+ */
+export async function parseAuditDocumentHybrid(
+  buffer: Buffer,
+): Promise<ParsedAuditResult> {
+  try {
+    // Try HTML table parsing first
+    const html = await docxToHtml(buffer);
+    const htmlResult = await parseAuditHtml(html);
+
+    // If HTML parser found items, use those
+    if (htmlResult.items.length > 0) {
+      return htmlResult;
+    }
+  } catch {
+    // HTML parsing failed, fall through to plain text
+  }
+
+  // Fallback: plain text parser (for non-table documents)
+  const text = await docxToText(buffer);
+  return parseAuditDocument(text);
 }

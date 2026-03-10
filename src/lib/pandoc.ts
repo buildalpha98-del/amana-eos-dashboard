@@ -53,6 +53,20 @@ async function mammothConvert(buffer: Buffer): Promise<string> {
 }
 
 /* ------------------------------------------------------------------ */
+/* mammoth HTML (preserves tables)                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Convert a .docx buffer to HTML using mammoth.
+ * Preserves table structure for downstream DOM parsing.
+ */
+export async function docxToHtml(buffer: Buffer): Promise<string> {
+  const mammoth = await import("mammoth");
+  const result = await mammoth.convertToHtml({ buffer });
+  return result.value;
+}
+
+/* ------------------------------------------------------------------ */
 
 async function cleanup(path: string) {
   try {
