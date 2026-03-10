@@ -1790,9 +1790,13 @@ const SCOPE_LABELS: Record<string, string> = {
   "menus:read": "Menus (read)",
   "announcements:write": "Announcements (write)",
   "announcements:read": "Announcements (read)",
+    "marketing:write": "Marketing (write)",
+    "marketing:read": "Marketing (read)",
+    "marketing-tasks:write": "Marketing Tasks (write)",
+    "marketing-tasks:read": "Marketing Tasks (read)"
 };
 
-const WRITE_SCOPES = ["programs:write", "menus:write", "announcements:write"] as const;
+const WRITE_SCOPES = ["programs:write", "menus:write", "announcements:write", "marketing:write"] as const;
 
 function ApiKeysSection() {
   const { data: keys, isLoading } = useApiKeys();
