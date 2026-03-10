@@ -600,6 +600,25 @@ export async function GET() {
     }
   }
 
+  // NPS Survey data (last 30 days)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const npsSurveyStats = await prisma.npsSurveyResponse.groupBy({
+    by: ["category"],
+    _count: true,
+    where: {
+      respondedAt: { gte: thirtyDaysAgo },
+      ...(scope ? { serviceId: scope } : {}),
+    },
+  });
+
+  const promoters = npsSurveyStats.find(s => s.category === "promoter")?._count || 0;
+  const passives = npsSurveyStats.find(s => s.category === "passive")?._count || 0;
+  const detractors = npsSurveyStats.find(s => s.category === "detractor")?._count || 0;
+  const totalNps = promoters + passives + detractors;
+  const npsScore = totalNps > 0 ? Math.round(((promoters - detractors) / totalNps) * 100) : null;
+
   // Compliance score — network average from latest metrics
   const complianceScores = services
     .map((s) => s.metrics[0]?.overallCompliance)
@@ -635,6 +654,13 @@ export async function GET() {
       ? { ...keyMetrics, totalRevenue: 0, openTickets: 0 }
       : keyMetrics,
     projectTodos: projectTodosFormatted,
+    npsSurvey: {
+      promoters,
+      passives,
+      detractors,
+      score: npsScore,
+      totalResponses: totalNps,
+    },
     // New operational data (admin/owner only)
     todaysOps: isServiceScoped ? [] : todaysOps,
     opsMetrics: isServiceScoped

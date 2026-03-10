@@ -54,6 +54,14 @@ export interface OpsMetrics {
   enrolmentPipeline: { stage: string; count: number }[];
 }
 
+export interface NpsSurveyData {
+  promoters: number;
+  passives: number;
+  detractors: number;
+  score: number | null;
+  totalResponses: number;
+}
+
 export interface DashboardResponse {
   centreHealth: CentreHealthItem[];
   networkAvgScore: number;
@@ -80,6 +88,7 @@ export interface DashboardResponse {
   projectTodos: ProjectTodoItem[];
   todaysOps: TodaysOpsItem[];
   opsMetrics: OpsMetrics | null;
+  npsSurvey?: NpsSurveyData;
 }
 
 export interface ProjectTodoItem {

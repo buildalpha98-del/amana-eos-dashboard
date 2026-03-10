@@ -150,6 +150,10 @@ export async function DELETE(
     await tx.announcement.updateMany({ where: { authorId: id }, data: { authorId: null } }).catch(() => {});
     await tx.todoTemplate.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } }).catch(() => {});
 
+    // Meeting attendees & multi-assign todos
+    await tx.meetingAttendee.deleteMany({ where: { userId: id } }).catch(() => {});
+    await tx.todoAssignee.deleteMany({ where: { userId: id } }).catch(() => {});
+
     // Delete owned cascadeable records
     await tx.activityLog.deleteMany({ where: { userId: id } }).catch(() => {});
     await tx.notificationDismissal.deleteMany({ where: { userId: id } }).catch(() => {});

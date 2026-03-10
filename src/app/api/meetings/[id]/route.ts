@@ -15,6 +15,11 @@ const updateMeetingSchema = z.object({
   cascadeMessages: z.string().optional().nullable(),
   serviceIds: z.array(z.string()).optional(),
   rockIds: z.array(z.string()).optional(),
+  attendeeUpdates: z.array(z.object({
+    userId: z.string(),
+    status: z.enum(["present", "absent"]).optional(),
+    rating: z.number().min(1).max(10).optional(),
+  })).optional(),
 });
 
 // GET /api/meetings/:id — get a single meeting
@@ -34,6 +39,10 @@ export async function GET(
       cascades: {
         where: { deleted: false },
         orderBy: { createdAt: "desc" },
+      },
+      attendees: {
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: "asc" as const },
       },
     },
   });
@@ -70,9 +79,41 @@ export async function PATCH(
   }
 
   // Auto-set completedAt when status changes to completed
-  const updateData: Record<string, unknown> = { ...parsed.data };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { attendeeUpdates: _attendeeUpdates, ...restData } = parsed.data;
+  const updateData: Record<string, unknown> = { ...restData };
   if (parsed.data.status === "completed" && !existing.completedAt) {
     updateData.completedAt = new Date();
+  }
+
+  // Process attendee updates before computing rating
+  if (parsed.data.attendeeUpdates?.length) {
+    for (const au of parsed.data.attendeeUpdates) {
+      await prisma.meetingAttendee.upsert({
+        where: { meetingId_userId: { meetingId: id, userId: au.userId } },
+        update: {
+          ...(au.status !== undefined ? { status: au.status as any } : {}),
+          ...(au.rating !== undefined ? { rating: au.rating } : {}),
+        },
+        create: {
+          meetingId: id,
+          userId: au.userId,
+          status: (au.status || "present") as any,
+          rating: au.rating,
+        },
+      });
+    }
+  }
+
+  // When completing, compute average rating from attendees
+  if (parsed.data.status === "completed" && existing.status !== "completed") {
+    const attendeeRatings = await prisma.meetingAttendee.findMany({
+      where: { meetingId: id, rating: { not: null } },
+    });
+    if (attendeeRatings.length > 0) {
+      const avg = attendeeRatings.reduce((sum, a) => sum + (a.rating || 0), 0) / attendeeRatings.length;
+      updateData.rating = Math.round(avg * 10) / 10;
+    }
   }
 
   const meeting = await prisma.meeting.update({
@@ -83,6 +124,10 @@ export async function PATCH(
       cascades: {
         where: { deleted: false },
         orderBy: { createdAt: "desc" },
+      },
+      attendees: {
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: "asc" as const },
       },
     },
   });

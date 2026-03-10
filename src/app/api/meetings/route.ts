@@ -8,6 +8,7 @@ const createMeetingSchema = z.object({
   title: z.string().min(1, "Title is required"),
   date: z.string().min(1, "Date is required"),
   serviceIds: z.array(z.string()).optional(),
+  attendeeIds: z.array(z.string()).optional(),
 });
 
 // GET /api/meetings — list meetings ordered by date desc
@@ -41,6 +42,10 @@ export async function GET(req: NextRequest) {
     },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },
+      attendees: {
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: "asc" as const },
+      },
     },
     orderBy: { date: "desc" },
     take: limit,
@@ -75,8 +80,22 @@ export async function POST(req: NextRequest) {
     },
     include: {
       createdBy: { select: { id: true, name: true, email: true, avatar: true } },
+      attendees: {
+        include: { user: { select: { id: true, name: true, email: true } } },
+        orderBy: { createdAt: "asc" as const },
+      },
     },
   });
+
+  if (parsed.data.attendeeIds?.length) {
+    await prisma.meetingAttendee.createMany({
+      data: parsed.data.attendeeIds.map((userId: string) => ({
+        meetingId: meeting.id,
+        userId,
+        status: "present" as const,
+      })),
+    });
+  }
 
   await prisma.activityLog.create({
     data: {

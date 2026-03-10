@@ -62,8 +62,10 @@ export function useCreateTodo() {
       title: string;
       description?: string;
       assigneeId: string;
+      assigneeIds?: string[];
       rockId?: string | null;
       issueId?: string | null;
+      serviceId?: string | null;
       isPrivate?: boolean;
       dueDate: string;
       weekOf: string;

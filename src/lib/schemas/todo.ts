@@ -4,6 +4,7 @@ export const createTodoSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   assigneeId: z.string().min(1, "Assignee is required"),
+  assigneeIds: z.array(z.string()).optional(),
   rockId: z.string().optional().nullable(),
   issueId: z.string().optional().nullable(),
   serviceId: z.string().optional().nullable(),

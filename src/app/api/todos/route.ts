@@ -53,6 +53,9 @@ export async function GET(req: NextRequest) {
     assignee: { select: { id: true, name: true, email: true, avatar: true } },
     rock: { select: { id: true, title: true } },
     issue: { select: { id: true, title: true } },
+    assignees: {
+      include: { user: { select: { id: true, name: true } } },
+    },
   };
   const orderBy = [{ status: "asc" as const }, { dueDate: "asc" as const }, { createdAt: "desc" as const }];
 
@@ -108,8 +111,24 @@ export async function POST(req: NextRequest) {
       assignee: { select: { id: true, name: true, email: true, avatar: true } },
       rock: { select: { id: true, title: true } },
       issue: { select: { id: true, title: true } },
+      assignees: {
+        include: { user: { select: { id: true, name: true } } },
+      },
     },
   });
+
+  const allAssigneeIds = parsed.data.assigneeIds?.length
+    ? [...new Set([parsed.data.assigneeId, ...parsed.data.assigneeIds])]
+    : [];
+
+  if (allAssigneeIds.length > 1) {
+    await prisma.todoAssignee.createMany({
+      data: allAssigneeIds.map((userId: string) => ({
+        todoId: todo.id,
+        userId,
+      })),
+    });
+  }
 
   await prisma.activityLog.create({
     data: {

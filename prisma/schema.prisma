@@ -472,6 +472,10 @@ model User {
   photoComplianceConfs  PhotoComplianceLog[]   @relation("PhotoComplianceConfirmer")
   termCalendarAssigned  TermCalendarEntry[]    @relation("TermCalendarAssignee")
 
+  // ── Meeting & Todo Multi-assign ────────────────────────
+  meetingAttendance    MeetingAttendee[] @relation("UserMeetingAttendance")
+  todoMultiAssignments TodoAssignee[]    @relation("TodoMultiAssignee")
+
   @@index([serviceId])
 }
 
@@ -601,6 +605,8 @@ model Todo {
   completedAt DateTime?
   updatedAt   DateTime   @updatedAt
 
+  assignees   TodoAssignee[] @relation("TodoAssignees")
+
   @@index([assigneeId])
   @@index([rockId])
   @@index([weekOf])
@@ -609,6 +615,18 @@ model Todo {
   @@index([projectId])
   @@index([createdById])
   @@index([weekOf, serviceId])
+}
+
+model TodoAssignee {
+  id     String @id @default(cuid())
+  todoId String
+  todo   Todo   @relation("TodoAssignees", fields: [todoId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation("TodoMultiAssignee", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([todoId, userId])
+  @@index([todoId])
+  @@index([userId])
 }
 
 model Issue {
@@ -1270,10 +1288,32 @@ model Meeting {
   updatedAt       DateTime      @updatedAt
 
   cascades CascadeMessage[] @relation("MeetingCascade")
+  attendees     MeetingAttendee[] @relation("MeetingAttendees")
 
   @@index([date])
   @@index([status])
   @@index([createdById])
+}
+
+enum AttendeeStatus {
+  present
+  absent
+}
+
+model MeetingAttendee {
+  id        String         @id @default(cuid())
+  meetingId String
+  meeting   Meeting        @relation("MeetingAttendees", fields: [meetingId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation("UserMeetingAttendance", fields: [userId], references: [id], onDelete: Cascade)
+  status    AttendeeStatus @default(present)
+  rating    Int?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
 }
 
 // ============================================================

@@ -7,11 +7,11 @@ import {
   useCreateMeeting,
   useUpdateMeeting,
 } from "@/hooks/useMeetings";
-import { useScorecard } from "@/hooks/useScorecard";
+import { useScorecard, useCreateEntry } from "@/hooks/useScorecard";
 import { useRocks } from "@/hooks/useRocks";
 import { useTodos, useUpdateTodo, useCreateTodo } from "@/hooks/useTodos";
 import { useIssues, useUpdateIssue, useCreateIssue } from "@/hooks/useIssues";
-import type { MeetingData } from "@/hooks/useMeetings";
+import type { MeetingData, MeetingAttendee } from "@/hooks/useMeetings";
 import type { RockData } from "@/hooks/useRocks";
 import type { TodoData } from "@/hooks/useTodos";
 import type { IssueData } from "@/hooks/useIssues";
@@ -49,6 +49,8 @@ import {
   History,
   Building2,
   X,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 
 // ============================================================
@@ -79,7 +81,7 @@ const L10_SECTIONS: L10Section[] = [
 
 function useTimer(durationMinutes: number) {
   const [totalSeconds, setTotalSeconds] = useState(durationMinutes * 60);
-  const [isRunning, setIsRunning] = useState(false);
+  const [isRunning, setIsRunning] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ function useTimer(durationMinutes: number) {
 
   const reset = useCallback((minutes: number) => {
     setTotalSeconds(minutes * 60);
-    setIsRunning(false);
+    setIsRunning(true);
   }, []);
 
   const toggle = useCallback(() => setIsRunning((r) => !r), []);
@@ -478,10 +480,17 @@ function SegueSection({
 function ScorecardSection({
   scorecard,
   onDropToIDS,
+  onEntrySubmit,
+  isCompleted,
 }: {
   scorecard: ScorecardData | undefined;
   onDropToIDS?: (title: string) => void;
+  onEntrySubmit?: (measurableId: string, value: number) => void;
+  isCompleted?: boolean;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+
   if (!scorecard) {
     return (
       <div className="text-center py-12 text-gray-400 text-sm">
@@ -502,8 +511,42 @@ function ScorecardSection({
         </p>
       </div>
 
+      {(() => {
+        const onTrackCount = scorecard.measurables.filter(
+          (m) => m.entries[0]?.onTrack
+        ).length;
+        const offTrackCount = scorecard.measurables.filter(
+          (m) => m.entries[0] && !m.entries[0].onTrack
+        ).length;
+        const noDataCount = scorecard.measurables.filter(
+          (m) => !m.entries[0]
+        ).length;
+        return (
+          <div className="flex items-center gap-4 mb-2">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span className="text-xs text-gray-600">
+                {onTrackCount} on track
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+              <span className="text-xs text-gray-600">
+                {offTrackCount} off track
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+              <span className="text-xs text-gray-600">
+                {noDataCount} no data
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="grid grid-cols-[1fr,100px,80px,80px,60px,60px] gap-px bg-gray-100 text-xs font-medium text-gray-600 px-4 py-2">
+        <div className="grid grid-cols-[1fr,120px,80px,80px,60px,60px] gap-px bg-gray-100 text-xs font-medium text-gray-600 px-4 py-2">
           <span>Measurable</span>
           <span className="text-center">Owner</span>
           <span className="text-center">Goal</span>
@@ -512,7 +555,7 @@ function ScorecardSection({
           <span className="text-center">Action</span>
         </div>
         <div className="divide-y divide-gray-100">
-          {scorecard.measurables.map((m: MeasurableData) => {
+          {scorecard.measurables.map((m: MeasurableData, idx: number) => {
             const latestEntry = m.entries[0];
             const isOnTrack = latestEntry?.onTrack;
 
@@ -520,8 +563,12 @@ function ScorecardSection({
               <div
                 key={m.id}
                 className={cn(
-                  "grid grid-cols-[1fr,100px,80px,80px,60px,60px] gap-px px-4 py-2.5 items-center",
-                  !isOnTrack && latestEntry ? "bg-red-50/50" : ""
+                  "grid grid-cols-[1fr,120px,80px,80px,60px,60px] gap-px px-4 py-2.5 items-center",
+                  !isOnTrack && latestEntry
+                    ? "bg-red-50/50"
+                    : idx % 2 === 1
+                      ? "bg-gray-50/50"
+                      : ""
                 )}
               >
                 <span className="text-sm text-gray-900 truncate">
@@ -531,22 +578,79 @@ function ScorecardSection({
                   {(m.owner?.name ?? "Unassigned").split(" ")[0]}
                 </span>
                 <span className="text-xs text-gray-600 text-center font-mono">
-                  {m.goalDirection === "above" ? ">=" : m.goalDirection === "below" ? "<=" : "="}{" "}
+                  {m.goalDirection === "above"
+                    ? ">="
+                    : m.goalDirection === "below"
+                      ? "<="
+                      : "="}{" "}
                   {m.goalValue}
                   {m.unit ? ` ${m.unit}` : ""}
                 </span>
-                <span
-                  className={cn(
-                    "text-xs text-center font-mono font-semibold",
-                    !latestEntry
-                      ? "text-gray-300"
-                      : isOnTrack
-                      ? "text-emerald-600"
-                      : "text-red-600"
+                <div className="flex justify-center">
+                  {editingId === m.id ? (
+                    <input
+                      autoFocus
+                      type="number"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={() => {
+                        if (
+                          editValue &&
+                          !isNaN(parseFloat(editValue)) &&
+                          onEntrySubmit
+                        ) {
+                          onEntrySubmit(m.id, parseFloat(editValue));
+                        }
+                        setEditingId(null);
+                        setEditValue("");
+                      }}
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Enter" &&
+                          editValue &&
+                          !isNaN(parseFloat(editValue)) &&
+                          onEntrySubmit
+                        ) {
+                          onEntrySubmit(m.id, parseFloat(editValue));
+                          setEditingId(null);
+                          setEditValue("");
+                        }
+                        if (e.key === "Escape") {
+                          setEditingId(null);
+                          setEditValue("");
+                        }
+                      }}
+                      className="w-16 text-xs text-center border border-brand rounded px-1 py-0.5 font-mono focus:outline-none focus:ring-1 focus:ring-brand"
+                    />
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (!isCompleted && onEntrySubmit) {
+                          setEditingId(m.id);
+                          setEditValue(
+                            latestEntry ? String(latestEntry.value) : ""
+                          );
+                        }
+                      }}
+                      disabled={isCompleted || !onEntrySubmit}
+                      className={cn(
+                        "text-xs font-mono font-semibold px-2 py-0.5 rounded transition-colors",
+                        !isCompleted && onEntrySubmit
+                          ? "hover:bg-brand/10 cursor-pointer"
+                          : "",
+                        !latestEntry
+                          ? "text-gray-300"
+                          : isOnTrack
+                            ? "text-emerald-600"
+                            : "text-red-600"
+                      )}
+                    >
+                      {latestEntry
+                        ? `${latestEntry.value}${m.unit ? ` ${m.unit}` : ""}`
+                        : "--"}
+                    </button>
                   )}
-                >
-                  {latestEntry ? `${latestEntry.value}${m.unit ? ` ${m.unit}` : ""}` : "--"}
-                </span>
+                </div>
                 <div className="flex justify-center">
                   {!latestEntry ? (
                     <span className="text-gray-300 text-xs">--</span>
@@ -809,12 +913,16 @@ function IDSSection({
   onUpdateStatus,
   onCreateIssue,
   onCreateTodo,
+  onUpdatePriority,
+  onUpdateDescription,
   users,
 }: {
   issues: IssueData[] | undefined;
   onUpdateStatus: (id: string, status: string) => void;
-  onCreateIssue: (title: string) => void;
-  onCreateTodo: (data: { title: string; assigneeId: string; issueId: string }) => void;
+  onCreateIssue: (title: string, priority?: string) => void;
+  onCreateTodo: (data: { title: string; description?: string; assigneeIds: string[]; issueId: string }) => void;
+  onUpdatePriority: (id: string, priority: string) => void;
+  onUpdateDescription: (id: string, description: string) => void;
   users: { id: string; name: string }[] | undefined;
 }) {
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
@@ -822,7 +930,9 @@ function IDSSection({
   const [newIssueTitle, setNewIssueTitle] = useState("");
   const [showCreateTodo, setShowCreateTodo] = useState<string | null>(null);
   const [newTodoTitle, setNewTodoTitle] = useState("");
-  const [newTodoAssignee, setNewTodoAssignee] = useState("");
+  const [newTodoAssignees, setNewTodoAssignees] = useState<string[]>([]);
+  const [newTodoDescription, setNewTodoDescription] = useState("");
+  const [newIssuePriority, setNewIssuePriority] = useState("medium");
 
   const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
   const sortedIssues = issues
@@ -856,19 +966,31 @@ function IDSSection({
             className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             onKeyDown={(e) => {
               if (e.key === "Enter" && newIssueTitle.trim()) {
-                onCreateIssue(newIssueTitle.trim());
+                onCreateIssue(newIssueTitle.trim(), newIssuePriority);
                 setNewIssueTitle("");
+                setNewIssuePriority("medium");
                 setShowCreateIssue(false);
               }
               if (e.key === "Escape") setShowCreateIssue(false);
             }}
           />
+          <select
+            value={newIssuePriority}
+            onChange={(e) => setNewIssuePriority(e.target.value)}
+            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+          >
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
           <div className="flex gap-2">
             <button
               onClick={() => {
                 if (newIssueTitle.trim()) {
-                  onCreateIssue(newIssueTitle.trim());
+                  onCreateIssue(newIssueTitle.trim(), newIssuePriority);
                   setNewIssueTitle("");
+                  setNewIssuePriority("medium");
                   setShowCreateIssue(false);
                 }
               }}
@@ -878,7 +1000,7 @@ function IDSSection({
               Create Issue
             </button>
             <button
-              onClick={() => { setShowCreateIssue(false); setNewIssueTitle(""); }}
+              onClick={() => { setShowCreateIssue(false); setNewIssueTitle(""); setNewIssuePriority("medium"); }}
               className="text-xs px-3 py-1 text-gray-500"
             >
               Cancel
@@ -961,11 +1083,30 @@ function IDSSection({
 
             {selectedIssue === issue.id && (
               <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
-                {issue.description && (
-                  <p className="text-sm text-gray-600">
-                    {issue.description}
-                  </p>
-                )}
+                <textarea
+                  defaultValue={issue.description || ""}
+                  onBlur={(e) => {
+                    const val = e.target.value.trim();
+                    if (val !== (issue.description || "")) {
+                      onUpdateDescription(issue.id, val);
+                    }
+                  }}
+                  placeholder="Add notes or description..."
+                  className="w-full text-sm text-gray-600 border border-gray-200 rounded-md p-2 resize-none h-20 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand bg-gray-50"
+                />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Priority:</span>
+                  <select
+                    value={issue.priority}
+                    onChange={(e) => onUpdatePriority(issue.id, e.target.value)}
+                    className="text-xs px-2 py-1 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-brand"
+                  >
+                    <option value="critical">Critical</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500">Move to:</span>
                   {issue.status !== "in_discussion" && (
@@ -999,42 +1140,72 @@ function IDSSection({
                       placeholder="To-do title..."
                       className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && newTodoTitle.trim() && newTodoAssignee) {
-                          onCreateTodo({ title: newTodoTitle.trim(), assigneeId: newTodoAssignee, issueId: issue.id });
+                        if (e.key === "Enter" && newTodoTitle.trim() && newTodoAssignees.length > 0) {
+                          onCreateTodo({ title: newTodoTitle.trim(), description: newTodoDescription.trim() || undefined, assigneeIds: newTodoAssignees, issueId: issue.id });
                           setNewTodoTitle("");
-                          setNewTodoAssignee("");
+                          setNewTodoDescription("");
+                          setNewTodoAssignees([]);
                           setShowCreateTodo(null);
                         }
                         if (e.key === "Escape") setShowCreateTodo(null);
                       }}
                     />
-                    <select
-                      value={newTodoAssignee}
-                      onChange={(e) => setNewTodoAssignee(e.target.value)}
-                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <option value="">Assign to...</option>
-                      {users?.map((u) => (
-                        <option key={u.id} value={u.id}>{u.name}</option>
-                      ))}
-                    </select>
+                    <textarea
+                      value={newTodoDescription}
+                      onChange={(e) => setNewTodoDescription(e.target.value)}
+                      placeholder="Description (optional)..."
+                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 h-16 resize-none"
+                    />
+                    {/* Multi-select assignees */}
+                    <div>
+                      <p className="text-[10px] font-medium text-gray-500 mb-1">Assign to ({newTodoAssignees.length} selected)</p>
+                      <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md divide-y divide-gray-100">
+                        {users?.map((u) => {
+                          const isSelected = newTodoAssignees.includes(u.id);
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => {
+                                setNewTodoAssignees((prev) =>
+                                  isSelected ? prev.filter((id) => id !== u.id) : [...prev, u.id]
+                                );
+                              }}
+                              className={cn(
+                                "w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-left transition-colors",
+                                isSelected ? "bg-emerald-50 text-emerald-700" : "hover:bg-gray-50 text-gray-700"
+                              )}
+                            >
+                              <div className={cn(
+                                "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0",
+                                isSelected ? "bg-emerald-600 border-emerald-600" : "border-gray-300"
+                              )}>
+                                {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
+                              </div>
+                              {u.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          if (newTodoTitle.trim() && newTodoAssignee) {
-                            onCreateTodo({ title: newTodoTitle.trim(), assigneeId: newTodoAssignee, issueId: issue.id });
+                          if (newTodoTitle.trim() && newTodoAssignees.length > 0) {
+                            onCreateTodo({ title: newTodoTitle.trim(), description: newTodoDescription.trim() || undefined, assigneeIds: newTodoAssignees, issueId: issue.id });
                             setNewTodoTitle("");
-                            setNewTodoAssignee("");
+                            setNewTodoDescription("");
+                            setNewTodoAssignees([]);
                             setShowCreateTodo(null);
                           }
                         }}
-                        disabled={!newTodoTitle.trim() || !newTodoAssignee}
+                        disabled={!newTodoTitle.trim() || newTodoAssignees.length === 0}
                         className="text-xs px-3 py-1 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 disabled:opacity-50"
                       >
                         Create
                       </button>
                       <button
-                        onClick={() => { setShowCreateTodo(null); setNewTodoTitle(""); setNewTodoAssignee(""); }}
+                        onClick={() => { setShowCreateTodo(null); setNewTodoTitle(""); setNewTodoDescription(""); setNewTodoAssignees([]); }}
                         className="text-xs px-3 py-1 text-gray-500"
                       >
                         Cancel
@@ -1066,6 +1237,9 @@ function ConcludeSection({
   onUpdateCascade,
   rating,
   onRate,
+  attendees,
+  attendeeRatings,
+  onAttendeeRate,
 }: {
   notes: string;
   onUpdate: (val: string) => void;
@@ -1073,7 +1247,21 @@ function ConcludeSection({
   onUpdateCascade: (val: string) => void;
   rating: number | null;
   onRate: (val: number) => void;
+  attendees?: MeetingAttendee[];
+  attendeeRatings?: Record<string, number>;
+  onAttendeeRate?: (userId: string, rating: number) => void;
 }) {
+  const presentAttendees = attendees?.filter((a) => a.status === "present") || [];
+  const hasAttendees = presentAttendees.length > 0;
+
+  // Compute average from attendee ratings
+  const avgRating = useMemo(() => {
+    if (!attendeeRatings || !hasAttendees) return null;
+    const ratings = Object.values(attendeeRatings).filter((v) => v > 0);
+    if (ratings.length === 0) return null;
+    return Math.round((ratings.reduce((sum, v) => sum + v, 0) / ratings.length) * 10) / 10;
+  }, [attendeeRatings, hasAttendees]);
+
   return (
     <div className="space-y-6">
       <div className="bg-brand/10 border border-brand/20 rounded-lg p-4">
@@ -1115,37 +1303,102 @@ function ConcludeSection({
         />
       </div>
 
-      {/* Rating */}
+      {/* Rating — Per-attendee or single */}
       <div>
         <label className="text-sm font-medium text-gray-700 mb-3 block">
           Rate This Meeting
         </label>
-        <div className="flex items-center gap-2">
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-            <button
-              key={n}
-              onClick={() => onRate(n)}
-              className={cn(
-                "w-10 h-10 rounded-lg border-2 text-sm font-bold transition-all",
-                rating === n
-                  ? "border-accent bg-accent text-brand scale-110 shadow-md"
-                  : n <= (rating || 0)
-                  ? "border-accent/50 bg-accent/20 text-brand"
-                  : "border-gray-200 bg-white text-gray-400 hover:border-accent/50 hover:text-gray-600"
-              )}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        {rating && (
-          <p className="text-xs text-gray-500 mt-2">
-            {rating >= 8
-              ? "Great meeting! Keep it up."
-              : rating >= 5
-              ? "Good meeting. Look for ways to improve."
-              : "Below average. Discuss how to improve next week."}
-          </p>
+
+        {hasAttendees && onAttendeeRate ? (
+          <div className="space-y-3">
+            {/* Average display */}
+            {avgRating !== null && (
+              <div className="flex items-center gap-2 p-3 bg-brand/5 border border-brand/20 rounded-lg">
+                <Star className="w-5 h-5 text-accent fill-accent" />
+                <span className="text-lg font-bold text-brand">{avgRating}</span>
+                <span className="text-xs text-gray-500">/10 average</span>
+                <span className="text-xs text-gray-400 ml-auto">
+                  {Object.values(attendeeRatings || {}).filter((v) => v > 0).length}/{presentAttendees.length} rated
+                </span>
+              </div>
+            )}
+
+            {/* Per-attendee rating rows */}
+            <div className="space-y-2">
+              {presentAttendees.map((attendee) => {
+                const userRating = attendeeRatings?.[attendee.userId] || 0;
+                return (
+                  <div key={attendee.userId} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-900">
+                        {attendee.user.name}
+                      </span>
+                      {userRating > 0 && (
+                        <span className={cn(
+                          "text-xs font-semibold px-2 py-0.5 rounded-full",
+                          userRating >= 8
+                            ? "bg-emerald-100 text-emerald-700"
+                            : userRating >= 5
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-red-100 text-red-700"
+                        )}>
+                          {userRating}/10
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => onAttendeeRate(attendee.userId, n)}
+                          className={cn(
+                            "w-8 h-8 rounded-md border text-xs font-bold transition-all",
+                            userRating === n
+                              ? "border-accent bg-accent text-brand scale-105 shadow-sm"
+                              : n <= userRating
+                              ? "border-accent/50 bg-accent/20 text-brand"
+                              : "border-gray-200 bg-white text-gray-400 hover:border-accent/50 hover:text-gray-600"
+                          )}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2">
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  onClick={() => onRate(n)}
+                  className={cn(
+                    "w-10 h-10 rounded-lg border-2 text-sm font-bold transition-all",
+                    rating === n
+                      ? "border-accent bg-accent text-brand scale-110 shadow-md"
+                      : n <= (rating || 0)
+                      ? "border-accent/50 bg-accent/20 text-brand"
+                      : "border-gray-200 bg-white text-gray-400 hover:border-accent/50 hover:text-gray-600"
+                  )}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            {rating && (
+              <p className="text-xs text-gray-500 mt-2">
+                {rating >= 8
+                  ? "Great meeting! Keep it up."
+                  : rating >= 5
+                  ? "Good meeting. Look for ways to improve."
+                  : "Below average. Discuss how to improve next week."}
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -1252,6 +1505,15 @@ function ActiveMeetingView({
   const [concludeNotes, setConcludeNotes] = useState(meeting.concludeNotes || "");
   const [cascadeMessages, setCascadeMessages] = useState(meeting.cascadeMessages || "");
   const [rating, setRating] = useState<number | null>(meeting.rating);
+  const [attendeeRatings, setAttendeeRatings] = useState<Record<string, number>>(() => {
+    const ratings: Record<string, number> = {};
+    if (meeting.attendees) {
+      meeting.attendees.forEach((a) => {
+        if (a.rating) ratings[a.userId] = a.rating;
+      });
+    }
+    return ratings;
+  });
 
   const section = L10_SECTIONS[currentSection];
   const timer = useTimer(section.duration);
@@ -1261,14 +1523,14 @@ function ActiveMeetingView({
   const updateIssue = useUpdateIssue();
   const createIssue = useCreateIssue();
   const createTodo = useCreateTodo();
+  const createEntry = useCreateEntry();
 
   // Data hooks
   const { data: scorecard } = useScorecard();
   const { data: allRocks } = useRocks(getCurrentQuarter());
   const weekStart = getWeekStart();
   const { data: allTodos } = useTodos({ weekOf: weekStart.toISOString() });
-  const { data: allOpenIssues } = useIssues({ status: "open" });
-  const { data: allDiscussingIssues } = useIssues({ status: "in_discussion" });
+  const { data: allIDSIssuesRaw } = useIssues({ status: "open,in_discussion" });
   const { data: services } = useServices("active");
   const { data: users } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["users-list"],
@@ -1309,26 +1571,19 @@ function ActiveMeetingView({
     if (!allTodos) return undefined;
     if (!hasServiceScope) return allTodos;
     return allTodos.filter(
-      (t) => t.serviceId && meetingServiceIds.includes(t.serviceId)
+      (t) => !t.serviceId || meetingServiceIds.includes(t.serviceId)
     );
   }, [allTodos, hasServiceScope, meetingServiceIds]);
 
-  // Filter issues by service scope
-  const issues = useMemo(() => {
-    if (!allOpenIssues) return undefined;
-    if (!hasServiceScope) return allOpenIssues;
-    return allOpenIssues.filter(
-      (i) => i.serviceId && meetingServiceIds.includes(i.serviceId)
-    );
-  }, [allOpenIssues, hasServiceScope, meetingServiceIds]);
-
-  const discussingIssues = useMemo(() => {
-    if (!allDiscussingIssues) return undefined;
-    if (!hasServiceScope) return allDiscussingIssues;
-    return allDiscussingIssues.filter(
-      (i) => i.serviceId && meetingServiceIds.includes(i.serviceId)
-    );
-  }, [allDiscussingIssues, hasServiceScope, meetingServiceIds]);
+  // Filter + deduplicate IDS issues by service scope
+  const allIDSIssues = useMemo(() => {
+    if (!allIDSIssuesRaw) return [];
+    const filtered = hasServiceScope
+      ? allIDSIssuesRaw.filter((i) => !i.serviceId || meetingServiceIds.includes(i.serviceId))
+      : allIDSIssuesRaw;
+    // Deduplicate by id as safety net
+    return [...new Map(filtered.map((i) => [i.id, i])).values()];
+  }, [allIDSIssuesRaw, hasServiceScope, meetingServiceIds]);
 
   // Service names for display
   const scopedServiceNames = useMemo(() => {
@@ -1337,12 +1592,6 @@ function ActiveMeetingView({
       .filter((s) => meetingServiceIds.includes(s.id))
       .map((s) => s.name);
   }, [hasServiceScope, services, meetingServiceIds]);
-
-  // Merge open + discussing issues for IDS
-  const allIDSIssues = [
-    ...(issues || []),
-    ...(discussingIssues || []),
-  ];
 
   // Auto-save section state on change
   const saveProgress = useCallback(() => {
@@ -1380,6 +1629,12 @@ function ActiveMeetingView({
   }, [currentSection, goToSection]);
 
   const handleComplete = useCallback(() => {
+    // Build attendee updates from ratings
+    const attendeeUpdates = Object.entries(attendeeRatings).map(([userId, r]) => ({
+      userId,
+      rating: r,
+    }));
+
     updateMeeting.mutate({
       id: meeting.id,
       status: "completed",
@@ -1389,8 +1644,9 @@ function ActiveMeetingView({
       concludeNotes,
       cascadeMessages,
       rating,
+      ...(attendeeUpdates.length > 0 ? { attendeeUpdates } : {}),
     });
-  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, cascadeMessages, rating, updateMeeting]);
+  }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, cascadeMessages, rating, attendeeRatings, updateMeeting]);
 
   const handleTodoToggle = useCallback(
     (id: string, done: boolean) => {
@@ -1413,24 +1669,31 @@ function ActiveMeetingView({
   );
 
   const handleCreateIssue = useCallback(
-    (title: string) => {
-      createIssue.mutate({ title });
+    (title: string, priority?: string) => {
+      createIssue.mutate({
+        title,
+        priority: (priority || "medium") as any,
+        serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
+      });
     },
-    [createIssue]
+    [createIssue, meetingServiceIds]
   );
 
   const handleCreateTodoFromIssue = useCallback(
-    (data: { title: string; assigneeId: string; issueId: string }) => {
+    (data: { title: string; description?: string; assigneeIds: string[]; issueId: string }) => {
       const ws = getWeekStart();
       createTodo.mutate({
         title: data.title,
-        assigneeId: data.assigneeId,
+        description: data.description,
+        assigneeId: data.assigneeIds[0],
+        assigneeIds: data.assigneeIds.length > 1 ? data.assigneeIds : undefined,
         issueId: data.issueId,
+        serviceId: meetingServiceIds.length === 1 ? meetingServiceIds[0] : undefined,
         dueDate: new Date(ws.getTime() + 6 * 86400000).toISOString().split("T")[0],
         weekOf: ws.toISOString(),
       });
     },
-    [createTodo]
+    [createTodo, meetingServiceIds]
   );
 
   const handleDropToIDS = useCallback(
@@ -1438,6 +1701,45 @@ function ActiveMeetingView({
       createIssue.mutate({ title, priority: "high" });
     },
     [createIssue]
+  );
+
+  const handleScorecardEntry = useCallback(
+    (measurableId: string, value: number) => {
+      const weekOf = getWeekStart().toISOString();
+      createEntry.mutate({ measurableId, value, weekOf });
+    },
+    [createEntry]
+  );
+
+  const handleUpdatePriority = useCallback(
+    (id: string, priority: string) => {
+      updateIssue.mutate({ id, priority: priority as any });
+    },
+    [updateIssue]
+  );
+
+  const handleUpdateDescription = useCallback(
+    (id: string, description: string) => {
+      updateIssue.mutate({ id, description });
+    },
+    [updateIssue]
+  );
+
+  const handleToggleAttendance = useCallback(
+    (userId: string, status: "present" | "absent") => {
+      updateMeeting.mutate({
+        id: meeting.id,
+        attendeeUpdates: [{ userId, status }],
+      });
+    },
+    [meeting.id, updateMeeting]
+  );
+
+  const handleAttendeeRate = useCallback(
+    (userId: string, ratingVal: number) => {
+      setAttendeeRatings((prev) => ({ ...prev, [userId]: ratingVal }));
+    },
+    []
   );
 
   const isCompleted = meeting.status === "completed";
@@ -1619,7 +1921,12 @@ function ActiveMeetingView({
               <SegueSection notes={segueNotes} onUpdate={setSegueNotes} />
             )}
             {currentSection === 1 && (
-              <ScorecardSection scorecard={filteredScorecard} onDropToIDS={handleDropToIDS} />
+              <ScorecardSection
+                scorecard={filteredScorecard}
+                onDropToIDS={isCompleted ? undefined : handleDropToIDS}
+                onEntrySubmit={isCompleted ? undefined : handleScorecardEntry}
+                isCompleted={isCompleted}
+              />
             )}
             {currentSection === 2 && (
               <RockReviewSection rocks={rocks} />
@@ -1639,6 +1946,8 @@ function ActiveMeetingView({
                 onUpdateStatus={handleIssueStatus}
                 onCreateIssue={handleCreateIssue}
                 onCreateTodo={handleCreateTodoFromIssue}
+                onUpdatePriority={handleUpdatePriority}
+                onUpdateDescription={handleUpdateDescription}
                 users={users}
               />
             )}
@@ -1650,6 +1959,9 @@ function ActiveMeetingView({
                 onUpdateCascade={setCascadeMessages}
                 rating={rating}
                 onRate={setRating}
+                attendees={meeting.attendees}
+                attendeeRatings={attendeeRatings}
+                onAttendeeRate={isCompleted ? undefined : handleAttendeeRate}
               />
             )}
           </div>
@@ -1774,6 +2086,68 @@ function ActiveMeetingView({
             </div>
           </div>
 
+          {/* Attendees Panel */}
+          {meeting.attendees && meeting.attendees.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                  Attendees
+                </h3>
+                <span className="text-xs text-gray-400">
+                  {meeting.attendees.filter((a) => a.status === "present").length}/{meeting.attendees.length} present
+                </span>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {meeting.attendees.map((attendee) => (
+                  <div
+                    key={attendee.id}
+                    className="flex items-center gap-2.5 px-4 py-2"
+                  >
+                    {attendee.status === "present" ? (
+                      <UserCheck className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    ) : (
+                      <UserX className="w-4 h-4 text-red-400 flex-shrink-0" />
+                    )}
+                    <span className={cn(
+                      "text-sm flex-1 min-w-0 truncate",
+                      attendee.status === "present" ? "text-gray-700" : "text-gray-400 line-through"
+                    )}>
+                      {attendee.user.name}
+                    </span>
+                    {!isCompleted && (
+                      <button
+                        onClick={() =>
+                          handleToggleAttendance(
+                            attendee.userId,
+                            attendee.status === "present" ? "absent" : "present"
+                          )
+                        }
+                        className={cn(
+                          "text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors",
+                          attendee.status === "present"
+                            ? "bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-700"
+                            : "bg-red-100 text-red-600 hover:bg-emerald-100 hover:text-emerald-700"
+                        )}
+                      >
+                        {attendee.status === "present" ? "Present" : "Absent"}
+                      </button>
+                    )}
+                    {isCompleted && (
+                      <span className={cn(
+                        "text-[10px] px-2 py-0.5 rounded-full font-medium",
+                        attendee.status === "present"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-red-100 text-red-600"
+                      )}>
+                        {attendee.status === "present" ? "Present" : "Absent"}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Outcomes (completed) or Quick Stats (in progress) */}
           {isCompleted ? (
             <MeetingOutcomesPanel
@@ -1846,16 +2220,34 @@ function StartMeetingDialog({
   onCancel,
   isPending,
 }: {
-  onStart: (serviceIds: string[]) => void;
+  onStart: (serviceIds: string[], attendeeIds: string[]) => void;
   onCancel: () => void;
   isPending: boolean;
 }) {
   const { data: services } = useServices("active");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [step, setStep] = useState<"services" | "attendees">("services");
+  const [userSearch, setUserSearch] = useState("");
+
+  const { data: allUsers } = useQuery<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>({
+    queryKey: ["users-list-full"],
+    queryFn: async () => {
+      const res = await fetch("/api/users");
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
 
   const toggleService = (id: string) => {
     setSelectedServiceIds((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+    );
+  };
+
+  const toggleUser = (id: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(id) ? prev.filter((u) => u !== id) : [...prev, id]
     );
   };
 
@@ -1864,6 +2256,43 @@ function StartMeetingDialog({
   };
 
   const clearAll = () => setSelectedServiceIds([]);
+
+  // Filter users based on selected services and search
+  const filteredUsers = useMemo(() => {
+    if (!allUsers) return [];
+    let users = allUsers;
+    if (selectedServiceIds.length > 0) {
+      users = users.filter(
+        (u) => !u.serviceId || selectedServiceIds.includes(u.serviceId)
+      );
+    }
+    if (userSearch.trim()) {
+      const q = userSearch.toLowerCase();
+      users = users.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q)
+      );
+    }
+    return users;
+  }, [allUsers, selectedServiceIds, userSearch]);
+
+  // Auto-select users from selected services
+  const autoSelectServiceUsers = useCallback(() => {
+    if (!allUsers || selectedServiceIds.length === 0) return;
+    const serviceUserIds = allUsers
+      .filter((u) => u.serviceId && selectedServiceIds.includes(u.serviceId))
+      .map((u) => u.id);
+    setSelectedUserIds((prev) => {
+      const combined = new Set([...prev, ...serviceUserIds]);
+      return [...combined];
+    });
+  }, [allUsers, selectedServiceIds]);
+
+  const handleNextStep = () => {
+    autoSelectServiceUsers();
+    setStep("attendees");
+  };
 
   return (
     <>
@@ -1879,7 +2308,9 @@ function StartMeetingDialog({
                 Start L10 Meeting
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Select which services to include in this meeting
+                {step === "services"
+                  ? "Select which services to include in this meeting"
+                  : "Select attendees for this meeting"}
               </p>
             </div>
             <button
@@ -1890,101 +2321,214 @@ function StartMeetingDialog({
             </button>
           </div>
 
-          <div className="p-6 space-y-4">
-            {/* Quick Actions */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onStart([])}
-                className="text-xs px-3 py-1.5 border border-brand text-brand rounded-lg hover:bg-brand/5 transition-colors font-medium"
-              >
-                Company-Wide Meeting
-              </button>
-              <button
-                onClick={selectAll}
-                className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                Select All
-              </button>
-              {selectedServiceIds.length > 0 && (
-                <button
-                  onClick={clearAll}
-                  className="text-xs px-3 py-1.5 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* Services Grid */}
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
-              {services?.map((service) => {
-                const selected = selectedServiceIds.includes(service.id);
-                return (
+          {step === "services" ? (
+            <>
+              <div className="p-6 space-y-4">
+                {/* Quick Actions */}
+                <div className="flex items-center gap-2">
                   <button
-                    key={service.id}
-                    onClick={() => toggleService(service.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left",
-                      selected
-                        ? "border-brand bg-brand/5"
-                        : "border-gray-200 hover:border-gray-300"
-                    )}
+                    onClick={() => onStart([], [])}
+                    className="text-xs px-3 py-1.5 border border-brand text-brand rounded-lg hover:bg-brand/5 transition-colors font-medium"
                   >
-                    <div
-                      className={cn(
-                        "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
-                        selected
-                          ? "bg-brand border-brand"
-                          : "border-gray-300"
-                      )}
-                    >
-                      {selected && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {service.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {service.code}
-                        {service.state ? ` · ${service.state}` : ""}
-                      </p>
-                    </div>
-                    <Building2 className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                    Company-Wide Meeting
                   </button>
-                );
-              })}
-              {(!services || services.length === 0) && (
-                <p className="text-center text-sm text-gray-400 py-4">
-                  No active services found
-                </p>
-              )}
-            </div>
-          </div>
+                  <button
+                    onClick={selectAll}
+                    className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    Select All
+                  </button>
+                  {selectedServiceIds.length > 0 && (
+                    <button
+                      onClick={clearAll}
+                      className="text-xs px-3 py-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
 
-          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
-            <span className="text-xs text-gray-500">
-              {selectedServiceIds.length > 0
-                ? `${selectedServiceIds.length} service${selectedServiceIds.length > 1 ? "s" : ""} selected`
-                : "Company-wide (no service filter)"}
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={onCancel}
-                className="text-xs px-4 py-2 text-gray-500 hover:text-gray-700"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => onStart(selectedServiceIds)}
-                disabled={isPending}
-                className="text-xs px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors font-medium disabled:opacity-50"
-              >
-                {isPending ? "Starting..." : selectedServiceIds.length > 0 ? "Start Service Meeting" : "Start Meeting"}
-              </button>
-            </div>
-          </div>
+                {/* Services Grid */}
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {services?.map((service) => {
+                    const selected = selectedServiceIds.includes(service.id);
+                    return (
+                      <button
+                        key={service.id}
+                        onClick={() => toggleService(service.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left",
+                          selected
+                            ? "border-brand bg-brand/5"
+                            : "border-gray-200 hover:border-gray-300"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                            selected
+                              ? "bg-brand border-brand"
+                              : "border-gray-300"
+                          )}
+                        >
+                          {selected && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {service.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {service.code}
+                            {service.state ? ` · ${service.state}` : ""}
+                          </p>
+                        </div>
+                        <Building2 className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                      </button>
+                    );
+                  })}
+                  {(!services || services.length === 0) && (
+                    <p className="text-center text-sm text-gray-400 py-4">
+                      No active services found
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                <span className="text-xs text-gray-500">
+                  {selectedServiceIds.length > 0
+                    ? `${selectedServiceIds.length} service${selectedServiceIds.length > 1 ? "s" : ""} selected`
+                    : "Company-wide (no service filter)"}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={onCancel}
+                    className="text-xs px-4 py-2 text-gray-500 hover:text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleNextStep}
+                    className="text-xs px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors font-medium"
+                  >
+                    Next: Select Attendees
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setStep("services")}
+                    className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    ← Back to Services
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (filteredUsers) setSelectedUserIds(filteredUsers.map((u) => u.id));
+                    }}
+                    className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    Select All
+                  </button>
+                  {selectedUserIds.length > 0 && (
+                    <button
+                      onClick={() => setSelectedUserIds([])}
+                      className="text-xs px-3 py-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {/* Search Users */}
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="Search users..."
+                    className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  />
+                </div>
+
+                {/* Users List */}
+                <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                  {filteredUsers.map((user) => {
+                    const selected = selectedUserIds.includes(user.id);
+                    return (
+                      <button
+                        key={user.id}
+                        onClick={() => toggleUser(user.id)}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left",
+                          selected
+                            ? "border-brand bg-brand/5"
+                            : "border-gray-200 hover:border-gray-300"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                            selected
+                              ? "bg-brand border-brand"
+                              : "border-gray-300"
+                          )}
+                        >
+                          {selected && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {user.name}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {user.email}
+                          </p>
+                        </div>
+                        <Users className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                      </button>
+                    );
+                  })}
+                  {filteredUsers.length === 0 && (
+                    <p className="text-center text-sm text-gray-400 py-4">
+                      No users found
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                <span className="text-xs text-gray-500">
+                  {selectedUserIds.length > 0
+                    ? `${selectedUserIds.length} attendee${selectedUserIds.length > 1 ? "s" : ""} selected`
+                    : "No attendees selected (skip to start)"}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={onCancel}
+                    className="text-xs px-4 py-2 text-gray-500 hover:text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => onStart(selectedServiceIds, selectedUserIds)}
+                    disabled={isPending}
+                    className="text-xs px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors font-medium disabled:opacity-50"
+                  >
+                    {isPending ? "Starting..." : "Start Meeting"}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>
@@ -2004,16 +2548,15 @@ export default function MeetingsPage() {
     setShowStartDialog(true);
   };
 
-  const handleConfirmStart = async (serviceIds: string[]) => {
+  const handleConfirmStart = async (serviceIds: string[], attendeeIds: string[]) => {
     const now = new Date();
-    const title = serviceIds.length > 0
-      ? `L10 Meeting — ${formatDateAU(now)}`
-      : `L10 Meeting — ${formatDateAU(now)}`;
+    const title = `L10 Meeting — ${formatDateAU(now)}`;
     try {
       const newMeeting = await createMeeting.mutateAsync({
         title,
         date: now.toISOString(),
         serviceIds,
+        attendeeIds: attendeeIds.length > 0 ? attendeeIds : undefined,
       });
       setShowStartDialog(false);
       setActiveMeetingId(newMeeting.id);

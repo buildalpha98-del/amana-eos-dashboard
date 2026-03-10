@@ -17,6 +17,17 @@ export interface MeetingCascade {
   createdAt: string;
 }
 
+export interface MeetingAttendee {
+  id: string;
+  meetingId: string;
+  userId: string;
+  user: { id: string; name: string; email: string };
+  status: "present" | "absent";
+  rating: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface MeetingData {
   id: string;
   title: string;
@@ -36,6 +47,7 @@ export interface MeetingData {
   createdById: string;
   createdBy: MeetingUser;
   cascades?: MeetingCascade[];
+  attendees?: MeetingAttendee[];
   createdAt: string;
   updatedAt: string;
 }
@@ -76,6 +88,7 @@ export function useCreateMeeting() {
       title: string;
       date: string;
       serviceIds?: string[];
+      attendeeIds?: string[];
     }) => {
       const res = await fetch("/api/meetings", {
         method: "POST",
@@ -113,6 +126,7 @@ export function useUpdateMeeting() {
       cascadeMessages?: string | null;
       serviceIds?: string[];
       rockIds?: string[];
+      attendeeUpdates?: { userId: string; status?: "present" | "absent"; rating?: number }[];
     }) => {
       const res = await fetch(`/api/meetings/${id}`, {
         method: "PATCH",

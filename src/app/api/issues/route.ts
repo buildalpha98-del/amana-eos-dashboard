@@ -23,7 +23,13 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, unknown> = { deleted: false };
 
-  if (status) where.status = status;
+  if (status) {
+    if (status.includes(",")) {
+      where.status = { in: status.split(",") as any };
+    } else {
+      where.status = status as any;
+    }
+  }
   if (priority) where.priority = priority;
   if (ownerId) where.ownerId = ownerId;
   if (rockId) where.rockId = rockId;

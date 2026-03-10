@@ -223,6 +223,72 @@ export function DashboardContent() {
             </WidgetErrorBoundary>
           )}
 
+          {/* ── NPS Survey Widget ────────────────────────────── */}
+          {data.npsSurvey && data.npsSurvey.totalResponses > 0 && (
+            <WidgetErrorBoundary widgetName="NPS Survey">
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <h3 className="text-sm font-semibold text-gray-700 mb-4">NPS Survey (Last 30 Days)</h3>
+                <div className="flex items-center gap-8">
+                  {/* Large NPS Score */}
+                  <div className="text-center">
+                    <div
+                      className={`text-4xl font-bold ${
+                        data.npsSurvey.score !== null && data.npsSurvey.score >= 50
+                          ? "text-green-600"
+                          : data.npsSurvey.score !== null && data.npsSurvey.score >= 0
+                          ? "text-amber-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {data.npsSurvey.score !== null ? data.npsSurvey.score : "N/A"}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">NPS Score</div>
+                  </div>
+
+                  {/* Breakdown */}
+                  <div className="flex-1 grid grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-green-600">{data.npsSurvey.promoters}</div>
+                      <div className="text-xs text-gray-500">Promoters</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-amber-500">{data.npsSurvey.passives}</div>
+                      <div className="text-xs text-gray-500">Passives</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold text-red-500">{data.npsSurvey.detractors}</div>
+                      <div className="text-xs text-gray-500">Detractors</div>
+                    </div>
+                  </div>
+
+                  {/* Total Responses */}
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-gray-700">{data.npsSurvey.totalResponses}</div>
+                    <div className="text-xs text-gray-500">Responses</div>
+                  </div>
+                </div>
+
+                {/* Progress bar showing distribution */}
+                {data.npsSurvey.totalResponses > 0 && (
+                  <div className="mt-4 flex h-2 rounded-full overflow-hidden bg-gray-100">
+                    <div
+                      className="bg-green-500 transition-all"
+                      style={{ width: `${(data.npsSurvey.promoters / data.npsSurvey.totalResponses) * 100}%` }}
+                    />
+                    <div
+                      className="bg-amber-400 transition-all"
+                      style={{ width: `${(data.npsSurvey.passives / data.npsSurvey.totalResponses) * 100}%` }}
+                    />
+                    <div
+                      className="bg-red-500 transition-all"
+                      style={{ width: `${(data.npsSurvey.detractors / data.npsSurvey.totalResponses) * 100}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            </WidgetErrorBoundary>
+          )}
+
           {/* ── Project To-Dos ─────────────────────────────── */}
           {!isServiceScoped && (
             <WidgetErrorBoundary widgetName="Project To-Dos">

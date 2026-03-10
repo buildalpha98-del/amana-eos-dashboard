@@ -86,6 +86,7 @@ export function useCreateIssue() {
       description?: string;
       ownerId?: string | null;
       rockId?: string | null;
+      serviceId?: string | null;
       priority?: IssuePriority;
     }) => {
       const res = await fetch("/api/issues", {
