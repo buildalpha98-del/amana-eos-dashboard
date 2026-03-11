@@ -111,6 +111,9 @@ enum ActivityCategory {
   social_emotional
   quiet_time
   free_play
+  quran_iqra
+  homework_help
+  stem_science
   other
 }
 
@@ -497,6 +500,9 @@ model User {
   // ── Operations ────────────────────────────────────────
   reviewedQIPs         QualityImprovementPlan[] @relation("QIPReviewer")
   createdIncidents     IncidentRecord[]         @relation("IncidentCreator")
+
+  // ── Programming & Quality ──────────────────────────
+  capturedInterests    ChildInterest[]          @relation("InterestCaptures")
 
   @@index([serviceId])
 }
@@ -1254,6 +1260,9 @@ model Service {
   // ── Operations ────────────────────────────────────────
   qip                  QualityImprovementPlan? @relation("ServiceQIP")
   incidents            IncidentRecord[]        @relation("ServiceIncidents")
+
+  // ── Programming & Quality ──────────────────────────
+  childInterests       ChildInterest[]         @relation("ServiceInterests")
 
   @@index([status])
   @@index([managerId])
@@ -2153,23 +2162,28 @@ model BudgetItem {
 // ============================================================
 
 model ProgramActivity {
-  id          String   @id @default(cuid())
-  serviceId   String
-  service     Service  @relation("ServicePrograms", fields: [serviceId], references: [id], onDelete: Cascade)
-  weekStart   DateTime @db.Date
-  day         WeekDay
-  startTime   String // "HH:mm"
-  endTime     String // "HH:mm"
-  title       String
-  description String?  @db.Text
-  staffName   String?
-  location    String?
-  notes       String?  @db.Text
-  templateId  String?
-  createdById String?
-  createdBy   User?    @relation("ProgramCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(cuid())
+  serviceId     String
+  service       Service  @relation("ServicePrograms", fields: [serviceId], references: [id], onDelete: Cascade)
+  weekStart     DateTime @db.Date
+  day           WeekDay
+  startTime     String // "HH:mm"
+  endTime       String // "HH:mm"
+  title         String
+  description   String?  @db.Text
+  staffName     String?
+  location      String?
+  notes         String?  @db.Text
+  templateId    String?
+  mtopOutcomes  Int[]    // Array of 1-5 representing MTOP learning outcomes
+  programmeBrand String? // homework_heroes, iqra_circle, imagination_station, little_champions, fuel_up, free_play
+  createdById   String?
+  createdBy     User?    @relation("ProgramCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // ── Interest linkage ──
+  linkedInterests ChildInterest[] @relation("InterestToActivity")
 
   @@unique([serviceId, weekStart, day, startTime])
   @@index([serviceId])
@@ -3479,4 +3493,30 @@ model IncidentRecord {
   @@index([incidentDate])
   @@index([incidentType])
   @@index([severity])
+}
+
+// ============================================================
+// Children's Interest Capture (NQS QA1)
+// ============================================================
+
+model ChildInterest {
+  id                String    @id @default(cuid())
+  serviceId         String
+  service           Service   @relation("ServiceInterests", fields: [serviceId], references: [id], onDelete: Cascade)
+  capturedDate      DateTime  @default(now())
+  childName         String?   // optional — can be group-level
+  interestTopic     String
+  interestCategory  String?   // sport/animals/science/art/cooking/technology/nature/social/cultural/religious/other
+  source            String    // interest_book/verbal/observation/parent/suggestion_box
+  capturedById      String?
+  capturedBy        User?     @relation("InterestCaptures", fields: [capturedById], references: [id], onDelete: SetNull)
+  linkedToActivityId String?
+  linkedToActivity  ProgramActivity? @relation("InterestToActivity", fields: [linkedToActivityId], references: [id], onDelete: SetNull)
+  actioned          Boolean   @default(false)
+  actionedDate      DateTime?
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now())
+
+  @@index([serviceId, actioned])
+  @@index([serviceId, capturedDate])
 }

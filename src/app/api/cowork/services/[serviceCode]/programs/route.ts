@@ -22,6 +22,8 @@ const importProgramsSchema = z.object({
         staffName: z.string().max(100).optional(),
         location: z.string().max(200).optional(),
         notes: z.string().max(500).optional(),
+        mtopOutcomes: z.array(z.number().int().min(1).max(5)).optional(),
+        programmeBrand: z.string().max(50).optional(),
       }),
     )
     .min(1, "At least one activity is required"),
@@ -88,6 +90,8 @@ export async function POST(
             staffName: a.staffName || null,
             location: a.location || null,
             notes: a.notes || null,
+            mtopOutcomes: a.mtopOutcomes || [],
+            programmeBrand: a.programmeBrand || null,
             createdById: apiKey!.createdById,
           })),
         });

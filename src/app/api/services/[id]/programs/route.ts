@@ -5,6 +5,8 @@ import { z } from "zod";
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 
+const mtopOutcomesSchema = z.array(z.number().int().min(1).max(5)).optional();
+
 const activitySchema = z.object({
   weekStart: z.string(),
   day: z.enum(WEEK_DAYS),
@@ -15,6 +17,8 @@ const activitySchema = z.object({
   staffName: z.string().max(100).optional(),
   location: z.string().max(200).optional(),
   notes: z.string().max(500).optional(),
+  mtopOutcomes: mtopOutcomesSchema,
+  programmeBrand: z.string().max(50).optional(),
 });
 
 const bulkSchema = z.object({
@@ -29,6 +33,8 @@ const bulkSchema = z.object({
       staffName: z.string().max(100).optional(),
       location: z.string().max(200).optional(),
       notes: z.string().max(500).optional(),
+      mtopOutcomes: mtopOutcomesSchema,
+      programmeBrand: z.string().max(50).optional(),
     })
   ),
 });
@@ -102,6 +108,8 @@ export async function POST(
       staffName: data.staffName || null,
       location: data.location || null,
       notes: data.notes || null,
+      mtopOutcomes: data.mtopOutcomes || [],
+      programmeBrand: data.programmeBrand || null,
       createdById: session!.user.id,
     },
     include: {
@@ -161,6 +169,8 @@ export async function PUT(
           staffName: a.staffName || null,
           location: a.location || null,
           notes: a.notes || null,
+          mtopOutcomes: a.mtopOutcomes || [],
+          programmeBrand: a.programmeBrand || null,
           createdById: session!.user.id,
         })),
       });

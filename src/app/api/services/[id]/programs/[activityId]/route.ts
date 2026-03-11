@@ -14,6 +14,8 @@ const updateSchema = z.object({
   staffName: z.string().max(100).optional().nullable(),
   location: z.string().max(200).optional().nullable(),
   notes: z.string().max(500).optional().nullable(),
+  mtopOutcomes: z.array(z.number().int().min(1).max(5)).optional(),
+  programmeBrand: z.string().max(50).optional().nullable(),
 });
 
 // PATCH /api/services/[id]/programs/[activityId]
@@ -50,6 +52,8 @@ export async function PATCH(
   if (data.staffName !== undefined) updateData.staffName = data.staffName;
   if (data.location !== undefined) updateData.location = data.location;
   if (data.notes !== undefined) updateData.notes = data.notes;
+  if (data.mtopOutcomes !== undefined) updateData.mtopOutcomes = data.mtopOutcomes;
+  if (data.programmeBrand !== undefined) updateData.programmeBrand = data.programmeBrand;
 
   const activity = await prisma.programActivity.update({
     where: { id: activityId },

@@ -37,6 +37,49 @@ import {
   type ActivityTemplate,
   type ActivityTemplateFilters,
 } from "@/hooks/useActivityLibrary";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+// ── MTOP Outcome Config ──────────────────────────────────────
+const MTOP_OUTCOMES = [
+  { id: 1, label: "Identity", short: "O1", color: "bg-blue-500" },
+  { id: 2, label: "Connected", short: "O2", color: "bg-green-500" },
+  { id: 3, label: "Wellbeing", short: "O3", color: "bg-orange-500" },
+  { id: 4, label: "Confident Learner", short: "O4", color: "bg-purple-500" },
+  { id: 5, label: "Communicator", short: "O5", color: "bg-teal-500" },
+] as const;
+
+const MTOP_DOT_COLORS: Record<number, string> = {
+  1: "bg-blue-500",
+  2: "bg-green-500",
+  3: "bg-orange-500",
+  4: "bg-purple-500",
+  5: "bg-teal-500",
+};
+
+interface MtopCoverageData {
+  totalActivities: number;
+  untaggedActivities: number;
+  coverage: { outcome: number; label: string; count: number; percentage: number }[];
+}
+
+interface ChildInterestItem {
+  id: string;
+  childName: string | null;
+  interestTopic: string;
+  interestCategory: string | null;
+  source: string;
+  actioned: boolean;
+  capturedDate: string;
+  capturedBy: { id: string; name: string } | null;
+  linkedToActivity: { id: string; title: string } | null;
+}
+
+interface InterestSummaryData {
+  capturedThisWeek: number;
+  capturedThisMonth: number;
+  actionedPercentage: number;
+  totalUnactioned: number;
+}
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 
@@ -89,6 +132,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   const [showLibraryPicker, setShowLibraryPicker] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ProgramActivity | null>(null);
   const [prefillTemplate, setPrefillTemplate] = useState<ActivityTemplate | null>(null);
+  const [showInterests, setShowInterests] = useState(false);
 
   const currentWeek = getWeekStart();
   const selectedWeek = new Date(currentWeek);
@@ -98,6 +142,17 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   const { data: activities, isLoading } = useWeeklyProgram(serviceId, weekKey);
   const createMutation = useCreateActivity(serviceId);
   const updateMutation = useUpdateActivity(serviceId);
+
+  // MTOP coverage data
+  const { data: mtopCoverage } = useQuery<MtopCoverageData>({
+    queryKey: ["mtop-coverage", serviceId, weekKey],
+    queryFn: async () => {
+      const res = await fetch(`/api/services/${serviceId}/programs/mtop-coverage?weekStart=${weekKey}`);
+      if (!res.ok) throw new Error("Failed to fetch MTOP coverage");
+      return res.json();
+    },
+    enabled: !!serviceId && !!weekKey,
+  });
   const deleteMutation = useDeleteActivity(serviceId);
   const bulkMutation = useBulkUpsertProgram(serviceId);
 
@@ -270,6 +325,58 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
         </div>
       )}
 
+      {/* MTOP Coverage Bar */}
+      {mtopCoverage && mtopCoverage.totalActivities > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-semibold text-gray-900">MTOP Outcome Coverage</h4>
+            {mtopCoverage.untaggedActivities > 0 && (
+              <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                {mtopCoverage.untaggedActivities} untagged
+              </span>
+            )}
+          </div>
+          <div className="space-y-2">
+            {mtopCoverage.coverage.map((c) => (
+              <div key={c.outcome} className="flex items-center gap-3">
+                <span className="text-xs font-medium text-gray-600 w-32 shrink-0">
+                  O{c.outcome}: {c.label}
+                </span>
+                <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      c.percentage === 0 ? "bg-red-400" : MTOP_DOT_COLORS[c.outcome],
+                    )}
+                    style={{ width: `${Math.max(c.percentage, c.percentage === 0 ? 100 : 0)}%`, opacity: c.percentage === 0 ? 0.3 : 1 }}
+                  />
+                </div>
+                <span className={cn("text-xs font-medium w-10 text-right", c.percentage === 0 ? "text-red-500" : "text-gray-600")}>
+                  {c.percentage}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Children's Interests Section */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <button
+          onClick={() => setShowInterests(!showInterests)}
+          className="flex items-center justify-between w-full"
+        >
+          <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <Tag className="w-4 h-4 text-brand" />
+            Children&apos;s Interests
+          </h4>
+          <ChevronRight className={cn("w-4 h-4 text-gray-400 transition-transform", showInterests && "rotate-90")} />
+        </button>
+        {showInterests && (
+          <InterestsPanel serviceId={serviceId} />
+        )}
+      </div>
+
       {/* Empty state */}
       {!isLoading && (!activities || activities.length === 0) && (
         <div className="text-center py-8">
@@ -371,6 +478,20 @@ function ActivityCard({
           {activity.description}
         </p>
       )}
+      {/* MTOP Outcome Dots */}
+      {activity.mtopOutcomes && activity.mtopOutcomes.length > 0 && (
+        <div className="flex items-center gap-1 mt-1.5">
+          {activity.mtopOutcomes.sort().map((o) => (
+            <span
+              key={o}
+              title={`O${o}: ${MTOP_OUTCOMES.find((m) => m.id === o)?.label}`}
+              className={cn("w-4 h-4 rounded-full text-white text-[8px] font-bold flex items-center justify-center", MTOP_DOT_COLORS[o])}
+            >
+              {o}
+            </span>
+          ))}
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2 mt-2">
         {activity.staffName && (
           <span className="inline-flex items-center gap-1 text-xs text-gray-500">
@@ -415,6 +536,13 @@ function ActivityModal({
   const [description, setDescription] = useState(activity?.description || prefillTemplate?.description || "");
   const [staffName, setStaffName] = useState(activity?.staffName || "");
   const [location, setLocation] = useState(activity?.location || "");
+  const [selectedOutcomes, setSelectedOutcomes] = useState<number[]>(activity?.mtopOutcomes || []);
+
+  const toggleOutcome = (o: number) => {
+    setSelectedOutcomes((prev) =>
+      prev.includes(o) ? prev.filter((v) => v !== o) : [...prev, o],
+    );
+  };
 
   const isPending = onCreate.isPending || onUpdate.isPending;
 
@@ -430,6 +558,7 @@ function ActivityModal({
       description: description || undefined,
       staffName: staffName || undefined,
       location: location || undefined,
+      mtopOutcomes: selectedOutcomes.length > 0 ? selectedOutcomes : undefined,
     };
 
     try {
@@ -533,6 +662,30 @@ function ActivityModal({
             />
           </div>
 
+          {/* MTOP Outcomes */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-2">
+              MTOP Learning Outcomes
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {MTOP_OUTCOMES.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => toggleOutcome(o.id)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border transition-colors",
+                    selectedOutcomes.includes(o.id)
+                      ? `${o.color} text-white border-transparent`
+                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300",
+                  )}
+                >
+                  {o.short}: {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -594,6 +747,9 @@ const PICKER_CATEGORIES = [
   { value: "social_emotional", label: "Social & Emotional" },
   { value: "quiet_time", label: "Quiet Time" },
   { value: "free_play", label: "Free Play" },
+  { value: "quran_iqra", label: "Iqra Circle" },
+  { value: "homework_help", label: "Homework Heroes" },
+  { value: "stem_science", label: "STEM & Science" },
   { value: "other", label: "Other" },
 ];
 
@@ -608,6 +764,9 @@ const PICKER_CATEGORY_COLORS: Record<string, string> = {
   social_emotional: "bg-rose-100 text-rose-700",
   quiet_time: "bg-sky-100 text-sky-700",
   free_play: "bg-teal-100 text-teal-700",
+  quran_iqra: "bg-indigo-100 text-indigo-700",
+  homework_help: "bg-yellow-100 text-yellow-700",
+  stem_science: "bg-cyan-100 text-cyan-700",
   other: "bg-gray-100 text-gray-700",
 };
 
@@ -710,6 +869,225 @@ function ActivityLibraryPickerModal({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Interests Panel ──────────────────────────────────────────
+const INTEREST_SOURCES_LABELS: Record<string, string> = {
+  interest_book: "Interest Book",
+  verbal: "Verbal",
+  observation: "Observation",
+  parent: "Parent",
+  suggestion_box: "Suggestion Box",
+};
+
+const INTEREST_CATEGORIES = [
+  "sport", "animals", "science", "art", "cooking", "technology",
+  "nature", "social", "cultural", "religious", "other",
+];
+
+function InterestsPanel({ serviceId }: { serviceId: string }) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newTopic, setNewTopic] = useState("");
+  const [newChildName, setNewChildName] = useState("");
+  const [newCategory, setNewCategory] = useState("");
+  const [newSource, setNewSource] = useState<string>("observation");
+  const queryClient = useQueryClient();
+
+  const { data: summary } = useQuery<InterestSummaryData>({
+    queryKey: ["interests-summary", serviceId],
+    queryFn: async () => {
+      const res = await fetch(`/api/services/${serviceId}/interests/summary`);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+  });
+
+  const { data: interests, isLoading } = useQuery<ChildInterestItem[]>({
+    queryKey: ["interests", serviceId],
+    queryFn: async () => {
+      const res = await fetch(`/api/services/${serviceId}/interests?actioned=false`);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: { interestTopic: string; childName?: string; interestCategory?: string; source: string }) => {
+      const res = await fetch(`/api/services/${serviceId}/interests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["interests", serviceId] });
+      queryClient.invalidateQueries({ queryKey: ["interests-summary", serviceId] });
+      setShowAddForm(false);
+      setNewTopic("");
+      setNewChildName("");
+      setNewCategory("");
+      toast({ description: "Interest captured" });
+    },
+  });
+
+  const markActionedMutation = useMutation({
+    mutationFn: async (interestId: string) => {
+      const res = await fetch(`/api/services/${serviceId}/interests?interestId=${interestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ actioned: true }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["interests", serviceId] });
+      queryClient.invalidateQueries({ queryKey: ["interests-summary", serviceId] });
+    },
+  });
+
+  return (
+    <div className="mt-4 space-y-4">
+      {/* Summary Stats */}
+      {summary && (
+        <div className="grid grid-cols-4 gap-3">
+          <div className="bg-gray-50 rounded-lg p-3 text-center">
+            <p className="text-lg font-bold text-gray-900">{summary.capturedThisWeek}</p>
+            <p className="text-xs text-gray-500">This Week</p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3 text-center">
+            <p className="text-lg font-bold text-gray-900">{summary.capturedThisMonth}</p>
+            <p className="text-xs text-gray-500">This Month</p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3 text-center">
+            <p className="text-lg font-bold text-gray-900">{summary.actionedPercentage}%</p>
+            <p className="text-xs text-gray-500">Actioned</p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3 text-center">
+            <p className="text-lg font-bold text-amber-600">{summary.totalUnactioned}</p>
+            <p className="text-xs text-gray-500">Pending</p>
+          </div>
+        </div>
+      )}
+
+      {/* Add Interest */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-gray-500">Unactioned interests awaiting programme linkage</p>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Capture Interest
+        </button>
+      </div>
+
+      {showAddForm && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!newTopic.trim()) return;
+            createMutation.mutate({
+              interestTopic: newTopic,
+              childName: newChildName || undefined,
+              interestCategory: newCategory || undefined,
+              source: newSource,
+            });
+          }}
+          className="bg-gray-50 rounded-lg p-3 space-y-3"
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="text"
+              placeholder="Interest topic *"
+              value={newTopic}
+              onChange={(e) => setNewTopic(e.target.value)}
+              required
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            />
+            <input
+              type="text"
+              placeholder="Child name (optional)"
+              value={newChildName}
+              onChange={(e) => setNewChildName(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <select
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            >
+              <option value="">Category (optional)</option>
+              {INTEREST_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+              ))}
+            </select>
+            <select
+              value={newSource}
+              onChange={(e) => setNewSource(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            >
+              {Object.entries(INTEREST_SOURCES_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setShowAddForm(false)} className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800">
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={createMutation.isPending || !newTopic.trim()}
+              className="px-4 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover disabled:opacity-50"
+            >
+              {createMutation.isPending ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Interest List */}
+      {isLoading ? (
+        <div className="flex justify-center py-6">
+          <Loader2 className="w-5 h-5 text-brand animate-spin" />
+        </div>
+      ) : interests && interests.length > 0 ? (
+        <div className="space-y-2">
+          {interests.slice(0, 10).map((i) => (
+            <div key={i.id} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900">{i.interestTopic}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {i.childName && <span className="text-xs text-gray-500">{i.childName}</span>}
+                  {i.interestCategory && (
+                    <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">{i.interestCategory}</span>
+                  )}
+                  <span className="text-xs text-gray-400">{INTEREST_SOURCES_LABELS[i.source] || i.source}</span>
+                  <span className="text-xs text-gray-400">
+                    {new Date(i.capturedDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => markActionedMutation.mutate(i.id)}
+                disabled={markActionedMutation.isPending}
+                className="shrink-0 ml-3 px-2.5 py-1 text-xs font-medium text-brand bg-brand/10 rounded-lg hover:bg-brand/20 transition-colors"
+              >
+                Mark Actioned
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-center text-xs text-gray-400 py-4">No unactioned interests. Capture children&apos;s voices to inform programming.</p>
+      )}
     </div>
   );
 }

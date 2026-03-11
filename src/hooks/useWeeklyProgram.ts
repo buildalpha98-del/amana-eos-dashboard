@@ -12,6 +12,8 @@ export interface ProgramActivity {
   staffName: string | null;
   location: string | null;
   notes: string | null;
+  mtopOutcomes: number[];
+  programmeBrand: string | null;
   createdBy: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
@@ -27,6 +29,8 @@ export interface CreateActivityInput {
   staffName?: string;
   location?: string;
   notes?: string;
+  mtopOutcomes?: number[];
+  programmeBrand?: string;
 }
 
 export interface BulkUpsertInput {
