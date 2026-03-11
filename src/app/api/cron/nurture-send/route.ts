@@ -9,6 +9,15 @@ import {
   nurtureAppSetupEmail,
   nurtureFirstWeekEmail,
   nurtureNpsSurveyEmail,
+  nurtureCcsAssistEmail,
+  nurtureNudge1Email,
+  nurtureFormSupportEmail,
+  nurtureNudge2Email,
+  nurtureFinalNudgeEmail,
+  nurtureDay1CheckinEmail,
+  nurtureDay3CheckinEmail,
+  nurtureWeek2FeedbackEmail,
+  nurtureMonth1ReferralEmail,
 } from "@/lib/email-templates";
 
 const TEMPLATE_MAP: Record<string, (firstName: string, centreName: string) => { subject: string; html: string }> = {
@@ -18,6 +27,15 @@ const TEMPLATE_MAP: Record<string, (firstName: string, centreName: string) => { 
   app_setup: nurtureAppSetupEmail,
   first_week: nurtureFirstWeekEmail,
   nps_survey: nurtureNpsSurveyEmail,
+  ccs_assist: nurtureCcsAssistEmail,
+  nudge_1: nurtureNudge1Email,
+  form_support: nurtureFormSupportEmail,
+  nudge_2: nurtureNudge2Email,
+  final_nudge: nurtureFinalNudgeEmail,
+  day1_checkin: nurtureDay1CheckinEmail,
+  day3_checkin: nurtureDay3CheckinEmail,
+  week2_feedback: nurtureWeek2FeedbackEmail,
+  month1_referral: nurtureMonth1ReferralEmail,
 };
 
 /**

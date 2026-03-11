@@ -1,21 +1,25 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { authenticateApiKey } from "@/lib/api-key-auth";
 
 /**
  * GET /api/attendance/summary
  *
  * Returns aggregated attendance/occupancy data.
+ * Supports both session auth and API key auth (attendance:read scope).
  * Query params:
  *   - serviceId (optional, scoped automatically for staff/member)
  *   - from (ISO date)
  *   - to   (ISO date)
  *   - period: "weekly" | "monthly" (default "weekly")
  */
-export async function GET(req: Request) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
+export async function GET(req: NextRequest) {
+  // Try session auth first, fall back to API key auth
+  const { session, error: sessionError } = await requireAuth();
+  let effectiveServiceId: string | null = null;
+  let stateScope: string | null = null;
 
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
@@ -23,13 +27,21 @@ export async function GET(req: Request) {
   const to = searchParams.get("to");
   const period = searchParams.get("period") || "weekly";
 
-  // Service scope
-  const scope = getServiceScope(session);
-  const stateScope = getStateScope(session);
-  const effectiveServiceId = scope || serviceId;
+  if (sessionError) {
+    // Fallback: API key auth
+    const { error: apiKeyError } = await authenticateApiKey(req, "attendance:read");
+    if (apiKeyError) return apiKeyError;
+    // API key access — serviceId from query param, no scope restrictions
+    effectiveServiceId = serviceId;
+  } else {
+    // Session auth — apply service/state scope
+    const scope = getServiceScope(session);
+    stateScope = getStateScope(session);
+    effectiveServiceId = scope || serviceId;
 
-  if (scope && serviceId && serviceId !== scope) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (scope && serviceId && serviceId !== scope) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   // Default: last 13 weeks

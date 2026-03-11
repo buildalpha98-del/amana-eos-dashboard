@@ -46,6 +46,13 @@ export interface SessionAnalysis {
   wasteCost: number; // $ cost of excess educators
   revenueAtRisk: number; // $ revenue at risk if understaffed
   capacity: number;
+  /** VIC only: diploma+ qualification percentage among rostered educators */
+  qualificationRisk?: {
+    diplomaCount: number;
+    totalRostered: number;
+    diplomaPercent: number;
+    belowThreshold: boolean; // true if < 50%
+  };
 }
 
 export interface DayAnalysis {
@@ -91,13 +98,14 @@ export async function analyseStaffingForDay(
 ): Promise<DayAnalysis> {
   const dateOnly = new Date(date.toISOString().split("T")[0] + "T00:00:00Z");
 
-  // Fetch service info
+  // Fetch service info (include state for VIC qualification check)
   const service = await prisma.service.findUniqueOrThrow({
     where: { id: serviceId },
     select: {
       id: true,
       name: true,
       code: true,
+      state: true,
       bscDailyRate: true,
       ascDailyRate: true,
       bscCasualRate: true,
@@ -163,6 +171,59 @@ export async function analyseStaffingForDay(
       revenueAtRisk,
       capacity,
     });
+  }
+
+  // VIC 50% diploma qualification check
+  if (service.state === "VIC") {
+    // Collect all rostered staff names across sessions
+    const allRosteredNames = rosterShifts.map((r) => r.staffName);
+    if (allRosteredNames.length > 0) {
+      // Match staff by name to get their qualifications
+      const matchedUsers = await prisma.user.findMany({
+        where: {
+          name: { in: allRosteredNames },
+          serviceId,
+          active: true,
+        },
+        select: {
+          name: true,
+          qualifications: {
+            where: { type: { in: ["diploma", "bachelor", "masters"] } },
+            select: { type: true },
+          },
+        },
+      });
+
+      const diplomaHolders = new Set(
+        matchedUsers
+          .filter((u) => u.qualifications.length > 0)
+          .map((u) => u.name)
+      );
+
+      // Assign qualification risk per session
+      for (const session of sessions) {
+        const sessionShifts = rosterShifts.filter(
+          (r) => r.sessionType === session.sessionType
+        );
+        const totalInSession = sessionShifts.length;
+        if (totalInSession === 0) continue;
+
+        const diplomaCount = sessionShifts.filter((r) =>
+          diplomaHolders.has(r.staffName)
+        ).length;
+        const diplomaPercent =
+          totalInSession > 0
+            ? Math.round((diplomaCount / totalInSession) * 100)
+            : 0;
+
+        session.qualificationRisk = {
+          diplomaCount,
+          totalRostered: totalInSession,
+          diplomaPercent,
+          belowThreshold: diplomaPercent < 50,
+        };
+      }
+    }
   }
 
   const totalWaste = sessions.reduce((s, a) => s + a.wasteCost, 0);

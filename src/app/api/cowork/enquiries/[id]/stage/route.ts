@@ -1,0 +1,82 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { authenticateApiKey } from "@/lib/api-key-auth";
+import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+
+const updateStageSchema = z.object({
+  stage: z.string().min(1, "Stage is required"),
+});
+
+/**
+ * PATCH /api/cowork/enquiries/[id]/stage — Move an enquiry to a new stage
+ * Auth: API key with "enquiries:write" scope
+ */
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { apiKey, error: authError } = await authenticateApiKey(req, "enquiries:write");
+  if (authError) return authError;
+
+  const { limited, resetIn } = await checkApiKeyRateLimit(apiKey!.id);
+  if (limited) {
+    return NextResponse.json(
+      { error: "Too Many Requests" },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(resetIn / 1000)) } },
+    );
+  }
+
+  const { id } = await params;
+
+  try {
+    const body = await req.json();
+    const data = updateStageSchema.parse(body);
+
+    const existing = await prisma.parentEnquiry.findUnique({
+      where: { id },
+      select: { stage: true, stageChangedAt: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, error: "Enquiry not found" },
+        { status: 404 },
+      );
+    }
+
+    const daysInStage = Math.round(
+      (Date.now() - existing.stageChangedAt.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    const enquiry = await prisma.parentEnquiry.update({
+      where: { id },
+      data: {
+        stage: data.stage,
+        stageChangedAt: new Date(),
+      },
+      include: {
+        service: { select: { id: true, name: true, code: true } },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      enquiry,
+      previousStage: existing.stage,
+      daysInPreviousStage: daysInStage,
+    });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        { success: false, error: err.issues[0].message },
+        { status: 400 },
+      );
+    }
+    console.error("[Cowork Stage PATCH]", err);
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}

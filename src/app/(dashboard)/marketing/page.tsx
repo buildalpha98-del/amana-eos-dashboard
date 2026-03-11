@@ -15,6 +15,10 @@ import {
   MapPin,
   CheckSquare,
   CalendarDays,
+  Flame,
+  Inbox,
+  Rocket,
+  Gift,
 } from "lucide-react";
 import { MarketingTabs } from "@/components/marketing/MarketingTabs";
 import { OverviewTab } from "@/components/marketing/OverviewTab";
@@ -33,6 +37,11 @@ import { HashtagsTab } from "@/components/marketing/HashtagsTab";
 import { ImportCalendarModal } from "@/components/marketing/ImportCalendarModal";
 import { CoverageTab } from "@/components/marketing/CoverageTab";
 import { TermCalendarTab } from "@/components/marketing/TermCalendarTab";
+import { OccupancyHeatmap } from "@/components/marketing/OccupancyHeatmap";
+import { DraftsQueue } from "@/components/marketing/DraftsQueue";
+import { LaunchTracker } from "@/components/marketing/LaunchTracker";
+import { ReferralsTab } from "@/components/marketing/ReferralsTab";
+import { BSCGrowthTracker } from "@/components/marketing/BSCGrowthTracker";
 import { ServiceFilter } from "@/components/marketing/ServiceFilter";
 import { QuickAddFAB } from "@/components/marketing/QuickAddFAB";
 import { CreatePostModal } from "@/components/marketing/CreatePostModal";
@@ -41,6 +50,10 @@ import { CreateTaskModal } from "@/components/marketing/CreateTaskModal";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: BarChart3 },
+  { key: "drafts", label: "Drafts Queue", icon: Inbox },
+  { key: "occupancy", label: "Occupancy", icon: Flame },
+  { key: "launch", label: "Launch Tracker", icon: Rocket },
+  { key: "referrals", label: "Referrals", icon: Gift },
   { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "campaigns", label: "Campaigns", icon: FolderOpen },
   { key: "posts", label: "Posts", icon: FileText },
@@ -97,6 +110,19 @@ export default function MarketingPage() {
       <div className="mt-6">
         {activeTab === "overview" && (
           <OverviewTab serviceId={selectedServiceId} onSelectTask={setSelectedTaskId} />
+        )}
+        {activeTab === "drafts" && (
+          <DraftsQueue serviceId={selectedServiceId} onSelectTask={setSelectedTaskId} />
+        )}
+        {activeTab === "occupancy" && (
+          <div className="space-y-6">
+            <OccupancyHeatmap serviceId={selectedServiceId} />
+            <BSCGrowthTracker serviceId={selectedServiceId} />
+          </div>
+        )}
+        {activeTab === "launch" && <LaunchTracker />}
+        {activeTab === "referrals" && (
+          <ReferralsTab serviceId={selectedServiceId} />
         )}
         {activeTab === "tasks" && (
           <TasksTab

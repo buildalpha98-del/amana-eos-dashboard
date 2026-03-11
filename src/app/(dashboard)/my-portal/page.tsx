@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useMyPortal } from "@/hooks/useMyPortal";
 import {
   User,
@@ -30,6 +30,9 @@ import {
   CalendarDays,
   Loader2,
   ExternalLink,
+  MessageSquare,
+  Star,
+  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -248,6 +251,162 @@ function PolicyAckModal({
             {isPending ? "Acknowledging..." : "Confirm Acknowledgement"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Pulse Survey Section                                                */
+/* ------------------------------------------------------------------ */
+
+const PULSE_QUESTIONS = [
+  { key: "q1Happy", label: "I feel happy at work" },
+  { key: "q2Supported", label: "I feel supported by my team" },
+  { key: "q3Schedule", label: "I am satisfied with my schedule" },
+  { key: "q4Recommend", label: "I would recommend this workplace" },
+] as const;
+
+function PulseSurveySection() {
+  const queryClient = useQueryClient();
+  const [ratings, setRatings] = useState<Record<string, number>>({});
+  const [feedback, setFeedback] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const { data: surveys } = useQuery<Array<{
+    id: string;
+    periodMonth: string;
+    q1Happy: number | null;
+    submittedAt: string | null;
+  }>>({
+    queryKey: ["pulse-surveys-pending"],
+    queryFn: async () => {
+      const res = await fetch("/api/staff-pulse?pending=true");
+      if (!res.ok) throw new Error("Failed to fetch surveys");
+      return res.json();
+    },
+  });
+
+  const pendingSurveys = surveys?.filter((s) => !s.submittedAt) || [];
+
+  const handleSubmit = async (surveyId: string) => {
+    const allRated = PULSE_QUESTIONS.every((q) => ratings[q.key]);
+    if (!allRated) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/staff-pulse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          surveyId,
+          q1Happy: ratings.q1Happy,
+          q2Supported: ratings.q2Supported,
+          q3Schedule: ratings.q3Schedule,
+          q4Recommend: ratings.q4Recommend,
+          q5Feedback: feedback || undefined,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to submit");
+      setRatings({});
+      setFeedback("");
+      queryClient.invalidateQueries({ queryKey: ["pulse-surveys-pending"] });
+    } catch {
+      alert("Failed to submit survey. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (pendingSurveys.length === 0) return null;
+
+  const survey = pendingSurveys[0];
+  const [year, month] = survey.periodMonth.split("-");
+  const monthName = new Date(Number(year), Number(month) - 1).toLocaleString(
+    "en-AU",
+    { month: "long", year: "numeric" },
+  );
+  const allRated = PULSE_QUESTIONS.every((q) => ratings[q.key]);
+
+  return (
+    <div className="bg-white rounded-xl border border-blue-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-blue-600" />
+          Pulse Survey — {monthName}
+        </h3>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+          Takes 1 min
+        </span>
+      </div>
+
+      <p className="text-sm text-gray-500 mb-5">
+        Rate each statement from 1 (strongly disagree) to 5 (strongly agree).
+      </p>
+
+      <div className="space-y-4">
+        {PULSE_QUESTIONS.map((q) => (
+          <div key={q.key}>
+            <p className="text-sm font-medium text-gray-700 mb-2">{q.label}</p>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setRatings({ ...ratings, [q.key]: val })}
+                  className={cn(
+                    "w-10 h-10 rounded-lg text-sm font-semibold transition-all flex items-center justify-center",
+                    ratings[q.key] === val
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-200",
+                  )}
+                >
+                  {val}
+                </button>
+              ))}
+              <span className="flex items-center ml-2">
+                {ratings[q.key] && (
+                  <Star
+                    className={cn(
+                      "w-4 h-4",
+                      ratings[q.key]! >= 4
+                        ? "text-emerald-500"
+                        : ratings[q.key]! >= 3
+                        ? "text-amber-500"
+                        : "text-red-500",
+                    )}
+                  />
+                )}
+              </span>
+            </div>
+          </div>
+        ))}
+
+        <div>
+          <p className="text-sm font-medium text-gray-700 mb-2">
+            Any additional feedback? <span className="text-gray-400 font-normal">(optional)</span>
+          </p>
+          <textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="Share any thoughts, suggestions, or concerns..."
+            rows={3}
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 resize-none"
+          />
+        </div>
+
+        <button
+          onClick={() => handleSubmit(survey.id)}
+          disabled={!allRated || submitting}
+          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {submitting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
+          {submitting ? "Submitting..." : "Submit Survey"}
+        </button>
       </div>
     </div>
   );
@@ -856,6 +1015,11 @@ export default function MyPortalPage() {
           </Link>
         </div>
       )}
+
+      {/* ============================================================ */}
+      {/* 8b. PULSE SURVEY                                             */}
+      {/* ============================================================ */}
+      <PulseSurveySection />
 
       {/* ============================================================ */}
       {/* 9. PENDING POLICIES                                          */}

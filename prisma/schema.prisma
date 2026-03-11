@@ -197,6 +197,7 @@ enum MarketingRecurrence {
 }
 
 enum MarketingKPIPeriod {
+  weekly
   monthly
   quarterly
   yearly
@@ -222,6 +223,7 @@ enum MarketingKPICategory {
   growth
   content
   conversion
+  retention
 }
 
 enum MarketingTaskStatus {
@@ -472,9 +474,29 @@ model User {
   photoComplianceConfs  PhotoComplianceLog[]   @relation("PhotoComplianceConfirmer")
   termCalendarAssigned  TermCalendarEntry[]    @relation("TermCalendarAssignee")
 
+  // ── Parent Enquiry Pipeline ──────────────────────────
+  assignedEnquiries     ParentEnquiry[]        @relation("EnquiryAssignee")
+
+  // ── Recruitment Pipeline ───────────────────────────
+  filledVacancies       RecruitmentVacancy[]   @relation("VacancyFilledBy")
+  assignedVacancies     RecruitmentVacancy[]   @relation("VacancyAssignee")
+  candidateReferrals    RecruitmentCandidate[] @relation("CandidateReferrer")
+  staffReferrals        StaffReferral[]        @relation("StaffReferrer")
+  pulseSurveys          StaffPulseSurvey[]     @relation("UserPulseSurveys")
+
   // ── Meeting & Todo Multi-assign ────────────────────────
   meetingAttendance    MeetingAttendee[] @relation("UserMeetingAttendance")
   todoMultiAssignments TodoAssignee[]    @relation("TodoMultiAssignee")
+
+  // ── Billing ───────────────────────────────────────────
+  assignedOverdueFees  OverdueFeeRecord[] @relation("OverdueFeeAssignee")
+
+  // ── Finance ───────────────────────────────────────────
+  createdAdjustments   EBITDAAdjustment[] @relation("AdjustmentCreator")
+
+  // ── Operations ────────────────────────────────────────
+  reviewedQIPs         QualityImprovementPlan[] @relation("QIPReviewer")
+  createdIncidents     IncidentRecord[]         @relation("IncidentCreator")
 
   @@index([serviceId])
 }
@@ -968,7 +990,7 @@ model SchoolComm {
   id           String    @id @default(cuid())
   serviceId    String
   service      Service   @relation("ServiceSchoolComms", fields: [serviceId], references: [id], onDelete: Cascade)
-  type         String    // "newsletter", "program_overview", "open_day", "holiday_quest", "end_of_term", "custom"
+  type         String    // "newsletter", "program_overview", "open_day", "holiday_quest", "end_of_term", "whatsapp", "custom"
   subject      String
   body         String    @db.Text
   schoolName   String?   // The school admin this is addressed to
@@ -1148,6 +1170,17 @@ model Service {
   ownaServiceId        String? // OWNA's internal service ID
   ownaLocationId       String? // OWNA's location reference
   ownaSyncedAt         DateTime? // Last successful OWNA sync
+
+  // ── Marketing / Growth Fields (Sprint 0) ───────────────────
+  schoolPopulation         Int?       // Total students at the partner school
+  ascTarget                Int?       // Target number of ASC children
+  bscTarget                Int?       // Target number of BSC children
+  weeklyAttendanceTarget   Int?       // Target weekly attendances (BSC + ASC combined)
+  parentSegment            String?    // Primary parent segment: "need", "want", or "mixed"
+  parentDriver             String?    // Primary driver: "homework", "quran", "enrichment", "working_parents", "traffic"
+  launchDate               DateTime?  // Date service launched (for launch-phase tracking)
+  launchPhase              String?    // Phase: "pre_launch", "launch", "ramp_up", "mature"
+
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
@@ -1206,6 +1239,21 @@ model Service {
   photoComplianceLogs  PhotoComplianceLog[]  @relation("ServicePhotoCompliance")
   npsResponses         NpsSurveyResponse[]   @relation("ServiceNpsResponses")
   termCalendarEntries  TermCalendarEntry[]   @relation("ServiceTermCalendar")
+
+  // ── Parent Enquiry Pipeline ──────────────────────────
+  enquiries            ParentEnquiry[]
+  referrals            Referral[]
+
+  // ── Recruitment Pipeline ───────────────────────────
+  vacancies            RecruitmentVacancy[] @relation("ServiceVacancies")
+  pulseSurveys         StaffPulseSurvey[]   @relation("ServicePulseSurveys")
+
+  // ── Billing ───────────────────────────────────────────
+  overdueFees          OverdueFeeRecord[]   @relation("ServiceOverdueFees")
+
+  // ── Operations ────────────────────────────────────────
+  qip                  QualityImprovementPlan? @relation("ServiceQIP")
+  incidents            IncidentRecord[]        @relation("ServiceIncidents")
 
   @@index([status])
   @@index([managerId])
@@ -2024,6 +2072,10 @@ enum CertificateType {
   cpr
   police_check
   annual_review
+  child_protection
+  geccko
+  food_safety
+  food_handler
   other
 }
 
@@ -2796,8 +2848,9 @@ model CentreContact {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  nurtureSteps ParentNurtureStep[] @relation("ContactNurtureSteps")
-  npsResponses NpsSurveyResponse[] @relation("ContactNpsResponses")
+  nurtureSteps  ParentNurtureStep[] @relation("ContactNurtureSteps")
+  npsResponses  NpsSurveyResponse[] @relation("ContactNpsResponses")
+  referralsMade Referral[]          @relation("ReferrerContact")
 
   @@unique([email, serviceId])
   @@index([serviceId])
@@ -2856,16 +2909,19 @@ model ParentNurtureStep {
   contactId    String
   contact      CentreContact @relation("ContactNurtureSteps", fields: [contactId], references: [id], onDelete: Cascade)
   stepNumber   Int
-  templateKey  String // welcome, how_to_enrol, what_to_bring, app_setup, first_week
+  templateKey  String // welcome, how_to_enrol, what_to_bring, app_setup, first_week, ccs_assist, nudge_1, form_support, nudge_2, final_nudge, day1_checkin, day3_checkin, week2_feedback, month1_referral
   scheduledFor DateTime
   sentAt       DateTime?
   status       String    @default("pending") // pending, sent, failed, cancelled
+  enquiryId    String?
+  enquiry      ParentEnquiry? @relation(fields: [enquiryId], references: [id])
   createdAt    DateTime  @default(now())
 
   @@unique([contactId, templateKey])
   @@index([serviceId])
   @@index([scheduledFor])
   @@index([status])
+  @@index([enquiryId])
 }
 
 // ============================================================
@@ -3091,4 +3147,336 @@ model AuditItemResponse {
   @@unique([instanceId, templateItemId])
   @@index([instanceId])
   @@index([result])
+}
+
+// ============================================================
+// Parent Enquiry Pipeline (B2C)
+// ============================================================
+
+model ParentEnquiry {
+  id              String   @id @default(cuid())
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id])
+  parentName      String
+  parentEmail     String?
+  parentPhone     String?
+  childName       String?
+  childAge        Int?
+  channel         String   // phone, email, whatsapp, walkin, referral, website
+  parentDriver    String?  // homework, quran, enrichment, working_parent, traffic, sports
+  stage           String   @default("new_enquiry") // new_enquiry, info_sent, nurturing, form_started, enrolled, first_session, day3, week2, month1, retained, cold
+  stageChangedAt  DateTime @default(now())
+  nextActionDue   DateTime?
+  ccsEducated     Boolean  @default(false)
+  formStarted     Boolean  @default(false)
+  formCompleted   Boolean  @default(false)
+  firstSessionDate DateTime?
+  referralId      String?
+  referral        Referral? @relation(fields: [referralId], references: [id])
+  assigneeId      String?
+  assignee        User?    @relation("EnquiryAssignee", fields: [assigneeId], references: [id])
+  notes           String?  @db.Text
+  deleted         Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  touchpoints     ParentEnquiryTouchpoint[]
+  nurtureSteps    ParentNurtureStep[]
+
+  @@index([serviceId])
+  @@index([stage])
+  @@index([assigneeId])
+  @@index([nextActionDue])
+  @@index([stageChangedAt])
+}
+
+model ParentEnquiryTouchpoint {
+  id                String        @id @default(cuid())
+  enquiryId         String
+  enquiry           ParentEnquiry @relation(fields: [enquiryId], references: [id])
+  type              String        // first_response, nudge_1, form_support, nudge_2, final_nudge, welcome, day1_checkin, day3_checkin, week2_feedback, month1_referral, retention_alert, custom
+  channel           String        // email, whatsapp, phone, sms
+  content           String?       @db.Text
+  scheduledFor      DateTime?
+  sentAt            DateTime?
+  status            String        @default("draft") // draft, pending_review, approved, sent, failed
+  generatedByCowork Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+
+  @@index([enquiryId])
+  @@index([status])
+}
+
+model Referral {
+  id                String         @id @default(cuid())
+  serviceId         String
+  service           Service        @relation(fields: [serviceId], references: [id])
+  referrerName      String
+  referrerContactId String?
+  referrerContact   CentreContact? @relation("ReferrerContact", fields: [referrerContactId], references: [id])
+  referredName      String
+  referredEmail     String?
+  referredPhone     String?
+  status            String         @default("pending") // pending, enquired, enrolled, rewarded, expired
+  rewardAmount      Float          @default(50)
+  rewardIssuedAt    DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  enquiries         ParentEnquiry[]
+
+  @@index([serviceId])
+  @@index([status])
+}
+
+// ============================================================
+// Recruitment Pipeline
+// ============================================================
+
+model RecruitmentVacancy {
+  id                    String              @id @default(cuid())
+  serviceId             String
+  service               Service             @relation("ServiceVacancies", fields: [serviceId], references: [id])
+  role                  String              // educator, senior_educator, coordinator, director
+  employmentType        EmploymentType
+  qualificationRequired String?             // none, cert_iii, diploma
+  status                String              @default("open") // open, interviewing, offered, filled, cancelled
+  postedChannels        String[]
+  postedAt              DateTime?
+  targetFillDate        DateTime?
+  filledAt              DateTime?
+  filledByUserId        String?
+  filledByUser          User?               @relation("VacancyFilledBy", fields: [filledByUserId], references: [id])
+  assignedToId          String?
+  assignedTo            User?               @relation("VacancyAssignee", fields: [assignedToId], references: [id])
+  notes                 String?             @db.Text
+  deleted               Boolean             @default(false)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  candidates            RecruitmentCandidate[]
+
+  @@index([serviceId])
+  @@index([status])
+  @@index([assignedToId])
+}
+
+model RecruitmentCandidate {
+  id              String              @id @default(cuid())
+  vacancyId       String
+  vacancy         RecruitmentVacancy  @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+  name            String
+  email           String?
+  phone           String?
+  source          String              // indeed, seek, referral, community, mosque, university, walkin
+  stage           String              @default("applied") // applied, screened, interviewed, offered, accepted, rejected, withdrawn
+  appliedAt       DateTime            @default(now())
+  stageChangedAt  DateTime            @default(now())
+  interviewNotes  String?             @db.Text
+  referredByUserId String?
+  referredByUser  User?               @relation("CandidateReferrer", fields: [referredByUserId], references: [id])
+  notes           String?             @db.Text
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  staffReferral   StaffReferral?
+
+  @@index([vacancyId])
+  @@index([stage])
+}
+
+model StaffReferral {
+  id              String              @id @default(cuid())
+  referrerUserId  String
+  referrerUser    User                @relation("StaffReferrer", fields: [referrerUserId], references: [id])
+  referredName    String
+  referredEmail   String?
+  candidateId     String?             @unique
+  candidate       RecruitmentCandidate? @relation(fields: [candidateId], references: [id])
+  status          String              @default("pending") // pending, hired, bonus_paid, expired
+  bonusAmount     Float               @default(200)
+  bonusPaidAt     DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([referrerUserId])
+  @@index([status])
+}
+
+model StaffPulseSurvey {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation("UserPulseSurveys", fields: [userId], references: [id])
+  serviceId   String
+  service     Service   @relation("ServicePulseSurveys", fields: [serviceId], references: [id])
+  periodMonth String    // format: "2026-03"
+  q1Happy     Int?      // 1-5
+  q2Supported Int?      // 1-5
+  q3Schedule  Int?      // 1-5
+  q4Recommend Int?      // 1-5
+  q5Feedback  String?   @db.Text
+  submittedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, periodMonth])
+  @@index([serviceId])
+  @@index([periodMonth])
+}
+
+// ═══════════════════════════════════════════════════════════
+// OVERDUE FEES MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+
+model OverdueFeeRecord {
+  id                   String    @id @default(cuid())
+  serviceId            String
+  service              Service   @relation("ServiceOverdueFees", fields: [serviceId], references: [id])
+  parentName           String
+  parentEmail          String?
+  parentPhone          String?
+  childName            String?
+  invoiceRef           String?
+  invoiceDate          DateTime  @db.Date
+  dueDate              DateTime  @db.Date
+  amountDue            Float
+  amountPaid           Float     @default(0)
+  balance              Float
+  daysOverdue          Int       @default(0)
+  agingBucket          String    @default("current") // current/7d/14d/30d/45d/60plus
+  reminderStatus       String    @default("none") // none/first_sent/second_sent/formal_sent/escalated/resolved
+  firstReminderSentAt  DateTime?
+  secondReminderSentAt DateTime?
+  formalNoticeSentAt   DateTime?
+  escalatedAt          DateTime?
+  resolvedAt           DateTime?
+  resolution           String? // paid/payment_plan/written_off/cancelled
+  notes                String?   @db.Text
+  assigneeId           String?
+  assignee             User?     @relation("OverdueFeeAssignee", fields: [assigneeId], references: [id])
+  deleted              Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([serviceId])
+  @@index([agingBucket])
+  @@index([reminderStatus])
+  @@index([dueDate])
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADJUSTED EBITDA & ADD-BACK SCHEDULE
+// ═══════════════════════════════════════════════════════════
+
+model EBITDAAdjustment {
+  id                    String   @id @default(cuid())
+  periodMonth           String // format: "2026-03"
+  category              String // personal_expense/one_off_cost/non_operating/system_migration/founder_above_market/other
+  description           String
+  amount                Float
+  isRecurring           Boolean  @default(false)
+  verifiedByAccountant  Boolean  @default(false)
+  notes                 String?  @db.Text
+  createdById           String?
+  createdBy             User?    @relation("AdjustmentCreator", fields: [createdById], references: [id])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([periodMonth])
+}
+
+// ═══════════════════════════════════════════════════════════
+// CASH FLOW FORECAST
+// ═══════════════════════════════════════════════════════════
+
+model CashFlowPeriod {
+  id                String   @id @default(cuid())
+  periodMonth       String   @unique // format: "2026-03"
+  openingBalance    Float
+  parentFeeReceipts Float    @default(0)
+  ccsReceipts       Float    @default(0)
+  otherReceipts     Float    @default(0)
+  totalReceipts     Float    @default(0)
+  payrollPayments   Float    @default(0)
+  supplierPayments  Float    @default(0)
+  rentPayments      Float    @default(0)
+  overheadPayments  Float    @default(0)
+  debtRepayments    Float    @default(0) // Amex etc
+  investmentOutflows Float   @default(0) // new centre setup
+  totalPayments     Float    @default(0)
+  netMovement       Float    @default(0)
+  closingBalance    Float    @default(0)
+  isActual          Boolean  @default(false) // false = forecast, true = actual
+  notes             String?  @db.Text
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════════════════
+// QIP / SAT DOCUMENT MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+
+model QualityImprovementPlan {
+  id              String   @id @default(cuid())
+  serviceId       String   @unique
+  service         Service  @relation("ServiceQIP", fields: [serviceId], references: [id])
+  state           String
+  documentType    String   @default("qip") // qip | sat
+  status          String   @default("draft") // draft | in_review | current | archived
+  lastReviewDate  DateTime?
+  reviewedById    String?
+  reviewedBy      User?    @relation("QIPReviewer", fields: [reviewedById], references: [id])
+  qualityAreas    QIPQualityArea[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model QIPQualityArea {
+  id                  String   @id @default(cuid())
+  qipId               String
+  qip                 QualityImprovementPlan @relation(fields: [qipId], references: [id], onDelete: Cascade)
+  qualityArea         Int // 1-7
+  qualityAreaName     String
+  strengths           String?  @db.Text
+  areasForImprovement String?  @db.Text
+  improvementGoal     String?  @db.Text
+  strategies          String?  @db.Text
+  timeline            String?
+  responsiblePerson   String?
+  evidenceIndicators  String?  @db.Text
+  evidenceCollected   String?  @db.Text
+  progressNotes       String?  @db.Text
+  progressStatus      String   @default("not_started") // not_started | in_progress | achieved | ongoing
+  updatedAt           DateTime @updatedAt
+
+  @@unique([qipId, qualityArea])
+}
+
+// ═══════════════════════════════════════════════════════════
+// INCIDENT TRACKING & TREND ANALYSIS
+// ═══════════════════════════════════════════════════════════
+
+model IncidentRecord {
+  id                     String    @id @default(cuid())
+  serviceId              String
+  service                Service   @relation("ServiceIncidents", fields: [serviceId], references: [id])
+  incidentDate           DateTime
+  childName              String?
+  incidentType           String // injury | illness | behaviour | missing_child | near_miss | medication_error | property_damage | complaint
+  severity               String // minor | moderate | reportable | serious
+  location               String? // indoor | outdoor | playground | transition | bathroom | kitchen
+  timeOfDay              String? // arrival | programme | meal_time | packdown | departure
+  description            String   @db.Text
+  actionTaken            String?  @db.Text
+  parentNotified         Boolean  @default(false)
+  reportableToAuthority  Boolean  @default(false)
+  reportedToAuthorityAt  DateTime?
+  followUpRequired       Boolean  @default(false)
+  followUpCompleted      Boolean  @default(false)
+  ownaIncidentId         String?
+  createdById            String?
+  createdBy              User?    @relation("IncidentCreator", fields: [createdById], references: [id])
+  deleted                Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([incidentDate])
+  @@index([incidentType])
+  @@index([severity])
 }

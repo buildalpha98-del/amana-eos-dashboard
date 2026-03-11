@@ -11,6 +11,7 @@ const createSchoolCommSchema = z.object({
     "open_day",
     "holiday_quest",
     "end_of_term",
+    "whatsapp",
     "custom",
   ]),
   subject: z.string().min(1, "Subject is required"),

@@ -28,6 +28,7 @@ import { RevenueVsCostsChart } from "@/components/charts/RevenueVsCostsChart";
 import { MarginComparisonChart } from "@/components/charts/MarginComparisonChart";
 import { RevenueBreakdownChart } from "@/components/charts/RevenueBreakdownChart";
 import { ImportOWNAModal } from "@/components/financials/ImportOWNAModal";
+import { CashFlowChart } from "@/components/charts/CashFlowChart";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-AU", {
@@ -582,6 +583,9 @@ export default function FinancialsPage() {
           </ScrollableTable>
         )}
       </div>
+
+      {/* Cash Flow Forecast */}
+      <CashFlowChart />
 
       <EnterDataModal open={showEnterData} onClose={() => setShowEnterData(false)} />
       <ImportOWNAModal open={showImportOWNA} onClose={() => setShowImportOWNA(false)} />

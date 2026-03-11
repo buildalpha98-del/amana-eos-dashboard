@@ -1,0 +1,225 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/server-auth";
+
+/**
+ * GET /api/financials/cashflow
+ * Returns all cash flow periods (12+ months)
+ */
+export async function GET(req: NextRequest) {
+  const { error } = await requireAuth(["owner", "head_office", "admin"]);
+  if (error) return error;
+
+  try {
+    const periods = await prisma.cashFlowPeriod.findMany({
+      orderBy: { periodMonth: "asc" },
+    });
+
+    return NextResponse.json({ periods, count: periods.length });
+  } catch (err) {
+    console.error("[CashFlow GET]", err);
+    return NextResponse.json({ error: "Failed to fetch cash flow data" }, { status: 500 });
+  }
+}
+
+/**
+ * POST /api/financials/cashflow
+ * Create or update a cash flow period
+ */
+export async function POST(req: NextRequest) {
+  const { error } = await requireAuth(["owner", "head_office"]);
+  if (error) return error;
+
+  try {
+    const body = await req.json();
+    const { periodMonth, ...fields } = body;
+
+    if (!periodMonth) {
+      return NextResponse.json({ error: "periodMonth is required" }, { status: 400 });
+    }
+
+    // Auto-calculate derived fields
+    const totalReceipts =
+      (fields.parentFeeReceipts || 0) +
+      (fields.ccsReceipts || 0) +
+      (fields.otherReceipts || 0);
+    const totalPayments =
+      (fields.payrollPayments || 0) +
+      (fields.supplierPayments || 0) +
+      (fields.rentPayments || 0) +
+      (fields.overheadPayments || 0) +
+      (fields.debtRepayments || 0) +
+      (fields.investmentOutflows || 0);
+    const netMovement = totalReceipts - totalPayments;
+    const closingBalance = (fields.openingBalance || 0) + netMovement;
+
+    const data = {
+      ...fields,
+      totalReceipts,
+      totalPayments,
+      netMovement,
+      closingBalance,
+    };
+
+    const period = await prisma.cashFlowPeriod.upsert({
+      where: { periodMonth },
+      update: data,
+      create: { periodMonth, ...data },
+    });
+
+    return NextResponse.json(period, { status: 201 });
+  } catch (err) {
+    console.error("[CashFlow POST]", err);
+    return NextResponse.json({ error: "Failed to save cash flow period" }, { status: 500 });
+  }
+}
+
+/**
+ * PUT /api/financials/cashflow
+ * Auto-generate 12-month forecast from current financial data
+ */
+export async function PUT(req: NextRequest) {
+  const { error } = await requireAuth(["owner", "head_office"]);
+  if (error) return error;
+
+  try {
+    const body = await req.json();
+    const {
+      startingBalance = 0,
+      monthlyGrowthRate = 0.02, // 2% monthly growth default
+      monthlyDebtRepayment = 2000, // Amex paydown
+    } = body;
+
+    // Get latest 3 months of financial data for baseline
+    const now = new Date();
+    const threeMonthsAgo = new Date(now);
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    const recentPeriods = await prisma.financialPeriod.findMany({
+      where: {
+        periodStart: { gte: threeMonthsAgo },
+      },
+    });
+
+    // Calculate monthly averages from recent data
+    const monthCount = Math.max(1, new Set(recentPeriods.map((p) => {
+      const d = new Date(p.periodStart);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    })).size);
+
+    const avgMonthlyRevenue =
+      recentPeriods.reduce((sum, p) => sum + (p.totalRevenue || 0), 0) / monthCount;
+    const avgMonthlyCosts =
+      recentPeriods.reduce((sum, p) => sum + (p.totalCosts || 0), 0) / monthCount;
+
+    // Split revenue assumption: 60% parent fees, 40% CCS
+    const baseParentFees = avgMonthlyRevenue * 0.6;
+    const baseCCS = avgMonthlyRevenue * 0.4;
+
+    // Split costs
+    const avgStaffCosts =
+      recentPeriods.reduce((sum, p) => sum + (p.staffCosts || 0), 0) / monthCount;
+    const avgFoodCosts =
+      recentPeriods.reduce((sum, p) => sum + (p.foodCosts || 0), 0) / monthCount;
+    const avgRentCosts =
+      recentPeriods.reduce((sum, p) => sum + (p.rentCosts || 0), 0) / monthCount;
+    const avgOtherCosts = avgMonthlyCosts - avgStaffCosts - avgFoodCosts - avgRentCosts;
+
+    // Generate 12 months
+    const forecasts = [];
+    let openingBalance = startingBalance;
+
+    for (let i = 0; i < 12; i++) {
+      const forecastDate = new Date(now);
+      forecastDate.setMonth(forecastDate.getMonth() + i);
+      const periodMonth = `${forecastDate.getFullYear()}-${String(forecastDate.getMonth() + 1).padStart(2, "0")}`;
+
+      const growthFactor = Math.pow(1 + monthlyGrowthRate, i);
+      const parentFeeReceipts = Math.round(baseParentFees * growthFactor);
+      const ccsReceipts = Math.round(baseCCS * growthFactor);
+      const totalReceipts = parentFeeReceipts + ccsReceipts;
+
+      const payrollPayments = Math.round(avgStaffCosts * (1 + monthlyGrowthRate * i * 0.5));
+      const supplierPayments = Math.round(avgFoodCosts);
+      const rentPayments = Math.round(avgRentCosts);
+      const overheadPayments = Math.round(avgOtherCosts);
+      const debtRepayments = monthlyDebtRepayment;
+      const totalPayments =
+        payrollPayments + supplierPayments + rentPayments + overheadPayments + debtRepayments;
+
+      const netMovement = totalReceipts - totalPayments;
+      const closingBalance = openingBalance + netMovement;
+
+      // Check if actual data exists for this month
+      const existing = await prisma.cashFlowPeriod.findUnique({
+        where: { periodMonth },
+      });
+
+      if (!existing || !existing.isActual) {
+        await prisma.cashFlowPeriod.upsert({
+          where: { periodMonth },
+          update: {
+            openingBalance,
+            parentFeeReceipts,
+            ccsReceipts,
+            otherReceipts: 0,
+            totalReceipts,
+            payrollPayments,
+            supplierPayments,
+            rentPayments,
+            overheadPayments,
+            debtRepayments,
+            investmentOutflows: 0,
+            totalPayments,
+            netMovement,
+            closingBalance,
+            isActual: false,
+          },
+          create: {
+            periodMonth,
+            openingBalance,
+            parentFeeReceipts,
+            ccsReceipts,
+            totalReceipts,
+            payrollPayments,
+            supplierPayments,
+            rentPayments,
+            overheadPayments,
+            debtRepayments,
+            totalPayments,
+            netMovement,
+            closingBalance,
+            isActual: false,
+          },
+        });
+
+        forecasts.push({
+          periodMonth,
+          openingBalance,
+          totalReceipts,
+          totalPayments,
+          netMovement,
+          closingBalance,
+        });
+      }
+
+      openingBalance = closingBalance;
+    }
+
+    return NextResponse.json({
+      success: true,
+      generated: forecasts.length,
+      forecasts,
+      assumptions: {
+        baseMonthlyRevenue: avgMonthlyRevenue,
+        baseMonthlyCosts: avgMonthlyCosts,
+        monthlyGrowthRate,
+        monthlyDebtRepayment,
+        startingBalance,
+      },
+    });
+  } catch (err) {
+    console.error("[CashFlow PUT/forecast]", err);
+    return NextResponse.json({ error: "Failed to generate forecast" }, { status: 500 });
+  }
+}

@@ -69,6 +69,10 @@ const TYPE_LABELS: Record<string, string> = {
   cpr: "CPR",
   police_check: "Police Check",
   annual_review: "Annual Review",
+  child_protection: "Child Protection",
+  geccko: "GECCKO",
+  food_safety: "Food Safety",
+  food_handler: "Food Handler",
 };
 
 const SHORT_LABELS: Record<string, string> = {
@@ -79,6 +83,10 @@ const SHORT_LABELS: Record<string, string> = {
   cpr: "CPR",
   police_check: "Police",
   annual_review: "Review",
+  child_protection: "Child Prot.",
+  geccko: "GECCKO",
+  food_safety: "Food Safe",
+  food_handler: "Food Hndlr",
 };
 
 /* ------------------------------------------------------------------ */

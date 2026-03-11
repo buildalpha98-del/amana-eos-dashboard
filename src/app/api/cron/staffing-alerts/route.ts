@@ -39,6 +39,20 @@ export async function GET(req: NextRequest) {
         totalRisk: s.totalRisk,
       }));
 
+    // 4b. Collect VIC qualification risks
+    const qualificationRisks = summary.services
+      .flatMap((s) =>
+        s.sessions
+          .filter((ss) => ss.qualificationRisk?.belowThreshold)
+          .map((ss) => ({
+            serviceName: s.serviceName,
+            sessionType: ss.sessionType.toUpperCase(),
+            diplomaPercent: ss.qualificationRisk!.diplomaPercent,
+            diplomaCount: ss.qualificationRisk!.diplomaCount,
+            totalRostered: ss.qualificationRisk!.totalRostered,
+          })),
+      );
+
     if (alertServices.length === 0) {
       await guard.complete({
         date: summary.date,
@@ -75,6 +89,7 @@ export async function GET(req: NextRequest) {
             summary.date,
             alertServices,
             `${dashboardUrl}/dashboard`,
+            qualificationRisks,
           );
 
           await resend.emails.send({

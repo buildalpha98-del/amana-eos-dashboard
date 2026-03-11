@@ -1,0 +1,269 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  Milestone,
+} from "lucide-react";
+
+interface LaunchCentre {
+  serviceId: string;
+  serviceName: string;
+  serviceCode: string;
+  state: string | null;
+  schoolPopulation: number;
+  launchDate: string;
+  currentWeek: number;
+  ascEnrolled: number;
+  bscEnrolled: number;
+  ascTarget: number;
+  bscTarget: number;
+  weeklyTrend: number[];
+  enquiryCount: number;
+  enrolmentCount: number;
+  plannedActivities: number;
+  completedActivities: number;
+  npsAverage: number | null;
+  npsFeedbackCount: number;
+  status: "On Track" | "Needs Attention" | "At Risk";
+}
+
+interface LaunchData {
+  services: LaunchCentre[];
+  hasLaunchCentres: boolean;
+  currentWeek: number;
+}
+
+const STATUS_STYLES = {
+  "On Track": { bg: "bg-green-50", border: "border-green-300", text: "text-green-700", icon: CheckCircle },
+  "Needs Attention": { bg: "bg-amber-50", border: "border-amber-300", text: "text-amber-700", icon: AlertTriangle },
+  "At Risk": { bg: "bg-red-50", border: "border-red-300", text: "text-red-700", icon: XCircle },
+};
+
+const MILESTONES = [
+  { week: 4, label: "First Feedback", description: "Collect initial parent feedback" },
+  { week: 8, label: "Mid-Programme Review", description: "Review attendance trends & activities" },
+  { week: 12, label: "Transition to BAU", description: "Move from launch to business-as-usual" },
+];
+
+export function LaunchTracker() {
+  const [data, setData] = useState<LaunchData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/marketing/launch-tracker")
+      .then((r) => r.json())
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
+  if (!data || !data.hasLaunchCentres) {
+    return (
+      <div className="text-center py-8 text-gray-400 text-sm">
+        No centres currently in launch phase
+      </div>
+    );
+  }
+
+  const { currentWeek, services } = data;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white rounded-xl border p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+          Melbourne Launch Programme — Week {currentWeek} of 12
+        </h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Tracking trust-building progress across new Melbourne centres
+        </p>
+
+        {/* 12-week timeline */}
+        <div className="flex items-center gap-0.5">
+          {Array.from({ length: 12 }, (_, i) => {
+            const week = i + 1;
+            const isCurrent = week === currentWeek;
+            const isPast = week < currentWeek;
+            const isMilestone = MILESTONES.some((m) => m.week === week);
+            return (
+              <div key={week} className="flex-1 relative">
+                <div
+                  className={`h-3 rounded-sm ${
+                    isCurrent
+                      ? "bg-blue-600"
+                      : isPast
+                      ? "bg-blue-200"
+                      : "bg-gray-100"
+                  }`}
+                  title={`Week ${week}`}
+                />
+                {isMilestone && (
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2">
+                    <Milestone className="h-3 w-3 text-blue-500" />
+                  </div>
+                )}
+                <span className="text-[8px] text-gray-400 block text-center mt-0.5">
+                  {week}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Milestones */}
+        <div className="flex gap-4 mt-4">
+          {MILESTONES.map((m) => (
+            <div
+              key={m.week}
+              className={`flex-1 p-2 rounded text-xs border ${
+                m.week <= currentWeek
+                  ? "border-blue-200 bg-blue-50"
+                  : "border-gray-200 bg-gray-50"
+              }`}
+            >
+              <span className="font-medium text-gray-700">
+                Wk {m.week}: {m.label}
+              </span>
+              <p className="text-gray-500 mt-0.5">{m.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Centre Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {services.map((centre) => (
+          <CentreCard key={centre.serviceId} centre={centre} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CentreCard({ centre }: { centre: LaunchCentre }) {
+  const statusStyle = STATUS_STYLES[centre.status];
+  const StatusIcon = statusStyle.icon;
+  const conversionRate =
+    centre.enquiryCount > 0
+      ? Math.round((centre.enrolmentCount / centre.enquiryCount) * 100)
+      : 0;
+  const activityProgress =
+    centre.plannedActivities > 0
+      ? Math.round((centre.completedActivities / centre.plannedActivities) * 100)
+      : 0;
+
+  // Simple sparkline from weeklyTrend
+  const maxTrend = Math.max(...centre.weeklyTrend, 1);
+
+  return (
+    <div className={`rounded-lg border-2 ${statusStyle.border} ${statusStyle.bg} p-4 space-y-3`}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h4 className="font-semibold text-gray-900">{centre.serviceName}</h4>
+          <p className="text-xs text-gray-500">
+            Pop: {centre.schoolPopulation.toLocaleString()} · Week {centre.currentWeek}
+          </p>
+        </div>
+        <span className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${statusStyle.text} ${statusStyle.bg}`}>
+          <StatusIcon className="h-3.5 w-3.5" />
+          {centre.status}
+        </span>
+      </div>
+
+      {/* ASC / BSC */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white/60 rounded p-2">
+          <div className="text-[10px] text-gray-500 uppercase">ASC</div>
+          <div className="text-lg font-bold text-gray-900">
+            {centre.ascEnrolled}
+            <span className="text-sm text-gray-400 font-normal"> / {centre.ascTarget}</span>
+          </div>
+        </div>
+        <div className="bg-white/60 rounded p-2">
+          <div className="text-[10px] text-gray-500 uppercase">BSC</div>
+          <div className="text-lg font-bold text-gray-900">
+            {centre.bscEnrolled}
+            <span className="text-sm text-gray-400 font-normal"> / {centre.bscTarget}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Sparkline */}
+      <div>
+        <div className="text-[10px] text-gray-500 mb-1">Weekly Attendance Trend</div>
+        <div className="flex items-end gap-px h-8">
+          {centre.weeklyTrend.map((val, i) => (
+            <div
+              key={i}
+              className={`flex-1 rounded-t-sm ${
+                i < centre.currentWeek ? "bg-blue-400" : "bg-gray-200"
+              }`}
+              style={{ height: `${Math.max((val / maxTrend) * 100, 4)}%` }}
+              title={`Wk ${i + 1}: ${val}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Enquiry Funnel */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 text-xs">
+          <Users className="h-3.5 w-3.5 text-gray-400" />
+          <span className="text-gray-600">
+            {centre.enquiryCount} enquiries → {centre.enrolmentCount} enrolled
+          </span>
+          <span className="text-gray-400">({conversionRate}%)</span>
+        </div>
+      </div>
+
+      {/* Activities Progress */}
+      <div>
+        <div className="flex items-center justify-between text-xs mb-1">
+          <span className="text-gray-600">Activities</span>
+          <span className="text-gray-500">
+            {centre.completedActivities} / {centre.plannedActivities} completed
+          </span>
+        </div>
+        <div className="w-full bg-white/60 rounded-full h-2">
+          <div
+            className="bg-blue-500 h-2 rounded-full"
+            style={{ width: `${Math.min(activityProgress, 100)}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Trust Indicators */}
+      <div className="flex items-center gap-3 text-xs text-gray-500">
+        {centre.npsAverage !== null && (
+          <span>NPS: {centre.npsAverage}</span>
+        )}
+        <span>Feedback: {centre.npsFeedbackCount}</span>
+        {centre.weeklyTrend[Math.min(centre.currentWeek - 1, 11)] >
+          centre.weeklyTrend[Math.max(centre.currentWeek - 2, 0)] ? (
+          <span className="flex items-center gap-0.5 text-green-600">
+            <TrendingUp className="h-3 w-3" /> Trending up
+          </span>
+        ) : (
+          <span className="flex items-center gap-0.5 text-red-600">
+            <TrendingDown className="h-3 w-3" /> Trending down
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}

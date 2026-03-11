@@ -1035,6 +1035,13 @@ export function staffingAlertEmail(
   date: string,
   alerts: StaffingAlertService[],
   dashboardUrl: string,
+  qualificationRisks?: Array<{
+    serviceName: string;
+    sessionType: string;
+    diplomaPercent: number;
+    diplomaCount: number;
+    totalRostered: number;
+  }>,
 ) {
   const wasteAlerts = alerts.filter((a) => a.status === "overstaffed");
   const riskAlerts = alerts.filter((a) => a.status === "understaffed");
@@ -1122,6 +1129,39 @@ export function staffingAlertEmail(
     <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
       BSC/ASC values show educator variance (+ = over, - = under). Ratio: 1 educator per 15 children.
     </p>
+
+    ${
+      qualificationRisks && qualificationRisks.length > 0
+        ? `
+    <div style="margin:24px 0 0;">
+      <h3 style="margin:0 0 8px;color:#111827;font-size:15px;font-weight:600;">
+        VIC Qualification Risks
+      </h3>
+      <p style="margin:0 0 12px;color:#6b7280;font-size:13px;">
+        The following sessions have fewer than 50% diploma-qualified educators rostered:
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 8px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+        <tr style="background-color:#fef2f2;">
+          <th style="padding:8px 12px;text-align:left;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Centre</th>
+          <th style="padding:8px 12px;text-align:center;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Session</th>
+          <th style="padding:8px 12px;text-align:center;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Diploma %</th>
+          <th style="padding:8px 12px;text-align:center;font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;">Qualified / Total</th>
+        </tr>
+        ${qualificationRisks
+          .map(
+            (r) => `
+        <tr>
+          <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;font-size:13px;font-weight:500;">${r.serviceName}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;text-align:center;">${r.sessionType}</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:13px;text-align:center;font-weight:600;color:#dc2626;">${r.diplomaPercent}%</td>
+          <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px;text-align:center;">${r.diplomaCount} / ${r.totalRostered}</td>
+        </tr>`,
+          )
+          .join("")}
+      </table>
+    </div>`
+        : ""
+    }
 
     ${buttonHtml("View Staffing Dashboard", dashboardUrl)}
   `);
@@ -1299,5 +1339,250 @@ export function nurtureNpsSurveyEmail(firstName: string, centreName: string) {
       <strong>The ${centreName} Team</strong>
     </p>
   `);
+  return { subject, html };
+}
+
+// ─── Enquiry Nurture Templates ─────────────────────────────────
+
+export function nurtureCcsAssistEmail(firstName: string, centreName: string) {
+  const subject = `Understanding Child Care Subsidy — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Did You Know About the Child Care Subsidy?
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Many families at ${centreName} pay significantly less than the listed fee thanks to the
+      Child Care Subsidy (CCS). Depending on your household income, the government may cover
+      up to 90% of session fees.
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Our team can help you understand your estimated out-of-pocket costs.
+      Feel free to reply to this email or call the centre — we're happy to walk you through it.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function nurtureNudge1Email(firstName: string, centreName: string) {
+  const subject = `Just checking in — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      We're Here to Help
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      We sent through some information about our programmes at ${centreName} a few days ago
+      and wanted to check if you had any questions. Whether it's about daily routines or costs
+      — we're happy to chat. Simply reply to this email or give us a call.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function nurtureFormSupportEmail(firstName: string, centreName: string) {
+  const subject = `Need help with the enrolment form? — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      We Can Help You Complete the Form
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      We noticed you've started the enrolment form for ${centreName} — great to see! If you need
+      any help completing it, our team is here. We can walk you through it over the phone or via
+      WhatsApp. Just reply and we'll arrange a time.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function nurtureNudge2Email(firstName: string, centreName: string) {
+  const subject = `Still thinking it over? — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      We'd Love to Welcome Your Family
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      We understand choosing the right OSHC programme is an important decision. If there's anything
+      holding you back, please don't hesitate to reach out. We're happy to arrange a visit so you
+      can see ${centreName} in action.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function nurtureFinalNudgeEmail(firstName: string, centreName: string) {
+  const subject = `One last note from ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      We're Here When You're Ready
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      We won't keep sending messages, but please know our door is always open at ${centreName}.
+      If your plans change, you can reach us anytime by replying to this email or calling the centre.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function nurtureDay1CheckinEmail(firstName: string, centreName: string) {
+  const subject = `How was the first day? — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Hope Day One Went Well!
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      We hope your child had a wonderful first day at ${centreName}! If you have any questions
+      or feedback, please don't hesitate to reach out.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function nurtureDay3CheckinEmail(firstName: string, centreName: string) {
+  const subject = `Settling in well? — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Quick Check-In
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      It's been a few days since your child started at ${centreName}, and we wanted to check in.
+      Is everything going well? Let us know if there's anything we can do to make the transition smoother.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function nurtureWeek2FeedbackEmail(firstName: string, centreName: string) {
+  const subject = `Two weeks in — how's it going? — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      We'd Love Your Feedback
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      It's been two weeks since your child started at ${centreName}! Your feedback helps us improve
+      the experience for every family. Simply reply to this email with your thoughts.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function nurtureMonth1ReferralEmail(firstName: string, centreName: string) {
+  const subject = `Know a family who'd love ${centreName}?`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Refer a Friend, Earn a Reward
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      If you know another family who might benefit from our OSHC programmes at ${centreName},
+      we offer a <strong>$50 referral reward</strong> for every family you refer who enrols.
+      Just reply with your friend's name and we'll take care of the rest.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+// ─── Staff Pulse Survey Notification ──────────────────────────
+
+export function pulseSurveyEmail(
+  name: string,
+  periodMonth: string,
+  portalUrl: string,
+) {
+  const [year, month] = periodMonth.split("-");
+  const monthName = new Date(Number(year), Number(month) - 1).toLocaleString(
+    "en-AU",
+    { month: "long", year: "numeric" },
+  );
+
+  const subject = `Your monthly pulse survey is ready — ${monthName}`;
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Monthly Pulse Survey
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${name}, your pulse survey for <strong>${monthName}</strong> is ready.
+      It takes less than a minute to complete and helps us understand how you're going.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px;background-color:#f0fdf4;">
+          <p style="margin:0;font-size:13px;color:#166534;">
+            Your responses are reviewed in aggregate to improve the workplace for everyone.
+            Individual feedback is only visible to centre management.
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    ${buttonHtml("Complete Survey", portalUrl)}
+
+    <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
+      The survey covers happiness, support, scheduling satisfaction, and whether you'd recommend us as an employer.
+    </p>
+  `);
+
   return { subject, html };
 }

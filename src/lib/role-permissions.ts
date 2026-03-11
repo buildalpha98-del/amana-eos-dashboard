@@ -43,6 +43,7 @@ export const allPages = [
   "/marketing",
   "/communication",
   "/compliance",
+  "/compliance/templates",
   "/activity-library",
   "/documents",
   "/onboarding",
@@ -54,6 +55,20 @@ export const allPages = [
   "/profile",
   "/crm",
   "/crm/templates",
+  // Strategy
+  "/scenarios",
+  "/data-room",
+  "/reports/board",
+  "/assistant",
+  // Operations
+  "/holiday-quest",
+  // Engagement
+  "/enquiries",
+  "/conversions",
+  // HR
+  "/recruitment",
+  // Tools
+  "/tools/ccs-calculator",
 ] as const;
 
 export type AppPage = (typeof allPages)[number];
@@ -82,9 +97,15 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/activity-library",
     "/communication",
     "/compliance",
+    "/compliance/templates",
     "/documents",
     "/onboarding",
     "/profile",
+    "/holiday-quest",
+    "/enquiries",
+    "/leave",
+    "/timesheets",
+    "/tools/ccs-calculator",
   ],
   staff: [
     "/dashboard",
@@ -96,6 +117,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/todos",
     "/compliance",
     "/profile",
+    "/leave",
+    "/tools/ccs-calculator",
   ],
 };
 

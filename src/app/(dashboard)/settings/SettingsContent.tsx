@@ -1793,10 +1793,24 @@ const SCOPE_LABELS: Record<string, string> = {
     "marketing:write": "Marketing (write)",
     "marketing:read": "Marketing (read)",
     "marketing-tasks:write": "Marketing Tasks (write)",
-    "marketing-tasks:read": "Marketing Tasks (read)"
+    "marketing-tasks:read": "Marketing Tasks (read)",
+    "marketing-campaigns:write": "Marketing Campaigns (write)",
+    "marketing-campaigns:read": "Marketing Campaigns (read)",
+    "enquiries:write": "Enquiries (write)",
+    "enquiries:read": "Enquiries (read)",
+    "recruitment:write": "Recruitment (write)",
+    "recruitment:read": "Recruitment (read)",
+    "attendance:read": "Attendance / Occupancy (read)",
+    "pipeline:read": "Pipeline Stats (read)",
+    "hr:read": "HR / People (read)",
+    "billing:read": "Billing / Overdue Fees (read)",
+    "billing:write": "Billing / Overdue Fees (write)",
+    "financials:read": "Finance / P&L (read)",
+    "operations:read": "Operations / QIP / Incidents (read)",
+    "operations:write": "Operations / QIP / Incidents (write)",
 };
 
-const WRITE_SCOPES = ["programs:write", "menus:write", "announcements:write", "marketing:write"] as const;
+const WRITE_SCOPES = ["programs:write", "menus:write", "announcements:write", "marketing:write", "enquiries:write", "recruitment:write", "billing:write", "operations:write"] as const;
 
 function ApiKeysSection() {
   const { data: keys, isLoading } = useApiKeys();

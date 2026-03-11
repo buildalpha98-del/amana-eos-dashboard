@@ -43,6 +43,26 @@ export const API_SCOPES = [
   "marketing-tasks:read",
   "marketing-campaigns:write",
   "marketing-campaigns:read",
+  // ── Enquiry Pipeline (Cowork integration) ──
+  "enquiries:write",
+  "enquiries:read",
+  // ── Recruitment Pipeline (Cowork integration) ──
+  "recruitment:write",
+  "recruitment:read",
+  // ── Attendance / Occupancy ──
+  "attendance:read",
+  // ── Enquiry Pipeline (aggregated stats) ──
+  "pipeline:read",
+  // ── HR / People (Cowork integration) ──
+  "hr:read",
+  // ── Billing / Overdue Fees (Cowork integration) ──
+  "billing:read",
+  "billing:write",
+  // ── Finance (Cowork integration) ──
+  "financials:read",
+  // ── Operations / QIP / Incidents (Cowork integration) ──
+  "operations:read",
+  "operations:write",
 ] as const;
 
 export type ApiScope = (typeof API_SCOPES)[number];

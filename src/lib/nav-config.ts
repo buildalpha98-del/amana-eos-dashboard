@@ -22,6 +22,7 @@ import {
   CalendarDays,
   FileSignature,
   UserCircle,
+  UserPlus,
   Target,
   Repeat,
   Palmtree,
@@ -29,6 +30,8 @@ import {
   FolderLock,
   FileSpreadsheet,
   Bot,
+  Wrench,
+  Briefcase,
 } from "lucide-react";
 
 export interface NavItem {
@@ -65,6 +68,7 @@ export const navItems: NavItem[] = [
   { href: "/reports/board", label: "Board Reports", icon: FileSpreadsheet, section: "Strategy", tooltip: "Monthly board & investor report generator" },
   { href: "/assistant", label: "AI Assistant", icon: Bot, section: "Strategy", tooltip: "Ask questions about your dashboard data" },
   // Engagement
+  { href: "/enquiries", label: "Enquiries", icon: UserPlus, section: "Engagement", tooltip: "Parent enquiry pipeline — track B2C leads from first contact to retention" },
   { href: "/crm", label: "CRM", icon: Target, section: "Engagement", tooltip: "Sales pipeline & lead management" },
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Engagement" },
   { href: "/communication", label: "Communication", icon: Radio, section: "Engagement" },
@@ -72,11 +76,14 @@ export const navItems: NavItem[] = [
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Engagement" },
   { href: "/meetings", label: "Meetings", icon: Presentation, section: "Engagement" },
   // HR
+  { href: "/recruitment", label: "Recruitment", icon: Briefcase, section: "HR", tooltip: "Track vacancies, candidates & staff referrals" },
   { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "HR", tooltip: "Import OWNA rosters, approve & export to Xero" },
   { href: "/leave", label: "Leave", icon: CalendarDays, section: "HR", tooltip: "Request & manage staff leave" },
   { href: "/contracts", label: "Contracts", icon: FileSignature, section: "HR", tooltip: "Employment contracts & award rates" },
   // Support
   { href: "/tickets", label: "Tickets", icon: MessageSquare, section: "Support" },
+  // Tools
+  { href: "/tools/ccs-calculator", label: "CCS Calculator", icon: Wrench, section: "Tools", tooltip: "Child Care Subsidy cost estimator" },
   // Admin
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
   { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "Admin", tooltip: "Onboarding, LMS & offboarding" },

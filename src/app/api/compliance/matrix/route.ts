@@ -10,6 +10,10 @@ const REQUIRED_CERT_TYPES = [
   "cpr",
   "police_check",
   "annual_review",
+  "child_protection",
+  "geccko",
+  "food_safety",
+  "food_handler",
 ] as const;
 
 type CertStatus = "valid" | "expiring" | "expired" | "missing";

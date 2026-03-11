@@ -22,6 +22,10 @@ const CERT_LABELS: Record<CertificateType, string> = {
   cpr: "CPR",
   police_check: "Police Check",
   annual_review: "Annual Review",
+  child_protection: "Child Protection",
+  geccko: "GECCKO",
+  food_safety: "Food Safety",
+  food_handler: "Food Handler",
   other: "Other",
 };
 

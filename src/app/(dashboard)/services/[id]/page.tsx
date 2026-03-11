@@ -27,6 +27,7 @@ import {
   LayoutList,
   UtensilsCrossed,
   ShieldCheck,
+  ClipboardCheck,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
@@ -41,6 +42,7 @@ import { ServiceBudgetTab } from "@/components/services/ServiceBudgetTab";
 import { ServiceProgramTab } from "@/components/services/ServiceProgramTab";
 import { ServiceMenuTab } from "@/components/services/ServiceMenuTab";
 import { ServiceAuditsTab } from "@/components/services/ServiceAuditsTab";
+import { ServiceQIPTab } from "@/components/services/ServiceQIPTab";
 import { ServiceTodayPanel } from "@/components/services/ServiceTodayPanel";
 
 const tabs = [
@@ -56,6 +58,7 @@ const tabs = [
   { key: "program", label: "Program", icon: LayoutList },
   { key: "menu", label: "Menu", icon: UtensilsCrossed },
   { key: "audits", label: "Audits", icon: ShieldCheck },
+  { key: "qip", label: "QIP", icon: ClipboardCheck },
   { key: "budget", label: "Budget", icon: Wallet },
   { key: "financials", label: "Financials", icon: DollarSign },
 ] as const;
@@ -253,6 +256,10 @@ export default function ServiceDetailPage() {
 
         {activeTab === "audits" && (
           <ServiceAuditsTab serviceId={service.id} />
+        )}
+
+        {activeTab === "qip" && (
+          <ServiceQIPTab serviceId={service.id} />
         )}
 
         {activeTab === "budget" && (
