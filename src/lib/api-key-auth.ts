@@ -63,6 +63,9 @@ export const API_SCOPES = [
   // ── Operations / QIP / Incidents (Cowork integration) ──
   "operations:read",
   "operations:write",
+  // ── Parent Experience (Cowork integration) ──
+  "parent-experience:read",
+  "parent-experience:write",
 ] as const;
 
 export type ApiScope = (typeof API_SCOPES)[number];

@@ -1586,3 +1586,41 @@ export function pulseSurveyEmail(
 
   return { subject, html };
 }
+
+// ─── Exit Survey Email ──────────────────────────────────────────
+
+export function nurtureExitSurveyEmail(
+  firstName: string,
+  centreName: string,
+  surveyUrl: string,
+) {
+  const subject = `We'd love your feedback — ${centreName}`;
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      We're sorry to see you go
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      We understand that your family will be leaving ${centreName}. We truly value the time
+      your child spent with us, and we'd love to hear about your experience.
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Your feedback helps us improve our service for all families. The survey takes
+      less than 2 minutes to complete.
+    </p>
+
+    ${buttonHtml("Share Your Feedback", surveyUrl)}
+
+    <p style="margin:16px 0 0;color:#9ca3af;font-size:12px;">
+      This link will expire in 30 days. Your responses are confidential.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      Warm regards,<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+
+  return { subject, html };
+}

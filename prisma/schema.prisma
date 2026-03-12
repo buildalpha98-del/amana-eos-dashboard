@@ -1264,6 +1264,10 @@ model Service {
   // ── Programming & Quality ──────────────────────────
   childInterests       ChildInterest[]         @relation("ServiceInterests")
 
+  // ── Parent Experience ──────────────────────────────
+  quickFeedback        QuickFeedback[]         @relation("ServiceQuickFeedback")
+  exitSurveys          ExitSurvey[]            @relation("ServiceExitSurveys")
+
   @@index([status])
   @@index([managerId])
 }
@@ -2852,22 +2856,72 @@ model TenderScrapeRun {
 // ============================================================
 
 model CentreContact {
-  id         String   @id @default(cuid())
-  email      String
-  firstName  String?
-  lastName   String?
-  serviceId  String
-  service    Service  @relation("ServiceContacts_Email", fields: [serviceId], references: [id], onDelete: Cascade)
-  subscribed Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                String    @id @default(cuid())
+  email             String
+  firstName         String?
+  lastName          String?
+  serviceId         String
+  service           Service   @relation("ServiceContacts_Email", fields: [serviceId], references: [id], onDelete: Cascade)
+  subscribed        Boolean   @default(true)
+  status            String    @default("active") // active, withdrawn, paused
+  withdrawalDate    DateTime?
+  withdrawalReason  String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   nurtureSteps  ParentNurtureStep[] @relation("ContactNurtureSteps")
   npsResponses  NpsSurveyResponse[] @relation("ContactNpsResponses")
   referralsMade Referral[]          @relation("ReferrerContact")
+  exitSurveys   ExitSurvey[]        @relation("ContactExitSurveys")
 
   @@unique([email, serviceId])
   @@index([serviceId])
+  @@index([serviceId, status])
+}
+
+// ============================================================
+// Parent Experience — Quick Feedback + Exit Survey
+// ============================================================
+
+model QuickFeedback {
+  id          String    @id @default(cuid())
+  serviceId   String
+  service     Service   @relation("ServiceQuickFeedback", fields: [serviceId], references: [id], onDelete: Cascade)
+  weekStart   DateTime  @db.Date
+  score       Int       // 1=very unhappy, 2=unhappy, 3=neutral, 4=happy, 5=very happy
+  comment     String?   @db.Text
+  parentName  String?
+  parentEmail String?
+  ipHash      String?   // Hashed IP for rate limiting
+  createdAt   DateTime  @default(now())
+
+  @@index([serviceId, weekStart])
+  @@index([score])
+  @@index([createdAt])
+}
+
+model ExitSurvey {
+  id                String    @id @default(cuid())
+  serviceId         String
+  service           Service   @relation("ServiceExitSurveys", fields: [serviceId], references: [id], onDelete: Cascade)
+  contactId         String?
+  contact           CentreContact? @relation("ContactExitSurveys", fields: [contactId], references: [id], onDelete: SetNull)
+  childName         String
+  withdrawalDate    DateTime
+  reason            String    // moved_schools, no_longer_need_care, cost, unhappy_with_service, child_did_not_enjoy, schedule_change, other
+  reasonDetail      String?   @db.Text
+  satisfactionScore Int       // 1-5
+  enjoyedMost       String?   @db.Text
+  couldImprove      String?   @db.Text
+  wouldReturn       String    // yes, maybe, no
+  surveyToken       String    @unique
+  tokenExpiresAt    DateTime
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([serviceId])
+  @@index([reason])
+  @@index([surveyToken])
 }
 
 model WhatsAppGroup {
