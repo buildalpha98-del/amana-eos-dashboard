@@ -19,6 +19,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["jsdom", "mammoth"],
   async headers() {
     return [
       {

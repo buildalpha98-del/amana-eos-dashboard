@@ -93,12 +93,23 @@ function isDetailsTable(headerTexts: string[]): boolean {
   );
 }
 
+/** Extract month number from text that may contain extra content like "January 2026". */
+function extractMonth(text: string): number | undefined {
+  const lower = text.toLowerCase().trim();
+  // Try exact match first
+  if (MONTH_NAMES[lower] !== undefined) return MONTH_NAMES[lower];
+  // Try partial match — check if text starts with a month name
+  for (const [name, num] of Object.entries(MONTH_NAMES)) {
+    if (lower.startsWith(name)) return num;
+  }
+  return undefined;
+}
+
 /** Detect if a table is a monthly calendar table (has month names in headers). */
 function isMonthlyCalendarTable(headerTexts: string[]): boolean {
   let monthCount = 0;
   for (const h of headerTexts) {
-    const lower = h.toLowerCase().trim();
-    if (MONTH_NAMES[lower] !== undefined) monthCount++;
+    if (extractMonth(h) !== undefined) monthCount++;
   }
   return monthCount >= 1;
 }
@@ -220,9 +231,9 @@ function extractMonthlySchedules(tables: Element[]): Map<string, Set<number>> {
       const cells = Array.from(rows[r].querySelectorAll("th, td"));
       let colOffset = 0;
       for (const cell of cells) {
-        const text = cellText(cell).toLowerCase().trim();
+        const text = cellText(cell);
         const colspan = parseInt(cell.getAttribute("colspan") || "1", 10);
-        const monthNum = MONTH_NAMES[text];
+        const monthNum = extractMonth(text);
         if (monthNum !== undefined) {
           // Assign this month to all columns it spans
           for (let c = colOffset; c < colOffset + colspan; c++) {
@@ -256,8 +267,8 @@ function extractMonthlySchedules(tables: Element[]): Map<string, Set<number>> {
             }
           }
 
-          // Skip month name cells themselves
-          if (monthNum && !MONTH_NAMES[text.toLowerCase().trim()]) {
+          // Skip month name cells themselves (don't treat "January" as an audit name)
+          if (monthNum && extractMonth(text) === undefined) {
             const normalised = normaliseName(text);
             if (!scheduleMap.has(normalised)) {
               scheduleMap.set(normalised, new Set());
