@@ -1810,6 +1810,8 @@ const SCOPE_LABELS: Record<string, string> = {
     "operations:write": "Operations / QIP / Incidents (write)",
     "parent-experience:read": "Parent Experience (read)",
     "parent-experience:write": "Parent Experience (write)",
+    "partnerships:read": "Partnerships (read)",
+    "partnerships:write": "Partnerships (write)",
 };
 
 const WRITE_SCOPES = ["programs:write", "menus:write", "announcements:write", "marketing:write", "enquiries:write", "recruitment:write", "billing:write", "operations:write"] as const;

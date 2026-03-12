@@ -14,6 +14,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import {
   Target,
   Plus,
@@ -22,6 +23,8 @@ import {
   List,
   SlidersHorizontal,
   X,
+  Handshake,
+  Loader2,
 } from "lucide-react";
 
 const AU_STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
@@ -372,6 +375,9 @@ export default function CrmPage() {
         />
       )}
 
+      {/* School Health */}
+      <SchoolHealthSection />
+
       {/* Lead Detail Drawer */}
       {selectedLead && (
         <LeadDetailDrawer
@@ -397,6 +403,111 @@ export default function CrmPage() {
         open={showCreate}
         onClose={() => setShowCreate(false)}
       />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* School Health Section                                               */
+/* ------------------------------------------------------------------ */
+
+interface SchoolHealthEntry {
+  serviceId: string;
+  serviceName: string;
+  serviceCode: string;
+  healthScore: number;
+  contractEndDate: string | null;
+  lastPrincipalVisit: string | null;
+  buildAlphaKidsActive: boolean;
+  schoolPrincipalName: string | null;
+}
+
+function SchoolHealthSection() {
+  const { data, isLoading } = useQuery<{ schools: SchoolHealthEntry[] }>({
+    queryKey: ["school-health"],
+    queryFn: async () => {
+      const res = await fetch("/api/partnerships/school-health");
+      if (!res.ok) throw new Error("Failed to fetch school health");
+      return res.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 py-4 text-sm text-gray-400">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Loading school health...
+      </div>
+    );
+  }
+
+  const schools = data?.schools || [];
+  if (schools.length === 0) return null;
+
+  const scoreColor = (score: number) =>
+    score >= 70
+      ? "text-emerald-700 bg-emerald-50"
+      : score >= 40
+        ? "text-amber-700 bg-amber-50"
+        : "text-red-700 bg-red-50";
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Handshake className="w-4 h-4 text-brand" />
+        <h3 className="text-sm font-semibold text-gray-900">School Relationship Health</h3>
+      </div>
+      <div className="border border-gray-200 rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left px-4 py-2.5 font-medium text-gray-600">School</th>
+              <th className="text-center px-3 py-2.5 font-medium text-gray-600 w-20">Score</th>
+              <th className="text-left px-3 py-2.5 font-medium text-gray-600 hidden md:table-cell">Last Visit</th>
+              <th className="text-left px-3 py-2.5 font-medium text-gray-600 hidden lg:table-cell">Contract End</th>
+              <th className="text-center px-3 py-2.5 font-medium text-gray-600 hidden lg:table-cell w-16">BAK</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {schools.map((s) => {
+              const daysSinceVisit = s.lastPrincipalVisit
+                ? Math.floor((Date.now() - new Date(s.lastPrincipalVisit).getTime()) / (1000 * 60 * 60 * 24))
+                : null;
+              return (
+                <tr key={s.serviceId} className="hover:bg-gray-50">
+                  <td className="px-4 py-2.5">
+                    <Link href={`/services/${s.serviceId}`} className="text-gray-900 hover:text-brand font-medium">
+                      {s.serviceName}
+                    </Link>
+                    <span className="text-xs text-gray-400 ml-1.5">{s.serviceCode}</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-center">
+                    <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-bold", scoreColor(s.healthScore))}>
+                      {s.healthScore}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 hidden md:table-cell">
+                    {s.lastPrincipalVisit ? (
+                      <span className={cn("text-xs", daysSinceVisit && daysSinceVisit > 90 ? "text-red-600 font-medium" : "text-gray-600")}>
+                        {new Date(s.lastPrincipalVisit).toLocaleDateString("en-AU")}
+                        {daysSinceVisit !== null && <span className="text-gray-400 ml-1">({daysSinceVisit}d)</span>}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400">No visit</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 hidden lg:table-cell text-xs text-gray-600">
+                    {s.contractEndDate ? new Date(s.contractEndDate).toLocaleDateString("en-AU") : "—"}
+                  </td>
+                  <td className="px-3 py-2.5 text-center hidden lg:table-cell">
+                    <span className={cn("w-2.5 h-2.5 rounded-full inline-block", s.buildAlphaKidsActive ? "bg-emerald-500" : "bg-gray-300")} />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

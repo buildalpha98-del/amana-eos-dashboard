@@ -66,6 +66,9 @@ export const API_SCOPES = [
   // ── Parent Experience (Cowork integration) ──
   "parent-experience:read",
   "parent-experience:write",
+  // ── Partnerships (Cowork integration) ──
+  "partnerships:read",
+  "partnerships:write",
 ] as const;
 
 export type ApiScope = (typeof API_SCOPES)[number];

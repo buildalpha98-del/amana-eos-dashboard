@@ -347,6 +347,9 @@ enum ShiftType {
 enum LeadSource {
   tender
   direct
+  build_alpha_kids
+  referral
+  community_connection
 }
 
 enum PipelineStage {
@@ -1186,6 +1189,17 @@ model Service {
   parentDriver             String?    // Primary driver: "homework", "quran", "enrichment", "working_parents", "traffic"
   launchDate               DateTime?  // Date service launched (for launch-phase tracking)
   launchPhase              String?    // Phase: "pre_launch", "launch", "ramp_up", "mature"
+
+  // ── School Partnership / Contract ──────────────────────────
+  contractStartDate        DateTime?
+  contractEndDate          DateTime?
+  licenceFeeAnnual         Float?     // Annual licence fee paid to school
+  schoolPrincipalName      String?
+  schoolPrincipalEmail     String?
+  schoolBusinessManagerName  String?
+  schoolBusinessManagerEmail String?
+  lastPrincipalVisit       DateTime?
+  buildAlphaKidsActive     Boolean    @default(false)
 
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
@@ -2790,17 +2804,19 @@ model Lead {
   tenderCloseDate   DateTime?
   tenderUrl         String?
   estimatedCapacity Int?
-  notes             String?       @db.Text
-  assignedToId      String?
-  assignedTo        User?         @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-  serviceId         String?
-  service           Service?      @relation("LeadService", fields: [serviceId], references: [id], onDelete: SetNull)
-  wonAt             DateTime?
-  lostAt            DateTime?
-  lostReason        String?
-  stageChangedAt    DateTime      @default(now())
-  nextTouchpointAt  DateTime?
-  deleted           Boolean       @default(false)
+  notes                String?       @db.Text
+  buildAlphaKidsStatus String?       // active, prospect, not_applicable, unknown
+  communityConnections String?       @db.Text
+  assignedToId         String?
+  assignedTo           User?         @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  serviceId            String?
+  service              Service?      @relation("LeadService", fields: [serviceId], references: [id], onDelete: SetNull)
+  wonAt                DateTime?
+  lostAt               DateTime?
+  lostReason           String?
+  stageChangedAt       DateTime      @default(now())
+  nextTouchpointAt     DateTime?
+  deleted              Boolean       @default(false)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 

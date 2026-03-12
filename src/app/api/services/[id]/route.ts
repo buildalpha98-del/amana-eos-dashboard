@@ -90,6 +90,10 @@ export async function PATCH(
     "bscDailyRate", "ascDailyRate", "vcDailyRate",
     "bscCasualRate", "ascCasualRate",
     "bscGroceryRate", "ascGroceryRate", "vcGroceryRate",
+    "contractStartDate", "contractEndDate", "licenceFeeAnnual",
+    "schoolPrincipalName", "schoolPrincipalEmail",
+    "schoolBusinessManagerName", "schoolBusinessManagerEmail",
+    "lastPrincipalVisit", "buildAlphaKidsActive",
   ];
 
   for (const f of fields) {
