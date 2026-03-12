@@ -12,6 +12,7 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,6 +20,9 @@ function LoginForm() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    // Set remember-me cookie before auth so JWT callback can read it
+    document.cookie = `remember-me=${rememberMe}; path=/; max-age=60; SameSite=Lax`;
 
     const result = await signIn("credentials", {
       email,
@@ -101,6 +105,22 @@ function LoginForm() {
                 placeholder="Enter your password"
                 autoComplete="current-password"
               />
+            </div>
+
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 text-brand border-gray-300 rounded focus:ring-brand cursor-pointer"
+              />
+              <label
+                htmlFor="remember-me"
+                className="ml-2 text-sm text-gray-600 cursor-pointer select-none"
+              >
+                Keep me signed in
+              </label>
             </div>
 
             <button

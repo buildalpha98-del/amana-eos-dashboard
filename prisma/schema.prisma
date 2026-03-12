@@ -3176,6 +3176,7 @@ model ParentEnquiry {
   parentPhone     String?
   childName       String?
   childAge        Int?
+  childrenDetails Json?    // Array of {name, age} for multiple children
   channel         String   // phone, email, whatsapp, walkin, referral, website
   parentDriver    String?  // homework, quran, enrichment, working_parent, traffic, sports
   stage           String   @default("new_enquiry") // new_enquiry, info_sent, nurturing, form_started, enrolled, first_session, day3, week2, month1, retained, cold

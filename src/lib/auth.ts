@@ -1,6 +1,7 @@
 import { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 
@@ -54,7 +55,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 30 * 24 * 60 * 60, // 30 days max (remember-me), actual expiry handled in jwt callback
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -63,7 +64,27 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.serviceId = user.serviceId;
         token.state = user.state;
+        token.loginAt = Date.now();
+
+        // Read remember-me preference set during login
+        try {
+          const cookieStore = await cookies();
+          const rememberMe = cookieStore.get("remember-me")?.value === "true";
+          token.rememberMe = rememberMe;
+        } catch {
+          token.rememberMe = false;
+        }
       }
+
+      // Enforce short session (24h) when remember-me is off
+      if (token.loginAt && !token.rememberMe) {
+        const elapsed = Date.now() - (token.loginAt as number);
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+        if (elapsed > ONE_DAY) {
+          return { ...token, exp: 0 }; // Force token expiry
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {

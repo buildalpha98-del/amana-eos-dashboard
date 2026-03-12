@@ -3,6 +3,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 
+const childSchema = z.object({
+  name: z.string().min(1),
+  age: z.number().int().min(3).max(16).optional().nullable(),
+});
+
 const createEnquirySchema = z.object({
   serviceId: z.string().min(1, "Service is required"),
   parentName: z.string().min(1, "Parent name is required"),
@@ -10,6 +15,7 @@ const createEnquirySchema = z.object({
   parentPhone: z.string().optional().nullable(),
   childName: z.string().optional().nullable(),
   childAge: z.number().int().optional().nullable(),
+  childrenDetails: z.array(childSchema).optional().nullable(),
   channel: z.enum(["phone", "email", "whatsapp", "walkin", "referral", "website"]),
   parentDriver: z
     .enum(["homework", "quran", "enrichment", "working_parent", "traffic", "sports"])
@@ -86,14 +92,25 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = createEnquirySchema.parse(body);
 
+    // Build childName summary from childrenDetails if provided
+    const children = data.childrenDetails?.filter((c) => c.name.trim());
+    let childName = data.childName || null;
+    let childAge = data.childAge || null;
+
+    if (children && children.length > 0) {
+      childName = children.map((c) => c.name).join(", ");
+      childAge = children[0].age || null; // Store first child's age for backward compat
+    }
+
     const enquiry = await prisma.parentEnquiry.create({
       data: {
         serviceId: data.serviceId,
         parentName: data.parentName,
         parentEmail: data.parentEmail || null,
         parentPhone: data.parentPhone || null,
-        childName: data.childName || null,
-        childAge: data.childAge || null,
+        childName,
+        childAge,
+        childrenDetails: children && children.length > 0 ? children : undefined,
         channel: data.channel,
         parentDriver: data.parentDriver || null,
         assigneeId: data.assigneeId || null,

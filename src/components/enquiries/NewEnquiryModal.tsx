@@ -1,11 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 
 interface NewEnquiryModalProps {
   onClose: () => void;
   onCreated: () => void;
+}
+
+interface ChildEntry {
+  name: string;
+  age: string;
 }
 
 const CHANNELS = [
@@ -29,14 +34,13 @@ const DRIVERS = [
 export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
   const [services, setServices] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
+  const [children, setChildren] = useState<ChildEntry[]>([{ name: "", age: "" }]);
   const [form, setForm] = useState({
     parentName: "",
     serviceId: "",
     channel: "phone",
     parentEmail: "",
     parentPhone: "",
-    childName: "",
-    childAge: "",
     parentDriver: "",
     notes: "",
   });
@@ -48,21 +52,42 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
       .catch(console.error);
   }, []);
 
+  const addChild = () => {
+    setChildren([...children, { name: "", age: "" }]);
+  };
+
+  const removeChild = (index: number) => {
+    if (children.length <= 1) return;
+    setChildren(children.filter((_, i) => i !== index));
+  };
+
+  const updateChild = (index: number, field: keyof ChildEntry, value: string) => {
+    const updated = [...children];
+    updated[index] = { ...updated[index], [field]: value };
+    setChildren(updated);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
+      const validChildren = children
+        .filter((c) => c.name.trim())
+        .map((c) => ({
+          name: c.name.trim(),
+          age: c.age ? parseInt(c.age) : null,
+        }));
+
       const res = await fetch("/api/enquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          childAge: form.childAge ? parseInt(form.childAge) : null,
           parentEmail: form.parentEmail || null,
           parentPhone: form.parentPhone || null,
-          childName: form.childName || null,
           parentDriver: form.parentDriver || null,
           notes: form.notes || null,
+          childrenDetails: validChildren.length > 0 ? validChildren : null,
         }),
       });
       if (res.ok) {
@@ -172,34 +197,50 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
             </div>
           </div>
 
-          {/* Child info */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Child Name
+          {/* Children */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Children
               </label>
-              <input
-                value={form.childName}
-                onChange={(e) =>
-                  setForm({ ...form, childName: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-              />
+              <button
+                type="button"
+                onClick={addChild}
+                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Child
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Child Age
-              </label>
-              <input
-                type="number"
-                min="4"
-                max="14"
-                value={form.childAge}
-                onChange={(e) =>
-                  setForm({ ...form, childAge: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-              />
+            <div className="space-y-2">
+              {children.map((child, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    value={child.name}
+                    onChange={(e) => updateChild(i, "name", e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder={`Child ${i + 1} name`}
+                  />
+                  <input
+                    type="number"
+                    min="3"
+                    max="16"
+                    value={child.age}
+                    onChange={(e) => updateChild(i, "age", e.target.value)}
+                    className="w-20 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Age"
+                  />
+                  {children.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeChild(i)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
