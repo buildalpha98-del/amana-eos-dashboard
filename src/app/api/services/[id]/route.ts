@@ -96,8 +96,26 @@ export async function PATCH(
     "lastPrincipalVisit", "buildAlphaKidsActive",
   ];
 
+  // Date fields that need parsing from strings to Date objects
+  const dateFields = new Set([
+    "contractStartDate", "contractEndDate", "lastPrincipalVisit",
+  ]);
+
   for (const f of fields) {
-    if (body[f] !== undefined) data[f] = body[f];
+    if (body[f] !== undefined) {
+      if (dateFields.has(f)) {
+        // Convert date strings to Date objects, or null to clear
+        data[f] = body[f] ? new Date(body[f]) : null;
+      } else {
+        data[f] = body[f];
+      }
+    }
+  }
+
+  // Verify service exists
+  const existing = await prisma.service.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) {
+    return NextResponse.json({ error: "Service not found" }, { status: 404 });
   }
 
   const service = await prisma.service.update({

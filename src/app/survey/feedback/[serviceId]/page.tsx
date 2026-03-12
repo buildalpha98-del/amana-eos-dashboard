@@ -32,7 +32,8 @@ export default function QuickFeedbackPage() {
   const [serviceName, setServiceName] = useState("");
 
   useEffect(() => {
-    fetch(`/api/services/${serviceId}`)
+    // Use the public service-name lookup (no auth required)
+    fetch(`/api/services/${serviceId}/public-name`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data?.name) setServiceName(data.name);
