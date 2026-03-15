@@ -13,6 +13,9 @@ import {
   Loader2,
   Check,
   MessageCircle,
+  Pencil,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { CCSCalculator } from "@/components/shared/CCSCalculator";
 
@@ -59,6 +62,78 @@ export function EnquiryDetailPanel({
   });
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    parentName: "",
+    parentEmail: "",
+    parentPhone: "",
+    channel: "",
+    parentDriver: "",
+    notes: "",
+    children: [{ name: "", age: "" }] as { name: string; age: string }[],
+  });
+  const [saving, setSaving] = useState(false);
+
+  const startEditing = () => {
+    if (!enquiry) return;
+    const children =
+      enquiry.childrenDetails && Array.isArray(enquiry.childrenDetails)
+        ? (enquiry.childrenDetails as { name: string; age?: number | null }[]).map((c) => ({
+            name: c.name,
+            age: c.age != null ? String(c.age) : "",
+          }))
+        : enquiry.childName
+          ? [{ name: enquiry.childName, age: enquiry.childAge ? String(enquiry.childAge) : "" }]
+          : [{ name: "", age: "" }];
+    setEditForm({
+      parentName: enquiry.parentName || "",
+      parentEmail: enquiry.parentEmail || "",
+      parentPhone: enquiry.parentPhone || "",
+      channel: enquiry.channel || "",
+      parentDriver: enquiry.parentDriver || "",
+      notes: enquiry.notes || "",
+      children,
+    });
+    setEditing(true);
+  };
+
+  const saveEdits = async () => {
+    setSaving(true);
+    try {
+      const validChildren = editForm.children.filter((c) => c.name.trim());
+      const childrenDetails = validChildren.length > 0
+        ? validChildren.map((c) => ({ name: c.name.trim(), age: c.age ? parseInt(c.age) : null }))
+        : null;
+      const childName = validChildren.length > 0 ? validChildren.map((c) => c.name.trim()).join(", ") : null;
+      const childAge = validChildren.length === 1 && validChildren[0].age ? parseInt(validChildren[0].age) : null;
+
+      await fetch(`/api/enquiries/${enquiryId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          parentName: editForm.parentName,
+          parentEmail: editForm.parentEmail || null,
+          parentPhone: editForm.parentPhone || null,
+          channel: editForm.channel,
+          parentDriver: editForm.parentDriver || null,
+          notes: editForm.notes || null,
+          childrenDetails,
+          childName,
+          childAge,
+        }),
+      });
+      const res = await fetch(`/api/enquiries/${enquiryId}`);
+      setEnquiry(await res.json());
+      onUpdated();
+      setEditing(false);
+      setToast("Parent details updated");
+    } catch (err) {
+      console.error("Save failed:", err);
+      setToast("Failed to save — please try again");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
     fetch(`/api/enquiries/${enquiryId}`)
@@ -251,38 +326,201 @@ export function EnquiryDetailPanel({
         <div className="p-4 space-y-6">
           {/* Contact details */}
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">
-              Contact Details
-            </h4>
-            <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
-              {enquiry.parentEmail && (
-                <p className="flex items-center gap-2 text-gray-600">
-                  <Mail className="h-3.5 w-3.5" /> {enquiry.parentEmail}
-                </p>
-              )}
-              {enquiry.parentPhone && (
-                <p className="flex items-center gap-2 text-gray-600">
-                  <Phone className="h-3.5 w-3.5" /> {enquiry.parentPhone}
-                </p>
-              )}
-              {childDisplay && (
-                <p className="text-gray-600">
-                  {(enquiry.childrenDetails as any[])?.length > 1
-                    ? "Children"
-                    : "Child"}
-                  : {childDisplay}
-                </p>
-              )}
-              <p className="text-gray-600">
-                Centre: {enquiry.service?.name || "Unknown"}
-              </p>
-              <p className="text-gray-600">Channel: {enquiry.channel}</p>
-              {enquiry.parentDriver && (
-                <p className="text-gray-600">
-                  Driver: {enquiry.parentDriver.replace("_", " ")}
-                </p>
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium text-gray-700">Contact Details</h4>
+              {!editing && (
+                <button
+                  onClick={startEditing}
+                  className="inline-flex items-center gap-1 text-xs text-brand hover:text-brand/80 font-medium"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Edit
+                </button>
               )}
             </div>
+
+            {editing ? (
+              <div className="bg-gray-50 rounded-lg p-3 space-y-3 text-sm">
+                {/* Parent Name */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Parent Name</label>
+                  <input
+                    type="text"
+                    value={editForm.parentName}
+                    onChange={(e) => setEditForm({ ...editForm, parentName: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                  />
+                </div>
+                {/* Email */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={editForm.parentEmail}
+                    onChange={(e) => setEditForm({ ...editForm, parentEmail: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                    placeholder="parent@email.com"
+                  />
+                </div>
+                {/* Phone */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={editForm.parentPhone}
+                    onChange={(e) => setEditForm({ ...editForm, parentPhone: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                    placeholder="04xx xxx xxx"
+                  />
+                </div>
+                {/* Children */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Children</label>
+                  <div className="space-y-2">
+                    {editForm.children.map((child, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={child.name}
+                          onChange={(e) => {
+                            const updated = [...editForm.children];
+                            updated[i] = { ...updated[i], name: e.target.value };
+                            setEditForm({ ...editForm, children: updated });
+                          }}
+                          className="flex-1 px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                          placeholder="Child name"
+                        />
+                        <input
+                          type="number"
+                          value={child.age}
+                          onChange={(e) => {
+                            const updated = [...editForm.children];
+                            updated[i] = { ...updated[i], age: e.target.value };
+                            setEditForm({ ...editForm, children: updated });
+                          }}
+                          className="w-16 px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                          placeholder="Age"
+                          min={0}
+                          max={18}
+                        />
+                        {editForm.children.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = editForm.children.filter((_, idx) => idx !== i);
+                              setEditForm({ ...editForm, children: updated });
+                            }}
+                            className="p-1 text-gray-400 hover:text-red-500"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, children: [...editForm.children, { name: "", age: "" }] })}
+                      className="inline-flex items-center gap-1 text-xs text-brand hover:text-brand/80 font-medium"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add child
+                    </button>
+                  </div>
+                </div>
+                {/* Channel */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Channel</label>
+                  <select
+                    value={editForm.channel}
+                    onChange={(e) => setEditForm({ ...editForm, channel: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                  >
+                    <option value="phone">Phone</option>
+                    <option value="email">Email</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="walkin">Walk-in</option>
+                    <option value="referral">Referral</option>
+                    <option value="website">Website</option>
+                  </select>
+                </div>
+                {/* Parent Driver */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Driver</label>
+                  <select
+                    value={editForm.parentDriver}
+                    onChange={(e) => setEditForm({ ...editForm, parentDriver: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                  >
+                    <option value="">None</option>
+                    <option value="homework">Homework</option>
+                    <option value="quran">Quran</option>
+                    <option value="enrichment">Enrichment</option>
+                    <option value="working_parent">Working Parent</option>
+                    <option value="traffic">Traffic</option>
+                    <option value="sports">Sports</option>
+                  </select>
+                </div>
+                {/* Notes */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+                  <textarea
+                    rows={3}
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                    placeholder="Additional notes..."
+                  />
+                </div>
+                {/* Save / Cancel */}
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    onClick={() => setEditing(false)}
+                    disabled={saving}
+                    className="px-3 py-1.5 text-xs text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveEdits}
+                    disabled={saving || !editForm.parentName.trim()}
+                    className="px-3 py-1.5 text-xs text-white bg-brand rounded-md hover:bg-brand/90 disabled:opacity-50 inline-flex items-center gap-1.5"
+                  >
+                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                    {saving ? "Saving..." : "Save changes"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
+                {enquiry.parentEmail && (
+                  <p className="flex items-center gap-2 text-gray-600">
+                    <Mail className="h-3.5 w-3.5" /> {enquiry.parentEmail}
+                  </p>
+                )}
+                {enquiry.parentPhone && (
+                  <p className="flex items-center gap-2 text-gray-600">
+                    <Phone className="h-3.5 w-3.5" /> {enquiry.parentPhone}
+                  </p>
+                )}
+                {childDisplay && (
+                  <p className="text-gray-600">
+                    {(enquiry.childrenDetails as any[])?.length > 1
+                      ? "Children"
+                      : "Child"}
+                    : {childDisplay}
+                  </p>
+                )}
+                <p className="text-gray-600">
+                  Centre: {enquiry.service?.name || "Unknown"}
+                </p>
+                <p className="text-gray-600">Channel: {enquiry.channel}</p>
+                {enquiry.parentDriver && (
+                  <p className="text-gray-600">
+                    Driver: {enquiry.parentDriver.replace("_", " ")}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Status flags */}

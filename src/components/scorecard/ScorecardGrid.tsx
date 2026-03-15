@@ -348,7 +348,7 @@ export function ScorecardGrid({
                     {/* Title */}
                     <td className="sticky left-0 z-10 bg-white group-hover/row:bg-gray-50/50 px-4 py-2">
                       <div className="flex items-center gap-1.5">
-                        <div className="text-sm font-medium text-gray-900 truncate max-w-[130px]">
+                        <div className="text-sm font-medium text-gray-900 truncate max-w-[130px]" title={m.title}>
                           {m.title}
                         </div>
                         <TrendArrow
@@ -385,7 +385,7 @@ export function ScorecardGrid({
                         )}
                       </div>
                       {m.description && (
-                        <div className="text-[10px] text-gray-400 truncate max-w-[180px]">
+                        <div className="text-[10px] text-gray-400 truncate max-w-[180px]" title={m.description}>
                           {m.description}
                         </div>
                       )}

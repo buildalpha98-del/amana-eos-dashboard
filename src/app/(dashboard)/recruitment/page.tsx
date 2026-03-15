@@ -2,24 +2,28 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Briefcase, Plus, Users, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Briefcase, Plus, Users, Clock, CheckCircle2, Search } from "lucide-react";
 import { ServiceFilter } from "@/components/marketing/ServiceFilter";
 import { NewVacancyModal } from "@/components/recruitment/NewVacancyModal";
 import { VacancyTable } from "@/components/recruitment/VacancyTable";
 import { VacancyDetailPanel } from "@/components/recruitment/VacancyDetailPanel";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { toast } from "@/hooks/useToast";
 
 export default function RecruitmentPage() {
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
   const [showNewVacancy, setShowNewVacancy] = useState(false);
   const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["recruitment-vacancies", selectedServiceId, statusFilter],
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["recruitment-vacancies", selectedServiceId, statusFilter, search],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedServiceId) params.set("serviceId", selectedServiceId);
       if (statusFilter) params.set("status", statusFilter);
+      if (search) params.set("q", search);
       const res = await fetch(`/api/recruitment?${params}`);
       if (!res.ok) throw new Error("Failed to fetch vacancies");
       return res.json();
@@ -35,6 +39,18 @@ export default function RecruitmentPage() {
     filled: vacancies.filter((v: { status: string }) => v.status === "filled").length,
   };
 
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto">
+        <ErrorState
+          title="Failed to load vacancies"
+          error={error instanceof Error ? error : new Error("Something went wrong while fetching the recruitment pipeline.")}
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
@@ -47,7 +63,7 @@ export default function RecruitmentPage() {
             Track vacancies, candidates, and staff referrals
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <ServiceFilter value={selectedServiceId} onChange={setSelectedServiceId} />
           <select
             value={statusFilter}
@@ -61,9 +77,19 @@ export default function RecruitmentPage() {
             <option value="filled">Filled</option>
             <option value="cancelled">Cancelled</option>
           </select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search vacancies..."
+              className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-full sm:w-48"
+            />
+          </div>
           <button
             onClick={() => setShowNewVacancy(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-brand text-white text-sm font-medium hover:bg-brand-hover transition-colors"
           >
             <Plus className="h-4 w-4" />
             New Vacancy
@@ -79,12 +105,34 @@ export default function RecruitmentPage() {
         <StatCard icon={CheckCircle2} label="Filled" value={stats.filled} color="emerald" />
       </div>
 
-      {/* Vacancy Table */}
-      <VacancyTable
-        vacancies={vacancies}
-        isLoading={isLoading}
-        onSelect={(id) => setSelectedVacancyId(id)}
-      />
+      {/* Empty State */}
+      {!isLoading && vacancies.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-gray-200">
+          <div className="p-4 bg-gray-100 rounded-full mb-4">
+            <Briefcase className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">No vacancies found</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {search || statusFilter || selectedServiceId
+              ? "Try adjusting your filters or search terms."
+              : "Get started by creating your first vacancy."}
+          </p>
+          <button
+            onClick={() => setShowNewVacancy(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-brand text-white text-sm font-medium hover:bg-brand-hover transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            New Vacancy
+          </button>
+        </div>
+      ) : (
+        /* Vacancy Table */
+        <VacancyTable
+          vacancies={vacancies}
+          isLoading={isLoading}
+          onSelect={(id) => setSelectedVacancyId(id)}
+        />
+      )}
 
       {/* New Vacancy Modal */}
       {showNewVacancy && (
@@ -93,6 +141,7 @@ export default function RecruitmentPage() {
           onCreated={() => {
             setShowNewVacancy(false);
             refetch();
+            toast({ title: "Vacancy created", description: "The new vacancy has been added to the pipeline." });
           }}
         />
       )}

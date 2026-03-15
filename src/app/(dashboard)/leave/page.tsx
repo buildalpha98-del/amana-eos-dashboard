@@ -1037,13 +1037,7 @@ export default function LeavePage() {
     error: requestsErrorObj,
     refetch: refetchRequests,
   } = useLeaveRequests(
-    isAdmin
-      ? {
-          ...(statusFilter ? { status: statusFilter } : {}),
-          ...(serviceFilter ? { serviceId: serviceFilter } : {}),
-          ...(typeFilter ? { leaveType: typeFilter } : {}),
-        }
-      : { userId: userId || "" }
+    isAdmin ? {} : { userId: userId || "" }
   );
 
   const { data: balances = [], isLoading: balancesLoading } = useLeaveBalances(
@@ -1059,7 +1053,18 @@ export default function LeavePage() {
     },
   });
 
-  // Stats
+  // Client-side filtered requests for the table
+  const filteredRequests = useMemo(() => {
+    if (!requests) return [];
+    return requests.filter((r) => {
+      if (statusFilter && r.status !== statusFilter) return false;
+      if (serviceFilter && r.serviceId !== serviceFilter) return false;
+      if (typeFilter && r.leaveType !== typeFilter) return false;
+      return true;
+    });
+  }, [requests, statusFilter, serviceFilter, typeFilter]);
+
+  // Stats always use unfiltered data
   const stats = useMemo(() => {
     if (!requests) return { total: 0, pending: 0, approved: 0, rejected: 0 };
     const list = isAdmin ? requests : requests.filter((r) => r.userId === userId);
@@ -1310,11 +1315,11 @@ export default function LeavePage() {
 
       {activeTab === "approvals" && isAdmin && (
         <ApprovalsTab
-          requests={requests}
+          requests={filteredRequests}
           isLoading={requestsLoading}
-          statusFilter={statusFilter}
-          serviceFilter={serviceFilter}
-          typeFilter={typeFilter}
+          statusFilter=""
+          serviceFilter=""
+          typeFilter=""
           services={services}
         />
       )}

@@ -11,7 +11,7 @@ const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email is required"),
   password: passwordSchema,
-  role: z.enum(["owner", "admin", "member", "staff"]).default("member"),
+  role: z.enum(["owner", "head_office", "admin", "marketing", "coordinator", "member", "staff"]).default("member"),
   serviceId: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
 });

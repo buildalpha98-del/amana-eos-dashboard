@@ -39,7 +39,7 @@ export default function TeamPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Accountability Chart
+            {viewMode === "chart" ? "Accountability Chart" : "Performance List"}
           </h2>
           <p className="text-sm text-gray-500 mt-1 line-clamp-2">
             {viewMode === "chart"

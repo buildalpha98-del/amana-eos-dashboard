@@ -11,6 +11,8 @@ enum Role {
   owner
   head_office
   admin
+  marketing
+  coordinator
   member
   staff
 }
@@ -3204,6 +3206,7 @@ model AuditInstance {
   updatedAt           DateTime      @updatedAt
 
   responses AuditItemResponse[]
+  reviews   AuditReview[] @relation("AuditReviews")
 
   @@unique([templateId, serviceId, scheduledMonth, scheduledYear])
   @@index([serviceId])
@@ -3590,4 +3593,55 @@ model ChildInterest {
 
   @@index([serviceId, actioned])
   @@index([serviceId, capturedDate])
+}
+
+// ============================================================
+// Audit Reviews (NQS Quality Area Evidence Packs)
+// ============================================================
+
+model AuditReview {
+  id             String   @id @default(cuid())
+  auditInstanceId String?
+  auditInstance  AuditInstance? @relation("AuditReviews", fields: [auditInstanceId], references: [id], onDelete: SetNull)
+  centreId       String
+  qualityArea    Int      // 1-7 (NQS QA1–QA7)
+  elements       Json     // Array of { element: string, rating: string, evidence: string }
+  overallRating  String   // "exceeding" | "meeting" | "working_towards" | "not_met"
+  reviewerNotes  String?  @db.Text
+  reviewedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([centreId])
+  @@index([qualityArea])
+  @@index([centreId, qualityArea])
+}
+
+// ============================================================
+// Educator Reflections
+// ============================================================
+
+enum ReflectionType {
+  daily_reflection
+  friday_review
+  child_observation
+  iqra_feedback
+}
+
+model EducatorReflection {
+  id             String          @id @default(cuid())
+  centreId       String
+  educatorName   String
+  reflectionType ReflectionType
+  date           DateTime        @db.Date
+  content        Json            // Flexible structure per type
+  tags           String[]
+  linkedActivityId String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([centreId])
+  @@index([reflectionType])
+  @@index([centreId, date])
+  @@index([date])
 }

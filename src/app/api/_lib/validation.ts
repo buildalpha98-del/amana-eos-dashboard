@@ -31,24 +31,32 @@ const base64File = z.object({
 
 export const programSchema = z.object({
   weekCommencing: isoDateString,
-  theme: z.string().min(1, "Theme is required"),
+  theme: z.string().min(1, "theme is required"),
   category: z.string().nullable().optional(),
   summary: z.string().nullable().optional(),
-  programFile: base64File,
+  programFile: base64File.nullable().optional(),
+  programFileUrl: z.string().url("programFileUrl must be a valid URL").optional(),
   resourceFile: base64File.nullable().optional(),
+  resourceFileUrl: z.string().url("resourceFileUrl must be a valid URL").optional(),
   displayFile: base64File.nullable().optional(),
-});
+  displayFileUrl: z.string().url("displayFileUrl must be a valid URL").optional(),
+}).refine(
+  (data) => data.programFile || data.programFileUrl,
+  { message: "Either programFile (base64) or programFileUrl (pre-signed URL) is required", path: ["programFile"] },
+);
 
 export type ProgramInput = z.infer<typeof programSchema>;
 
 // ── Todos ────────────────────────────────────────────────────
 
 const todoItem = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z.string().min(1, "title is required"),
   description: z.string().nullable().optional(),
-  category: z.enum([...TODO_CATEGORIES], {
-    error: `Category must be one of: ${TODO_CATEGORIES.join(", ")}`,
-  }),
+  category: z
+    .enum([...TODO_CATEGORIES], {
+      error: `category must be one of: ${TODO_CATEGORIES.join(", ")}`,
+    })
+    .default("morning-prep"),
   dueTime: z
     .string()
     .regex(/^\d{2}:\d{2}$/, "dueTime must be HH:MM format")
@@ -58,9 +66,10 @@ const todoItem = z.object({
 });
 
 export const todosSchema = z.object({
-  centreId: z.enum([...CENTRE_IDS], {
-    error: `centreId must be one of: ${CENTRE_IDS.join(", ")}`,
-  }),
+  centreId: z.string().min(1, "centreId is required").refine(
+    (val) => (CENTRE_IDS as readonly string[]).includes(val),
+    { message: `centreId must be one of: ${CENTRE_IDS.join(", ")}` },
+  ),
   date: isoDateString,
   todos: z.array(todoItem).min(1, "At least one todo is required"),
 });

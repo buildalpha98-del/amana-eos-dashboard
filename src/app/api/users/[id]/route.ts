@@ -7,7 +7,7 @@ import type { PrismaClient } from "@prisma/client";
 
 const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
-  role: z.enum(["owner", "head_office", "admin", "member", "staff"]).optional(),
+  role: z.enum(["owner", "head_office", "admin", "marketing", "coordinator", "member", "staff"]).optional(),
   active: z.boolean().optional(),
   newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
   state: z.string().optional().nullable(),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import {
@@ -27,7 +27,9 @@ import {
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/useToast";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { Pagination } from "@/components/ui/Pagination";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import ComplianceMatrixView from "@/components/compliance/ComplianceMatrixView";
 import { AuditCalendarTab } from "@/components/compliance/AuditCalendarTab";
@@ -223,8 +225,9 @@ function StaffComplianceView() {
         fileUrl: url,
         fileName: file.name,
       });
+      toast({ title: "Document uploaded", description: "Your compliance document has been uploaded successfully." });
     } catch (err) {
-      console.error("Upload error:", err);
+      toast({ title: "Upload failed", description: "There was a problem uploading your document. Please try again.", variant: "destructive" });
     } finally {
       setUploading(null);
       setUploadType("");
@@ -395,6 +398,8 @@ export default function CompliancePage() {
   const role = (session?.user?.role as string) || "";
   const isServiceScoped = role === "staff" || role === "member";
   const [activeTab, setActiveTab] = useState<ComplianceTabKey>("certificates");
+  const [serviceFilter, setServiceFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
 
   if (isServiceScoped) {
     return <StaffComplianceView />;
@@ -436,7 +441,7 @@ export default function CompliancePage() {
       </div>
 
       {/* Tab content */}
-      {activeTab === "certificates" && <AdminComplianceView />}
+      {activeTab === "certificates" && <AdminComplianceView serviceFilter={serviceFilter} setServiceFilter={setServiceFilter} typeFilter={typeFilter} setTypeFilter={setTypeFilter} />}
       {activeTab === "audit-calendar" && <AuditCalendarTab />}
       {activeTab === "audit-results" && <AuditResultsTab />}
       {activeTab === "qual-ratios" && <QualificationRatiosTab />}
@@ -468,13 +473,14 @@ const complianceImportColumns: ColumnConfig[] = [
   { key: "notes", label: "Notes" },
 ];
 
-function AdminComplianceView() {
+function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setTypeFilter }: { serviceFilter: string; setServiceFilter: (v: string) => void; typeFilter: string; setTypeFilter: (v: string) => void }) {
   const [showCreate, setShowCreate] = useState(false);
   const [showImportCerts, setShowImportCerts] = useState(false);
   const queryClient = useQueryClient();
-  const [serviceFilter, setServiceFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
   const [deleteCertId, setDeleteCertId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [certPage, setCertPage] = useState(1);
+  const CERTS_PER_PAGE = 25;
 
   const { data: certs = [], isLoading, error, refetch } = useComplianceCerts(
     serviceFilter ? { serviceId: serviceFilter } : undefined
@@ -522,20 +528,26 @@ function AdminComplianceView() {
     return { total, expired, expiringSoon, valid };
   }, [certs]);
 
-  /* Filtered and grouped */
+  /* Filtered, paginated, and grouped */
+  const filteredCerts = useMemo(() => {
+    if (!typeFilter) return certs;
+    return certs.filter((c) => c.type === typeFilter);
+  }, [certs, typeFilter]);
+
+  const totalFilteredCerts = filteredCerts.length;
+  const totalCertPages = Math.ceil(totalFilteredCerts / CERTS_PER_PAGE);
+
   const grouped = useMemo(() => {
-    let filtered = certs;
-    if (typeFilter) {
-      filtered = filtered.filter((c) => c.type === typeFilter);
-    }
+    const start = (certPage - 1) * CERTS_PER_PAGE;
+    const paginated = filteredCerts.slice(start, start + CERTS_PER_PAGE);
     const groups: Record<string, ComplianceCertData[]> = {};
-    filtered.forEach((c) => {
+    paginated.forEach((c) => {
       const key = monthKey(c.expiryDate);
       if (!groups[key]) groups[key] = [];
       groups[key].push(c);
     });
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  }, [certs, typeFilter]);
+  }, [filteredCerts, certPage]);
 
   /* Create form state */
   const [form, setForm] = useState({
@@ -551,27 +563,32 @@ function AdminComplianceView() {
 
   const handleCreate = async () => {
     if (!form.serviceId || !form.issueDate || !form.expiryDate) return;
-    await createCert.mutateAsync({
-      serviceId: form.serviceId,
-      userId: form.userId || null,
-      type: form.type,
-      label: form.label || null,
-      issueDate: form.issueDate,
-      expiryDate: form.expiryDate,
-      notes: form.notes || null,
-      alertDays: form.alertDays,
-    });
-    setForm({
-      serviceId: "",
-      userId: "",
-      type: "wwcc",
-      label: "",
-      issueDate: "",
-      expiryDate: "",
-      notes: "",
-      alertDays: 30,
-    });
-    setShowCreate(false);
+    try {
+      await createCert.mutateAsync({
+        serviceId: form.serviceId,
+        userId: form.userId || null,
+        type: form.type,
+        label: form.label || null,
+        issueDate: form.issueDate,
+        expiryDate: form.expiryDate,
+        notes: form.notes || null,
+        alertDays: form.alertDays,
+      });
+      toast({ title: "Certificate added", description: "The compliance certificate has been created.", variant: "default" });
+      setForm({
+        serviceId: "",
+        userId: "",
+        type: "wwcc",
+        label: "",
+        issueDate: "",
+        expiryDate: "",
+        notes: "",
+        alertDays: 30,
+      });
+      setShowCreate(false);
+    } catch {
+      toast({ title: "Error", description: "Failed to create certificate.", variant: "destructive" });
+    }
   };
 
   if (error) {
@@ -589,7 +606,7 @@ function AdminComplianceView() {
   return (
     <div>
       {/* Actions bar */}
-      <div className="flex items-center justify-end gap-3 mb-6">
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
         <button
           onClick={() => setShowImportCerts(true)}
           className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
@@ -640,7 +657,7 @@ function AdminComplianceView() {
           <div className="flex flex-wrap items-center gap-3 mb-6">
             <select
               value={serviceFilter}
-              onChange={(e) => setServiceFilter(e.target.value)}
+              onChange={(e) => { setServiceFilter(e.target.value); setCertPage(1); }}
               className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All Centres</option>
@@ -652,7 +669,7 @@ function AdminComplianceView() {
             </select>
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={(e) => { setTypeFilter(e.target.value); setCertPage(1); }}
               className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All Types</option>
@@ -667,6 +684,7 @@ function AdminComplianceView() {
                 onClick={() => {
                   setServiceFilter("");
                   setTypeFilter("");
+                  setCertPage(1);
                 }}
                 className="text-xs text-brand hover:underline"
               >
@@ -702,6 +720,28 @@ function AdminComplianceView() {
             </div>
           ) : (
             <div className="space-y-8">
+              {selectedIds.size > 0 && (
+                <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-brand/5 border border-brand/20 rounded-xl">
+                  <span className="text-sm font-medium text-gray-700">{selectedIds.size} selected</span>
+                  <button
+                    onClick={async () => {
+                      const promises = Array.from(selectedIds).map(id => updateCert.mutateAsync({ id, acknowledged: true }));
+                      await Promise.all(promises);
+                      toast({ title: "Acknowledged", description: `${selectedIds.size} certificates acknowledged.` });
+                      setSelectedIds(new Set());
+                    }}
+                    className="text-sm font-medium text-brand hover:underline"
+                  >
+                    Acknowledge All
+                  </button>
+                  <button
+                    onClick={() => setSelectedIds(new Set())}
+                    className="text-sm text-gray-500 hover:underline ml-auto"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              )}
               {grouped.map(([month, items]) => (
                 <div key={month}>
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -723,8 +763,19 @@ function AdminComplianceView() {
                               : "border-gray-200"
                           )}
                         >
-                          {/* Status dot + type badge */}
+                          {/* Checkbox + Status dot + type badge */}
                           <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(cert.id)}
+                              onChange={(e) => {
+                                const next = new Set(selectedIds);
+                                if (e.target.checked) next.add(cert.id);
+                                else next.delete(cert.id);
+                                setSelectedIds(next);
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0"
+                            />
                             <div
                               className={cn(
                                 "w-2.5 h-2.5 rounded-full flex-shrink-0",
@@ -794,6 +845,8 @@ function AdminComplianceView() {
                                     updateCert.mutate({
                                       id: cert.id,
                                       acknowledged: true,
+                                    }, {
+                                      onSuccess: () => toast({ title: "Certificate acknowledged", description: "The certificate has been acknowledged.", variant: "default" }),
                                     })
                                   }
                                   className="p-1.5 text-gray-400 hover:text-amber-600 transition-colors"
@@ -820,6 +873,14 @@ function AdminComplianceView() {
               ))}
             </div>
           )}
+
+          {/* Pagination */}
+          <Pagination
+            page={certPage}
+            totalPages={totalCertPages}
+            onPageChange={(p) => { setCertPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            totalItems={totalFilteredCerts}
+          />
         </>
 
       {/* Import Wizard */}
@@ -828,7 +889,7 @@ function AdminComplianceView() {
           title="Import Compliance Certificates"
           endpoint="/api/compliance/import"
           columnConfig={complianceImportColumns}
-          onComplete={() => queryClient.invalidateQueries({ queryKey: ["compliance-certs"] })}
+          onComplete={() => { queryClient.invalidateQueries({ queryKey: ["compliance-certs"] }); toast({ title: "Import complete", description: "Certificates have been imported.", variant: "default" }); }}
           onClose={() => setShowImportCerts(false)}
         />
       )}
@@ -1018,7 +1079,10 @@ function AdminComplianceView() {
         onConfirm={() => {
           if (deleteCertId) {
             deleteCert.mutate(deleteCertId, {
-              onSuccess: () => setDeleteCertId(null),
+              onSuccess: () => {
+                setDeleteCertId(null);
+                toast({ title: "Certificate deleted", description: "The certificate has been removed.", variant: "default" });
+              },
             });
           }
         }}

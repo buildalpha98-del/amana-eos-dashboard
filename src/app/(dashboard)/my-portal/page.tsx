@@ -873,9 +873,10 @@ export default function MyPortalPage() {
                   : { bg: "bg-gray-100", text: "text-gray-600", border: "border-gray-200", label: "Not Started" };
 
               return (
-                <div
+                <Link
+                  href="/onboarding"
                   key={enrollment.id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-brand/30 hover:bg-brand/5 transition-colors cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">
@@ -912,7 +913,7 @@ export default function MyPortalPage() {
                   >
                     {statusConfig.label}
                   </span>
-                </div>
+                </Link>
               );
             })}
           </div>

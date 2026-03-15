@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { AlertTriangle, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronRight, CheckCircle2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Link from "next/link";
 import { getCurrentQuarter } from "@/lib/utils";
@@ -19,6 +19,9 @@ import { DashboardProjectTodos } from "@/components/dashboard/DashboardProjectTo
 import { StaffDashboard } from "@/components/dashboard/StaffDashboard";
 import { StaffingAlerts } from "@/components/dashboard/StaffingAlerts";
 import { TodaysOps } from "@/components/dashboard/TodaysOps";
+import { DashboardSchoolHealth } from "@/components/dashboard/DashboardSchoolHealth";
+import { DashboardRecentActivity } from "@/components/dashboard/DashboardRecentActivity";
+import { DashboardStateKPI } from "@/components/dashboard/DashboardStateKPI";
 import { WidgetErrorBoundary } from "@/components/dashboard/WidgetErrorBoundary";
 
 // ─── Alert Banner ───────────────────────────────────────────
@@ -37,7 +40,20 @@ function AlertBanner({
   if (criticalIssues > 0) alerts.push({ label: "critical issue", count: criticalIssues, href: "/issues" });
   if (overdueRocks > 0) alerts.push({ label: "off-track rock", count: overdueRocks, href: "/rocks" });
 
-  if (alerts.length === 0) return null;
+  if (alerts.length === 0) {
+    return (
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-emerald-800">
+            All clear — rocks on track, no overdue to-dos, no critical issues.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-center gap-3">
@@ -105,7 +121,11 @@ export function DashboardContent() {
           </h2>
           <p className="text-gray-500 mt-1 line-clamp-2">
             Welcome back, {session?.user?.name?.split(" ")[0] || "there"} &mdash;{" "}
-            {isServiceScoped ? "your centre overview." : "overview across all centres."}
+            {isServiceScoped
+              ? "your centre overview."
+              : role === "admin" && session?.user?.state
+              ? `overview for ${session.user.state} centres.`
+              : "overview across all centres."}
           </p>
         </div>
         {!isServiceScoped && (
@@ -175,6 +195,18 @@ export function DashboardContent() {
             />
           </WidgetErrorBoundary>
 
+          {/* ── State KPI Summary (admin only) ────────────────── */}
+          {role === "admin" && session?.user?.state && (
+            <WidgetErrorBoundary widgetName="State KPI">
+              <DashboardStateKPI
+                stateName={session.user.state as string}
+                stateCode={session.user.state as string}
+                centres={data.centreHealth}
+                opsMetrics={data.opsMetrics}
+              />
+            </WidgetErrorBoundary>
+          )}
+
           {/* ── Staffing Alerts ──────────────────────────────── */}
           <WidgetErrorBoundary widgetName="Staffing Alerts">
             <StaffingAlerts />
@@ -223,16 +255,25 @@ export function DashboardContent() {
             </WidgetErrorBoundary>
           )}
 
+          {/* ── School Relationship Health ──────────────────── */}
+          {!isServiceScoped && (
+            <WidgetErrorBoundary widgetName="School Health">
+              <DashboardSchoolHealth />
+            </WidgetErrorBoundary>
+          )}
+
           {/* ── NPS Survey Widget ────────────────────────────── */}
           {data.npsSurvey && data.npsSurvey.totalResponses > 0 && (
             <WidgetErrorBoundary widgetName="NPS Survey">
               <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <h3 className="text-sm font-semibold text-gray-700 mb-4">NPS Survey (Last 30 Days)</h3>
-                <div className="flex items-center gap-8">
-                  {/* Large NPS Score */}
-                  <div className="text-center">
+                <h3 className="text-sm font-semibold text-gray-700 mb-4" title="Net Promoter Score — measures parent satisfaction and loyalty">
+                  <span className="cursor-help underline decoration-dotted decoration-gray-400 underline-offset-2">NPS</span> Survey (Last 30 Days)
+                </h3>
+                {/* Mobile: score on top, breakdown below. Desktop: inline row */}
+                <div className="flex items-center gap-4 sm:gap-6 mb-3">
+                  <div className="text-center shrink-0">
                     <div
-                      className={`text-4xl font-bold ${
+                      className={`text-3xl sm:text-4xl font-bold ${
                         data.npsSurvey.score !== null && data.npsSurvey.score >= 50
                           ? "text-green-600"
                           : data.npsSurvey.score !== null && data.npsSurvey.score >= 0
@@ -242,29 +283,27 @@ export function DashboardContent() {
                     >
                       {data.npsSurvey.score !== null ? data.npsSurvey.score : "N/A"}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">NPS Score</div>
+                    <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">Score</div>
                   </div>
 
-                  {/* Breakdown */}
-                  <div className="flex-1 grid grid-cols-3 gap-4">
+                  <div className="flex-1 grid grid-cols-3 gap-2 sm:gap-4">
                     <div className="text-center">
-                      <div className="text-lg font-semibold text-green-600">{data.npsSurvey.promoters}</div>
-                      <div className="text-xs text-gray-500">Promoters</div>
+                      <div className="text-base sm:text-lg font-semibold text-green-600">{data.npsSurvey.promoters}</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500">Promoters</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-semibold text-amber-500">{data.npsSurvey.passives}</div>
-                      <div className="text-xs text-gray-500">Passives</div>
+                      <div className="text-base sm:text-lg font-semibold text-amber-500">{data.npsSurvey.passives}</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500">Passives</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-semibold text-red-500">{data.npsSurvey.detractors}</div>
-                      <div className="text-xs text-gray-500">Detractors</div>
+                      <div className="text-base sm:text-lg font-semibold text-red-500">{data.npsSurvey.detractors}</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500">Detractors</div>
                     </div>
                   </div>
 
-                  {/* Total Responses */}
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-gray-700">{data.npsSurvey.totalResponses}</div>
-                    <div className="text-xs text-gray-500">Responses</div>
+                  <div className="text-center shrink-0">
+                    <div className="text-base sm:text-lg font-semibold text-gray-700">{data.npsSurvey.totalResponses}</div>
+                    <div className="text-[10px] sm:text-xs text-gray-500">Total</div>
                   </div>
                 </div>
 
@@ -318,6 +357,13 @@ export function DashboardContent() {
               </WidgetErrorBoundary>
             </div>
           </div>
+
+          {/* ── Recent Activity ──────────────────────────────── */}
+          {!isServiceScoped && (
+            <WidgetErrorBoundary widgetName="Recent Activity">
+              <DashboardRecentActivity />
+            </WidgetErrorBoundary>
+          )}
         </>
       ) : (
         <div className="text-center py-16 text-gray-400">

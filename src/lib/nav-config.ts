@@ -32,6 +32,7 @@ import {
   Bot,
   Wrench,
   Briefcase,
+  BookOpenCheck,
 } from "lucide-react";
 
 export interface NavItem {
@@ -84,6 +85,7 @@ export const navItems: NavItem[] = [
   { href: "/tickets", label: "Tickets", icon: MessageSquare, section: "Support" },
   // Tools
   { href: "/tools/ccs-calculator", label: "CCS Calculator", icon: Wrench, section: "Tools", tooltip: "Child Care Subsidy cost estimator" },
+  { href: "/tools/the-amana-way", label: "The Amana Way", icon: BookOpenCheck, section: "Tools", tooltip: "Interactive educator induction handbook" },
   // Admin
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
   { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "Admin", tooltip: "Onboarding, LMS & offboarding" },

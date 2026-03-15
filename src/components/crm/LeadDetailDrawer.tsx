@@ -17,7 +17,9 @@ import {
   ExternalLink,
   Plus,
   Building2,
+  Pencil,
 } from "lucide-react";
+import { toast } from "@/hooks/useToast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { PipelineStage, TouchpointType } from "@prisma/client";
 
@@ -95,6 +97,27 @@ export function LeadDetailDrawer({
   const [tpSubject, setTpSubject] = useState("");
   const [tpBody, setTpBody] = useState("");
 
+  // Inline edit state
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    schoolName: "",
+    contactName: "",
+    contactEmail: "",
+    contactPhone: "",
+    address: "",
+    suburb: "",
+    state: "",
+    postcode: "",
+    source: "direct" as string,
+    estimatedCapacity: "" as string | number,
+    notes: "",
+    tenderRef: "",
+    tenderCloseDate: "",
+    tenderUrl: "",
+    nextTouchpointAt: "",
+  });
+
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
     queryFn: async () => {
@@ -133,6 +156,64 @@ export function LeadDetailDrawer({
     );
   };
 
+  const startEditing = () => {
+    if (!lead) return;
+    setEditForm({
+      schoolName: lead.schoolName || "",
+      contactName: lead.contactName || "",
+      contactEmail: lead.contactEmail || "",
+      contactPhone: lead.contactPhone || "",
+      address: lead.address || "",
+      suburb: lead.suburb || "",
+      state: lead.state || "",
+      postcode: lead.postcode || "",
+      source: lead.source || "direct",
+      estimatedCapacity: lead.estimatedCapacity ?? "",
+      notes: lead.notes || "",
+      tenderRef: lead.tenderRef || "",
+      tenderCloseDate: lead.tenderCloseDate
+        ? new Date(lead.tenderCloseDate).toISOString().split("T")[0]
+        : "",
+      tenderUrl: lead.tenderUrl || "",
+      nextTouchpointAt: lead.nextTouchpointAt
+        ? new Date(lead.nextTouchpointAt).toISOString().split("T")[0]
+        : "",
+    });
+    setEditing(true);
+  };
+
+  const saveEdits = async () => {
+    setSaving(true);
+    try {
+      const payload: Record<string, unknown> = {
+        schoolName: editForm.schoolName,
+        contactName: editForm.contactName || null,
+        contactEmail: editForm.contactEmail || null,
+        contactPhone: editForm.contactPhone || null,
+        address: editForm.address || null,
+        suburb: editForm.suburb || null,
+        state: editForm.state || null,
+        postcode: editForm.postcode || null,
+        source: editForm.source,
+        estimatedCapacity: editForm.estimatedCapacity
+          ? Number(editForm.estimatedCapacity)
+          : null,
+        notes: editForm.notes || null,
+        tenderRef: editForm.tenderRef || null,
+        tenderCloseDate: editForm.tenderCloseDate || null,
+        tenderUrl: editForm.tenderUrl || null,
+        nextTouchpointAt: editForm.nextTouchpointAt || null,
+      };
+      await updateLead.mutateAsync({ id: leadId, ...payload });
+      setEditing(false);
+      toast({ description: "Lead updated successfully" });
+    } catch {
+      toast({ description: "Failed to update lead", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (isLoading || !lead) {
     return (
       <>
@@ -155,187 +236,411 @@ export function LeadDetailDrawer({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h3 className="text-base font-semibold text-gray-900">Lead Details</h3>
-          <button onClick={onClose} className="p-1 rounded-md text-gray-400 hover:text-gray-600">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {!editing && (
+              <button
+                onClick={startEditing}
+                className="p-1.5 rounded-md text-gray-400 hover:text-brand hover:bg-brand/10 transition-colors"
+                title="Edit lead"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+            <button onClick={onClose} className="p-1 rounded-md text-gray-400 hover:text-gray-600">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-          {/* School Name */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">{lead.schoolName}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              <span
-                className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                  lead.source === "tender"
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-emerald-100 text-emerald-700"
-                }`}
-              >
-                {lead.source}
-              </span>
-              <span className="text-xs text-gray-400">{daysInStage}d in stage</span>
-              {lead.estimatedCapacity && (
-                <span className="text-xs text-gray-400">
-                  Est. {lead.estimatedCapacity} places
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Stage */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-              Pipeline Stage
-            </label>
-            <div className="flex gap-1 flex-wrap">
-              {stageOptions.map((s) => (
+          {editing ? (
+            /* ───── EDIT MODE ───── */
+            <div className="space-y-4">
+              {/* Save / Cancel */}
+              <div className="flex gap-2">
                 <button
-                  key={s.key}
-                  onClick={() => updateLead.mutate({ id: leadId, pipelineStage: s.key })}
-                  className={cn(
-                    "px-2 py-1 text-[10px] font-medium rounded-md border transition-colors",
-                    lead.pipelineStage === s.key
-                      ? stageColors[s.key] || "bg-gray-100 text-gray-600 border-gray-300"
-                      : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
-                  )}
+                  onClick={saveEdits}
+                  disabled={saving || !editForm.schoolName.trim()}
+                  className="px-4 py-2 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover disabled:opacity-50 transition-colors"
                 >
-                  {s.label}
+                  {saving ? "Saving..." : "Save"}
                 </button>
-              ))}
-            </div>
-          </div>
+                <button
+                  onClick={() => setEditing(false)}
+                  className="px-4 py-2 text-xs font-medium text-gray-500 border rounded-lg hover:text-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
 
-          {/* Assignee */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-              Assignee
-            </label>
-            <select
-              value={lead.assignedToId || ""}
-              onChange={(e) =>
-                updateLead.mutate({ id: leadId, assignedToId: e.target.value || null })
-              }
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
-            >
-              <option value="">Unassigned</option>
-              {users?.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Contact Info */}
-          <div className="border-t pt-4">
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-              Contact
-            </h4>
-            <div className="space-y-2">
-              {lead.contactName && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <User className="w-4 h-4 text-gray-400" />
-                  <span>{lead.contactName}</span>
-                </div>
-              )}
-              {lead.contactEmail && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Mail className="w-4 h-4 text-gray-400" />
-                  <a
-                    href={`mailto:${lead.contactEmail}`}
-                    className="text-brand hover:underline"
-                  >
-                    {lead.contactEmail}
-                  </a>
-                </div>
-              )}
-              {lead.contactPhone && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                  <span>{lead.contactPhone}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Location */}
-          {(lead.address || lead.suburb || lead.state) && (
-            <div className="border-t pt-4">
-              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-                Location
-              </h4>
-              <div className="flex items-start gap-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+              {/* School / Source / Capacity */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">School Name *</label>
+                <input
+                  value={editForm.schoolName}
+                  onChange={(e) => setEditForm((f) => ({ ...f, schoolName: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  {lead.address && <p>{lead.address}</p>}
-                  <p>
-                    {[lead.suburb, lead.state, lead.postcode].filter(Boolean).join(" ")}
-                  </p>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Source</label>
+                  <select
+                    value={editForm.source}
+                    onChange={(e) => setEditForm((f) => ({ ...f, source: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                  >
+                    <option value="direct">Direct</option>
+                    <option value="referral">Referral</option>
+                    <option value="tender">Tender</option>
+                    <option value="website">Website</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Est. Capacity</label>
+                  <input
+                    type="number"
+                    value={editForm.estimatedCapacity}
+                    onChange={(e) => setEditForm((f) => ({ ...f, estimatedCapacity: e.target.value }))}
+                    placeholder="e.g. 60"
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                  />
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Tender Info */}
-          {lead.source === "tender" && (lead.tenderRef || lead.tenderUrl) && (
-            <div className="border-t pt-4">
-              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-                Tender
-              </h4>
-              <div className="space-y-1 text-sm text-gray-600">
-                {lead.tenderRef && <p>Ref: {lead.tenderRef}</p>}
-                {lead.tenderCloseDate && (
-                  <p>
-                    Closes:{" "}
-                    {new Date(lead.tenderCloseDate).toLocaleDateString("en-AU", {
+              {/* Contact */}
+              <div className="border-t pt-4">
+                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Contact</h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Contact Name</label>
+                    <input
+                      value={editForm.contactName}
+                      onChange={(e) => setEditForm((f) => ({ ...f, contactName: e.target.value }))}
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={editForm.contactEmail}
+                      onChange={(e) => setEditForm((f) => ({ ...f, contactEmail: e.target.value }))}
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                    <input
+                      value={editForm.contactPhone}
+                      onChange={(e) => setEditForm((f) => ({ ...f, contactPhone: e.target.value }))}
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="border-t pt-4">
+                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Location</h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Address</label>
+                    <input
+                      value={editForm.address}
+                      onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Suburb</label>
+                      <input
+                        value={editForm.suburb}
+                        onChange={(e) => setEditForm((f) => ({ ...f, suburb: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">State</label>
+                      <select
+                        value={editForm.state}
+                        onChange={(e) => setEditForm((f) => ({ ...f, state: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                      >
+                        <option value="">—</option>
+                        {AU_STATES.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Postcode</label>
+                      <input
+                        value={editForm.postcode}
+                        onChange={(e) => setEditForm((f) => ({ ...f, postcode: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tender (shown when source is tender) */}
+              {editForm.source === "tender" && (
+                <div className="border-t pt-4">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Tender</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Tender Ref</label>
+                      <input
+                        value={editForm.tenderRef}
+                        onChange={(e) => setEditForm((f) => ({ ...f, tenderRef: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Close Date</label>
+                      <input
+                        type="date"
+                        value={editForm.tenderCloseDate}
+                        onChange={(e) => setEditForm((f) => ({ ...f, tenderCloseDate: e.target.value }))}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Tender URL</label>
+                      <input
+                        type="url"
+                        value={editForm.tenderUrl}
+                        onChange={(e) => setEditForm((f) => ({ ...f, tenderUrl: e.target.value }))}
+                        placeholder="https://..."
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Next Touchpoint */}
+              <div className="border-t pt-4">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Next Touchpoint</label>
+                <input
+                  type="date"
+                  value={editForm.nextTouchpointAt}
+                  onChange={(e) => setEditForm((f) => ({ ...f, nextTouchpointAt: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="border-t pt-4">
+                <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+                  rows={4}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                />
+              </div>
+            </div>
+          ) : (
+            /* ───── READ MODE (original display) ───── */
+            <>
+              {/* School Name */}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">{lead.schoolName}</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <span
+                    className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      lead.source === "tender"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {lead.source}
+                  </span>
+                  <span className="text-xs text-gray-400">{daysInStage}d in stage</span>
+                  {lead.estimatedCapacity && (
+                    <span className="text-xs text-gray-400">
+                      Est. {lead.estimatedCapacity} places
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Stage */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                  Pipeline Stage
+                </label>
+                <div className="flex gap-1 flex-wrap">
+                  {stageOptions.map((s) => (
+                    <button
+                      key={s.key}
+                      onClick={() => updateLead.mutate({ id: leadId, pipelineStage: s.key })}
+                      className={cn(
+                        "px-2 py-1 text-[10px] font-medium rounded-md border transition-colors",
+                        lead.pipelineStage === s.key
+                          ? stageColors[s.key] || "bg-gray-100 text-gray-600 border-gray-300"
+                          : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
+                      )}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Assignee */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                  Assignee
+                </label>
+                <select
+                  value={lead.assignedToId || ""}
+                  onChange={(e) =>
+                    updateLead.mutate({ id: leadId, assignedToId: e.target.value || null })
+                  }
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark"
+                >
+                  <option value="">Unassigned</option>
+                  {users?.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Contact Info */}
+              <div className="border-t pt-4">
+                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  Contact
+                </h4>
+                <div className="space-y-2">
+                  {lead.contactName && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span>{lead.contactName}</span>
+                    </div>
+                  )}
+                  {lead.contactEmail && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      <a
+                        href={`mailto:${lead.contactEmail}`}
+                        className="text-brand hover:underline"
+                      >
+                        {lead.contactEmail}
+                      </a>
+                    </div>
+                  )}
+                  {lead.contactPhone && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Phone className="w-4 h-4 text-gray-400" />
+                      <span>{lead.contactPhone}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Location */}
+              {(lead.address || lead.suburb || lead.state) && (
+                <div className="border-t pt-4">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                    Location
+                  </h4>
+                  <div className="flex items-start gap-2 text-sm text-gray-600">
+                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                    <div>
+                      {lead.address && <p>{lead.address}</p>}
+                      <p>
+                        {[lead.suburb, lead.state, lead.postcode].filter(Boolean).join(" ")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tender Info */}
+              {lead.source === "tender" && (lead.tenderRef || lead.tenderUrl) && (
+                <div className="border-t pt-4">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                    Tender
+                  </h4>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    {lead.tenderRef && <p>Ref: {lead.tenderRef}</p>}
+                    {lead.tenderCloseDate && (
+                      <p>
+                        Closes:{" "}
+                        {new Date(lead.tenderCloseDate).toLocaleDateString("en-AU", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </p>
+                    )}
+                    {lead.tenderUrl && (
+                      <a
+                        href={lead.tenderUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-brand hover:underline"
+                      >
+                        View Tender <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Won — linked Service */}
+              {lead.service && (
+                <div className="border-t pt-4">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                    Linked Service
+                  </h4>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Building2 className="w-4 h-4 text-gray-400" />
+                    <a
+                      href={`/services/${lead.service.id}`}
+                      className="text-brand hover:underline font-medium"
+                    >
+                      {lead.service.name} ({lead.service.code})
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Next Touchpoint */}
+              {lead.nextTouchpointAt && (
+                <div className="border-t pt-4">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                    Next Touchpoint
+                  </h4>
+                  <p className="text-sm text-gray-600">
+                    {new Date(lead.nextTouchpointAt).toLocaleDateString("en-AU", {
                       day: "numeric",
                       month: "short",
                       year: "numeric",
                     })}
                   </p>
-                )}
-                {lead.tenderUrl && (
-                  <a
-                    href={lead.tenderUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-brand hover:underline"
-                  >
-                    View Tender <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
+                </div>
+              )}
 
-          {/* Won — linked Service */}
-          {lead.service && (
-            <div className="border-t pt-4">
-              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
-                Linked Service
-              </h4>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Building2 className="w-4 h-4 text-gray-400" />
-                <a
-                  href={`/services/${lead.service.id}`}
-                  className="text-brand hover:underline font-medium"
-                >
-                  {lead.service.name} ({lead.service.code})
-                </a>
-              </div>
-            </div>
-          )}
-
-          {/* Notes */}
-          {lead.notes && (
-            <div className="border-t pt-4">
-              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-                Notes
-              </h4>
-              <p className="text-sm text-gray-600 whitespace-pre-wrap">{lead.notes}</p>
-            </div>
+              {/* Notes */}
+              {lead.notes && (
+                <div className="border-t pt-4">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                    Notes
+                  </h4>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{lead.notes}</p>
+                </div>
+              )}
+            </>
           )}
 
           {/* Actions */}

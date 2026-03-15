@@ -465,7 +465,9 @@ function SchoolHealthSection() {
               <th className="text-center px-3 py-2.5 font-medium text-gray-600 w-20">Score</th>
               <th className="text-left px-3 py-2.5 font-medium text-gray-600 hidden md:table-cell">Last Visit</th>
               <th className="text-left px-3 py-2.5 font-medium text-gray-600 hidden lg:table-cell">Contract End</th>
-              <th className="text-center px-3 py-2.5 font-medium text-gray-600 hidden lg:table-cell w-16">BAK</th>
+              <th className="text-center px-3 py-2.5 font-medium text-gray-600 hidden lg:table-cell w-16" title="Build Alpha Kids — after-school enrichment program">
+                <span className="cursor-help underline decoration-dotted decoration-gray-400 underline-offset-2">BAK</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

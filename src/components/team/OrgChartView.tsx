@@ -31,7 +31,7 @@ function SeatCard({
     <div className="bg-white border-2 border-[#D4A843] rounded-xl shadow-sm w-56 group/card hover:shadow-md transition-shadow">
       {/* Title bar */}
       <div className="bg-brand rounded-t-[10px] px-3 py-2 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white truncate">{seat.title}</h3>
+        <h3 className="text-sm font-bold text-white truncate" title={seat.title}>{seat.title}</h3>
         {canEdit && (
           <div className="flex items-center gap-0.5 opacity-0 group-hover/card:opacity-100 transition-opacity">
             <button
@@ -82,7 +82,7 @@ function SeatCard({
                     </span>
                   </div>
                 )}
-                <span className="text-xs font-medium text-gray-800 truncate">
+                <span className="text-xs font-medium text-gray-800 truncate" title={a.name}>
                   {a.name}
                 </span>
               </div>

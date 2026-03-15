@@ -63,7 +63,7 @@ export async function GET() {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   // Run all queries in parallel
-  const [allCerts, todos, enrollments, meetings, unreadAnnouncements] =
+  const [allCerts, todos, enrollments, meetings, unreadAnnouncements, pendingPolicies, pendingSurvey, upcomingShifts] =
     await Promise.all([
       // 1. Compliance certificates for this user
       prisma.complianceCertificate.findMany({
@@ -133,7 +133,46 @@ export async function GET() {
           createdAt: true,
         },
       }),
+
+      // 6. Pending policy acknowledgements
+      prisma.policy.count({
+        where: {
+          status: "published",
+          NOT: {
+            acknowledgements: { some: { userId } },
+          },
+        },
+      }),
+
+      // 7. Pending pulse survey (current month)
+      prisma.staffPulseSurvey.findFirst({
+        where: {
+          userId,
+          periodMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+          submittedAt: null,
+        },
+        select: { id: true },
+      }),
+
+      // 8. Upcoming roster shifts (next 7 days, matched by staff name)
+      prisma.rosterShift.findMany({
+        where: {
+          date: { gte: now, lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
+          ...(userServiceId ? { serviceId: userServiceId } : {}),
+        },
+        orderBy: { date: "asc" },
+        take: 10,
+        include: {
+          service: { select: { name: true, code: true } },
+        },
+      }),
     ]);
+
+  // --- Filter upcoming shifts by user name ---
+  const userName = session!.user.name || "";
+  const myShifts = upcomingShifts.filter(
+    (s) => s.staffName.toLowerCase().includes(userName.split(" ")[0].toLowerCase())
+  );
 
   // --- Process compliance ---
   // Group certs by type, pick the latest expiry for each
@@ -220,6 +259,16 @@ export async function GET() {
       title: a.title,
       createdAt: a.createdAt.toISOString(),
       content: a.body,
+    })),
+    pendingPolicies,
+    pendingSurvey: !!pendingSurvey,
+    upcomingShifts: myShifts.slice(0, 5).map((s) => ({
+      id: s.id,
+      date: s.date.toISOString(),
+      sessionType: s.sessionType,
+      shiftStart: s.shiftStart,
+      shiftEnd: s.shiftEnd,
+      serviceName: s.service.name,
     })),
   });
 }

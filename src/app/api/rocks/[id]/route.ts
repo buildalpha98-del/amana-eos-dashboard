@@ -83,9 +83,22 @@ export async function PATCH(
     return NextResponse.json({ error: "Rock not found" }, { status: 404 });
   }
 
+  // Auto-set status to "complete" when progress hits 100%, or revert if lowered
+  const updateData = { ...parsed.data };
+  if (updateData.percentComplete === 100 && !updateData.status && existing.status !== "complete") {
+    updateData.status = "complete";
+  } else if (
+    updateData.percentComplete !== undefined &&
+    updateData.percentComplete < 100 &&
+    !updateData.status &&
+    existing.status === "complete"
+  ) {
+    updateData.status = "on_track";
+  }
+
   const rock = await prisma.rock.update({
     where: { id },
-    data: parsed.data,
+    data: updateData,
     include: {
       owner: { select: { id: true, name: true, email: true, avatar: true } },
       oneYearGoal: { select: { id: true, title: true } },

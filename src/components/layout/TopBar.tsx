@@ -53,6 +53,17 @@ const pageTitles: Record<string, string> = {
   "/activity-library": "Activity Library",
   "/my-portal": "My Portal",
   "/profile": "Profile",
+  "/holiday-quest": "Holiday Quest",
+  "/scenarios": "Scenarios",
+  "/data-room": "Data Room",
+  "/reports/board": "Board Reports",
+  "/assistant": "AI Assistant",
+  "/enquiries": "Enquiries",
+  "/conversions": "Conversions",
+  "/recruitment": "Recruitment",
+  "/tools/ccs-calculator": "CCS Calculator",
+  "/tools/the-amana-way": "The Amana Way",
+  "/compliance/templates": "Audit Templates",
 };
 
 export function TopBar() {

@@ -223,6 +223,8 @@ function InviteUserModal({
             >
               <option value="staff">{ROLE_DISPLAY_NAMES.staff}</option>
               <option value="member">{ROLE_DISPLAY_NAMES.member}</option>
+              <option value="coordinator">{ROLE_DISPLAY_NAMES.coordinator}</option>
+              <option value="marketing">{ROLE_DISPLAY_NAMES.marketing}</option>
               <option value="admin">{ROLE_DISPLAY_NAMES.admin}</option>
               {currentUserRole === "owner" && <option value="head_office">{ROLE_DISPLAY_NAMES.head_office}</option>}
               {currentUserRole === "owner" && <option value="owner">{ROLE_DISPLAY_NAMES.owner}</option>}
@@ -445,10 +447,28 @@ function UserRow({
                 />
                 <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
                   <button
+                    onClick={() => updateRole.mutate("staff")}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Set as {ROLE_DISPLAY_NAMES.staff}
+                  </button>
+                  <button
                     onClick={() => updateRole.mutate("member")}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
                     Set as {ROLE_DISPLAY_NAMES.member}
+                  </button>
+                  <button
+                    onClick={() => updateRole.mutate("coordinator")}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Set as {ROLE_DISPLAY_NAMES.coordinator}
+                  </button>
+                  <button
+                    onClick={() => updateRole.mutate("marketing")}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    Set as {ROLE_DISPLAY_NAMES.marketing}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("admin")}
@@ -1733,6 +1753,12 @@ function PermissionsPanel() {
                 {ROLE_DISPLAY_NAMES.admin}
               </th>
               <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
+                {ROLE_DISPLAY_NAMES.marketing}
+              </th>
+              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
+                {ROLE_DISPLAY_NAMES.coordinator}
+              </th>
+              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 {ROLE_DISPLAY_NAMES.member}
               </th>
               <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
@@ -1745,7 +1771,7 @@ function PermissionsPanel() {
               <Fragment key={`section-${section.name}`}>
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="pt-4 pb-1 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider"
                   >
                     {section.name}
@@ -1759,7 +1785,7 @@ function PermissionsPanel() {
                     <td className="py-2 px-3 text-sm text-gray-700">
                       {row.label}
                     </td>
-                    {(["owner", "head_office", "admin", "member", "staff"] as const).map((role) => (
+                    {(["owner", "head_office", "admin", "marketing", "coordinator", "member", "staff"] as const).map((role) => (
                       <td key={role} className="py-2 px-3 text-center">
                         {row[role] ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto" />

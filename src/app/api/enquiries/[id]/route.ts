@@ -4,12 +4,18 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 
+const childSchema = z.object({
+  name: z.string(),
+  age: z.number().int().nullable().optional(),
+});
+
 const updateEnquirySchema = z.object({
   parentName: z.string().optional(),
   parentEmail: z.string().email().optional().nullable(),
   parentPhone: z.string().optional().nullable(),
   childName: z.string().optional().nullable(),
   childAge: z.number().int().optional().nullable(),
+  childrenDetails: z.array(childSchema).optional().nullable(),
   channel: z.string().optional(),
   parentDriver: z.string().optional().nullable(),
   stage: z.string().optional(),

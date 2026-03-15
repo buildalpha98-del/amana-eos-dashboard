@@ -18,7 +18,12 @@ import {
   Square,
   Clock,
   AlertCircle,
+  AlertTriangle,
+  FileSignature,
+  ClipboardCheck,
+  UserCircle,
 } from "lucide-react";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -53,6 +58,16 @@ interface MyHubData {
     title: string;
     createdAt: string;
     content: string;
+  }[];
+  pendingPolicies: number;
+  pendingSurvey: boolean;
+  upcomingShifts: {
+    id: string;
+    date: string;
+    sessionType: string;
+    shiftStart: string;
+    shiftEnd: string;
+    serviceName: string;
   }[];
 }
 
@@ -344,9 +359,11 @@ export function StaffDashboard() {
   if (!data) {
     return (
       <div className="max-w-7xl mx-auto">
-        <div className="text-center py-16 text-gray-400">
-          <p>Unable to load dashboard data. Please try again.</p>
-        </div>
+        <ErrorState
+          title="Unable to load dashboard"
+          error={new Error("Failed to load your dashboard data. Please try again.")}
+          onRetry={() => window.location.reload()}
+        />
       </div>
     );
   }
@@ -366,6 +383,43 @@ export function StaffDashboard() {
           &mdash; here is your personal overview.
         </p>
       </div>
+
+      {/* Action Required Banner */}
+      {(() => {
+        const actions: { label: string; href: string; icon: React.ReactNode }[] = [];
+        const expiredCerts = data.compliance.certs.filter(c => c.status === "expired" || c.status === "missing").length;
+        if (expiredCerts > 0) actions.push({ label: `${expiredCerts} certificate${expiredCerts !== 1 ? "s" : ""} need attention`, href: "/compliance", icon: <ShieldCheck className="w-3.5 h-3.5" /> });
+        if (data.todos.overdue > 0) actions.push({ label: `${data.todos.overdue} overdue to-do${data.todos.overdue !== 1 ? "s" : ""}`, href: "/todos", icon: <CheckSquare className="w-3.5 h-3.5" /> });
+        if (data.pendingPolicies > 0) actions.push({ label: `${data.pendingPolicies} polic${data.pendingPolicies !== 1 ? "ies" : "y"} to acknowledge`, href: "/my-portal", icon: <FileSignature className="w-3.5 h-3.5" /> });
+        if (data.pendingSurvey) actions.push({ label: "Monthly pulse survey", href: "/my-portal", icon: <ClipboardCheck className="w-3.5 h-3.5" /> });
+
+        if (actions.length === 0) return null;
+
+        return (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center mt-0.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-amber-800 mb-1">Action required</p>
+                <div className="flex flex-wrap gap-2">
+                  {actions.map((a, i) => (
+                    <Link
+                      key={i}
+                      href={a.href}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/70 text-xs font-medium text-amber-700 hover:bg-white transition-colors border border-amber-200"
+                    >
+                      {a.icon}
+                      {a.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Quick Stats Row ────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -460,6 +514,46 @@ export function StaffDashboard() {
         </StatCard>
       </div>
 
+      {/* ── Quick Links ──────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Link href="/compliance" className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
+          <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
+            <ShieldCheck className="w-4.5 h-4.5 text-brand" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900">My Compliance</p>
+            <p className="text-[10px] text-gray-500">Upload certificates</p>
+          </div>
+        </Link>
+        <Link href="/leave" className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
+          <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
+            <Calendar className="w-4.5 h-4.5 text-brand" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900">Leave</p>
+            <p className="text-[10px] text-gray-500">Request time off</p>
+          </div>
+        </Link>
+        <Link href="/my-portal" className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
+          <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
+            <UserCircle className="w-4.5 h-4.5 text-brand" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900">My Portal</p>
+            <p className="text-[10px] text-gray-500">Profile & payslips</p>
+          </div>
+        </Link>
+        <Link href="/onboarding" className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
+          <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
+            <GraduationCap className="w-4.5 h-4.5 text-brand" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900">Training</p>
+            <p className="text-[10px] text-gray-500">Courses & modules</p>
+          </div>
+        </Link>
+      </div>
+
       {/* ── Compliance Detail ──────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -550,6 +644,42 @@ export function StaffDashboard() {
                         <p className="text-xs text-gray-500 flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {formatDateAU(meeting.date)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* My Next Shifts */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-brand" />
+                My Next Shifts
+              </h3>
+            </div>
+            <div className="px-5 py-2">
+              {(!data.upcomingShifts || data.upcomingShifts.length === 0) ? (
+                <div className="py-6 text-center text-gray-400 text-sm">
+                  <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  No upcoming shifts
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {data.upcomingShifts.map((shift) => (
+                    <div key={shift.id} className="flex items-center gap-3 py-3">
+                      <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center">
+                        <Clock className="w-4 h-4 text-brand" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          {shift.sessionType === "before_school" ? "BSC" : shift.sessionType === "after_school" ? "ASC" : shift.sessionType === "vacation" ? "VAC" : shift.sessionType} — {shift.shiftStart}–{shift.shiftEnd}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatDateAU(shift.date)} · {shift.serviceName}
                         </p>
                       </div>
                     </div>
