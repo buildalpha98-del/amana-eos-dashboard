@@ -29,7 +29,7 @@ The app uses Next.js App Router with two route groups:
 - `src/app/(auth)/` — login, forgot-password, reset-password (public pages)
 - `src/app/(dashboard)/` — all authenticated pages (35+ modules)
 - `src/app/survey/` — public survey pages (exit surveys, parent feedback)
-- `src/app/api/` — API routes (280+ endpoints)
+- `src/app/api/` — API routes (350+ route handlers)
 
 ### Dashboard Modules
 Organized by nav sections defined in `src/lib/nav-config.ts`:
@@ -130,6 +130,9 @@ System: `ApiKey`, `CronRun`, `ActivityLog`, `NotificationDismissal`
 - **Security headers**: configured in `next.config.ts` (X-Frame-Options, HSTS, CSP, etc.)
 - **Zod validation**: Zod v4 for runtime validation (schemas in `src/lib/schemas/`)
 - **Form handling**: React Hook Form with `@hookform/resolvers` for Zod integration
+- **Hooks pattern**: domain-specific React Query hooks in `src/hooks/` (e.g., `useRocks`, `useMarketing`) — each encapsulates queries and mutations for a module
+- **Component organization**: domain components in `src/components/<module>/`, shared UI in `src/components/ui/`
+- **Local dev database**: `docker-compose.yml` provides PostgreSQL
 
 ## Important Paths
 - `prisma/schema.prisma` — database schema (source of truth for all models)
@@ -153,8 +156,11 @@ System: `ApiKey`, `CronRun`, `ActivityLog`, `NotificationDismissal`
 - `src/lib/ai.ts` / `ai-context.ts` / `ai-narratives.ts` — AI assistant context & narratives
 - `src/lib/storage.ts` — Vercel Blob file storage
 - `src/lib/teams-notify.ts` — Microsoft Teams webhook notifications
+- `src/hooks/` — 54 custom React Query hooks organized by domain (useRocks, useMarketing, useTimesheets, etc.)
+- `src/types/index.ts` — NextAuth session & JWT type augmentation (adds `id`, `role`, `serviceId`, `state`)
 - `src/components/ui/` — shared UI primitives (Button, Dialog, Sheet, Skeleton, etc.)
-- `src/components/providers/` — React context providers (QueryClient, etc.)
+- `src/components/layout/` — Sidebar, TopBar, CommandPalette, SidebarContext
+- `src/components/providers/` — React context providers (QueryClient, Session)
 - `vercel.json` — Vercel cron schedules and build config
 - `next.config.ts` — Next.js config with security headers
 - `vitest.config.mts` — test configuration
