@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Trash2, Send, Pencil, Plus, CheckSquare } from "lucide-react";
+import { X, Trash2, Send, Pencil, Plus, CheckSquare, Sparkles } from "lucide-react";
+import { AiButton } from "@/components/ui/AiButton";
 import {
   useCampaign,
   useUpdateCampaign,
@@ -76,6 +77,7 @@ export function CampaignDetailPanel({
   const [location, setLocation] = useState("");
   const [deliverables, setDeliverables] = useState("");
   const [showCreateTask, setShowCreateTask] = useState(false);
+  const [aiBrief, setAiBrief] = useState<string | null>(null);
 
   const { data: campaignTasks } = useMarketingTasks({
     campaignId: campaignId,
@@ -228,6 +230,53 @@ export function CampaignDetailPanel({
             </button>
           </div>
         </div>
+
+        {/* AI Campaign Brief */}
+        {campaign && !isLoading && (
+          <div className="flex items-center gap-2 border-b px-6 py-2 bg-gray-50">
+            <AiButton
+              templateSlug="marketing/campaign-brief"
+              variables={{
+                campaignName: campaign.name,
+                campaignType: campaign.type,
+                goal: campaign.goal || "Not specified",
+                platforms: (campaign.platforms || []).join(", ") || "Not specified",
+                startDate: campaign.startDate ? new Date(campaign.startDate).toLocaleDateString("en-AU") : "TBD",
+                endDate: campaign.endDate ? new Date(campaign.endDate).toLocaleDateString("en-AU") : "TBD",
+                targetCentres: campaign.services?.map((s: { service: { name: string } }) => s.service.name).join(", ") || "All centres",
+                existingNotes: campaign.notes || "None",
+              }}
+              onResult={(text) => setAiBrief(text)}
+              label="Generate Brief"
+              size="sm"
+              section="marketing"
+            />
+          </div>
+        )}
+
+        {aiBrief && (
+          <div className="mx-6 mt-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-purple-700 flex items-center gap-1">
+                <Sparkles className="h-3.5 w-3.5" /> AI Campaign Brief
+              </span>
+              <button onClick={() => setAiBrief(null)} className="text-purple-400 hover:text-purple-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="text-sm text-purple-900 whitespace-pre-wrap max-h-64 overflow-y-auto">{aiBrief}</div>
+            <button
+              onClick={() => {
+                setNotes(aiBrief);
+                handleUpdate("notes", aiBrief);
+                setAiBrief(null);
+              }}
+              className="mt-3 text-xs text-purple-700 hover:text-purple-900 font-medium"
+            >
+              Copy to Notes
+            </button>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex flex-1 items-center justify-center text-gray-500">
@@ -491,6 +540,16 @@ export function CampaignDetailPanel({
               )}
             </div>
 
+            {/* Campaign Progress */}
+            {campaign && (
+              <CampaignProgressSummary
+                posts={campaign.posts ?? []}
+                tasks={campaignTasks ?? []}
+                startDate={campaign.startDate}
+                endDate={campaign.endDate}
+              />
+            )}
+
             {/* Centre Assignments (activation / event only) */}
             {(type === "activation" || type === "event") && (
               <div>
@@ -655,5 +714,87 @@ export function CampaignDetailPanel({
         defaultCampaignId={campaignId}
       />
     </>
+  );
+}
+
+function CampaignProgressSummary({
+  posts,
+  tasks,
+  startDate,
+  endDate,
+}: {
+  posts: { id: string; status: string }[];
+  tasks: { id: string; status: string }[];
+  startDate: string | null;
+  endDate: string | null;
+}) {
+  const totalPosts = posts.length;
+  const publishedPosts = posts.filter((p) => p.status === "published").length;
+  const totalTasks = tasks.length;
+  const doneTasks = tasks.filter((t) => t.status === "done").length;
+
+  if (totalPosts === 0 && totalTasks === 0) return null;
+
+  // Timeline progress
+  let timelinePct = 0;
+  if (startDate && endDate) {
+    const start = new Date(startDate).getTime();
+    const end = new Date(endDate).getTime();
+    const now = Date.now();
+    if (now >= end) timelinePct = 100;
+    else if (now <= start) timelinePct = 0;
+    else timelinePct = Math.round(((now - start) / (end - start)) * 100);
+  }
+
+  const postPct = totalPosts > 0 ? Math.round((publishedPosts / totalPosts) * 100) : 0;
+  const taskPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+      <h3 className="text-xs font-medium uppercase tracking-wider text-gray-500">
+        Campaign Progress
+      </h3>
+      <div className="grid grid-cols-3 gap-3">
+        {startDate && endDate && (
+          <ProgressMetric label="Timeline" value={`${timelinePct}%`} pct={timelinePct} colour="brand" />
+        )}
+        {totalPosts > 0 && (
+          <ProgressMetric label="Posts" value={`${publishedPosts}/${totalPosts}`} pct={postPct} colour="green" />
+        )}
+        {totalTasks > 0 && (
+          <ProgressMetric label="Tasks" value={`${doneTasks}/${totalTasks}`} pct={taskPct} colour="emerald" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProgressMetric({
+  label,
+  value,
+  pct,
+  colour,
+}: {
+  label: string;
+  value: string;
+  pct: number;
+  colour: string;
+}) {
+  const barColour =
+    colour === "brand" ? "bg-brand" : colour === "green" ? "bg-green-500" : "bg-emerald-500";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs mb-1">
+        <span className="text-gray-500">{label}</span>
+        <span className="font-medium text-gray-700">{value}</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-1.5">
+        <div
+          className={`${barColour} h-1.5 rounded-full transition-all`}
+          style={{ width: `${Math.min(pct, 100)}%` }}
+        />
+      </div>
+    </div>
   );
 }

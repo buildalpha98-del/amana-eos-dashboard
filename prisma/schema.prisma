@@ -1357,6 +1357,10 @@ model Service {
   // ── Cowork Reports ──────────────────────────────
   coworkReports        CoworkReport[]          @relation("CoworkReportService")
 
+  // ── AI Phase 2 Relations ──────────────────────────
+  sentimentScores      SentimentScore[]        @relation("SentimentScoreService")
+  attendanceAnomalies  AttendanceAnomaly[]     @relation("AttendanceAnomalyService")
+
   // ── Daily Checklists ──────────────────────────────
   dailyChecklists      DailyChecklist[]
 
@@ -3449,6 +3453,10 @@ model RecruitmentCandidate {
   referredByUserId String?
   referredByUser  User?               @relation("CandidateReferrer", fields: [referredByUserId], references: [id])
   notes           String?             @db.Text
+  resumeText      String?             @db.Text
+  resumeFileUrl   String?
+  aiScreenScore   Int?                // 0-100 fit score
+  aiScreenSummary String?             @db.Text
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   staffReferral   StaffReferral?
@@ -3948,5 +3956,62 @@ model AiUsage {
   @@index([userId])
   @@index([templateSlug])
   @@index([section])
+  @@index([createdAt])
+}
+
+// ── Phase 2 AI Models ──────────────────────────────────────
+
+model SentimentScore {
+  id         String   @id @default(cuid())
+  sourceType String   // "nps", "quick_feedback", "exit_survey"
+  sourceId   String
+  serviceId  String?
+  service    Service? @relation("SentimentScoreService", fields: [serviceId], references: [id], onDelete: SetNull)
+  score      Float    // -1.0 to 1.0
+  label      String   // "positive", "neutral", "negative"
+  keywords   String[]
+  summary    String?
+  createdAt  DateTime @default(now())
+
+  @@unique([sourceType, sourceId])
+  @@index([serviceId])
+  @@index([label])
+  @@index([createdAt])
+}
+
+model AttendanceAnomaly {
+  id          String   @id @default(cuid())
+  serviceId   String
+  service     Service  @relation("AttendanceAnomalyService", fields: [serviceId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date
+  sessionType String   // "bsc", "asc", "vc"
+  anomalyType String   // "drop", "spike", "zero", "capacity_exceeded", "trend_decline"
+  severity    String   // "low", "medium", "high"
+  message     String
+  expected    Float?
+  actual      Float?
+  dismissed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([serviceId])
+  @@index([date])
+  @@index([severity])
+  @@index([dismissed])
+  @@index([createdAt])
+}
+
+model DuplicateMatch {
+  id          String   @id @default(cuid())
+  entityType  String   // "lead", "enquiry", "contact"
+  entityAId   String
+  entityBId   String
+  similarity  Int      // 0-100
+  matchFields String[] // ["email", "phone", "name"]
+  status      String   @default("pending") // "pending", "merged", "dismissed"
+  createdAt   DateTime @default(now())
+
+  @@unique([entityType, entityAId, entityBId])
+  @@index([entityType])
+  @@index([status])
   @@index([createdAt])
 }

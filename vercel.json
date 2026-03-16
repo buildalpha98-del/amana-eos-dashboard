@@ -144,6 +144,18 @@
     {
       "path": "/api/cron/compliance-risk-report",
       "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/cron/sentiment-analysis",
+      "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/duplicate-detection",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/cron/attendance-anomaly",
+      "schedule": "0 9 * * *"
     }
   ]
 }

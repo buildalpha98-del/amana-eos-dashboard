@@ -20,6 +20,7 @@ import {
   useBatchUpdateAttendance,
   type AttendanceInput,
 } from "@/hooks/useAttendance";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
@@ -82,6 +83,7 @@ type GridRow = {
 };
 
 export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
+  const anomalyQC = useQueryClient();
   const [weekOffset, setWeekOffset] = useState(0);
   const [showVC, setShowVC] = useState(false);
   const [showImportAttendance, setShowImportAttendance] = useState(false);
@@ -110,6 +112,25 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
     });
 
   const batchUpdate = useBatchUpdateAttendance();
+
+  // Attendance anomalies
+  const { data: anomalies } = useQuery({
+    queryKey: ["attendance-anomalies", serviceId],
+    queryFn: async () => {
+      const res = await fetch(`/api/attendance/anomalies?serviceId=${serviceId}&dismissed=false`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const handleDismissAnomaly = async (anomalyId: string) => {
+    await fetch(`/api/attendance/anomalies/${anomalyId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dismissed: true }),
+    });
+    anomalyQC.invalidateQueries({ queryKey: ["attendance-anomalies", serviceId] });
+  };
 
   const defaultCap = capacity || 0;
 
@@ -228,6 +249,39 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
           loading={loadingSummary}
         />
       </div>
+
+      {/* Attendance Anomaly Alerts */}
+      {anomalies && anomalies.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <span className="text-sm font-semibold text-amber-800">
+              Attendance Anomalies Detected
+            </span>
+          </div>
+          <div className="space-y-2">
+            {anomalies.map((a: { id: string; severity: string; message: string }) => (
+              <div key={a.id} className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className={cn("inline-block w-2 h-2 rounded-full", {
+                    "bg-red-500": a.severity === "high",
+                    "bg-amber-500": a.severity === "medium",
+                    "bg-yellow-400": a.severity === "low",
+                  })} />
+                  <span className="text-sm text-amber-900">{a.message}</span>
+                </div>
+                <button
+                  onClick={() => handleDismissAnomaly(a.id)}
+                  className="text-amber-400 hover:text-amber-600 shrink-0"
+                  title="Dismiss"
+                >
+                  <span className="text-xs">Dismiss</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Trend chart */}
       {chartData.length > 0 && (

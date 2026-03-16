@@ -31,7 +31,7 @@ export async function POST(
 
   const { id } = await params;
   const body = await req.json();
-  const { name, email, phone, source, notes, referredByUserId } = body;
+  const { name, email, phone, source, notes, referredByUserId, resumeText, resumeFileUrl } = body;
 
   if (!name || !source) {
     return NextResponse.json(
@@ -56,6 +56,8 @@ export async function POST(
       phone: phone || null,
       source,
       notes: notes || null,
+      resumeText: resumeText || null,
+      resumeFileUrl: resumeFileUrl || null,
       referredByUserId: referredByUserId || null,
     },
   });
