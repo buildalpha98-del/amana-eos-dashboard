@@ -43,6 +43,7 @@ import { ServiceProgramTab } from "@/components/services/ServiceProgramTab";
 import { ServiceMenuTab } from "@/components/services/ServiceMenuTab";
 import { ServiceAuditsTab } from "@/components/services/ServiceAuditsTab";
 import { ServiceQIPTab } from "@/components/services/ServiceQIPTab";
+import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab";
 import { ServiceTodayPanel } from "@/components/services/ServiceTodayPanel";
 
 const tabs = [
@@ -54,6 +55,7 @@ const tabs = [
   { key: "issues", label: "Issues", icon: AlertCircle },
   { key: "projects", label: "Projects", icon: FolderKanban },
   { key: "weekly", label: "Weekly Data", icon: CalendarDays },
+  { key: "checklists", label: "Checklists", icon: ClipboardList },
   { key: "comms", label: "Comms", icon: Radio },
   { key: "program", label: "Program", icon: LayoutList },
   { key: "menu", label: "Menu", icon: UtensilsCrossed },
@@ -240,6 +242,10 @@ export default function ServiceDetailPage() {
             ascRate={service.ascDailyRate || 0}
             vcRate={service.vcDailyRate || 0}
           />
+        )}
+
+        {activeTab === "checklists" && (
+          <ServiceChecklistsTab serviceId={service.id} />
         )}
 
         {activeTab === "comms" && (

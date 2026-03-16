@@ -524,6 +524,10 @@ model User {
   reviewedCoworkReports  CoworkReport[] @relation("CoworkReportReviewer")
   assignedCoworkTodos    CoworkTodo[]   @relation("CoworkTodoAssignee")
 
+  // ── Daily Checklists ──────────────────────────────
+  completedChecklists    DailyChecklist[]     @relation("ChecklistCompletedBy")
+  checkedItems           DailyChecklistItem[] @relation("ChecklistItemCheckedBy")
+
   @@index([serviceId])
 }
 
@@ -1059,6 +1063,29 @@ model PhotoComplianceLog {
   @@index([confirmed])
 }
 
+model SchoolRelationship {
+  id              String   @id @default(cuid())
+  serviceId       String   @unique
+  service         Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  principalName   String?
+  principalEmail  String?
+  lastContactDate DateTime? @db.Date
+  contactMethod   String?  // "meeting", "email", "phone", "event"
+  contactNotes    String?  @db.Text
+  relationshipScore Int?   // 1-10
+  contractStart   DateTime? @db.Date
+  contractEnd     DateTime? @db.Date
+  renewalStatus   String   @default("active") // active, in_renewal, at_risk, lost
+  riskFlags       String[] // e.g. ["low_utilisation", "complaint_received", "competitor_approach"]
+  nextAction      String?  @db.Text
+  nextActionDate  DateTime? @db.Date
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([renewalStatus])
+  @@index([nextActionDate])
+}
+
 model NpsSurveyResponse {
   id             String        @id @default(cuid())
   serviceId      String
@@ -1308,6 +1335,12 @@ model Service {
 
   // ── Cowork Reports ──────────────────────────────
   coworkReports        CoworkReport[]          @relation("CoworkReportService")
+
+  // ── Daily Checklists ──────────────────────────────
+  dailyChecklists      DailyChecklist[]
+
+  // ── Partnerships ──────────────────────────────────
+  schoolRelationship   SchoolRelationship?
 
   @@index([status])
   @@index([managerId])
@@ -3813,4 +3846,48 @@ model CoworkReport {
   @@index([status])
   @@index([createdAt])
   @@index([seat, assignedToId])
+}
+
+// ============================================================
+// Daily Checklists (auto-populated by automation)
+// ============================================================
+
+model DailyChecklist {
+  id            String               @id @default(cuid())
+  serviceId     String
+  service       Service              @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  date          DateTime             @db.Date
+  sessionType   SessionType          @default(asc)
+  status        String               @default("pending") // pending | in_progress | completed
+  completedAt   DateTime?
+  completedById String?
+  completedBy   User?                @relation("ChecklistCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  notes         String?              @db.Text
+  items         DailyChecklistItem[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@unique([serviceId, date, sessionType])
+  @@index([serviceId])
+  @@index([date])
+  @@index([status])
+}
+
+model DailyChecklistItem {
+  id          String         @id @default(cuid())
+  checklistId String
+  checklist   DailyChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  category    String         // "opening", "safety", "programming", "closing", "compliance"
+  label       String
+  sortOrder   Int            @default(0)
+  isRequired  Boolean        @default(true)
+  checked     Boolean        @default(false)
+  checkedAt   DateTime?
+  checkedById String?
+  checkedBy   User?          @relation("ChecklistItemCheckedBy", fields: [checkedById], references: [id], onDelete: SetNull)
+  notes       String?        @db.Text
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([checklistId])
 }

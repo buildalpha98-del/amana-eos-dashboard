@@ -3,10 +3,117 @@ import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 
 /**
+ * POST /api/cowork/hr/compliance
+ * Upserts compliance certificates for a service.
+ * Used by: hr-compliance-scanner, hr-full-compliance-audit, hr-expiry-alert-generator
+ */
+export async function POST(req: NextRequest) {
+  const authError = authenticateCowork(req);
+  if (authError) return authError;
+
+  const body = await req.json();
+  const { serviceCode, certificates } = body;
+
+  if (!serviceCode || !certificates || !Array.isArray(certificates)) {
+    return NextResponse.json(
+      {
+        error: "Bad Request",
+        message: "serviceCode and certificates[] required",
+      },
+      { status: 400 }
+    );
+  }
+
+  const service = await prisma.service.findUnique({
+    where: { code: serviceCode },
+    select: { id: true, name: true },
+  });
+
+  if (!service) {
+    return NextResponse.json(
+      { error: "Not Found", message: `Service ${serviceCode} not found` },
+      { status: 404 }
+    );
+  }
+
+  const results = { created: 0, updated: 0, alerts: [] as string[] };
+
+  for (const cert of certificates) {
+    // Resolve user by email
+    let userId: string | null = null;
+    if (cert.userEmail) {
+      const user = await prisma.user.findFirst({
+        where: { email: cert.userEmail },
+        select: { id: true },
+      });
+      userId = user?.id || null;
+    }
+
+    // Check if certificate exists (by service + user + type)
+    const existing = userId
+      ? await prisma.complianceCertificate.findFirst({
+          where: { serviceId: service.id, userId, type: cert.type },
+        })
+      : null;
+
+    const expiryDate = new Date(cert.expiryDate);
+    const issueDate = cert.issueDate ? new Date(cert.issueDate) : new Date();
+
+    // Flag expiring within 30 days
+    const daysUntilExpiry = Math.ceil(
+      (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    );
+    if (daysUntilExpiry <= 30) {
+      results.alerts.push(
+        `${cert.staffName || cert.userEmail} — ${cert.type} expires in ${daysUntilExpiry} days`
+      );
+    }
+
+    if (existing) {
+      await prisma.complianceCertificate.update({
+        where: { id: existing.id },
+        data: {
+          issueDate,
+          expiryDate,
+          label: cert.label || null,
+          notes: cert.notes || null,
+          fileUrl: cert.fileUrl || existing.fileUrl,
+          acknowledged: false,
+        },
+      });
+      results.updated++;
+    } else {
+      await prisma.complianceCertificate.create({
+        data: {
+          serviceId: service.id,
+          userId,
+          type: cert.type,
+          label:
+            cert.label || `${cert.type} — ${cert.staffName || "Unknown"}`,
+          issueDate,
+          expiryDate,
+          notes: cert.notes || null,
+          fileUrl: cert.fileUrl || null,
+          alertDays: cert.alertDays || 30,
+        },
+      });
+      results.created++;
+    }
+  }
+
+  return NextResponse.json(
+    {
+      message: "Compliance certificates processed",
+      serviceCode,
+      ...results,
+    },
+    { status: 201 }
+  );
+}
+
+/**
  * GET /api/cowork/hr/compliance
- *
  * Returns compliance certificate data for all active staff.
- * Scope: hr:read
  *
  * Query params:
  *   - serviceId (optional)
@@ -24,13 +131,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const now = new Date();
-    const thirtyDaysOut = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysOut = new Date(
+      now.getTime() + 30 * 24 * 60 * 60 * 1000
+    );
 
     const where: Record<string, unknown> = {};
     if (serviceId) where.serviceId = serviceId;
     if (type) where.type = type;
 
-    // Status filter
     if (status === "expired") {
       where.expiryDate = { lt: now };
     } else if (status === "expiring") {
@@ -42,7 +150,9 @@ export async function GET(req: NextRequest) {
     const certs = await prisma.complianceCertificate.findMany({
       where,
       include: {
-        user: { select: { id: true, name: true, email: true, active: true } },
+        user: {
+          select: { id: true, name: true, email: true, active: true },
+        },
         service: { select: { id: true, name: true, code: true } },
       },
       orderBy: { expiryDate: "asc" },
@@ -50,7 +160,7 @@ export async function GET(req: NextRequest) {
 
     const results = certs.map((c) => {
       const daysUntilExpiry = Math.ceil(
-        (c.expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+        (c.expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
       );
       return {
         id: c.id,
@@ -67,13 +177,21 @@ export async function GET(req: NextRequest) {
               : "valid",
         acknowledged: c.acknowledged,
         staff: c.user
-          ? { id: c.user.id, name: c.user.name, email: c.user.email, active: c.user.active }
+          ? {
+              id: c.user.id,
+              name: c.user.name,
+              email: c.user.email,
+              active: c.user.active,
+            }
           : null,
-        service: { id: c.service.id, name: c.service.name, code: c.service.code },
+        service: {
+          id: c.service.id,
+          name: c.service.name,
+          code: c.service.code,
+        },
       };
     });
 
-    // Summary stats
     const expired = results.filter((r) => r.status === "expired").length;
     const expiring = results.filter((r) => r.status === "expiring").length;
     const valid = results.filter((r) => r.status === "valid").length;
@@ -83,13 +201,16 @@ export async function GET(req: NextRequest) {
       count: results.length,
       summary: { valid, expiring, expired },
     });
-    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    res.headers.set(
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=120"
+    );
     return res;
   } catch (err) {
     console.error("[Cowork HR Compliance GET]", err);
     return NextResponse.json(
       { error: "Failed to fetch compliance data" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
