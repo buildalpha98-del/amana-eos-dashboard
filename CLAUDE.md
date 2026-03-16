@@ -43,7 +43,17 @@ At the end of every session (or when significant learnings occur), update the re
 - `src/app/(dashboard)/settings/SettingsContent.tsx` — settings UI including API scopes
 - `src/components/queue/ReportViewer.tsx` — rich report viewer (markdown, checklists, PDF export)
 - `src/lib/report-pdf.ts` — branded Amana OSHC PDF generation
+- `src/components/ui/Skeleton.tsx` — reusable skeleton loading component
 - `vercel.json` — cron schedules and build config
+
+## Services Section Architecture
+- **Service detail page**: `src/app/(dashboard)/services/[id]/page.tsx` — 6 grouped tabs with sub-pill navigation, URL-synced via `useSearchParams`/`useRouter`
+- **Tab components**: `src/components/services/Service*.tsx` — all use React Query, Skeleton loaders, responsive layouts
+- **Mobile patterns**: Day selector pills (Menu), card-per-day (Attendance), card-per-measurable (Scorecard), flex-wrap headers
+- **Responsive breakpoint**: `sm:` (640px) — mobile views on `sm:hidden`, desktop on `hidden sm:block`
+- **Loading pattern**: All tabs use `<Skeleton>` from `@/components/ui/Skeleton` — no raw spinners
+- **React Query keys**: `["services", status]`, `["service", id]`, `["service-checklists", serviceId]`, `["todos", { serviceId }]`, `["issues", { serviceId }]`, `["service-today", serviceId]`, `["service-scorecard", serviceId]`
+- **Auto-refetch**: `useService()` has `refetchInterval: 5 * 60_000` (5 min stale data refresh)
 
 ## Automation System
 - **Cowork API Key**: `amana_af69a9e6...` prefix, stored in `ApiKey` table with 37 scopes
