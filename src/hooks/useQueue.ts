@@ -19,6 +19,7 @@ export interface QueueReport {
   createdAt: string;
   updatedAt: string;
   service: { id: string; name: string; code: string } | null;
+  assignedTo?: { id: string; name: string; email: string } | null;
 }
 
 export interface QueueTodo {
@@ -47,11 +48,13 @@ export function useQueue(filters?: {
   seat?: string;
   serviceCode?: string;
   status?: string;
+  view?: "mine" | "all";
 }) {
   const params = new URLSearchParams();
   if (filters?.seat) params.set("seat", filters.seat);
   if (filters?.serviceCode) params.set("serviceCode", filters.serviceCode);
   if (filters?.status) params.set("status", filters.status);
+  if (filters?.view === "all") params.set("view", "all");
 
   const query = params.toString();
 

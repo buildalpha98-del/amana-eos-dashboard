@@ -21,6 +21,7 @@ import {
   ChevronDown,
   Eye,
   X,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -117,6 +118,11 @@ function ReportCard({
             {report.service && (
               <span className="text-xs text-gray-500">
                 {report.service.name}
+              </span>
+            )}
+            {report.assignedTo && (
+              <span className="text-xs text-gray-500 font-medium">
+                → {report.assignedTo.name}
               </span>
             )}
           </div>
@@ -264,10 +270,15 @@ export default function QueuePage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [viewingReport, setViewingReport] = useState<QueueReport | null>(null);
+  const [queueView, setQueueView] = useState<"mine" | "all">("mine");
+
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  const isAdmin = userRole === "owner" || userRole === "admin";
 
   const { data, isLoading, error, refetch } = useQueue({
     seat: seatFilter || undefined,
     status: statusFilter || undefined,
+    view: queueView,
   });
 
   const reviewReport = useReviewReport();
@@ -296,31 +307,67 @@ export default function QueuePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Inbox className="w-5 h-5 text-brand" />
-            My Queue
+            {queueView === "all" ? (
+              <Users className="w-5 h-5 text-brand" />
+            ) : (
+              <Inbox className="w-5 h-5 text-brand" />
+            )}
+            {queueView === "all" ? "All Queues" : "My Queue"}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Reports and tasks assigned to you from automation
+            {queueView === "all"
+              ? "All reports and tasks across the team"
+              : "Reports and tasks assigned to you from automation"}
           </p>
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={cn(
-            "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors",
-            showFilters
-              ? "bg-brand/5 border-brand/20 text-brand"
-              : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+              <button
+                onClick={() => setQueueView("mine")}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  queueView === "mine"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                <Inbox className="w-3.5 h-3.5" />
+                My Queue
+              </button>
+              <button
+                onClick={() => setQueueView("all")}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  queueView === "all"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                <Users className="w-3.5 h-3.5" />
+                All Queues
+              </button>
+            </div>
           )}
-        >
-          <Filter className="w-4 h-4" />
-          Filter
-          <ChevronDown
+          <button
+            onClick={() => setShowFilters(!showFilters)}
             className={cn(
-              "w-3.5 h-3.5 transition-transform",
-              showFilters && "rotate-180"
+              "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors",
+              showFilters
+                ? "bg-brand/5 border-brand/20 text-brand"
+                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
             )}
-          />
-        </button>
+          >
+            <Filter className="w-4 h-4" />
+            Filter
+            <ChevronDown
+              className={cn(
+                "w-3.5 h-3.5 transition-transform",
+                showFilters && "rotate-180"
+              )}
+            />
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -395,7 +442,11 @@ export default function QueuePage() {
         <EmptyState
           icon={Inbox}
           title="Queue is empty"
-          description="No pending reports or tasks assigned to you. Check back later or adjust your filters."
+          description={
+            queueView === "all"
+              ? "No pending reports or tasks across the team."
+              : "No pending reports or tasks assigned to you. Check back later or adjust your filters."
+          }
         />
       ) : (
         <div className="space-y-8">
