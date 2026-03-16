@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 const updateStageSchema = z.object({
   stage: z.string().min(1, "Stage is required"),
@@ -16,16 +15,8 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { apiKey, error: authError } = await authenticateApiKey(req, "enquiries:write");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-
-  const { limited, resetIn } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json(
-      { error: "Too Many Requests" },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(resetIn / 1000)) } },
-    );
-  }
 
   const { id } = await params;
 

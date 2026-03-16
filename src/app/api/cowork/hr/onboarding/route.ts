@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 /**
  * GET /api/cowork/hr/onboarding
@@ -14,7 +14,7 @@ import { authenticateApiKey } from "@/lib/api-key-auth";
  *   - type: "onboarding" | "offboarding" | "all" (default "all")
  */
 export async function GET(req: NextRequest) {
-  const { error: authError } = await authenticateApiKey(req, "hr:read");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);

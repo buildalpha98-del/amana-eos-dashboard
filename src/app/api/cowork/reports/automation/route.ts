@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 import { resolveAssignee } from "../../_lib/resolve-assignee";
 import { resolveServiceByCode } from "../../_lib/resolve-service";
 
@@ -12,19 +11,8 @@ import { resolveServiceByCode } from "../../_lib/resolve-service";
  * Body: { seat, reportType?, title, content, assignee?, serviceCode?, metrics?, alerts? }
  */
 export async function POST(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(
-    req,
-    "reports:write"
-  );
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-
-  const { limited } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded. Please try again later." },
-      { status: 429 }
-    );
-  }
 
   try {
     const body = await req.json();
@@ -106,19 +94,8 @@ export async function POST(req: NextRequest) {
  * Query: ?userId=...&seat=...&status=...&limit=50
  */
 export async function GET(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(
-    req,
-    "reports:write"
-  );
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-
-  const { limited } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded. Please try again later." },
-      { status: 429 }
-    );
-  }
 
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");

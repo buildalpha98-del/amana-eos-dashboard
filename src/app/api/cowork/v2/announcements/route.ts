@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 import { resolveServiceByCode } from "../../_lib/resolve-service";
 
 const AUDIENCES = ["all", "owners_admins", "managers", "custom"] as const;
@@ -21,17 +20,10 @@ const apiAnnouncementSchema = z.object({
 // POST /api/cowork/v2/announcements — Create announcement in the real Announcement model
 export async function POST(req: NextRequest) {
   // 1. Authenticate
-  const { apiKey, error: authError } = await authenticateApiKey(req, "announcements:write");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
 
   // 2. Rate limit
-  const { limited, resetIn } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json(
-      { error: "Too Many Requests", message: "Rate limit exceeded (100 req/min)" },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(resetIn / 1000)) } },
-    );
-  }
 
   try {
     // 3. Validate body
@@ -69,7 +61,7 @@ export async function POST(req: NextRequest) {
         priority,
         pinned,
         serviceId,
-        authorId: apiKey!.createdById,
+        authorId: "cowork",
         publishedAt: publishedAt ? new Date(publishedAt) : new Date(),
       },
       include: {
@@ -81,7 +73,7 @@ export async function POST(req: NextRequest) {
     // 6. Activity log
     await prisma.activityLog.create({
       data: {
-        userId: apiKey!.createdById,
+        userId: "cowork",
         action: "api_import",
         entityType: "Announcement",
         entityId: announcement.id,
@@ -91,7 +83,7 @@ export async function POST(req: NextRequest) {
           priority,
           serviceCode: serviceCode || null,
           via: "api_key",
-          keyName: apiKey!.name,
+          keyName: "Cowork Automation",
         },
       },
     });

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 import bcrypt from "bcryptjs";
 
 // ── Role mapping ─────────────────────────────────────────────
@@ -47,19 +46,8 @@ interface RegistryStaffEntry {
  * - Optionally deactivates users not in the registry (owner/head_office excluded)
  */
 export async function POST(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(
-    req,
-    "staff:sync"
-  );
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-
-  const { limited } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded. Please try again later." },
-      { status: 429 }
-    );
-  }
 
   try {
     const body = await req.json();
@@ -201,19 +189,8 @@ export async function POST(req: NextRequest) {
  * Query: ?active=true (default: true)
  */
 export async function GET(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(
-    req,
-    "staff:sync"
-  );
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-
-  const { limited } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded. Please try again later." },
-      { status: 429 }
-    );
-  }
 
   const { searchParams } = new URL(req.url);
   const activeOnly = searchParams.get("active") !== "false";

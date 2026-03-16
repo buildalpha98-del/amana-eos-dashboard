@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 /**
  * GET /api/cowork/financials/summary
@@ -15,12 +14,8 @@ import { checkApiKeyRateLimit } from "@/lib/rate-limit";
  *   - serviceId: filter to specific centre
  */
 export async function GET(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(req, "financials:read");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-  const { limited, resetIn } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json({ error: "Rate limit exceeded", resetIn }, { status: 429 });
-  }
 
   const { searchParams } = new URL(req.url);
   const periodMonth = searchParams.get("periodMonth");

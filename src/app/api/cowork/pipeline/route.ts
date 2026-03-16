@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 const STAGES = [
   "new_enquiry",
@@ -26,8 +26,8 @@ const STAGES = [
  *   - serviceId (optional — filter to a single centre)
  */
 export async function GET(req: NextRequest) {
-  const { error } = await authenticateApiKey(req, "pipeline:read");
-  if (error) return error;
+  const authError = authenticateCowork(req);
+  if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");

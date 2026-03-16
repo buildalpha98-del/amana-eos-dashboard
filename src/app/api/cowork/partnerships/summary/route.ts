@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 /**
  * GET /api/cowork/partnerships/summary
@@ -12,13 +11,8 @@ import { checkApiKeyRateLimit } from "@/lib/rate-limit";
  * Auth: API key with partnerships:read scope
  */
 export async function GET(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(req, "partnerships:read");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-
-  const { limited } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
-  }
 
   const now = new Date();
 

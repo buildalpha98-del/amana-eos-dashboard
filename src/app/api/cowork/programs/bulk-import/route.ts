@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 import { resolveServicesByCode } from "../../_lib/resolve-service";
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
@@ -43,17 +42,10 @@ interface ServiceResult {
 // POST /api/cowork/programs/bulk-import — Push programs to multiple centres
 export async function POST(req: NextRequest) {
   // 1. Authenticate
-  const { apiKey, error: authError } = await authenticateApiKey(req, "programs:write");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
 
   // 2. Rate limit
-  const { limited, resetIn } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json(
-      { error: "Too Many Requests", message: "Rate limit exceeded (100 req/min)" },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(resetIn / 1000)) } },
-    );
-  }
 
   try {
     // 3. Validate body
@@ -109,7 +101,7 @@ export async function POST(req: NextRequest) {
               staffName: a.staffName || null,
               location: a.location || null,
               notes: a.notes || null,
-              createdById: apiKey!.createdById,
+              createdById: "cowork",
             })),
           });
         });
@@ -117,7 +109,7 @@ export async function POST(req: NextRequest) {
         // Log per service
         await prisma.activityLog.create({
           data: {
-            userId: apiKey!.createdById,
+            userId: "cowork",
             action: "api_import",
             entityType: "ProgramActivity",
             entityId: service.id,
@@ -127,7 +119,7 @@ export async function POST(req: NextRequest) {
               weekStart,
               count: activities.length,
               via: "api_key",
-              keyName: apiKey!.name,
+              keyName: "Cowork Automation",
               bulk: true,
             },
           },

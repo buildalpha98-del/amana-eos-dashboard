@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 /**
  * POST /api/cowork/audits/[id]/review — mark audit as reviewed
@@ -10,8 +10,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { apiKey, error } = await authenticateApiKey(req, "audits:write");
-  if (error) return error;
+  const authError = authenticateCowork(req);
+  if (authError) return authError;
 
   const { id } = await params;
   const body = await req.json();
@@ -49,7 +49,7 @@ export async function POST(
     where: { id },
     data: {
       reviewedAt: new Date(),
-      reviewedById: apiKey!.createdById,
+      reviewedById: "cowork",
       reviewNotes,
     },
   });

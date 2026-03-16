@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 const createEnquirySchema = z.object({
   serviceId: z.string().min(1),
@@ -22,7 +21,7 @@ const createEnquirySchema = z.object({
  * Auth: API key with "enquiries:read" scope
  */
 export async function GET(req: NextRequest) {
-  const { error: authError } = await authenticateApiKey(req, "enquiries:read");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -77,16 +76,8 @@ export async function GET(req: NextRequest) {
  * Auth: API key with "enquiries:write" scope
  */
 export async function POST(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(req, "enquiries:write");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-
-  const { limited, resetIn } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json(
-      { error: "Too Many Requests" },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(resetIn / 1000)) } },
-    );
-  }
 
   try {
     const body = await req.json();
@@ -113,11 +104,11 @@ export async function POST(req: NextRequest) {
 
     await prisma.activityLog.create({
       data: {
-        userId: apiKey!.createdById,
+        userId: "cowork",
         action: "api_import",
         entityType: "ParentEnquiry",
         entityId: enquiry.id,
-        details: { via: "cowork_api", keyName: apiKey!.name },
+        details: { via: "cowork_api", keyName: "Cowork Automation" },
       },
     });
 

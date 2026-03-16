@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 /**
  * GET /api/cowork/billing/overdue
@@ -14,12 +13,8 @@ import { checkApiKeyRateLimit } from "@/lib/rate-limit";
  *   - status: "outstanding" | "all" (default "outstanding")
  */
 export async function GET(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(req, "billing:read");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-  const { limited, resetIn } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json({ error: "Rate limit exceeded", resetIn }, { status: 429 });
-  }
 
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
@@ -87,12 +82,8 @@ export async function GET(req: NextRequest) {
  * Scope: billing:write
  */
 export async function POST(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(req, "billing:write");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-  const { limited, resetIn } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json({ error: "Rate limit exceeded", resetIn }, { status: 429 });
-  }
 
   try {
     const body = await req.json();

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 // ── Validation ──────────────────────────────────────────────
 
@@ -27,8 +27,8 @@ const auditFindingSchema = z.object({
  * GET /api/cowork/audits — list completed but unreviewed audits
  */
 export async function GET(req: NextRequest) {
-  const { error } = await authenticateApiKey(req, "audits:read");
-  if (error) return error;
+  const authError = authenticateCowork(req);
+  if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
@@ -62,8 +62,8 @@ export async function GET(req: NextRequest) {
  * POST /api/cowork/audits — Submit audit findings
  */
 export async function POST(req: NextRequest) {
-  const { apiKey, error } = await authenticateApiKey(req, "audits:write");
-  if (error) return error;
+  const authError = authenticateCowork(req);
+  if (authError) return authError;
 
   try {
     const body = await req.json();
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       data: {
         templateId,
         serviceId,
-        auditorId: apiKey!.createdById,
+        auditorId: "cowork",
         scheduledYear: now.getFullYear(),
         scheduledMonth: now.getMonth() + 1,
         dueDate: now,

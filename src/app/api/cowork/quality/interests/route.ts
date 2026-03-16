@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 const INTEREST_SOURCES = ["interest_book", "verbal", "observation", "parent", "suggestion_box"] as const;
 
@@ -21,16 +20,8 @@ const batchCreateSchema = z.object({
 
 // GET /api/cowork/quality/interests?serviceCode=xxx — read unactioned interests for programme generation
 export async function GET(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(req, "operations:read");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-
-  const { limited, resetIn } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded" },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(resetIn / 1000)) } },
-    );
-  }
 
   const url = new URL(req.url);
   const serviceCode = url.searchParams.get("serviceCode");
@@ -104,16 +95,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/cowork/quality/interests — batch capture interests
 export async function POST(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(req, "operations:write");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-
-  const { limited, resetIn } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded" },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(resetIn / 1000)) } },
-    );
-  }
 
   const body = await req.json();
   const parsed = batchCreateSchema.safeParse(body);
@@ -139,7 +122,7 @@ export async function POST(req: NextRequest) {
       interestCategory: i.interestCategory || null,
       source: i.source,
       notes: i.notes || null,
-      capturedById: apiKey!.createdById,
+      capturedById: "cowork",
     })),
   });
 

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
@@ -13,13 +12,8 @@ function getWeekStart(date: Date): Date {
 
 // GET /api/cowork/parent-experience/feedback — per-centre weekly averages for Cowork report
 export async function GET(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(req, "parent-experience:read");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-
-  const { limited } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
-  }
 
   const { searchParams } = new URL(req.url);
   const serviceCode = searchParams.get("serviceCode");

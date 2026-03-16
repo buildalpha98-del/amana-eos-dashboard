@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 import { resolveServiceByCode } from "../_lib/resolve-service";
 
 /**
@@ -10,8 +10,8 @@ import { resolveServiceByCode } from "../_lib/resolve-service";
  * Auth: API key with "email:write" scope
  */
 export async function POST(req: NextRequest) {
-  const { error } = await authenticateApiKey(req, "email:write");
-  if (error) return error;
+  const authError = authenticateCowork(req);
+  if (authError) return authError;
 
   try {
     const body = await req.json();

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 const createPostSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -39,16 +38,8 @@ const batchSchema = z.object({
  * Body (batch):  { posts: [{ title, platform, ... }, ...] }
  */
 export async function POST(req: NextRequest) {
-  const { apiKey, error: authError } = await authenticateApiKey(req, "marketing:write");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
-
-  const { limited, resetIn } = await checkApiKeyRateLimit(apiKey!.id);
-  if (limited) {
-    return NextResponse.json(
-      { error: "Too Many Requests" },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(resetIn / 1000)) } },
-    );
-  }
 
   try {
     const body = await req.json();
@@ -119,7 +110,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.activityLog.create({
       data: {
-        userId: apiKey!.createdById,
+        userId: "cowork",
         action: "api_import",
         entityType: "MarketingPost",
         entityId: results[0]?.id || "batch",
@@ -127,7 +118,7 @@ export async function POST(req: NextRequest) {
           postsCreated: results.length,
           postsFailed: errors.length,
           via: "cowork_api",
-          keyName: apiKey!.name,
+          keyName: "Cowork Automation",
         },
       },
     });
@@ -159,7 +150,7 @@ export async function POST(req: NextRequest) {
  * Auth: API key with "marketing:read" scope
  */
 export async function GET(req: NextRequest) {
-  const { error: authError } = await authenticateApiKey(req, "marketing:read");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "../../_lib/auth";
-import { checkApiKeyRateLimit } from "@/lib/rate-limit";
 
 // ── Validation ──────────────────────────────────────────────
 
@@ -50,13 +49,6 @@ export async function POST(req: NextRequest) {
   if (authError) return authError;
 
   // Rate limit: 10 req/min (use a fixed key id for cowork bearer)
-  const { limited, resetIn } = await checkApiKeyRateLimit("cowork-bulk-import");
-  if (limited) {
-    return NextResponse.json(
-      { error: "Too Many Requests", message: "Rate limit exceeded (10 req/min)" },
-      { status: 429, headers: { "Retry-After": String(Math.ceil(resetIn / 1000)) } },
-    );
-  }
 
   try {
     const body = await req.json();

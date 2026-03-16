@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateApiKey } from "@/lib/api-key-auth";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 import { generateBoardReport } from "@/lib/board-report-generator";
 
 /**
@@ -9,7 +9,7 @@ import { generateBoardReport } from "@/lib/board-report-generator";
  * Body: { month: 1-12, year: number }
  */
 export async function POST(req: NextRequest) {
-  const { error: authError } = await authenticateApiKey(req, "reports:write");
+  const authError = authenticateCowork(req);
   if (authError) return authError;
 
   try {

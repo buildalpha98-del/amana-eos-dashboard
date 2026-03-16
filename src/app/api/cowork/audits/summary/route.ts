@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateApiKey } from "@/lib/api-key-auth";
+import { authenticateCowork } from "@/app/api/_lib/auth";
 
 /**
  * GET /api/cowork/audits/summary — network-wide audit summary
  */
 export async function GET(req: NextRequest) {
-  const { error } = await authenticateApiKey(req, "audits:read");
-  if (error) return error;
+  const authError = authenticateCowork(req);
+  if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
   const year = parseInt(searchParams.get("year") || String(new Date().getFullYear()));
