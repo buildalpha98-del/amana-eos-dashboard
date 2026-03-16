@@ -7,7 +7,8 @@ import { resolveServiceByCode } from "../../../_lib/resolve-service";
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 
 const importProgramsSchema = z.object({
-  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "weekStart must be YYYY-MM-DD"),
+  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "weekStart must be YYYY-MM-DD").optional(),
+  weekCommencing: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "weekCommencing must be YYYY-MM-DD").optional(),
   activities: z
     .array(
       z.object({
@@ -60,8 +61,15 @@ export async function POST(
       );
     }
 
-    const { weekStart, activities } = parsed.data;
-    const weekDate = new Date(weekStart);
+    const weekStartStr = parsed.data.weekStart || parsed.data.weekCommencing;
+    if (!weekStartStr) {
+      return NextResponse.json(
+        { error: "weekStart or weekCommencing (YYYY-MM-DD) is required" },
+        { status: 400 },
+      );
+    }
+    const { activities } = parsed.data;
+    const weekDate = new Date(weekStartStr);
 
     // 5. Transaction: delete existing + recreate
     const result = await prisma.$transaction(async (tx) => {
@@ -105,7 +113,7 @@ export async function POST(
         details: {
           serviceCode,
           serviceName: service.name,
-          weekStart,
+          weekStart: weekStartStr,
           count: activities.length,
           via: "api_key",
           keyName: "Cowork Automation",
@@ -114,7 +122,7 @@ export async function POST(
     });
 
     return NextResponse.json(
-      { service: { code: service.code, name: service.name }, weekStart, activities: result },
+      { service: { code: service.code, name: service.name }, weekStart: weekStartStr, activities: result },
       { status: 201 },
     );
   } catch (err) {

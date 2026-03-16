@@ -68,11 +68,14 @@ const todoItem = z.object({
 });
 
 export const todosSchema = z.object({
-  centreId: z.string().min(1, "centreId is required").refine(
-    (val) => (CENTRE_IDS as readonly string[]).includes(val),
-    { message: `centreId must be one of: ${CENTRE_IDS.join(", ")}` },
-  ),
-  date: isoDateString,
+  centreId: z.string().min(1, "centreId is required"),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}/, "Must be an ISO date (YYYY-MM-DD)")
+    .optional()
+    .default(() => new Date().toISOString().split("T")[0])
+    .transform((v) => new Date(v))
+    .refine((d) => !isNaN(d.getTime()), "Invalid date"),
   todos: z.array(todoItem).min(1, "At least one todo is required"),
 });
 

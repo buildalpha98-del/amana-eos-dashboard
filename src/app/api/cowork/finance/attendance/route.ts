@@ -11,71 +11,80 @@ export async function POST(req: NextRequest) {
   const authError = authenticateCowork(req);
   if (authError) return authError;
 
-  const body = await req.json();
-  const { serviceCode, records } = body;
+  try {
+    const body = await req.json();
+    const { serviceCode, records } = body;
 
-  if (!serviceCode || !records || !Array.isArray(records)) {
-    return NextResponse.json(
-      {
-        error: "Bad Request",
-        message: "serviceCode and records[] required",
-      },
-      { status: 400 }
-    );
-  }
+    if (!serviceCode || !records || !Array.isArray(records)) {
+      return NextResponse.json(
+        {
+          error: "Bad Request",
+          message: "serviceCode and records[] required",
+        },
+        { status: 400 }
+      );
+    }
 
-  const service = await prisma.service.findUnique({
-    where: { code: serviceCode },
-    select: { id: true, name: true },
-  });
+    const service = await prisma.service.findUnique({
+      where: { code: serviceCode },
+      select: { id: true, name: true },
+    });
 
-  if (!service) {
-    return NextResponse.json(
-      { error: "Not Found", message: `Service ${serviceCode} not found` },
-      { status: 404 }
-    );
-  }
+    if (!service) {
+      return NextResponse.json(
+        { error: "Not Found", message: `Service ${serviceCode} not found` },
+        { status: 404 }
+      );
+    }
 
-  let upserted = 0;
-  for (const rec of records) {
-    const dateObj = new Date(rec.date + "T00:00:00Z");
-    await prisma.dailyAttendance.upsert({
-      where: {
-        serviceId_date_sessionType: {
+    let upserted = 0;
+    for (const rec of records) {
+      const dateObj = new Date(rec.date + "T00:00:00Z");
+      await prisma.dailyAttendance.upsert({
+        where: {
+          serviceId_date_sessionType: {
+            serviceId: service.id,
+            date: dateObj,
+            sessionType: rec.sessionType,
+          },
+        },
+        update: {
+          enrolled: rec.enrolled || 0,
+          attended: rec.attended || 0,
+          capacity: rec.capacity || 0,
+          casual: rec.casual || 0,
+          absent: rec.absent || 0,
+          notes: rec.notes || null,
+        },
+        create: {
           serviceId: service.id,
           date: dateObj,
           sessionType: rec.sessionType,
+          enrolled: rec.enrolled || 0,
+          attended: rec.attended || 0,
+          capacity: rec.capacity || 0,
+          casual: rec.casual || 0,
+          absent: rec.absent || 0,
+          notes: rec.notes || null,
         },
-      },
-      update: {
-        enrolled: rec.enrolled || 0,
-        attended: rec.attended || 0,
-        capacity: rec.capacity || 0,
-        casual: rec.casual || 0,
-        absent: rec.absent || 0,
-        notes: rec.notes || null,
-      },
-      create: {
-        serviceId: service.id,
-        date: dateObj,
-        sessionType: rec.sessionType,
-        enrolled: rec.enrolled || 0,
-        attended: rec.attended || 0,
-        capacity: rec.capacity || 0,
-        casual: rec.casual || 0,
-        absent: rec.absent || 0,
-        notes: rec.notes || null,
-      },
-    });
-    upserted++;
-  }
+      });
+      upserted++;
+    }
 
-  return NextResponse.json(
-    {
-      message: "Attendance records synced",
-      serviceCode,
-      upserted,
-    },
-    { status: 201 }
-  );
+    return NextResponse.json(
+      {
+        message: "Attendance records synced",
+        serviceCode,
+        upserted,
+      },
+      { status: 201 }
+    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[POST /cowork/finance/attendance]", err);
+    return NextResponse.json(
+      { error: "Internal Server Error", message },
+      { status: 500 }
+    );
+  }
 }

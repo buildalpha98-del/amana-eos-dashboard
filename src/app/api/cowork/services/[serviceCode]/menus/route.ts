@@ -8,7 +8,8 @@ const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as co
 const MEAL_SLOTS = ["morning_tea", "lunch", "afternoon_tea"] as const;
 
 const importMenuSchema = z.object({
-  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "weekStart must be YYYY-MM-DD"),
+  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "weekStart must be YYYY-MM-DD").optional(),
+  weekCommencing: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "weekCommencing must be YYYY-MM-DD").optional(),
   notes: z.string().max(1000).optional(),
   items: z
     .array(
@@ -58,8 +59,15 @@ export async function POST(
       );
     }
 
-    const { weekStart, notes, items } = parsed.data;
-    const weekDate = new Date(weekStart);
+    const weekStartStr = parsed.data.weekStart || parsed.data.weekCommencing;
+    if (!weekStartStr) {
+      return NextResponse.json(
+        { error: "weekStart or weekCommencing (YYYY-MM-DD) is required" },
+        { status: 400 },
+      );
+    }
+    const { notes, items } = parsed.data;
+    const weekDate = new Date(weekStartStr);
 
     // Filter out empty descriptions
     const nonEmptyItems = items.filter((item) => item.description.trim().length > 0);
@@ -114,7 +122,7 @@ export async function POST(
         details: {
           serviceCode,
           serviceName: service.name,
-          weekStart,
+          weekStart: weekStartStr,
           itemCount: nonEmptyItems.length,
           via: "api_key",
           keyName: "Cowork Automation",

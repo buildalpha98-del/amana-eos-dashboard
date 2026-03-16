@@ -11,104 +11,113 @@ export async function POST(req: NextRequest) {
   const authError = authenticateCowork(req);
   if (authError) return authError;
 
-  const body = await req.json();
-  const { serviceCode, certificates } = body;
+  try {
+    const body = await req.json();
+    const { serviceCode, certificates } = body;
 
-  if (!serviceCode || !certificates || !Array.isArray(certificates)) {
-    return NextResponse.json(
-      {
-        error: "Bad Request",
-        message: "serviceCode and certificates[] required",
-      },
-      { status: 400 }
-    );
-  }
-
-  const service = await prisma.service.findUnique({
-    where: { code: serviceCode },
-    select: { id: true, name: true },
-  });
-
-  if (!service) {
-    return NextResponse.json(
-      { error: "Not Found", message: `Service ${serviceCode} not found` },
-      { status: 404 }
-    );
-  }
-
-  const results = { created: 0, updated: 0, alerts: [] as string[] };
-
-  for (const cert of certificates) {
-    // Resolve user by email
-    let userId: string | null = null;
-    if (cert.userEmail) {
-      const user = await prisma.user.findFirst({
-        where: { email: cert.userEmail },
-        select: { id: true },
-      });
-      userId = user?.id || null;
-    }
-
-    // Check if certificate exists (by service + user + type)
-    const existing = userId
-      ? await prisma.complianceCertificate.findFirst({
-          where: { serviceId: service.id, userId, type: cert.type },
-        })
-      : null;
-
-    const expiryDate = new Date(cert.expiryDate);
-    const issueDate = cert.issueDate ? new Date(cert.issueDate) : new Date();
-
-    // Flag expiring within 30 days
-    const daysUntilExpiry = Math.ceil(
-      (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-    );
-    if (daysUntilExpiry <= 30) {
-      results.alerts.push(
-        `${cert.staffName || cert.userEmail} — ${cert.type} expires in ${daysUntilExpiry} days`
+    if (!serviceCode || !certificates || !Array.isArray(certificates)) {
+      return NextResponse.json(
+        {
+          error: "Bad Request",
+          message: "serviceCode and certificates[] required",
+        },
+        { status: 400 }
       );
     }
 
-    if (existing) {
-      await prisma.complianceCertificate.update({
-        where: { id: existing.id },
-        data: {
-          issueDate,
-          expiryDate,
-          label: cert.label || null,
-          notes: cert.notes || null,
-          fileUrl: cert.fileUrl || existing.fileUrl,
-          acknowledged: false,
-        },
-      });
-      results.updated++;
-    } else {
-      await prisma.complianceCertificate.create({
-        data: {
-          serviceId: service.id,
-          userId,
-          type: cert.type,
-          label:
-            cert.label || `${cert.type} — ${cert.staffName || "Unknown"}`,
-          issueDate,
-          expiryDate,
-          notes: cert.notes || null,
-          fileUrl: cert.fileUrl || null,
-          alertDays: cert.alertDays || 30,
-        },
-      });
-      results.created++;
-    }
-  }
+    const service = await prisma.service.findUnique({
+      where: { code: serviceCode },
+      select: { id: true, name: true },
+    });
 
-  return NextResponse.json(
-    {
-      message: "Compliance certificates processed",
-      serviceCode,
-      ...results,
-    },
-    { status: 201 }
-  );
+    if (!service) {
+      return NextResponse.json(
+        { error: "Not Found", message: `Service ${serviceCode} not found` },
+        { status: 404 }
+      );
+    }
+
+    const results = { created: 0, updated: 0, alerts: [] as string[] };
+
+    for (const cert of certificates) {
+      // Resolve user by email
+      let userId: string | null = null;
+      if (cert.userEmail) {
+        const user = await prisma.user.findFirst({
+          where: { email: cert.userEmail },
+          select: { id: true },
+        });
+        userId = user?.id || null;
+      }
+
+      // Check if certificate exists (by service + user + type)
+      const existing = userId
+        ? await prisma.complianceCertificate.findFirst({
+            where: { serviceId: service.id, userId, type: cert.type },
+          })
+        : null;
+
+      const expiryDate = new Date(cert.expiryDate);
+      const issueDate = cert.issueDate ? new Date(cert.issueDate) : new Date();
+
+      // Flag expiring within 30 days
+      const daysUntilExpiry = Math.ceil(
+        (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysUntilExpiry <= 30) {
+        results.alerts.push(
+          `${cert.staffName || cert.userEmail} — ${cert.type} expires in ${daysUntilExpiry} days`
+        );
+      }
+
+      if (existing) {
+        await prisma.complianceCertificate.update({
+          where: { id: existing.id },
+          data: {
+            issueDate,
+            expiryDate,
+            label: cert.label || null,
+            notes: cert.notes || null,
+            fileUrl: cert.fileUrl || existing.fileUrl,
+            acknowledged: false,
+          },
+        });
+        results.updated++;
+      } else {
+        await prisma.complianceCertificate.create({
+          data: {
+            serviceId: service.id,
+            userId,
+            type: cert.type,
+            label:
+              cert.label || `${cert.type} — ${cert.staffName || "Unknown"}`,
+            issueDate,
+            expiryDate,
+            notes: cert.notes || null,
+            fileUrl: cert.fileUrl || null,
+            alertDays: cert.alertDays || 30,
+          },
+        });
+        results.created++;
+      }
+    }
+
+    return NextResponse.json(
+      {
+        message: "Compliance certificates processed",
+        serviceCode,
+        ...results,
+      },
+      { status: 201 }
+    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[POST /cowork/hr/compliance]", err);
+    return NextResponse.json(
+      { error: "Internal Server Error", message },
+      { status: 500 }
+    );
+  }
 }
 
 /**
