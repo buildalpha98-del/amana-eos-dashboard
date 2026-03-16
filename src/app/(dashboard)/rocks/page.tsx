@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { HelpTooltip } from "@/components/shared/HelpTooltip";
 
 export default function RocksPage() {
   const [quarter, setQuarter] = useState(getCurrentQuarter());
@@ -31,7 +32,9 @@ export default function RocksPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Rocks</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Rocks <HelpTooltip term="rocks" />
+          </h2>
           <p className="text-sm text-gray-500">
             Track your quarterly 90-day goals
           </p>

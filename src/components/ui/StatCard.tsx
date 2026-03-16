@@ -31,33 +31,52 @@ export function StatCard({
   };
 
   const valueClasses = {
-    sm: "text-lg font-bold",
-    md: "text-2xl sm:text-3xl font-bold",
-    lg: "text-3xl font-bold",
+    sm: "text-lg font-bold font-heading",
+    md: "text-2xl sm:text-3xl font-bold font-heading",
+    lg: "text-3xl font-bold font-heading",
   };
 
   const iconSizeClasses = {
-    sm: "w-9 h-9",
-    md: "w-10 h-10",
-    lg: "w-10 h-10",
+    sm: "w-10 h-10",
+    md: "w-11 h-11",
+    lg: "w-11 h-11",
+  };
+
+  // Gradient accent bar for top of card
+  const accentStyle = {
+    background: `linear-gradient(to right, ${iconColor}99, transparent)`,
   };
 
   if (size === "sm") {
     // Left-aligned layout for small cards (MetricCard pattern)
     return (
-      <div className={cn("bg-white rounded-xl border border-gray-200", sizeClasses[size], "flex items-center gap-3")}>
+      <div
+        className={cn(
+          "bg-white rounded-xl border border-border shadow-[var(--shadow-warm)]",
+          "hover:shadow-[var(--shadow-warm-md)] hover:-translate-y-0.5 transition-all duration-300",
+          "overflow-hidden relative",
+          sizeClasses[size],
+          "flex items-center gap-3"
+        )}
+      >
+        {/* Top accent line */}
+        <div className="absolute top-0 left-0 right-0 h-[2px]" style={accentStyle} />
+
         {Icon && (
           <div
-            className={cn("rounded-lg flex items-center justify-center shrink-0", iconSizeClasses[size])}
+            className={cn(
+              "rounded-xl flex items-center justify-center shrink-0 shadow-inner",
+              iconSizeClasses[size]
+            )}
             style={{ backgroundColor: iconColor + "15", color: iconColor }}
           >
             <Icon className="w-5 h-5" />
           </div>
         )}
         <div className="min-w-0">
-          <p className="text-xs text-gray-500 truncate">{title}</p>
+          <p className="text-xs text-muted truncate">{title}</p>
           {loading ? (
-            <div className="h-7 w-16 bg-gray-100 rounded animate-pulse mt-0.5" />
+            <div className="h-7 w-16 bg-surface rounded animate-pulse mt-0.5" />
           ) : (
             <p className={cn(valueClasses[size], valueColor || "text-gray-900", "leading-tight")}>{value}</p>
           )}
@@ -68,12 +87,22 @@ export function StatCard({
 
   // md / lg layout (icon top-right)
   return (
-    <div className={cn("bg-white rounded-xl border border-gray-200", sizeClasses[size])}>
+    <div
+      className={cn(
+        "bg-white rounded-xl border border-border shadow-[var(--shadow-warm)]",
+        "hover:shadow-[var(--shadow-warm-md)] hover:-translate-y-0.5 transition-all duration-300",
+        "overflow-hidden relative",
+        sizeClasses[size]
+      )}
+    >
+      {/* Top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-[2px]" style={accentStyle} />
+
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">{title}</p>
+          <p className="text-xs sm:text-sm font-medium text-muted truncate">{title}</p>
           {loading ? (
-            <div className="h-8 w-24 bg-gray-100 rounded animate-pulse mt-1" />
+            <div className="h-8 w-24 bg-surface rounded animate-pulse mt-1" />
           ) : (
             <p className={cn(valueClasses[size], valueColor || "text-gray-900", "mt-1 truncate")}>{value}</p>
           )}
@@ -94,7 +123,10 @@ export function StatCard({
         </div>
         {Icon && (
           <div
-            className={cn("rounded-lg flex items-center justify-center", iconSizeClasses[size])}
+            className={cn(
+              "rounded-xl flex items-center justify-center shadow-inner",
+              iconSizeClasses[size]
+            )}
             style={{ backgroundColor: iconColor + "15", color: iconColor }}
           >
             <Icon className="w-5 h-5" />

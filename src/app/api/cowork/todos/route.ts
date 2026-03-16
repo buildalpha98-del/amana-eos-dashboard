@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "../../_lib/auth";
 import { todosSchema } from "../../_lib/validation";
+import { resolveAssignee } from "../_lib/resolve-assignee";
 
 // POST /api/cowork/todos — Create daily to-dos
 export async function POST(req: NextRequest) {
@@ -21,9 +22,22 @@ export async function POST(req: NextRequest) {
 
     const { centreId, date, todos } = parsed.data;
 
+    // Resolve assignees before transaction (async lookups can't run inside $transaction array)
+    const resolvedAssignees = await Promise.all(
+      todos.map(async (todo) => {
+        if (!todo.assignee) return null;
+        const userIds = await resolveAssignee({
+          assignee: todo.assignee,
+          seat: todo.seat ?? undefined,
+          serviceCode: centreId,
+        });
+        return userIds[0] || null;
+      })
+    );
+
     // Create all todos in a single transaction
     const created = await prisma.$transaction(
-      todos.map((todo) =>
+      todos.map((todo, i) =>
         prisma.coworkTodo.create({
           data: {
             centreId,
@@ -32,7 +46,8 @@ export async function POST(req: NextRequest) {
             description: todo.description ?? null,
             category: todo.category,
             dueTime: todo.dueTime ?? null,
-            assignedRole: todo.assignedRole ?? null,
+            assignedRole: todo.assignedRole ?? todo.assignee ?? null,
+            assignedToId: resolvedAssignees[i],
           },
         })
       )
@@ -81,7 +96,9 @@ export async function GET(req: NextRequest) {
       orderBy: [{ dueTime: "asc" }, { category: "asc" }],
     });
 
-    return NextResponse.json({ todos });
+    const res = NextResponse.json({ todos });
+    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    return res;
   } catch (err) {
     console.error("[Cowork Todos GET]", err);
     return NextResponse.json(

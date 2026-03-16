@@ -151,7 +151,9 @@ export async function GET(req: NextRequest) {
       ).length,
     };
 
-    return NextResponse.json({ staff, count: staff.length, summary });
+    const res = NextResponse.json({ staff, count: staff.length, summary });
+    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    return res;
   } catch (err) {
     console.error("[Cowork HR Staff GET]", err);
     return NextResponse.json(

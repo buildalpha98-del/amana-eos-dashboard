@@ -10,6 +10,40 @@ const ALLOWED_EXTENSIONS = new Set([
   ".zip",
 ]);
 
+/**
+ * Magic byte signatures for file type validation.
+ * Validates actual file content matches the claimed extension.
+ */
+const MAGIC_BYTES: { ext: string; bytes: number[] }[] = [
+  { ext: ".pdf", bytes: [0x25, 0x50, 0x44, 0x46] }, // %PDF
+  { ext: ".png", bytes: [0x89, 0x50, 0x4e, 0x47] }, // .PNG
+  { ext: ".jpg", bytes: [0xff, 0xd8, 0xff] },
+  { ext: ".jpeg", bytes: [0xff, 0xd8, 0xff] },
+  { ext: ".gif", bytes: [0x47, 0x49, 0x46] }, // GIF
+  { ext: ".webp", bytes: [0x52, 0x49, 0x46, 0x46] }, // RIFF (WebP container)
+  { ext: ".zip", bytes: [0x50, 0x4b, 0x03, 0x04] }, // PK
+  { ext: ".xlsx", bytes: [0x50, 0x4b, 0x03, 0x04] }, // OOXML = ZIP
+  { ext: ".docx", bytes: [0x50, 0x4b, 0x03, 0x04] },
+  { ext: ".pptx", bytes: [0x50, 0x4b, 0x03, 0x04] },
+  { ext: ".doc", bytes: [0xd0, 0xcf, 0x11, 0xe0] }, // OLE2
+  { ext: ".xls", bytes: [0xd0, 0xcf, 0x11, 0xe0] },
+  { ext: ".ppt", bytes: [0xd0, 0xcf, 0x11, 0xe0] },
+  { ext: ".rtf", bytes: [0x7b, 0x5c, 0x72, 0x74, 0x66] }, // {\rtf
+];
+
+function validateMagicBytes(buffer: Buffer, ext: string): boolean {
+  // Text formats don't have reliable magic bytes — skip
+  if ([".txt", ".csv", ".svg"].includes(ext)) return true;
+
+  const signatures = MAGIC_BYTES.filter((m) => m.ext === ext);
+  if (signatures.length === 0) return true; // No signature defined — allow
+
+  return signatures.some((sig) => {
+    if (buffer.length < sig.bytes.length) return false;
+    return sig.bytes.every((b, i) => buffer[i] === b);
+  });
+}
+
 type UploadType = "programs" | "resources" | "attachments";
 
 interface UploadResult {
@@ -61,6 +95,13 @@ export async function saveBase64File(
   if (!ALLOWED_EXTENSIONS.has(ext)) {
     throw new Error(
       `File type "${ext || "unknown"}" is not allowed. Accepted: ${[...ALLOWED_EXTENSIONS].join(", ")}`
+    );
+  }
+
+  // Validate file content matches claimed extension (magic bytes)
+  if (!validateMagicBytes(buffer, ext)) {
+    throw new Error(
+      `File content does not match extension "${ext}". The file may be corrupted or mislabeled.`
     );
   }
 

@@ -94,7 +94,9 @@ export async function GET(req: NextRequest) {
       orderBy: { date: "asc" },
     });
 
-    return NextResponse.json({ events });
+    const res = NextResponse.json({ events });
+    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    return res;
   } catch (err) {
     console.error("[Cowork Calendar GET]", err);
     return NextResponse.json(

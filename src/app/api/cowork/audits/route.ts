@@ -53,7 +53,9 @@ export async function GET(req: NextRequest) {
     take: limit,
   });
 
-  return NextResponse.json({ audits, total: audits.length });
+  const res = NextResponse.json({ audits, total: audits.length });
+  res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+  return res;
 }
 
 /**

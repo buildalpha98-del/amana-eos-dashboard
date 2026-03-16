@@ -7,6 +7,13 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { QuickAddProvider } from "@/components/quick-add/QuickAddProvider";
 import { SidebarProvider, useSidebar } from "@/components/layout/SidebarContext";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { FeedbackWidget } from "@/components/shared/FeedbackWidget";
+import { SystemBannerBar } from "@/components/shared/SystemBannerBar";
+import { OfflineIndicator } from "@/components/shared/OfflineIndicator";
+import { PWAInstallPrompt } from "@/components/shared/PWAInstallPrompt";
+import { OnboardingTourWrapper } from "@/components/shared/OnboardingTourWrapper";
+import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
@@ -15,11 +22,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarProvider>
-      <QuickAddProvider>
-        <DashboardLayoutInner>{children}</DashboardLayoutInner>
-      </QuickAddProvider>
-    </SidebarProvider>
+    <ThemeProvider>
+      <SidebarProvider>
+        <QuickAddProvider>
+          <DashboardLayoutInner>{children}</DashboardLayoutInner>
+        </QuickAddProvider>
+      </SidebarProvider>
+    </ThemeProvider>
   );
 }
 
@@ -35,10 +44,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       />
 
       {/* Mobile header */}
-      <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-4">
+      <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-background border-b border-border z-30 flex items-center justify-between px-4">
         <button
           onClick={() => setMobileNavOpen(true)}
-          className="p-2 -ml-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+          className="p-2 -ml-2 rounded-lg text-foreground/70 hover:bg-surface transition-colors"
         >
           <Menu className="w-5 h-5" />
         </button>
@@ -50,7 +59,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             height={28}
             className="invert"
           />
-          <span className="text-sm font-semibold text-gray-900">Amana OSHC</span>
+          <span className="text-sm font-heading font-semibold text-gray-900">Amana OSHC</span>
         </div>
         <div className="w-9" /> {/* Spacer for centering */}
       </div>
@@ -62,7 +71,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         )}
       >
         <TopBar />
-        <main className="p-4 md:p-6">{children}</main>
+        <main className="p-4 md:p-8 animate-slide-up">
+          <SystemBannerBar />
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </main>
+        <FeedbackWidget />
+        <PWAInstallPrompt />
+        <OfflineIndicator />
+        <OnboardingTourWrapper />
       </div>
     </div>
   );

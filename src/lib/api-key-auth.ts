@@ -10,6 +10,7 @@
 import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logAuditEvent } from "@/lib/audit-log";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -69,6 +70,8 @@ export const API_SCOPES = [
   // ── Partnerships (Cowork integration) ──
   "partnerships:read",
   "partnerships:write",
+  // ── Staff Registry Sync (Cowork integration) ──
+  "staff:sync",
 ] as const;
 
 export type ApiScope = (typeof API_SCOPES)[number];
@@ -114,6 +117,7 @@ export async function authenticateApiKey(
       id: true,
       name: true,
       scopes: true,
+      allowedIps: true,
       createdById: true,
       revokedAt: true,
       expiresAt: true,
@@ -158,6 +162,26 @@ export async function authenticateApiKey(
         { status: 403 },
       ),
     };
+  }
+
+  // IP allowlisting — empty array means allow all
+  if (apiKey.allowedIps.length > 0) {
+    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+    if (!apiKey.allowedIps.includes(clientIp)) {
+      logAuditEvent({
+        action: "apikey.ip_denied",
+        targetId: apiKey.id,
+        targetType: "ApiKey",
+        metadata: { keyName: apiKey.name, clientIp, allowedIps: apiKey.allowedIps },
+      }, request);
+      return {
+        apiKey: null,
+        error: NextResponse.json(
+          { error: "Forbidden", message: "Request IP is not in the allowlist for this API key" },
+          { status: 403 },
+        ),
+      };
+    }
   }
 
   // Fire-and-forget: update lastUsedAt (non-blocking)

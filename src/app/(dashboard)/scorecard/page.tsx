@@ -13,6 +13,8 @@ import { BarChart3, Plus, Users, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { HelpTooltip } from "@/components/shared/HelpTooltip";
 
 export default function ScorecardPage() {
   const { data: scorecard, isLoading, error, refetch } = useScorecard();
@@ -87,7 +89,9 @@ export default function ScorecardPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Scorecard</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Scorecard <HelpTooltip term="scorecard" />
+          </h2>
           <p className="text-sm text-gray-500">
             Track your weekly measurables — trailing 13 weeks
           </p>
@@ -163,6 +167,13 @@ export default function ScorecardPage() {
           title="Failed to load scorecard"
           error={error as Error}
           onRetry={refetch}
+        />
+      ) : scorecard && scorecard.measurables.length === 0 ? (
+        <EmptyState
+          icon={BarChart3}
+          title="No Measurables Yet"
+          description="Your Scorecard tracks weekly KPIs that tell you if the business is on track. Add your first measurable to start monitoring what matters."
+          action={{ label: "Add Your First Measurable", onClick: () => setShowAddMeasurable(true) }}
         />
       ) : scorecard ? (
         <ScorecardGrid

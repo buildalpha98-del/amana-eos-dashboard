@@ -9,9 +9,12 @@ import { TicketDetailPanel } from "@/components/tickets/TicketDetailPanel";
 import { CreateTicketModal } from "@/components/tickets/CreateTicketModal";
 import { ResponseTemplateManager } from "@/components/tickets/ResponseTemplateManager";
 import { TicketAnalytics } from "@/components/tickets/TicketAnalytics";
-import { TicketVolumeTrendChart } from "@/components/charts/TicketVolumeTrendChart";
-import { TicketPriorityChart } from "@/components/charts/TicketPriorityChart";
-import { AgentWorkloadChart } from "@/components/charts/AgentWorkloadChart";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/Skeleton";
+
+const TicketVolumeTrendChart = dynamic(() => import("@/components/charts/TicketVolumeTrendChart").then((m) => m.TicketVolumeTrendChart), { loading: () => <Skeleton className="h-64 w-full" /> });
+const TicketPriorityChart = dynamic(() => import("@/components/charts/TicketPriorityChart").then((m) => m.TicketPriorityChart), { loading: () => <Skeleton className="h-64 w-full" /> });
+const AgentWorkloadChart = dynamic(() => import("@/components/charts/AgentWorkloadChart").then((m) => m.AgentWorkloadChart), { loading: () => <Skeleton className="h-64 w-full" /> });
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV, formatDateCSV } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";

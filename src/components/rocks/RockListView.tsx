@@ -92,7 +92,7 @@ export function RockListView({
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <table className="w-full">
-        <thead className="bg-gray-50 border-b border-gray-200">
+        <thead className="bg-surface border-b border-gray-200">
           <tr>
             <SortHeader field="title">Title</SortHeader>
             <SortHeader field="owner">Owner</SortHeader>

@@ -32,5 +32,6 @@ export function useTeam() {
       if (!res.ok) throw new Error("Failed to fetch team");
       return res.json();
     },
+    staleTime: 5 * 60_000, // Reference data: 5 min stale time
   });
 }

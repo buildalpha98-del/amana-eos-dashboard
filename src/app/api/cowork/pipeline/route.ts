@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
         ? Math.round((totalEnrolled / totalEnquiries) * 1000) / 10
         : 0;
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       countByStage,
       countByCentre,
       avgDaysByStage,
@@ -139,6 +139,8 @@ export async function GET(req: NextRequest) {
       totalEnrolled,
       conversionRate,
     });
+    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    return res;
   } catch (err) {
     console.error("[Cowork Pipeline]", err);
     return NextResponse.json(

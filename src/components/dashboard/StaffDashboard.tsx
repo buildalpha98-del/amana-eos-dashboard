@@ -24,6 +24,11 @@ import {
   UserCircle,
 } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { MobileQuickActions } from "@/components/dashboard/MobileQuickActions";
+import { ReportToHOModal } from "@/components/shared/ReportToHOModal";
+import { DirectorAnalyticsWidget } from "@/components/dashboard/DirectorAnalyticsWidget";
+import { Rocket, Send } from "lucide-react";
+import { useState } from "react";
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -309,6 +314,7 @@ function TodoRow({ todo }: { todo: TodoItem }) {
 export function StaffDashboard() {
   const { data: session } = useSession();
   const weekStart = getWeekStart();
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Fetch hub data
   const { data, isLoading } = useQuery<MyHubData>({
@@ -376,13 +382,30 @@ export function StaffDashboard() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* ── Welcome Header ─────────────────────────────── */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">My Hub</h2>
-        <p className="text-gray-500 mt-1">
-          Welcome back, {session?.user?.name?.split(" ")[0] || "there"}{" "}
-          &mdash; here is your personal overview.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">My Hub</h2>
+          <p className="text-gray-500 mt-1">
+            Welcome back, {session?.user?.name?.split(" ")[0] || "there"}{" "}
+            &mdash; here is your personal overview.
+          </p>
+        </div>
+        <Link
+          href="/getting-started"
+          className="hidden sm:inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-brand bg-brand/10 rounded-lg hover:bg-brand/20 transition-colors"
+        >
+          <Rocket className="w-4 h-4" />
+          Getting Started
+        </Link>
       </div>
+
+      {/* ── Mobile Quick Actions ────────────────────────── */}
+      <MobileQuickActions role={session?.user?.role as string || "staff"} />
+
+      {/* ── Director Analytics (centre directors only) ── */}
+      {(session?.user?.role === "member" || session?.user?.role === "coordinator") && (
+        <DirectorAnalyticsWidget />
+      )}
 
       {/* Action Required Banner */}
       {(() => {
@@ -515,7 +538,7 @@ export function StaffDashboard() {
       </div>
 
       {/* ── Quick Links ──────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <Link href="/compliance" className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
           <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
             <ShieldCheck className="w-4.5 h-4.5 text-brand" />
@@ -552,6 +575,15 @@ export function StaffDashboard() {
             <p className="text-[10px] text-gray-500">Courses & modules</p>
           </div>
         </Link>
+        <button onClick={() => setShowReportModal(true)} className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-amber-300 hover:shadow-sm transition-all group text-left">
+          <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+            <Send className="w-4.5 h-4.5 text-amber-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900">Report Issue</p>
+            <p className="text-[10px] text-gray-500">Contact Head Office</p>
+          </div>
+        </button>
       </div>
 
       {/* ── Compliance Detail ──────────────────────────── */}
@@ -730,6 +762,9 @@ export function StaffDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Report to Head Office Modal */}
+      <ReportToHOModal open={showReportModal} onClose={() => setShowReportModal(false)} />
     </div>
   );
 }

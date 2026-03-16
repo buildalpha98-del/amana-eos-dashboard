@@ -6,6 +6,7 @@ import { createRequest } from "../helpers/request";
 // Mock service-scope (owner/admin get null scope = see all)
 vi.mock("@/lib/service-scope", () => ({
   getServiceScope: vi.fn(() => null),
+  getStateScope: vi.fn(() => null),
 }));
 
 // Mock teams-notify (fire-and-forget, don't actually notify)

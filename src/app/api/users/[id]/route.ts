@@ -3,6 +3,8 @@ import { hash } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { checkPasswordBreach } from "@/lib/password-breach-check";
+import { logAuditEvent } from "@/lib/audit-log";
 import type { PrismaClient } from "@prisma/client";
 
 const updateUserSchema = z.object({
@@ -61,6 +63,13 @@ export async function PATCH(
   const { newPassword, ...rest } = parsed.data;
   const updateData: Record<string, unknown> = { ...rest };
   if (newPassword) {
+    const breachCount = await checkPasswordBreach(newPassword);
+    if (breachCount > 0) {
+      return NextResponse.json(
+        { error: `This password has appeared in ${breachCount.toLocaleString()} data breaches. Please choose a different password.` },
+        { status: 400 },
+      );
+    }
     updateData.passwordHash = await hash(newPassword, 12);
   }
 
@@ -87,6 +96,27 @@ export async function PATCH(
       details: { ...rest, passwordReset: !!newPassword },
     },
   });
+
+  // Security audit: log role changes and password resets
+  if (rest.role && rest.role !== user.role) {
+    logAuditEvent({
+      action: "user.role_change",
+      actorId: session!.user.id,
+      actorEmail: session!.user.email,
+      targetId: id,
+      targetType: "User",
+      metadata: { oldRole: user.role, newRole: rest.role },
+    }, req);
+  }
+  if (newPassword) {
+    logAuditEvent({
+      action: "user.password_change",
+      actorId: session!.user.id,
+      actorEmail: session!.user.email,
+      targetId: id,
+      targetType: "User",
+    }, req);
+  }
 
   return NextResponse.json(updated);
 }

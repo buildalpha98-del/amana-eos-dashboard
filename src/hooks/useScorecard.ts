@@ -56,6 +56,7 @@ export function useScorecard() {
       if (!res.ok) throw new Error("Failed to fetch scorecard");
       return res.json();
     },
+    staleTime: 2 * 60_000, // Scorecard data: 2 min stale time
   });
 }
 

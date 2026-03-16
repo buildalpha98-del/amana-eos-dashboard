@@ -6,6 +6,7 @@ import { requireAuth } from "@/lib/server-auth";
 import { hasFeature } from "@/lib/role-permissions";
 import type { Role } from "@prisma/client";
 import { API_SCOPES } from "@/lib/api-key-auth";
+import { logAuditEvent } from "@/lib/audit-log";
 
 const createApiKeySchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
@@ -16,6 +17,7 @@ const createApiKeySchema = z.object({
       }),
     )
     .min(1, "At least one scope is required"),
+  allowedIps: z.array(z.string().min(1)).default([]),
   expiresAt: z.string().datetime().optional(),
 });
 
@@ -34,6 +36,7 @@ export async function GET() {
       name: true,
       keyPrefix: true,
       scopes: true,
+      allowedIps: true,
       expiresAt: true,
       revokedAt: true,
       lastUsedAt: true,
@@ -76,6 +79,7 @@ export async function POST(req: NextRequest) {
       keyPrefix,
       keyHash,
       scopes: parsed.data.scopes,
+      allowedIps: parsed.data.allowedIps,
       expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
       createdById: session!.user.id,
     },
@@ -98,6 +102,15 @@ export async function POST(req: NextRequest) {
       details: { name: apiKey.name, scopes: apiKey.scopes },
     },
   });
+
+  logAuditEvent({
+    action: "apikey.created",
+    actorId: session!.user.id,
+    actorEmail: session!.user.email,
+    targetId: apiKey.id,
+    targetType: "ApiKey",
+    metadata: { name: apiKey.name, scopes: apiKey.scopes, allowedIps: parsed.data.allowedIps },
+  }, req);
 
   // Return the plaintext key ONCE — it can never be retrieved again
   return NextResponse.json(

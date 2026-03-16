@@ -151,5 +151,6 @@ export function useMyPortal() {
       if (!res.ok) throw new Error("Failed to fetch portal data");
       return res.json();
     },
+    staleTime: 60_000, // Staff portal: 1 min stale time
   });
 }

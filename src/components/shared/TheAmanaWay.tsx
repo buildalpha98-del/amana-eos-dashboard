@@ -229,7 +229,7 @@ function WhatWeDoSection() {
         <p className="text-sm text-gray-600 mb-3">Amana OSHC runs a variety of signature clubs designed to develop different strengths in children.</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
-            <thead><tr className="bg-gray-50"><th className="p-2.5 text-left font-semibold">Club Name</th><th className="p-2.5 text-left font-semibold">Focus</th></tr></thead>
+            <thead><tr className="bg-surface"><th className="p-2.5 text-left font-semibold">Club Name</th><th className="p-2.5 text-left font-semibold">Focus</th></tr></thead>
             <tbody className="divide-y">
               {[
                 ["Rise + Shine Club", "Start the day with breakfast, quiet spaces and light activities"],
@@ -353,7 +353,7 @@ function FirstDaySection() {
       <ContentBlock title="Essential Training & Qualifications">
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
-            <thead><tr className="bg-gray-50"><th className="p-2 text-left">Code</th><th className="p-2 text-left">Course</th><th className="p-2 text-left">Cost</th><th className="p-2 text-left">Who</th></tr></thead>
+            <thead><tr className="bg-surface"><th className="p-2 text-left">Code</th><th className="p-2 text-left">Course</th><th className="p-2 text-left">Cost</th><th className="p-2 text-left">Who</th></tr></thead>
             <tbody className="divide-y text-gray-600">
               <tr><td className="p-2 font-semibold">CHCPRT025</td><td className="p-2">Identify & Report Children at Risk</td><td className="p-2">$119</td><td className="p-2">All</td></tr>
               <tr><td className="p-2 font-semibold">HLTAID009</td><td className="p-2">CPR (renew yearly)</td><td className="p-2">$45</td><td className="p-2">All</td></tr>
@@ -371,7 +371,7 @@ function FirstDaySection() {
         <h3 className="text-xs font-bold uppercase tracking-wider text-teal-600 mb-2">Cancelling a Shift</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
-            <thead><tr className="bg-gray-50"><th className="p-2 text-left">Shift Type</th><th className="p-2 text-left">Notify By</th></tr></thead>
+            <thead><tr className="bg-surface"><th className="p-2 text-left">Shift Type</th><th className="p-2 text-left">Notify By</th></tr></thead>
             <tbody className="divide-y text-gray-600">
               <tr><td className="p-2">Before School Care (BSC)</td><td className="p-2">2:30 pm the day before</td></tr>
               <tr><td className="p-2">After School Care (ASC)</td><td className="p-2">10:00 am the day of</td></tr>
@@ -534,7 +534,7 @@ function MTOPSection() {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
-          <thead><tr className="bg-gray-50"><th className="p-2 text-left">#</th><th className="p-2 text-left">Outcome</th><th className="p-2 text-left">Key Learning Behaviours</th></tr></thead>
+          <thead><tr className="bg-surface"><th className="p-2 text-left">#</th><th className="p-2 text-left">Outcome</th><th className="p-2 text-left">Key Learning Behaviours</th></tr></thead>
           <tbody className="divide-y text-gray-600">
             {outcomes.map((o) => (
               <tr key={o.n}><td className="p-2 font-bold">{o.n}</td><td className="p-2 font-semibold text-brand">{o.t}</td><td className="p-2">{o.d}</td></tr>
@@ -577,7 +577,7 @@ function SupervisionSection() {
       <ContentBlock title="Ratios">
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
-            <thead><tr className="bg-gray-50"><th className="p-2 text-left">Setting / Activity</th><th className="p-2 text-left">Staff : Children</th></tr></thead>
+            <thead><tr className="bg-surface"><th className="p-2 text-left">Setting / Activity</th><th className="p-2 text-left">Staff : Children</th></tr></thead>
             <tbody className="divide-y text-gray-600">
               <tr><td className="p-2">Standard regulation ratio</td><td className="p-2 font-bold">1 : 15</td></tr>
               <tr><td className="p-2">Low risk excursions</td><td className="p-2 font-bold">1 : 11</td></tr>
@@ -600,7 +600,7 @@ function ChildProtectionSection() {
         <p className="text-sm text-gray-600 mb-3">The Child Safe Standards ensure children&apos;s safety is everyone&apos;s priority, promoting cultural safety for all children.</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
-            <thead><tr className="bg-gray-50"><th className="p-2 text-left">Standard</th><th className="p-2 text-left">Description</th></tr></thead>
+            <thead><tr className="bg-surface"><th className="p-2 text-left">Standard</th><th className="p-2 text-left">Description</th></tr></thead>
             <tbody className="divide-y text-gray-600">
               {[
                 ["1", "Strategies to embed an organisational culture of child safety"],
@@ -631,7 +631,7 @@ function ChildProtectionSection() {
       <ContentBlock title="Who to Contact">
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
-            <thead><tr className="bg-gray-50"><th className="p-2 text-left">State</th><th className="p-2 text-left">Authority</th><th className="p-2 text-left">Contact</th></tr></thead>
+            <thead><tr className="bg-surface"><th className="p-2 text-left">State</th><th className="p-2 text-left">Authority</th><th className="p-2 text-left">Contact</th></tr></thead>
             <tbody className="divide-y text-gray-600">
               <tr><td className="p-2 font-bold">NSW</td><td className="p-2">Child Protection Helpline</td><td className="p-2 font-bold">13 2111</td></tr>
               <tr><td className="p-2 font-bold">VIC</td><td className="p-2">Child First</td><td className="p-2 font-bold">(03) 9329 4822</td></tr>

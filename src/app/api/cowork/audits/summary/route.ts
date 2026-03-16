@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
     where: { ...where, status: "completed", reviewedAt: null },
   });
 
-  return NextResponse.json({
+  const res = NextResponse.json({
     year,
     month,
     statusBreakdown: Object.fromEntries(statusCounts.map((s) => [s.status, s._count])),
@@ -76,4 +76,6 @@ export async function GET(req: NextRequest) {
     unreviewedCount,
     totalInstances: statusCounts.reduce((s, c) => s + c._count, 0),
   });
+  res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+  return res;
 }

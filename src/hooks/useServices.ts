@@ -74,6 +74,7 @@ export function useServices(status?: string) {
       if (!res.ok) throw new Error("Failed to fetch services");
       return res.json();
     },
+    staleTime: 5 * 60_000, // Reference data: 5 min stale time
   });
 }
 

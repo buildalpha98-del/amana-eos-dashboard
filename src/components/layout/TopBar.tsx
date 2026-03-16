@@ -64,6 +64,12 @@ const pageTitles: Record<string, string> = {
   "/tools/ccs-calculator": "CCS Calculator",
   "/tools/the-amana-way": "The Amana Way",
   "/compliance/templates": "Audit Templates",
+  "/audit-log": "Audit Log",
+  "/getting-started": "Getting Started",
+  "/help": "Help Centre",
+  "/directory": "Staff Directory",
+  "/queue": "My Queue",
+  "/queue/all": "All Queues",
 };
 
 export function TopBar() {
@@ -115,16 +121,16 @@ export function TopBar() {
 
   const closeQuickAdd = () => setQuickAddOpen(false);
 
-  const quickAddBtnClasses = "p-2 rounded-lg text-white bg-brand hover:bg-brand-hover transition-colors";
+  const quickAddBtnClasses = "p-2 rounded-lg text-white bg-brand hover:bg-brand-hover shadow-warm-sm hover:shadow-warm hover:scale-105 active:scale-95 transition-all";
 
   return (
     <>
       {/* Desktop header */}
-      <header className="h-16 bg-white border-b border-gray-200 hidden md:flex items-center justify-between px-6 sticky top-0 z-30">
+      <header className="h-16 bg-background border-b border-border hidden md:flex items-center justify-between px-6 sticky top-0 z-30">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
+          <h1 className="text-2xl font-heading font-semibold tracking-tight text-gray-900">{title}</h1>
           {quarterRelevantPages.has(pathname) && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand/10 text-brand">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/20 text-brand border border-accent/30">
               {quarter}
             </span>
           )}
@@ -132,31 +138,32 @@ export function TopBar() {
 
         <div className="flex items-center gap-2">
           <button
+            data-tour="search"
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 bg-surface rounded-xl hover:border-border transition-colors"
             title="Search (Cmd+K)"
           >
             <Search className="w-4 h-4" />
             <span className="hidden md:inline">Search...</span>
-            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium text-gray-400 bg-white rounded border">
+            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium text-gray-400 bg-card rounded border-border border">
               ⌘K
             </kbd>
           </button>
 
-          <button onClick={handleQuickAddClick} className={quickAddBtnClasses} title="Quick Add">
+          <button data-tour="quick-add" onClick={handleQuickAddClick} className={quickAddBtnClasses} title="Quick Add">
             <Plus className="w-4 h-4" />
           </button>
 
-          <NotificationDropdown />
+          <span data-tour="notifications"><NotificationDropdown /></span>
         </div>
       </header>
 
       {/* Mobile sub-header — sticky below the fixed mobile header */}
-      <div className="md:hidden flex items-center justify-between px-4 py-2 bg-white border-b border-gray-100 sticky top-14 z-20">
+      <div className="md:hidden flex items-center justify-between px-4 py-2 bg-background border-b border-border sticky top-14 z-20">
         <div className="flex items-center gap-2 min-w-0">
-          <h1 className="text-base font-semibold text-gray-900 truncate">{title}</h1>
+          <h1 className="text-base font-heading font-semibold tracking-tight text-gray-900 truncate">{title}</h1>
           {quarterRelevantPages.has(pathname) && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-brand/10 text-brand shrink-0">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent/20 text-brand border border-accent/30 shrink-0">
               {quarter}
             </span>
           )}

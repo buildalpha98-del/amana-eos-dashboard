@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { HelpTooltip } from "@/components/shared/HelpTooltip";
 
 interface UserOption {
   id: string;
@@ -99,7 +100,9 @@ export default function IssuesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Issues</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Issues <HelpTooltip term="ids" />
+          </h2>
           <p className="text-sm text-gray-500">
             Track and resolve using IDS (Identify, Discuss, Solve)
           </p>

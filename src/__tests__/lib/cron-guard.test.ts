@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 
-import { acquireCronLock } from "@/lib/cron-guard";
+import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 
 describe("acquireCronLock", () => {
   beforeEach(() => {
@@ -161,5 +161,111 @@ describe("acquireCronLock", () => {
     expect(guard.acquired).toBe(true);
     const createCall = prismaMock.cronRun.create.mock.calls[0][0];
     expect(createCall.data.period).toMatch(/^\d{4}-W\d{2}$/);
+  });
+
+  it("uses monthly period key for monthly crons", async () => {
+    prismaMock.cronRun.findUnique.mockResolvedValue(null);
+    prismaMock.cronRun.create.mockResolvedValue({
+      id: "run-m",
+      cronName: "board-report",
+      period: "2025-06",
+      status: "running",
+    });
+
+    const guard = await acquireCronLock("board-report", "monthly");
+
+    expect(guard.acquired).toBe(true);
+    const createCall = prismaMock.cronRun.create.mock.calls[0][0];
+    expect(createCall.data.period).toBe("2025-06");
+  });
+
+  it("re-throws non-P2002 errors", async () => {
+    prismaMock.cronRun.findUnique.mockResolvedValue(null);
+    prismaMock.cronRun.create.mockRejectedValue(new Error("Connection refused"));
+
+    await expect(acquireCronLock("daily-digest", "daily")).rejects.toThrow(
+      "Connection refused",
+    );
+  });
+
+  it("deletes failed records and re-acquires", async () => {
+    prismaMock.cronRun.findUnique.mockResolvedValue({
+      id: "run-failed",
+      cronName: "daily-digest",
+      period: "2025-06-15",
+      status: "failed",
+      startedAt: new Date("2025-06-15T08:00:00Z"),
+    });
+    prismaMock.cronRun.delete.mockResolvedValue({});
+    prismaMock.cronRun.create.mockResolvedValue({
+      id: "run-retry",
+      cronName: "daily-digest",
+      period: "2025-06-15",
+      status: "running",
+    });
+
+    const guard = await acquireCronLock("daily-digest", "daily");
+
+    expect(guard.acquired).toBe(true);
+    expect(prismaMock.cronRun.delete).toHaveBeenCalled();
+  });
+});
+
+// ── verifyCronSecret ──────────────────────────────────────
+
+describe("verifyCronSecret", () => {
+  const originalEnv = process.env.CRON_SECRET;
+
+  afterEach(() => {
+    if (originalEnv !== undefined) {
+      process.env.CRON_SECRET = originalEnv;
+    } else {
+      delete process.env.CRON_SECRET;
+    }
+  });
+
+  it("returns null (no error) when Bearer token matches CRON_SECRET", () => {
+    process.env.CRON_SECRET = "my-cron-secret";
+
+    const req = new Request("http://localhost:3000/api/cron/test", {
+      headers: { authorization: "Bearer my-cron-secret" },
+    });
+
+    const result = verifyCronSecret(req);
+    expect(result).toBeNull();
+  });
+
+  it("returns error response when token is missing", () => {
+    process.env.CRON_SECRET = "my-cron-secret";
+
+    const req = new Request("http://localhost:3000/api/cron/test");
+    const result = verifyCronSecret(req);
+
+    expect(result).not.toBeNull();
+    expect(result!.error.status).toBe(401);
+  });
+
+  it("returns error response when token is wrong", () => {
+    process.env.CRON_SECRET = "my-cron-secret";
+
+    const req = new Request("http://localhost:3000/api/cron/test", {
+      headers: { authorization: "Bearer wrong-secret" },
+    });
+    const result = verifyCronSecret(req);
+
+    expect(result).not.toBeNull();
+    expect(result!.error.status).toBe(401);
+  });
+
+  it("returns error response when CRON_SECRET is not set", () => {
+    delete process.env.CRON_SECRET;
+
+    const req = new Request("http://localhost:3000/api/cron/test", {
+      headers: { authorization: "Bearer something" },
+    });
+    const result = verifyCronSecret(req);
+
+    expect(result).not.toBeNull();
+    expect(result!.error.status).toBe(401);
   });
 });

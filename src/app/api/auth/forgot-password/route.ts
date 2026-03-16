@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { passwordResetEmail } from "@/lib/email-templates";
+import { checkRateLimit } from "@/lib/rate-limit";
 import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
@@ -12,6 +13,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Email is required" },
         { status: 400 }
+      );
+    }
+
+    // Rate limit: 5 reset requests per 15 minutes per email
+    const rl = await checkRateLimit(`pwd-reset:${email.toLowerCase().trim()}`);
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429 },
       );
     }
 

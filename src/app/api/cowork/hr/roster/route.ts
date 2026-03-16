@@ -198,12 +198,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       sessions,
       count: sessions.length,
       totalShifts: shifts.length,
       qualificationRisks: qualRisks.length > 0 ? qualRisks : undefined,
     });
+    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    return res;
   } catch (err) {
     console.error("[Cowork HR Roster GET]", err);
     return NextResponse.json(

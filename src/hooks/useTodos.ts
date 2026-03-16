@@ -52,6 +52,7 @@ export function useTodos(filters?: {
       if (!res.ok) throw new Error("Failed to fetch todos");
       return res.json();
     },
+    staleTime: 30_000,
   });
 }
 
@@ -117,7 +118,32 @@ export function useUpdateTodo() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onMutate: async (vars) => {
+      // Optimistic update for status toggle
+      if (!vars.status) return;
+      await queryClient.cancelQueries({ queryKey: ["todos"] });
+      const queries = queryClient.getQueriesData<TodoData[]>({ queryKey: ["todos"] });
+      for (const [key, data] of queries) {
+        if (!data) continue;
+        queryClient.setQueryData<TodoData[]>(key,
+          data.map((t) =>
+            t.id === vars.id
+              ? { ...t, status: vars.status!, completedAt: vars.status === "complete" ? new Date().toISOString() : null }
+              : t
+          ),
+        );
+      }
+      return { queries };
+    },
+    onError: (_err, _vars, ctx) => {
+      // Rollback on error
+      if (ctx?.queries) {
+        for (const [key, data] of ctx.queries) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
   });

@@ -116,7 +116,9 @@ export function useDashboardData(period?: string) {
       if (!res.ok) throw new Error("Failed to fetch dashboard data");
       return res.json();
     },
-    refetchInterval: 30000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    gcTime: 5 * 60_000,
   });
 }
 
@@ -136,7 +138,9 @@ function useDashboardSlice<T>(
       if (!res.ok) throw new Error("Failed to fetch dashboard data");
       return res.json();
     },
-    refetchInterval: 30000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    gcTime: 5 * 60_000,
     select: selector,
   });
 }

@@ -20,16 +20,18 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ScoreDistributionChart } from "@/components/charts/ScoreDistributionChart";
-import { CentreRadarChart } from "@/components/charts/CentreRadarChart";
-import { OccupancyComparisonChart } from "@/components/charts/OccupancyComparisonChart";
-import { ScoreTrendChart } from "@/components/charts/ScoreTrendChart";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/Skeleton";
+
+const ScoreDistributionChart = dynamic(() => import("@/components/charts/ScoreDistributionChart").then((m) => m.ScoreDistributionChart), { loading: () => <Skeleton className="h-64 w-full" /> });
+const CentreRadarChart = dynamic(() => import("@/components/charts/CentreRadarChart").then((m) => m.CentreRadarChart), { loading: () => <Skeleton className="h-64 w-full" /> });
+const OccupancyComparisonChart = dynamic(() => import("@/components/charts/OccupancyComparisonChart").then((m) => m.OccupancyComparisonChart), { loading: () => <Skeleton className="h-64 w-full" /> });
+const ScoreTrendChart = dynamic(() => import("@/components/charts/ScoreTrendChart").then((m) => m.ScoreTrendChart), { loading: () => <Skeleton className="h-64 w-full" /> });
 import { HealthScoreDetail } from "@/components/performance/HealthScoreDetail";
 import { CentreLeaderboard } from "@/components/performance/CentreLeaderboard";
 import { CentreComparison } from "@/components/performance/CentreComparison";
 import { RegionalRollup } from "@/components/performance/RegionalRollup";
 import { LayoutGrid, ListOrdered, BarChart3 } from "lucide-react";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 
 type ViewMode = "centres" | "leaderboard" | "compare";

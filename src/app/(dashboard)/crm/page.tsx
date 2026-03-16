@@ -459,7 +459,7 @@ function SchoolHealthSection() {
       </div>
       <div className="border border-gray-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-surface">
             <tr>
               <th className="text-left px-4 py-2.5 font-medium text-gray-600">School</th>
               <th className="text-center px-3 py-2.5 font-medium text-gray-600 w-20">Score</th>

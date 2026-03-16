@@ -36,6 +36,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
+import { SessionManagement } from "@/components/settings/SessionManagement";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -1133,6 +1135,16 @@ export default function MyPortalPage() {
           </Link>
         </div>
       )}
+
+      {/* ============================================================ */}
+      {/* NOTIFICATION PREFERENCES                                     */}
+      {/* ============================================================ */}
+      <NotificationPreferences />
+
+      {/* ============================================================ */}
+      {/* SECURITY & SESSION MANAGEMENT                                */}
+      {/* ============================================================ */}
+      <SessionManagement />
 
       {/* ============================================================ */}
       {/* POLICY ACKNOWLEDGEMENT MODAL                                 */}

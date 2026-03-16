@@ -30,6 +30,7 @@ export function roleFromDisplayName(displayName: string): Role | undefined {
 /** Every routable page in the dashboard */
 export const allPages = [
   "/dashboard",
+  "/getting-started",
   "/my-portal",
   "/vision",
   "/rocks",
@@ -71,6 +72,13 @@ export const allPages = [
   "/recruitment",
   // Tools
   "/tools/ccs-calculator",
+  // Admin
+  "/audit-log",
+  // Support — accessible to all roles
+  "/help",
+  "/directory",
+  // Queue — automation reports & tasks
+  "/queue",
 ] as const;
 
 export type AppPage = (typeof allPages)[number];
@@ -90,6 +98,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
   admin: allPages.filter((p) => p !== "/crm/templates"),
   marketing: [
     "/dashboard",
+    "/getting-started",
     "/my-portal",
     "/marketing",
     "/communication",
@@ -100,9 +109,13 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/documents",
     "/profile",
     "/tools/ccs-calculator",
+    "/help",
+    "/directory",
+    "/queue",
   ],
   coordinator: [
     "/dashboard",
+    "/getting-started",
     "/my-portal",
     "/rocks",
     "/todos",
@@ -121,9 +134,13 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/leave",
     "/timesheets",
     "/tools/ccs-calculator",
+    "/help",
+    "/directory",
+    "/queue",
   ],
   member: [
     "/dashboard",
+    "/getting-started",
     "/my-portal",
     "/rocks",
     "/todos",
@@ -142,9 +159,13 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/leave",
     "/timesheets",
     "/tools/ccs-calculator",
+    "/help",
+    "/directory",
+    "/queue",
   ],
   staff: [
     "/dashboard",
+    "/getting-started",
     "/my-portal",
     "/activity-library",
     "/documents",
@@ -155,6 +176,9 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/profile",
     "/leave",
     "/tools/ccs-calculator",
+    "/help",
+    "/directory",
+    "/queue",
   ],
 };
 

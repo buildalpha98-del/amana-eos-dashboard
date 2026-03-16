@@ -23,6 +23,18 @@ import { DashboardSchoolHealth } from "@/components/dashboard/DashboardSchoolHea
 import { DashboardRecentActivity } from "@/components/dashboard/DashboardRecentActivity";
 import { DashboardStateKPI } from "@/components/dashboard/DashboardStateKPI";
 import { WidgetErrorBoundary } from "@/components/dashboard/WidgetErrorBoundary";
+import { MobileQuickActions } from "@/components/dashboard/MobileQuickActions";
+
+// ─── Section Divider ──────────────────────────────────────────
+
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 pt-2">
+      <h3 className="text-xs font-heading font-semibold text-muted uppercase tracking-widest">{label}</h3>
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  );
+}
 
 // ─── Alert Banner ───────────────────────────────────────────
 
@@ -42,12 +54,12 @@ function AlertBanner({
 
   if (alerts.length === 0) {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+      <div className="rounded-2xl border border-success/20 bg-success/5 px-4 py-3 flex items-center gap-3 shadow-[var(--shadow-warm-sm)]">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
+          <CheckCircle2 className="w-4 h-4 text-success" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-emerald-800">
+          <p className="text-sm font-medium text-success">
             All clear — rocks on track, no overdue to-dos, no critical issues.
           </p>
         </div>
@@ -56,17 +68,17 @@ function AlertBanner({
   }
 
   return (
-    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-center gap-3">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-        <AlertTriangle className="w-4 h-4 text-red-600" />
+    <div className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 flex items-center gap-3 shadow-[var(--shadow-warm-sm)]">
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-danger/10 flex items-center justify-center">
+        <AlertTriangle className="w-4 h-4 text-danger" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-red-800">
+        <p className="text-sm font-medium text-danger">
           Attention needed:{" "}
           {alerts.map((a, i) => (
             <span key={a.href}>
               {i > 0 && ", "}
-              <Link href={a.href} className="underline hover:text-red-900 font-semibold">
+              <Link href={a.href} className="underline hover:opacity-80 font-semibold">
                 {a.count} {a.label}{a.count !== 1 ? "s" : ""}
               </Link>
             </span>
@@ -75,7 +87,7 @@ function AlertBanner({
       </div>
       <Link
         href={alerts[0].href}
-        className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-medium text-red-700 hover:text-red-900 transition-colors"
+        className="flex-shrink-0 inline-flex items-center gap-1 text-xs font-medium text-danger hover:opacity-80 transition-colors"
       >
         Review <ChevronRight className="w-3.5 h-3.5" />
       </Link>
@@ -112,14 +124,14 @@ export function DashboardContent() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      {/* Welcome Header */}
+    <div className="max-w-7xl mx-auto space-y-8">
+      {/* Welcome Hero Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-3xl font-heading font-bold tracking-tight text-foreground">
             Command Centre
           </h2>
-          <p className="text-gray-500 mt-1 line-clamp-2">
+          <p className="text-muted text-base mt-1 line-clamp-2">
             Welcome back, {session?.user?.name?.split(" ")[0] || "there"} &mdash;{" "}
             {isServiceScoped
               ? "your centre overview."
@@ -129,15 +141,15 @@ export function DashboardContent() {
           </p>
         </div>
         {!isServiceScoped && (
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5 overflow-x-auto">
+          <div className="flex items-center bg-surface rounded-xl p-1 border border-border overflow-x-auto">
             {periodOptions.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setPeriod(opt.value)}
-                className={`px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                className={`px-2 sm:px-3 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap ${
                   period === opt.value
-                    ? "bg-white text-brand shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-card text-brand shadow-[var(--shadow-warm-sm)] font-semibold"
+                    : "text-muted hover:text-foreground"
                 }`}
               >
                 {opt.label}
@@ -147,23 +159,26 @@ export function DashboardContent() {
         )}
       </div>
 
+      {/* ── Mobile Quick Actions ────────────────────────── */}
+      <MobileQuickActions role={role} />
+
       {isLoading ? (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Key metrics bar skeleton */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+              <div key={i} className="bg-card rounded-xl border border-border p-4 space-y-2 shadow-[var(--shadow-warm-sm)]">
                 <Skeleton className="h-3 w-16" />
                 <Skeleton className="h-6 w-12" />
               </div>
             ))}
           </div>
           {/* Rocks section skeleton */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+          <div className="bg-card rounded-xl border border-border p-5 space-y-3 shadow-[var(--shadow-warm-sm)]">
             <Skeleton className="h-5 w-32" />
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="space-y-2 p-3 border border-gray-100 rounded-lg">
+                <div key={i} className="space-y-2 p-3 border border-border rounded-lg">
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-2 w-full" />
                 </div>
@@ -172,11 +187,11 @@ export function DashboardContent() {
           </div>
           {/* Sparklines + Action items skeleton */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-3 bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+            <div className="lg:col-span-3 bg-card rounded-xl border border-border p-5 space-y-3 shadow-[var(--shadow-warm-sm)]">
               <Skeleton className="h-5 w-24" />
               <Skeleton className="h-32 w-full" />
             </div>
-            <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+            <div className="lg:col-span-2 bg-card rounded-xl border border-border p-5 space-y-3 shadow-[var(--shadow-warm-sm)]">
               <Skeleton className="h-5 w-28" />
               {Array.from({ length: 4 }).map((_, i) => (
                 <Skeleton key={i} className="h-10 w-full" />
@@ -219,6 +234,9 @@ export function DashboardContent() {
             </WidgetErrorBoundary>
           )}
 
+          {/* ── Metrics Section Divider ──────────────────────── */}
+          <SectionDivider label="Metrics" />
+
           {/* ── Key Metrics Bar ─────────────────────────────── */}
           <WidgetErrorBoundary widgetName="Key Metrics">
             {isServiceScoped ? (
@@ -238,6 +256,9 @@ export function DashboardContent() {
             )}
           </WidgetErrorBoundary>
 
+          {/* ── Priorities Section Divider ────────────────────── */}
+          <SectionDivider label="Priorities" />
+
           {/* ── Company & Personal Rocks at a Glance ─────── */}
           <WidgetErrorBoundary widgetName="Rocks">
             <DashboardRocks />
@@ -247,6 +268,9 @@ export function DashboardContent() {
           <WidgetErrorBoundary widgetName="Announcements">
             <DashboardAnnouncements />
           </WidgetErrorBoundary>
+
+          {/* ── Operations Section Divider ────────────────────── */}
+          <SectionDivider label="Operations" />
 
           {/* ── Centre Health Heatmap ──────────────────────── */}
           {!isServiceScoped && (
@@ -265,9 +289,9 @@ export function DashboardContent() {
           {/* ── NPS Survey Widget ────────────────────────────── */}
           {data.npsSurvey && data.npsSurvey.totalResponses > 0 && (
             <WidgetErrorBoundary widgetName="NPS Survey">
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <h3 className="text-sm font-semibold text-gray-700 mb-4" title="Net Promoter Score — measures parent satisfaction and loyalty">
-                  <span className="cursor-help underline decoration-dotted decoration-gray-400 underline-offset-2">NPS</span> Survey (Last 30 Days)
+              <div className="bg-card rounded-2xl border border-border p-5 shadow-[var(--shadow-warm)]">
+                <h3 className="text-sm font-semibold text-foreground mb-4" title="Net Promoter Score — measures parent satisfaction and loyalty">
+                  <span className="cursor-help underline decoration-dotted decoration-muted underline-offset-2">NPS</span> Survey (Last 30 Days)
                 </h3>
                 {/* Mobile: score on top, breakdown below. Desktop: inline row */}
                 <div className="flex items-center gap-4 sm:gap-6 mb-3">
@@ -283,33 +307,33 @@ export function DashboardContent() {
                     >
                       {data.npsSurvey.score !== null ? data.npsSurvey.score : "N/A"}
                     </div>
-                    <div className="text-[10px] sm:text-xs text-gray-500 mt-0.5">Score</div>
+                    <div className="text-[10px] sm:text-xs text-muted mt-0.5">Score</div>
                   </div>
 
                   <div className="flex-1 grid grid-cols-3 gap-2 sm:gap-4">
                     <div className="text-center">
                       <div className="text-base sm:text-lg font-semibold text-green-600">{data.npsSurvey.promoters}</div>
-                      <div className="text-[10px] sm:text-xs text-gray-500">Promoters</div>
+                      <div className="text-[10px] sm:text-xs text-muted">Promoters</div>
                     </div>
                     <div className="text-center">
                       <div className="text-base sm:text-lg font-semibold text-amber-500">{data.npsSurvey.passives}</div>
-                      <div className="text-[10px] sm:text-xs text-gray-500">Passives</div>
+                      <div className="text-[10px] sm:text-xs text-muted">Passives</div>
                     </div>
                     <div className="text-center">
                       <div className="text-base sm:text-lg font-semibold text-red-500">{data.npsSurvey.detractors}</div>
-                      <div className="text-[10px] sm:text-xs text-gray-500">Detractors</div>
+                      <div className="text-[10px] sm:text-xs text-muted">Detractors</div>
                     </div>
                   </div>
 
                   <div className="text-center shrink-0">
-                    <div className="text-base sm:text-lg font-semibold text-gray-700">{data.npsSurvey.totalResponses}</div>
-                    <div className="text-[10px] sm:text-xs text-gray-500">Total</div>
+                    <div className="text-base sm:text-lg font-semibold text-foreground">{data.npsSurvey.totalResponses}</div>
+                    <div className="text-[10px] sm:text-xs text-muted">Total</div>
                   </div>
                 </div>
 
                 {/* Progress bar showing distribution */}
                 {data.npsSurvey.totalResponses > 0 && (
-                  <div className="mt-4 flex h-2 rounded-full overflow-hidden bg-gray-100">
+                  <div className="mt-4 flex h-2 rounded-full overflow-hidden bg-surface">
                     <div
                       className="bg-green-500 transition-all"
                       style={{ width: `${(data.npsSurvey.promoters / data.npsSurvey.totalResponses) * 100}%` }}
@@ -334,6 +358,9 @@ export function DashboardContent() {
               <DashboardProjectTodos todos={data.projectTodos} />
             </WidgetErrorBoundary>
           )}
+
+          {/* ── Activity Section Divider ──────────────────────── */}
+          <SectionDivider label="Activity" />
 
           {/* ── Sparklines + Action Items ──────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -366,7 +393,7 @@ export function DashboardContent() {
           )}
         </>
       ) : (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted">
           <p>Unable to load dashboard data. Please try again.</p>
         </div>
       )}

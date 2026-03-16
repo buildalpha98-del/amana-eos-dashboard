@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { passwordSchema } from "@/lib/schemas/auth";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { checkPasswordBreach } from "@/lib/password-breach-check";
+import { logAuditEvent } from "@/lib/audit-log";
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limit: 5 attempts per 15 minutes per IP
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = await checkRateLimit(`pwd-reset-attempt:${ip}`);
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: "Too many attempts. Please try again later." },
+        { status: 429 },
+      );
+    }
+
     const { token, password } = await req.json();
 
     if (!token || typeof token !== "string") {
@@ -19,6 +32,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: passwordResult.error.issues[0].message },
         { status: 400 }
+      );
+    }
+
+    // Check if password has appeared in known data breaches
+    const breachCount = await checkPasswordBreach(password);
+    if (breachCount > 0) {
+      return NextResponse.json(
+        { error: `This password has appeared in ${breachCount.toLocaleString()} data breaches. Please choose a different password.` },
+        { status: 400 },
       );
     }
 
@@ -62,6 +84,14 @@ export async function POST(req: NextRequest) {
         data: { used: true },
       }),
     ]);
+
+    logAuditEvent({
+      action: "user.password_reset",
+      actorId: resetToken.userId,
+      actorEmail: resetToken.user.email,
+      targetId: resetToken.userId,
+      targetType: "User",
+    }, req);
 
     return NextResponse.json({
       message: "Password has been reset successfully. You can now sign in.",

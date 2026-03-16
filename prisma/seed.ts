@@ -23,6 +23,30 @@ async function main() {
   });
   console.log(`Owner ready: ${admin.email}`);
 
+  // ── Core Staff Users ──────────────────────────────────────────
+  const staffUsers = [
+    { name: "Jayden Kowaider", email: "jayden@amanaoshc.com.au", role: "owner" as const, state: null },
+    { name: "Daniel", email: "daniel@amanaoshc.com.au", role: "admin" as const, state: null },
+    { name: "Akram", email: "akram@amanaoshc.com.au", role: "marketing" as const, state: null },
+    { name: "Mirna", email: "mirna@amanaoshc.com.au", role: "coordinator" as const, state: "NSW" },
+    { name: "Tracie", email: "tracie@amanaoshc.com.au", role: "coordinator" as const, state: "VIC" },
+  ];
+
+  for (const staff of staffUsers) {
+    const user = await prisma.user.upsert({
+      where: { email: staff.email },
+      update: { role: staff.role, state: staff.state },
+      create: {
+        name: staff.name,
+        email: staff.email,
+        passwordHash,
+        role: staff.role,
+        state: staff.state,
+      },
+    });
+    console.log(`Staff ready: ${user.email} (${user.role})`);
+  }
+
   // V/TO — delete + replace
   await prisma.oneYearGoal.deleteMany();
   await prisma.visionTractionOrganiser.deleteMany();

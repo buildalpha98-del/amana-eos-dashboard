@@ -2,37 +2,75 @@
 
 @theme inline {
   --color-brand: #004E64;
-  --color-brand-dark: #003344;
-  --color-brand-light: #1A6A82;
+  --color-brand-dark: #002E3D;
+  --color-brand-light: #0A7E9E;
   --color-brand-hover: #003D52;
   --color-accent: #FECE00;
-  --color-accent-light: #FBBF24;
-  --color-background: #F8F9FA;
+  --color-accent-light: #FDE68A;
+  --color-background: #FAF8F5;
   --color-card: #FFFFFF;
-  --color-sidebar: #003344;
-  --color-foreground: #111827;
-  --color-muted: #6B7280;
-  --color-border: #E5E7EB;
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
-  --color-info: #3B82F6;
+  --color-sidebar: #002E3D;
+  --color-foreground: #1a1a2e;
+  --color-muted: #7c7c8a;
+  --color-border: #e8e4df;
+  --color-success: #059669;
+  --color-warning: #D97706;
+  --color-danger: #DC2626;
+  --color-info: #2563EB;
+  --color-surface: #F2EDE8;
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-warm-sm: 0 1px 2px rgba(140, 120, 90, 0.06);
+  --shadow-warm: 0 2px 8px -1px rgba(140, 120, 90, 0.08), 0 1px 2px rgba(140, 120, 90, 0.04);
+  --shadow-warm-md: 0 4px 16px -2px rgba(140, 120, 90, 0.1), 0 2px 4px rgba(140, 120, 90, 0.04);
+  --shadow-warm-lg: 0 12px 32px -4px rgba(140, 120, 90, 0.12), 0 4px 8px rgba(140, 120, 90, 0.04);
 }
+
+/* ─── Base ──────────────────────────────────────────────── */
 
 body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-/* Custom scrollbar */
+/* ─── Warm Grain Texture ────────────────────────────────── */
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* ─── Card Elevation ────────────────────────────────────── */
+
+.bg-white {
+  box-shadow: var(--shadow-warm-sm);
+}
+
+.bg-white:where(:not(table *, thead *, tbody *, tr *, th *, td *, nav *, header *, aside *)) {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+/* ─── Custom Scrollbar ──────────────────────────────────── */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -41,14 +79,15 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
-  border-radius: 3px;
+  background: #c9c3bb;
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: #a19b93;
 }
 
-/* Scrollbar-hide utility for horizontal scroll containers */
+/* ─── Scrollbar Hide ────────────────────────────────────── */
+
 @utility scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -57,11 +96,195 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-/* Print styles for board report PDF export */
+/* ─── Animations ────────────────────────────────────────── */
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@utility animate-fade-in {
+  animation: fade-in 0.5s ease-out both;
+}
+
+@utility animate-slide-up {
+  animation: slide-up 0.5s ease-out both;
+}
+
+@utility animate-slide-down {
+  animation: slide-down 0.4s ease-out both;
+}
+
+@utility animate-scale-in {
+  animation: scale-in 0.3s ease-out both;
+}
+
+@utility animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Stagger delay utilities */
+@utility stagger-1 { animation-delay: 0.05s; }
+@utility stagger-2 { animation-delay: 0.1s; }
+@utility stagger-3 { animation-delay: 0.15s; }
+@utility stagger-4 { animation-delay: 0.2s; }
+@utility stagger-5 { animation-delay: 0.25s; }
+@utility stagger-6 { animation-delay: 0.3s; }
+@utility stagger-7 { animation-delay: 0.35s; }
+@utility stagger-8 { animation-delay: 0.4s; }
+
+/* ─── Focus Styles ──────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Input Refinements ─────────────────────────────────── */
+
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-brand) !important;
+  box-shadow: 0 0 0 3px rgba(0, 78, 100, 0.08);
+}
+
+/* ─── Table Refinements ─────────────────────────────────── */
+
+thead th {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Warm table header backgrounds */
+thead tr,
+.bg-gray-50:where(thead *, tr:first-child) {
+  background-color: var(--color-surface) !important;
+}
+
+/* Warm table row hover */
+tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+/* Table container styling */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Softer table cell borders */
+td, th {
+  border-color: var(--color-border);
+}
+
+/* ─── Dark Mode ─────────────────────────────────────────── */
+
+.dark {
+  --color-background: #121218;
+  --color-card: #1c1c26;
+  --color-foreground: #eee8e0;
+  --color-muted: #8e8a82;
+  --color-border: #2a2a38;
+  --color-sidebar: #0e0e16;
+  --color-surface: #22222e;
+  color-scheme: dark;
+}
+
+.dark body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+.dark body::before {
+  opacity: 0.03;
+  mix-blend-mode: soft-light;
+}
+
+.dark .bg-white {
+  background-color: var(--color-card);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.dark .bg-gray-50, .dark .bg-gray-100 { background-color: var(--color-surface); }
+.dark .border-gray-200, .dark .border-gray-100 { border-color: var(--color-border); }
+.dark .text-gray-900 { color: #eee8e0; }
+.dark .text-gray-700 { color: #c9c3bb; }
+.dark .text-gray-600 { color: #a19b93; }
+.dark .text-gray-500 { color: #8e8a82; }
+.dark .text-gray-400 { color: #6b6560; }
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #3a3a48;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #4e4e5c;
+}
+
+/* ─── Selection Color ───────────────────────────────────── */
+
+::selection {
+  background: rgba(0, 78, 100, 0.15);
+  color: inherit;
+}
+
+.dark ::selection {
+  background: rgba(254, 206, 0, 0.2);
+}
+
+/* ─── Print Styles ──────────────────────────────────────── */
+
 @media print {
   nav, aside, [data-sidebar], [data-topbar], .no-print { display: none !important; }
   main { margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
   .report-section { page-break-inside: avoid; margin-bottom: 24px; }
   button, .no-print { display: none !important; }
   body { background: white !important; }
+  body::before { display: none; }
 }

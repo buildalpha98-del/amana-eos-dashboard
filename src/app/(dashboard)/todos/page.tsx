@@ -34,6 +34,7 @@ import { TemplateManagerModal } from "@/components/todos/TemplateManagerModal";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { HelpTooltip } from "@/components/shared/HelpTooltip";
 
 interface UserOption {
   id: string;
@@ -183,7 +184,9 @@ export default function TodosPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">To-Dos</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            To-Dos <HelpTooltip term="todos" />
+          </h2>
           <p className="text-sm text-gray-500">
             {showAll
               ? "All active action items across every week"

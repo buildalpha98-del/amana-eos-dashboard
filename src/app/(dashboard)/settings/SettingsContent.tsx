@@ -376,6 +376,8 @@ function UserRow({
     },
   });
 
+  const [resetError, setResetError] = useState("");
+
   const resetPassword = useMutation({
     mutationFn: async (password: string) => {
       const res = await fetch(`/api/users/${user.id}`, {
@@ -383,12 +385,19 @@ function UserRow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newPassword: password }),
       });
-      if (!res.ok) throw new Error("Failed to reset password");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to reset password");
+      }
       return res.json();
     },
     onSuccess: () => {
+      setResetError("");
       setResetSuccess(true);
       setTimeout(() => { setResetSuccess(false); setShowResetPw(false); setNewPassword(""); }, 2000);
+    },
+    onError: (err: Error) => {
+      setResetError(err.message);
     },
   });
 
@@ -445,7 +454,7 @@ function UserRow({
                   className="fixed inset-0 z-10"
                   onClick={() => setShowMenu(false)}
                 />
-                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 max-h-[calc(100vh-200px)] overflow-y-auto">
                   <button
                     onClick={() => updateRole.mutate("staff")}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -528,11 +537,16 @@ function UserRow({
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-semibold text-gray-900">Reset Password</h3>
-                <button onClick={() => { setShowResetPw(false); setNewPassword(""); }} className="p-1 text-gray-400 hover:text-gray-600">
+                <button onClick={() => { setShowResetPw(false); setNewPassword(""); setResetError(""); }} className="p-1 text-gray-400 hover:text-gray-600">
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <p className="text-sm text-gray-500 mb-4">Set a new password for <span className="font-medium text-gray-900">{user.name}</span></p>
+              {resetError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  {resetError}
+                </div>
+              )}
               {resetSuccess ? (
                 <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm">
                   <CheckCircle2 className="w-4 h-4" />
@@ -550,13 +564,13 @@ function UserRow({
                   />
                   <div className="flex gap-3">
                     <button
-                      onClick={() => { setShowResetPw(false); setNewPassword(""); }}
+                      onClick={() => { setShowResetPw(false); setNewPassword(""); setResetError(""); }}
                       className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-sm"
                     >
                       Cancel
                     </button>
                     <button
-                      onClick={() => resetPassword.mutate(newPassword)}
+                      onClick={() => { setResetError(""); resetPassword.mutate(newPassword); }}
                       disabled={newPassword.length < 8 || resetPassword.isPending}
                       className="flex-1 px-4 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 text-sm"
                     >
@@ -1838,6 +1852,7 @@ const SCOPE_LABELS: Record<string, string> = {
     "parent-experience:write": "Parent Experience (write)",
     "partnerships:read": "Partnerships (read)",
     "partnerships:write": "Partnerships (write)",
+    "staff:sync": "Staff Registry Sync",
 };
 
 const WRITE_SCOPES = ["programs:write", "menus:write", "announcements:write", "marketing:write", "enquiries:write", "recruitment:write", "billing:write", "operations:write"] as const;
@@ -2455,7 +2470,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
           {isLoading ? (
             <div className="py-8 text-center text-gray-500">Loading users...</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-visible">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">

@@ -6,6 +6,8 @@ import { requireAuth } from "@/lib/server-auth";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { welcomeEmail } from "@/lib/email-templates";
 import { passwordSchema } from "@/lib/schemas/auth";
+import { checkPasswordBreach } from "@/lib/password-breach-check";
+import { logAuditEvent } from "@/lib/audit-log";
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -94,6 +96,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Check if password has appeared in known data breaches
+  const breachCount = await checkPasswordBreach(password);
+  if (breachCount > 0) {
+    return NextResponse.json(
+      { error: `This password has appeared in ${breachCount.toLocaleString()} data breaches. Please choose a different password.` },
+      { status: 400 },
+    );
+  }
+
   const passwordHash = await hash(password, 12);
 
   const user = await prisma.user.create({
@@ -128,6 +139,15 @@ export async function POST(req: NextRequest) {
       details: { name: user.name, email: user.email, role: user.role, serviceId: user.serviceId },
     },
   });
+
+  logAuditEvent({
+    action: "user.created",
+    actorId: session!.user.id,
+    actorEmail: session!.user.email,
+    targetId: user.id,
+    targetType: "User",
+    metadata: { role: user.role, email: user.email },
+  }, req);
 
   // Send welcome email with temporary password
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";

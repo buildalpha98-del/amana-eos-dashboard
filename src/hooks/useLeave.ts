@@ -62,6 +62,7 @@ export interface LeaveRequestFilters {
 export function useLeaveRequests(filters?: LeaveRequestFilters) {
   return useQuery<LeaveRequestData[]>({
     queryKey: ["leave-requests", filters],
+    staleTime: 30_000,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.userId) params.set("userId", filters.userId);
@@ -143,7 +144,30 @@ export function useUpdateLeaveRequest() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onMutate: async (vars) => {
+      if (!vars.status) return;
+      await qc.cancelQueries({ queryKey: ["leave-requests"] });
+      const queries = qc.getQueriesData<LeaveRequestData[]>({ queryKey: ["leave-requests"] });
+      for (const [key, data] of queries) {
+        if (!data) continue;
+        qc.setQueryData<LeaveRequestData[]>(key,
+          data.map((lr) =>
+            lr.id === vars.id
+              ? { ...lr, status: vars.status as LeaveRequestData["status"] }
+              : lr
+          ),
+        );
+      }
+      return { queries };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.queries) {
+        for (const [key, data] of ctx.queries) {
+          qc.setQueryData(key, data);
+        }
+      }
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["leave-requests"] });
       qc.invalidateQueries({ queryKey: ["leave-request"] });
       qc.invalidateQueries({ queryKey: ["leave-calendar"] });

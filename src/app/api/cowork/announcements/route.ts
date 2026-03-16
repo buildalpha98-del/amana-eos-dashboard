@@ -68,7 +68,9 @@ export async function GET(req: NextRequest) {
       take: 20,
     });
 
-    return NextResponse.json({ announcements });
+    const res = NextResponse.json({ announcements });
+    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    return res;
   } catch (err) {
     console.error("[Cowork Announcements GET]", err);
     return NextResponse.json(

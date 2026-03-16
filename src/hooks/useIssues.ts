@@ -63,6 +63,7 @@ export function useIssues(filters?: {
       if (!res.ok) throw new Error("Failed to fetch issues");
       return res.json();
     },
+    staleTime: 30_000,
   });
 }
 
@@ -134,7 +135,26 @@ export function useUpdateIssue() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onMutate: async (vars) => {
+      if (!vars.status) return;
+      await queryClient.cancelQueries({ queryKey: ["issues"] });
+      const queries = queryClient.getQueriesData<IssueData[]>({ queryKey: ["issues"] });
+      for (const [key, data] of queries) {
+        if (!data) continue;
+        queryClient.setQueryData<IssueData[]>(key,
+          data.map((i) => (i.id === vars.id ? { ...i, ...vars } : i)),
+        );
+      }
+      return { queries };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.queries) {
+        for (const [key, data] of ctx.queries) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
       queryClient.invalidateQueries({ queryKey: ["issue"] });
     },

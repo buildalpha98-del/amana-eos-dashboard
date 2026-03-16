@@ -49,6 +49,8 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           serviceId: user.serviceId,
           state: user.state,
+          tokenVersion: user.tokenVersion,
+          mfaRequired: !!user.mfaEnabledAt,
         };
       },
     }),
@@ -65,6 +67,9 @@ export const authOptions: NextAuthOptions = {
         token.serviceId = user.serviceId;
         token.state = user.state;
         token.loginAt = Date.now();
+        token.tokenVersion = (user as unknown as Record<string, unknown>).tokenVersion ?? 0;
+        token.mfaRequired = (user as unknown as Record<string, unknown>).mfaRequired ?? false;
+        token.mfaVerified = false;
 
         // Read remember-me preference set during login
         try {
@@ -82,6 +87,26 @@ export const authOptions: NextAuthOptions = {
         const ONE_DAY = 24 * 60 * 60 * 1000;
         if (elapsed > ONE_DAY) {
           return { ...token, exp: 0 }; // Force token expiry
+        }
+      }
+
+      // Validate tokenVersion against database (checked periodically)
+      if (token.id && typeof token.tokenVersion === "number") {
+        const lastCheck = (token.tokenVersionCheckedAt as number) ?? 0;
+        const FIVE_MINUTES = 5 * 60 * 1000;
+        if (Date.now() - lastCheck > FIVE_MINUTES) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { tokenVersion: true, active: true },
+            });
+            if (!dbUser || !dbUser.active || dbUser.tokenVersion !== token.tokenVersion) {
+              return { ...token, exp: 0 }; // Force token expiry
+            }
+            token.tokenVersionCheckedAt = Date.now();
+          } catch {
+            // DB unavailable — allow token to continue
+          }
         }
       }
 

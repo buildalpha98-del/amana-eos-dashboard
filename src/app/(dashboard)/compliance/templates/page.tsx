@@ -1166,7 +1166,7 @@ function CalendarUploadModal({ onClose }: { onClose: () => void }) {
                     <h3 className="text-sm font-semibold text-gray-900 mb-2">{preview.length} Templates Detected</h3>
                     <div className="border rounded-xl overflow-hidden max-h-64 overflow-y-auto">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50 sticky top-0">
+                        <thead className="bg-surface sticky top-0">
                           <tr>
                             <th className="text-left px-3 py-2 font-medium text-gray-600">Name</th>
                             <th className="text-left px-3 py-2 font-medium text-gray-600 w-16">QA</th>

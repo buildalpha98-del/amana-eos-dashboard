@@ -804,7 +804,7 @@ function ImportFromOWNAModal({
             <div className="border border-gray-200 rounded-lg overflow-hidden">
               <div className="overflow-x-auto max-h-64">
                 <table className="w-full text-xs">
-                  <thead className="bg-gray-50 sticky top-0">
+                  <thead className="bg-surface sticky top-0">
                     <tr>
                       <th className="px-3 py-2 text-left font-medium text-gray-500">
                         Staff
@@ -1035,7 +1035,7 @@ function TimesheetDetail({
         <div className="border border-gray-200 rounded-lg overflow-hidden mb-4">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50">
+              <thead className="bg-surface">
                 <tr>
                   <th className="px-3 py-2.5 text-left font-medium text-gray-500 text-xs">
                     Staff Name

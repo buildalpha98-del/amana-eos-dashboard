@@ -24,11 +24,13 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ScrollableTable } from "@/components/ui/ScrollableTable";
 import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
-import { RevenueVsCostsChart } from "@/components/charts/RevenueVsCostsChart";
-import { MarginComparisonChart } from "@/components/charts/MarginComparisonChart";
-import { RevenueBreakdownChart } from "@/components/charts/RevenueBreakdownChart";
+import dynamic from "next/dynamic";
 import { ImportOWNAModal } from "@/components/financials/ImportOWNAModal";
-import { CashFlowChart } from "@/components/charts/CashFlowChart";
+
+const RevenueVsCostsChart = dynamic(() => import("@/components/charts/RevenueVsCostsChart").then((m) => m.RevenueVsCostsChart), { loading: () => <Skeleton className="h-64 w-full" /> });
+const MarginComparisonChart = dynamic(() => import("@/components/charts/MarginComparisonChart").then((m) => m.MarginComparisonChart), { loading: () => <Skeleton className="h-64 w-full" /> });
+const RevenueBreakdownChart = dynamic(() => import("@/components/charts/RevenueBreakdownChart").then((m) => m.RevenueBreakdownChart), { loading: () => <Skeleton className="h-64 w-full" /> });
+const CashFlowChart = dynamic(() => import("@/components/charts/CashFlowChart").then((m) => m.CashFlowChart), { loading: () => <Skeleton className="h-64 w-full" /> });
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("en-AU", {

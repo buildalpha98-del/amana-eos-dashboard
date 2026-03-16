@@ -17,7 +17,7 @@ interface MockUser {
   id: string;
   name: string;
   email?: string;
-  role: "owner" | "admin" | "member" | "staff";
+  role: "owner" | "head_office" | "admin" | "marketing" | "coordinator" | "member" | "staff";
   serviceId?: string | null;
 }
 

@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
     const statutoryEBITDA = grossProfit;
     const adjustedEBITDA = statutoryEBITDA + totalAddBacks;
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       network: {
         totalRevenue,
         totalCosts,
@@ -143,6 +143,8 @@ export async function GET(req: NextRequest) {
         ),
       },
     });
+    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    return res;
   } catch (err) {
     console.error("[Cowork Financials Summary GET]", err);
     return NextResponse.json(

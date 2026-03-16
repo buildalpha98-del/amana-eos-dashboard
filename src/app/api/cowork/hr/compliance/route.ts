@@ -78,11 +78,13 @@ export async function GET(req: NextRequest) {
     const expiring = results.filter((r) => r.status === "expiring").length;
     const valid = results.filter((r) => r.status === "valid").length;
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       certificates: results,
       count: results.length,
       summary: { valid, expiring, expired },
     });
+    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
+    return res;
   } catch (err) {
     console.error("[Cowork HR Compliance GET]", err);
     return NextResponse.json(

@@ -63,6 +63,8 @@ const todoItem = z.object({
     .nullable()
     .optional(),
   assignedRole: z.string().nullable().optional(),
+  assignee: z.string().nullable().optional(),
+  seat: z.string().nullable().optional(),
 });
 
 export const todosSchema = z.object({

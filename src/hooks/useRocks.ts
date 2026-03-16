@@ -42,6 +42,7 @@ export function useRocks(quarter?: string, rockType?: string) {
       if (!res.ok) throw new Error("Failed to fetch rocks");
       return res.json();
     },
+    staleTime: 30_000,
   });
 }
 
@@ -115,7 +116,25 @@ export function useUpdateRock() {
       }
       return res.json();
     },
-    onSuccess: () => {
+    onMutate: async (vars) => {
+      await queryClient.cancelQueries({ queryKey: ["rocks"] });
+      const queries = queryClient.getQueriesData<RockData[]>({ queryKey: ["rocks"] });
+      for (const [key, data] of queries) {
+        if (!data) continue;
+        queryClient.setQueryData<RockData[]>(key,
+          data.map((r) => (r.id === vars.id ? { ...r, ...vars } : r)),
+        );
+      }
+      return { queries };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.queries) {
+        for (const [key, data] of ctx.queries) {
+          queryClient.setQueryData(key, data);
+        }
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["rocks"] });
       queryClient.invalidateQueries({ queryKey: ["rock"] });
     },
