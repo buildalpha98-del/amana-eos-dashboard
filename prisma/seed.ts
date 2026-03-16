@@ -1922,6 +1922,33 @@ Requirements:
 Format as a markdown table with columns: Day | Morning Tea | Lunch | Afternoon Tea`,
     },
     {
+      slug: "services/allergen-check",
+      name: "Menu Allergen & Dietary Check",
+      model: "claude-haiku-3.5-20241022",
+      maxTokens: 800,
+      variables: JSON.stringify(["menuItems", "allergenOptions"]),
+      promptTemplate: `You are a food safety assistant for Amana OSHC (Out of School Hours Care). Review this week's menu for allergen and dietary compliance.
+
+Menu items (format: day_slot: description [allergens: tagged]):
+{{menuItems}}
+
+Available allergen tags: {{allergenOptions}}
+
+Check for:
+1. **Missing allergen tags** — items that likely contain allergens but aren't tagged (e.g. pasta without "gluten", cheese without "dairy")
+2. **Halal compliance** — flag any items that may not be halal (pork, gelatin, non-halal meat)
+3. **Cross-contamination risks** — items cooked together that share allergens
+4. **Nutritional balance** — flag if any day is missing protein, vegetables, or fruit
+5. **Repetition** — flag if the same meal appears multiple times in the week
+
+Format your response as:
+🔴 **Critical** (must fix before serving)
+🟡 **Warnings** (should review)
+✅ **All Clear** items
+
+Be concise. Only flag genuine issues.`,
+    },
+    {
       slug: "services/activity-suggester",
       name: "Program Activity Suggester",
       model: "claude-sonnet-4-5-20250514",
@@ -2121,6 +2148,29 @@ Structure:
 5. **How to apply** — simple call-to-action
 
 Tone: Professional but warm, reflecting our values of quality care and community. Suitable for SEEK/Indeed. Include relevant Australian childcare sector terminology.`,
+    },
+    {
+      slug: "hr/leave-impact",
+      name: "Leave Impact Analysis",
+      model: "claude-haiku-3.5-20241022",
+      maxTokens: 600,
+      variables: JSON.stringify(["staffName", "leaveType", "startDate", "endDate", "totalDays", "centreName", "reason"]),
+      promptTemplate: `You are a staffing operations assistant for Amana OSHC. Analyse the impact of this leave request on centre operations.
+
+Staff member: {{staffName}}
+Leave type: {{leaveType}}
+Dates: {{startDate}} to {{endDate}} ({{totalDays}} days)
+Centre: {{centreName}}
+Reason: {{reason}}
+
+Provide a brief impact assessment:
+
+1. **Coverage Risk** — Is this during peak days (Mon-Fri school terms)? How many days need coverage?
+2. **Staffing Gap** — Will the centre likely be short-staffed? Consider ratio requirements for OSHC (1:15 for school-age).
+3. **Recommendations** — Suggest actions (e.g., arrange relief staff, adjust roster, check with nearby centres for float staff)
+4. **Approval Suggestion** — Based on timing and type, recommend approve/review/flag
+
+Keep it concise (under 150 words). Use bullet points.`,
     },
     {
       slug: "holiday-quest/day-planner",

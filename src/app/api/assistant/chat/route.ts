@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const userMessages = body.messages as { role: "user" | "assistant"; content: string }[];
+    const currentPage = body.currentPage as string | undefined;
 
     if (!Array.isArray(userMessages) || userMessages.length === 0) {
       return NextResponse.json(
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
 
     // Build system prompt with live dashboard context
     const dashboardContext = await buildDashboardContext();
+    const pageContext = currentPage ? getPageContext(currentPage) : "";
     const systemPrompt = [
       AMANA_SYSTEM_PROMPT,
       "",
@@ -50,6 +52,12 @@ export async function POST(req: NextRequest) {
       "",
       "Current dashboard overview:",
       dashboardContext,
+      ...(pageContext ? [
+        "",
+        "The user is currently viewing this page:",
+        pageContext,
+        "Tailor your responses to be relevant to what they're looking at. Proactively offer helpful insights about the current page when appropriate.",
+      ] : []),
     ].join("\n");
 
     // Build Anthropic message format
@@ -148,4 +156,39 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+// Page-specific context mapping
+const PAGE_CONTEXTS: Record<string, string> = {
+  "/": "Dashboard home — shows key metrics, recent activity, and alerts across all centres.",
+  "/performance": "Centre Performance — health scores, rankings, KPIs, and operational health for all centres. Can help with: analysing score trends, comparing centres, identifying underperforming areas.",
+  "/financials": "Financial Overview — revenue, costs, margins, and P&L across services. Can help with: identifying revenue trends, cost anomalies, margin analysis, budget comparisons.",
+  "/services": "Services list — all active centres with their status, capacity, and quick stats. Can help with: service comparisons, capacity planning, operational recommendations.",
+  "/recruitment": "Recruitment Pipeline — vacancies, candidates, and hiring progress. Can help with: candidate screening insights, pipeline analysis, time-to-fill metrics.",
+  "/leave": "Leave Management — team leave requests, balances, and approvals. Can help with: coverage impact analysis, leave pattern insights, staffing gap identification.",
+  "/enquiries": "Enquiry Pipeline — leads, enquiries, tours, and enrolments. Can help with: conversion analysis, follow-up priorities, sentiment trends.",
+  "/marketing": "Marketing Dashboard — campaigns, social media, and engagement metrics. Can help with: campaign performance, content ideas, audience insights.",
+  "/compliance": "Compliance Hub — certificates, audits, QIP, and regulatory tracking. Can help with: expiring certificates, audit preparation, risk assessment.",
+  "/queue": "Task Queue — assigned reports and action items from automated analysis. Can help with: prioritising tasks, understanding report findings.",
+  "/settings": "Settings — organisation config, user management, integrations. Can help with: system configuration, user role explanations.",
+  "/assistant": "AI Assistant — you're talking to me right now! I can help with any dashboard-related queries.",
+};
+
+function getPageContext(pathname: string): string {
+  // Exact match first
+  if (PAGE_CONTEXTS[pathname]) return PAGE_CONTEXTS[pathname];
+
+  // Partial match for nested routes (e.g., /services/abc123)
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length >= 2 && segments[0] === "services") {
+    return `Service Detail Page — viewing a specific centre's operations including attendance, menus, scorecards, checklists, and program data. Can help with: centre-specific insights, attendance patterns, operational recommendations.`;
+  }
+
+  // Try parent route match
+  for (let i = segments.length; i > 0; i--) {
+    const partial = "/" + segments.slice(0, i).join("/");
+    if (PAGE_CONTEXTS[partial]) return PAGE_CONTEXTS[partial];
+  }
+
+  return "";
 }

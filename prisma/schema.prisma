@@ -1360,6 +1360,7 @@ model Service {
   // ── AI Phase 2 Relations ──────────────────────────
   sentimentScores      SentimentScore[]        @relation("SentimentScoreService")
   attendanceAnomalies  AttendanceAnomaly[]     @relation("AttendanceAnomalyService")
+  trendInsights        TrendInsight[]          @relation("TrendInsightService")
 
   // ── Daily Checklists ──────────────────────────────
   dailyChecklists      DailyChecklist[]
@@ -4013,5 +4014,27 @@ model DuplicateMatch {
   @@unique([entityType, entityAId, entityBId])
   @@index([entityType])
   @@index([status])
+  @@index([createdAt])
+}
+
+model TrendInsight {
+  id          String   @id @default(cuid())
+  serviceId   String?
+  service     Service? @relation("TrendInsightService", fields: [serviceId], references: [id], onDelete: Cascade)
+  category    String   // "financial", "attendance", "enrolment"
+  metric      String   // "totalRevenue", "bscAttendance", "margin", etc.
+  direction   String   // "increasing", "decreasing", "stable", "volatile"
+  severity    String   // "info", "warning", "critical"
+  summary     String   @db.Text
+  dataPoints  Json?    // last N weeks of values for sparkline
+  changePercent Float? // e.g. -12.5 for 12.5% decline
+  periodWeeks Int      @default(4) // how many weeks analysed
+  dismissed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([serviceId])
+  @@index([category])
+  @@index([severity])
+  @@index([dismissed])
   @@index([createdAt])
 }

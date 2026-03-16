@@ -156,6 +156,10 @@
     {
       "path": "/api/cron/attendance-anomaly",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/trend-detection",
+      "schedule": "30 6 * * 1"
     }
   ]
 }

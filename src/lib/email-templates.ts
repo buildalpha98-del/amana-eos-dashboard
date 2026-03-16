@@ -334,6 +334,78 @@ export function dailyDigestEmail(
   return { subject, html };
 }
 
+// ─── Smart Daily Digest (AI-enhanced) ────────────────────────
+
+export function smartDigestEmail(
+  name: string,
+  counts: {
+    overdueTodos: number;
+    offTrackRocks: number;
+    expiringCerts: number;
+    unreadAnnouncements: number;
+  },
+  aiInsights: string[],
+  dashboardUrl: string
+) {
+  const total = counts.overdueTodos + counts.offTrackRocks + counts.expiringCerts + counts.unreadAnnouncements;
+  const subject = total > 0
+    ? `Your morning briefing: ${total} item${total > 1 ? "s" : ""} + ${aiInsights.length} AI insight${aiInsights.length > 1 ? "s" : ""} — Amana OSHC`
+    : `Morning AI briefing: ${aiInsights.length} insight${aiInsights.length > 1 ? "s" : ""} — Amana OSHC`;
+
+  const cards = [
+    { label: "Overdue To-Dos", count: counts.overdueTodos, color: "#ef4444", bg: "#fef2f2" },
+    { label: "Off-Track Rocks", count: counts.offTrackRocks, color: "#f59e0b", bg: "#fffbeb" },
+    { label: "Expiring Certs", count: counts.expiringCerts, color: "#f97316", bg: "#fff7ed" },
+    { label: "Unread Updates", count: counts.unreadAnnouncements, color: "#3b82f6", bg: "#eff6ff" },
+  ].filter((c) => c.count > 0);
+
+  const cardHtml = cards.length > 0
+    ? cards
+        .map(
+          (c) => `
+      <td style="padding:12px 16px;background-color:${c.bg};text-align:center;width:25%;">
+        <div style="font-size:28px;font-weight:700;color:${c.color};">${c.count}</div>
+        <div style="font-size:11px;color:${c.color};text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">${c.label}</div>
+      </td>`
+        )
+        .join("")
+    : "";
+
+  const insightsHtml = aiInsights
+    .map(
+      (insight) =>
+        `<tr><td style="padding:8px 12px;font-size:13px;color:#4c1d95;border-bottom:1px solid #ede9fe;">${insight}</td></tr>`
+    )
+    .join("");
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      Good Morning, ${name}
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Here is your AI-powered morning briefing:
+    </p>
+    ${cardHtml ? `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        ${cardHtml}
+      </tr>
+    </table>
+    ` : ""}
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #ede9fe;border-radius:8px;overflow:hidden;background-color:#f5f3ff;">
+      <tr>
+        <td style="padding:12px 12px 8px;font-size:12px;font-weight:600;color:#7c3aed;text-transform:uppercase;letter-spacing:0.5px;">
+          ✨ AI Insights
+        </td>
+      </tr>
+      ${insightsHtml}
+    </table>
+    ${buttonHtml("Open Dashboard", dashboardUrl)}
+  `);
+
+  return { subject, html };
+}
+
 // ─── Welcome Email ───────────────────────────────────────────
 
 export function welcomeEmail(

@@ -8,7 +8,7 @@ export interface ChatMessage {
   content: string;
 }
 
-export function useAssistant() {
+export function useAssistant(currentPage?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -31,7 +31,7 @@ export function useAssistant() {
       const res = await fetch("/api/assistant/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ messages: updatedMessages, currentPage }),
         signal: controller.signal,
       });
 

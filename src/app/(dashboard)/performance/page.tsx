@@ -34,6 +34,7 @@ import { RegionalRollup } from "@/components/performance/RegionalRollup";
 import { LayoutGrid, ListOrdered, BarChart3 } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AiButton } from "@/components/ui/AiButton";
+import { TrendInsightsWidget } from "@/components/trends/TrendInsightsWidget";
 
 type ViewMode = "centres" | "leaderboard" | "compare";
 
@@ -232,6 +233,9 @@ export default function PerformancePage() {
           <div className="text-sm text-purple-900 whitespace-pre-wrap">{aiDigest}</div>
         </div>
       )}
+
+      {/* Trend Insights */}
+      <TrendInsightsWidget />
 
       {/* ═══ Centres View (existing) ═══ */}
       {viewMode === "centres" && (

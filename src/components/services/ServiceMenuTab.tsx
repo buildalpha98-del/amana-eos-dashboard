@@ -14,6 +14,7 @@ import {
   Loader2,
   ImageIcon,
   Copy,
+  ShieldAlert,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
@@ -107,6 +108,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
   const [notes, setNotes] = useState("");
   const [dirty, setDirty] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [allergenCheckResult, setAllergenCheckResult] = useState<string | null>(null);
 
   // Sync from server data
   useEffect(() => {
@@ -320,6 +322,21 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
             size="sm"
             section="services"
           />
+          <AiButton
+            templateSlug="services/allergen-check"
+            variables={{
+              menuItems: Object.entries(cells)
+                .filter(([, v]) => v.description)
+                .map(([k, v]) => `${k}: ${v.description} [allergens: ${v.allergens.length > 0 ? v.allergens.join(", ") : "none tagged"}]`)
+                .join("\n") || "No menu items",
+              allergenOptions: ALLERGEN_OPTIONS.join(", "),
+            }}
+            onResult={(text) => setAllergenCheckResult(text)}
+            label="Check Allergens"
+            size="sm"
+            section="services"
+            disabled={!Object.values(cells).some((c) => c.description)}
+          />
         </div>
       </div>
 
@@ -341,6 +358,27 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
           <p className="text-xs text-purple-500 mt-2">
             Copy the suggestions above into the menu grid below. You can edit them as needed.
           </p>
+        </div>
+      )}
+
+      {/* Allergen Check Results */}
+      {allergenCheckResult && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-medium text-amber-800 flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4" />
+              Allergen &amp; Dietary Check
+            </h4>
+            <button
+              onClick={() => setAllergenCheckResult(null)}
+              className="text-amber-400 hover:text-amber-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="text-sm text-amber-900 whitespace-pre-wrap prose prose-sm max-w-none">
+            {allergenCheckResult}
+          </div>
         </div>
       )}
 

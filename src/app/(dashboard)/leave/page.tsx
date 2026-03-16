@@ -37,7 +37,9 @@ import {
   Calendar,
   Ban,
   MessageSquare,
+  Sparkles,
 } from "lucide-react";
+import { AiButton } from "@/components/ui/AiButton";
 
 /* ------------------------------------------------------------------ */
 /* Constants                                                           */
@@ -629,6 +631,7 @@ function ApprovalsTab({
   const updateRequest = useUpdateLeaveRequest();
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [impactResults, setImpactResults] = useState<Record<string, string>>({});
 
   const filteredRequests = useMemo(() => {
     if (!requests) return [];
@@ -784,6 +787,45 @@ function ApprovalsTab({
                       Reject
                     </button>
                   </div>
+                  <AiButton
+                    templateSlug="hr/leave-impact"
+                    variables={{
+                      staffName: req.user.name,
+                      leaveType: leaveTypeLabels[req.leaveType] || req.leaveType,
+                      startDate: new Date(req.startDate).toLocaleDateString("en-AU"),
+                      endDate: new Date(req.endDate).toLocaleDateString("en-AU"),
+                      totalDays: String(req.totalDays),
+                      centreName: req.service?.name || "Unassigned",
+                      reason: req.reason || "Not provided",
+                    }}
+                    onResult={(text) => setImpactResults((prev) => ({ ...prev, [req.id]: text }))}
+                    label="Impact Analysis"
+                    size="sm"
+                    section="hr"
+                  />
+                </div>
+              )}
+              {/* Impact Analysis Result */}
+              {impactResults[req.id] && (
+                <div className="mt-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold text-purple-700 flex items-center gap-1">
+                      <Sparkles className="h-3.5 w-3.5" /> Staffing Impact Analysis
+                    </span>
+                    <button
+                      onClick={() => {
+                        setImpactResults((prev) => {
+                          const next = { ...prev };
+                          delete next[req.id];
+                          return next;
+                        });
+                      }}
+                      className="text-purple-400 hover:text-purple-600"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="text-xs text-purple-900 whitespace-pre-wrap">{impactResults[req.id]}</div>
                 </div>
               )}
             </div>

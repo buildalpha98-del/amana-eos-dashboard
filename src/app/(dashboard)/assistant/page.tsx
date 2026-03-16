@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Bot, Send, Loader2, Trash2, Square } from "lucide-react";
 import { useAssistant, type ChatMessage } from "@/hooks/useAssistant";
 
@@ -39,7 +40,8 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 }
 
 export default function AssistantPage() {
-  const { messages, sendMessage, isStreaming, clearMessages, stopStreaming } = useAssistant();
+  const pathname = usePathname();
+  const { messages, sendMessage, isStreaming, clearMessages, stopStreaming } = useAssistant(pathname);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

@@ -33,6 +33,10 @@ import {
   Copy,
   AlertTriangle,
   Building2,
+  Sparkles,
+  BarChart3,
+  Zap,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
@@ -2400,6 +2404,189 @@ function OwnaIntegrationSection() {
 }
 
 // ---------------------------------------------------------------------------
+// AI Usage Dashboard
+// ---------------------------------------------------------------------------
+
+interface AiUsageData {
+  totalCalls: number;
+  totalInput: number;
+  totalOutput: number;
+  estimatedCost: number;
+  bySection: Record<string, { calls: number; inputTokens: number; outputTokens: number }>;
+  byUser: Record<string, { name: string; calls: number; inputTokens: number; outputTokens: number }>;
+  byTemplate: Record<string, { calls: number; inputTokens: number; outputTokens: number }>;
+  byDay: Record<string, { calls: number; inputTokens: number; outputTokens: number }>;
+  days: number;
+}
+
+const SECTION_COLORS: Record<string, string> = {
+  marketing: "bg-pink-500",
+  compliance: "bg-blue-500",
+  recruitment: "bg-amber-500",
+  operations: "bg-emerald-500",
+  engagement: "bg-purple-500",
+  strategy: "bg-indigo-500",
+  assistant: "bg-gray-500",
+  sentiment: "bg-rose-500",
+  attendance: "bg-teal-500",
+  duplicates: "bg-orange-500",
+  unknown: "bg-gray-400",
+};
+
+function AiUsageDashboard() {
+  const [days, setDays] = useState(30);
+
+  const { data, isLoading } = useQuery<AiUsageData>({
+    queryKey: ["ai-usage", days],
+    queryFn: async () => {
+      const res = await fetch(`/api/ai/usage?days=${days}`);
+      if (!res.ok) throw new Error("Failed to fetch AI usage");
+      return res.json();
+    },
+  });
+
+  const formatTokens = (n: number) => {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return String(n);
+  };
+
+  const sectionEntries = data ? Object.entries(data.bySection).sort((a, b) => b[1].calls - a[1].calls) : [];
+  const userEntries = data ? Object.entries(data.byUser).sort((a, b) => b[1].calls - a[1].calls) : [];
+  const templateEntries = data ? Object.entries(data.byTemplate).sort((a, b) => b[1].calls - a[1].calls).slice(0, 10) : [];
+  const maxSectionCalls = sectionEntries.length > 0 ? sectionEntries[0][1].calls : 1;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-purple-500" />
+          <h3 className="text-lg font-semibold text-gray-900">AI Usage</h3>
+        </div>
+        <div className="flex items-center gap-1">
+          {[7, 30, 90].map((d) => (
+            <button
+              key={d}
+              onClick={() => setDays(d)}
+              className={cn(
+                "px-3 py-1 text-xs rounded-full font-medium transition-colors",
+                days === d
+                  ? "bg-purple-100 text-purple-700"
+                  : "text-gray-500 hover:bg-gray-100"
+              )}
+            >
+              {d}d
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="py-8 text-center text-gray-400 text-sm">
+          <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+          Loading AI usage data...
+        </div>
+      ) : !data || data.totalCalls === 0 ? (
+        <p className="text-sm text-gray-500 py-4 text-center">No AI usage in this period.</p>
+      ) : (
+        <div className="space-y-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-lg bg-purple-50 p-3">
+              <div className="flex items-center gap-1.5 text-xs text-purple-600 mb-1">
+                <Zap className="w-3.5 h-3.5" /> Calls
+              </div>
+              <p className="text-xl font-bold text-purple-900">{data.totalCalls}</p>
+            </div>
+            <div className="rounded-lg bg-blue-50 p-3">
+              <div className="flex items-center gap-1.5 text-xs text-blue-600 mb-1">
+                <BarChart3 className="w-3.5 h-3.5" /> Input Tokens
+              </div>
+              <p className="text-xl font-bold text-blue-900">{formatTokens(data.totalInput)}</p>
+            </div>
+            <div className="rounded-lg bg-emerald-50 p-3">
+              <div className="flex items-center gap-1.5 text-xs text-emerald-600 mb-1">
+                <BarChart3 className="w-3.5 h-3.5" /> Output Tokens
+              </div>
+              <p className="text-xl font-bold text-emerald-900">{formatTokens(data.totalOutput)}</p>
+            </div>
+            <div className="rounded-lg bg-amber-50 p-3">
+              <div className="flex items-center gap-1.5 text-xs text-amber-600 mb-1">
+                <DollarSign className="w-3.5 h-3.5" /> Est. Cost
+              </div>
+              <p className="text-xl font-bold text-amber-900">${data.estimatedCost.toFixed(2)}</p>
+            </div>
+          </div>
+
+          {/* By Section */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Usage by Section</h4>
+            <div className="space-y-2">
+              {sectionEntries.map(([section, stats]) => (
+                <div key={section} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-600 w-24 capitalize truncate">{section}</span>
+                  <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full transition-all", SECTION_COLORS[section] || "bg-gray-400")}
+                      style={{ width: `${(stats.calls / maxSectionCalls) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 w-12 text-right">{stats.calls}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* By User */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Usage by User</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left text-xs font-medium text-gray-500 py-1.5">User</th>
+                    <th className="text-right text-xs font-medium text-gray-500 py-1.5">Calls</th>
+                    <th className="text-right text-xs font-medium text-gray-500 py-1.5">Tokens</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userEntries.map(([uid, stats]) => (
+                    <tr key={uid} className="border-b border-gray-50">
+                      <td className="py-1.5 text-gray-700">{stats.name}</td>
+                      <td className="py-1.5 text-right text-gray-600">{stats.calls}</td>
+                      <td className="py-1.5 text-right text-gray-500 text-xs">
+                        {formatTokens(stats.inputTokens + stats.outputTokens)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Top Templates */}
+          {templateEntries.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Top Templates</h4>
+              <div className="space-y-1.5">
+                {templateEntries.map(([slug, stats]) => (
+                  <div key={slug} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-600 font-mono truncate max-w-[60%]">{slug}</span>
+                    <span className="text-gray-500">
+                      {stats.calls} calls &middot; {formatTokens(stats.inputTokens + stats.outputTokens)} tokens
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 
 export function SettingsContent({ userRole }: { userRole: Role }) {
   const [showInvite, setShowInvite] = useState(false);
@@ -2535,6 +2722,9 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
           </p>
         </div>
       )}
+
+      {/* AI Usage Dashboard (owner/head_office) */}
+      {(isOwner || isHeadOffice) && <AiUsageDashboard />}
 
       {/* Activity Log (owner/head_office/admin) */}
       {(userRole === "owner" || userRole === "head_office" || userRole === "admin") && <ActivityLogPanel />}
