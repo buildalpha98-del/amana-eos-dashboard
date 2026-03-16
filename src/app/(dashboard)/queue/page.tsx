@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import {
   useQueue,
@@ -9,6 +9,7 @@ import {
   type QueueReport,
   type QueueTodo,
 } from "@/hooks/useQueue";
+import { ReportViewer } from "@/components/queue/ReportViewer";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -20,8 +21,8 @@ import {
   Filter,
   ChevronDown,
   Eye,
-  X,
   Users,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,23 +37,37 @@ const SEATS = [
 ] as const;
 
 const SEAT_COLOURS: Record<string, string> = {
-  marketing: "#FECE00",
-  people: "#004E64",
-  operations: "#2D8F6F",
-  finance: "#6B4C9A",
-  programming: "#E07A5F",
-  "parent-experience": "#81B29A",
-  partnerships: "#F2CC8F",
+  marketing: "#8B5CF6",
+  mktg: "#8B5CF6",
+  people: "#3B82F6",
+  hr: "#3B82F6",
+  operations: "#10B981",
+  ops: "#10B981",
+  finance: "#F59E0B",
+  fin: "#F59E0B",
+  programming: "#EC4899",
+  prog: "#EC4899",
+  "parent-experience": "#06B6D4",
+  px: "#06B6D4",
+  partnerships: "#6366F1",
+  part: "#6366F1",
 };
 
 const SEAT_TEXT_COLOURS: Record<string, string> = {
-  marketing: "#000",
+  marketing: "#fff",
+  mktg: "#fff",
   people: "#fff",
+  hr: "#fff",
   operations: "#fff",
+  ops: "#fff",
   finance: "#fff",
+  fin: "#fff",
   programming: "#fff",
-  "parent-experience": "#000",
-  partnerships: "#000",
+  prog: "#fff",
+  "parent-experience": "#fff",
+  px: "#fff",
+  partnerships: "#fff",
+  part: "#fff",
 };
 
 function seatLabel(seat: string) {
@@ -78,7 +93,7 @@ function SeatPill({ seat }: { seat: string }) {
       className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
       style={{
         backgroundColor: SEAT_COLOURS[seat] || "#e5e7eb",
-        color: SEAT_TEXT_COLOURS[seat] || "#000",
+        color: SEAT_TEXT_COLOURS[seat] || "#fff",
       }}
     >
       {seatLabel(seat)}
@@ -136,14 +151,16 @@ function ReportCard({
           <Eye className="w-3.5 h-3.5" />
           View Report
         </button>
-        <button
-          onClick={onReview}
-          disabled={isPending}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
-        >
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          {isPending ? "Marking..." : "Mark Reviewed"}
-        </button>
+        {report.status === "pending" && (
+          <button
+            onClick={onReview}
+            disabled={isPending}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            {isPending ? "Marking..." : "Mark Reviewed"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -195,75 +212,6 @@ function TodoCard({
   );
 }
 
-function ReportDetailModal({
-  report,
-  onClose,
-}: {
-  report: QueueReport;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <SeatPill seat={report.seat} />
-              <span className="text-xs text-gray-400 capitalize">
-                {report.reportType.replace(/-/g, " ")}
-              </span>
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              {report.title}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
-            {report.content}
-          </div>
-          {report.metrics && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">
-                Metrics
-              </h4>
-              <pre className="text-xs text-gray-700 overflow-x-auto">
-                {JSON.stringify(report.metrics, null, 2)}
-              </pre>
-            </div>
-          )}
-          {report.alerts && (
-            <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
-              <h4 className="text-xs font-medium text-amber-700 uppercase mb-2">
-                Alerts
-              </h4>
-              <pre className="text-xs text-amber-800 overflow-x-auto">
-                {JSON.stringify(report.alerts, null, 2)}
-              </pre>
-            </div>
-          )}
-        </div>
-        <div className="p-4 border-t border-gray-200 flex items-center justify-between">
-          <span className="text-xs text-gray-400">
-            Created {new Date(report.createdAt).toLocaleString("en-AU")}
-          </span>
-          {report.service && (
-            <span className="text-xs text-gray-500">
-              {report.service.name}
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function QueuePage() {
   const { data: session } = useSession();
   const [seatFilter, setSeatFilter] = useState("");
@@ -283,6 +231,19 @@ export default function QueuePage() {
 
   const reviewReport = useReviewReport();
   const completeTodo = useCompleteTodo();
+
+  // Group reports by assignee for "All Queues" view
+  const groupedReports = useMemo(() => {
+    if (queueView !== "all") return null;
+    const reports = data?.reports || [];
+    const groups: Record<string, QueueReport[]> = {};
+    for (const report of reports) {
+      const name = report.assignedTo?.name || "Unassigned";
+      if (!groups[name]) groups[name] = [];
+      groups[name].push(report);
+    }
+    return groups;
+  }, [queueView, data?.reports]);
 
   if (error) {
     return (
@@ -450,25 +411,53 @@ export default function QueuePage() {
         />
       ) : (
         <div className="space-y-8">
-          {/* Reports Section */}
-          {reports.length > 0 && (
-            <section>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                Reports to Review ({reportCount})
-              </h2>
-              <div className="grid gap-3">
-                {reports.map((report) => (
-                  <ReportCard
-                    key={report.id}
-                    report={report}
-                    onReview={() => reviewReport.mutate(report.id)}
-                    onView={() => setViewingReport(report)}
-                    isPending={reviewReport.isPending}
-                  />
-                ))}
-              </div>
-            </section>
+          {/* Reports Section — grouped by assignee in "All Queues" view */}
+          {queueView === "all" && groupedReports ? (
+            Object.entries(groupedReports).map(([name, groupReports]) => (
+              <section key={name}>
+                <h2 className="text-sm font-semibold text-[#004E64] mb-3 flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  {name}{" "}
+                  <span className="text-gray-400 font-normal">
+                    ({groupReports.length})
+                  </span>
+                </h2>
+                <div className="grid gap-3">
+                  {groupReports.map((report) => (
+                    <ReportCard
+                      key={report.id}
+                      report={report}
+                      onReview={() => reviewReport.mutate(report.id)}
+                      onView={() => setViewingReport(report)}
+                      isPending={reviewReport.isPending}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))
+          ) : (
+            <>
+              {/* My Queue — flat list */}
+              {reports.length > 0 && (
+                <section>
+                  <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Reports to Review ({reportCount})
+                  </h2>
+                  <div className="grid gap-3">
+                    {reports.map((report) => (
+                      <ReportCard
+                        key={report.id}
+                        report={report}
+                        onReview={() => reviewReport.mutate(report.id)}
+                        onView={() => setViewingReport(report)}
+                        isPending={reviewReport.isPending}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
           )}
 
           {/* Todos Section */}
@@ -493,11 +482,16 @@ export default function QueuePage() {
         </div>
       )}
 
-      {/* Report Detail Modal */}
+      {/* Report Viewer (slide-over panel) */}
       {viewingReport && (
-        <ReportDetailModal
+        <ReportViewer
           report={viewingReport}
           onClose={() => setViewingReport(null)}
+          onReview={() => {
+            reviewReport.mutate(viewingReport.id);
+            setViewingReport(null);
+          }}
+          reviewPending={reviewReport.isPending}
         />
       )}
     </div>
