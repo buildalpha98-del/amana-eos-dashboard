@@ -30,11 +30,12 @@ The budget tab in services has several UX issues and missing functionality:
 **File:** `src/components/services/ServiceAttendanceTab.tsx`
 
 Remove all capacity-related UI:
-- Desktop grid: remove the "Cap" column header and capacity cells
+- Desktop grid: remove the "Cap" column header and capacity input cells
 - Mobile cards: remove capacity display
 - CSV import: remove `{ key: "capacity", label: "Capacity" }` column config
 - Remove capacity warning highlighting (red border when enrolled > capacity)
 - Remove `capacity` from the grid state and save payload
+- Remove the `capacity` prop usage from the component (passed from parent service)
 
 The `capacity` field stays in the DB and on `DailyAttendance` model — it's used by anomaly detection and other systems. We only remove it from the attendance UI.
 
@@ -59,6 +60,7 @@ Change the initial state of the period toggle from `"monthly"` to `"weekly"`. Th
 | Empty state text | "No equipment purchases" | "No purchases" |
 | Form modal title | "Add Equipment" / "Edit Equipment" | "Add Purchase" / "Edit Purchase" |
 | Delete confirmation | "Delete this equipment item?" | "Delete this purchase?" |
+| Chart legend label | "Equipment" | "Centre Purchases" |
 | Any other "equipment" references | "equipment" | "purchase" |
 
 API routes and DB model (`BudgetItem`) keep their names — renaming is UI-only.
@@ -87,7 +89,13 @@ enum BudgetItemCategory {
 
 **File:** `src/components/services/ServiceBudgetTab.tsx`
 
-Add "Groceries" filter pill with green colour badge (`bg-green-100 text-green-700`).
+- Add "Groceries" to `CATEGORY_LABELS` map: `groceries: "Groceries"`
+- Add "Groceries" to `CATEGORY_COLORS` map: `groceries: "bg-green-100 text-green-700"`
+- Add "Groceries" filter pill
+
+**Files:** Zod schema updates required in:
+- `src/app/api/services/[id]/budget/equipment/route.ts` — add `"groceries"` to category enum in `createItemSchema`
+- `src/app/api/services/[id]/budget/equipment/[itemId]/route.ts` — add `"groceries"` to category enum in `updateItemSchema`
 
 ---
 
@@ -101,6 +109,7 @@ Replace the current 4 summary cards with:
 - Current week's grocery cost calculated from attendance x per-head rates
 - Label: "Grocery Spend"
 - Subtitle: "This week" or "This month" depending on period toggle
+- Source: existing `groceryBudget.total` from the budget summary API (scoped to selected period)
 
 ### Card 2: Centre Purchase Budget (blue → amber → red)
 - Shows: `$spent / $allocated`
@@ -112,16 +121,22 @@ Replace the current 4 summary cards with:
 - Allocation from configurable tiers (Section 6)
 - Label: "Purchase Budget"
 - Subtitle: shows the tier (e.g. "100+ children — $300/mo")
+- Spend: sum of all non-grocery `BudgetItem` amounts for the current month
 
 ### Card 3: Total Weekly Spend (purple)
-- Sum of grocery spend + centre purchases for the current week
+- Sum of grocery spend + centre purchases for the selected week
 - Label: "Total Spend"
+- Source: current period bucket from API response
 
 ### Card 4: Budget Remaining (emerald)
-- Monthly allocation minus month-to-date centre purchase spend
+- Monthly allocation minus month-to-date non-grocery purchase spend
 - Negative values shown in red
 - Label: "Budget Remaining"
 - Subtitle: "This month"
+
+**API change:** The budget summary API (`GET /api/services/[id]/budget`) will return two additional fields:
+- `monthlyAllocation: number` — the resolved budget for this service
+- `monthToDatePurchaseSpend: number` — non-grocery BudgetItem spend for current month
 
 ---
 
@@ -160,9 +175,13 @@ function getMonthlyBudget(service, orgTiers):
   if service.monthlyPurchaseBudget is set:
     return service.monthlyPurchaseBudget  // per-service override
 
-  weeklyAttendance = sum of last 4 weeks average attendance for this service
+  avgWeeklyAttendance = average weekly total attended (BSC + ASC + VC combined)
+                        over the last 4 complete weeks
+  // Calculated as: sum of all DailyAttendance.attended for the service
+  // over the last 28 days, divided by 4
+
   for tier in orgTiers (sorted by minWeeklyChildren DESC):
-    if weeklyAttendance >= tier.minWeeklyChildren:
+    if avgWeeklyAttendance >= tier.minWeeklyChildren:
       return tier.monthlyBudget
 
   return orgTiers[last].monthlyBudget  // fallback to lowest tier
@@ -191,6 +210,10 @@ Saved via `PATCH /api/services/[id]` with `monthlyPurchaseBudget` field.
 
 ## 7. Real-time Financials Feed
 
+### Approach: Recalculation (not deltas)
+
+After any BudgetItem mutation (create, update, delete), recalculate totals for the affected week(s) rather than using fragile incremental deltas. This handles edge cases like date changes and category changes on updates cleanly.
+
 ### On Purchase Create/Update/Delete
 
 **Files:**
@@ -200,32 +223,50 @@ Saved via `PATCH /api/services/[id]` with `monthlyPurchaseBudget` field.
 After each purchase mutation, call a shared helper:
 
 ```typescript
-async function syncPurchaseToFinancials(
-  serviceId: string,
-  purchaseDate: Date,
-  amount: number,          // positive for create/update, negative for delete
-  category: BudgetItemCategory,
-  previousAmount?: number  // for updates: the old amount to subtract
-)
+async function recalcFinancialsForWeek(serviceId: string, weekStart: Date) {
+  // 1. Aggregate all BudgetItems for this service in this week
+  const weekEnd = new Date(weekStart.getTime() + 7 * 86400000);
+
+  const items = await prisma.budgetItem.findMany({
+    where: { serviceId, date: { gte: weekStart, lt: weekEnd } },
+  });
+
+  const groceryCost = items
+    .filter(i => i.category === "groceries")
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  const suppliesCost = items
+    .filter(i => i.category !== "groceries")
+    .reduce((sum, i) => sum + i.amount, 0);
+
+  // 2. Upsert FinancialPeriod for this week
+  await prisma.financialPeriod.upsert({
+    where: { serviceId_periodType_periodStart: {
+      serviceId, periodType: "weekly", periodStart: weekStart
+    }},
+    update: { suppliesCosts: suppliesCost },
+    create: { serviceId, periodType: "weekly", periodStart: weekStart,
+              suppliesCosts: suppliesCost },
+  });
+}
 ```
 
-Logic:
-1. Determine the week start for `purchaseDate`
-2. Upsert `FinancialPeriod` where `serviceId + periodType:"weekly" + periodStart:weekStart`
-3. If category is `groceries`: increment `foodCosts` by delta
-4. If category is anything else: increment `suppliesCosts` by delta
-5. Recalculate `totalCosts` and `grossProfit` on the period
+**Important:** All BudgetItem purchases (including groceries category) write to `suppliesCosts` on FinancialPeriod. The `foodCosts` field remains owned by the attendance-to-financials weekly cron (which calculates grocery costs from attendance × per-head rates). This avoids double-counting.
 
-For updates: delta = newAmount - previousAmount
-For deletes: delta = -amount
+The grocery spend shown on the budget tab's Card 1 is a calculated display value (attendance × rates), not from BudgetItem records. The `groceries` category in BudgetItem is for staff to log actual grocery receipts for tracking/auditing — these flow to `suppliesCosts` alongside other centre purchases.
+
+**Edge cases handled by recalculation:**
+- Purchase date changes → recalc both old week and new week
+- Category changes → no special handling needed (recalc sums all items)
+- Concurrent mutations → recalc produces correct totals regardless of order
+- Failed partial updates → wrapped in Prisma transaction
 
 ### Existing Fields Used
 
-The `FinancialPeriod` model already has:
-- `foodCosts: Float?` — maps to grocery purchases
-- `suppliesCosts: Float?` — maps to all other centre purchases
+- `FinancialPeriod.suppliesCosts: Float?` — all BudgetItem purchases (groceries + other)
+- `FinancialPeriod.foodCosts: Float?` — remains attendance-calculated only (via weekly cron)
 
-No new fields needed.
+No new fields needed on FinancialPeriod.
 
 ---
 
@@ -235,17 +276,19 @@ No new fields needed.
 |------|--------|
 | `prisma/schema.prisma` | Add `groceries` to enum, `purchaseBudgetTiers` on OrgSettings, `monthlyPurchaseBudget` on Service |
 | `src/components/services/ServiceAttendanceTab.tsx` | Remove capacity column, warnings, CSV config |
-| `src/components/services/ServiceBudgetTab.tsx` | Rename labels, add groceries category, new summary cards with budget vs spend, default weekly, per-service override UI |
-| `src/app/api/services/[id]/budget/route.ts` | Return budget allocation in summary, tier resolution |
-| `src/app/api/services/[id]/budget/equipment/route.ts` | Sync to financials on POST |
-| `src/app/api/services/[id]/budget/equipment/[itemId]/route.ts` | Sync to financials on PATCH/DELETE |
+| `src/components/services/ServiceBudgetTab.tsx` | Rename labels, add groceries to CATEGORY_LABELS/COLORS, new summary cards with budget vs spend, default weekly, per-service override UI, chart legend update |
+| `src/app/api/services/[id]/budget/route.ts` | Return budget allocation + month-to-date spend in summary, tier resolution logic |
+| `src/app/api/services/[id]/budget/equipment/route.ts` | Add `groceries` to Zod schema, sync to financials on POST |
+| `src/app/api/services/[id]/budget/equipment/[itemId]/route.ts` | Add `groceries` to Zod schema, sync to financials on PATCH/DELETE (recalc old+new weeks on date change) |
 | `src/app/(dashboard)/settings/SettingsContent.tsx` | Budget tiers config section |
-| `src/app/api/org-settings/route.ts` | Handle `purchaseBudgetTiers` in PATCH |
-| `src/hooks/useBudget.ts` | No changes needed (existing hooks work) |
+| `src/app/api/org-settings/route.ts` | Handle `purchaseBudgetTiers` in PATCH, validate tier array structure |
+| `src/app/api/services/[id]/route.ts` | Accept `monthlyPurchaseBudget` in PATCH for per-service override |
+| `src/hooks/useBudget.ts` | Update `BudgetSummary` interface to include `monthlyAllocation` and `monthToDatePurchaseSpend` |
+| `src/lib/budget-helpers.ts` | NEW — shared `recalcFinancialsForWeek()` and `getMonthlyBudget()` helpers |
 
 ## Out of Scope
 
-- Grocery purchases auto-logging from attendance (stays as calculated cost)
+- Grocery cost auto-logging from attendance (stays as calculated cost via weekly cron)
 - Historical budget tier changes (retroactive recalculation)
 - Approval workflow for over-budget purchases
 - Budget alerts/notifications (could be added later)
