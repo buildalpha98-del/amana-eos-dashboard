@@ -26,6 +26,7 @@ import { ScrollableTable } from "@/components/ui/ScrollableTable";
 import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
 import dynamic from "next/dynamic";
 import { ImportOWNAModal } from "@/components/financials/ImportOWNAModal";
+import { AiButton } from "@/components/ui/AiButton";
 
 const RevenueVsCostsChart = dynamic(() => import("@/components/charts/RevenueVsCostsChart").then((m) => m.RevenueVsCostsChart), { loading: () => <Skeleton className="h-64 w-full" /> });
 const MarginComparisonChart = dynamic(() => import("@/components/charts/MarginComparisonChart").then((m) => m.MarginComparisonChart), { loading: () => <Skeleton className="h-64 w-full" /> });
@@ -246,6 +247,7 @@ export default function FinancialsPage() {
   const [period, setPeriod] = useState<string>("monthly");
   const [showEnterData, setShowEnterData] = useState(false);
   const [showImportOWNA, setShowImportOWNA] = useState(false);
+  const [aiCommentary, setAiCommentary] = useState<string | null>(null);
   const { data, isLoading, error, refetch } = useFinancials({ period });
 
   const summary = data?.summary;
@@ -332,6 +334,22 @@ export default function FinancialsPage() {
               <span className="hidden sm:inline">Enter Data</span>
               <span className="sm:hidden">Add</span>
             </button>
+            <AiButton
+              templateSlug="financials/commentary"
+              variables={{
+                period: period,
+                totalRevenue: `$${(summary?.totalRevenue || 0).toLocaleString()}`,
+                totalCosts: `$${(summary?.totalCosts || 0).toLocaleString()}`,
+                margin: `${summary?.totalRevenue ? Math.round(((summary.totalRevenue - summary.totalCosts) / summary.totalRevenue) * 100) : 0}%`,
+                centreBreakdown: financials.slice(0, 10).map((f: any) => `${f.service?.name || "Unknown"}: Revenue $${f.totalRevenue?.toLocaleString()}, Costs $${f.totalCosts?.toLocaleString()}`).join("; ") || "No data",
+                priorPeriod: "Not available",
+              }}
+              onResult={(text) => setAiCommentary(text)}
+              label="AI Commentary"
+              size="sm"
+              section="financials"
+              disabled={!summary}
+            />
             <ExportButton onClick={handleExport} disabled={!data?.financials || data.financials.length === 0} />
           </div>
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
@@ -392,6 +410,19 @@ export default function FinancialsPage() {
           iconColor="#FECE00"
         />
       </div>
+
+      {/* AI Financial Commentary */}
+      {aiCommentary && (
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-purple-800">AI Financial Commentary</h3>
+            <button onClick={() => setAiCommentary(null)} className="text-purple-400 hover:text-purple-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="text-sm text-purple-900 whitespace-pre-wrap">{aiCommentary}</div>
+        </div>
+      )}
 
       {/* Attendance Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

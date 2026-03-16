@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { AiButton } from "@/components/ui/AiButton";
 import { useServices } from "@/hooks/useServices";
 import {
   useHolidayQuestDays,
@@ -154,6 +155,9 @@ export default function HolidayQuestPage() {
   // Promo modal state
   const [promoFrom, setPromoFrom] = useState("");
   const [promoTo, setPromoTo] = useState("");
+
+  // AI suggestion
+  const [aiSuggestion, setAiSuggestion] = useState("");
 
   // Data
   const { data: services } = useServices("active");
@@ -352,6 +356,20 @@ export default function HolidayQuestPage() {
           </select>
           {isAdmin && (
             <>
+              <AiButton
+                templateSlug="holiday-quest/day-planner"
+                variables={{
+                  serviceName: services?.find((s) => s.id === selectedServiceId)?.name || "Amana OSHC",
+                  weekDates: `${fmtDate(weekDates[0])} to ${fmtDate(weekDates[4])}`,
+                  existingDays: days?.map((d) => `${fmtDate(d.date)}: ${d.theme}`).join(", ") || "none planned",
+                  ageGroup: "5-12 years (primary school aged)",
+                }}
+                onResult={(text) => setAiSuggestion(text)}
+                label="AI Plan"
+                size="sm"
+                section="holiday-quest"
+                disabled={!selectedServiceId}
+              />
               <button
                 onClick={() => setShowTemplateModal(true)}
                 className="flex items-center gap-1.5 rounded-lg bg-white border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -370,6 +388,18 @@ export default function HolidayQuestPage() {
           )}
         </div>
       </div>
+
+      {/* AI Suggestion */}
+      {aiSuggestion && (
+        <div className="mb-4 rounded-xl border border-purple-200 bg-purple-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiSuggestion}</div>
+            <button onClick={() => setAiSuggestion("")} className="text-purple-400 hover:text-purple-600 flex-shrink-0">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Week Navigation */}
       <div className="flex items-center justify-between mb-4">

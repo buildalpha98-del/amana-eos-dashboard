@@ -17,6 +17,7 @@ import {
   Clock,
   Mail,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { ReportSection } from "@/components/board-report/ReportSection";
 import {
@@ -69,6 +70,7 @@ export default function BoardReportsPage() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [aiGenerating, setAiGenerating] = useState<string | null>(null);
+  const [aiGeneratingAll, setAiGeneratingAll] = useState(false);
 
   const { data: reports, isLoading: listLoading, error: listError, refetch } = useBoardReports();
   const { data: report, isLoading: reportLoading } = useBoardReport(selectedReportId);
@@ -110,6 +112,41 @@ export default function BoardReportsPage() {
     } finally {
       setAiGenerating(null);
     }
+  };
+
+  const ALL_SECTIONS: Array<{ section: string; field: string }> = [
+    { section: "executive", field: "executiveSummary" },
+    { section: "financial", field: "financialNarrative" },
+    { section: "operations", field: "operationsNarrative" },
+    { section: "compliance", field: "complianceNarrative" },
+    { section: "growth", field: "growthNarrative" },
+    { section: "people", field: "peopleNarrative" },
+    { section: "rocks", field: "rocksNarrative" },
+  ];
+
+  const handleAiGenerateAll = async () => {
+    if (!selectedReportId || aiGeneratingAll) return;
+    setAiGeneratingAll(true);
+    let generated = 0;
+    for (const { section, field } of ALL_SECTIONS) {
+      try {
+        setAiGenerating(section);
+        const res = await fetch(`/api/reports/board/${selectedReportId}/ai-narrative`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ section }),
+        });
+        if (!res.ok) continue;
+        const { narrative } = await res.json();
+        handleNarrativeUpdate(field, narrative);
+        generated++;
+      } catch {
+        // continue to next section
+      }
+    }
+    setAiGenerating(null);
+    setAiGeneratingAll(false);
+    toast({ description: `Generated ${generated} of ${ALL_SECTIONS.length} AI narratives` });
   };
 
   const handleSend = () => {
@@ -171,6 +208,18 @@ export default function BoardReportsPage() {
             </div>
           </div>
           <div className="no-print flex items-center gap-2">
+            <button
+              onClick={handleAiGenerateAll}
+              disabled={aiGeneratingAll}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50"
+            >
+              {aiGeneratingAll ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              {aiGeneratingAll ? "Generating..." : "AI Draft All"}
+            </button>
             <button
               onClick={handleExportPdf}
               className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"

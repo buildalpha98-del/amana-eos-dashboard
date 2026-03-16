@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { AiButton } from "@/components/ui/AiButton";
 import {
   useWeeklyProgram,
   useCreateActivity,
@@ -131,6 +132,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showLibraryPicker, setShowLibraryPicker] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [editingActivity, setEditingActivity] = useState<ProgramActivity | null>(null);
   const [prefillTemplate, setPrefillTemplate] = useState<ActivityTemplate | null>(null);
   const [showInterests, setShowInterests] = useState(false);
@@ -280,8 +282,41 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
             <Library className="w-3.5 h-3.5" />
             Library
           </button>
+          <AiButton
+            templateSlug="services/activity-suggester"
+            variables={{
+              serviceName: "this centre",
+              weekTheme: "General program",
+              ageGroup: "5-12 years",
+              category: "mixed",
+              existingActivities: activities?.slice(0, 10).map((a: { title: string }) => a.title).join(", ") || "None planned",
+              learningOutcomes: "MTOP outcomes 1-5",
+            }}
+            onResult={(text) => setAiSuggestion(text)}
+            label="AI Suggest"
+            size="sm"
+            section="services"
+          />
         </div>
       </div>
+
+      {/* AI Suggestion Panel */}
+      {aiSuggestion && (
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-medium text-purple-800">AI Activity Suggestions</h4>
+            <button
+              onClick={() => setAiSuggestion(null)}
+              className="text-purple-400 hover:text-purple-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="text-sm text-purple-900 whitespace-pre-wrap">
+            {aiSuggestion}
+          </div>
+        </div>
+      )}
 
       {/* Day Grid */}
       {isLoading ? (

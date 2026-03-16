@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useCreatePost, useCampaigns } from "@/hooks/useMarketing";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
+import { AiButton } from "@/components/ui/AiButton";
 
 interface CreatePostModalProps {
   open: boolean;
@@ -196,9 +197,25 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
 
             {/* Content */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Content
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Content
+                </label>
+                <AiButton
+                  templateSlug="marketing/post-writer"
+                  variables={{
+                    platform: platform || "social media",
+                    pillar: pillar || "general",
+                    topic: title || "Amana OSHC update",
+                    serviceName: "Amana OSHC",
+                    campaignContext: campaignId ? "Part of an active campaign" : "Standalone post",
+                  }}
+                  onResult={(text) => setContent(text)}
+                  label="Write with AI"
+                  size="sm"
+                  section="marketing"
+                />
+              </div>
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -206,6 +223,9 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
                 placeholder="Post content..."
               />
+              {platform && (
+                <ContentCharacterCounter content={content} platform={platform} />
+              )}
             </div>
 
             {/* Scheduled Date */}
@@ -372,5 +392,32 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
         </div>
       </div>
     </>
+  );
+}
+
+const PLATFORM_CHAR_LIMITS: Record<string, number> = {
+  facebook: 63206,
+  instagram: 2200,
+  linkedin: 3000,
+  email: 0,
+  newsletter: 0,
+  website: 0,
+  flyer: 0,
+};
+
+function ContentCharacterCounter({ content, platform }: { content: string; platform: string }) {
+  const limit = PLATFORM_CHAR_LIMITS[platform] || 0;
+  if (!limit) return null;
+
+  const count = content.length;
+  const pct = Math.round((count / limit) * 100);
+  const isOver = count > limit;
+  const isNear = pct >= 80;
+
+  return (
+    <div className={`flex items-center justify-between mt-1 text-xs ${isOver ? "text-red-600 font-medium" : isNear ? "text-amber-600" : "text-gray-400"}`}>
+      <span>{count.toLocaleString()} / {limit.toLocaleString()}</span>
+      {isOver && <span>{(count - limit).toLocaleString()} over limit</span>}
+    </div>
   );
 }

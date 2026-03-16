@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { AiButton } from "@/components/ui/AiButton";
 
 interface NewVacancyModalProps {
   onClose: () => void;
@@ -134,7 +135,22 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">Notes</label>
+              <AiButton
+                templateSlug="recruitment/job-ad"
+                variables={{
+                  role: form.role.replace(/_/g, " "),
+                  employmentType: form.employmentType.replace(/_/g, " "),
+                  qualification: form.qualificationRequired || "none specified",
+                  serviceName: services.find((s: { id: string; name: string }) => s.id === form.serviceId)?.name || "Amana OSHC",
+                }}
+                onResult={(text) => setForm({ ...form, notes: text })}
+                label="Draft Job Ad"
+                size="sm"
+                section="recruitment"
+              />
+            </div>
             <textarea
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}

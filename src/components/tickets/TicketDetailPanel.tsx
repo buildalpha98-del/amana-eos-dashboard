@@ -18,6 +18,7 @@ import {
   Phone,
   User,
   MessageSquare,
+  Sparkles,
   Clock,
   Check,
   CheckCheck,
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { TicketStatus, TicketPriority } from "@prisma/client";
+import { AiButton } from "@/components/ui/AiButton";
 
 interface UserOption {
   id: string;
@@ -366,6 +368,20 @@ export function TicketDetailPanel({
                 >
                   <ChevronDown className={cn("w-5 h-5 transition-transform", showTemplates && "rotate-180")} />
                 </button>
+                <AiButton
+                  templateSlug="tickets/response-drafter"
+                  variables={{
+                    ticketSubject: ticket?.subject || "",
+                    messageHistory: messages?.slice(-5).map((m) => `${m.senderName || "Unknown"}: ${m.body}`).join("\n") || "No messages yet",
+                    ticketPriority: ticket?.priority || "medium",
+                    serviceName: ticket?.service?.name || "Amana OSHC",
+                  }}
+                  onResult={(text) => setReplyText(text)}
+                  label=""
+                  size="sm"
+                  section="tickets"
+                  className="p-2 text-purple-400 hover:text-purple-600 rounded-lg hover:bg-purple-50 transition-colors flex-shrink-0 !border-0 !px-2 !py-2"
+                />
                 <textarea
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}

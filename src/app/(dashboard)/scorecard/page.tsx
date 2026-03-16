@@ -9,12 +9,13 @@ import { AddMeasurableModal } from "@/components/scorecard/AddMeasurableModal";
 import { DeleteMeasurableDialog } from "@/components/scorecard/DeleteMeasurableDialog";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV } from "@/lib/csv-export";
-import { BarChart3, Plus, Users, Building2 } from "lucide-react";
+import { BarChart3, Plus, Users, Building2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { HelpTooltip } from "@/components/shared/HelpTooltip";
+import { AiButton } from "@/components/ui/AiButton";
 
 export default function ScorecardPage() {
   const { data: scorecard, isLoading, error, refetch } = useScorecard();
@@ -22,6 +23,7 @@ export default function ScorecardPage() {
   const [editingMeasurable, setEditingMeasurable] = useState<MeasurableData | null>(null);
   const [deletingMeasurable, setDeletingMeasurable] = useState<MeasurableData | null>(null);
   const [groupBy, setGroupBy] = useState<"person" | "service">("person");
+  const [aiNarrative, setAiNarrative] = useState("");
   const queryClient = useQueryClient();
 
   const deleteMeasurable = useMutation({
@@ -127,6 +129,31 @@ export default function ScorecardPage() {
             </button>
           </div>
 
+          <AiButton
+            templateSlug="scorecard/narrative"
+            variables={{
+              measurableCount: String(scorecard?.measurables?.length ?? 0),
+              onTrackSummary: scorecard?.measurables
+                ? (() => {
+                    const total = scorecard.measurables.length;
+                    const onTrack = scorecard.measurables.filter((m) => {
+                      const last = m.entries[m.entries.length - 1];
+                      return last?.onTrack;
+                    }).length;
+                    return `${onTrack}/${total} on track`;
+                  })()
+                : "no data",
+              measurables: scorecard?.measurables
+                ?.slice(0, 10)
+                .map((m) => `${m.title} (${m.owner?.name ?? "unassigned"}): goal ${m.goalDirection} ${m.goalValue}, last=${m.entries[m.entries.length - 1]?.value ?? "N/A"}`)
+                .join("; ") || "none",
+            }}
+            onResult={(text) => setAiNarrative(text)}
+            label="AI Narrative"
+            size="sm"
+            section="scorecard"
+            disabled={!scorecard?.measurables?.length}
+          />
           <ExportButton
             onClick={handleExport}
             disabled={!scorecard?.measurables || scorecard.measurables.length === 0}
@@ -141,6 +168,18 @@ export default function ScorecardPage() {
           </button>
         </div>
       </div>
+
+      {/* AI Narrative */}
+      {aiNarrative && (
+        <div className="mb-6 rounded-xl border border-purple-200 bg-purple-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiNarrative}</div>
+            <button onClick={() => setAiNarrative("")} className="text-purple-400 hover:text-purple-600 flex-shrink-0">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       {isLoading ? (

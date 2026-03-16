@@ -18,6 +18,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { CCSCalculator } from "@/components/shared/CCSCalculator";
+import { AiButton } from "@/components/ui/AiButton";
 
 interface EnquiryDetailPanelProps {
   enquiryId: string;
@@ -782,9 +783,28 @@ export function EnquiryDetailPanel({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Message Content
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Message Content
+                        </label>
+                        <AiButton
+                          templateSlug="enquiries/follow-up-email"
+                          variables={{
+                            parentName: enquiry.parentName || "Parent",
+                            childName: getChildDisplay() || "their child",
+                            sessionInterest: enquiry.channel || "general enquiry",
+                            serviceName: enquiry.service?.name || "our centre",
+                            conversationNotes: enquiry.notes || "No notes recorded",
+                            serviceDetails: `Centre: ${enquiry.service?.name || "Amana OSHC"}. Stage: ${enquiry.stage}.`,
+                          }}
+                          onResult={(text) =>
+                            setActionModal({ ...actionModal, content: text })
+                          }
+                          label="Draft with AI"
+                          size="sm"
+                          section="enquiries"
+                        />
+                      </div>
                       <textarea
                         rows={6}
                         value={actionModal.content}

@@ -8,7 +8,11 @@ import {
   Trash2,
   Loader2,
   ListPlus,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
+import { useAiGenerate } from "@/hooks/useAiGenerate";
 
 interface UserOption {
   id: string;
@@ -53,6 +57,9 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ created: number } | null>(null);
+  const [showAiNotes, setShowAiNotes] = useState(false);
+  const [meetingNotes, setMeetingNotes] = useState("");
+  const { generate: aiGenerate, isLoading: aiLoading } = useAiGenerate();
 
   const { data: users = [] } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -133,6 +140,44 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
     }
   };
 
+  const handleAiExtract = async () => {
+    if (!meetingNotes.trim()) return;
+    const result = await aiGenerate({
+      templateSlug: "todos/from-meeting-notes",
+      variables: {
+        meetingNotes: meetingNotes.trim(),
+        attendees: users.map((u) => u.name).join(", "),
+      },
+      section: "todos",
+    });
+    if (!result) return;
+    try {
+      // Extract JSON array from the response (it may have markdown wrapping)
+      const jsonMatch = result.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) throw new Error("No JSON array found");
+      const parsed = JSON.parse(jsonMatch[0]) as { title: string; assignee: string; priority: string }[];
+      const newRows: BulkTodoRow[] = parsed.map((item) => {
+        const matchedUser = users.find((u) =>
+          u.name.toLowerCase().includes(item.assignee.toLowerCase())
+        );
+        return {
+          title: item.title,
+          assigneeId: matchedUser?.id || "",
+          serviceId: "",
+          dueDate: new Date(weekOf.getTime() + 6 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+        };
+      });
+      if (newRows.length > 0) {
+        setRows(newRows);
+        setShowAiNotes(false);
+      }
+    } catch {
+      setError("Could not parse AI response. Try rephrasing your notes.");
+    }
+  };
+
   const handleClose = () => {
     setRows([emptyRow(weekOf), emptyRow(weekOf), emptyRow(weekOf)]);
     setError(null);
@@ -183,6 +228,47 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
             </div>
           ) : (
             <div className="space-y-3">
+              {/* AI Meeting Notes Extractor */}
+              <div className="border border-purple-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setShowAiNotes(!showAiNotes)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 bg-purple-50 hover:bg-purple-100 transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-purple-700">
+                    <Sparkles className="w-4 h-4" />
+                    Extract from Meeting Notes
+                  </span>
+                  {showAiNotes ? (
+                    <ChevronUp className="w-4 h-4 text-purple-500" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-purple-500" />
+                  )}
+                </button>
+                {showAiNotes && (
+                  <div className="p-4 space-y-3">
+                    <textarea
+                      rows={5}
+                      value={meetingNotes}
+                      onChange={(e) => setMeetingNotes(e.target.value)}
+                      placeholder="Paste your L10 meeting notes here... AI will extract action items with assignees."
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-purple-400 focus:ring-1 focus:ring-purple-400 focus:outline-none resize-none"
+                    />
+                    <button
+                      onClick={handleAiExtract}
+                      disabled={!meetingNotes.trim() || aiLoading}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                    >
+                      {aiLoading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5" />
+                      )}
+                      Extract To-Dos
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {rows.map((row, i) => (
                 <div
                   key={i}

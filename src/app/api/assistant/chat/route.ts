@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/server-auth";
 import { getAI } from "@/lib/ai";
 import { buildDashboardContext } from "@/lib/ai-context";
+import { ASSISTANT_TOOLS, executeToolCall } from "@/lib/ai-tools";
+import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
+import type Anthropic from "@anthropic-ai/sdk";
+
+const MAX_TOOL_ROUNDS = 5;
 
 /**
- * POST /api/assistant/chat — Streaming AI chat assistant
+ * POST /api/assistant/chat — Streaming AI chat assistant with tool use
  *
  * Body: { messages: { role: "user" | "assistant"; content: string }[] }
  *
  * Returns a Server-Sent Events stream of text deltas.
+ * Supports tool calling: the assistant can look up live data during the conversation.
  */
 export async function POST(req: NextRequest) {
   const { error } = await requireAuth(["owner", "head_office", "admin"]);
@@ -24,9 +30,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const messages = body.messages as { role: "user" | "assistant"; content: string }[];
+    const userMessages = body.messages as { role: "user" | "assistant"; content: string }[];
 
-    if (!Array.isArray(messages) || messages.length === 0) {
+    if (!Array.isArray(userMessages) || userMessages.length === 0) {
       return NextResponse.json(
         { error: "messages array is required" },
         { status: 400 },
@@ -36,42 +42,86 @@ export async function POST(req: NextRequest) {
     // Build system prompt with live dashboard context
     const dashboardContext = await buildDashboardContext();
     const systemPrompt = [
-      "You are Amana AI, an intelligent assistant for Amana OSHC (Outside School Hours Care).",
-      "You help owners and administrators understand their dashboard data, answer questions about financial performance, operations, compliance, staffing, and strategic priorities.",
-      "Use Australian English. Be concise, data-driven, and professional.",
-      "When referencing specific numbers, cite the data source (e.g. 'based on current month financials').",
-      "If you don't have enough data to answer a question, say so clearly.",
+      AMANA_SYSTEM_PROMPT,
       "",
-      "Here is the current dashboard data:",
+      "You also have access to tools that can look up specific live data from the dashboard.",
+      "Use these tools when the user asks about specific centres, staff, compliance, finances, or todos.",
+      "The dashboard context below provides a high-level overview — use tools for detailed queries.",
       "",
+      "Current dashboard overview:",
       dashboardContext,
     ].join("\n");
 
-    // Stream the response
-    const stream = ai.messages.stream({
-      model: "claude-sonnet-4-5-20250514",
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    });
+    // Build Anthropic message format
+    const apiMessages: Anthropic.Messages.MessageParam[] = userMessages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
 
-    // Convert to SSE ReadableStream
+    // SSE streaming with tool-use loop
     const encoder = new TextEncoder();
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const event of stream) {
-            if (
-              event.type === "content_block_delta" &&
-              event.delta.type === "text_delta"
-            ) {
-              const data = JSON.stringify({ text: event.delta.text });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          let rounds = 0;
+
+          while (rounds < MAX_TOOL_ROUNDS) {
+            rounds++;
+
+            const response = await ai.messages.create({
+              model: "claude-sonnet-4-5-20250514",
+              max_tokens: 1024,
+              system: systemPrompt,
+              messages: apiMessages,
+              tools: ASSISTANT_TOOLS,
+            });
+
+            // Check if we need to handle tool use
+            const toolUseBlocks = response.content.filter(
+              (b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use",
+            );
+            const textBlocks = response.content.filter(
+              (b): b is Anthropic.Messages.TextBlock => b.type === "text",
+            );
+
+            // Stream any text blocks
+            for (const block of textBlocks) {
+              if (block.text) {
+                const data = JSON.stringify({ text: block.text });
+                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+              }
             }
+
+            // If no tool use or stop_reason is end_turn, we're done
+            if (toolUseBlocks.length === 0 || response.stop_reason === "end_turn") {
+              break;
+            }
+
+            // Execute tool calls and build tool results
+            const toolResults: Anthropic.Messages.ToolResultBlockParam[] = [];
+            for (const toolBlock of toolUseBlocks) {
+              const result = await executeToolCall(
+                toolBlock.name,
+                toolBlock.input as Record<string, unknown>,
+              );
+              toolResults.push({
+                type: "tool_result",
+                tool_use_id: toolBlock.id,
+                content: result,
+              });
+            }
+
+            // Add assistant response and tool results to conversation
+            apiMessages.push({
+              role: "assistant",
+              content: response.content,
+            });
+            apiMessages.push({
+              role: "user",
+              content: toolResults,
+            });
           }
+
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (err) {

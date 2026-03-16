@@ -136,6 +136,14 @@
     {
       "path": "/api/cron/weekly-digest",
       "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/marketing-stalled",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/compliance-risk-report",
+      "schedule": "0 6 * * 1"
     }
   ]
 }

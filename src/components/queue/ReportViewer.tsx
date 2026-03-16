@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { generateReportPdf } from "@/lib/report-pdf";
 import type { QueueReport } from "@/hooks/useQueue";
+import { AiButton } from "@/components/ui/AiButton";
 
 /* ── Brand colours ────────────────────────────────── */
 const SEAT_COLOURS: Record<string, { bg: string; text: string }> = {
@@ -161,6 +162,7 @@ export function ReportViewer({
   const [checklistState, setChecklistState] = useState<
     Record<string, boolean>
   >((report as unknown as { checklist?: Record<string, boolean> }).checklist || {});
+  const [aiSummary, setAiSummary] = useState("");
 
   const { items: actionItems, cleanedContent } = useMemo(
     () => extractActionItems(report.content, checklistState),
@@ -234,13 +236,41 @@ export function ReportViewer({
               {report.reportType.replace(/-/g, " ")}
             </span>
           </div>
+          <div className="flex items-center gap-2">
+            <AiButton
+              templateSlug="queue/report-summary"
+              variables={{
+                reportTitle: report.title,
+                reportType: report.reportType,
+                seat: report.seat,
+                content: report.content.slice(0, 2000),
+                centreName: report.service?.name || "all centres",
+              }}
+              onResult={(text) => setAiSummary(text)}
+              label="Summarise"
+              size="sm"
+              section="queue"
+            />
           <button
             onClick={onClose}
             className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
+          </div>
         </div>
+
+        {/* AI Summary */}
+        {aiSummary && (
+          <div className="mx-6 mt-4 rounded-xl border border-purple-200 bg-purple-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiSummary}</div>
+              <button onClick={() => setAiSummary("")} className="text-purple-400 hover:text-purple-600 flex-shrink-0">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── Scrollable content ── */}
         <div className="flex-1 overflow-y-auto">

@@ -33,6 +33,7 @@ import { CentreComparison } from "@/components/performance/CentreComparison";
 import { RegionalRollup } from "@/components/performance/RegionalRollup";
 import { LayoutGrid, ListOrdered, BarChart3 } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { AiButton } from "@/components/ui/AiButton";
 
 type ViewMode = "centres" | "leaderboard" | "compare";
 
@@ -77,6 +78,7 @@ export default function PerformancePage() {
   const [sortBy, setSortBy] = useState<string>("overall");
   const [selectedCentreId, setSelectedCentreId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("centres");
+  const [aiDigest, setAiDigest] = useState<string | null>(null);
   const [stateFilter, setStateFilter] = useState<string | null>(null);
 
   const topPerformer = centres && centres.length > 0 ? centres[0] : null;
@@ -200,9 +202,36 @@ export default function PerformancePage() {
               <span className="hidden sm:inline">Compare</span>
             </button>
           </div>
+          <AiButton
+            templateSlug="performance/digest"
+            variables={{
+              centreScores: centres?.slice(0, 15).map((c: any) => `${c.name}: ${c.score}/100`).join(", ") || "No data",
+              topPerformers: centres?.slice(0, 3).map((c: any) => `${c.name} (${c.score})`).join(", ") || "None",
+              bottomPerformers: centres?.slice(-3).map((c: any) => `${c.name} (${c.score})`).join(", ") || "None",
+              trends: "Current period data",
+            }}
+            onResult={(text) => setAiDigest(text)}
+            label="AI Digest"
+            size="sm"
+            section="performance"
+            disabled={!centres || centres.length === 0}
+          />
           <ExportButton onClick={handleExport} disabled={!centres || centres.length === 0} />
         </div>
       </div>
+
+      {/* AI Performance Digest */}
+      {aiDigest && (
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-purple-800">AI Performance Digest</h3>
+            <button onClick={() => setAiDigest(null)} className="text-purple-400 hover:text-purple-600">
+              <ChevronDown className="w-4 h-4 rotate-180" />
+            </button>
+          </div>
+          <div className="text-sm text-purple-900 whitespace-pre-wrap">{aiDigest}</div>
+        </div>
+      )}
 
       {/* ═══ Centres View (existing) ═══ */}
       {viewMode === "centres" && (

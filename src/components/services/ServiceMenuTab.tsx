@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
+import { AiButton } from "@/components/ui/AiButton";
 import {
   useMenuWeek,
   useSaveMenu,
@@ -105,6 +106,7 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
   const [cells, setCells] = useState<Record<CellKey, CellData>>({});
   const [notes, setNotes] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
 
   // Sync from server data
   useEffect(() => {
@@ -302,8 +304,45 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
             )}
             Upload Menu
           </button>
+          <AiButton
+            templateSlug="services/menu-planner"
+            variables={{
+              serviceName: "this centre",
+              existingMenus: Object.entries(cells)
+                .filter(([, v]) => v.description)
+                .map(([k, v]) => `${k}: ${v.description}`)
+                .join("; ") || "None planned yet",
+              dietaryNotes: "All food must be halal. Check for common allergens.",
+              budget: "Standard OSHC budget",
+            }}
+            onResult={(text) => setAiSuggestion(text)}
+            label="AI Menu"
+            size="sm"
+            section="services"
+          />
         </div>
       </div>
+
+      {/* AI Suggestion Panel */}
+      {aiSuggestion && (
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-medium text-purple-800">AI Menu Suggestion</h4>
+            <button
+              onClick={() => setAiSuggestion(null)}
+              className="text-purple-400 hover:text-purple-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="text-sm text-purple-900 whitespace-pre-wrap prose prose-sm max-w-none">
+            {aiSuggestion}
+          </div>
+          <p className="text-xs text-purple-500 mt-2">
+            Copy the suggestions above into the menu grid below. You can edit them as needed.
+          </p>
+        </div>
+      )}
 
       {/* Uploaded file preview */}
       {menuWeek?.fileUrl && (

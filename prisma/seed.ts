@@ -1284,6 +1284,977 @@ async function main() {
 
   console.log("Replaced accountability chart (17 seats)");
 
+  // ── Marketing Content Templates ─────────────────────────────
+  console.log("Seeding marketing templates...");
+
+  const marketingTemplates = [
+    // ── Enrolment & Open Days ──
+    {
+      name: "Enrolment Open — Term Announcement",
+      platform: "facebook" as const,
+      pillar: "Enrolment",
+      content: `Enrolments are now OPEN for Term [X], [Year]! 🎉
+
+Give your child the best after-school experience at Amana OSHC — where learning meets play in a safe, nurturing environment.
+
+✅ Homework support & tutoring
+✅ Creative arts & STEM activities
+✅ Outdoor sports & active play
+✅ Healthy halal afternoon tea
+✅ Before & after school care
+
+📍 Available at [Centre Name]
+📞 Book a tour or enrol today — link in bio!
+
+Limited spots available. Don't miss out!`,
+      notes: "Update term number, year, and centre name. Add centre-specific photo. Best posted 4-6 weeks before term starts.",
+      hashtags: "#AmanaOSHC #Enrolments #OSHC #AfterSchoolCare #BeforeSchoolCare #ChildCare #SchoolHolidays",
+    },
+    {
+      name: "Open Day Invitation",
+      platform: "facebook" as const,
+      pillar: "Enrolment",
+      content: `You're Invited! 🌟 Amana OSHC Open Day
+
+Come and see what makes Amana OSHC special! Meet our team, explore our facilities, and learn about our programs.
+
+📅 Date: [Date]
+🕐 Time: [Time]
+📍 Location: [Centre Name & Address]
+
+What to expect:
+🎨 Live activity demonstrations
+👋 Meet our qualified educators
+📋 On-the-spot enrolment assistance
+🍪 Light refreshments provided
+
+Bring the kids — we'll have fun activities running!
+
+RSVP: [Link/Phone]`,
+      notes: "Customise date, time, location. Include a warm, welcoming photo of the centre. Post 2 weeks before the event with a reminder 3 days prior.",
+      hashtags: "#AmanaOSHC #OpenDay #OSHC #ChildCare #CommunityEvent #SchoolCommunity",
+    },
+    {
+      name: "Enrolment Reminder — Spots Filling",
+      platform: "instagram" as const,
+      pillar: "Enrolment",
+      content: `⏰ Last chance! Spots are filling fast for Term [X] at [Centre Name].
+
+Don't wait — secure your child's place at Amana OSHC today.
+
+We offer:
+🌟 A safe, faith-aligned environment
+📚 Homework help & learning support
+🏃 Active play & outdoor adventures
+🎭 Creative arts & cultural programs
+
+Enrol now 👉 Link in bio
+
+#AmanaOSHC #OSHC #EnrolNow #LastChance #AfterSchoolCare`,
+      notes: "Use urgency-driven language. Best as a carousel with 3-4 activity photos. Post when 70%+ capacity reached.",
+      hashtags: "#AmanaOSHC #OSHC #EnrolNow #LastChance #AfterSchoolCare #ChildCare",
+    },
+
+    // ── Holiday Programs ──
+    {
+      name: "Holiday Program Launch",
+      platform: "facebook" as const,
+      pillar: "Holiday Program",
+      content: `🎉 School Holiday Program is HERE!
+
+Amana OSHC has an incredible lineup of activities planned for the [Season] school holidays!
+
+Week 1: [Theme — e.g. "Science Explorers"]
+Week 2: [Theme — e.g. "Creative Arts Festival"]
+
+Daily highlights include:
+🔬 STEM experiments & workshops
+🎨 Arts, crafts & cooking
+🏊 Excursions & incursions
+🤸 Sports, games & outdoor fun
+🍽️ Healthy halal meals & snacks included
+
+📅 [Start Date] — [End Date]
+📍 [Centre Name]
+💰 CCS approved — affordable care for families
+
+Book now before spots fill up!
+👉 [Booking Link]`,
+      notes: "Customise themes per holiday period. Include a fun, colourful graphic or video montage of past holidays. Post 3-4 weeks before holidays begin.",
+      hashtags: "#AmanaOSHC #SchoolHolidays #HolidayProgram #KidsActivities #OSHC #FunForKids #HalalChildCare",
+    },
+    {
+      name: "Holiday Program Daily Recap",
+      platform: "instagram" as const,
+      pillar: "Holiday Program",
+      content: `What a day at Amana OSHC! 🌟
+
+Today our kids enjoyed [activity description — e.g. "building volcanoes in our Science Lab day!"] 🌋
+
+The smiles say it all! 😊
+
+Still spots available for the rest of the holidays — DM us or visit the link in bio to book.
+
+#AmanaOSHC #HolidayFun #KidsActivities #OSHC #HolidayProgram`,
+      notes: "Post daily during holiday program with real photos (ensure photo consent). Keep it authentic and fun. Use Stories for behind-the-scenes.",
+      hashtags: "#AmanaOSHC #HolidayFun #KidsActivities #OSHC #HolidayProgram #SchoolHolidays",
+    },
+
+    // ── Community Engagement ──
+    {
+      name: "Community Event Announcement",
+      platform: "facebook" as const,
+      pillar: "Community",
+      content: `🤝 Community Event at Amana OSHC!
+
+We're hosting a [Event Name — e.g. "Family Fun Day / Cultural Celebration / Charity Drive"] and we'd love you to join us!
+
+📅 [Date]
+🕐 [Time]
+📍 [Location]
+
+There will be:
+🎪 [Activity 1]
+🎭 [Activity 2]
+🍽️ [Activity 3 — e.g. food, stalls]
+🎁 [Activity 4 — e.g. prizes, giveaways]
+
+This event is open to all families — current and new! Bring your friends and neighbours. 💛
+
+Free entry. See you there!`,
+      notes: "Great for building local school community connections. Include event flyer as image. Share in local community groups where appropriate.",
+      hashtags: "#AmanaOSHC #CommunityEvent #FamilyFun #OSHC #LocalCommunity #SchoolCommunity",
+    },
+    {
+      name: "Thank You — Community Support",
+      platform: "facebook" as const,
+      pillar: "Community",
+      content: `A huge THANK YOU to everyone who came to our [Event Name]! 🙏💛
+
+We had an incredible turnout and it was wonderful seeing our Amana community come together.
+
+Special thanks to:
+⭐ [Sponsor/Partner 1]
+⭐ [Sponsor/Partner 2]
+⭐ Our amazing team of educators and volunteers
+
+[X] families joined us and we raised $[Amount] for [Cause] — you're all incredible!
+
+Stay tuned for more community events coming soon. 🌟`,
+      notes: "Post within 24-48 hours of event. Include a photo collage or short video. Tag sponsors/partners.",
+      hashtags: "#AmanaOSHC #ThankYou #Community #OSHC #Grateful #SchoolCommunity",
+    },
+
+    // ── Parent Engagement ──
+    {
+      name: "Parent Testimonial Feature",
+      platform: "instagram" as const,
+      pillar: "Social Proof",
+      content: `"[Parent quote — e.g. 'My kids love going to Amana! The educators are amazing and I know they're in safe hands every day.']"
+
+— [Parent First Name], [Centre Name] Parent ⭐
+
+We love hearing from our Amana families! Your trust means the world to us. 💛
+
+If you'd like to share your experience, send us a DM — we'd love to feature you!
+
+#AmanaOSHC #ParentReview #Testimonial #OSHC #HappyFamilies #ChildCare`,
+      notes: "Must have written parent consent before posting. Use a warm photo (with consent) or branded quote card. Rotate centres for representation.",
+      hashtags: "#AmanaOSHC #ParentReview #Testimonial #OSHC #HappyFamilies #ChildCare #TrustedCare",
+    },
+    {
+      name: "Tips for Parents — Homework Help",
+      platform: "facebook" as const,
+      pillar: "Education",
+      content: `📚 5 Tips to Make Homework Less Stressful
+
+Struggling with the after-school homework battle? Here are our educator-approved tips:
+
+1️⃣ Create a dedicated homework space — quiet, well-lit, and distraction-free
+2️⃣ Set a consistent routine — same time each day builds habit
+3️⃣ Break it into chunks — 20 minutes on, 5 minutes break
+4️⃣ Celebrate effort, not just results — praise the process
+5️⃣ Ask about their day first — connection before correction ❤️
+
+At Amana OSHC, homework support is built into our daily program. Our educators help children develop good study habits in a supportive environment.
+
+👉 Learn more about our programs: [Link]`,
+      notes: "Position Amana as an educational partner. Shareable content that builds trust. Can be adapted into a carousel for Instagram.",
+      hashtags: "#AmanaOSHC #HomeworkHelp #ParentingTips #OSHC #Education #StudyTips #AfterSchoolCare",
+    },
+
+    // ── Staff & Culture ──
+    {
+      name: "Educator Spotlight",
+      platform: "instagram" as const,
+      pillar: "Team",
+      content: `Meet [Name], one of our amazing educators at [Centre Name]! 🌟
+
+[Name] has been with Amana OSHC for [X] years and is passionate about [interest — e.g. "creative arts and helping kids build confidence through drama"].
+
+🎓 Qualifications: [e.g. Diploma of School Age Education and Care]
+💛 Favourite activity to run: [e.g. "Our Friday cooking club!"]
+✨ Fun fact: [e.g. "She can solve a Rubik's cube in under 2 minutes!"]
+
+We're so lucky to have you on the team, [Name]! 👏
+
+#AmanaOSHC #MeetTheTeam #OSHC #Educators #ChildCare`,
+      notes: "Get educator's written consent and approval on the post. Use a professional but warm photo. Rotate across centres monthly.",
+      hashtags: "#AmanaOSHC #MeetTheTeam #OSHC #Educators #ChildCare #TeamSpotlight #WeAreAmana",
+    },
+    {
+      name: "We're Hiring",
+      platform: "linkedin" as const,
+      pillar: "Recruitment",
+      content: `We're Growing! 🚀 Join the Amana OSHC Team
+
+Amana OSHC is looking for passionate [Role — e.g. "OSHC Educators / Coordinators"] to join our team in [State/Location].
+
+What we offer:
+✅ Competitive pay + above-award conditions
+✅ Professional development & training
+✅ A supportive, values-driven workplace
+✅ Career progression opportunities
+✅ Making a real difference in children's lives
+
+Requirements:
+📋 Working with Children Check
+📋 First Aid & CPR (or willingness to obtain)
+📋 [Qualification — e.g. "Cert III / Diploma in relevant field"]
+📋 Passion for working with school-age children
+
+Apply now: [Link]
+Or email your CV to [Email]
+
+#Hiring #AmanaOSHC #OSHC #ChildCareJobs #EducatorJobs`,
+      notes: "LinkedIn is best for recruitment. Cross-post to Facebook/Instagram with adjusted tone. Update role, location, and requirements per vacancy.",
+      hashtags: "#Hiring #AmanaOSHC #OSHC #ChildCareJobs #EducatorJobs #JoinOurTeam #CareersinChildCare",
+    },
+
+    // ── Awareness Days & Cultural ──
+    {
+      name: "Harmony Day Celebration",
+      platform: "facebook" as const,
+      pillar: "Cultural",
+      content: `🧡 Happy Harmony Day!
+
+Today we celebrate the wonderful diversity of our Amana community! At Amana OSHC, we believe every child belongs, no matter their background, culture, or faith.
+
+Our kids celebrated with:
+🌍 Cultural dress-up day
+🎨 Art from around the world
+🍲 Sharing cultural foods
+📖 Stories and songs from different cultures
+
+"Everyone belongs" — and that's what makes Amana OSHC special. 💛
+
+#HarmonyDay #EveryoneBelongs #AmanaOSHC #OSHC #Diversity #Inclusion`,
+      notes: "Post on March 21st (Harmony Day). Prepare content in advance. Ensure photos represent the diversity of your centre. Works for NAIDOC Week and other awareness days with adapted messaging.",
+      hashtags: "#HarmonyDay #EveryoneBelongs #AmanaOSHC #OSHC #Diversity #Inclusion #CulturalDiversity",
+    },
+    {
+      name: "Ramadan & Eid Greetings",
+      platform: "facebook" as const,
+      pillar: "Cultural",
+      content: `🌙 [Ramadan Mubarak / Eid Mubarak] from the Amana OSHC family!
+
+Wishing all our families a blessed [Ramadan / Eid]. May this special time bring peace, joy, and togetherness to your homes. 💛
+
+At Amana OSHC, we embrace and celebrate the values of compassion, generosity, and community — not just during [Ramadan/Eid], but every day.
+
+[For Ramadan: "Our programs during Ramadan are thoughtfully designed to be inclusive and supportive of fasting families."]
+[For Eid: "We hope you enjoy this celebration with family and loved ones!"]
+
+🤲 [Ramadan Kareem / Eid Mubarak]`,
+      notes: "Use a beautifully designed branded graphic. Post at the start of Ramadan and on Eid day. Reflects Amana's faith-aligned values — key differentiator.",
+      hashtags: "#AmanaOSHC #RamadanMubarak #EidMubarak #OSHC #IslamicValues #Community #Blessed",
+    },
+
+    // ── Educational & Activities ──
+    {
+      name: "Activity Highlight — STEM",
+      platform: "instagram" as const,
+      pillar: "Education",
+      content: `🔬 STEM in action at Amana OSHC!
+
+Today our young scientists explored [activity — e.g. "the magic of chemical reactions by building baking soda volcanoes!"] 🌋
+
+At Amana, we believe learning should be hands-on, exciting, and FUN! Our STEM program encourages curiosity, problem-solving, and teamwork.
+
+Want your child to be part of the action? Enrol today — link in bio! 👆
+
+#AmanaOSHC #STEM #Science #KidsActivities #OSHC #LearningThroughPlay`,
+      notes: "Use real activity photos with parent consent. Works as Reels/short video format. Post weekly to showcase different program elements.",
+      hashtags: "#AmanaOSHC #STEM #Science #KidsActivities #OSHC #LearningThroughPlay #Education",
+    },
+    {
+      name: "Weekly Program Teaser",
+      platform: "facebook" as const,
+      pillar: "Education",
+      content: `📋 What's happening this week at [Centre Name]?
+
+Here's a sneak peek at our program for [Date Range]:
+
+🎨 Monday: [Activity — e.g. "Watercolour painting"]
+🏃 Tuesday: [Activity — e.g. "Obstacle course challenge"]
+🔬 Wednesday: [Activity — e.g. "Science experiments"]
+🎭 Thursday: [Activity — e.g. "Drama & role play"]
+🎶 Friday: [Activity — e.g. "Music & movement + cooking club"]
+
+Plus daily homework support, outdoor play, and healthy halal afternoon tea! 🍎
+
+See the full program: [Link]`,
+      notes: "Post every Sunday or Monday morning. Include the actual program image/PDF. Helps parents feel informed and builds engagement.",
+      hashtags: "#AmanaOSHC #WeeklyProgram #OSHC #KidsActivities #AfterSchoolCare #ChildCare",
+    },
+
+    // ── Email Templates ──
+    {
+      name: "Welcome Email — New Enrolment",
+      platform: "email" as const,
+      pillar: "Enrolment",
+      content: `Dear [Parent Name],
+
+Welcome to the Amana OSHC family! We're thrilled that [Child Name] will be joining us at [Centre Name].
+
+Here's what you need to know:
+
+GETTING STARTED
+• First day: [Date]
+• Drop-off/Pick-up times: [Times]
+• What to bring: Hat, water bottle, change of clothes, and any medication with an action plan
+
+OUR PROGRAM
+Your child will enjoy a range of activities including homework support, creative arts, sports, STEM, and more — all in a safe, faith-aligned environment.
+
+IMPORTANT CONTACTS
+• Centre Coordinator: [Name] — [Phone]
+• Emergency: [Number]
+• Email: [Centre Email]
+
+We can't wait to meet [Child Name] and make their time at Amana OSHC an incredible experience!
+
+Warm regards,
+The Amana OSHC Team`,
+      notes: "Send within 24 hours of enrolment confirmation. Personalise all bracketed fields. Attach parent handbook PDF if available.",
+      hashtags: "",
+    },
+    {
+      name: "Newsletter — Monthly Update",
+      platform: "newsletter" as const,
+      pillar: "Community",
+      content: `AMANA OSHC — [Month] [Year] Newsletter
+
+Dear Families,
+
+What a wonderful month it's been at Amana OSHC! Here's everything you need to know:
+
+📸 HIGHLIGHTS
+[2-3 sentences about key activities or achievements this month]
+
+📅 UPCOMING DATES
+• [Date]: [Event/Activity]
+• [Date]: [Event/Activity]
+• [Date]: [Event/Activity]
+
+🌟 EDUCATOR SPOTLIGHT
+[Short 2-3 sentence feature on an educator]
+
+📋 REMINDERS
+• [Reminder 1 — e.g. "Please label all belongings"]
+• [Reminder 2 — e.g. "Holiday program bookings open next week"]
+• [Reminder 3 — e.g. "Updated medical forms due by [Date]"]
+
+💬 PARENT FEEDBACK
+We love hearing from you! If you have any suggestions or feedback, please speak with our coordinator or email us at [Email].
+
+Thank you for being part of the Amana community! 💛
+
+Warm regards,
+[Coordinator Name]
+[Centre Name]`,
+      notes: "Send first week of each month. Include 2-3 photos from the month. Can be sent via Mailchimp/email platform or printed for noticeboards.",
+      hashtags: "",
+    },
+
+    // ── Flyer Templates ──
+    {
+      name: "Enrolment Flyer — School Letterbox Drop",
+      platform: "flyer" as const,
+      pillar: "Enrolment",
+      content: `AMANA OSHC — NOW ENROLLING!
+
+Before & After School Care | School Holiday Programs
+
+✅ Qualified & caring educators
+✅ Homework support & tutoring
+✅ Creative arts, STEM & sports
+✅ Healthy halal meals included
+✅ CCS approved — affordable care
+
+ABOUT US
+Amana OSHC provides high-quality Out of School Hours Care in a safe, nurturing, and faith-aligned environment. We're committed to helping every child learn, grow, and thrive.
+
+OUR PROGRAMS
+• Before School Care: [Time]
+• After School Care: [Time]
+• School Holiday Program: Full day care during all school holidays
+
+📍 [Centre Name & Address]
+📞 [Phone Number]
+📧 [Email]
+🌐 [Website]
+
+BOOK A TOUR TODAY!
+
+"Where every child belongs" 💛`,
+      notes: "Design as A5 double-sided flyer. Include Amana branding, photos of happy kids, and a QR code linking to enrolment page. Distribute at school pick-up and local community centres.",
+      hashtags: "",
+    },
+
+    // ── Website Content ──
+    {
+      name: "Website — Centre Page Description",
+      platform: "website" as const,
+      pillar: "Enrolment",
+      content: `[Centre Name] — Amana OSHC
+
+Welcome to [Centre Name], part of the Amana OSHC family. Located at [Address], we provide before school care, after school care, and school holiday programs for children in [School Name] and surrounding schools.
+
+OUR APPROACH
+At [Centre Name], we create a safe, inclusive, and stimulating environment where children can learn, play, and grow. Our programs are guided by the My Time, Our Place framework and enriched with Amana's core values of faith, safety, growth, health, and community.
+
+WHAT WE OFFER
+• Before School Care ([Time] — [Time])
+• After School Care ([Time] — [Time])
+• School Holiday Programs
+• Homework support & tutoring
+• STEM, arts, cooking & cultural activities
+• Outdoor sports & active play
+• Healthy halal afternoon tea daily
+
+OUR TEAM
+Our qualified educators are passionate about children's wellbeing and development. All staff hold current Working with Children Checks, First Aid, and relevant qualifications.
+
+ENROL TODAY
+Spaces are limited. Contact us to book a tour or enrol your child.
+
+Phone: [Number]
+Email: [Email]`,
+      notes: "Customise for each centre. Include professional photos of the centre, activities, and team. SEO keywords: OSHC, before school care, after school care, [suburb name].",
+      hashtags: "",
+    },
+
+    // ── Social Proof & Reviews ──
+    {
+      name: "Google Review Request",
+      platform: "email" as const,
+      pillar: "Social Proof",
+      content: `Dear [Parent Name],
+
+We hope [Child Name] is loving their time at Amana OSHC! 🌟
+
+Your feedback means the world to us. If you've had a positive experience, we'd be so grateful if you could take a moment to leave us a Google review.
+
+It only takes 30 seconds and helps other families discover Amana OSHC:
+👉 [Google Review Link]
+
+Thank you for being part of our community! 💛
+
+Warm regards,
+The [Centre Name] Team`,
+      notes: "Send to families after 4-6 weeks of enrolment. Include direct Google review link. Track review count monthly as a KPI.",
+      hashtags: "",
+    },
+
+    // ── Seasonal / Recurring ──
+    {
+      name: "Back to School — Term Start",
+      platform: "facebook" as const,
+      pillar: "Education",
+      content: `📚 Welcome back! Term [X] starts [Date]!
+
+We're so excited to see everyone back at Amana OSHC! Our team has been busy planning an amazing term filled with new activities, learning adventures, and lots of fun.
+
+What's new this term:
+🆕 [New program/activity 1]
+🆕 [New program/activity 2]
+🆕 [New program/activity 3]
+
+Important reminders:
+📋 Updated medical/emergency forms needed
+🎒 Please label all belongings
+☀️ Sun-safe hats required for outdoor play
+
+Let's make Term [X] the best one yet! 🎉
+
+See you tomorrow! 💛`,
+      notes: "Post the day before or morning of first day of term. Include a bright, welcoming graphic or team photo. Pin to top of Facebook page for first week.",
+      hashtags: "#AmanaOSHC #BackToSchool #Term #OSHC #AfterSchoolCare #NewTerm #WelcomeBack",
+    },
+    {
+      name: "End of Year Thank You",
+      platform: "facebook" as const,
+      pillar: "Community",
+      content: `🎄 What an incredible year at Amana OSHC!
+
+As [Year] comes to a close, we want to say a huge THANK YOU to:
+
+💛 Our amazing families — for trusting us with your children
+💛 Our dedicated educators — for their passion and care every single day
+💛 Our school partners — for their ongoing collaboration and support
+💛 Our children — for filling our centres with laughter, creativity, and joy
+
+[Year] highlights:
+🌟 [Achievement 1 — e.g. "Expanded to 3 new centres"]
+🌟 [Achievement 2 — e.g. "Launched our STEM program"]
+🌟 [Achievement 3 — e.g. "Hosted 12 community events"]
+
+We can't wait for an even bigger [Year+1]! 🚀
+
+Wishing you all a safe and happy holiday season. See you next year!
+
+With gratitude,
+The Amana OSHC Team 💛`,
+      notes: "Post in the last week of Term 4. Include a year-in-review video or photo collage if possible. Heartfelt and authentic tone.",
+      hashtags: "#AmanaOSHC #ThankYou #EndOfYear #OSHC #Grateful #YearInReview #HappyHolidays",
+    },
+  ];
+
+  // Upsert marketing templates (skip if name already exists)
+  for (const tpl of marketingTemplates) {
+    await prisma.marketingTemplate.upsert({
+      where: {
+        id: (
+          await prisma.marketingTemplate.findFirst({
+            where: { name: tpl.name, deleted: false },
+            select: { id: true },
+          })
+        )?.id ?? "___none___",
+      },
+      update: {},
+      create: {
+        name: tpl.name,
+        platform: tpl.platform,
+        pillar: tpl.pillar || null,
+        content: tpl.content,
+        notes: tpl.notes || null,
+        hashtags: tpl.hashtags || null,
+      },
+    });
+  }
+  console.log(`Seeded ${marketingTemplates.length} marketing templates`);
+
+  // ── AI Prompt Templates ──────────────────────────────────────
+  const aiTemplates = [
+    {
+      slug: "enquiries/follow-up-email",
+      name: "Enquiry Follow-Up Email",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 1024,
+      variables: JSON.stringify(["parentName", "childName", "sessionInterest", "serviceName", "conversationNotes", "serviceDetails"]),
+      promptTemplate: `Write a warm, personalised follow-up email from Amana OSHC to a parent who enquired about our service.
+
+Parent name: {{parentName}}
+Child name: {{childName}}
+Session interest: {{sessionInterest}}
+Service/Centre: {{serviceName}}
+Conversation notes: {{conversationNotes}}
+Service details: {{serviceDetails}}
+
+The email should:
+- Thank them for their enquiry
+- Reference specific details from the conversation
+- Highlight relevant service features (programs, facilities, staff qualifications)
+- Include a clear call-to-action (book a tour, register online, call back)
+- Sign off warmly on behalf of the centre team
+- Keep it under 200 words
+- Use a professional but friendly tone suitable for parents`,
+    },
+    {
+      slug: "marketing/post-writer",
+      name: "Social Media Post Writer",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 512,
+      variables: JSON.stringify(["platform", "pillar", "topic", "serviceName", "campaignContext"]),
+      promptTemplate: `Write a social media post for Amana OSHC.
+
+Platform: {{platform}}
+Content pillar: {{pillar}}
+Topic: {{topic}}
+Centre: {{serviceName}}
+Campaign context: {{campaignContext}}
+
+Guidelines:
+- Match the platform's tone and format (Instagram: visual storytelling with emojis, Facebook: community engagement, LinkedIn: professional/educational)
+- Include 2-3 relevant hashtags
+- Keep within platform character limits
+- Highlight what makes Amana OSHC special (quality care, qualified educators, engaging programs)
+- Include a call-to-action where appropriate
+- Do NOT include image descriptions or placeholder text for images`,
+    },
+    {
+      slug: "services/menu-planner",
+      name: "Weekly Menu Planner",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 1500,
+      variables: JSON.stringify(["serviceName", "existingMenus", "dietaryNotes", "budget"]),
+      promptTemplate: `Generate a weekly OSHC menu plan (Monday–Friday) for Amana OSHC.
+
+Centre: {{serviceName}}
+Recent menus to avoid repeating: {{existingMenus}}
+Dietary notes: {{dietaryNotes}}
+Budget guidance: {{budget}}
+
+For each day, provide:
+- Morning tea (light snack + drink)
+- Lunch (main meal)
+- Afternoon tea (snack + drink)
+
+Requirements:
+- All food must be halal
+- Include a mix of cultural cuisines (Middle Eastern, Australian, Asian, Mediterranean)
+- Balance nutrition: protein, vegetables, grains, fruit
+- Use seasonal Australian produce
+- Keep meals practical for OSHC kitchen preparation (no complex cooking)
+- Flag common allergens (nuts, dairy, gluten, eggs) next to each item
+
+Format as a markdown table with columns: Day | Morning Tea | Lunch | Afternoon Tea`,
+    },
+    {
+      slug: "services/activity-suggester",
+      name: "Program Activity Suggester",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 1024,
+      variables: JSON.stringify(["serviceName", "weekTheme", "ageGroup", "category", "existingActivities", "learningOutcomes"]),
+      promptTemplate: `Suggest 3 engaging OSHC program activities for Amana OSHC.
+
+Centre: {{serviceName}}
+Week theme: {{weekTheme}}
+Age group: {{ageGroup}}
+Activity category: {{category}}
+Already planned this week: {{existingActivities}}
+Target learning outcomes (MTOP/NQS): {{learningOutcomes}}
+
+For each activity, provide:
+- **Name**: Creative, engaging title
+- **Description**: 2-3 sentences explaining the activity
+- **Materials needed**: Bullet list
+- **Duration**: Estimated time
+- **Learning outcomes**: Which MTOP/NQS outcomes it addresses
+- **Differentiation**: How to adapt for younger/older children
+
+Activities should be practical for an OSHC setting (limited space, mixed ages, minimal prep).`,
+    },
+    {
+      slug: "todos/from-meeting-notes",
+      name: "Extract Todos from Meeting Notes",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 1024,
+      variables: JSON.stringify(["meetingNotes", "attendees"]),
+      promptTemplate: `Extract action items from these meeting notes and format them as a structured todo list.
+
+Meeting notes:
+{{meetingNotes}}
+
+Attendees: {{attendees}}
+
+For each action item, extract:
+- **title**: Clear, actionable description (start with a verb)
+- **assignee**: Best-matched attendee name (or "Unassigned" if unclear)
+- **priority**: high, medium, or low
+
+Format your response as a JSON array:
+[{ "title": "...", "assignee": "...", "priority": "..." }]
+
+Rules:
+- Only extract genuine action items (not discussion points or FYIs)
+- Make titles specific and actionable
+- Default to 7-day due date (don't include dates in output)
+- If an item mentions a specific person, assign to them
+- Maximum 15 items`,
+    },
+    {
+      slug: "compliance/risk-report",
+      name: "Compliance Risk Report",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 1500,
+      variables: JSON.stringify(["expiringCerts", "overdueAudits", "qualificationGaps", "servicesData"]),
+      promptTemplate: `Generate a weekly compliance risk report for Amana OSHC management.
+
+Expiring certificates (next 90 days):
+{{expiringCerts}}
+
+Overdue audits:
+{{overdueAudits}}
+
+Qualification ratio gaps:
+{{qualificationGaps}}
+
+Services overview:
+{{servicesData}}
+
+Structure the report as:
+1. **Risk Summary** — 2-3 sentence executive overview with severity (Critical/High/Medium/Low)
+2. **Immediate Actions Required** — items expiring in <14 days
+3. **Upcoming Renewals** — 14-90 day window, grouped by certificate type
+4. **Audit Status** — overdue and upcoming audits
+5. **Qualification Ratios** — any centres below required thresholds
+6. **Recommendations** — 3-5 actionable next steps
+
+Use markdown formatting. Flag critical items with bold.`,
+    },
+    {
+      slug: "financials/commentary",
+      name: "Financial Commentary Generator",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 1024,
+      variables: JSON.stringify(["period", "totalRevenue", "totalCosts", "margin", "centreBreakdown", "priorPeriod"]),
+      promptTemplate: `Write a financial commentary for Amana OSHC.
+
+Period: {{period}}
+Total Revenue: {{totalRevenue}}
+Total Costs: {{totalCosts}}
+Margin: {{margin}}
+Centre breakdown: {{centreBreakdown}}
+Prior period comparison: {{priorPeriod}}
+
+Write 3-4 paragraphs covering:
+1. **Performance overview** — headline revenue/margin figures and trend direction
+2. **Centre highlights** — top and bottom performing centres, notable variances
+3. **Cost analysis** — any cost categories trending above expectations
+4. **Outlook** — forward-looking statement based on current trajectory
+
+Keep it professional, data-driven, and suitable for a leadership team review. Reference specific numbers.`,
+    },
+    {
+      slug: "performance/digest",
+      name: "Centre Performance Digest",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 1024,
+      variables: JSON.stringify(["centreScores", "topPerformers", "bottomPerformers", "trends"]),
+      promptTemplate: `Generate a performance digest for Amana OSHC centres.
+
+Centre scores: {{centreScores}}
+Top performers: {{topPerformers}}
+Bottom performers: {{bottomPerformers}}
+Trends: {{trends}}
+
+Structure as:
+1. **Overall Portfolio Health** — 2-sentence summary
+2. **Star Performers** — centres excelling and why
+3. **Attention Needed** — underperforming centres with specific pillar weaknesses
+4. **Biggest Movers** — centres that improved or declined most
+5. **Action Items** — 3-5 specific recommendations for state managers
+
+Keep it concise and actionable. Reference specific centre names and scores.`,
+    },
+    {
+      slug: "board-reports/auto-draft",
+      name: "Board Report Auto-Draft",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 2048,
+      variables: JSON.stringify(["month", "year", "financialData", "operationsData", "complianceData", "growthData", "peopleData", "rocksData"]),
+      promptTemplate: `Generate a complete monthly board report for Amana OSHC.
+
+Month: {{month}} {{year}}
+
+Financial: {{financialData}}
+Operations: {{operationsData}}
+Compliance: {{complianceData}}
+Growth/Pipeline: {{growthData}}
+People: {{peopleData}}
+Rocks: {{rocksData}}
+
+Write the complete report with these sections:
+1. **Executive Summary** (3-4 sentences)
+2. **Financial Performance** (2-3 paragraphs)
+3. **Operations & Occupancy** (2-3 paragraphs)
+4. **Compliance Status** (1-2 paragraphs)
+5. **Growth & Pipeline** (1-2 paragraphs)
+6. **People & Culture** (1-2 paragraphs)
+7. **Strategic Priorities (Rocks)** (1-2 paragraphs)
+8. **Items for Board Attention** (bullet list)
+
+Use flowing prose, not bullet points (except section 8). Vary paragraph openings. Be data-driven and cite specific numbers.`,
+    },
+    {
+      slug: "tickets/response-drafter",
+      name: "Ticket Response Drafter",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 512,
+      variables: JSON.stringify(["ticketSubject", "messageHistory", "ticketPriority", "serviceName"]),
+      promptTemplate: `Draft a professional support response for this parent/staff ticket at Amana OSHC.
+
+Subject: {{ticketSubject}}
+Priority: {{ticketPriority}}
+Centre: {{serviceName}}
+Conversation history:
+{{messageHistory}}
+
+Write a helpful, empathetic response that:
+- Acknowledges their concern
+- Provides a clear answer or next steps
+- Maintains a warm, professional tone appropriate for a childcare service
+- Keeps it concise (under 150 words)
+- Does not make promises about timelines unless explicitly stated in the history`,
+    },
+    {
+      slug: "recruitment/job-ad",
+      name: "Job Ad Generator",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 1024,
+      variables: JSON.stringify(["roleTitle", "serviceLocation", "employmentType", "qualifications", "serviceName"]),
+      promptTemplate: `Write a job advertisement for Amana OSHC.
+
+Role: {{roleTitle}}
+Centre: {{serviceName}}
+Location: {{serviceLocation}}
+Employment type: {{employmentType}}
+Required qualifications: {{qualifications}}
+
+Structure:
+1. **Engaging opening** — why work at Amana OSHC (mission-driven, growth company, supportive team)
+2. **About the role** — day-to-day responsibilities (3-5 bullet points)
+3. **About you** — qualifications and attributes we're looking for
+4. **What we offer** — benefits (above-award rates, professional development, team culture)
+5. **How to apply** — simple call-to-action
+
+Tone: Professional but warm, reflecting our values of quality care and community. Suitable for SEEK/Indeed. Include relevant Australian childcare sector terminology.`,
+    },
+    {
+      slug: "holiday-quest/day-planner",
+      name: "Vacation Care Day Planner",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 1024,
+      variables: JSON.stringify(["weekTheme", "dayOfWeek", "serviceName", "existingDays", "ageRange", "budget"]),
+      promptTemplate: `Plan a vacation care day for Amana OSHC.
+
+Week theme: {{weekTheme}}
+Day: {{dayOfWeek}}
+Centre: {{serviceName}}
+Other days already planned: {{existingDays}}
+Age range: {{ageRange}}
+Budget per child: {{budget}}
+
+Provide:
+- **Day theme**: Specific sub-theme that fits the weekly theme
+- **Morning activity** (10am-12pm): Detailed activity with materials
+- **Afternoon activity** (1pm-3pm): Detailed activity with materials
+- **Excursion suggestion** (optional): If suitable, suggest an excursion with venue, estimated cost, and transport needs
+- **Dietary considerations**: Suggested lunch theme to match the day
+- **Materials list**: Everything needed for the day
+- **Risk considerations**: Any safety notes for the planned activities
+
+Make it exciting and age-appropriate. Avoid repeating activities from other planned days.`,
+    },
+    {
+      slug: "meetings/l10-prep",
+      name: "L10 Meeting Prep Agent",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 1500,
+      variables: JSON.stringify(["overdueTodos", "offTrackRocks", "scorecardMisses", "openIssues", "recentUpdates"]),
+      promptTemplate: `Generate an L10 meeting pre-read document for Amana OSHC leadership.
+
+Overdue todos:
+{{overdueTodos}}
+
+Off-track rocks:
+{{offTrackRocks}}
+
+Scorecard misses (below goal):
+{{scorecardMisses}}
+
+Top open issues:
+{{openIssues}}
+
+Recent updates:
+{{recentUpdates}}
+
+Structure the pre-read as:
+1. **Scorecard Flash** — quick summary of what's on/off track
+2. **Rock Review** — status of each rock with recommended discussion points
+3. **To-Do Review** — overdue items that need follow-up
+4. **Issues to IDS** — prioritised list of issues for Identify-Discuss-Solve
+5. **Wins & Headlines** — any positive news or milestones
+
+Keep it scannable with bullet points. This should take <5 minutes to read.`,
+    },
+    {
+      slug: "scorecard/narrative",
+      name: "Scorecard Narrative Generator",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 512,
+      variables: JSON.stringify(["measurables", "weekNumber", "trends"]),
+      promptTemplate: `Generate a brief scorecard narrative summary for the Amana OSHC leadership team.
+
+Week: {{weekNumber}}
+Measurables and their status:
+{{measurables}}
+
+Trends (last 4 weeks):
+{{trends}}
+
+Write 2-3 concise paragraphs suitable for reading aloud at the start of an L10 meeting:
+- Which measurables hit their goals
+- Which missed and by how much
+- Any concerning trends (3+ weeks declining)
+- One positive callout
+
+Keep it factual and under 150 words.`,
+    },
+    {
+      slug: "queue/report-summary",
+      name: "Queue Report Summariser",
+      model: "claude-haiku-4-5-20251001",
+      maxTokens: 256,
+      variables: JSON.stringify(["reportTitle", "reportContent", "reportAlerts", "reportMetrics"]),
+      promptTemplate: `Generate a TL;DR summary (2-3 sentences) for this automation report.
+
+Title: {{reportTitle}}
+Content: {{reportContent}}
+Alerts: {{reportAlerts}}
+Metrics: {{reportMetrics}}
+
+Focus on: what happened, what needs attention, and any recommended actions. Be extremely concise.`,
+    },
+    {
+      slug: "assistant/tool-calling",
+      name: "AI Assistant System Prompt",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 2048,
+      variables: JSON.stringify(["dashboardContext"]),
+      promptTemplate: `You have access to live Amana OSHC dashboard data. Use it to answer questions accurately.
+
+Current dashboard state:
+{{dashboardContext}}
+
+Answer the user's question using this data. If the data doesn't contain what they need, say so clearly.`,
+    },
+  ];
+
+  for (const tpl of aiTemplates) {
+    await prisma.aiPromptTemplate.upsert({
+      where: { slug: tpl.slug },
+      update: {
+        name: tpl.name,
+        model: tpl.model,
+        maxTokens: tpl.maxTokens,
+        promptTemplate: tpl.promptTemplate,
+        variables: JSON.parse(tpl.variables),
+      },
+      create: {
+        slug: tpl.slug,
+        name: tpl.name,
+        model: tpl.model,
+        maxTokens: tpl.maxTokens,
+        promptTemplate: tpl.promptTemplate,
+        variables: JSON.parse(tpl.variables),
+      },
+    });
+  }
+  console.log(`Seeded ${aiTemplates.length} AI prompt templates`);
+
   console.log("\nSeed complete!");
 }
 

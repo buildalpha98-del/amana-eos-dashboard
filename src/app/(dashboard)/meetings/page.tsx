@@ -20,6 +20,7 @@ import { useServices } from "@/hooks/useServices";
 import type { ServiceSummary } from "@/hooks/useServices";
 import { cn, formatDateAU, getWeekStart, getCurrentQuarter } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { AiButton } from "@/components/ui/AiButton";
 import {
   Presentation,
   Play,
@@ -127,6 +128,7 @@ function MeetingListView({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "completed" | "cancelled">("all");
   const [visibleCount, setVisibleCount] = useState(10);
+  const [aiPrep, setAiPrep] = useState("");
 
   const activeMeeting = meetings.find((m) => m.status === "in_progress");
 
@@ -191,14 +193,44 @@ function MeetingListView({
             Run your weekly Level 10 leadership meetings
           </p>
         </div>
-        <button
-          onClick={onStartNew}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors shadow-sm"
-        >
-          <Play className="w-4 h-4" />
-          Start New Meeting
-        </button>
+        <div className="flex items-center gap-2">
+          <AiButton
+            templateSlug="meetings/l10-prep"
+            variables={{
+              lastMeetingDate: meetings.find((m) => m.status === "completed")?.date
+                ? formatDateAU(new Date(meetings.find((m) => m.status === "completed")!.date))
+                : "none",
+              lastMeetingRating: String(meetings.find((m) => m.status === "completed")?.rating ?? "N/A"),
+              openTodos: String(meetings.filter((m) => m.status === "completed").length),
+              avgRating: String(stats.avgRating ?? "N/A"),
+              streak: String(stats.streak),
+            }}
+            onResult={(text) => setAiPrep(text)}
+            label="AI Prep"
+            size="sm"
+            section="meetings"
+          />
+          <button
+            onClick={onStartNew}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors shadow-sm"
+          >
+            <Play className="w-4 h-4" />
+            Start New Meeting
+          </button>
+        </div>
       </div>
+
+      {/* AI Meeting Prep */}
+      {aiPrep && (
+        <div className="mb-6 rounded-xl border border-purple-200 bg-purple-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiPrep}</div>
+            <button onClick={() => setAiPrep("")} className="text-purple-400 hover:text-purple-600 flex-shrink-0">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Active Meeting Banner */}
       {activeMeeting && (
