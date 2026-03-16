@@ -38,6 +38,7 @@ import {
   ArrowUpDown,
   Package,
   Calendar,
+  Sprout,
 } from "lucide-react";
 
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -828,8 +829,26 @@ export default function AuditTemplatesPage() {
   const [uploadTarget, setUploadTarget] = useState<{ id: string; name: string } | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showCalendarUpload, setShowCalendarUpload] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState<{ created: number; skipped: number } | null>(null);
 
   const { data: templates = [], isLoading, error, refetch } = useAuditTemplates();
+
+  const handleSeedTemplates = async () => {
+    setSeeding(true);
+    setSeedResult(null);
+    try {
+      const res = await fetch("/api/audits/templates/seed", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Seed failed");
+      setSeedResult({ created: data.created, skipped: data.skipped });
+      refetch();
+    } catch {
+      setSeedResult({ created: -1, skipped: 0 });
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const filtered = useMemo(() => {
     let list = templates;
@@ -864,6 +883,20 @@ export default function AuditTemplatesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {templates.length === 0 && (
+            <button
+              onClick={handleSeedTemplates}
+              disabled={seeding}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-700 border border-emerald-300 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-50"
+            >
+              {seeding ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sprout className="w-4 h-4" />
+              )}
+              Seed NQS Templates
+            </button>
+          )}
           <button
             onClick={() => setShowCalendarUpload(true)}
             className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-brand/5 transition-colors"
@@ -880,6 +913,30 @@ export default function AuditTemplatesPage() {
           </button>
         </div>
       </div>
+
+      {/* Seed result banner */}
+      {seedResult && (
+        <div
+          className={cn(
+            "flex items-center justify-between px-4 py-3 rounded-lg text-sm",
+            seedResult.created === -1
+              ? "bg-red-50 text-red-700"
+              : "bg-emerald-50 text-emerald-700"
+          )}
+        >
+          <span>
+            {seedResult.created === -1
+              ? "Failed to seed templates. Make sure you are logged in as an owner."
+              : `Seeded ${seedResult.created} new template${seedResult.created !== 1 ? "s" : ""}${seedResult.skipped > 0 ? ` (${seedResult.skipped} already existed)` : ""}.`}
+          </span>
+          <button
+            onClick={() => setSeedResult(null)}
+            className="ml-4 hover:opacity-70"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
