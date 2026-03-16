@@ -12,6 +12,7 @@ import {
   Target,
   X,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface MeasurableData {
   id: string;
@@ -150,10 +151,30 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
     },
   });
 
+  // How many recent weeks to show on mobile
+  const mobileWeeks = useMemo(() => weeks.slice(0, 4), [weeks]);
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin w-6 h-6 border-2 border-brand border-t-transparent rounded-full" />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-8 w-32 rounded-lg" />
+        </div>
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-8 h-8 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-16 ml-auto" />
+              </div>
+              <div className="flex gap-2">
+                {[...Array(4)].map((_, j) => <Skeleton key={j} className="h-8 flex-1 rounded" />)}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -196,75 +217,33 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
           </button>
         </div>
       ) : (
-        /* Scorecard table */
-        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-          <table className="w-full min-w-[900px]">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="sticky left-0 z-10 bg-white px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[140px]">
-                  Owner
-                </th>
-                <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[160px]">
-                  Measurable
-                </th>
-                <th className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-[80px]">
-                  Goal
-                </th>
-                {weeks.map((week) => (
-                  <th
-                    key={week.toISOString()}
-                    className={cn(
-                      "px-1 py-3 text-center text-[10px] font-medium w-[70px]",
-                      week.getTime() === getWeekStart().getTime()
-                        ? "text-brand bg-brand/5 font-semibold"
-                        : "text-gray-400"
-                    )}
-                  >
-                    {formatWeekShort(week)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {measurables.map((m) => (
-                <tr
-                  key={m.id}
-                  className="border-b border-gray-100 hover:bg-gray-50/50"
-                >
-                  {/* Owner */}
-                  <td className="sticky left-0 z-10 bg-white px-4 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
-                        <span className="text-[10px] font-medium text-brand">
-                          {(m.owner?.name ?? "Unassigned")
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </span>
-                      </div>
-                      <span className="text-xs text-gray-700 truncate max-w-[90px]">
-                        {m.owner?.name ?? "Unassigned"}
+        <>
+          {/* Mobile: Card per measurable */}
+          <div className="sm:hidden space-y-3">
+            {measurables.map((m) => {
+              const formatVal = (val: number) => {
+                if (m.unit === "$") return `$${val.toLocaleString()}`;
+                if (m.unit === "%") return `${val}%`;
+                return val.toLocaleString();
+              };
+              return (
+                <div key={m.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[10px] font-medium text-brand">
+                        {(m.owner?.name ?? "?")
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2)}
                       </span>
                     </div>
-                  </td>
-
-                  {/* Measurable title */}
-                  <td className="px-3 py-2">
-                    <div className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
-                      {m.title}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{m.title}</p>
+                      <p className="text-xs text-gray-400">{m.owner?.name ?? "Unassigned"}</p>
                     </div>
-                    {m.description && (
-                      <div className="text-[10px] text-gray-400 truncate max-w-[150px]">
-                        {m.description}
-                      </div>
-                    )}
-                  </td>
-
-                  {/* Goal */}
-                  <td className="px-2 py-2 text-center">
-                    <div className="flex items-center justify-center gap-1">
+                    <div className="flex items-center gap-1 text-xs text-gray-600 font-medium shrink-0">
                       {m.goalDirection === "above" ? (
                         <TrendingUp className="w-3 h-3 text-emerald-500" />
                       ) : m.goalDirection === "below" ? (
@@ -272,43 +251,153 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                       ) : (
                         <Target className="w-3 h-3 text-gray-500" />
                       )}
-                      <span className="text-xs text-gray-600 font-medium">
-                        {m.unit === "$"
-                          ? `$${m.goalValue.toLocaleString()}`
-                          : m.unit === "%"
-                          ? `${m.goalValue}%`
-                          : m.goalValue.toLocaleString()}
-                      </span>
+                      {formatVal(m.goalValue)}
                     </div>
-                  </td>
+                  </div>
+                  {/* Recent 4 weeks */}
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {mobileWeeks.map((week) => {
+                      const weekKey = week.toISOString().split("T")[0];
+                      const entry = entryLookup[m.id]?.[weekKey];
+                      return (
+                        <div key={weekKey} className="text-center">
+                          <p className="text-[10px] text-gray-400 mb-1">{formatWeekShort(week)}</p>
+                          <EntryCell
+                            entry={entry}
+                            unit={m.unit}
+                            measurableId={m.id}
+                            weekOf={week.toISOString()}
+                            onSave={(value) =>
+                              createEntry.mutate({
+                                measurableId: m.id,
+                                weekOf: week.toISOString(),
+                                value,
+                              })
+                            }
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-                  {/* Week cells */}
-                  {weeks.map((week) => {
-                    const weekKey = week.toISOString().split("T")[0];
-                    const entry = entryLookup[m.id]?.[weekKey];
-
-                    return (
-                      <EntryCell
-                        key={`${m.id}-${weekKey}`}
-                        entry={entry}
-                        unit={m.unit}
-                        measurableId={m.id}
-                        weekOf={week.toISOString()}
-                        onSave={(value) =>
-                          createEntry.mutate({
-                            measurableId: m.id,
-                            weekOf: week.toISOString(),
-                            value,
-                          })
-                        }
-                      />
-                    );
-                  })}
+          {/* Desktop: Full scorecard table */}
+          <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
+            <table className="w-full min-w-[900px]">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="sticky left-0 z-10 bg-white px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[140px]">
+                    Owner
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[160px]">
+                    Measurable
+                  </th>
+                  <th className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-[80px]">
+                    Goal
+                  </th>
+                  {weeks.map((week) => (
+                    <th
+                      key={week.toISOString()}
+                      className={cn(
+                        "px-1 py-3 text-center text-[10px] font-medium w-[70px]",
+                        week.getTime() === getWeekStart().getTime()
+                          ? "text-brand bg-brand/5 font-semibold"
+                          : "text-gray-400"
+                      )}
+                    >
+                      {formatWeekShort(week)}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {measurables.map((m) => (
+                  <tr
+                    key={m.id}
+                    className="border-b border-gray-100 hover:bg-gray-50/50"
+                  >
+                    {/* Owner */}
+                    <td className="sticky left-0 z-10 bg-white px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] font-medium text-brand">
+                            {(m.owner?.name ?? "Unassigned")
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-700 truncate max-w-[90px]">
+                          {m.owner?.name ?? "Unassigned"}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Measurable title */}
+                    <td className="px-3 py-2">
+                      <div className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
+                        {m.title}
+                      </div>
+                      {m.description && (
+                        <div className="text-[10px] text-gray-400 truncate max-w-[150px]">
+                          {m.description}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Goal */}
+                    <td className="px-2 py-2 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        {m.goalDirection === "above" ? (
+                          <TrendingUp className="w-3 h-3 text-emerald-500" />
+                        ) : m.goalDirection === "below" ? (
+                          <TrendingDown className="w-3 h-3 text-blue-500" />
+                        ) : (
+                          <Target className="w-3 h-3 text-gray-500" />
+                        )}
+                        <span className="text-xs text-gray-600 font-medium">
+                          {m.unit === "$"
+                            ? `$${m.goalValue.toLocaleString()}`
+                            : m.unit === "%"
+                            ? `${m.goalValue}%`
+                            : m.goalValue.toLocaleString()}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Week cells */}
+                    {weeks.map((week) => {
+                      const weekKey = week.toISOString().split("T")[0];
+                      const entry = entryLookup[m.id]?.[weekKey];
+
+                      return (
+                        <EntryCell
+                          key={`${m.id}-${weekKey}`}
+                          entry={entry}
+                          unit={m.unit}
+                          measurableId={m.id}
+                          weekOf={week.toISOString()}
+                          onSave={(value) =>
+                            createEntry.mutate({
+                              measurableId: m.id,
+                              weekOf: week.toISOString(),
+                              value,
+                            })
+                          }
+                        />
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Add Measurable Modal */}

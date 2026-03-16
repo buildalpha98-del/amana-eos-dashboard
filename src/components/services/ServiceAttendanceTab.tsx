@@ -10,7 +10,9 @@ import {
   BarChart3,
   Info,
   FileSpreadsheet,
+  AlertTriangle,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
 import {
   useAttendance,
@@ -19,6 +21,7 @@ import {
   type AttendanceInput,
 } from "@/hooks/useAttendance";
 import { StatCard } from "@/components/ui/StatCard";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   LineChart,
   Line,
@@ -283,12 +286,37 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
 
       {/* Weekly Data Entry Grid */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-brand" />
-            Week Starting {weekDates[0].toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
-          </h3>
-          <div className="flex items-center gap-3">
+        <div className="space-y-3 mb-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-brand" />
+              <span className="hidden sm:inline">Week Starting {weekDates[0].toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
+              <span className="sm:hidden">{weekDates[0].toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span>
+            </h3>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <button
+                onClick={() => { setWeekOffset((w) => w - 1); setGridEdits({}); }}
+                className="px-2 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50"
+              >
+                ←
+              </button>
+              <button
+                onClick={() => { setWeekOffset(0); setGridEdits({}); }}
+                className="px-2 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50"
+                disabled={weekOffset === 0}
+              >
+                Today
+              </button>
+              <button
+                onClick={() => { setWeekOffset((w) => w + 1); setGridEdits({}); }}
+                className="px-2 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50"
+                disabled={weekOffset >= 0}
+              >
+                →
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowImportAttendance(true)}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50 text-gray-600"
@@ -303,38 +331,89 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                 onChange={(e) => setShowVC(e.target.checked)}
                 className="rounded border-gray-300 text-brand focus:ring-brand"
               />
-              Show Vacation Care
+              Show VC
             </label>
-            <button
-              onClick={() => { setWeekOffset((w) => w - 1); setGridEdits({}); }}
-              className="px-2 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50"
-            >
-              ← Prev
-            </button>
-            <button
-              onClick={() => { setWeekOffset(0); setGridEdits({}); }}
-              className="px-2 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50"
-              disabled={weekOffset === 0}
-            >
-              This Week
-            </button>
-            <button
-              onClick={() => { setWeekOffset((w) => w + 1); setGridEdits({}); }}
-              className="px-2 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50"
-              disabled={weekOffset >= 0}
-            >
-              Next →
-            </button>
           </div>
         </div>
 
         {loadingRecords ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 text-brand animate-spin" />
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-2 py-2">
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-8 flex-1" />
+                <Skeleton className="h-8 flex-1" />
+                <Skeleton className="h-8 flex-1 hidden sm:block" />
+                <Skeleton className="h-8 flex-1 hidden sm:block" />
+              </div>
+            ))}
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile: Card layout per day */}
+            <div className="sm:hidden space-y-3">
+              {grid.map((row) => {
+                const dateStr = formatDate(row.date);
+                const bscOver = row.bsc.capacity > 0 && row.bsc.enrolled > row.bsc.capacity;
+                const ascOver = row.asc.capacity > 0 && row.asc.enrolled > row.asc.capacity;
+                return (
+                  <div
+                    key={dateStr}
+                    className={cn(
+                      "rounded-lg border p-3 space-y-3",
+                      (bscOver || ascOver) ? "border-red-200 bg-red-50/30" : "border-gray-200"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-gray-900">{row.day}</span>
+                        <span className="text-xs text-gray-400">{formatDateLabel(row.date)}</span>
+                        {(bscOver || ascOver) && (
+                          <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                        )}
+                      </div>
+                    </div>
+                    {(["bsc", "asc"] as const).map((session) => {
+                      const overCap = row[session].capacity > 0 && row[session].enrolled > row[session].capacity;
+                      return (
+                        <div key={session} className="space-y-1.5">
+                          <span className={cn(
+                            "text-xs font-semibold uppercase tracking-wider",
+                            session === "bsc" ? "text-blue-600" : "text-purple-600"
+                          )}>
+                            {session === "bsc" ? "BSC" : "ASC"}
+                          </span>
+                          <div className="grid grid-cols-3 gap-2">
+                            {(["enrolled", "attended", "capacity"] as const).map((field) => (
+                              <div key={field}>
+                                <label className="text-[10px] text-gray-400 uppercase">{field === "attended" ? "Est." : field.slice(0, 3) + "."}</label>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={row[session][field]}
+                                  onChange={(e) =>
+                                    handleCellChange(dateStr, session, field, parseInt(e.target.value) || 0)
+                                  }
+                                  className={cn(
+                                    "w-full text-center text-sm border rounded-md px-2 py-1.5 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none",
+                                    field === "enrolled" && overCap
+                                      ? "border-red-400 bg-red-50 text-red-700 font-semibold"
+                                      : "border-gray-200"
+                                  )}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop: Full table */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
@@ -377,14 +456,25 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                 <tbody>
                   {grid.map((row) => {
                     const dateStr = formatDate(row.date);
+                    const bscOver = row.bsc.capacity > 0 && row.bsc.enrolled > row.bsc.capacity;
+                    const ascOver = row.asc.capacity > 0 && row.asc.enrolled > row.asc.capacity;
                     return (
-                      <tr key={dateStr} className="border-b border-gray-50 hover:bg-gray-50/50">
+                      <tr key={dateStr} className={cn(
+                        "border-b border-gray-50 hover:bg-gray-50/50",
+                        (bscOver || ascOver) && "bg-red-50/40"
+                      )}>
                         <td className="py-2 px-2">
-                          <div className="font-medium text-gray-900">{row.day}</div>
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium text-gray-900">{row.day}</span>
+                            {(bscOver || ascOver) && (
+                              <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
+                            )}
+                          </div>
                           <div className="text-xs text-gray-400">{formatDateLabel(row.date)}</div>
                         </td>
-                        {(["bsc", "asc"] as const).map((session) =>
-                          (["enrolled", "attended", "capacity"] as const).map((field) => (
+                        {(["bsc", "asc"] as const).map((session) => {
+                          const overCap = row[session].capacity > 0 && row[session].enrolled > row[session].capacity;
+                          return (["enrolled", "attended", "capacity"] as const).map((field) => (
                             <td
                               key={`${session}-${field}`}
                               className="py-1 px-1 text-center border-l border-gray-50"
@@ -401,11 +491,16 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                                     parseInt(e.target.value) || 0
                                   )
                                 }
-                                className="w-16 text-center text-sm border border-gray-200 rounded-md px-1 py-1 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+                                className={cn(
+                                  "w-16 text-center text-sm border rounded-md px-1 py-1 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none",
+                                  field === "enrolled" && overCap
+                                    ? "border-red-400 bg-red-50 text-red-700 font-semibold"
+                                    : "border-gray-200"
+                                )}
                               />
                             </td>
-                          ))
-                        )}
+                          ));
+                        })}
                       </tr>
                     );
                   })}

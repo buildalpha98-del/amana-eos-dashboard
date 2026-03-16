@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   ChevronDown,
   ChevronUp,
@@ -119,6 +121,7 @@ function getInitials(name: string): string {
 
 export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
   const [collapsed, setCollapsed] = useState(false);
+  const router = useRouter();
 
   const { data, isLoading } = useQuery<TodayData>({
     queryKey: ["service-today", serviceId],
@@ -129,12 +132,29 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
     },
   });
 
+  function navigateToTab(tab: string, sub?: string) {
+    const params = new URLSearchParams();
+    params.set("tab", tab);
+    if (sub) params.set("sub", sub);
+    router.push(`/services/${serviceId}?${params}`, { scroll: false });
+  }
+
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Loading today&apos;s snapshot...
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Skeleton className="w-2 h-2 rounded-full" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="rounded-lg p-4 space-y-3 bg-gray-50">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-2 w-full" />
+              <Skeleton className="h-2 w-3/4" />
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -286,8 +306,13 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                     </li>
                   ))}
                   {data.todosToday.length > 3 && (
-                    <li className="text-[10px] text-gray-400">
-                      +{data.todosToday.length - 3} more
+                    <li>
+                      <button
+                        onClick={() => navigateToTab("eos", "todos")}
+                        className="text-[10px] text-brand hover:underline font-medium"
+                      >
+                        +{data.todosToday.length - 3} more &rarr; View all
+                      </button>
                     </li>
                   )}
                 </ul>
@@ -342,8 +367,13 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                     </li>
                   ))}
                   {data.openTickets.length > 3 && (
-                    <li className="text-[10px] text-gray-400">
-                      +{data.openTickets.length - 3} more
+                    <li>
+                      <button
+                        onClick={() => navigateToTab("eos", "issues")}
+                        className="text-[10px] text-brand hover:underline font-medium"
+                      >
+                        +{data.openTickets.length - 3} more &rarr; View all
+                      </button>
                     </li>
                   )}
                 </ul>

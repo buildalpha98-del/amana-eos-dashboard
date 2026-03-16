@@ -25,6 +25,7 @@ import {
   Package,
 } from "lucide-react";
 import { StatCard } from "@/components/ui/StatCard";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   BarChart,
   Bar,
@@ -192,8 +193,14 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
           Grocery Budget Breakdown
         </h3>
         {summaryLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+          <div className="space-y-3 py-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 flex-1" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            ))}
           </div>
         ) : (
           <>
@@ -386,8 +393,17 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
 
         {/* Equipment Items List */}
         {itemsLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+          <div className="space-y-3 py-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <div className="flex-1 space-y-1">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-4 w-16" />
+              </div>
+            ))}
           </div>
         ) : !items?.length ? (
           <div className="text-center py-8">

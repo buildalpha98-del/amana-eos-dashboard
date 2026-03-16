@@ -17,6 +17,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   useAnnouncements,
   useMarkAnnouncementRead,
@@ -103,8 +104,18 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
+      <div className="space-y-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-8 h-8 rounded-full" />
+              <Skeleton className="h-4 w-36" />
+              <Skeleton className="h-3 w-16 ml-auto" />
+            </div>
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+        ))}
       </div>
     );
   }

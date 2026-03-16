@@ -13,7 +13,9 @@ import {
   X,
   Loader2,
   ImageIcon,
+  Copy,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import {
   useMenuWeek,
@@ -90,7 +92,12 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
   selectedWeek.setDate(selectedWeek.getDate() - weekOffset * 7);
   const weekKey = selectedWeek.toISOString().split("T")[0];
 
+  const prevWeek = new Date(selectedWeek);
+  prevWeek.setDate(prevWeek.getDate() - 7);
+  const prevWeekKey = prevWeek.toISOString().split("T")[0];
+
   const { data: menuWeek, isLoading } = useMenuWeek(serviceId, weekKey);
+  const { data: prevMenuWeek } = useMenuWeek(serviceId, prevWeekKey);
   const saveMutation = useSaveMenu(serviceId);
   const uploadMutation = useUploadMenuFile(serviceId);
 
@@ -194,39 +201,79 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleCopyPrevWeek = useCallback(() => {
+    if (!prevMenuWeek?.items?.length) {
+      toast({ description: "No menu data found for the previous week" });
+      return;
+    }
+    const newCells: Record<CellKey, CellData> = {};
+    DAYS.forEach((day) => {
+      SLOTS.forEach((slot) => {
+        const key = cellKey(day, slot);
+        const item = prevMenuWeek.items.find(
+          (i: MenuItemData) => i.day === day && i.slot === slot
+        );
+        newCells[key] = {
+          description: item?.description || "",
+          allergens: item?.allergens || [],
+        };
+      });
+    });
+    setCells(newCells);
+    setDirty(true);
+    toast({ description: "Menu copied from previous week" });
+  }, [prevMenuWeek]);
+
+  // Mobile day selector
+  const [mobileDay, setMobileDay] = useState<(typeof DAYS)[number]>("monday");
+
   // Active cell for allergen editor
   const [activeCell, setActiveCell] = useState<CellKey | null>(null);
 
   return (
     <div className="space-y-6">
       {/* Week Navigation */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setWeekOffset((o) => o + 1)}
-            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-sm font-semibold text-gray-900 min-w-[220px] text-center">
-            {formatWeekLabel(selectedWeek)}
-          </span>
-          <button
-            onClick={() => setWeekOffset((o) => o - 1)}
-            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-          {weekOffset !== 0 && (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setWeekOffset(0)}
-              className="text-xs text-brand hover:underline ml-2"
+              onClick={() => setWeekOffset((o) => o + 1)}
+              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
             >
-              Today
+              <ChevronLeft className="w-4 h-4" />
             </button>
-          )}
+            <span className="text-sm font-semibold text-gray-900 min-w-[140px] sm:min-w-[220px] text-center">
+              {formatWeekLabel(selectedWeek)}
+            </span>
+            <button
+              onClick={() => setWeekOffset((o) => o - 1)}
+              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            {weekOffset !== 0 && (
+              <button
+                onClick={() => setWeekOffset(0)}
+                className="text-xs text-brand hover:underline ml-2"
+              >
+                Today
+              </button>
+            )}
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={!dirty || saveMutation.isPending}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+          >
+            {saveMutation.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            Save
+          </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <input
             ref={fileInputRef}
             type="file"
@@ -234,6 +281,15 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
             onChange={handleFileUpload}
             className="hidden"
           />
+          <button
+            onClick={handleCopyPrevWeek}
+            disabled={!prevMenuWeek?.items?.length}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Copy menu from previous week"
+          >
+            <Copy className="w-3.5 h-3.5" />
+            Copy Last Week
+          </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadMutation.isPending}
@@ -245,18 +301,6 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
               <Upload className="w-3.5 h-3.5" />
             )}
             Upload Menu
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!dirty || saveMutation.isPending}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
-          >
-            {saveMutation.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Save className="w-3.5 h-3.5" />
-            )}
-            Save Menu
           </button>
         </div>
       </div>
@@ -286,109 +330,222 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
 
       {/* Menu Grid */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 text-brand animate-spin" />
+        <div className="space-y-3">
+          <div className="flex gap-2 sm:hidden">
+            {DAYS.map((_, i) => <Skeleton key={i} className="h-8 flex-1 rounded-lg" />)}
+          </div>
+          <div className="hidden sm:block space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex gap-2">
+                <Skeleton className="h-20 w-24" />
+                {DAYS.map((_, j) => <Skeleton key={j} className="h-20 flex-1 rounded-lg" />)}
+              </div>
+            ))}
+          </div>
+          <div className="sm:hidden space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="space-y-1">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-24 w-full rounded-lg" />
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-2 w-28">
-                  Meal
-                </th>
-                {DAYS.map((day) => (
-                  <th
-                    key={day}
-                    className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-2"
-                  >
-                    {DAY_LABELS[day]}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {SLOTS.map((slot) => (
-                <tr key={slot} className="border-t border-gray-100">
-                  <td className="p-2 align-top">
-                    <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
-                      {SLOT_LABELS[slot]}
-                    </span>
-                  </td>
-                  {DAYS.map((day) => {
-                    const key = cellKey(day, slot);
-                    const cell = cells[key] || { description: "", allergens: [] };
-                    const isActive = activeCell === key;
+        <>
+          {/* Mobile: Day selector + vertical meal cards */}
+          <div className="sm:hidden space-y-4">
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+              {DAYS.map((day) => (
+                <button
+                  key={day}
+                  onClick={() => setMobileDay(day)}
+                  className={cn(
+                    "flex-1 text-xs font-medium py-2 rounded-md transition-colors",
+                    mobileDay === day
+                      ? "bg-white text-brand shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  {DAY_LABELS[day]}
+                </button>
+              ))}
+            </div>
+            <div className="space-y-3">
+              {SLOTS.map((slot) => {
+                const key = cellKey(mobileDay, slot);
+                const cell = cells[key] || { description: "", allergens: [] };
+                const isActive = activeCell === key;
 
-                    return (
-                      <td key={day} className="p-1 align-top">
-                        <div
-                          className={cn(
-                            "relative rounded-lg border p-2 min-h-[80px] transition-colors",
-                            isActive
-                              ? "border-brand ring-1 ring-brand/20"
-                              : "border-gray-200 hover:border-gray-300"
-                          )}
-                        >
-                          <textarea
-                            value={cell.description}
-                            onChange={(e) =>
-                              updateCell(key, "description", e.target.value)
-                            }
-                            onFocus={() => setActiveCell(key)}
-                            onBlur={() =>
-                              setTimeout(() => setActiveCell(null), 200)
-                            }
-                            placeholder="Enter menu items..."
-                            rows={2}
-                            className="w-full text-xs text-gray-700 resize-none bg-transparent border-0 p-0 focus:outline-none focus:ring-0 placeholder:text-gray-300"
-                          />
-                          {/* Allergen chips */}
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {cell.allergens.map((a) => (
-                              <button
-                                key={a}
-                                type="button"
-                                onClick={() => toggleAllergen(key, a)}
-                                className={cn(
-                                  "px-1.5 py-0.5 text-[10px] font-medium rounded-full",
-                                  ALLERGEN_COLORS[a] || "bg-gray-100 text-gray-600"
-                                )}
-                              >
-                                {a}
-                                <X className="w-2 h-2 inline ml-0.5" />
-                              </button>
-                            ))}
-                          </div>
-                          {/* Allergen picker on focus */}
-                          {isActive && (
-                            <div className="flex flex-wrap gap-1 mt-1 pt-1 border-t border-gray-100">
-                              {ALLERGEN_OPTIONS.filter(
-                                (a) => !cell.allergens.includes(a)
-                              ).map((a) => (
+                return (
+                  <div key={slot} className="space-y-1">
+                    <label className="text-xs font-semibold text-gray-700">
+                      {SLOT_LABELS[slot]}
+                    </label>
+                    <div
+                      className={cn(
+                        "relative rounded-lg border p-3 transition-colors",
+                        isActive
+                          ? "border-brand ring-1 ring-brand/20"
+                          : "border-gray-200"
+                      )}
+                    >
+                      <textarea
+                        value={cell.description}
+                        onChange={(e) =>
+                          updateCell(key, "description", e.target.value)
+                        }
+                        onFocus={() => setActiveCell(key)}
+                        onBlur={() =>
+                          setTimeout(() => setActiveCell(null), 200)
+                        }
+                        placeholder="Enter menu items..."
+                        rows={3}
+                        className="w-full text-sm text-gray-700 resize-none bg-transparent border-0 p-0 focus:outline-none focus:ring-0 placeholder:text-gray-300"
+                      />
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {cell.allergens.map((a) => (
+                          <button
+                            key={a}
+                            type="button"
+                            onClick={() => toggleAllergen(key, a)}
+                            className={cn(
+                              "px-1.5 py-0.5 text-[10px] font-medium rounded-full",
+                              ALLERGEN_COLORS[a] || "bg-gray-100 text-gray-600"
+                            )}
+                          >
+                            {a}
+                            <X className="w-2 h-2 inline ml-0.5" />
+                          </button>
+                        ))}
+                      </div>
+                      {isActive && (
+                        <div className="flex flex-wrap gap-1 mt-1 pt-1 border-t border-gray-100">
+                          {ALLERGEN_OPTIONS.filter(
+                            (a) => !cell.allergens.includes(a)
+                          ).map((a) => (
+                            <button
+                              key={a}
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                toggleAllergen(key, a);
+                              }}
+                              className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                            >
+                              + {a}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Desktop: Full table grid */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-2 w-28">
+                    Meal
+                  </th>
+                  {DAYS.map((day) => (
+                    <th
+                      key={day}
+                      className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider p-2"
+                    >
+                      {DAY_LABELS[day]}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {SLOTS.map((slot) => (
+                  <tr key={slot} className="border-t border-gray-100">
+                    <td className="p-2 align-top">
+                      <span className="text-xs font-medium text-gray-700 whitespace-nowrap">
+                        {SLOT_LABELS[slot]}
+                      </span>
+                    </td>
+                    {DAYS.map((day) => {
+                      const key = cellKey(day, slot);
+                      const cell = cells[key] || { description: "", allergens: [] };
+                      const isActive = activeCell === key;
+
+                      return (
+                        <td key={day} className="p-1 align-top">
+                          <div
+                            className={cn(
+                              "relative rounded-lg border p-2 min-h-[80px] transition-colors",
+                              isActive
+                                ? "border-brand ring-1 ring-brand/20"
+                                : "border-gray-200 hover:border-gray-300"
+                            )}
+                          >
+                            <textarea
+                              value={cell.description}
+                              onChange={(e) =>
+                                updateCell(key, "description", e.target.value)
+                              }
+                              onFocus={() => setActiveCell(key)}
+                              onBlur={() =>
+                                setTimeout(() => setActiveCell(null), 200)
+                              }
+                              placeholder="Enter menu items..."
+                              rows={2}
+                              className="w-full text-xs text-gray-700 resize-none bg-transparent border-0 p-0 focus:outline-none focus:ring-0 placeholder:text-gray-300"
+                            />
+                            {/* Allergen chips */}
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {cell.allergens.map((a) => (
                                 <button
                                   key={a}
                                   type="button"
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    toggleAllergen(key, a);
-                                  }}
-                                  className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                  onClick={() => toggleAllergen(key, a)}
+                                  className={cn(
+                                    "px-1.5 py-0.5 text-[10px] font-medium rounded-full",
+                                    ALLERGEN_COLORS[a] || "bg-gray-100 text-gray-600"
+                                  )}
                                 >
-                                  + {a}
+                                  {a}
+                                  <X className="w-2 h-2 inline ml-0.5" />
                                 </button>
                               ))}
                             </div>
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                            {/* Allergen picker on focus */}
+                            {isActive && (
+                              <div className="flex flex-wrap gap-1 mt-1 pt-1 border-t border-gray-100">
+                                {ALLERGEN_OPTIONS.filter(
+                                  (a) => !cell.allergens.includes(a)
+                                ).map((a) => (
+                                  <button
+                                    key={a}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      toggleAllergen(key, a);
+                                    }}
+                                    className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                  >
+                                    + {a}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Notes */}

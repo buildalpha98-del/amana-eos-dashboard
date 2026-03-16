@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn, formatDateAU, getWeekStart } from "@/lib/utils";
-import { CheckSquare, Plus, X, Calendar } from "lucide-react";
+import { CheckSquare, Plus, X, Calendar, ArrowUpDown } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface TodoData {
   id: string;
@@ -37,9 +38,13 @@ function getNextStatus(current: string): string {
   return current;
 }
 
+type SortOption = "due_asc" | "due_desc" | "title" | "assignee";
+
 export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<SortOption>("due_asc");
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -107,9 +112,35 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
     },
   });
 
-  const filteredTodos = statusFilter === "all"
-    ? todos
-    : todos.filter((t) => t.status === statusFilter);
+  // Unique assignees for filter dropdown
+  const assigneeOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    todos.forEach((t) => {
+      if (t.assignee) map.set(t.assignee.id, t.assignee.name);
+    });
+    return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [todos]);
+
+  const filteredTodos = useMemo(() => {
+    let list = todos;
+    if (statusFilter !== "all") list = list.filter((t) => t.status === statusFilter);
+    if (assigneeFilter !== "all") list = list.filter((t) => t.assignee?.id === assigneeFilter);
+
+    return [...list].sort((a, b) => {
+      switch (sortBy) {
+        case "due_asc":
+          return (a.dueDate || "").localeCompare(b.dueDate || "");
+        case "due_desc":
+          return (b.dueDate || "").localeCompare(a.dueDate || "");
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "assignee":
+          return (a.assignee?.name || "").localeCompare(b.assignee?.name || "");
+        default:
+          return 0;
+      }
+    });
+  }, [todos, statusFilter, assigneeFilter, sortBy]);
 
   function handleCreate() {
     if (!formData.title || !formData.assigneeId || !formData.dueDate) return;
@@ -135,7 +166,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
           <CheckSquare className="w-4 h-4 text-brand" />
           Service To-Dos
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -143,9 +174,31 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
           >
             {statusFilters.map((f) => (
               <option key={f} value={f}>
-                {f === "all" ? "All" : statusConfig[f]?.label || f}
+                {f === "all" ? "All Statuses" : statusConfig[f]?.label || f}
               </option>
             ))}
+          </select>
+          {assigneeOptions.length > 1 && (
+            <select
+              value={assigneeFilter}
+              onChange={(e) => setAssigneeFilter(e.target.value)}
+              className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
+            >
+              <option value="all">All Assignees</option>
+              {assigneeOptions.map(([id, name]) => (
+                <option key={id} value={id}>{name}</option>
+              ))}
+            </select>
+          )}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
+          >
+            <option value="due_asc">Due Date ↑</option>
+            <option value="due_desc">Due Date ↓</option>
+            <option value="title">Title A-Z</option>
+            <option value="assignee">Assignee</option>
           </select>
           <button
             onClick={() => setShowModal(true)}
@@ -159,8 +212,16 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
 
       {/* Todo List */}
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin w-6 h-6 border-2 border-brand border-t-transparent rounded-full" />
+        <div className="space-y-1.5">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-lg">
+              <Skeleton className="w-4.5 h-4.5 rounded" />
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+          ))}
         </div>
       ) : filteredTodos.length === 0 ? (
         <div className="text-center py-8 text-sm text-gray-400">

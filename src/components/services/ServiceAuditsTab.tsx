@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   scheduled: { label: "Scheduled", color: "bg-blue-100 text-blue-700", icon: Clock },
@@ -102,8 +103,17 @@ export function ServiceAuditsTab({ serviceId }: { serviceId: string }) {
 
       {/* Audit list */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 text-brand animate-spin" />
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
+              <Skeleton className="w-10 h-10 rounded-lg" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+          ))}
         </div>
       ) : instances.length === 0 ? (
         <div className="text-center py-12 text-gray-400">

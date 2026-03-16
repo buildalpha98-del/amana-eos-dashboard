@@ -90,6 +90,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Check for duplicate service code
+  const existing = await prisma.service.findFirst({
+    where: { code: parsed.data.code },
+    select: { id: true },
+  });
+  if (existing) {
+    return NextResponse.json(
+      { error: `A service with code "${parsed.data.code}" already exists` },
+      { status: 409 }
+    );
+  }
+
   const service = await prisma.service.create({
     data: {
       name: parsed.data.name,

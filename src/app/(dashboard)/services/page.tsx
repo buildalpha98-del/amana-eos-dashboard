@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useServices, useDeleteService } from "@/hooks/useServices";
+import { useUpdateService } from "@/hooks/useServices";
 import { ServiceCard } from "@/components/services/ServiceCard";
 import { CreateServiceModal } from "@/components/services/CreateServiceModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -15,11 +16,16 @@ import {
   Plus,
   Search,
   Trash2,
+  CheckSquare,
+  Square,
+  X,
+  Loader2,
 } from "lucide-react";
 import type { ServiceSummary } from "@/hooks/useServices";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { toast } from "@/hooks/useToast";
 
 /** Swim-lane definitions — order matters for rendering */
 const swimLanes = [
@@ -53,40 +59,66 @@ const swimLanes = [
   },
 ] as const;
 
+type SortKey = "name" | "state" | "updated";
+
 export default function ServicesPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ServiceSummary | null>(null);
+  const [sortBy, setSortBy] = useState<SortKey>("name");
   const deleteService = useDeleteService();
+  const updateService = useUpdateService();
 
-  // Member/staff: redirect to their assigned service
+  // ── Bulk selection state ────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState("");
+
   const role = session?.user?.role as Role | undefined;
   const serviceId = session?.user?.serviceId as string | undefined;
   const isAdmin = hasMinRole(role, "admin");
+
+  // ── #3 Direct-to-service landing ────────────────────────
+  const shouldRedirect =
+    (role === "staff" || role === "member") && !!serviceId;
+
   useEffect(() => {
-    if ((role === "staff" || role === "member") && serviceId) {
+    if (shouldRedirect) {
       router.replace(`/services/${serviceId}`);
     }
-  }, [role, serviceId, router]);
+  }, [shouldRedirect, serviceId, router]);
 
-  // Fetch all services (no status filter — we group client-side)
+  // Fetch all services — hook must be called unconditionally (Rules of Hooks)
   const { data: services, isLoading, error, refetch } = useServices();
 
-  // Apply search filter
+  // Apply search + sort
   const filtered = useMemo(() => {
     if (!services) return [];
-    if (!search) return services;
-    const q = search.toLowerCase();
-    return services.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.code.toLowerCase().includes(q) ||
-        s.suburb?.toLowerCase().includes(q) ||
-        s.manager?.name.toLowerCase().includes(q)
-    );
-  }, [services, search]);
+    let list = services;
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.code.toLowerCase().includes(q) ||
+          s.suburb?.toLowerCase().includes(q) ||
+          s.state?.toLowerCase().includes(q) ||
+          s.manager?.name.toLowerCase().includes(q)
+      );
+    }
+    // Sort
+    return [...list].sort((a, b) => {
+      if (sortBy === "name") return a.name.localeCompare(b.name);
+      if (sortBy === "state")
+        return (a.state || "").localeCompare(b.state || "");
+      if (sortBy === "updated")
+        return (
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+      return 0;
+    });
+  }, [services, search, sortBy]);
 
   // Group filtered services into swim lanes
   const grouped = useMemo(() => {
@@ -103,6 +135,76 @@ export default function ServicesPage() {
   }, [filtered]);
 
   const totalCount = services?.length || 0;
+
+  // Show loader while session loads or while redirecting
+  if (sessionStatus === "loading" || shouldRedirect) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-brand animate-spin" />
+      </div>
+    );
+  }
+
+  // ── Bulk actions ────────────────────────────────────────
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((s) => s.id)));
+    }
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+    setBulkAction("");
+  }
+
+  async function executeBulkAction() {
+    if (!bulkAction || selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    try {
+      if (bulkAction === "delete") {
+        for (const id of ids) {
+          await deleteService.mutateAsync(id);
+        }
+        toast({
+          description: `Deleted ${ids.length} centre${ids.length !== 1 ? "s" : ""}.`,
+        });
+      } else {
+        // Status change
+        for (const id of ids) {
+          await updateService.mutateAsync({ id, status: bulkAction });
+        }
+        const label =
+          bulkAction === "active"
+            ? "Active"
+            : bulkAction === "onboarding"
+            ? "Onboarding"
+            : bulkAction === "pipeline"
+            ? "Pipeline"
+            : bulkAction === "closed"
+            ? "Closed"
+            : bulkAction;
+        toast({
+          description: `Updated ${ids.length} centre${ids.length !== 1 ? "s" : ""} to ${label}.`,
+        });
+      }
+      clearSelection();
+    } catch (err) {
+      toast({ description: "Bulk action failed. Please try again." });
+    }
+  }
+
+  const isBulkMode = selectedIds.size > 0;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -128,11 +230,15 @@ export default function ServicesPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {swimLanes.map((lane) => (
-          <StatCard key={lane.key} title={lane.label} value={grouped.get(lane.key)?.length || 0} />
+          <StatCard
+            key={lane.key}
+            title={lane.label}
+            value={grouped.get(lane.key)?.length || 0}
+          />
         ))}
       </div>
 
-      {/* Search */}
+      {/* Search + Sort */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -144,10 +250,77 @@ export default function ServicesPage() {
             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
-        <p className="text-sm text-gray-400">
+        <div className="flex items-center gap-3">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortKey)}
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30"
+          >
+            <option value="name">Sort: Name</option>
+            <option value="state">Sort: State</option>
+            <option value="updated">Sort: Recently Updated</option>
+          </select>
+          {isAdmin && (
+            <button
+              onClick={selectAll}
+              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 px-2 py-1"
+              title={
+                selectedIds.size === filtered.length
+                  ? "Deselect all"
+                  : "Select all"
+              }
+            >
+              {selectedIds.size === filtered.length && filtered.length > 0 ? (
+                <CheckSquare className="w-4 h-4 text-brand" />
+              ) : (
+                <Square className="w-4 h-4" />
+              )}
+              Select
+            </button>
+          )}
+        </div>
+        <p className="text-sm text-gray-400 sm:ml-auto">
           {filtered.length} of {totalCount} centres
         </p>
       </div>
+
+      {/* ── Bulk Action Bar ────────────────────────────────── */}
+      {isBulkMode && isAdmin && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-brand/5 border border-brand/20 rounded-xl">
+          <span className="text-sm font-medium text-brand">
+            {selectedIds.size} selected
+          </span>
+          <select
+            value={bulkAction}
+            onChange={(e) => setBulkAction(e.target.value)}
+            className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand/30"
+          >
+            <option value="">Choose action...</option>
+            <option value="active">Set Active</option>
+            <option value="onboarding">Set Onboarding</option>
+            <option value="pipeline">Set Pipeline</option>
+            <option value="closed">Set Closed</option>
+            <option value="delete">Delete</option>
+          </select>
+          <button
+            onClick={executeBulkAction}
+            disabled={!bulkAction || updateService.isPending || deleteService.isPending}
+            className="px-3 py-1.5 text-sm font-medium bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50 transition-colors"
+          >
+            {updateService.isPending || deleteService.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              "Apply"
+            )}
+          </button>
+          <button
+            onClick={clearSelection}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Error State */}
       {error && (
@@ -162,7 +335,10 @@ export default function ServicesPage() {
       {error ? null : isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            <div
+              key={i}
+              className="bg-white rounded-xl border border-gray-200 p-4 space-y-3"
+            >
               <Skeleton className="h-5 w-3/4" />
               <Skeleton className="h-3 w-1/2" />
               <Skeleton className="h-3 w-full" />
@@ -177,17 +353,23 @@ export default function ServicesPage() {
         <EmptyState
           icon={Building2}
           title="No service centres found"
-          description={search ? "Try adjusting your search" : "Add your first OSHC centre to get started"}
+          description={
+            search
+              ? "Try adjusting your search"
+              : "Add your first OSHC centre to get started"
+          }
           variant="inline"
           {...(!search && {
-            action: { label: "Add Centre", onClick: () => setShowCreate(true) },
+            action: {
+              label: "Add Centre",
+              onClick: () => setShowCreate(true),
+            },
           })}
         />
       ) : (
         <div className="space-y-8">
           {swimLanes.map((lane) => {
             const items = grouped.get(lane.key) || [];
-            // Always render the lane header even if empty (shows 0 count)
             return (
               <section key={lane.key}>
                 {/* Lane header */}
@@ -212,33 +394,99 @@ export default function ServicesPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                    {items.map((service) => (
-                      <div
-                        key={service.id}
-                        className="relative flex-shrink-0 w-[280px] sm:w-[340px] group/card"
-                      >
-                        <ServiceCard
-                          service={service}
-                          onClick={() =>
-                            router.push(`/services/${service.id}`)
-                          }
-                        />
-                        {isAdmin && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteTarget(service);
-                            }}
-                            className="absolute bottom-2 left-2 p-1.5 rounded-lg bg-white/90 border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 opacity-0 group-hover/card:opacity-100 transition-all z-10"
-                            title="Delete centre"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  <>
+                    {/* Desktop: horizontal scroll */}
+                    <div className="hidden sm:flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                      {items.map((service) => (
+                        <div
+                          key={service.id}
+                          className="relative flex-shrink-0 w-[340px] group/card"
+                        >
+                          {/* Bulk select checkbox */}
+                          {isAdmin && isBulkMode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSelect(service.id);
+                              }}
+                              className="absolute top-3 left-3 z-10 p-0.5"
+                            >
+                              {selectedIds.has(service.id) ? (
+                                <CheckSquare className="w-5 h-5 text-brand" />
+                              ) : (
+                                <Square className="w-5 h-5 text-gray-300" />
+                              )}
+                            </button>
+                          )}
+                          <ServiceCard
+                            service={service}
+                            onClick={() =>
+                              isBulkMode
+                                ? toggleSelect(service.id)
+                                : router.push(`/services/${service.id}`)
+                            }
+                          />
+                          {isAdmin && !isBulkMode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteTarget(service);
+                              }}
+                              className="absolute bottom-2 left-2 p-1.5 rounded-lg bg-white/90 border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 opacity-0 group-hover/card:opacity-100 transition-all z-10"
+                              title="Delete centre"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Mobile: vertical stack */}
+                    <div className="sm:hidden space-y-3">
+                      {items.map((service) => (
+                        <div key={service.id} className="relative group/card">
+                          {/* Bulk select checkbox */}
+                          {isAdmin && isBulkMode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSelect(service.id);
+                              }}
+                              className="absolute top-3 left-3 z-10 p-0.5"
+                            >
+                              {selectedIds.has(service.id) ? (
+                                <CheckSquare className="w-5 h-5 text-brand" />
+                              ) : (
+                                <Square className="w-5 h-5 text-gray-300" />
+                              )}
+                            </button>
+                          )}
+                          <ServiceCard
+                            service={service}
+                            onClick={() =>
+                              isBulkMode
+                                ? toggleSelect(service.id)
+                                : router.push(`/services/${service.id}`)
+                            }
+                          />
+                          {/* Touch-friendly delete — always visible on mobile */}
+                          {isAdmin && !isBulkMode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteTarget(service);
+                              }}
+                              className="absolute bottom-2 left-2 p-2 rounded-lg bg-white border border-gray-200 text-gray-400 active:text-red-600 active:border-red-300 z-10"
+                              title="Delete centre"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </section>
             );

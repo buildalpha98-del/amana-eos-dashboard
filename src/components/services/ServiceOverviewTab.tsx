@@ -297,13 +297,23 @@ export function ServiceOverviewTab({
             {service.phone && (
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Phone className="w-4 h-4 text-gray-400" />
-                <span>{service.phone}</span>
+                <a
+                  href={`tel:${service.phone}`}
+                  className="text-brand hover:underline"
+                >
+                  {service.phone}
+                </a>
               </div>
             )}
             {service.email && (
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Mail className="w-4 h-4 text-gray-400" />
-                <span>{service.email}</span>
+                <a
+                  href={`mailto:${service.email}`}
+                  className="text-brand hover:underline"
+                >
+                  {service.email}
+                </a>
               </div>
             )}
             {service.capacity && (

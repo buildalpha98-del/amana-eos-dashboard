@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { getCurrentQuarter } from "@/lib/utils";
 import { Mountain, Plus, User, X } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface RockData {
   id: string;
@@ -104,8 +105,21 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin w-6 h-6 border-2 border-brand border-t-transparent rounded-full" />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-6 w-36" />
+          <Skeleton className="h-8 w-28 rounded-lg" />
+        </div>
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-8 h-8 rounded-full" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-5 w-16 rounded-full ml-auto" />
+            </div>
+            <Skeleton className="h-2 w-full rounded-full" />
+          </div>
+        ))}
       </div>
     );
   }

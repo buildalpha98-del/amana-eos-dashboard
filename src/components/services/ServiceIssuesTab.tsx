@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
-import { AlertCircle, Plus, X, ArrowRight } from "lucide-react";
+import { cn, getWeekStart } from "@/lib/utils";
+import { AlertCircle, Plus, X, ArrowRight, CheckSquare } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface IssueData {
   id: string;
@@ -46,9 +47,12 @@ function getNextIssueStatus(current: string): string {
   return current;
 }
 
+const statusFilters = ["all", "open", "in_discussion", "solved", "closed"] as const;
+
 export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
   const queryClient = useQueryClient();
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -107,9 +111,39 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
     },
   });
 
-  const filteredIssues = priorityFilter === "all"
-    ? issues
-    : issues.filter((i) => i.priority === priorityFilter);
+  const createTodoFromIssue = useMutation({
+    mutationFn: async ({ issueId, title, ownerId }: { issueId: string; title: string; ownerId: string | null }) => {
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 7); // Default: 1 week from now
+      const dueDateStr = dueDate.toISOString().split("T")[0];
+      const weekOf = getWeekStart(dueDate).toISOString();
+      const res = await fetch("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `[Issue] ${title}`,
+          serviceId,
+          issueId,
+          assigneeId: ownerId || (users.length > 0 ? users[0].id : null),
+          dueDate: dueDateStr,
+          weekOf,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create to-do");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["todos", { serviceId }] });
+      queryClient.invalidateQueries({ queryKey: ["issues", { serviceId }] });
+    },
+  });
+
+  const filteredIssues = useMemo(() => {
+    let list = issues;
+    if (priorityFilter !== "all") list = list.filter((i) => i.priority === priorityFilter);
+    if (statusFilter !== "all") list = list.filter((i) => i.status === statusFilter);
+    return list;
+  }, [issues, priorityFilter, statusFilter]);
 
   function handleCreate() {
     if (!formData.title) return;
@@ -130,7 +164,18 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
           <AlertCircle className="w-4 h-4 text-brand" />
           Service Issues
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
+          >
+            {statusFilters.map((f) => (
+              <option key={f} value={f}>
+                {f === "all" ? "All Statuses" : statusConfig[f]?.label || f}
+              </option>
+            ))}
+          </select>
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
@@ -138,7 +183,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
           >
             {priorityFilters.map((f) => (
               <option key={f} value={f}>
-                {f === "all" ? "All" : priorityConfig[f]?.label || f}
+                {f === "all" ? "All Priorities" : priorityConfig[f]?.label || f}
               </option>
             ))}
           </select>
@@ -154,8 +199,15 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
 
       {/* Issues List */}
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin w-6 h-6 border-2 border-brand border-t-transparent rounded-full" />
+        <div className="space-y-1.5">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-lg">
+              <Skeleton className="w-2.5 h-2.5 rounded-full" />
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          ))}
         </div>
       ) : filteredIssues.length === 0 ? (
         <div className="text-center py-8 text-sm text-gray-400">
@@ -205,6 +257,25 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                   <span className="text-[10px] px-1.5 py-0.5 bg-brand/10 text-brand rounded whitespace-nowrap">
                     {issue._count.spawnedTodos} to-do{issue._count.spawnedTodos !== 1 ? "s" : ""}
                   </span>
+                )}
+
+                {/* Create Todo from Issue */}
+                {issue.status !== "closed" && (
+                  <button
+                    onClick={() =>
+                      createTodoFromIssue.mutate({
+                        issueId: issue.id,
+                        title: issue.title,
+                        ownerId: issue.ownerId,
+                      })
+                    }
+                    disabled={createTodoFromIssue.isPending}
+                    className="flex items-center gap-0.5 text-[10px] text-emerald-600 hover:text-emerald-700 font-medium whitespace-nowrap"
+                    title="Create a to-do from this issue"
+                  >
+                    <CheckSquare className="w-3 h-3" />
+                    To-Do
+                  </button>
                 )}
 
                 {/* Advance Status Button */}

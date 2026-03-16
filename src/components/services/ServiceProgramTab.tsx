@@ -22,6 +22,7 @@ import {
   FileText,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   useWeeklyProgram,
   useCreateActivity,
@@ -203,7 +204,8 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, title: string) => {
+    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
     try {
       await deleteMutation.mutateAsync(id);
       toast({ description: "Activity deleted" });
@@ -215,33 +217,47 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-6">
       {/* Week Navigation */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setWeekOffset((o) => o + 1)}
-            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-sm font-semibold text-gray-900 min-w-[220px] text-center">
-            {formatWeekLabel(selectedWeek)}
-          </span>
-          <button
-            onClick={() => setWeekOffset((o) => o - 1)}
-            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-          {weekOffset !== 0 && (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setWeekOffset(0)}
-              className="text-xs text-brand hover:underline ml-2"
+              onClick={() => setWeekOffset((o) => o + 1)}
+              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
             >
-              Today
+              <ChevronLeft className="w-4 h-4" />
             </button>
-          )}
+            <span className="text-sm font-semibold text-gray-900 min-w-[140px] sm:min-w-[220px] text-center">
+              {formatWeekLabel(selectedWeek)}
+            </span>
+            <button
+              onClick={() => setWeekOffset((o) => o - 1)}
+              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            {weekOffset !== 0 && (
+              <button
+                onClick={() => setWeekOffset(0)}
+                className="text-xs text-brand hover:underline ml-2"
+              >
+                Today
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              setEditingActivity(null);
+              setPrefillTemplate(null);
+              setShowModal(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Add Activity</span>
+            <span className="sm:hidden">Add</span>
+          </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleCopyPrevious}
             disabled={bulkMutation.isPending}
@@ -255,33 +271,28 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <Upload className="w-3.5 h-3.5" />
-            Import CSV
+            Import
           </button>
           <button
             onClick={() => setShowLibraryPicker(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <Library className="w-3.5 h-3.5" />
-            Browse Library
-          </button>
-          <button
-            onClick={() => {
-              setEditingActivity(null);
-              setPrefillTemplate(null);
-              setShowModal(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Add Activity
+            Library
           </button>
         </div>
       </div>
 
       {/* Day Grid */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 text-brand animate-spin" />
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {DAYS.map((day) => (
+            <div key={day} className="space-y-2">
+              <Skeleton className="h-5 w-20" />
+              <Skeleton className="h-24 w-full rounded-lg" />
+              <Skeleton className="h-20 w-full rounded-lg" />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -305,7 +316,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
                       setEditingActivity(activity);
                       setShowModal(true);
                     }}
-                    onDelete={() => handleDelete(activity.id)}
+                    onDelete={() => handleDelete(activity.id, activity.title)}
                   />
                 ))}
                 {byDay[day]?.length === 0 && (

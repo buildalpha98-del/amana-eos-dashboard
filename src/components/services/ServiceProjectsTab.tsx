@@ -12,6 +12,7 @@ import {
   Calendar,
   ChevronRight,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 const statusConfig: Record<
   string,
@@ -53,8 +54,21 @@ export function ServiceProjectsTab({ serviceId }: { serviceId: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-8 w-28 rounded-lg" />
+        </div>
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+        ))}
       </div>
     );
   }

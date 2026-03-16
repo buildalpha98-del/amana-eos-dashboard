@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
@@ -28,6 +28,10 @@ import {
   UtensilsCrossed,
   ShieldCheck,
   ClipboardCheck,
+  Activity,
+  BookOpen,
+  Target,
+  ChevronDown,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
@@ -46,26 +50,81 @@ import { ServiceQIPTab } from "@/components/services/ServiceQIPTab";
 import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab";
 import { ServiceTodayPanel } from "@/components/services/ServiceTodayPanel";
 
-const tabs = [
-  { key: "overview", label: "Overview", icon: Building2 },
-  { key: "attendance", label: "Attendance", icon: ClipboardList },
-  { key: "scorecard", label: "Scorecard", icon: BarChart3 },
-  { key: "rocks", label: "Rocks", icon: Mountain },
-  { key: "todos", label: "To-Dos", icon: CheckSquare },
-  { key: "issues", label: "Issues", icon: AlertCircle },
-  { key: "projects", label: "Projects", icon: FolderKanban },
-  { key: "weekly", label: "Weekly Data", icon: CalendarDays },
-  { key: "checklists", label: "Checklists", icon: ClipboardList },
-  { key: "comms", label: "Comms", icon: Radio },
-  { key: "program", label: "Program", icon: LayoutList },
-  { key: "menu", label: "Menu", icon: UtensilsCrossed },
-  { key: "audits", label: "Audits", icon: ShieldCheck },
-  { key: "qip", label: "QIP", icon: ClipboardCheck },
-  { key: "budget", label: "Budget", icon: Wallet },
-  { key: "financials", label: "Financials", icon: DollarSign },
-] as const;
+/* ------------------------------------------------------------------ */
+/* Grouped tab definitions — 16 tabs consolidated into 6 groups       */
+/* ------------------------------------------------------------------ */
+interface SubTab {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
 
-type TabKey = (typeof tabs)[number]["key"];
+interface TabGroup {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  adminOnly?: boolean;
+  subTabs: SubTab[];
+}
+
+const tabGroups: TabGroup[] = [
+  {
+    key: "overview",
+    label: "Overview",
+    icon: Building2,
+    subTabs: [],
+  },
+  {
+    key: "daily",
+    label: "Daily Ops",
+    icon: Activity,
+    subTabs: [
+      { key: "attendance", label: "Attendance", icon: ClipboardList },
+      { key: "checklists", label: "Checklists", icon: ClipboardCheck },
+    ],
+  },
+  {
+    key: "program",
+    label: "Program",
+    icon: BookOpen,
+    subTabs: [
+      { key: "activities", label: "Activities", icon: LayoutList },
+      { key: "menu", label: "Menu", icon: UtensilsCrossed },
+    ],
+  },
+  {
+    key: "eos",
+    label: "EOS",
+    icon: Target,
+    subTabs: [
+      { key: "scorecard", label: "Scorecard", icon: BarChart3 },
+      { key: "rocks", label: "Rocks", icon: Mountain },
+      { key: "todos", label: "To-Dos", icon: CheckSquare },
+      { key: "issues", label: "Issues", icon: AlertCircle },
+      { key: "projects", label: "Projects", icon: FolderKanban },
+      { key: "weekly", label: "Weekly Data", icon: CalendarDays },
+    ],
+  },
+  {
+    key: "compliance",
+    label: "Compliance",
+    icon: ShieldCheck,
+    subTabs: [
+      { key: "audits", label: "Audits", icon: ShieldCheck },
+      { key: "qip", label: "QIP", icon: ClipboardCheck },
+      { key: "comms", label: "Comms", icon: Radio },
+    ],
+  },
+  {
+    key: "finance",
+    label: "Finance",
+    icon: Wallet,
+    subTabs: [
+      { key: "budget", label: "Budget", icon: Wallet },
+      { key: "financials", label: "Financials", icon: DollarSign },
+    ],
+  },
+];
 
 const statusBadgeStyles: Record<string, string> = {
   active: "bg-emerald-100 text-emerald-700 border-emerald-300",
@@ -77,6 +136,8 @@ const statusBadgeStyles: Record<string, string> = {
 
 export default function ServiceDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const id = params.id as string;
   const { data: session } = useSession();
   const role = session?.user?.role as Role | undefined;
@@ -89,13 +150,66 @@ export default function ServiceDetailPage() {
       return res.json();
     },
   });
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
-  // Hide financials tab for non-admin users
-  const visibleTabs = useMemo(
-    () => tabs.filter((t) => (t.key !== "financials" && t.key !== "budget") || hasMinRole(role, "admin")),
+  // Read initial tab from URL ?tab=eos&sub=todos
+  const urlTab = searchParams.get("tab");
+  const urlSub = searchParams.get("sub");
+
+  const [activeGroup, setActiveGroup] = useState(urlTab || "overview");
+  const [activeSubTab, setActiveSubTab] = useState<Record<string, string>>(() => {
+    const defaults: Record<string, string> = {
+      daily: "attendance",
+      program: "activities",
+      eos: "todos",
+      compliance: "audits",
+      finance: "budget",
+    };
+    if (urlTab && urlSub) defaults[urlTab] = urlSub;
+    return defaults;
+  });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Sync tab state to URL
+  useEffect(() => {
+    const currentSub = activeSubTab[activeGroup];
+    const group = tabGroups.find((g) => g.key === activeGroup);
+    const hasSubTabs = group && group.subTabs.length > 0;
+    const params = new URLSearchParams();
+    if (activeGroup !== "overview") {
+      params.set("tab", activeGroup);
+      if (hasSubTabs && currentSub) params.set("sub", currentSub);
+    }
+    const qs = params.toString();
+    router.replace(`/services/${id}${qs ? `?${qs}` : ""}`, { scroll: false });
+  }, [activeGroup, activeSubTab, id, router]);
+
+  // Notification badge data from service detail
+  const todoBadge = service?.todos?.filter((t) => t.status !== "done").length || 0;
+  const issueBadge = service?.issues?.filter((i) => i.status === "open").length || 0;
+
+  // Filter admin-only groups
+  const visibleGroups = useMemo(
+    () => tabGroups.filter((g) => !g.adminOnly || hasMinRole(role, "admin")),
     [role]
   );
+
+  const currentGroup = visibleGroups.find((g) => g.key === activeGroup) || visibleGroups[0];
+  const currentSubKey = activeSubTab[activeGroup] || currentGroup?.subTabs[0]?.key;
+
+  function handleGroupChange(groupKey: string) {
+    setActiveGroup(groupKey);
+    setMobileMenuOpen(false);
+  }
+
+  function handleSubTabChange(subKey: string) {
+    setActiveSubTab((prev) => ({ ...prev, [activeGroup]: subKey }));
+  }
+
+  // Badge counts per group
+  function getBadge(groupKey: string): number {
+    if (groupKey === "eos") return todoBadge + issueBadge;
+    return 0;
+  }
 
   // Loading state
   if (isLoading) {
@@ -144,15 +258,15 @@ export default function ServiceDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
             <Building2 className="w-5 h-5 text-brand" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-gray-900">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
                 {service.name}
               </h1>
-              <span className="px-2 py-0.5 text-xs font-mono font-medium bg-gray-100 text-gray-600 rounded-md border border-gray-200">
+              <span className="px-2 py-0.5 text-xs font-mono font-medium bg-gray-100 text-gray-600 rounded-md border border-gray-200 shrink-0">
                 {service.code}
               </span>
             </div>
@@ -166,7 +280,7 @@ export default function ServiceDetailPage() {
         </div>
         <span
           className={cn(
-            "px-3 py-1 text-xs font-medium rounded-full border capitalize",
+            "px-3 py-1 text-xs font-medium rounded-full border capitalize shrink-0",
             statusStyle
           )}
         >
@@ -177,16 +291,72 @@ export default function ServiceDetailPage() {
       {/* Today Panel */}
       <ServiceTodayPanel serviceId={id} />
 
-      {/* Tab Bar */}
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-0 -mb-px overflow-x-auto">
-          {visibleTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.key;
+      {/* ── Mobile Tab Dropdown (< sm) ───────────────────────── */}
+      <div className="sm:hidden relative">
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900"
+        >
+          <div className="flex items-center gap-2">
+            {(() => {
+              const Icon = currentGroup.icon;
+              return <Icon className="w-4 h-4 text-brand" />;
+            })()}
+            <span>{currentGroup.label}</span>
+            {getBadge(activeGroup) > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white">
+                {getBadge(activeGroup)}
+              </span>
+            )}
+          </div>
+          <ChevronDown
+            className={cn(
+              "w-4 h-4 text-gray-400 transition-transform",
+              mobileMenuOpen && "rotate-180"
+            )}
+          />
+        </button>
+        {mobileMenuOpen && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
+            {visibleGroups.map((g) => {
+              const Icon = g.icon;
+              const badge = getBadge(g.key);
+              return (
+                <button
+                  key={g.key}
+                  onClick={() => handleGroupChange(g.key)}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                    activeGroup === g.key
+                      ? "text-brand bg-brand/5"
+                      : "text-gray-600 hover:bg-gray-50"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="flex-1 text-left">{g.label}</span>
+                  {badge > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white">
+                      {badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Desktop Tab Bar (≥ sm) ───────────────────────────── */}
+      <div className="hidden sm:block border-b border-gray-200">
+        <nav className="flex gap-0 -mb-px">
+          {visibleGroups.map((g) => {
+            const Icon = g.icon;
+            const isActive = activeGroup === g.key;
+            const badge = getBadge(g.key);
             return (
               <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                key={g.key}
+                onClick={() => handleGroupChange(g.key)}
                 className={cn(
                   "flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors",
                   isActive
@@ -195,47 +365,86 @@ export default function ServiceDetailPage() {
                 )}
               >
                 <Icon className="w-4 h-4" />
-                {tab.label}
+                {g.label}
+                {badge > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white ml-1">
+                    {badge}
+                  </span>
+                )}
               </button>
             );
           })}
         </nav>
       </div>
 
-      {/* Tab Content */}
+      {/* ── Sub-Tab Pills (when group has subtabs) ───────────── */}
+      {currentGroup.subTabs.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {currentGroup.subTabs.map((sub) => {
+            const SubIcon = sub.icon;
+            const isActive = currentSubKey === sub.key;
+            return (
+              <button
+                key={sub.key}
+                onClick={() => handleSubTabChange(sub.key)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border transition-colors",
+                  isActive
+                    ? "bg-brand text-white border-brand"
+                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                )}
+              >
+                <SubIcon className="w-3.5 h-3.5" />
+                {sub.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Tab Content ──────────────────────────────────────── */}
       <div className="min-h-[40vh]">
-        {activeTab === "overview" && (
+        {/* Overview group (no subtabs) */}
+        {activeGroup === "overview" && (
           <ServiceOverviewTab service={service} users={users || []} />
         )}
 
-        {activeTab === "attendance" && (
+        {/* Daily Ops group */}
+        {activeGroup === "daily" && currentSubKey === "attendance" && (
           <ServiceAttendanceTab
             serviceId={service.id}
             capacity={service.capacity}
           />
         )}
+        {activeGroup === "daily" && currentSubKey === "checklists" && (
+          <ServiceChecklistsTab serviceId={service.id} />
+        )}
 
-        {activeTab === "scorecard" && (
+        {/* Program group */}
+        {activeGroup === "program" && currentSubKey === "activities" && (
+          <ServiceProgramTab serviceId={service.id} />
+        )}
+        {activeGroup === "program" && currentSubKey === "menu" && (
+          <ServiceMenuTab serviceId={service.id} />
+        )}
+
+        {/* EOS group */}
+        {activeGroup === "eos" && currentSubKey === "scorecard" && (
           <ServiceScorecardTab serviceId={service.id} />
         )}
-
-        {activeTab === "rocks" && (
+        {activeGroup === "eos" && currentSubKey === "rocks" && (
           <ServiceRocksTab serviceId={service.id} />
         )}
-
-        {activeTab === "todos" && (
+        {activeGroup === "eos" && currentSubKey === "todos" && (
           <ServiceTodosTab serviceId={service.id} />
         )}
-
-        {activeTab === "issues" && (
+        {activeGroup === "eos" && currentSubKey === "issues" && (
           <ServiceIssuesTab serviceId={service.id} />
         )}
-
-        {activeTab === "projects" && (
+        {activeGroup === "eos" && currentSubKey === "projects" && (
           <ServiceProjectsTab serviceId={service.id} />
         )}
-
-        {activeTab === "weekly" && (
+        {activeGroup === "eos" && currentSubKey === "weekly" && (
           <WeeklyDataEntry
             serviceId={service.id}
             bscRate={service.bscDailyRate || 0}
@@ -244,35 +453,22 @@ export default function ServiceDetailPage() {
           />
         )}
 
-        {activeTab === "checklists" && (
-          <ServiceChecklistsTab serviceId={service.id} />
+        {/* Compliance group */}
+        {activeGroup === "compliance" && currentSubKey === "audits" && (
+          <ServiceAuditsTab serviceId={service.id} />
         )}
-
-        {activeTab === "comms" && (
+        {activeGroup === "compliance" && currentSubKey === "qip" && (
+          <ServiceQIPTab serviceId={service.id} />
+        )}
+        {activeGroup === "compliance" && currentSubKey === "comms" && (
           <ServiceCommTab serviceId={service.id} />
         )}
 
-        {activeTab === "program" && (
-          <ServiceProgramTab serviceId={service.id} />
-        )}
-
-        {activeTab === "menu" && (
-          <ServiceMenuTab serviceId={service.id} />
-        )}
-
-        {activeTab === "audits" && (
-          <ServiceAuditsTab serviceId={service.id} />
-        )}
-
-        {activeTab === "qip" && (
-          <ServiceQIPTab serviceId={service.id} />
-        )}
-
-        {activeTab === "budget" && (
+        {/* Finance group */}
+        {activeGroup === "finance" && currentSubKey === "budget" && (
           <ServiceBudgetTab serviceId={service.id} />
         )}
-
-        {activeTab === "financials" && (
+        {activeGroup === "finance" && currentSubKey === "financials" && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mb-4">
               <DollarSign className="w-6 h-6 text-brand" />

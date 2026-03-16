@@ -87,6 +87,7 @@ export function useService(id: string) {
       return res.json();
     },
     enabled: !!id,
+    refetchInterval: 5 * 60_000, // Auto-refetch every 5 min for stale data
   });
 }
 

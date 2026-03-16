@@ -11,7 +11,9 @@ import {
   Loader2,
   ClipboardList,
   AlertCircle,
+  CheckCheck,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
 interface ChecklistItem {
@@ -104,6 +106,28 @@ function ChecklistCard({
     },
   });
 
+  const markAllComplete = useMutation({
+    mutationFn: async () => {
+      const unchecked = checklist.items.filter((i) => !i.checked);
+      for (const item of unchecked) {
+        const res = await fetch(
+          `/api/services/${serviceId}/checklists/${checklist.id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ itemId: item.id, checked: true }),
+          }
+        );
+        if (!res.ok) throw new Error("Failed to update checklist item");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["service-checklists", serviceId],
+      });
+    },
+  });
+
   const checkedCount = checklist.items.filter((i) => i.checked).length;
   const totalCount = checklist.items.length;
   const progress =
@@ -156,6 +180,23 @@ function ChecklistCard({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {checkedCount < totalCount && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                markAllComplete.mutate();
+              }}
+              disabled={markAllComplete.isPending}
+              className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md hover:bg-emerald-100 transition-colors disabled:opacity-50"
+            >
+              {markAllComplete.isPending ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <CheckCheck className="w-3 h-3" />
+              )}
+              Mark All
+            </button>
+          )}
           <div className="text-right">
             <div className="text-xs text-gray-500">
               {checkedCount}/{totalCount}
@@ -253,8 +294,17 @@ export function ServiceChecklistsTab({ serviceId }: { serviceId: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 text-brand animate-spin" />
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-5 h-5 rounded" />
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-12 ml-auto" />
+            </div>
+            <Skeleton className="h-2 w-full rounded-full" />
+          </div>
+        ))}
       </div>
     );
   }

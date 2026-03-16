@@ -13,6 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface QIPQualityArea {
   id: string;
@@ -118,8 +119,17 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 text-brand animate-spin" />
+      <div className="space-y-3">
+        {[...Array(7)].map((_, i) => (
+          <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3">
+            <Skeleton className="w-10 h-10 rounded-lg" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+        ))}
       </div>
     );
   }
