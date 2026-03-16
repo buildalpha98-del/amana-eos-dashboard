@@ -66,7 +66,7 @@ export function LaunchTracker() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
       </div>
     );
   }
@@ -104,16 +104,16 @@ export function LaunchTracker() {
                 <div
                   className={`h-3 rounded-sm ${
                     isCurrent
-                      ? "bg-blue-600"
+                      ? "bg-brand"
                       : isPast
-                      ? "bg-blue-200"
+                      ? "bg-brand/30"
                       : "bg-gray-100"
                   }`}
                   title={`Week ${week}`}
                 />
                 {isMilestone && (
                   <div className="absolute -top-1 left-1/2 -translate-x-1/2">
-                    <Milestone className="h-3 w-3 text-blue-500" />
+                    <Milestone className="h-3 w-3 text-brand" />
                   </div>
                 )}
                 <span className="text-[8px] text-gray-400 block text-center mt-0.5">
@@ -131,7 +131,7 @@ export function LaunchTracker() {
               key={m.week}
               className={`flex-1 p-2 rounded text-xs border ${
                 m.week <= currentWeek
-                  ? "border-blue-200 bg-blue-50"
+                  ? "border-brand/20 bg-brand/5"
                   : "border-gray-200 bg-gray-50"
               }`}
             >
@@ -211,7 +211,7 @@ function CentreCard({ centre }: { centre: LaunchCentre }) {
             <div
               key={i}
               className={`flex-1 rounded-t-sm ${
-                i < centre.currentWeek ? "bg-blue-400" : "bg-gray-200"
+                i < centre.currentWeek ? "bg-brand/60" : "bg-gray-200"
               }`}
               style={{ height: `${Math.max((val / maxTrend) * 100, 4)}%` }}
               title={`Wk ${i + 1}: ${val}`}
@@ -241,7 +241,7 @@ function CentreCard({ centre }: { centre: LaunchCentre }) {
         </div>
         <div className="w-full bg-white/60 rounded-full h-2">
           <div
-            className="bg-blue-500 h-2 rounded-full"
+            className="bg-brand h-2 rounded-full"
             style={{ width: `${Math.min(activityProgress, 100)}%` }}
           />
         </div>

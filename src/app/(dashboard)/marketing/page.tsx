@@ -7,18 +7,11 @@ import {
   FileText,
   Calendar,
   TrendingUp,
-  Target,
-  Image,
-  Layout,
-  Hash,
   Upload,
-  MapPin,
   CheckSquare,
-  CalendarDays,
   Flame,
-  Inbox,
-  Rocket,
   Gift,
+  Wrench,
 } from "lucide-react";
 import { MarketingTabs } from "@/components/marketing/MarketingTabs";
 import { OverviewTab } from "@/components/marketing/OverviewTab";
@@ -48,23 +41,19 @@ import { CreatePostModal } from "@/components/marketing/CreatePostModal";
 import { CreateCampaignModal } from "@/components/marketing/CreateCampaignModal";
 import { CreateTaskModal } from "@/components/marketing/CreateTaskModal";
 
+/* ------------------------------------------------------------------ */
+/* Tab definitions — consolidated from 16 → 8 primary tabs            */
+/* ------------------------------------------------------------------ */
+
 const tabs = [
   { key: "overview", label: "Overview", icon: BarChart3 },
-  { key: "drafts", label: "Drafts Queue", icon: Inbox },
-  { key: "occupancy", label: "Occupancy", icon: Flame },
-  { key: "launch", label: "Launch Tracker", icon: Rocket },
-  { key: "referrals", label: "Referrals", icon: Gift },
   { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "campaigns", label: "Campaigns", icon: FolderOpen },
   { key: "posts", label: "Posts", icon: FileText },
   { key: "calendar", label: "Calendar", icon: Calendar },
+  { key: "growth", label: "Growth", icon: Flame },
   { key: "analytics", label: "Analytics", icon: TrendingUp },
-  { key: "coverage", label: "Coverage", icon: MapPin },
-  { key: "kpis", label: "KPIs", icon: Target },
-  { key: "assets", label: "Assets", icon: Image },
-  { key: "templates", label: "Templates", icon: Layout },
-  { key: "hashtags", label: "Hashtags", icon: Hash },
-  { key: "termCalendar", label: "Term Plan", icon: CalendarDays },
+  { key: "toolkit", label: "Toolkit", icon: Wrench },
 ];
 
 export default function MarketingPage() {
@@ -77,6 +66,10 @@ export default function MarketingPage() {
   const [showQuickPost, setShowQuickPost] = useState(false);
   const [showQuickTask, setShowQuickTask] = useState(false);
   const [showQuickCampaign, setShowQuickCampaign] = useState(false);
+
+  /* Sub-view state for composite tabs */
+  const [toolkitView, setToolkitView] = useState<"assets" | "templates" | "hashtags" | "kpis">("assets");
+  const [growthView, setGrowthView] = useState<"occupancy" | "referrals" | "launch">("occupancy");
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -98,7 +91,7 @@ export default function MarketingPage() {
             className="inline-flex items-center gap-2 rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand hover:bg-brand hover:text-white transition-colors"
           >
             <Upload className="h-4 w-4" />
-            Import Content Calendar
+            Import Calendar
           </button>
         </div>
       </div>
@@ -108,40 +101,39 @@ export default function MarketingPage() {
 
       {/* Tab Content */}
       <div className="mt-6">
+        {/* ---- Overview: includes Drafts Queue inline ---- */}
         {activeTab === "overview" && (
-          <OverviewTab serviceId={selectedServiceId} onSelectTask={setSelectedTaskId} />
+          <OverviewTab
+            serviceId={selectedServiceId}
+            onSelectTask={setSelectedTaskId}
+          />
         )}
-        {activeTab === "drafts" && (
-          <DraftsQueue serviceId={selectedServiceId} onSelectTask={setSelectedTaskId} />
-        )}
-        {activeTab === "occupancy" && (
-          <div className="space-y-6">
-            <OccupancyHeatmap serviceId={selectedServiceId} />
-            <BSCGrowthTracker serviceId={selectedServiceId} />
-          </div>
-        )}
-        {activeTab === "launch" && <LaunchTracker />}
-        {activeTab === "referrals" && (
-          <ReferralsTab serviceId={selectedServiceId} />
-        )}
+
+        {/* ---- Tasks ---- */}
         {activeTab === "tasks" && (
           <TasksTab
             onSelectTask={setSelectedTaskId}
             serviceId={selectedServiceId}
           />
         )}
+
+        {/* ---- Campaigns ---- */}
         {activeTab === "campaigns" && (
           <CampaignsTab
             onSelectCampaign={setSelectedCampaignId}
             serviceId={selectedServiceId}
           />
         )}
+
+        {/* ---- Posts ---- */}
         {activeTab === "posts" && (
           <PostsTab
             onSelectPost={setSelectedPostId}
             serviceId={selectedServiceId}
           />
         )}
+
+        {/* ---- Calendar (with Term Plan toggle inside) ---- */}
         {activeTab === "calendar" && (
           <CalendarTab
             onSelectPost={setSelectedPostId}
@@ -150,6 +142,45 @@ export default function MarketingPage() {
             serviceId={selectedServiceId}
           />
         )}
+
+        {/* ---- Growth: Occupancy / Referrals / Launch ---- */}
+        {activeTab === "growth" && (
+          <div className="space-y-6">
+            {/* Sub-nav pills */}
+            <div className="flex items-center gap-2">
+              {([
+                { key: "occupancy", label: "Occupancy" },
+                { key: "referrals", label: "Referrals" },
+                { key: "launch", label: "Launch Tracker" },
+              ] as const).map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => setGrowthView(item.key)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                    growthView === item.key
+                      ? "bg-brand text-white border-brand"
+                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {growthView === "occupancy" && (
+              <div className="space-y-6">
+                <OccupancyHeatmap serviceId={selectedServiceId} />
+                <BSCGrowthTracker serviceId={selectedServiceId} />
+              </div>
+            )}
+            {growthView === "referrals" && (
+              <ReferralsTab serviceId={selectedServiceId} />
+            )}
+            {growthView === "launch" && <LaunchTracker />}
+          </div>
+        )}
+
+        {/* ---- Analytics: includes Coverage ---- */}
         {activeTab === "analytics" && (
           <AnalyticsTab
             serviceId={selectedServiceId}
@@ -159,20 +190,37 @@ export default function MarketingPage() {
             }}
           />
         )}
-        {activeTab === "coverage" && (
-          <CoverageTab
-            onSelectService={(id) => {
-              setSelectedServiceId(id);
-              setActiveTab("overview");
-            }}
-          />
-        )}
-        {activeTab === "kpis" && <KPIsTab />}
-        {activeTab === "assets" && <AssetsTab />}
-        {activeTab === "templates" && <TemplatesTab />}
-        {activeTab === "hashtags" && <HashtagsTab />}
-        {activeTab === "termCalendar" && (
-          <TermCalendarTab serviceId={selectedServiceId} />
+
+        {/* ---- Toolkit: Assets / Templates / Hashtags / KPIs ---- */}
+        {activeTab === "toolkit" && (
+          <div className="space-y-6">
+            {/* Sub-nav pills */}
+            <div className="flex items-center gap-2">
+              {([
+                { key: "assets", label: "Assets" },
+                { key: "templates", label: "Templates" },
+                { key: "hashtags", label: "Hashtags" },
+                { key: "kpis", label: "KPIs" },
+              ] as const).map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => setToolkitView(item.key)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                    toolkitView === item.key
+                      ? "bg-brand text-white border-brand"
+                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {toolkitView === "assets" && <AssetsTab />}
+            {toolkitView === "templates" && <TemplatesTab />}
+            {toolkitView === "hashtags" && <HashtagsTab />}
+            {toolkitView === "kpis" && <KPIsTab />}
+          </div>
         )}
       </div>
 

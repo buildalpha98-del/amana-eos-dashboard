@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   Clock,
   Eye,
+  User,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import {
   useMarketingTasks,
   useUpdateMarketingTask,
@@ -111,15 +113,20 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
   const [showTemplates, setShowTemplates] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
+  const [myTasksOnly, setMyTasksOnly] = useState(false);
   const [quickAddColumn, setQuickAddColumn] = useState<string | null>(null);
   const [quickAddTitle, setQuickAddTitle] = useState("");
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
 
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
+
   const { data: tasks, isLoading } = useMarketingTasks({
     status: statusFilter || undefined,
     priority: priorityFilter || undefined,
     serviceId: serviceId || undefined,
+    assigneeId: myTasksOnly && currentUserId ? currentUserId : undefined,
   });
   const updateTask = useUpdateMarketingTask();
   const createTask = useCreateMarketingTask();
@@ -226,6 +233,19 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
             <List className="h-4 w-4" />
           </button>
         </div>
+
+        {/* My Tasks Toggle */}
+        <button
+          onClick={() => setMyTasksOnly((prev) => !prev)}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+            myTasksOnly
+              ? "bg-brand text-white border-brand"
+              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+          }`}
+        >
+          <User className="h-3.5 w-3.5" />
+          My Tasks
+        </button>
 
         {/* Filters */}
         <select

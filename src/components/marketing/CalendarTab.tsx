@@ -129,14 +129,22 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
       <div className="flex items-center justify-between">
         {viewMode === "calendar" ? (
           <>
-            <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
-            </button>
-            <h3 className="text-lg font-semibold text-gray-900">{monthLabel}</h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <ChevronLeft className="w-5 h-5 text-gray-600" />
+              </button>
+              <button
+                onClick={() => setCurrentDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Today
+              </button>
               <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
                 <ChevronRight className="w-5 h-5 text-gray-600" />
               </button>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">{monthLabel}</h3>
+            <div className="flex items-center gap-2">
               <div className="ml-2 flex rounded-lg border border-gray-200 overflow-hidden">
                 <button
                   onClick={() => setViewMode("calendar")}

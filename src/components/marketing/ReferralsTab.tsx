@@ -93,7 +93,7 @@ export function ReferralsTab({ serviceId }: { serviceId?: string }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
       </div>
     );
   }
@@ -142,7 +142,7 @@ export function ReferralsTab({ serviceId }: { serviceId?: string }) {
               onClick={() => setFilterStatus(s)}
               className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
                 filterStatus === s
-                  ? "bg-blue-50 border-blue-300 text-blue-700"
+                  ? "bg-brand/5 border-brand text-brand"
                   : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
               }`}
             >
@@ -153,7 +153,7 @@ export function ReferralsTab({ serviceId }: { serviceId?: string }) {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-brand text-white rounded-lg hover:bg-brand-hover"
         >
           <Plus className="h-4 w-4" />
           Add Referral
@@ -218,7 +218,7 @@ export function ReferralsTab({ serviceId }: { serviceId?: string }) {
                           {ref.status === "pending" && (
                             <button
                               onClick={() => updateStatus(ref.id, "enquired")}
-                              className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
+                              className="text-xs px-2 py-1 rounded bg-brand/5 text-brand hover:bg-brand/10"
                             >
                               Mark Enquired
                             </button>
@@ -407,7 +407,7 @@ function CreateReferralModal({
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 text-sm bg-brand text-white rounded-lg hover:bg-brand-hover disabled:opacity-50"
             >
               {saving ? "Saving..." : "Create Referral"}
             </button>

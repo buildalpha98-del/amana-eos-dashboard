@@ -60,7 +60,7 @@ export function BSCGrowthTracker({ serviceId }: { serviceId?: string }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand" />
       </div>
     );
   }
@@ -92,7 +92,7 @@ export function BSCGrowthTracker({ serviceId }: { serviceId?: string }) {
       {/* Progress bar */}
       <div className="w-full bg-gray-100 rounded-full h-3">
         <div
-          className="bg-blue-500 h-3 rounded-full transition-all"
+          className="bg-brand h-3 rounded-full transition-all"
           style={{ width: `${Math.min(data.networkPercentage, 100)}%` }}
         />
       </div>

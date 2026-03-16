@@ -125,14 +125,116 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Stat Cards */}
+      {/* ---- ACTION ZONE: Overdue + Due Soon (top priority) ---- */}
+      {data.overdueTasks && data.overdueTasks.length > 0 && (
+        <div className="rounded-xl border-2 border-red-200 bg-red-50">
+          <div className="px-5 py-3 border-b border-red-200 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-600" />
+            <h3 className="text-sm font-semibold text-red-800">
+              Overdue Tasks
+            </h3>
+            <span className="ml-auto text-xs font-medium text-red-600">
+              {data.overdueTasks.length} overdue
+            </span>
+          </div>
+          <div className="divide-y divide-red-100">
+            {data.overdueTasks.map((task) => (
+              <button
+                key={task.id}
+                type="button"
+                onClick={() => onSelectTask?.(task.id)}
+                className="w-full px-5 py-2.5 flex items-center justify-between hover:bg-red-100 transition-colors text-left"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {task.title}
+                  </p>
+                  <p className="text-xs text-red-600">
+                    {daysOverdue(task.dueDate)} day
+                    {daysOverdue(task.dueDate) !== 1 ? "s" : ""} overdue
+                    {task.assignee && (
+                      <span className="text-gray-500">
+                        {" "}
+                        &middot; {task.assignee?.name ?? "Unassigned"}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    task.priority === "high"
+                      ? "bg-red-100 text-red-700"
+                      : task.priority === "medium"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {task.priority}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data.dueSoonTasks && data.dueSoonTasks.length > 0 && (
+        <div className="rounded-xl border-2 border-amber-200 bg-amber-50">
+          <div className="px-5 py-3 border-b border-amber-200 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-amber-600" />
+            <h3 className="text-sm font-semibold text-amber-800">
+              Due Today / Tomorrow
+            </h3>
+            <span className="ml-auto text-xs font-medium text-amber-600">
+              {data.dueSoonTasks.length} upcoming
+            </span>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {data.dueSoonTasks.map((task) => (
+              <button
+                key={task.id}
+                type="button"
+                onClick={() => onSelectTask?.(task.id)}
+                className="w-full px-5 py-2.5 flex items-center justify-between hover:bg-amber-100 transition-colors text-left"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {task.title}
+                  </p>
+                  <p className="text-xs text-amber-600">
+                    Due {formatDate(task.dueDate)}
+                    {task.assignee && (
+                      <span className="text-gray-500">
+                        {" "}
+                        &middot; {task.assignee?.name ?? "Unassigned"}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    task.priority === "high"
+                      ? "bg-red-100 text-red-700"
+                      : task.priority === "medium"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {task.priority}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ---- STAT CARDS ---- */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
             <div
               key={card.key}
-              className="bg-white rounded-xl p-6 border border-gray-200"
+              className="bg-white rounded-xl p-5 border border-gray-200"
             >
               <div className="flex items-center gap-4">
                 <div
@@ -154,8 +256,8 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
 
       {/* Centre Coverage Cards (only when All Centres selected) */}
       {showCentreCards && (
-        <div className="grid grid-cols-2 lg:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl p-5 border border-gray-200">
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
                 <Building2 className="w-5 h-5 text-green-600" />
@@ -168,7 +270,7 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl p-6 border border-gray-200">
+          <div className="bg-white rounded-xl p-5 border border-gray-200">
             <div className="flex items-center gap-4">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -219,115 +321,83 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
         </div>
       )}
 
-      {/* Overdue Tasks Alert */}
-      {data.overdueTasks && data.overdueTasks.length > 0 && (
-        <div className="rounded-xl border-2 border-red-200 bg-red-50">
-          <div className="px-6 py-4 border-b border-red-200 flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-            <h3 className="text-lg font-semibold text-red-800">
-              Overdue Tasks
+      {/* ---- Upcoming This Week + Active Campaigns (2 col on lg) ---- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Upcoming This Week */}
+        <div className="bg-white rounded-xl border border-gray-200">
+          <div className="px-5 py-3 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900">
+              Upcoming This Week
             </h3>
-            <span className="ml-auto text-sm font-medium text-red-600">
-              {data.overdueTasks.length} overdue
-            </span>
           </div>
-          <div className="divide-y divide-red-100">
-            {data.overdueTasks.map((task) => (
-              <button
-                key={task.id}
-                type="button"
-                onClick={() => onSelectTask?.(task.id)}
-                className="w-full px-6 py-3 flex items-center justify-between hover:bg-red-100 transition-colors text-left"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium text-gray-900 truncate">
-                    {task.title}
-                  </p>
-                  <p className="text-sm text-red-600">
-                    {daysOverdue(task.dueDate)} day
-                    {daysOverdue(task.dueDate) !== 1 ? "s" : ""} overdue
-                    {task.assignee && (
-                      <span className="text-gray-500">
-                        {" "}
-                        &middot; {task.assignee?.name ?? "Unassigned"}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    task.priority === "high"
-                      ? "bg-red-100 text-red-700"
-                      : task.priority === "medium"
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-gray-100 text-gray-700"
-                  }`}
+          {data.upcomingPosts.length === 0 ? (
+            <div className="px-5 py-8 text-center text-gray-400 text-sm">
+              No upcoming posts
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {data.upcomingPosts.map((post) => (
+                <div
+                  key={post.id}
+                  className="px-5 py-3 flex items-center gap-3"
                 >
-                  {task.priority}
-                </span>
-              </button>
-            ))}
-          </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {post.title}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <PlatformBadge platform={post.platform} />
+                      <StatusBadge status={post.status} type="post" />
+                      <span className="text-xs text-gray-400">
+                        {formatDate(post.scheduledDate)}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-500 shrink-0">
+                    {post.assignee?.name ?? "Unassigned"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Due Today / Tomorrow */}
-      {data.dueSoonTasks && data.dueSoonTasks.length > 0 && (
-        <div className="rounded-xl border-2 border-amber-200 bg-amber-50">
-          <div className="px-6 py-4 border-b border-amber-200 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-amber-600" />
-            <h3 className="text-lg font-semibold text-amber-800">
-              Due Today / Tomorrow
+        {/* Active Campaigns */}
+        <div className="bg-white rounded-xl border border-gray-200">
+          <div className="px-5 py-3 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900">
+              Active Campaigns
             </h3>
-            <span className="ml-auto text-sm font-medium text-amber-600">
-              {data.dueSoonTasks.length} upcoming
-            </span>
           </div>
-          <div className="divide-y divide-amber-100">
-            {data.dueSoonTasks.map((task) => (
-              <button
-                key={task.id}
-                type="button"
-                onClick={() => onSelectTask?.(task.id)}
-                className="w-full px-6 py-3 flex items-center justify-between hover:bg-amber-100 transition-colors text-left"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium text-gray-900 truncate">
-                    {task.title}
-                  </p>
-                  <p className="text-sm text-amber-600">
-                    Due {formatDate(task.dueDate)}
-                    {task.assignee && (
-                      <span className="text-gray-500">
-                        {" "}
-                        &middot; {task.assignee?.name ?? "Unassigned"}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    task.priority === "high"
-                      ? "bg-red-100 text-red-700"
-                      : task.priority === "medium"
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-gray-100 text-gray-700"
-                  }`}
+          {data.activeCampaignsList.length === 0 ? (
+            <div className="px-5 py-8 text-center text-gray-400 text-sm">
+              No active campaigns
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {data.activeCampaignsList.map((campaign) => (
+                <div
+                  key={campaign.id}
+                  className="px-5 py-3 flex items-center justify-between hover:bg-gray-50"
                 >
-                  {task.priority}
-                </span>
-              </button>
-            ))}
-          </div>
+                  <p className="text-sm font-medium text-gray-900">{campaign.name}</p>
+                  <span className="text-xs text-gray-500">
+                    {campaign._count.posts}{" "}
+                    {campaign._count.posts === 1 ? "post" : "posts"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Recent Activity Feed */}
       {data.recentActivity && data.recentActivity.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
-            <Activity className="w-5 h-5 text-brand" />
-            <h3 className="text-lg font-semibold text-gray-900">
+          <div className="px-5 py-3 border-b border-gray-200 flex items-center gap-2">
+            <Activity className="w-4 h-4 text-brand" />
+            <h3 className="text-sm font-semibold text-gray-900">
               Recent Activity
             </h3>
           </div>
@@ -335,7 +405,7 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
             {data.recentActivity.map((entry) => (
               <div
                 key={entry.id}
-                className="px-6 py-3 flex items-center justify-between"
+                className="px-5 py-2.5 flex items-center justify-between"
               >
                 <p className="text-sm text-gray-700">
                   <span className="font-medium text-gray-900">
@@ -351,89 +421,6 @@ export function OverviewTab({ serviceId, onSelectTask }: OverviewTabProps) {
           </div>
         </div>
       )}
-
-      {/* Upcoming This Week */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Upcoming This Week
-          </h3>
-        </div>
-        {data.upcomingPosts.length === 0 ? (
-          <div className="px-6 py-10 text-center text-gray-500">
-            No upcoming posts
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-left text-gray-500">
-                  <th className="px-6 py-3 font-medium">Title</th>
-                  <th className="px-6 py-3 font-medium">Platform</th>
-                  <th className="px-6 py-3 font-medium">Status</th>
-                  <th className="px-6 py-3 font-medium">Scheduled Date</th>
-                  <th className="px-6 py-3 font-medium">Assignee</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.upcomingPosts.map((post) => (
-                  <tr
-                    key={post.id}
-                    className="border-b border-gray-50 hover:bg-gray-50"
-                  >
-                    <td className="px-6 py-3 font-medium text-gray-900">
-                      {post.title}
-                    </td>
-                    <td className="px-6 py-3">
-                      <PlatformBadge platform={post.platform} />
-                    </td>
-                    <td className="px-6 py-3">
-                      <StatusBadge status={post.status} type="post" />
-                    </td>
-                    <td className="px-6 py-3 text-gray-600">
-                      {formatDate(post.scheduledDate)}
-                    </td>
-                    <td className="px-6 py-3 text-gray-600">
-                      {post.assignee?.name ?? "Unassigned"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Active Campaigns */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Active Campaigns
-          </h3>
-        </div>
-        {data.activeCampaignsList.length === 0 ? (
-          <div className="px-6 py-10 text-center text-gray-500">
-            No active campaigns
-          </div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {data.activeCampaignsList.map((campaign) => (
-              <div
-                key={campaign.id}
-                className="px-6 py-4 flex items-center justify-between hover:bg-gray-50"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">{campaign.name}</p>
-                </div>
-                <span className="text-sm text-gray-500">
-                  {campaign._count.posts}{" "}
-                  {campaign._count.posts === 1 ? "post" : "posts"}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

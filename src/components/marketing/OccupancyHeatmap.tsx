@@ -82,7 +82,7 @@ export function OccupancyHeatmap({ serviceId }: { serviceId?: string }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
       </div>
     );
   }
@@ -156,7 +156,7 @@ export function OccupancyHeatmap({ serviceId }: { serviceId?: string }) {
             onClick={() => setSortBy(key)}
             className={`px-3 py-1 text-xs rounded-full ${
               sortBy === key
-                ? "bg-blue-100 text-blue-700"
+                ? "bg-brand/10 text-brand"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >

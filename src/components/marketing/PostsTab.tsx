@@ -43,12 +43,15 @@ function isRecentSync(dateStr?: string | null): boolean {
   return diffMs < 24 * 60 * 60 * 1000; // less than 24 hours
 }
 
+const PAGE_SIZE = 25;
+
 export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
   const [status, setStatus] = useState("");
   const [platform, setPlatform] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [selectedPostIds, setSelectedPostIds] = useState<Set<string>>(new Set());
   const [showDuplicate, setShowDuplicate] = useState(false);
+  const [page, setPage] = useState(0);
 
   const { data: posts, isLoading } = usePosts({
     status: status || undefined,
@@ -177,6 +180,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
             No posts found
           </div>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -199,7 +203,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {posts.map((post) => {
+                {posts.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((post) => {
                   const hasLiveSync = isRecentSync(post.engagementSyncedAt);
                   const totalEngagement =
                     post.likes + post.comments + post.shares;
@@ -311,6 +315,31 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
               </tbody>
             </table>
           </div>
+          {/* Pagination */}
+          {posts.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
+              <span className="text-xs text-gray-500">
+                Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, posts.length)} of {posts.length}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="px-3 py-1 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={(page + 1) * PAGE_SIZE >= posts.length}
+                  className="px-3 py-1 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 
