@@ -29,6 +29,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { AiButton } from "@/components/ui/AiButton";
 import {
   LineChart,
   Line,
@@ -42,6 +43,7 @@ import {
 
 interface Props {
   serviceId: string;
+  serviceName?: string;
 }
 
 const attendanceImportColumns: ColumnConfig[] = [
@@ -86,7 +88,7 @@ type GridRow = {
   asc: { enrolled: number; attended: number };
 };
 
-export function ServiceAttendanceTab({ serviceId }: Props) {
+export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
   const anomalyQC = useQueryClient();
   const [weekOffset, setWeekOffset] = useState(0);
   const [showVC, setShowVC] = useState(false);
@@ -167,6 +169,10 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
   const [forecast, setForecast] = useState<string | null>(null);
   const [forecastLoading, setForecastLoading] = useState(false);
   const [forecastExpanded, setForecastExpanded] = useState(true);
+
+  // Roster suggestions state
+  const [rosterSuggestion, setRosterSuggestion] = useState<string | null>(null);
+  const [rosterExpanded, setRosterExpanded] = useState(true);
 
   const handleForecast = async () => {
     setForecastLoading(true);
@@ -344,24 +350,44 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
               <TrendingUp className="w-4 h-4 text-brand" />
               Occupancy Trend (13 weeks)
             </h3>
-            <button
-              onClick={handleForecast}
-              disabled={forecastLoading}
-              className={cn(
-                "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors",
-                forecastLoading
-                  ? "border-amber-300 text-amber-700 bg-amber-50"
-                  : "border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100",
-                "disabled:cursor-not-allowed",
-              )}
-            >
-              {forecastLoading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5" />
-              )}
-              {forecastLoading ? "Forecasting..." : "Forecast Demand"}
-            </button>
+            <div className="flex items-center gap-2">
+              <AiButton
+                templateSlug="hr/roster-suggestions"
+                variables={{
+                  centreName: serviceName || "This centre",
+                  attendanceData: grid
+                    .map((r) => `${r.day}: BSC ${r.bsc.enrolled + r.bsc.attended} / ASC ${r.asc.enrolled + r.asc.attended}`)
+                    .join(", "),
+                  staffData: "Check current roster for staff details",
+                  regulations: "1:15 ratio (school-age), 50% diploma-qualified per session (VIC)",
+                }}
+                onResult={(text) => {
+                  setRosterSuggestion(text);
+                  setRosterExpanded(true);
+                }}
+                label="Roster Suggestions"
+                size="sm"
+                section="hr"
+              />
+              <button
+                onClick={handleForecast}
+                disabled={forecastLoading}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors",
+                  forecastLoading
+                    ? "border-amber-300 text-amber-700 bg-amber-50"
+                    : "border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100",
+                  "disabled:cursor-not-allowed",
+                )}
+              >
+                {forecastLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5" />
+                )}
+                {forecastLoading ? "Forecasting..." : "Forecast Demand"}
+              </button>
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={chartData}>
@@ -432,6 +458,47 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
               </div>
               <p className="text-xs text-purple-500 mt-3">
                 AI-generated forecast based on 13 weeks of attendance data and recent enquiry trends. Use as a guide alongside your own centre knowledge.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Roster Suggestions Panel */}
+      {rosterSuggestion && (
+        <div className="bg-purple-50 border border-purple-200 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setRosterExpanded((v) => !v)}
+            className="w-full flex items-center justify-between p-4 text-left"
+          >
+            <h4 className="text-sm font-semibold text-purple-800 flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Smart Roster Suggestions
+            </h4>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRosterSuggestion(null);
+                }}
+                className="text-purple-400 hover:text-purple-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              {rosterExpanded ? (
+                <ChevronUp className="w-4 h-4 text-purple-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-purple-400" />
+              )}
+            </div>
+          </button>
+          {rosterExpanded && (
+            <div className="px-4 pb-4">
+              <div className="text-sm text-purple-900 whitespace-pre-wrap prose prose-sm max-w-none">
+                {rosterSuggestion}
+              </div>
+              <p className="text-xs text-purple-500 mt-3">
+                AI-generated roster suggestions based on attendance patterns and regulatory requirements. Review with your coordinator before implementing.
               </p>
             </div>
           )}

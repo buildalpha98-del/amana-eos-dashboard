@@ -413,6 +413,7 @@ export default function ServiceDetailPage() {
         {activeGroup === "daily" && currentSubKey === "attendance" && (
           <ServiceAttendanceTab
             serviceId={service.id}
+            serviceName={service.name}
           />
         )}
         {activeGroup === "daily" && currentSubKey === "checklists" && (

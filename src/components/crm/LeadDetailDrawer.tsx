@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { AiButton } from "@/components/ui/AiButton";
 import type { PipelineStage, TouchpointType } from "@prisma/client";
 
 const AU_STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
@@ -94,6 +95,8 @@ export function LeadDetailDrawer({
   const createTouchpoint = useCreateTouchpoint();
   const scoreLead = useScoreLead();
   const [scoreFactors, setScoreFactors] = useState<string[]>([]);
+  const [acquisitionResult, setAcquisitionResult] = useState<string | null>(null);
+  const [showAcquisition, setShowAcquisition] = useState(false);
 
   const [showDelete, setShowDelete] = useState(false);
   const [showAddTouchpoint, setShowAddTouchpoint] = useState(false);
@@ -602,6 +605,63 @@ export function LeadDetailDrawer({
                   <p className="text-xs text-gray-400">Not scored yet</p>
                 )}
               </div>
+
+              {/* Acquisition Analysis — only for tenders or leads with capacity */}
+              {(lead.source === "tender" || lead.estimatedCapacity) && (
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Acquisition Analysis
+                    </h4>
+                    <AiButton
+                      templateSlug="crm/acquisition-analysis"
+                      variables={{
+                        leadData: JSON.stringify({
+                          schoolName: lead.schoolName,
+                          location: [lead.suburb, lead.state, lead.postcode].filter(Boolean).join(" "),
+                          address: lead.address || "Not provided",
+                          estimatedCapacity: lead.estimatedCapacity || "Not specified",
+                          source: lead.source,
+                          pipelineStage: lead.pipelineStage,
+                          tenderRef: lead.tenderRef || "N/A",
+                          tenderCloseDate: lead.tenderCloseDate
+                            ? new Date(lead.tenderCloseDate).toLocaleDateString("en-AU")
+                            : "N/A",
+                          contactName: lead.contactName || "Not provided",
+                          notes: lead.notes || "No notes",
+                          daysInPipeline: Math.floor(
+                            (Date.now() - new Date(lead.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+                          ),
+                          aiScore: lead.aiScore ?? "Not scored",
+                        }, null, 2),
+                      }}
+                      onResult={(text) => {
+                        setAcquisitionResult(text);
+                        setShowAcquisition(true);
+                        toast({ description: "Acquisition analysis complete" });
+                      }}
+                      label="Analyze Acquisition"
+                      size="sm"
+                    />
+                  </div>
+
+                  {acquisitionResult && (
+                    <div>
+                      <button
+                        onClick={() => setShowAcquisition(!showAcquisition)}
+                        className="text-xs text-purple-600 hover:text-purple-800 font-medium mb-2"
+                      >
+                        {showAcquisition ? "Hide Analysis" : "Show Analysis"}
+                      </button>
+                      {showAcquisition && (
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">
+                          {acquisitionResult}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Contact Info */}
               <div className="border-t pt-4">

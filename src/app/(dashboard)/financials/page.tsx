@@ -249,6 +249,7 @@ export default function FinancialsPage() {
   const [showEnterData, setShowEnterData] = useState(false);
   const [showImportOWNA, setShowImportOWNA] = useState(false);
   const [aiCommentary, setAiCommentary] = useState<string | null>(null);
+  const [aiRevenueInsights, setAiRevenueInsights] = useState<string | null>(null);
   const { data, isLoading, error, refetch } = useFinancials({ period });
 
   const summary = data?.summary;
@@ -352,6 +353,24 @@ export default function FinancialsPage() {
               section="financials"
               disabled={!summary}
             />
+            <AiButton
+              templateSlug="financials/revenue-optimisation"
+              variables={{
+                financialData: sortedData.length > 0
+                  ? sortedData.map((r) => {
+                      const occupancy = r.service && (r as any).service.capacity
+                        ? `${Math.round(((r.bscAttendance + r.ascAttendance + r.vcAttendance) / ((r as any).service.capacity * 5)) * 100)}%`
+                        : "N/A";
+                      return `${r.service.name} (${r.service.state}): BSC $${r.bscRevenue.toLocaleString()}, ASC $${r.ascRevenue.toLocaleString()}, VC $${r.vcRevenue.toLocaleString()}, Total Rev $${r.totalRevenue.toLocaleString()}, Total Costs $${r.totalCosts.toLocaleString()}, Margin ${r.margin.toFixed(1)}%, Occupancy ${occupancy}`;
+                    }).join("\n")
+                  : "No financial data available",
+              }}
+              onResult={(text) => setAiRevenueInsights(text)}
+              label="Revenue Insights"
+              size="sm"
+              section="financials"
+              disabled={!summary || sortedData.length === 0}
+            />
             <ExportButton onClick={handleExport} disabled={!data?.financials || data.financials.length === 0} />
           </div>
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
@@ -448,6 +467,19 @@ export default function FinancialsPage() {
             </button>
           </div>
           <div className="text-sm text-purple-900 whitespace-pre-wrap">{aiCommentary}</div>
+        </div>
+      )}
+
+      {/* AI Revenue Insights */}
+      {aiRevenueInsights && (
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-purple-800">AI Revenue Optimisation Insights</h3>
+            <button onClick={() => setAiRevenueInsights(null)} className="text-purple-400 hover:text-purple-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="text-sm text-purple-900 whitespace-pre-wrap">{aiRevenueInsights}</div>
         </div>
       )}
 

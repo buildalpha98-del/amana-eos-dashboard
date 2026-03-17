@@ -2055,6 +2055,26 @@ Write 3-4 paragraphs covering:
 Keep it professional, data-driven, and suitable for a leadership team review. Reference specific numbers.`,
     },
     {
+      slug: "financials/revenue-optimisation",
+      name: "Revenue Optimisation Insights",
+      model: "claude-3-5-haiku-latest",
+      maxTokens: 1024,
+      variables: JSON.stringify(["financialData"]),
+      promptTemplate: `Analyze the financial and operational data for Amana OSHC centres and provide revenue optimisation recommendations.
+
+Financial Summary:
+{{financialData}}
+
+Provide actionable recommendations in these areas:
+1. **Pricing Opportunities**: Which centres could adjust BSC/ASC/VC rates based on demand vs capacity?
+2. **Capacity Utilisation**: Which centres are underutilised? Where should marketing focus?
+3. **Session Mix**: Should any centres adjust their BSC/ASC/VC session balance?
+4. **Cost Reduction**: Any centres with disproportionately high costs relative to revenue?
+5. **Quick Wins**: 2-3 immediate actions that could increase revenue this month
+
+Base recommendations on Australian OSHC market norms. Be specific with dollar amounts where possible. Keep it practical for centre directors.`,
+    },
+    {
       slug: "performance/digest",
       name: "Centre Performance Digest",
       model: "claude-sonnet-4-5-20250514",
@@ -2406,6 +2426,74 @@ Provide:
 5. **Confidence Level**: How confident is this forecast (high/medium/low) and why
 
 Keep it concise and actionable for a centre director.`,
+    },
+    {
+      slug: "compliance/regulatory-monitor",
+      name: "Regulatory Change Monitor",
+      model: "claude-3-5-haiku-latest",
+      maxTokens: 1500,
+      variables: JSON.stringify([]),
+      promptTemplate: `You are monitoring Australian OSHC (Out of School Hours Care) regulatory changes for Amana OSHC, which operates centres in NSW and VIC.
+
+Based on your knowledge, identify any recent or upcoming regulatory changes that could affect OSHC operations:
+
+1. **National Quality Standard (NQS)** updates or assessment changes
+2. **Staffing ratios** or qualification requirement changes
+3. **Child Care Subsidy (CCS)** policy or rate changes
+4. **Food safety** and allergen management requirements
+5. **Child protection** and Working With Children Check updates
+6. **State-specific** changes for NSW and VIC
+
+For each change found:
+- What changed and when
+- Impact level (high/medium/low)
+- Action required by Amana OSHC
+- Compliance deadline if applicable
+
+If no significant changes are identified, state that clearly. Focus on changes from the last 30 days or upcoming in the next 60 days.`,
+    },
+    {
+      slug: "crm/acquisition-analysis",
+      name: "Acquisition Analysis",
+      model: "claude-3-5-haiku-latest",
+      maxTokens: 1200,
+      variables: JSON.stringify(["leadData"]),
+      promptTemplate: `Analyze this potential OSHC centre acquisition for Amana OSHC.
+
+Lead Details:
+{{leadData}}
+
+Provide:
+1. **Acquisition Score** (0-100): Overall attractiveness as an acquisition target
+2. **Market Assessment**: Is this location/area underserved for OSHC?
+3. **Financial Viability**: Estimated revenue potential based on capacity and typical Australian OSHC rates ($15-25/session)
+4. **Operational Fit**: How well does this align with Amana's existing network (NSW/VIC focus)?
+5. **Risks**: Key risks to consider (competition, regulatory, operational)
+6. **Recommendation**: Pursue aggressively / Monitor / Pass — with reasoning
+
+Keep analysis practical and specific to Australian OSHC market dynamics.`,
+    },
+    {
+      slug: "hr/roster-suggestions",
+      name: "Smart Roster Suggestions",
+      model: "claude-3-5-haiku-latest",
+      maxTokens: 1200,
+      variables: JSON.stringify(["centreName", "attendanceData", "staffData", "regulations"]),
+      promptTemplate: `Suggest an optimal staff roster for this Amana OSHC centre based on attendance patterns and regulatory requirements.
+
+Centre: {{centreName}}
+Attendance Patterns: {{attendanceData}}
+Current Staff: {{staffData}}
+Regulatory Requirements: {{regulations}}
+
+Provide:
+1. **Recommended daily roster** for each day (Mon-Fri), covering BSC and ASC sessions
+2. **Staff-to-child ratios**: Ensure compliance with 1:15 ratio (or 1:10 for under-school-age)
+3. **Qualification coverage**: At least 50% diploma-qualified staff per session (VIC requirement)
+4. **Cost efficiency**: Flag any over-staffing relative to expected attendance
+5. **Gap alerts**: Any days/sessions where current staff may be insufficient
+
+Keep recommendations practical. Use first names only.`,
     },
   ];
 

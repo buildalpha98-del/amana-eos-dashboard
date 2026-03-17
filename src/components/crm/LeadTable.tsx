@@ -45,14 +45,14 @@ export function LeadTable({
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
             <th className="text-left px-4 py-3 font-medium text-gray-600">School</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Contact</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">State</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Source</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">Contact</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">State</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">Source</th>
             <th className="text-left px-4 py-3 font-medium text-gray-600">Stage</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Assignee</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-600 hidden lg:table-cell">Assignee</th>
             <th className="text-left px-4 py-3 font-medium text-gray-600">Score</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Days</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-600">Touchpoints</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">Days</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-600 hidden lg:table-cell">Touchpoints</th>
           </tr>
         </thead>
         <tbody>
@@ -66,16 +66,16 @@ export function LeadTable({
                 onClick={() => onLeadClick(lead)}
                 className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
               >
-                <td className="px-4 py-3 font-medium text-gray-900">
+                <td className="px-4 py-3 font-medium text-gray-900 max-w-[200px] truncate">
                   {lead.schoolName}
                 </td>
-                <td className="px-4 py-3 text-gray-600">
+                <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">
                   {lead.contactName || "—"}
                 </td>
-                <td className="px-4 py-3 text-gray-600">
+                <td className="px-4 py-3 text-gray-600 hidden md:table-cell">
                   {lead.state || "—"}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 hidden md:table-cell">
                   <span
                     className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                       lead.source === "tender"
@@ -95,7 +95,7 @@ export function LeadTable({
                     {stageLabels[lead.pipelineStage] || lead.pipelineStage}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-600">
+                <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">
                   {lead.assignedTo?.name || "—"}
                 </td>
                 <td className="px-4 py-3">
@@ -115,8 +115,8 @@ export function LeadTable({
                     <span className="text-xs text-gray-300">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-gray-500">{daysInStage}d</td>
-                <td className="px-4 py-3 text-gray-500">
+                <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{daysInStage}d</td>
+                <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">
                   {lead._count.touchpoints}
                 </td>
               </tr>
@@ -124,7 +124,7 @@ export function LeadTable({
           })}
           {leads.length === 0 && (
             <tr>
-              <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
+              <td colSpan={9} className="px-4 py-12 text-center text-gray-400 sm:table-cell">
                 No leads found
               </td>
             </tr>
