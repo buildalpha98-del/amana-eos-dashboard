@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { z } from "zod";
 
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
@@ -81,5 +83,113 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error("[Cowork Feedback GET]", err);
     return NextResponse.json({ error: "Failed to fetch feedback" }, { status: 500 });
+  }
+}
+
+const singleFeedbackSchema = z.object({
+  serviceCode: z.string(),
+  surveyType: z.enum(["quarterly_survey", "nps", "complaint", "compliment", "suggestion", "exit_survey"]),
+  parentName: z.string().optional(),
+  parentEmail: z.string().email().optional(),
+  childName: z.string().optional(),
+  overallRating: z.number().int().min(1).max(5).optional(),
+  npsScore: z.number().int().min(0).max(10).optional(),
+  responses: z.record(z.string(), z.any()).optional(),
+  comments: z.string().optional(),
+  sentiment: z.enum(["positive", "neutral", "negative"]).optional(),
+  category: z.enum(["safety", "programming", "communication", "food", "staff", "facilities", "booking", "other"]).optional(),
+  actionRequired: z.boolean().default(false),
+});
+
+const batchFeedbackSchema = z.object({
+  feedback: z.array(singleFeedbackSchema).max(100),
+});
+
+// POST /api/cowork/parent-experience/feedback — create single or batch ParentFeedback records
+export async function POST(req: NextRequest) {
+  const authError = authenticateCowork(req);
+  if (authError) return authError;
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  // Detect batch vs single
+  const isBatch = typeof body === "object" && body !== null && "feedback" in body;
+
+  if (isBatch) {
+    const parsed = batchFeedbackSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 422 });
+    }
+
+    const items = parsed.data.feedback;
+
+    // Resolve all unique service codes up front
+    const uniqueCodes = [...new Set(items.map((i) => i.serviceCode))];
+    const services = await prisma.service.findMany({
+      where: { code: { in: uniqueCodes } },
+      select: { id: true, code: true },
+    });
+    const codeToId = Object.fromEntries(services.map((s) => [s.code, s.id]));
+
+    const data = items.map((item) => ({
+      serviceId: codeToId[item.serviceCode] ?? null,
+      serviceCode: item.serviceCode,
+      surveyType: item.surveyType,
+      parentName: item.parentName ?? null,
+      parentEmail: item.parentEmail ?? null,
+      childName: item.childName ?? null,
+      overallRating: item.overallRating ?? null,
+      npsScore: item.npsScore ?? null,
+      responses: item.responses ?? Prisma.DbNull,
+      comments: item.comments ?? null,
+      sentiment: item.sentiment ?? null,
+      category: item.category ?? null,
+      actionRequired: item.actionRequired,
+    }));
+
+    try {
+      const result = await prisma.parentFeedback.createMany({ data });
+      return NextResponse.json({ success: true, count: result.count }, { status: 201 });
+    } catch (err) {
+      console.error("[Cowork Feedback POST batch]", err);
+      return NextResponse.json({ error: "Failed to create feedback" }, { status: 500 });
+    }
+  } else {
+    const parsed = singleFeedbackSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 422 });
+    }
+
+    const item = parsed.data;
+    const service = await prisma.service.findUnique({ where: { code: item.serviceCode }, select: { id: true } });
+
+    try {
+      await prisma.parentFeedback.create({
+        data: {
+          serviceId: service?.id ?? null,
+          serviceCode: item.serviceCode,
+          surveyType: item.surveyType,
+          parentName: item.parentName ?? null,
+          parentEmail: item.parentEmail ?? null,
+          childName: item.childName ?? null,
+          overallRating: item.overallRating ?? null,
+          npsScore: item.npsScore ?? null,
+          responses: item.responses ?? Prisma.DbNull,
+          comments: item.comments ?? null,
+          sentiment: item.sentiment ?? null,
+          category: item.category ?? null,
+          actionRequired: item.actionRequired,
+        },
+      });
+      return NextResponse.json({ success: true, count: 1 }, { status: 201 });
+    } catch (err) {
+      console.error("[Cowork Feedback POST single]", err);
+      return NextResponse.json({ error: "Failed to create feedback" }, { status: 500 });
+    }
   }
 }

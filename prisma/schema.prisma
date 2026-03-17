@@ -380,22 +380,22 @@ enum TouchpointType {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(member)
-  avatar       String?
-  active       Boolean  @default(true)
-  serviceId    String?
-  service      Service? @relation("ServiceStaff", fields: [serviceId], references: [id], onDelete: SetNull)
-  state        String?  // Australian state for State Manager scoping (VIC, NSW, QLD, etc.)
-  tokenVersion  Int      @default(0) // Bump to invalidate all existing sessions
-  mfaSecret     String?  // Encrypted TOTP secret (null = MFA not enrolled)
+  id             String    @id @default(cuid())
+  name           String
+  email          String    @unique
+  passwordHash   String
+  role           Role      @default(member)
+  avatar         String?
+  active         Boolean   @default(true)
+  serviceId      String?
+  service        Service?  @relation("ServiceStaff", fields: [serviceId], references: [id], onDelete: SetNull)
+  state          String? // Australian state for State Manager scoping (VIC, NSW, QLD, etc.)
+  tokenVersion   Int       @default(0) // Bump to invalidate all existing sessions
+  mfaSecret      String? // Encrypted TOTP secret (null = MFA not enrolled)
   mfaBackupCodes String[] // Hashed one-time recovery codes
-  mfaEnabledAt  DateTime? // Non-null = MFA is active
-  createdAt     DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  mfaEnabledAt   DateTime? // Non-null = MFA is active
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   ownedRocks                    Rock[]                         @relation("RockOwner")
   assignedTodos                 Todo[]                         @relation("TodoAssignee")
@@ -454,10 +454,10 @@ model User {
   employmentType    EmploymentType?
   startDate         DateTime?       @db.Date
   probationEndDate  DateTime?       @db.Date
-  bankDetailsNote      String?
-  bankAccountName      String?
-  bankBSB              String?
-  bankAccountNumber    String?
+  bankDetailsNote   String?
+  bankAccountName   String?
+  bankBSB           String?
+  bankAccountNumber String?
   xeroEmployeeId    String?
 
   // ── HR Relations ─────────────────────────────────────────────
@@ -484,57 +484,57 @@ model User {
   scenarios Scenario[] @relation("ScenarioCreator")
 
   // ── Marketing Operations ──────────────────────────────
-  schoolCommsSent       SchoolComm[]           @relation("SchoolCommSender")
-  photoComplianceConfs  PhotoComplianceLog[]   @relation("PhotoComplianceConfirmer")
-  termCalendarAssigned  TermCalendarEntry[]    @relation("TermCalendarAssignee")
+  schoolCommsSent      SchoolComm[]         @relation("SchoolCommSender")
+  photoComplianceConfs PhotoComplianceLog[] @relation("PhotoComplianceConfirmer")
+  termCalendarAssigned TermCalendarEntry[]  @relation("TermCalendarAssignee")
 
   // ── Parent Enquiry Pipeline ──────────────────────────
-  assignedEnquiries     ParentEnquiry[]        @relation("EnquiryAssignee")
+  assignedEnquiries ParentEnquiry[] @relation("EnquiryAssignee")
 
   // ── Recruitment Pipeline ───────────────────────────
-  filledVacancies       RecruitmentVacancy[]   @relation("VacancyFilledBy")
-  assignedVacancies     RecruitmentVacancy[]   @relation("VacancyAssignee")
-  candidateReferrals    RecruitmentCandidate[] @relation("CandidateReferrer")
-  staffReferrals        StaffReferral[]        @relation("StaffReferrer")
-  pulseSurveys          StaffPulseSurvey[]     @relation("UserPulseSurveys")
+  filledVacancies    RecruitmentVacancy[]   @relation("VacancyFilledBy")
+  assignedVacancies  RecruitmentVacancy[]   @relation("VacancyAssignee")
+  candidateReferrals RecruitmentCandidate[] @relation("CandidateReferrer")
+  staffReferrals     StaffReferral[]        @relation("StaffReferrer")
+  pulseSurveys       StaffPulseSurvey[]     @relation("UserPulseSurveys")
 
   // ── Meeting & Todo Multi-assign ────────────────────────
   meetingAttendance    MeetingAttendee[] @relation("UserMeetingAttendance")
   todoMultiAssignments TodoAssignee[]    @relation("TodoMultiAssignee")
 
   // ── Billing ───────────────────────────────────────────
-  assignedOverdueFees  OverdueFeeRecord[] @relation("OverdueFeeAssignee")
+  assignedOverdueFees OverdueFeeRecord[] @relation("OverdueFeeAssignee")
 
   // ── Finance ───────────────────────────────────────────
-  createdAdjustments   EBITDAAdjustment[] @relation("AdjustmentCreator")
+  createdAdjustments EBITDAAdjustment[] @relation("AdjustmentCreator")
 
   // ── Operations ────────────────────────────────────────
-  reviewedQIPs         QualityImprovementPlan[] @relation("QIPReviewer")
-  createdIncidents     IncidentRecord[]         @relation("IncidentCreator")
+  reviewedQIPs     QualityImprovementPlan[] @relation("QIPReviewer")
+  createdIncidents IncidentRecord[]         @relation("IncidentCreator")
 
   // ── Programming & Quality ──────────────────────────
-  capturedInterests    ChildInterest[]          @relation("InterestCaptures")
+  capturedInterests ChildInterest[] @relation("InterestCaptures")
 
   // ── Onboarding & Preferences ──────────────────────
-  gettingStartedProgress Json?   // Tracks completed checklist items per role
-  notificationPrefs      Json?   // { overdueTodos: true, newAssignments: true, ... }
+  gettingStartedProgress Json? // Tracks completed checklist items per role
+  notificationPrefs      Json? // { overdueTodos: true, newAssignments: true, ... }
   systemBanners          SystemBannerDismissal[] @relation("BannerDismissals")
   internalFeedback       InternalFeedback[]      @relation("FeedbackAuthor")
 
   // ── Cowork Reports ──────────────────────────────
-  assignedCoworkReports  CoworkReport[] @relation("CoworkReportAssignee")
-  reviewedCoworkReports  CoworkReport[] @relation("CoworkReportReviewer")
-  assignedCoworkTodos    CoworkTodo[]   @relation("CoworkTodoAssignee")
+  assignedCoworkReports CoworkReport[] @relation("CoworkReportAssignee")
+  reviewedCoworkReports CoworkReport[] @relation("CoworkReportReviewer")
+  assignedCoworkTodos   CoworkTodo[]   @relation("CoworkTodoAssignee")
 
   // ── Daily Checklists ──────────────────────────────
-  completedChecklists    DailyChecklist[]     @relation("ChecklistCompletedBy")
-  checkedItems           DailyChecklistItem[] @relation("ChecklistItemCheckedBy")
+  completedChecklists DailyChecklist[]     @relation("ChecklistCompletedBy")
+  checkedItems        DailyChecklistItem[] @relation("ChecklistItemCheckedBy")
 
   // ── AI Usage ───────────────────────────────────────
-  aiUsageLogs            AiUsage[]            @relation("AiUsageLogs")
+  aiUsageLogs AiUsage[] @relation("AiUsageLogs")
 
   // ── Email Templates ──────────────────────────────
-  emailTemplates         EmailTemplate[]      @relation("EmailTemplateCreator")
+  emailTemplates EmailTemplate[] @relation("EmailTemplateCreator")
 
   @@index([serviceId])
 }
@@ -667,7 +667,7 @@ model Todo {
   completedAt DateTime?
   updatedAt   DateTime   @updatedAt
 
-  assignees   TodoAssignee[] @relation("TodoAssignees")
+  assignees TodoAssignee[] @relation("TodoAssignees")
 
   @@index([assigneeId])
   @@index([rockId])
@@ -825,11 +825,11 @@ enum BoardReportStatus {
 }
 
 model BoardReport {
-  id        String            @id @default(cuid())
-  month     Int               // 1-12
-  year      Int
-  status    BoardReportStatus @default(draft)
-  data      Json              // Full structured report data snapshot
+  id     String            @id @default(cuid())
+  month  Int // 1-12
+  year   Int
+  status BoardReportStatus @default(draft)
+  data   Json // Full structured report data snapshot
 
   executiveSummary    String? @db.Text
   financialNarrative  String? @db.Text
@@ -858,10 +858,10 @@ model BoardReport {
 
 model EmailEvent {
   id        String   @id @default(cuid())
-  messageId String   // Resend message ID
-  type      String   // delivered, bounced, complained, opened, clicked
-  email     String   // recipient email
-  payload   Json?    // full webhook payload
+  messageId String // Resend message ID
+  type      String // delivered, bounced, complained, opened, clicked
+  email     String // recipient email
+  payload   Json? // full webhook payload
   createdAt DateTime @default(now())
 
   @@index([messageId])
@@ -872,8 +872,8 @@ model EmailEvent {
 model EmailSuppression {
   id        String   @id @default(cuid())
   email     String   @unique
-  reason    String   // bounce, complaint
-  source    String?  // messageId that triggered it
+  reason    String // bounce, complaint
+  source    String? // messageId that triggered it
   createdAt DateTime @default(now())
 
   @@index([email])
@@ -921,9 +921,9 @@ model MarketingPost {
   content            String?                @db.Text
   notes              String?                @db.Text
   designLink         String?
-  canvaDesignId      String?               // Canva design ID (e.g., "DAGoPem3X54")
-  canvaDesignUrl     String?               // Direct edit URL in Canva
-  canvaExportUrl     String?               // Exported image URL for publishing
+  canvaDesignId      String? // Canva design ID (e.g., "DAGoPem3X54")
+  canvaDesignUrl     String? // Direct edit URL in Canva
+  canvaExportUrl     String? // Exported image URL for publishing
   pillar             String?
   assigneeId         String?
   assignee           User?                  @relation("MarketingPostAssignee", fields: [assigneeId], references: [id])
@@ -944,7 +944,7 @@ model MarketingPost {
   externalPostId     String?
   externalUrl        String?
   engagementSyncedAt DateTime?
-  deliveryLogId  String?
+  deliveryLogId      String?
   approvedById       String?
   approvedBy         User?                  @relation("MarketingPostApprover", fields: [approvedById], references: [id])
   approvedAt         DateTime?
@@ -970,7 +970,7 @@ model MarketingPostRevision {
   post      MarketingPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   userId    String
   user      User          @relation("MarketingPostRevisionAuthor", fields: [userId], references: [id])
-  field     String        // e.g. "title", "content", "status"
+  field     String // e.g. "title", "content", "status"
   oldValue  String?       @db.Text
   newValue  String?       @db.Text
   createdAt DateTime      @default(now())
@@ -1052,16 +1052,16 @@ model SchoolComm {
   id           String    @id @default(cuid())
   serviceId    String
   service      Service   @relation("ServiceSchoolComms", fields: [serviceId], references: [id], onDelete: Cascade)
-  type         String    // "newsletter", "program_overview", "open_day", "holiday_quest", "end_of_term", "whatsapp", "custom"
+  type         String // "newsletter", "program_overview", "open_day", "holiday_quest", "end_of_term", "whatsapp", "custom"
   subject      String
   body         String    @db.Text
-  schoolName   String?   // The school admin this is addressed to
-  contactEmail String?   // School admin email
+  schoolName   String? // The school admin this is addressed to
+  contactEmail String? // School admin email
   status       String    @default("draft") // draft, sent, confirmed
   sentAt       DateTime?
   sentById     String?
   sentBy       User?     @relation("SchoolCommSender", fields: [sentById], references: [id], onDelete: SetNull)
-  termWeek     Int?      // Which term week this relates to (1-10)
+  termWeek     Int? // Which term week this relates to (1-10)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -1089,23 +1089,25 @@ model PhotoComplianceLog {
 }
 
 model SchoolRelationship {
-  id              String   @id @default(cuid())
-  serviceId       String   @unique
-  service         Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  principalName   String?
-  principalEmail  String?
-  lastContactDate DateTime? @db.Date
-  contactMethod   String?  // "meeting", "email", "phone", "event"
-  contactNotes    String?  @db.Text
-  relationshipScore Int?   // 1-10
-  contractStart   DateTime? @db.Date
-  contractEnd     DateTime? @db.Date
-  renewalStatus   String   @default("active") // active, in_renewal, at_risk, lost
-  riskFlags       String[] // e.g. ["low_utilisation", "complaint_received", "competitor_approach"]
-  nextAction      String?  @db.Text
-  nextActionDate  DateTime? @db.Date
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String    @id @default(cuid())
+  serviceId         String    @unique
+  service           Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  principalName     String?
+  principalEmail    String?
+  lastContactDate   DateTime? @db.Date
+  contactMethod     String? // "meeting", "email", "phone", "event"
+  contactNotes      String?   @db.Text
+  relationshipScore Int? // 1-10
+  contractStart     DateTime? @db.Date
+  contractEnd       DateTime? @db.Date
+  renewalStatus     String    @default("active") // active, in_renewal, at_risk, lost
+  riskFlags         String[] // e.g. ["low_utilisation", "complaint_received", "competitor_approach"]
+  nextAction        String?   @db.Text
+  nextActionDate    DateTime? @db.Date
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  meetings PartnershipMeeting[]
 
   @@index([renewalStatus])
   @@index([nextActionDate])
@@ -1117,9 +1119,9 @@ model NpsSurveyResponse {
   service        Service       @relation("ServiceNpsResponses", fields: [serviceId], references: [id], onDelete: Cascade)
   contactId      String
   contact        CentreContact @relation("ContactNpsResponses", fields: [contactId], references: [id], onDelete: Cascade)
-  score          Int           // 0-10 NPS score
+  score          Int // 0-10 NPS score
   comment        String?       @db.Text
-  category       String        // "promoter" (9-10), "passive" (7-8), "detractor" (0-6)
+  category       String // "promoter" (9-10), "passive" (7-8), "detractor" (0-6)
   followUpStatus String        @default("pending") // pending, contacted, resolved
   followUpNote   String?       @db.Text
   respondedAt    DateTime      @default(now())
@@ -1132,22 +1134,22 @@ model NpsSurveyResponse {
 }
 
 model TermCalendarEntry {
-  id          String              @id @default(cuid())
+  id          String             @id @default(cuid())
   year        Int
-  term        Int                 // 1-4
-  week        Int                 // 1-10
-  channel     String              // "social", "newsletter", "school_comms", "activation", "whatsapp", "holiday_quest"
-  serviceId   String?             // null = all centres
-  service     Service?            @relation("ServiceTermCalendar", fields: [serviceId], references: [id], onDelete: Cascade)
+  term        Int // 1-4
+  week        Int // 1-10
+  channel     String // "social", "newsletter", "school_comms", "activation", "whatsapp", "holiday_quest"
+  serviceId   String? // null = all centres
+  service     Service?           @relation("ServiceTermCalendar", fields: [serviceId], references: [id], onDelete: Cascade)
   title       String
-  description String?             @db.Text
-  status      String              @default("planned") // planned, in_progress, completed, skipped
+  description String?            @db.Text
+  status      String             @default("planned") // planned, in_progress, completed, skipped
   assigneeId  String?
-  assignee    User?               @relation("TermCalendarAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignee    User?              @relation("TermCalendarAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   campaignId  String?
-  campaign    MarketingCampaign?  @relation("TermCalendarCampaign", fields: [campaignId], references: [id], onDelete: SetNull)
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  campaign    MarketingCampaign? @relation("TermCalendarCampaign", fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   @@index([year, term, week])
   @@index([channel])
@@ -1170,7 +1172,7 @@ model MarketingTask {
   post        MarketingPost?        @relation(fields: [postId], references: [id], onDelete: SetNull)
   serviceId   String?
   service     Service?              @relation("ServiceMarketingTasks", fields: [serviceId], references: [id], onDelete: SetNull)
-  subtasks    Json?                 // [{text: string, done: boolean}]
+  subtasks    Json? // [{text: string, done: boolean}]
   deleted     Boolean               @default(false)
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
@@ -1229,58 +1231,58 @@ model CampaignActivationAssignment {
 // ============================================================
 
 model Service {
-  id                   String        @id @default(cuid())
-  name                 String
-  code                 String        @unique
-  address              String?
-  suburb               String?
-  state                String?
-  postcode             String?
-  phone                String?
-  email                String?
-  status               ServiceStatus @default(active)
-  managerId            String?
-  manager              User?         @relation("ServiceManager", fields: [managerId], references: [id])
-  capacity             Int?
-  operatingDays        String?
-  notes                String?       @db.Text
-  bscDailyRate         Float?
-  ascDailyRate         Float?
-  vcDailyRate          Float?
-  bscCasualRate        Float         @default(0)
-  ascCasualRate        Float         @default(0)
-  bscGroceryRate       Float         @default(0.80)
-  ascGroceryRate       Float         @default(1.20)
-  vcGroceryRate        Float         @default(4.50)
-  monthlyPurchaseBudget  Float?  // If set, overrides org-wide tier for centre purchase budget
-  xeroTrackingOptionId String?
-  ownaServiceId        String? // OWNA's internal service ID
-  ownaLocationId       String? // OWNA's location reference
-  ownaSyncedAt         DateTime? // Last successful OWNA sync
+  id                    String        @id @default(cuid())
+  name                  String
+  code                  String        @unique
+  address               String?
+  suburb                String?
+  state                 String?
+  postcode              String?
+  phone                 String?
+  email                 String?
+  status                ServiceStatus @default(active)
+  managerId             String?
+  manager               User?         @relation("ServiceManager", fields: [managerId], references: [id])
+  capacity              Int?
+  operatingDays         String?
+  notes                 String?       @db.Text
+  bscDailyRate          Float?
+  ascDailyRate          Float?
+  vcDailyRate           Float?
+  bscCasualRate         Float         @default(0)
+  ascCasualRate         Float         @default(0)
+  bscGroceryRate        Float         @default(0.80)
+  ascGroceryRate        Float         @default(1.20)
+  vcGroceryRate         Float         @default(4.50)
+  monthlyPurchaseBudget Float? // If set, overrides org-wide tier for centre purchase budget
+  xeroTrackingOptionId  String?
+  ownaServiceId         String? // OWNA's internal service ID
+  ownaLocationId        String? // OWNA's location reference
+  ownaSyncedAt          DateTime? // Last successful OWNA sync
 
   // ── Marketing / Growth Fields (Sprint 0) ───────────────────
-  schoolPopulation         Int?       // Total students at the partner school
-  ascTarget                Int?       // Target number of ASC children
-  bscTarget                Int?       // Target number of BSC children
-  weeklyAttendanceTarget   Int?       // Target weekly attendances (BSC + ASC combined)
-  parentSegment            String?    // Primary parent segment: "need", "want", or "mixed"
-  parentDriver             String?    // Primary driver: "homework", "quran", "enrichment", "working_parents", "traffic"
-  launchDate               DateTime?  // Date service launched (for launch-phase tracking)
-  launchPhase              String?    // Phase: "pre_launch", "launch", "ramp_up", "mature"
+  schoolPopulation       Int? // Total students at the partner school
+  ascTarget              Int? // Target number of ASC children
+  bscTarget              Int? // Target number of BSC children
+  weeklyAttendanceTarget Int? // Target weekly attendances (BSC + ASC combined)
+  parentSegment          String? // Primary parent segment: "need", "want", or "mixed"
+  parentDriver           String? // Primary driver: "homework", "quran", "enrichment", "working_parents", "traffic"
+  launchDate             DateTime? // Date service launched (for launch-phase tracking)
+  launchPhase            String? // Phase: "pre_launch", "launch", "ramp_up", "mature"
 
   // ── School Partnership / Contract ──────────────────────────
-  contractStartDate        DateTime?
-  contractEndDate          DateTime?
-  licenceFeeAnnual         Float?     // Annual licence fee paid to school
-  schoolPrincipalName      String?
-  schoolPrincipalEmail     String?
+  contractStartDate          DateTime?
+  contractEndDate            DateTime?
+  licenceFeeAnnual           Float? // Annual licence fee paid to school
+  schoolPrincipalName        String?
+  schoolPrincipalEmail       String?
   schoolBusinessManagerName  String?
   schoolBusinessManagerEmail String?
-  lastPrincipalVisit       DateTime?
-  buildAlphaKidsActive     Boolean    @default(false)
+  lastPrincipalVisit         DateTime?
+  buildAlphaKidsActive       Boolean   @default(false)
 
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   todos                 Todo[]
   projects              Project[]
@@ -1318,7 +1320,7 @@ model Service {
   leads Lead[] @relation("LeadService")
 
   // ── Delivery Relations ────────────────────────────────────
-  centreContacts CentreContact[] @relation("ServiceContacts_Email")
+  centreContacts CentreContact[]     @relation("ServiceContacts_Email")
   nurtureSteps   ParentNurtureStep[] @relation("ServiceNurtureSteps")
 
   // ── Holiday Quest Relations ──────────────────────────────
@@ -1333,46 +1335,52 @@ model Service {
   audits AuditInstance[] @relation("ServiceAudits")
 
   // ── Marketing Operations Relations ─────────────────────
-  schoolComms          SchoolComm[]          @relation("ServiceSchoolComms")
-  photoComplianceLogs  PhotoComplianceLog[]  @relation("ServicePhotoCompliance")
-  npsResponses         NpsSurveyResponse[]   @relation("ServiceNpsResponses")
-  termCalendarEntries  TermCalendarEntry[]   @relation("ServiceTermCalendar")
+  schoolComms         SchoolComm[]         @relation("ServiceSchoolComms")
+  photoComplianceLogs PhotoComplianceLog[] @relation("ServicePhotoCompliance")
+  npsResponses        NpsSurveyResponse[]  @relation("ServiceNpsResponses")
+  termCalendarEntries TermCalendarEntry[]  @relation("ServiceTermCalendar")
 
   // ── Parent Enquiry Pipeline ──────────────────────────
-  enquiries            ParentEnquiry[]
-  referrals            Referral[]
+  enquiries ParentEnquiry[]
+  referrals Referral[]
 
   // ── Recruitment Pipeline ───────────────────────────
-  vacancies            RecruitmentVacancy[] @relation("ServiceVacancies")
-  pulseSurveys         StaffPulseSurvey[]   @relation("ServicePulseSurveys")
+  vacancies    RecruitmentVacancy[] @relation("ServiceVacancies")
+  pulseSurveys StaffPulseSurvey[]   @relation("ServicePulseSurveys")
 
   // ── Billing ───────────────────────────────────────────
-  overdueFees          OverdueFeeRecord[]   @relation("ServiceOverdueFees")
+  overdueFees OverdueFeeRecord[] @relation("ServiceOverdueFees")
 
   // ── Operations ────────────────────────────────────────
-  qip                  QualityImprovementPlan? @relation("ServiceQIP")
-  incidents            IncidentRecord[]        @relation("ServiceIncidents")
+  qip       QualityImprovementPlan? @relation("ServiceQIP")
+  incidents IncidentRecord[]        @relation("ServiceIncidents")
 
   // ── Programming & Quality ──────────────────────────
-  childInterests       ChildInterest[]         @relation("ServiceInterests")
+  childInterests ChildInterest[] @relation("ServiceInterests")
 
   // ── Parent Experience ──────────────────────────────
-  quickFeedback        QuickFeedback[]         @relation("ServiceQuickFeedback")
-  exitSurveys          ExitSurvey[]            @relation("ServiceExitSurveys")
+  quickFeedback    QuickFeedback[]    @relation("ServiceQuickFeedback")
+  exitSurveys      ExitSurvey[]       @relation("ServiceExitSurveys")
+  parentFeedback   ParentFeedback[]   @relation("ServiceParentFeedback")
+  parentExperience ParentExperience[] @relation("ServiceParentExperience")
 
   // ── Cowork Reports ──────────────────────────────
-  coworkReports        CoworkReport[]          @relation("CoworkReportService")
+  coworkReports CoworkReport[] @relation("CoworkReportService")
 
   // ── AI Phase 2 Relations ──────────────────────────
-  sentimentScores      SentimentScore[]        @relation("SentimentScoreService")
-  attendanceAnomalies  AttendanceAnomaly[]     @relation("AttendanceAnomalyService")
-  trendInsights        TrendInsight[]          @relation("TrendInsightService")
+  sentimentScores     SentimentScore[]    @relation("SentimentScoreService")
+  attendanceAnomalies AttendanceAnomaly[] @relation("AttendanceAnomalyService")
+  trendInsights       TrendInsight[]      @relation("TrendInsightService")
 
   // ── Daily Checklists ──────────────────────────────
-  dailyChecklists      DailyChecklist[]
+  dailyChecklists DailyChecklist[]
 
   // ── Partnerships ──────────────────────────────────
-  schoolRelationship   SchoolRelationship?
+  schoolRelationship  SchoolRelationship?
+  partnershipMeetings PartnershipMeeting[] @relation("ServicePartnershipMeetings")
+
+  // ── Finance Reports ─────────────────────────────
+  financeReports FinanceReport[] @relation("ServiceFinanceReports")
 
   @@index([status])
   @@index([managerId])
@@ -1454,8 +1462,8 @@ model Meeting {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  cascades CascadeMessage[] @relation("MeetingCascade")
-  attendees     MeetingAttendee[] @relation("MeetingAttendees")
+  cascades  CascadeMessage[]  @relation("MeetingCascade")
+  attendees MeetingAttendee[] @relation("MeetingAttendees")
 
   @@index([date])
   @@index([status])
@@ -1900,12 +1908,12 @@ model NotificationDismissal {
 }
 
 model OrgSettings {
-  id           String   @id @default("singleton")
-  name         String   @default("Amana OSHC")
-  primaryColor String   @default("#004E64")
-  accentColor  String   @default("#FECE00")
-  purchaseBudgetTiers  Json?  // Array of { minWeeklyChildren: number, monthlyBudget: number }
-  updatedAt    DateTime @updatedAt
+  id                  String   @id @default("singleton")
+  name                String   @default("Amana OSHC")
+  primaryColor        String   @default("#004E64")
+  accentColor         String   @default("#FECE00")
+  purchaseBudgetTiers Json? // Array of { minWeeklyChildren: number, monthlyBudget: number }
+  updatedAt           DateTime @updatedAt
 }
 
 // ============================================================
@@ -2273,25 +2281,25 @@ model BudgetItem {
 // ============================================================
 
 model ProgramActivity {
-  id            String   @id @default(cuid())
-  serviceId     String
-  service       Service  @relation("ServicePrograms", fields: [serviceId], references: [id], onDelete: Cascade)
-  weekStart     DateTime @db.Date
-  day           WeekDay
-  startTime     String // "HH:mm"
-  endTime       String // "HH:mm"
-  title         String
-  description   String?  @db.Text
-  staffName     String?
-  location      String?
-  notes         String?  @db.Text
-  templateId    String?
-  mtopOutcomes  Int[]    // Array of 1-5 representing MTOP learning outcomes
+  id             String   @id @default(cuid())
+  serviceId      String
+  service        Service  @relation("ServicePrograms", fields: [serviceId], references: [id], onDelete: Cascade)
+  weekStart      DateTime @db.Date
+  day            WeekDay
+  startTime      String // "HH:mm"
+  endTime        String // "HH:mm"
+  title          String
+  description    String?  @db.Text
+  staffName      String?
+  location       String?
+  notes          String?  @db.Text
+  templateId     String?
+  mtopOutcomes   Int[] // Array of 1-5 representing MTOP learning outcomes
   programmeBrand String? // homework_heroes, iqra_circle, imagination_station, little_champions, fuel_up, free_play
-  createdById   String?
-  createdBy     User?    @relation("ProgramCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdById    String?
+  createdBy      User?    @relation("ProgramCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // ── Interest linkage ──
   linkedInterests ChildInterest[] @relation("InterestToActivity")
@@ -2845,7 +2853,7 @@ model CoworkTodo {
   dueTime      String? // "06:00", "15:00", etc.
   assignedRole String? // "educator", "coordinator"
   assignedToId String?
-  assignedTo   User?    @relation("CoworkTodoAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedTo   User?     @relation("CoworkTodoAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   completed    Boolean   @default(false)
   completedAt  DateTime?
   completedBy  String?
@@ -2888,23 +2896,23 @@ model CalendarEvent {
 // ============================================================
 
 model Lead {
-  id                String        @id @default(cuid())
-  schoolName        String
-  contactName       String?
-  contactEmail      String?
-  contactPhone      String?
-  address           String?
-  suburb            String?
-  state             String?
-  postcode          String?
-  source            LeadSource    @default(direct)
-  pipelineStage     PipelineStage @default(new_lead)
-  tenderRef         String?       @unique
-  tenderCloseDate   DateTime?
-  tenderUrl         String?
-  estimatedCapacity Int?
+  id                   String        @id @default(cuid())
+  schoolName           String
+  contactName          String?
+  contactEmail         String?
+  contactPhone         String?
+  address              String?
+  suburb               String?
+  state                String?
+  postcode             String?
+  source               LeadSource    @default(direct)
+  pipelineStage        PipelineStage @default(new_lead)
+  tenderRef            String?       @unique
+  tenderCloseDate      DateTime?
+  tenderUrl            String?
+  estimatedCapacity    Int?
   notes                String?       @db.Text
-  buildAlphaKidsStatus String?       // active, prospect, not_applicable, unknown
+  buildAlphaKidsStatus String? // active, prospect, not_applicable, unknown
   communityConnections String?       @db.Text
   assignedToId         String?
   assignedTo           User?         @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
@@ -2916,8 +2924,8 @@ model Lead {
   stageChangedAt       DateTime      @default(now())
   nextTouchpointAt     DateTime?
   deleted              Boolean       @default(false)
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   touchpoints TouchpointLog[]
 
@@ -2971,18 +2979,18 @@ model TenderScrapeRun {
 // ============================================================
 
 model CentreContact {
-  id                String    @id @default(cuid())
-  email             String
-  firstName         String?
-  lastName          String?
-  serviceId         String
-  service           Service   @relation("ServiceContacts_Email", fields: [serviceId], references: [id], onDelete: Cascade)
-  subscribed        Boolean   @default(true)
-  status            String    @default("active") // active, withdrawn, paused
-  withdrawalDate    DateTime?
-  withdrawalReason  String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  email            String
+  firstName        String?
+  lastName         String?
+  serviceId        String
+  service          Service   @relation("ServiceContacts_Email", fields: [serviceId], references: [id], onDelete: Cascade)
+  subscribed       Boolean   @default(true)
+  status           String    @default("active") // active, withdrawn, paused
+  withdrawalDate   DateTime?
+  withdrawalReason String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   nurtureSteps  ParentNurtureStep[] @relation("ContactNurtureSteps")
   npsResponses  NpsSurveyResponse[] @relation("ContactNpsResponses")
@@ -2999,16 +3007,16 @@ model CentreContact {
 // ============================================================
 
 model QuickFeedback {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   serviceId   String
-  service     Service   @relation("ServiceQuickFeedback", fields: [serviceId], references: [id], onDelete: Cascade)
-  weekStart   DateTime  @db.Date
-  score       Int       // 1=very unhappy, 2=unhappy, 3=neutral, 4=happy, 5=very happy
-  comment     String?   @db.Text
+  service     Service  @relation("ServiceQuickFeedback", fields: [serviceId], references: [id], onDelete: Cascade)
+  weekStart   DateTime @db.Date
+  score       Int // 1=very unhappy, 2=unhappy, 3=neutral, 4=happy, 5=very happy
+  comment     String?  @db.Text
   parentName  String?
   parentEmail String?
-  ipHash      String?   // Hashed IP for rate limiting
-  createdAt   DateTime  @default(now())
+  ipHash      String? // Hashed IP for rate limiting
+  createdAt   DateTime @default(now())
 
   @@index([serviceId, weekStart])
   @@index([score])
@@ -3016,23 +3024,23 @@ model QuickFeedback {
 }
 
 model ExitSurvey {
-  id                String    @id @default(cuid())
+  id                String         @id @default(cuid())
   serviceId         String
-  service           Service   @relation("ServiceExitSurveys", fields: [serviceId], references: [id], onDelete: Cascade)
+  service           Service        @relation("ServiceExitSurveys", fields: [serviceId], references: [id], onDelete: Cascade)
   contactId         String?
   contact           CentreContact? @relation("ContactExitSurveys", fields: [contactId], references: [id], onDelete: SetNull)
   childName         String
   withdrawalDate    DateTime
-  reason            String    // moved_schools, no_longer_need_care, cost, unhappy_with_service, child_did_not_enjoy, schedule_change, other
-  reasonDetail      String?   @db.Text
-  satisfactionScore Int       // 1-5
-  enjoyedMost       String?   @db.Text
-  couldImprove      String?   @db.Text
-  wouldReturn       String    // yes, maybe, no
-  surveyToken       String    @unique
+  reason            String // moved_schools, no_longer_need_care, cost, unhappy_with_service, child_did_not_enjoy, schedule_change, other
+  reasonDetail      String?        @db.Text
+  satisfactionScore Int // 1-5
+  enjoyedMost       String?        @db.Text
+  couldImprove      String?        @db.Text
+  wouldReturn       String // yes, maybe, no
+  surveyToken       String         @unique
   tokenExpiresAt    DateTime
   completedAt       DateTime?
-  createdAt         DateTime  @default(now())
+  createdAt         DateTime       @default(now())
 
   @@index([serviceId])
   @@index([reason])
@@ -3074,11 +3082,11 @@ model DeliveryLog {
   status         String // sent, scheduled, failed
   errorMessage   String?  @db.Text
   payload        Json? // original request body for debugging
-  entityType   String?
-  entityId     String?
-  subject      String?
-  templateId   String?
-  renderedHtml String?    @db.Text
+  entityType     String?
+  entityId       String?
+  subject        String?
+  templateId     String?
+  renderedHtml   String?  @db.Text
   createdAt      DateTime @default(now())
 
   @@index([channel])
@@ -3092,19 +3100,19 @@ model DeliveryLog {
 // ============================================================
 
 model ParentNurtureStep {
-  id           String    @id @default(cuid())
+  id           String         @id @default(cuid())
   serviceId    String
-  service      Service   @relation("ServiceNurtureSteps", fields: [serviceId], references: [id], onDelete: Cascade)
+  service      Service        @relation("ServiceNurtureSteps", fields: [serviceId], references: [id], onDelete: Cascade)
   contactId    String
-  contact      CentreContact @relation("ContactNurtureSteps", fields: [contactId], references: [id], onDelete: Cascade)
+  contact      CentreContact  @relation("ContactNurtureSteps", fields: [contactId], references: [id], onDelete: Cascade)
   stepNumber   Int
   templateKey  String // welcome, how_to_enrol, what_to_bring, app_setup, first_week, ccs_assist, nudge_1, form_support, nudge_2, final_nudge, day1_checkin, day3_checkin, week2_feedback, month1_referral
   scheduledFor DateTime
   sentAt       DateTime?
-  status       String    @default("pending") // pending, sent, failed, cancelled
+  status       String         @default("pending") // pending, sent, failed, cancelled
   enquiryId    String?
   enquiry      ParentEnquiry? @relation(fields: [enquiryId], references: [id])
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime       @default(now())
 
   @@unique([contactId, templateKey])
   @@index([serviceId])
@@ -3310,7 +3318,7 @@ model AuditInstance {
   updatedAt           DateTime      @updatedAt
 
   responses AuditItemResponse[]
-  reviews   AuditReview[] @relation("AuditReviews")
+  reviews   AuditReview[]       @relation("AuditReviews")
 
   @@unique([templateId, serviceId, scheduledMonth, scheduledYear])
   @@index([serviceId])
@@ -3345,35 +3353,35 @@ model AuditItemResponse {
 // ============================================================
 
 model ParentEnquiry {
-  id              String   @id @default(cuid())
-  serviceId       String
-  service         Service  @relation(fields: [serviceId], references: [id])
-  parentName      String
-  parentEmail     String?
-  parentPhone     String?
-  childName       String?
-  childAge        Int?
-  childrenDetails Json?    // Array of {name, age} for multiple children
-  channel         String   // phone, email, whatsapp, walkin, referral, website
-  parentDriver    String?  // homework, quran, enrichment, working_parent, traffic, sports
-  stage           String   @default("new_enquiry") // new_enquiry, info_sent, nurturing, form_started, enrolled, first_session, day3, week2, month1, retained, cold
-  stageChangedAt  DateTime @default(now())
-  nextActionDue   DateTime?
-  ccsEducated     Boolean  @default(false)
-  formStarted     Boolean  @default(false)
-  formCompleted   Boolean  @default(false)
+  id               String                    @id @default(cuid())
+  serviceId        String
+  service          Service                   @relation(fields: [serviceId], references: [id])
+  parentName       String
+  parentEmail      String?
+  parentPhone      String?
+  childName        String?
+  childAge         Int?
+  childrenDetails  Json? // Array of {name, age} for multiple children
+  channel          String // phone, email, whatsapp, walkin, referral, website
+  parentDriver     String? // homework, quran, enrichment, working_parent, traffic, sports
+  stage            String                    @default("new_enquiry") // new_enquiry, info_sent, nurturing, form_started, enrolled, first_session, day3, week2, month1, retained, cold
+  stageChangedAt   DateTime                  @default(now())
+  nextActionDue    DateTime?
+  ccsEducated      Boolean                   @default(false)
+  formStarted      Boolean                   @default(false)
+  formCompleted    Boolean                   @default(false)
   firstSessionDate DateTime?
-  referralId      String?
-  referral        Referral? @relation(fields: [referralId], references: [id])
-  assigneeId      String?
-  assignee        User?    @relation("EnquiryAssignee", fields: [assigneeId], references: [id])
-  notes           String?  @db.Text
-  deleted         Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  lastEmailSentAt DateTime?
-  touchpoints     ParentEnquiryTouchpoint[]
-  nurtureSteps    ParentNurtureStep[]
+  referralId       String?
+  referral         Referral?                 @relation(fields: [referralId], references: [id])
+  assigneeId       String?
+  assignee         User?                     @relation("EnquiryAssignee", fields: [assigneeId], references: [id])
+  notes            String?                   @db.Text
+  deleted          Boolean                   @default(false)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  lastEmailSentAt  DateTime?
+  touchpoints      ParentEnquiryTouchpoint[]
+  nurtureSteps     ParentNurtureStep[]
 
   @@index([serviceId])
   @@index([stage])
@@ -3388,8 +3396,8 @@ model ParentEnquiryTouchpoint {
   id                String        @id @default(cuid())
   enquiryId         String
   enquiry           ParentEnquiry @relation(fields: [enquiryId], references: [id])
-  type              String        // first_response, nudge_1, form_support, nudge_2, final_nudge, welcome, day1_checkin, day3_checkin, week2_feedback, month1_referral, retention_alert, custom
-  channel           String        // email, whatsapp, phone, sms
+  type              String // first_response, nudge_1, form_support, nudge_2, final_nudge, welcome, day1_checkin, day3_checkin, week2_feedback, month1_referral, retention_alert, custom
+  channel           String // email, whatsapp, phone, sms
   content           String?       @db.Text
   scheduledFor      DateTime?
   sentAt            DateTime?
@@ -3402,20 +3410,20 @@ model ParentEnquiryTouchpoint {
 }
 
 model Referral {
-  id                String         @id @default(cuid())
+  id                String          @id @default(cuid())
   serviceId         String
-  service           Service        @relation(fields: [serviceId], references: [id])
+  service           Service         @relation(fields: [serviceId], references: [id])
   referrerName      String
   referrerContactId String?
-  referrerContact   CentreContact? @relation("ReferrerContact", fields: [referrerContactId], references: [id])
+  referrerContact   CentreContact?  @relation("ReferrerContact", fields: [referrerContactId], references: [id])
   referredName      String
   referredEmail     String?
   referredPhone     String?
-  status            String         @default("pending") // pending, enquired, enrolled, rewarded, expired
-  rewardAmount      Float          @default(50)
+  status            String          @default("pending") // pending, enquired, enrolled, rewarded, expired
+  rewardAmount      Float           @default(50)
   rewardIssuedAt    DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
   enquiries         ParentEnquiry[]
 
   @@index([serviceId])
@@ -3427,25 +3435,25 @@ model Referral {
 // ============================================================
 
 model RecruitmentVacancy {
-  id                    String              @id @default(cuid())
+  id                    String                 @id @default(cuid())
   serviceId             String
-  service               Service             @relation("ServiceVacancies", fields: [serviceId], references: [id])
-  role                  String              // educator, senior_educator, coordinator, director
+  service               Service                @relation("ServiceVacancies", fields: [serviceId], references: [id])
+  role                  String // educator, senior_educator, coordinator, director
   employmentType        EmploymentType
-  qualificationRequired String?             // none, cert_iii, diploma
-  status                String              @default("open") // open, interviewing, offered, filled, cancelled
+  qualificationRequired String? // none, cert_iii, diploma
+  status                String                 @default("open") // open, interviewing, offered, filled, cancelled
   postedChannels        String[]
   postedAt              DateTime?
   targetFillDate        DateTime?
   filledAt              DateTime?
   filledByUserId        String?
-  filledByUser          User?               @relation("VacancyFilledBy", fields: [filledByUserId], references: [id])
+  filledByUser          User?                  @relation("VacancyFilledBy", fields: [filledByUserId], references: [id])
   assignedToId          String?
-  assignedTo            User?               @relation("VacancyAssignee", fields: [assignedToId], references: [id])
-  notes                 String?             @db.Text
-  deleted               Boolean             @default(false)
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  assignedTo            User?                  @relation("VacancyAssignee", fields: [assignedToId], references: [id])
+  notes                 String?                @db.Text
+  deleted               Boolean                @default(false)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
   candidates            RecruitmentCandidate[]
 
   @@index([serviceId])
@@ -3454,45 +3462,45 @@ model RecruitmentVacancy {
 }
 
 model RecruitmentCandidate {
-  id              String              @id @default(cuid())
-  vacancyId       String
-  vacancy         RecruitmentVacancy  @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
-  name            String
-  email           String?
-  phone           String?
-  source          String              // indeed, seek, referral, community, mosque, university, walkin
-  stage           String              @default("applied") // applied, screened, interviewed, offered, accepted, rejected, withdrawn
-  appliedAt       DateTime            @default(now())
-  stageChangedAt  DateTime            @default(now())
-  interviewNotes  String?             @db.Text
+  id               String             @id @default(cuid())
+  vacancyId        String
+  vacancy          RecruitmentVacancy @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
+  name             String
+  email            String?
+  phone            String?
+  source           String // indeed, seek, referral, community, mosque, university, walkin
+  stage            String             @default("applied") // applied, screened, interviewed, offered, accepted, rejected, withdrawn
+  appliedAt        DateTime           @default(now())
+  stageChangedAt   DateTime           @default(now())
+  interviewNotes   String?            @db.Text
   referredByUserId String?
-  referredByUser  User?               @relation("CandidateReferrer", fields: [referredByUserId], references: [id])
-  notes           String?             @db.Text
-  resumeText      String?             @db.Text
-  resumeFileUrl   String?
-  aiScreenScore   Int?                // 0-100 fit score
-  aiScreenSummary String?             @db.Text
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  staffReferral   StaffReferral?
+  referredByUser   User?              @relation("CandidateReferrer", fields: [referredByUserId], references: [id])
+  notes            String?            @db.Text
+  resumeText       String?            @db.Text
+  resumeFileUrl    String?
+  aiScreenScore    Int? // 0-100 fit score
+  aiScreenSummary  String?            @db.Text
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  staffReferral    StaffReferral?
 
   @@index([vacancyId])
   @@index([stage])
 }
 
 model StaffReferral {
-  id              String              @id @default(cuid())
-  referrerUserId  String
-  referrerUser    User                @relation("StaffReferrer", fields: [referrerUserId], references: [id])
-  referredName    String
-  referredEmail   String?
-  candidateId     String?             @unique
-  candidate       RecruitmentCandidate? @relation(fields: [candidateId], references: [id])
-  status          String              @default("pending") // pending, hired, bonus_paid, expired
-  bonusAmount     Float               @default(200)
-  bonusPaidAt     DateTime?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id             String                @id @default(cuid())
+  referrerUserId String
+  referrerUser   User                  @relation("StaffReferrer", fields: [referrerUserId], references: [id])
+  referredName   String
+  referredEmail  String?
+  candidateId    String?               @unique
+  candidate      RecruitmentCandidate? @relation(fields: [candidateId], references: [id])
+  status         String                @default("pending") // pending, hired, bonus_paid, expired
+  bonusAmount    Float                 @default(200)
+  bonusPaidAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
 
   @@index([referrerUserId])
   @@index([status])
@@ -3504,11 +3512,11 @@ model StaffPulseSurvey {
   user        User      @relation("UserPulseSurveys", fields: [userId], references: [id])
   serviceId   String
   service     Service   @relation("ServicePulseSurveys", fields: [serviceId], references: [id])
-  periodMonth String    // format: "2026-03"
-  q1Happy     Int?      // 1-5
-  q2Supported Int?      // 1-5
-  q3Schedule  Int?      // 1-5
-  q4Recommend Int?      // 1-5
+  periodMonth String // format: "2026-03"
+  q1Happy     Int? // 1-5
+  q2Supported Int? // 1-5
+  q3Schedule  Int? // 1-5
+  q4Recommend Int? // 1-5
   q5Feedback  String?   @db.Text
   submittedAt DateTime?
   createdAt   DateTime  @default(now())
@@ -3563,18 +3571,18 @@ model OverdueFeeRecord {
 // ═══════════════════════════════════════════════════════════
 
 model EBITDAAdjustment {
-  id                    String   @id @default(cuid())
-  periodMonth           String // format: "2026-03"
-  category              String // personal_expense/one_off_cost/non_operating/system_migration/founder_above_market/other
-  description           String
-  amount                Float
-  isRecurring           Boolean  @default(false)
-  verifiedByAccountant  Boolean  @default(false)
-  notes                 String?  @db.Text
-  createdById           String?
-  createdBy             User?    @relation("AdjustmentCreator", fields: [createdById], references: [id])
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  periodMonth          String // format: "2026-03"
+  category             String // personal_expense/one_off_cost/non_operating/system_migration/founder_above_market/other
+  description          String
+  amount               Float
+  isRecurring          Boolean  @default(false)
+  verifiedByAccountant Boolean  @default(false)
+  notes                String?  @db.Text
+  createdById          String?
+  createdBy            User?    @relation("AdjustmentCreator", fields: [createdById], references: [id])
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@index([periodMonth])
 }
@@ -3584,26 +3592,26 @@ model EBITDAAdjustment {
 // ═══════════════════════════════════════════════════════════
 
 model CashFlowPeriod {
-  id                String   @id @default(cuid())
-  periodMonth       String   @unique // format: "2026-03"
-  openingBalance    Float
-  parentFeeReceipts Float    @default(0)
-  ccsReceipts       Float    @default(0)
-  otherReceipts     Float    @default(0)
-  totalReceipts     Float    @default(0)
-  payrollPayments   Float    @default(0)
-  supplierPayments  Float    @default(0)
-  rentPayments      Float    @default(0)
-  overheadPayments  Float    @default(0)
-  debtRepayments    Float    @default(0) // Amex etc
-  investmentOutflows Float   @default(0) // new centre setup
-  totalPayments     Float    @default(0)
-  netMovement       Float    @default(0)
-  closingBalance    Float    @default(0)
-  isActual          Boolean  @default(false) // false = forecast, true = actual
-  notes             String?  @db.Text
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  periodMonth        String   @unique // format: "2026-03"
+  openingBalance     Float
+  parentFeeReceipts  Float    @default(0)
+  ccsReceipts        Float    @default(0)
+  otherReceipts      Float    @default(0)
+  totalReceipts      Float    @default(0)
+  payrollPayments    Float    @default(0)
+  supplierPayments   Float    @default(0)
+  rentPayments       Float    @default(0)
+  overheadPayments   Float    @default(0)
+  debtRepayments     Float    @default(0) // Amex etc
+  investmentOutflows Float    @default(0) // new centre setup
+  totalPayments      Float    @default(0)
+  netMovement        Float    @default(0)
+  closingBalance     Float    @default(0)
+  isActual           Boolean  @default(false) // false = forecast, true = actual
+  notes              String?  @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3611,37 +3619,37 @@ model CashFlowPeriod {
 // ═══════════════════════════════════════════════════════════
 
 model QualityImprovementPlan {
-  id              String   @id @default(cuid())
-  serviceId       String   @unique
-  service         Service  @relation("ServiceQIP", fields: [serviceId], references: [id])
-  state           String
-  documentType    String   @default("qip") // qip | sat
-  status          String   @default("draft") // draft | in_review | current | archived
-  lastReviewDate  DateTime?
-  reviewedById    String?
-  reviewedBy      User?    @relation("QIPReviewer", fields: [reviewedById], references: [id])
-  qualityAreas    QIPQualityArea[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String           @id @default(cuid())
+  serviceId      String           @unique
+  service        Service          @relation("ServiceQIP", fields: [serviceId], references: [id])
+  state          String
+  documentType   String           @default("qip") // qip | sat
+  status         String           @default("draft") // draft | in_review | current | archived
+  lastReviewDate DateTime?
+  reviewedById   String?
+  reviewedBy     User?            @relation("QIPReviewer", fields: [reviewedById], references: [id])
+  qualityAreas   QIPQualityArea[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 }
 
 model QIPQualityArea {
-  id                  String   @id @default(cuid())
+  id                  String                 @id @default(cuid())
   qipId               String
   qip                 QualityImprovementPlan @relation(fields: [qipId], references: [id], onDelete: Cascade)
   qualityArea         Int // 1-7
   qualityAreaName     String
-  strengths           String?  @db.Text
-  areasForImprovement String?  @db.Text
-  improvementGoal     String?  @db.Text
-  strategies          String?  @db.Text
+  strengths           String?                @db.Text
+  areasForImprovement String?                @db.Text
+  improvementGoal     String?                @db.Text
+  strategies          String?                @db.Text
   timeline            String?
   responsiblePerson   String?
-  evidenceIndicators  String?  @db.Text
-  evidenceCollected   String?  @db.Text
-  progressNotes       String?  @db.Text
-  progressStatus      String   @default("not_started") // not_started | in_progress | achieved | ongoing
-  updatedAt           DateTime @updatedAt
+  evidenceIndicators  String?                @db.Text
+  evidenceCollected   String?                @db.Text
+  progressNotes       String?                @db.Text
+  progressStatus      String                 @default("not_started") // not_started | in_progress | achieved | ongoing
+  updatedAt           DateTime               @updatedAt
 
   @@unique([qipId, qualityArea])
 }
@@ -3651,28 +3659,28 @@ model QIPQualityArea {
 // ═══════════════════════════════════════════════════════════
 
 model IncidentRecord {
-  id                     String    @id @default(cuid())
-  serviceId              String
-  service                Service   @relation("ServiceIncidents", fields: [serviceId], references: [id])
-  incidentDate           DateTime
-  childName              String?
-  incidentType           String // injury | illness | behaviour | missing_child | near_miss | medication_error | property_damage | complaint
-  severity               String // minor | moderate | reportable | serious
-  location               String? // indoor | outdoor | playground | transition | bathroom | kitchen
-  timeOfDay              String? // arrival | programme | meal_time | packdown | departure
-  description            String   @db.Text
-  actionTaken            String?  @db.Text
-  parentNotified         Boolean  @default(false)
-  reportableToAuthority  Boolean  @default(false)
-  reportedToAuthorityAt  DateTime?
-  followUpRequired       Boolean  @default(false)
-  followUpCompleted      Boolean  @default(false)
-  ownaIncidentId         String?
-  createdById            String?
-  createdBy              User?    @relation("IncidentCreator", fields: [createdById], references: [id])
-  deleted                Boolean  @default(false)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id                    String    @id @default(cuid())
+  serviceId             String
+  service               Service   @relation("ServiceIncidents", fields: [serviceId], references: [id])
+  incidentDate          DateTime
+  childName             String?
+  incidentType          String // injury | illness | behaviour | missing_child | near_miss | medication_error | property_damage | complaint
+  severity              String // minor | moderate | reportable | serious
+  location              String? // indoor | outdoor | playground | transition | bathroom | kitchen
+  timeOfDay             String? // arrival | programme | meal_time | packdown | departure
+  description           String    @db.Text
+  actionTaken           String?   @db.Text
+  parentNotified        Boolean   @default(false)
+  reportableToAuthority Boolean   @default(false)
+  reportedToAuthorityAt DateTime?
+  followUpRequired      Boolean   @default(false)
+  followUpCompleted     Boolean   @default(false)
+  ownaIncidentId        String?
+  createdById           String?
+  createdBy             User?     @relation("IncidentCreator", fields: [createdById], references: [id])
+  deleted               Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@index([serviceId])
   @@index([incidentDate])
@@ -3685,22 +3693,22 @@ model IncidentRecord {
 // ============================================================
 
 model ChildInterest {
-  id                String    @id @default(cuid())
-  serviceId         String
-  service           Service   @relation("ServiceInterests", fields: [serviceId], references: [id], onDelete: Cascade)
-  capturedDate      DateTime  @default(now())
-  childName         String?   // optional — can be group-level
-  interestTopic     String
-  interestCategory  String?   // sport/animals/science/art/cooking/technology/nature/social/cultural/religious/other
-  source            String    // interest_book/verbal/observation/parent/suggestion_box
-  capturedById      String?
-  capturedBy        User?     @relation("InterestCaptures", fields: [capturedById], references: [id], onDelete: SetNull)
+  id                 String           @id @default(cuid())
+  serviceId          String
+  service            Service          @relation("ServiceInterests", fields: [serviceId], references: [id], onDelete: Cascade)
+  capturedDate       DateTime         @default(now())
+  childName          String? // optional — can be group-level
+  interestTopic      String
+  interestCategory   String? // sport/animals/science/art/cooking/technology/nature/social/cultural/religious/other
+  source             String // interest_book/verbal/observation/parent/suggestion_box
+  capturedById       String?
+  capturedBy         User?            @relation("InterestCaptures", fields: [capturedById], references: [id], onDelete: SetNull)
   linkedToActivityId String?
-  linkedToActivity  ProgramActivity? @relation("InterestToActivity", fields: [linkedToActivityId], references: [id], onDelete: SetNull)
-  actioned          Boolean   @default(false)
-  actionedDate      DateTime?
-  notes             String?   @db.Text
-  createdAt         DateTime  @default(now())
+  linkedToActivity   ProgramActivity? @relation("InterestToActivity", fields: [linkedToActivityId], references: [id], onDelete: SetNull)
+  actioned           Boolean          @default(false)
+  actionedDate       DateTime?
+  notes              String?          @db.Text
+  createdAt          DateTime         @default(now())
 
   @@index([serviceId, actioned])
   @@index([serviceId, capturedDate])
@@ -3711,17 +3719,17 @@ model ChildInterest {
 // ============================================================
 
 model AuditReview {
-  id             String   @id @default(cuid())
+  id              String         @id @default(cuid())
   auditInstanceId String?
-  auditInstance  AuditInstance? @relation("AuditReviews", fields: [auditInstanceId], references: [id], onDelete: SetNull)
-  centreId       String
-  qualityArea    Int      // 1-7 (NQS QA1–QA7)
-  elements       Json     // Array of { element: string, rating: string, evidence: string }
-  overallRating  String   // "exceeding" | "meeting" | "working_towards" | "not_met"
-  reviewerNotes  String?  @db.Text
-  reviewedAt     DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  auditInstance   AuditInstance? @relation("AuditReviews", fields: [auditInstanceId], references: [id], onDelete: SetNull)
+  centreId        String
+  qualityArea     Int // 1-7 (NQS QA1–QA7)
+  elements        Json // Array of { element: string, rating: string, evidence: string }
+  overallRating   String // "exceeding" | "meeting" | "working_towards" | "not_met"
+  reviewerNotes   String?        @db.Text
+  reviewedAt      DateTime       @default(now())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   @@index([centreId])
   @@index([qualityArea])
@@ -3740,16 +3748,16 @@ enum ReflectionType {
 }
 
 model EducatorReflection {
-  id             String          @id @default(cuid())
-  centreId       String
-  educatorName   String
-  reflectionType ReflectionType
-  date           DateTime        @db.Date
-  content        Json            // Flexible structure per type
-  tags           String[]
+  id               String         @id @default(cuid())
+  centreId         String
+  educatorName     String
+  reflectionType   ReflectionType
+  date             DateTime       @db.Date
+  content          Json // Flexible structure per type
+  tags             String[]
   linkedActivityId String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@index([centreId])
   @@index([reflectionType])
@@ -3762,16 +3770,16 @@ model EducatorReflection {
 // ---------------------------------------------------------------------------
 
 model SecurityAuditLog {
-  id        String   @id @default(cuid())
-  action    String   // e.g. "user.login", "user.password_reset", "user.role_change"
-  actorId   String?  // null for system/cron actions
+  id         String   @id @default(cuid())
+  action     String // e.g. "user.login", "user.password_reset", "user.role_change"
+  actorId    String? // null for system/cron actions
   actorEmail String?
-  targetId  String?  // affected resource ID
+  targetId   String? // affected resource ID
   targetType String? // e.g. "User", "ApiKey", "Service"
-  metadata  Json?    // extra context (IP, old/new values, etc.)
-  ip        String?
-  userAgent String?
-  createdAt DateTime @default(now())
+  metadata   Json? // extra context (IP, old/new values, etc.)
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
 
   @@index([action])
   @@index([actorId])
@@ -3819,18 +3827,18 @@ model SystemBannerDismissal {
 // ============================================================
 
 model InternalFeedback {
-  id          String   @id @default(cuid())
-  authorId    String
-  author      User     @relation("FeedbackAuthor", fields: [authorId], references: [id])
-  category    String   // bug, feature_request, question, general
-  message     String   @db.Text
+  id            String    @id @default(cuid())
+  authorId      String
+  author        User      @relation("FeedbackAuthor", fields: [authorId], references: [id])
+  category      String // bug, feature_request, question, general
+  message       String    @db.Text
   screenshotUrl String?
-  page        String?  // URL path where feedback was submitted
-  status      String   @default("new") // new, acknowledged, in_progress, resolved
-  resolvedAt  DateTime?
-  adminNotes  String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  page          String? // URL path where feedback was submitted
+  status        String    @default("new") // new, acknowledged, in_progress, resolved
+  resolvedAt    DateTime?
+  adminNotes    String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([authorId])
   @@index([status])
@@ -3843,16 +3851,16 @@ model InternalFeedback {
 // ============================================================
 
 model KnowledgeBaseArticle {
-  id          String   @id @default(cuid())
-  title       String
-  body        String   @db.Text
-  category    String   // getting_started, eos_basics, hr, compliance, troubleshooting
-  slug        String   @unique
-  sortOrder   Int      @default(0)
-  published   Boolean  @default(true)
+  id            String   @id @default(cuid())
+  title         String
+  body          String   @db.Text
+  category      String // getting_started, eos_basics, hr, compliance, troubleshooting
+  slug          String   @unique
+  sortOrder     Int      @default(0)
+  published     Boolean  @default(true)
   audienceRoles String[] // empty = all roles
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([category])
   @@index([published])
@@ -3863,25 +3871,25 @@ model KnowledgeBaseArticle {
 // ============================================================
 
 model CoworkReport {
-  id           String   @id @default(cuid())
-  seat         String   // "marketing", "people", "operations", "finance", "programming", "parent-experience", "partnerships"
-  reportType   String   // e.g., "weekly-people-summary", "occupancy-enrolment-report"
+  id           String    @id @default(cuid())
+  seat         String // "marketing", "people", "operations", "finance", "programming", "parent-experience", "partnerships"
+  reportType   String // e.g., "weekly-people-summary", "occupancy-enrolment-report"
   title        String
-  content      String   @db.Text
-  metrics      Json?    // optional structured metrics
-  alerts       Json?    // optional alert flags
-  serviceCode  String?  // centre code if centre-specific
+  content      String    @db.Text
+  metrics      Json? // optional structured metrics
+  alerts       Json? // optional alert flags
+  serviceCode  String? // centre code if centre-specific
   serviceId    String?
-  service      Service? @relation("CoworkReportService", fields: [serviceId], references: [id], onDelete: SetNull)
+  service      Service?  @relation("CoworkReportService", fields: [serviceId], references: [id], onDelete: SetNull)
   assignedToId String?
-  assignedTo   User?    @relation("CoworkReportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-  status       String   @default("pending") // "pending", "reviewed", "actioned"
+  assignedTo   User?     @relation("CoworkReportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  status       String    @default("pending") // "pending", "reviewed", "actioned"
   reviewedAt   DateTime?
   reviewedById String?
-  reviewedBy   User?    @relation("CoworkReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  checklist    Json?    // { "action-0": true, "action-1": false }
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  reviewedBy   User?     @relation("CoworkReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  checklist    Json? // { "action-0": true, "action-1": false }
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([seat])
   @@index([reportType])
@@ -3921,7 +3929,7 @@ model DailyChecklistItem {
   id          String         @id @default(cuid())
   checklistId String
   checklist   DailyChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
-  category    String         // "opening", "safety", "programming", "closing", "compliance"
+  category    String // "opening", "safety", "programming", "closing", "compliance"
   label       String
   sortOrder   Int            @default(0)
   isRequired  Boolean        @default(true)
@@ -3964,7 +3972,7 @@ model AiUsage {
   outputTokens Int
   durationMs   Int
   section      String // dashboard section e.g. "marketing", "compliance"
-  metadata     Json?  // extra context (serviceId, postId, etc.)
+  metadata     Json? // extra context (serviceId, postId, etc.)
   monthBudget  Float? // reserved for future budget enforcement
   createdAt    DateTime @default(now())
 
@@ -3978,12 +3986,12 @@ model AiUsage {
 
 model SentimentScore {
   id         String   @id @default(cuid())
-  sourceType String   // "nps", "quick_feedback", "exit_survey"
+  sourceType String // "nps", "quick_feedback", "exit_survey"
   sourceId   String
   serviceId  String?
   service    Service? @relation("SentimentScoreService", fields: [serviceId], references: [id], onDelete: SetNull)
-  score      Float    // -1.0 to 1.0
-  label      String   // "positive", "neutral", "negative"
+  score      Float // -1.0 to 1.0
+  label      String // "positive", "neutral", "negative"
   keywords   String[]
   summary    String?
   createdAt  DateTime @default(now())
@@ -3999,9 +4007,9 @@ model AttendanceAnomaly {
   serviceId   String
   service     Service  @relation("AttendanceAnomalyService", fields: [serviceId], references: [id], onDelete: Cascade)
   date        DateTime @db.Date
-  sessionType String   // "bsc", "asc", "vc"
-  anomalyType String   // "drop", "spike", "zero", "capacity_exceeded", "trend_decline"
-  severity    String   // "low", "medium", "high"
+  sessionType String // "bsc", "asc", "vc"
+  anomalyType String // "drop", "spike", "zero", "capacity_exceeded", "trend_decline"
+  severity    String // "low", "medium", "high"
   message     String
   expected    Float?
   actual      Float?
@@ -4017,10 +4025,10 @@ model AttendanceAnomaly {
 
 model DuplicateMatch {
   id          String   @id @default(cuid())
-  entityType  String   // "lead", "enquiry", "contact"
+  entityType  String // "lead", "enquiry", "contact"
   entityAId   String
   entityBId   String
-  similarity  Int      // 0-100
+  similarity  Int // 0-100
   matchFields String[] // ["email", "phone", "name"]
   status      String   @default("pending") // "pending", "merged", "dismissed"
   createdAt   DateTime @default(now())
@@ -4032,19 +4040,19 @@ model DuplicateMatch {
 }
 
 model TrendInsight {
-  id          String   @id @default(cuid())
-  serviceId   String?
-  service     Service? @relation("TrendInsightService", fields: [serviceId], references: [id], onDelete: Cascade)
-  category    String   // "financial", "attendance", "enrolment"
-  metric      String   // "totalRevenue", "bscAttendance", "margin", etc.
-  direction   String   // "increasing", "decreasing", "stable", "volatile"
-  severity    String   // "info", "warning", "critical"
-  summary     String   @db.Text
-  dataPoints  Json?    // last N weeks of values for sparkline
+  id            String   @id @default(cuid())
+  serviceId     String?
+  service       Service? @relation("TrendInsightService", fields: [serviceId], references: [id], onDelete: Cascade)
+  category      String // "financial", "attendance", "enrolment"
+  metric        String // "totalRevenue", "bscAttendance", "margin", etc.
+  direction     String // "increasing", "decreasing", "stable", "volatile"
+  severity      String // "info", "warning", "critical"
+  summary       String   @db.Text
+  dataPoints    Json? // last N weeks of values for sparkline
   changePercent Float? // e.g. -12.5 for 12.5% decline
-  periodWeeks Int      @default(4) // how many weeks analysed
-  dismissed   Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  periodWeeks   Int      @default(4) // how many weeks analysed
+  dismissed     Boolean  @default(false)
+  createdAt     DateTime @default(now())
 
   @@index([serviceId])
   @@index([category])
@@ -4077,4 +4085,103 @@ model EmailTemplate {
   createdBy   User?                 @relation("EmailTemplateCreator", fields: [createdById], references: [id])
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
+}
+
+// ============================================================
+// Finance Reports (Cowork ERM)
+// ============================================================
+
+model FinanceReport {
+  id          String   @id @default(cuid())
+  serviceId   String?
+  service     Service? @relation("ServiceFinanceReports", fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceCode String // centre service code, or "all" for consolidated
+  reportType  String // weekly_revenue, monthly_revenue, ccs_reconciliation, budget_variance, quarterly_summary, payroll_precheck, attendance_revenue, educator_cost, holiday_costing, insurance, month_end_close, annual_budget, new_centre_model
+  period      String // e.g. "2026-W12", "2026-03", "2026-Q1", "2025-26"
+  title       String
+  content     String   @db.Text
+  metrics     Json?
+  status      String   @default("draft") // draft, final, archived
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([serviceCode, reportType, period])
+  @@index([serviceCode])
+  @@index([reportType])
+}
+
+// ============================================================
+// Parent Feedback (Cowork ERM — richer than QuickFeedback)
+// ============================================================
+
+model ParentFeedback {
+  id             String   @id @default(cuid())
+  serviceId      String?
+  service        Service? @relation("ServiceParentFeedback", fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceCode    String
+  surveyType     String // quarterly_survey, nps, complaint, compliment, suggestion, exit_survey
+  parentName     String?
+  parentEmail    String?
+  childName      String?
+  overallRating  Int? // 1-5 scale
+  npsScore       Int? // 0-10 NPS scale
+  responses      Json? // Flexible JSON for survey question/answer pairs
+  comments       String?  @db.Text
+  sentiment      String? // positive, neutral, negative
+  category       String? // safety, programming, communication, food, staff, facilities, booking, other
+  actionRequired Boolean  @default(false)
+  actionTaken    String?  @db.Text
+  status         String   @default("new") // new, reviewed, actioned, closed
+  submittedAt    DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([serviceCode])
+  @@index([surveyType])
+  @@index([status])
+}
+
+// ============================================================
+// Partnership Meetings (Cowork ERM — linked to SchoolRelationship)
+// ============================================================
+
+model PartnershipMeeting {
+  id                   String              @id @default(cuid())
+  serviceId            String
+  service              Service             @relation("ServicePartnershipMeetings", fields: [serviceId], references: [id], onDelete: Cascade)
+  schoolRelationshipId String?
+  schoolRelationship   SchoolRelationship? @relation(fields: [schoolRelationshipId], references: [id], onDelete: SetNull)
+  date                 DateTime
+  attendees            String
+  agenda               String?             @db.Text
+  notes                String?             @db.Text
+  actionItems          Json? // [{ action: "...", owner: "...", dueDate: "..." }]
+  createdAt            DateTime            @default(now())
+
+  @@index([serviceId])
+  @@index([date])
+}
+
+// ============================================================
+// Parent Experience Metrics (Cowork ERM)
+// ============================================================
+
+model ParentExperience {
+  id          String   @id @default(cuid())
+  serviceId   String?
+  service     Service? @relation("ServiceParentExperience", fields: [serviceId], references: [id], onDelete: Cascade)
+  serviceCode String
+  metricType  String // photo_compliance, satisfaction_score, communication_audit, engagement_score, nps_snapshot, welcome_pack_sent, first_week_checkin, birthday_celebration
+  period      String // e.g. "2026-W12", "2026-03", "2026-Q1"
+  value       Float?
+  target      Float?
+  status      String? // on_track, at_risk, below_target, exceeding
+  details     Json?
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([serviceCode, metricType, period])
+  @@index([serviceCode])
+  @@index([metricType])
 }
