@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useLead, useUpdateLead, useDeleteLead, useCreateTouchpoint, useTouchpoints } from "@/hooks/useCRM";
+import { useLead, useUpdateLead, useDeleteLead, useCreateTouchpoint, useTouchpoints, useScoreLead } from "@/hooks/useCRM";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
@@ -18,6 +18,8 @@ import {
   Plus,
   Building2,
   Pencil,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -90,6 +92,8 @@ export function LeadDetailDrawer({
   const updateLead = useUpdateLead();
   const deleteLead = useDeleteLead();
   const createTouchpoint = useCreateTouchpoint();
+  const scoreLead = useScoreLead();
+  const [scoreFactors, setScoreFactors] = useState<string[]>([]);
 
   const [showDelete, setShowDelete] = useState(false);
   const [showAddTouchpoint, setShowAddTouchpoint] = useState(false);
@@ -513,6 +517,90 @@ export function LeadDetailDrawer({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* AI Score */}
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    AI Score
+                  </h4>
+                  <button
+                    onClick={() => {
+                      scoreLead.mutate(leadId, {
+                        onSuccess: (data) => {
+                          setScoreFactors(data.aiScoreFactors || []);
+                          toast({ description: "Lead scored successfully" });
+                        },
+                        onError: (err) => {
+                          toast({
+                            description: err.message || "Failed to score lead",
+                            variant: "destructive",
+                          });
+                        },
+                      });
+                    }}
+                    disabled={scoreLead.isPending}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {scoreLead.isPending ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Scoring...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {lead.aiScore != null ? "Re-score" : "Score Lead"}
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {lead.aiScore != null && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={cn(
+                          "text-lg font-bold px-3 py-1 rounded-full",
+                          lead.aiScore >= 70
+                            ? "bg-emerald-100 text-emerald-700"
+                            : lead.aiScore >= 40
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-red-100 text-red-700",
+                        )}
+                      >
+                        {lead.aiScore}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {lead.aiScoredAt &&
+                          `Scored ${new Date(lead.aiScoredAt).toLocaleDateString("en-AU", {
+                            day: "numeric",
+                            month: "short",
+                          })}`}
+                      </span>
+                    </div>
+                    {lead.aiScoreSummary && (
+                      <p className="text-xs text-gray-600">{lead.aiScoreSummary}</p>
+                    )}
+                    {scoreFactors.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {scoreFactors.map((factor, i) => (
+                          <span
+                            key={i}
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
+                          >
+                            {factor}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {lead.aiScore == null && !scoreLead.isPending && (
+                  <p className="text-xs text-gray-400">Not scored yet</p>
+                )}
               </div>
 
               {/* Contact Info */}

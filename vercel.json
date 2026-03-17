@@ -46,6 +46,10 @@
       "schedule": "0 14 1 * *"
     },
     {
+      "path": "/api/cron/lead-scoring",
+      "schedule": "0 7 * * 1"
+    },
+    {
       "path": "/api/health-scores/compute",
       "schedule": "0 20 1 * *"
     },

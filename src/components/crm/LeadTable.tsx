@@ -50,6 +50,7 @@ export function LeadTable({
             <th className="text-left px-4 py-3 font-medium text-gray-600">Source</th>
             <th className="text-left px-4 py-3 font-medium text-gray-600">Stage</th>
             <th className="text-left px-4 py-3 font-medium text-gray-600">Assignee</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-600">Score</th>
             <th className="text-left px-4 py-3 font-medium text-gray-600">Days</th>
             <th className="text-left px-4 py-3 font-medium text-gray-600">Touchpoints</th>
           </tr>
@@ -97,6 +98,23 @@ export function LeadTable({
                 <td className="px-4 py-3 text-gray-600">
                   {lead.assignedTo?.name || "—"}
                 </td>
+                <td className="px-4 py-3">
+                  {lead.aiScore != null ? (
+                    <span
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        lead.aiScore >= 70
+                          ? "bg-emerald-100 text-emerald-700"
+                          : lead.aiScore >= 40
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {lead.aiScore}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-300">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-500">{daysInStage}d</td>
                 <td className="px-4 py-3 text-gray-500">
                   {lead._count.touchpoints}
@@ -106,7 +124,7 @@ export function LeadTable({
           })}
           {leads.length === 0 && (
             <tr>
-              <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
+              <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
                 No leads found
               </td>
             </tr>

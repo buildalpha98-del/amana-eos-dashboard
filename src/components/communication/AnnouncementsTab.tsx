@@ -16,6 +16,7 @@ import {
   Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AiButton } from "@/components/ui/AiButton";
 import {
   useAnnouncements,
   useCreateAnnouncement,
@@ -23,6 +24,21 @@ import {
   useDeleteAnnouncement,
   useMarkAnnouncementRead,
 } from "@/hooks/useCommunication";
+
+const COMM_TYPE_OPTIONS = [
+  { value: "announcement", label: "Announcement" },
+  { value: "newsletter", label: "Newsletter Update" },
+  { value: "event", label: "Event Notice" },
+  { value: "incident", label: "Incident Update" },
+  { value: "policy", label: "Policy Change" },
+];
+
+const TONE_OPTIONS = [
+  { value: "warm", label: "Warm & Friendly" },
+  { value: "formal", label: "Formal" },
+  { value: "urgent", label: "Urgent" },
+  { value: "celebratory", label: "Celebratory" },
+];
 
 const AUDIENCE_OPTIONS = [
   { value: "all", label: "All Team" },
@@ -89,6 +105,8 @@ export function AnnouncementsTab() {
   const [formAudience, setFormAudience] = useState("all");
   const [formPriority, setFormPriority] = useState("normal");
   const [formPublish, setFormPublish] = useState(true);
+  const [formCommType, setFormCommType] = useState("announcement");
+  const [formTone, setFormTone] = useState("warm");
   const [formError, setFormError] = useState("");
 
   const userRole = (session?.user as any)?.role;
@@ -101,6 +119,8 @@ export function AnnouncementsTab() {
     setFormAudience("all");
     setFormPriority("normal");
     setFormPublish(true);
+    setFormCommType("announcement");
+    setFormTone("warm");
     setFormError("");
     setEditingAnnouncement(null);
   };
@@ -434,16 +454,67 @@ export function AnnouncementsTab() {
                     />
                   </div>
 
+                  {/* Communication Type + Tone row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Type
+                      </label>
+                      <select
+                        value={formCommType}
+                        onChange={(e) => setFormCommType(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      >
+                        {COMM_TYPE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Tone
+                      </label>
+                      <select
+                        value={formTone}
+                        onChange={(e) => setFormTone(e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      >
+                        {TONE_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
                   {/* Body */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
-                      Body <span className="text-red-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Body <span className="text-red-500">*</span>
+                      </label>
+                      <AiButton
+                        templateSlug="communication/parent-draft"
+                        variables={{
+                          commType: COMM_TYPE_OPTIONS.find((o) => o.value === formCommType)?.label || formCommType,
+                          details: formTitle || "General update",
+                          tone: TONE_OPTIONS.find((o) => o.value === formTone)?.label || formTone,
+                          centreName: "Amana OSHC",
+                        }}
+                        onResult={(text) => setFormBody(text)}
+                        label="Draft with AI"
+                        size="sm"
+                        section="communication"
+                      />
+                    </div>
                     <textarea
                       value={formBody}
                       onChange={(e) => setFormBody(e.target.value)}
                       rows={5}
-                      placeholder="Write your announcement..."
+                      placeholder="Write your announcement or use AI to draft..."
                       required
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />

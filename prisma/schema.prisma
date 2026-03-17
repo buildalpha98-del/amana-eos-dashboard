@@ -2950,6 +2950,11 @@ model Lead {
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
+  // AI Lead Scoring
+  aiScore              Int?          // 0-100 score
+  aiScoreSummary       String?       @db.Text
+  aiScoredAt           DateTime?
+
   touchpoints TouchpointLog[]
 
   @@index([pipelineStage])

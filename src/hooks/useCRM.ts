@@ -34,6 +34,9 @@ export interface LeadSummary {
   deleted: boolean;
   createdAt: string;
   updatedAt: string;
+  aiScore: number | null;
+  aiScoreSummary: string | null;
+  aiScoredAt: string | null;
   _count: { touchpoints: number };
 }
 
@@ -241,6 +244,34 @@ export function useSendLeadEmail() {
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["touchpoints", vars.leadId] });
       queryClient.invalidateQueries({ queryKey: ["lead", vars.leadId] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// AI Lead Scoring
+// ---------------------------------------------------------------------------
+
+export interface LeadScoreResult extends LeadSummary {
+  aiScoreFactors?: string[];
+}
+
+export function useScoreLead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (leadId: string): Promise<LeadScoreResult> => {
+      const res = await fetch(`/api/crm/leads/${leadId}/score`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to score lead");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead", data.id] });
     },
   });
 }

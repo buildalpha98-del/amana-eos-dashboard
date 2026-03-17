@@ -18,7 +18,9 @@ import {
   LayoutGrid,
   List,
   Archive,
+  X,
 } from "lucide-react";
+import { AiButton } from "@/components/ui/AiButton";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -47,6 +49,7 @@ export default function IssuesPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"board" | "list">("board");
   const [showArchived, setShowArchived] = useState(false);
+  const [aiPrioritization, setAiPrioritization] = useState("");
 
   const { data: issues, isLoading, error, refetch } = useIssues({
     ...(statusFilter ? { status: statusFilter } : {}),
@@ -92,6 +95,24 @@ export default function IssuesPage() {
       critical: issues.filter((i) => i.priority === "critical" && i.status !== "closed").length,
     };
   }, [issues]);
+
+  // Build issue list string for AI prioritization
+  const openIssues = useMemo(() => {
+    if (!issues) return [];
+    return issues.filter((i) => i.status === "open" || i.status === "in_discussion");
+  }, [issues]);
+
+  const issueListForAi = useMemo(() => {
+    if (!openIssues.length) return "";
+    return openIssues
+      .map((i, idx) => {
+        const age = Math.floor(
+          (Date.now() - new Date(i.identifiedAt).getTime()) / (1000 * 60 * 60 * 24)
+        );
+        return `${idx + 1}. "${i.title}" — Priority: ${i.priority}, Status: ${i.status}, Centre: ${i.service?.name ?? "Company-wide"}, Owner: ${i.owner?.name ?? "Unassigned"}, Age: ${age} days${i.description ? `, Details: ${i.description.slice(0, 200)}` : ""}`;
+      })
+      .join("\n");
+  }, [openIssues]);
 
   const hasActiveFilters = priorityFilter || ownerFilter;
 
@@ -163,6 +184,16 @@ export default function IssuesPage() {
           >
             <Filter className="w-4 h-4" />
           </button>
+
+          <AiButton
+            templateSlug="issues/smart-prioritize"
+            variables={{ issueList: issueListForAi }}
+            onResult={(text) => setAiPrioritization(text)}
+            label="AI Prioritize"
+            size="sm"
+            section="issues"
+            disabled={openIssues.length === 0}
+          />
 
           <button
             onClick={() => setShowCreate(true)}
@@ -267,6 +298,23 @@ export default function IssuesPage() {
               {stats.critical} critical
             </span>
           )}
+        </div>
+      )}
+
+      {/* AI Prioritization Panel */}
+      {aiPrioritization && (
+        <div className="mb-6 rounded-xl border border-purple-200 bg-purple-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-2">
+                AI Issue Prioritization — IDS Recommended Order
+              </p>
+              <div className="flex-1 text-sm text-purple-900 whitespace-pre-wrap">{aiPrioritization}</div>
+            </div>
+            <button onClick={() => setAiPrioritization("")} className="text-purple-400 hover:text-purple-600 flex-shrink-0">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 

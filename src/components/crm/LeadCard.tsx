@@ -53,6 +53,19 @@ export function LeadCard({
               {lead.state}
             </span>
           )}
+          {lead.aiScore != null && (
+            <span
+              className={`font-semibold px-1.5 py-0.5 rounded-full ${
+                lead.aiScore >= 70
+                  ? "bg-emerald-100 text-emerald-700"
+                  : lead.aiScore >= 40
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-red-100 text-red-700"
+              }`}
+            >
+              {lead.aiScore}
+            </span>
+          )}
           <span>{daysInStage}d</span>
         </div>
 

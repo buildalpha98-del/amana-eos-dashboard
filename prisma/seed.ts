@@ -2281,6 +2281,82 @@ Current dashboard state:
 
 Answer the user's question using this data. If the data doesn't contain what they need, say so clearly.`,
     },
+    {
+      slug: "communication/parent-draft",
+      name: "Parent Communication Drafter",
+      model: "claude-sonnet-4-5-20250514",
+      maxTokens: 1024,
+      variables: JSON.stringify(["commType", "details", "tone", "centreName"]),
+      promptTemplate: `Draft a professional parent communication for Amana OSHC.
+
+Type: {{commType}}
+Key Details: {{details}}
+Tone: {{tone}}
+Centre: {{centreName}}
+
+Requirements:
+- Professional but warm Australian English
+- Clear and concise — parents are busy
+- Include any action items clearly
+- Sign off appropriately for the communication type
+- Keep it under 200 words unless it's a detailed policy update
+- Use Amana OSHC branding voice (caring, professional, community-focused)
+
+Draft the communication ready to send:`,
+    },
+    {
+      slug: "issues/smart-prioritize",
+      name: "Smart Issue Prioritizer",
+      model: "claude-haiku-3.5-20241022",
+      maxTokens: 1024,
+      variables: JSON.stringify(["issueList"]),
+      promptTemplate: `You are helping prioritize issues for an Amana OSHC L10 meeting's IDS (Identify-Discuss-Solve) section.
+
+Here are the current open issues:
+{{issueList}}
+
+Rank these issues by urgency and impact. Consider:
+1. Child safety and compliance issues are always highest priority
+2. Issues affecting multiple centres outrank single-centre issues
+3. Revenue/financial impact
+4. Staff wellbeing and retention risks
+5. Parent satisfaction and reputation risks
+6. Age of the issue (older unresolved = higher urgency)
+
+Respond with a numbered ranked list. For each issue:
+- Issue title
+- Why it should be discussed at this priority
+- Suggested time allocation (5/10/15/20 min)
+- Recommended IDS approach (who should lead discussion)
+
+Keep it concise — this is for a 60-minute IDS block.`,
+    },
+    {
+      slug: "crm/lead-scoring",
+      name: "Lead Scoring",
+      model: "claude-3-5-haiku-latest",
+      maxTokens: 512,
+      variables: JSON.stringify(["leadData"]),
+      promptTemplate: `Score this lead from 0-100 based on data completeness, engagement signals, and conversion likelihood.
+
+Lead Data:
+{{leadData}}
+
+Respond in JSON format:
+{
+  "score": <number 0-100>,
+  "summary": "<2-3 sentence assessment>",
+  "factors": ["<positive or negative factor>", ...]
+}
+
+Scoring criteria:
+- Contact completeness (name, email, phone, address): 0-20 points
+- Source quality (referral > website > social > cold): 0-15 points
+- Engagement level (activities, notes, responses): 0-25 points
+- Pipeline progression speed: 0-15 points
+- Service match (enquiry aligned with available capacity): 0-15 points
+- Recency (recent activity scores higher): 0-10 points`,
+    },
   ];
 
   for (const tpl of aiTemplates) {

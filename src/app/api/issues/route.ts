@@ -51,6 +51,7 @@ export async function GET(req: NextRequest) {
     raisedBy: { select: { id: true, name: true, email: true, avatar: true } },
     owner: { select: { id: true, name: true, email: true, avatar: true } },
     rock: { select: { id: true, title: true } },
+    service: { select: { id: true, name: true } },
     _count: {
       select: { spawnedTodos: { where: { deleted: false } } },
     },

@@ -547,6 +547,10 @@ export default function FinancialsPage() {
                     <td className="hidden md:table-cell px-2 py-3 text-center">
                       {row.dataSource === "xero" ? (
                         <span title="Synced from Xero"><RefreshCw className="w-3.5 h-3.5 text-[#13B5EA] inline-block" /></span>
+                      ) : row.dataSource === "auto_attendance" ? (
+                        <span title="Auto-calculated from attendance" className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">AUTO</span>
+                      ) : row.dataSource === "owna_import" ? (
+                        <span title="Imported from OWNA"><FileSpreadsheet className="w-3.5 h-3.5 text-amber-500 inline-block" /></span>
                       ) : (
                         <span title="Manually entered"><Pencil className="w-3.5 h-3.5 text-gray-400 inline-block" /></span>
                       )}
