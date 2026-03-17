@@ -36,7 +36,6 @@ import {
 
 interface Props {
   serviceId: string;
-  capacity?: number | null;
 }
 
 const attendanceImportColumns: ColumnConfig[] = [
@@ -45,7 +44,6 @@ const attendanceImportColumns: ColumnConfig[] = [
   { key: "sessionType", label: "Session Type (BSC/ASC/VC)", required: true },
   { key: "enrolled", label: "Enrolled", required: true },
   { key: "attended", label: "Estimated", required: true },
-  { key: "capacity", label: "Capacity" },
   { key: "casual", label: "Casual" },
   { key: "absent", label: "Absent" },
 ];
@@ -78,11 +76,11 @@ function formatDateLabel(d: Date): string {
 type GridRow = {
   day: string;
   date: Date;
-  bsc: { enrolled: number; attended: number; capacity: number };
-  asc: { enrolled: number; attended: number; capacity: number };
+  bsc: { enrolled: number; attended: number };
+  asc: { enrolled: number; attended: number };
 };
 
-export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
+export function ServiceAttendanceTab({ serviceId }: Props) {
   const anomalyQC = useQueryClient();
   const [weekOffset, setWeekOffset] = useState(0);
   const [showVC, setShowVC] = useState(false);
@@ -132,8 +130,6 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
     anomalyQC.invalidateQueries({ queryKey: ["attendance-anomalies", serviceId] });
   };
 
-  const defaultCap = capacity || 0;
-
   // Build editable grid state from server data
   const [gridEdits, setGridEdits] = useState<Record<string, number>>({});
 
@@ -155,16 +151,14 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
         bsc: {
           enrolled: gridEdits[`${dateStr}-bsc-enrolled`] ?? bscRecord?.enrolled ?? 0,
           attended: gridEdits[`${dateStr}-bsc-attended`] ?? bscRecord?.attended ?? 0,
-          capacity: gridEdits[`${dateStr}-bsc-capacity`] ?? bscRecord?.capacity ?? defaultCap,
         },
         asc: {
           enrolled: gridEdits[`${dateStr}-asc-enrolled`] ?? ascRecord?.enrolled ?? 0,
           attended: gridEdits[`${dateStr}-asc-attended`] ?? ascRecord?.attended ?? 0,
-          capacity: gridEdits[`${dateStr}-asc-capacity`] ?? ascRecord?.capacity ?? defaultCap,
         },
       };
     });
-  }, [weekDates, records, gridEdits, defaultCap]);
+  }, [weekDates, records, gridEdits]);
 
   const handleCellChange = useCallback(
     (dateStr: string, session: string, field: string, value: number) => {
@@ -185,7 +179,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
         sessionType: "bsc" as const,
         enrolled: row.bsc.enrolled,
         attended: row.bsc.attended,
-        capacity: row.bsc.capacity,
+        capacity: 0,
       });
       inputs.push({
         serviceId,
@@ -193,7 +187,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
         sessionType: "asc" as const,
         enrolled: row.asc.enrolled,
         attended: row.asc.attended,
-        capacity: row.asc.capacity,
+        capacity: 0,
       });
     }
     await batchUpdate.mutateAsync(inputs);
@@ -408,59 +402,43 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
             <div className="sm:hidden space-y-3">
               {grid.map((row) => {
                 const dateStr = formatDate(row.date);
-                const bscOver = row.bsc.capacity > 0 && row.bsc.enrolled > row.bsc.capacity;
-                const ascOver = row.asc.capacity > 0 && row.asc.enrolled > row.asc.capacity;
                 return (
                   <div
                     key={dateStr}
-                    className={cn(
-                      "rounded-lg border p-3 space-y-3",
-                      (bscOver || ascOver) ? "border-red-200 bg-red-50/30" : "border-gray-200"
-                    )}
+                    className="rounded-lg border border-gray-200 p-3 space-y-3"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-semibold text-gray-900">{row.day}</span>
                         <span className="text-xs text-gray-400">{formatDateLabel(row.date)}</span>
-                        {(bscOver || ascOver) && (
-                          <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                        )}
                       </div>
                     </div>
-                    {(["bsc", "asc"] as const).map((session) => {
-                      const overCap = row[session].capacity > 0 && row[session].enrolled > row[session].capacity;
-                      return (
-                        <div key={session} className="space-y-1.5">
-                          <span className={cn(
-                            "text-xs font-semibold uppercase tracking-wider",
-                            session === "bsc" ? "text-blue-600" : "text-purple-600"
-                          )}>
-                            {session === "bsc" ? "BSC" : "ASC"}
-                          </span>
-                          <div className="grid grid-cols-3 gap-2">
-                            {(["enrolled", "attended", "capacity"] as const).map((field) => (
-                              <div key={field}>
-                                <label className="text-[10px] text-gray-400 uppercase">{field === "attended" ? "Est." : field.slice(0, 3) + "."}</label>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  value={row[session][field]}
-                                  onChange={(e) =>
-                                    handleCellChange(dateStr, session, field, parseInt(e.target.value) || 0)
-                                  }
-                                  className={cn(
-                                    "w-full text-center text-sm border rounded-md px-2 py-1.5 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none",
-                                    field === "enrolled" && overCap
-                                      ? "border-red-400 bg-red-50 text-red-700 font-semibold"
-                                      : "border-gray-200"
-                                  )}
-                                />
-                              </div>
-                            ))}
-                          </div>
+                    {(["bsc", "asc"] as const).map((session) => (
+                      <div key={session} className="space-y-1.5">
+                        <span className={cn(
+                          "text-xs font-semibold uppercase tracking-wider",
+                          session === "bsc" ? "text-blue-600" : "text-purple-600"
+                        )}>
+                          {session === "bsc" ? "BSC" : "ASC"}
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(["enrolled", "attended"] as const).map((field) => (
+                            <div key={field}>
+                              <label className="text-[10px] text-gray-400 uppercase">{field === "attended" ? "Est." : "Enr."}</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={row[session][field]}
+                                onChange={(e) =>
+                                  handleCellChange(dateStr, session, field, parseInt(e.target.value) || 0)
+                                }
+                                className="w-full text-center text-sm border border-gray-200 rounded-md px-2 py-1.5 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+                              />
+                            </div>
+                          ))}
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
                 );
               })}
@@ -475,13 +453,13 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                       Day
                     </th>
                     <th
-                      colSpan={3}
+                      colSpan={2}
                       className="text-center py-2 px-2 text-xs font-semibold text-blue-600 border-l border-gray-100"
                     >
                       BSC (Before School)
                     </th>
                     <th
-                      colSpan={3}
+                      colSpan={2}
                       className="text-center py-2 px-2 text-xs font-semibold text-purple-600 border-l border-gray-100"
                     >
                       ASC (After School)
@@ -489,7 +467,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                   </tr>
                   <tr className="border-b border-gray-100">
                     <th className="text-left py-1 px-2 text-xs text-gray-400" />
-                    {["Enrolled", "Estimated", "Capacity"].map((h) => (
+                    {["Enrolled", "Estimated"].map((h) => (
                       <th
                         key={`bsc-${h}`}
                         className="text-center py-1 px-1 text-xs text-gray-400 border-l border-gray-50"
@@ -497,7 +475,7 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                         {h}
                       </th>
                     ))}
-                    {["Enrolled", "Estimated", "Capacity"].map((h) => (
+                    {["Enrolled", "Estimated"].map((h) => (
                       <th
                         key={`asc-${h}`}
                         className="text-center py-1 px-1 text-xs text-gray-400 border-l border-gray-50"
@@ -510,25 +488,14 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                 <tbody>
                   {grid.map((row) => {
                     const dateStr = formatDate(row.date);
-                    const bscOver = row.bsc.capacity > 0 && row.bsc.enrolled > row.bsc.capacity;
-                    const ascOver = row.asc.capacity > 0 && row.asc.enrolled > row.asc.capacity;
                     return (
-                      <tr key={dateStr} className={cn(
-                        "border-b border-gray-50 hover:bg-gray-50/50",
-                        (bscOver || ascOver) && "bg-red-50/40"
-                      )}>
+                      <tr key={dateStr} className="border-b border-gray-50 hover:bg-gray-50/50">
                         <td className="py-2 px-2">
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium text-gray-900">{row.day}</span>
-                            {(bscOver || ascOver) && (
-                              <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                            )}
-                          </div>
+                          <span className="font-medium text-gray-900">{row.day}</span>
                           <div className="text-xs text-gray-400">{formatDateLabel(row.date)}</div>
                         </td>
-                        {(["bsc", "asc"] as const).map((session) => {
-                          const overCap = row[session].capacity > 0 && row[session].enrolled > row[session].capacity;
-                          return (["enrolled", "attended", "capacity"] as const).map((field) => (
+                        {(["bsc", "asc"] as const).map((session) =>
+                          (["enrolled", "attended"] as const).map((field) => (
                             <td
                               key={`${session}-${field}`}
                               className="py-1 px-1 text-center border-l border-gray-50"
@@ -545,16 +512,11 @@ export function ServiceAttendanceTab({ serviceId, capacity }: Props) {
                                     parseInt(e.target.value) || 0
                                   )
                                 }
-                                className={cn(
-                                  "w-16 text-center text-sm border rounded-md px-1 py-1 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none",
-                                  field === "enrolled" && overCap
-                                    ? "border-red-400 bg-red-50 text-red-700 font-semibold"
-                                    : "border-gray-200"
-                                )}
+                                className="w-16 text-center text-sm border border-gray-200 rounded-md px-1 py-1 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
                               />
                             </td>
-                          ));
-                        })}
+                          ))
+                        )}
                       </tr>
                     );
                   })}
