@@ -12,8 +12,8 @@ const campaignColors: Record<string, string> = {
 const postColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
   in_review: "bg-yellow-100 text-yellow-700",
-  approved: "bg-blue-100 text-blue-700",
-  scheduled: "bg-indigo-100 text-indigo-700",
+  approved: "bg-brand/10 text-brand",
+  scheduled: "bg-brand/20 text-brand",
   published: "bg-green-100 text-green-700",
 };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Trash2, Calendar, Flag, User, FolderOpen, FileText } from "lucide-react";
+import { X, Trash2, Calendar, Flag, User, FolderOpen, FileText, Plus, CheckSquare, Square } from "lucide-react";
 import {
   useMarketingTask,
   useUpdateMarketingTask,
@@ -47,6 +47,8 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
   const [campaignId, setCampaignId] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
+  const [subtasks, setSubtasks] = useState<{ text: string; done: boolean }[]>([]);
+  const [newSubtask, setNewSubtask] = useState("");
 
   // Fetch users for assignee dropdown
   useEffect(() => {
@@ -70,6 +72,9 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
       );
       setAssigneeId(task.assigneeId ?? "");
       setCampaignId(task.campaignId ?? "");
+      setSubtasks(
+        Array.isArray(task.subtasks) ? task.subtasks : []
+      );
     }
   }, [task]);
 
@@ -90,6 +95,30 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
     deleteTask.mutate(taskId, {
       onSuccess: () => onClose(),
     });
+  }
+
+  function saveSubtasks(updated: { text: string; done: boolean }[]) {
+    setSubtasks(updated);
+    updateTask.mutate({ id: taskId, subtasks: updated });
+  }
+
+  function addSubtask() {
+    if (!newSubtask.trim()) return;
+    const updated = [...subtasks, { text: newSubtask.trim(), done: false }];
+    setNewSubtask("");
+    saveSubtasks(updated);
+  }
+
+  function toggleSubtask(index: number) {
+    const updated = subtasks.map((s, i) =>
+      i === index ? { ...s, done: !s.done } : s
+    );
+    saveSubtasks(updated);
+  }
+
+  function removeSubtask(index: number) {
+    const updated = subtasks.filter((_, i) => i !== index);
+    saveSubtasks(updated);
   }
 
   const isOverdue =
@@ -213,6 +242,95 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               placeholder="Add a description..."
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
             />
+          </div>
+
+          {/* Subtasks / Checklist */}
+          <div>
+            <label className="mb-2 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <span className="flex items-center gap-1.5">
+                <CheckSquare className="h-3 w-3" />
+                Subtasks
+                {subtasks.length > 0 && (
+                  <span className="text-gray-400 normal-case tracking-normal">
+                    ({subtasks.filter((s) => s.done).length}/{subtasks.length})
+                  </span>
+                )}
+              </span>
+            </label>
+
+            {/* Progress bar */}
+            {subtasks.length > 0 && (
+              <div className="w-full bg-gray-100 rounded-full h-1.5 mb-2">
+                <div
+                  className="bg-brand h-1.5 rounded-full transition-all"
+                  style={{
+                    width: `${Math.round(
+                      (subtasks.filter((s) => s.done).length / subtasks.length) * 100
+                    )}%`,
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Subtask items */}
+            <div className="space-y-1">
+              {subtasks.map((st, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 group rounded-lg px-2 py-1.5 hover:bg-gray-50 transition-colors"
+                >
+                  <button
+                    onClick={() => toggleSubtask(i)}
+                    className="shrink-0 text-gray-400 hover:text-brand transition-colors"
+                  >
+                    {st.done ? (
+                      <CheckSquare className="h-4 w-4 text-brand" />
+                    ) : (
+                      <Square className="h-4 w-4" />
+                    )}
+                  </button>
+                  <span
+                    className={`flex-1 text-sm ${
+                      st.done
+                        ? "text-gray-400 line-through"
+                        : "text-gray-800"
+                    }`}
+                  >
+                    {st.text}
+                  </span>
+                  <button
+                    onClick={() => removeSubtask(i)}
+                    className="shrink-0 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add subtask input */}
+            <div className="flex items-center gap-2 mt-1.5">
+              <input
+                type="text"
+                value={newSubtask}
+                onChange={(e) => setNewSubtask(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addSubtask();
+                  }
+                }}
+                placeholder="Add a subtask..."
+                className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              />
+              <button
+                onClick={addSubtask}
+                disabled={!newSubtask.trim()}
+                className="shrink-0 rounded-lg p-1.5 text-brand hover:bg-brand/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           {/* Priority */}

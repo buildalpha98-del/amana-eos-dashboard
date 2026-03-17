@@ -17,6 +17,7 @@ import {
   RefreshCw,
   Pencil,
   FileSpreadsheet,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
@@ -252,6 +253,7 @@ export default function FinancialsPage() {
 
   const summary = data?.summary;
   const financials = data?.financials || [];
+  const usedPeriod = (data as Record<string, unknown>)?.usedPeriod as string | undefined;
 
   // Group by service for the latest period
   const latestPeriodStart = financials.length > 0 ? financials[0].periodStart : null;
@@ -410,6 +412,31 @@ export default function FinancialsPage() {
           iconColor="#FECE00"
         />
       </div>
+
+      {/* Data Source Warning */}
+      {usedPeriod && usedPeriod !== period && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-50 border border-blue-200 text-sm text-blue-800">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          No {period} data available — showing <span className="font-semibold">{usedPeriod}</span> data instead.
+        </div>
+      )}
+      {/* Zero revenue centres warning */}
+      {(() => {
+        const zeroRevCentres = latestData.filter((f) => f.totalRevenue === 0);
+        if (zeroRevCentres.length === 0 || latestData.length === 0) return null;
+        return (
+          <div className="flex items-start gap-2 px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <div>
+              <span className="font-semibold">{zeroRevCentres.length} centre{zeroRevCentres.length > 1 ? "s" : ""} reporting $0 revenue</span>
+              {" — "}check that BSC/ASC/VC daily rates are set in Service settings.
+              <span className="text-amber-600 ml-1">
+                ({zeroRevCentres.map((f) => f.service.code || f.service.name).join(", ")})
+              </span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* AI Financial Commentary */}
       {aiCommentary && (

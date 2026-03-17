@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   FileText,
   CheckSquare,
@@ -10,6 +10,9 @@ import {
   X,
   Eye,
   Send,
+  ChevronDown,
+  ChevronRight,
+  Building2,
 } from "lucide-react";
 
 interface DraftItem {
@@ -48,6 +51,13 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: "bg-gray-100 text-gray-600",
 };
 
+interface CentreGroup {
+  serviceId: string | null;
+  serviceName: string;
+  items: DraftItem[];
+  overdueCount: number;
+}
+
 export function DraftsQueue({
   serviceId,
   onSelectTask,
@@ -58,6 +68,7 @@ export function DraftsQueue({
   const [items, setItems] = useState<DraftItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterTab>("all");
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const fetchItems = () => {
     setLoading(true);
@@ -66,7 +77,7 @@ export function DraftsQueue({
     fetch(`/api/marketing/drafts-queue?${params}`)
       .then((r) => r.json())
       .then((d) => setItems(d.items || []))
-      .catch(console.error)
+      .catch(() => setItems([]))
       .finally(() => setLoading(false));
   };
 
@@ -132,6 +143,47 @@ export function DraftsQueue({
     school_comm: items.filter((i) => i.itemType === "school_comm").length,
   };
 
+  // Group filtered items by centre
+  const groups: CentreGroup[] = useMemo(() => {
+    const map = new Map<string, CentreGroup>();
+    const now = new Date();
+
+    for (const item of filtered) {
+      const key = item.serviceId || "__unassigned__";
+      if (!map.has(key)) {
+        map.set(key, {
+          serviceId: item.serviceId,
+          serviceName: item.serviceName || "Unassigned",
+          items: [],
+          overdueCount: 0,
+        });
+      }
+      const group = map.get(key)!;
+      group.items.push(item);
+      if (item.dueDate && new Date(item.dueDate) < now) {
+        group.overdueCount++;
+      }
+    }
+
+    // Sort: groups with overdue items first, then alphabetically
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.overdueCount > 0 && b.overdueCount === 0) return -1;
+      if (b.overdueCount > 0 && a.overdueCount === 0) return 1;
+      return a.serviceName.localeCompare(b.serviceName);
+    });
+  }, [filtered]);
+
+  const hasMultipleCentres = groups.length > 1;
+
+  function toggleGroup(key: string) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -172,10 +224,62 @@ export function DraftsQueue({
         ))}
       </div>
 
-      {/* Items */}
+      {/* Items — grouped by centre when multiple centres present */}
       {filtered.length === 0 ? (
         <div className="text-center py-8 text-gray-400 text-sm">
           No pending items
+        </div>
+      ) : hasMultipleCentres ? (
+        <div className="space-y-3">
+          {groups.map((group) => {
+            const key = group.serviceId || "__unassigned__";
+            const isCollapsed = collapsedGroups.has(key);
+            return (
+              <div key={key} className="rounded-lg border border-gray-200 overflow-hidden">
+                {/* Group header */}
+                <button
+                  onClick={() => toggleGroup(key)}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                >
+                  {isCollapsed ? (
+                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  )}
+                  <Building2 className="h-3.5 w-3.5 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700 flex-1 truncate">
+                    {group.serviceName}
+                  </span>
+                  <span className="text-xs text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full">
+                    {group.items.length}
+                  </span>
+                  {group.overdueCount > 0 && (
+                    <span className="text-xs text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+                      {group.overdueCount} overdue
+                    </span>
+                  )}
+                </button>
+                {/* Group items */}
+                {!isCollapsed && (
+                  <div className="divide-y divide-gray-100">
+                    {group.items.map((item) => (
+                      <DraftItemCard
+                        key={`${item.itemType}-${item.id}`}
+                        item={item}
+                        onAction={handleAction}
+                        onView={
+                          item.itemType === "task" && onSelectTask
+                            ? () => onSelectTask(item.id)
+                            : undefined
+                        }
+                        hideCentre
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="space-y-2">
@@ -201,10 +305,12 @@ function DraftItemCard({
   item,
   onAction,
   onView,
+  hideCentre,
 }: {
   item: DraftItem;
   onAction: (item: DraftItem, action: string) => void;
   onView?: () => void;
+  hideCentre?: boolean;
 }) {
   const Icon = ICON_MAP[item.itemType];
   const now = new Date();
@@ -231,7 +337,7 @@ function DraftItemCard({
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          {item.serviceName && (
+          {!hideCentre && item.serviceName && (
             <span className="text-[10px] text-gray-500">{item.serviceName}</span>
           )}
           {dueDate && (

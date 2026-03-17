@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Trash2, Pencil, ExternalLink, Unlink, Link2, Check, XCircle, ShieldCheck, Palette, Image } from "lucide-react";
+import { X, Trash2, Pencil, ExternalLink, Unlink, Link2, Check, XCircle, ShieldCheck, Palette, Image, Eye, History } from "lucide-react";
 import { usePost, useUpdatePost, useDeletePost, useSocialConnections, useApprovePost, useRejectPost } from "@/hooks/useMarketing";
 import type { PostData } from "@/hooks/useMarketing";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
 import { LinkSocialPostModal } from "./LinkSocialPostModal";
 import { toast } from "@/hooks/useToast";
+import { PostPreviewPanel } from "./PostPreviewPanel";
+import { PostHistoryPanel } from "./PostHistoryPanel";
 
 interface PostDetailPanelProps {
   postId: string;
@@ -55,6 +57,8 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const { data: socialConnections } = useSocialConnections();
 
   useEffect(() => {
@@ -169,6 +173,20 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
+              onClick={() => setShowPreview(true)}
+              className="rounded-lg p-2 text-gray-400 hover:bg-brand/5 hover:text-brand transition-colors"
+              title="Preview post"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setShowHistory(true)}
+              className="rounded-lg p-2 text-gray-400 hover:bg-brand/5 hover:text-brand transition-colors"
+              title="Revision history"
+            >
+              <History className="h-4 w-4" />
+            </button>
+            <button
               onClick={handleDelete}
               className={`rounded-lg p-2 text-sm transition-colors ${
                 confirmDelete
@@ -262,7 +280,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="Reason for rejection (optional)..."
                   rows={2}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-400"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
                 <button
                   onClick={() => {
@@ -406,6 +424,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               rows={4}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
             />
+            <ContentCharCounter content={content} platform={platform} />
           </div>
 
           {/* Pillar */}
@@ -640,7 +659,52 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
             onClose={() => setShowLinkModal(false)}
           />
         )}
+
+        {/* Post History */}
+        {showHistory && (
+          <PostHistoryPanel
+            postId={postId}
+            onClose={() => setShowHistory(false)}
+          />
+        )}
+
+        {/* Post Preview */}
+        {showPreview && (
+          <PostPreviewPanel
+            title={title}
+            content={content}
+            platform={platform}
+            scheduledDate={post.scheduledDate}
+            canvaExportUrl={post.canvaExportUrl}
+            designLink={post.designLink}
+            assigneeName={post.assignee?.name}
+            onClose={() => setShowPreview(false)}
+          />
+        )}
       </div>
     </>
+  );
+}
+
+const PLATFORM_CHAR_LIMITS: Record<string, number> = {
+  facebook: 63206,
+  instagram: 2200,
+  linkedin: 3000,
+};
+
+function ContentCharCounter({ content, platform }: { content: string; platform: string }) {
+  const limit = PLATFORM_CHAR_LIMITS[platform] || 0;
+  if (!limit) return null;
+
+  const count = content.length;
+  const pct = Math.round((count / limit) * 100);
+  const isOver = count > limit;
+  const isNear = pct >= 80;
+
+  return (
+    <div className={`flex items-center justify-between mt-1 text-xs ${isOver ? "text-red-600 font-medium" : isNear ? "text-amber-600" : "text-gray-400"}`}>
+      <span>{count.toLocaleString()} / {limit.toLocaleString()}</span>
+      {isOver && <span>{(count - limit).toLocaleString()} over limit</span>}
+    </div>
   );
 }

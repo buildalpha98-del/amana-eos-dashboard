@@ -32,6 +32,7 @@ import { CoverageTab } from "@/components/marketing/CoverageTab";
 import { TermCalendarTab } from "@/components/marketing/TermCalendarTab";
 import { OccupancyHeatmap } from "@/components/marketing/OccupancyHeatmap";
 import { DraftsQueue } from "@/components/marketing/DraftsQueue";
+import { CentreWorkloadDashboard } from "@/components/marketing/CentreWorkloadDashboard";
 import { LaunchTracker } from "@/components/marketing/LaunchTracker";
 import { ReferralsTab } from "@/components/marketing/ReferralsTab";
 import { BSCGrowthTracker } from "@/components/marketing/BSCGrowthTracker";
@@ -68,7 +69,7 @@ export default function MarketingPage() {
   const [showQuickCampaign, setShowQuickCampaign] = useState(false);
 
   /* Sub-view state for composite tabs */
-  const [toolkitView, setToolkitView] = useState<"assets" | "templates" | "hashtags" | "kpis">("assets");
+  const [toolkitView, setToolkitView] = useState<"assets" | "templates" | "hashtags" | "kpis" | "workload">("assets");
   const [growthView, setGrowthView] = useState<"occupancy" | "referrals" | "launch">("occupancy");
 
   return (
@@ -201,6 +202,7 @@ export default function MarketingPage() {
                 { key: "templates", label: "Templates" },
                 { key: "hashtags", label: "Hashtags" },
                 { key: "kpis", label: "KPIs" },
+                { key: "workload", label: "Workload" },
               ] as const).map((item) => (
                 <button
                   key={item.key}
@@ -220,6 +222,14 @@ export default function MarketingPage() {
             {toolkitView === "templates" && <TemplatesTab />}
             {toolkitView === "hashtags" && <HashtagsTab />}
             {toolkitView === "kpis" && <KPIsTab />}
+            {toolkitView === "workload" && (
+              <CentreWorkloadDashboard
+                onCentreClick={(id) => {
+                  setSelectedServiceId(id);
+                  setActiveTab("overview");
+                }}
+              />
+            )}
           </div>
         )}
       </div>

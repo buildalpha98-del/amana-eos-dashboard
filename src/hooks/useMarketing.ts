@@ -919,6 +919,7 @@ export interface MarketingTaskData {
   post: { id: string; title: string } | null;
   serviceId: string | null;
   service: { id: string; name: string; code: string } | null;
+  subtasks: { text: string; done: boolean }[] | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -1008,6 +1009,7 @@ export function useUpdateMarketingTask() {
       campaignId?: string | null;
       postId?: string | null;
       serviceId?: string | null;
+      subtasks?: { text: string; done: boolean }[] | null;
     }) => {
       const res = await fetch(`/api/marketing/tasks/${id}`, {
         method: "PATCH",
