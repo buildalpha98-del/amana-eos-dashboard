@@ -2357,6 +2357,56 @@ Scoring criteria:
 - Service match (enquiry aligned with available capacity): 0-15 points
 - Recency (recent activity scores higher): 0-10 points`,
     },
+    {
+      slug: "compliance/qip-action-plan",
+      name: "QIP Action Plan Generator",
+      model: "claude-3-5-haiku-latest",
+      maxTokens: 1024,
+      variables: JSON.stringify(["qipArea", "findings", "centreContext"]),
+      promptTemplate: `Generate a Quality Improvement Plan (QIP) action plan for this Amana OSHC centre.
+
+QIP Area: {{qipArea}}
+Current Findings: {{findings}}
+Centre Context: {{centreContext}}
+
+Create 3-5 specific, measurable improvement actions following the National Quality Standard (NQS) framework. For each action:
+1. **Action**: Clear description of what needs to be done
+2. **Timeline**: Realistic timeframe (1 week / 1 month / 1 term)
+3. **Responsible**: Who should lead this (coordinator, educator, director)
+4. **Success Measure**: How to know it's been achieved
+5. **NQS Link**: Which quality area/standard this addresses
+
+Keep actions practical and achievable for an OSHC setting. Focus on continuous improvement, not perfection.`,
+    },
+    {
+      slug: "services/demand-forecast",
+      name: "Enrolment Demand Forecast",
+      model: "claude-3-5-haiku-latest",
+      maxTokens: 1200,
+      variables: JSON.stringify(["centreName", "capacity", "attendanceTrend", "enquiryTrend", "enrolmentSnapshot"]),
+      promptTemplate: `Analyze the attendance and enquiry data for this Amana OSHC centre and forecast demand for the next 4 weeks.
+
+Centre: {{centreName}}
+Current Capacity: {{capacity}}
+
+13-Week Attendance Trend (BSC/ASC averages per week):
+{{attendanceTrend}}
+
+Enquiry Volume (last 90 days by week):
+{{enquiryTrend}}
+
+Current Enrolment Snapshot:
+{{enrolmentSnapshot}}
+
+Provide:
+1. **4-Week Forecast**: Predicted BSC and ASC attendance for each of the next 4 weeks
+2. **Trend Direction**: Is demand growing, stable, or declining? By how much?
+3. **Capacity Risk**: Will any session type exceed capacity in the next 4 weeks?
+4. **Actionable Insights**: 2-3 specific recommendations (e.g., "Open waitlist for ASC Tuesdays", "Promote BSC to new enquiries")
+5. **Confidence Level**: How confident is this forecast (high/medium/low) and why
+
+Keep it concise and actionable for a centre director.`,
+    },
   ];
 
   for (const tpl of aiTemplates) {

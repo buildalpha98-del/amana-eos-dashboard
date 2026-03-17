@@ -11,9 +11,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { AiButton } from "@/components/ui/AiButton";
 
 interface QIPQualityArea {
   id: string;
@@ -72,6 +74,7 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
   const [expandedArea, setExpandedArea] = useState<string | null>(null);
   const [editingArea, setEditingArea] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<QIPQualityArea>>({});
+  const [aiResult, setAiResult] = useState<Record<string, string | null>>({});
 
   const { data, isLoading } = useQuery({
     queryKey: ["qip", serviceId],
@@ -324,7 +327,7 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                             </dd>
                           </div>
                         ))}
-                        <div className="pt-2">
+                        <div className="flex items-center gap-3 pt-2">
                           <button
                             onClick={() => {
                               setEditingArea(area.id);
@@ -343,7 +346,49 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                           >
                             Edit Quality Area
                           </button>
+                          <AiButton
+                            templateSlug="compliance/qip-action-plan"
+                            variables={{
+                              qipArea: `${label} — ${area.qualityArea}`,
+                              findings: [
+                                area.areasForImprovement && `Areas for Improvement: ${area.areasForImprovement}`,
+                                area.strengths && `Strengths: ${area.strengths}`,
+                                area.goals && `Goals: ${area.goals}`,
+                                area.progressNotes && `Progress Notes: ${area.progressNotes}`,
+                              ].filter(Boolean).join("\n") || "No findings recorded yet",
+                              centreContext: [
+                                area.rating && `Current rating: ${area.rating.replace(/_/g, " ")}`,
+                                area.strategies && `Existing strategies: ${area.strategies}`,
+                                area.timeline && `Timeline: ${area.timeline}`,
+                                area.responsiblePerson && `Responsible: ${area.responsiblePerson}`,
+                              ].filter(Boolean).join("\n") || "No additional context",
+                            }}
+                            onResult={(text) => setAiResult((prev) => ({ ...prev, [area.id]: text }))}
+                            label="AI Action Plan"
+                            size="sm"
+                            section="compliance"
+                          />
                         </div>
+
+                        {/* AI Action Plan Result Panel */}
+                        {aiResult[area.id] && (
+                          <div className="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-sm font-medium text-purple-800">
+                                AI-Generated Action Plan
+                              </h4>
+                              <button
+                                onClick={() => setAiResult((prev) => ({ ...prev, [area.id]: null }))}
+                                className="text-purple-400 hover:text-purple-600"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <div className="text-sm text-purple-900 whitespace-pre-wrap">
+                              {aiResult[area.id]}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

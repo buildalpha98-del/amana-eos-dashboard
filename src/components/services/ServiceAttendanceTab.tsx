@@ -12,6 +12,10 @@ import {
   FileSpreadsheet,
   AlertTriangle,
   CopyPlus,
+  Sparkles,
+  X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
@@ -157,6 +161,32 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
       body: JSON.stringify({ dismissed: true }),
     });
     anomalyQC.invalidateQueries({ queryKey: ["attendance-anomalies", serviceId] });
+  };
+
+  // Demand forecast state
+  const [forecast, setForecast] = useState<string | null>(null);
+  const [forecastLoading, setForecastLoading] = useState(false);
+  const [forecastExpanded, setForecastExpanded] = useState(true);
+
+  const handleForecast = async () => {
+    setForecastLoading(true);
+    try {
+      const res = await fetch(`/api/services/${serviceId}/demand-forecast`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to generate forecast");
+      }
+      const data = await res.json();
+      setForecast(data.forecast);
+      setForecastExpanded(true);
+    } catch (err) {
+      toast({
+        description: err instanceof Error ? err.message : "Failed to generate forecast",
+        variant: "destructive",
+      });
+    } finally {
+      setForecastLoading(false);
+    }
   };
 
   // Build editable grid state from server data
@@ -309,10 +339,30 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
       {/* Trend chart */}
       {chartData.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-brand" />
-            Occupancy Trend (13 weeks)
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-brand" />
+              Occupancy Trend (13 weeks)
+            </h3>
+            <button
+              onClick={handleForecast}
+              disabled={forecastLoading}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-colors",
+                forecastLoading
+                  ? "border-amber-300 text-amber-700 bg-amber-50"
+                  : "border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100",
+                "disabled:cursor-not-allowed",
+              )}
+            >
+              {forecastLoading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              {forecastLoading ? "Forecasting..." : "Forecast Demand"}
+            </button>
+          </div>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -344,6 +394,47 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
               />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Demand Forecast Panel */}
+      {forecast && (
+        <div className="bg-purple-50 border border-purple-200 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setForecastExpanded((v) => !v)}
+            className="w-full flex items-center justify-between p-4 text-left"
+          >
+            <h4 className="text-sm font-semibold text-purple-800 flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Enrolment Demand Forecast
+            </h4>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setForecast(null);
+                }}
+                className="text-purple-400 hover:text-purple-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              {forecastExpanded ? (
+                <ChevronUp className="w-4 h-4 text-purple-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-purple-400" />
+              )}
+            </div>
+          </button>
+          {forecastExpanded && (
+            <div className="px-4 pb-4">
+              <div className="text-sm text-purple-900 whitespace-pre-wrap prose prose-sm max-w-none">
+                {forecast}
+              </div>
+              <p className="text-xs text-purple-500 mt-3">
+                AI-generated forecast based on 13 weeks of attendance data and recent enquiry trends. Use as a guide alongside your own centre knowledge.
+              </p>
+            </div>
+          )}
         </div>
       )}
 
