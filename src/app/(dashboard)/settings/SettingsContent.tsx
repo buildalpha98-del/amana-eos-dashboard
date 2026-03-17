@@ -39,6 +39,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/useToast";
 import type { Role } from "@prisma/client";
 import {
   permissionsTable,
@@ -2404,6 +2405,170 @@ function OwnaIntegrationSection() {
 }
 
 // ---------------------------------------------------------------------------
+// Centre Purchase Budget Tiers (owner/head_office)
+// ---------------------------------------------------------------------------
+
+interface BudgetTier {
+  minWeeklyChildren: number;
+  monthlyBudget: number;
+}
+
+function BudgetTiersSection() {
+  const queryClient = useQueryClient();
+  const [tiers, setTiers] = useState<BudgetTier[]>([]);
+  const [newMin, setNewMin] = useState("");
+  const [newBudget, setNewBudget] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const { data: orgSettings, isLoading } = useQuery<{ purchaseBudgetTiers?: BudgetTier[] }>({
+    queryKey: ["org-settings"],
+    queryFn: async () => {
+      const res = await fetch("/api/org-settings");
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+  });
+
+  useEffect(() => {
+    if (orgSettings?.purchaseBudgetTiers) {
+      setTiers(orgSettings.purchaseBudgetTiers);
+    } else if (!isLoading) {
+      setTiers([
+        { minWeeklyChildren: 100, monthlyBudget: 300 },
+        { minWeeklyChildren: 0, monthlyBudget: 150 },
+      ]);
+    }
+  }, [orgSettings, isLoading]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const sorted = [...tiers].sort((a, b) => b.minWeeklyChildren - a.minWeeklyChildren);
+      const res = await fetch("/api/org-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purchaseBudgetTiers: sorted }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      queryClient.invalidateQueries({ queryKey: ["org-settings"] });
+      toast({ description: "Budget tiers saved" });
+    } catch {
+      toast({ description: "Failed to save tiers", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addTier = () => {
+    const min = parseInt(newMin) || 0;
+    const budget = parseFloat(newBudget);
+    if (isNaN(budget) || budget <= 0) return;
+    setTiers((prev) =>
+      [...prev, { minWeeklyChildren: min, monthlyBudget: budget }].sort(
+        (a, b) => b.minWeeklyChildren - a.minWeeklyChildren
+      )
+    );
+    setNewMin("");
+    setNewBudget("");
+  };
+
+  const removeTier = (idx: number) => {
+    setTiers((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <DollarSign className="w-5 h-5 text-gray-400" />
+        <h3 className="text-lg font-semibold text-gray-900">
+          Centre Purchase Budget Tiers
+        </h3>
+      </div>
+      <p className="text-sm text-gray-500 mb-4">
+        Set monthly budget allocations based on average weekly attendance.
+        Services are matched to the first tier where their weekly attendance meets the minimum.
+      </p>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <>
+          <table className="w-full text-sm mb-4">
+            <thead>
+              <tr className="text-left text-gray-500 border-b border-gray-100">
+                <th className="pb-2 font-medium">Min Weekly Children</th>
+                <th className="pb-2 font-medium">Monthly Budget ($)</th>
+                <th className="pb-2 font-medium w-20" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {tiers.map((tier, idx) => (
+                <tr key={idx}>
+                  <td className="py-2 text-gray-900">{tier.minWeeklyChildren}+</td>
+                  <td className="py-2 text-gray-900 font-medium">${tier.monthlyBudget}</td>
+                  <td className="py-2 text-right">
+                    <button
+                      onClick={() => removeTier(idx)}
+                      className="text-xs text-red-500 hover:text-red-700"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Add tier row */}
+          <div className="flex items-center gap-3 mb-4">
+            <input
+              type="number"
+              value={newMin}
+              onChange={(e) => setNewMin(e.target.value)}
+              placeholder="Min children"
+              min={0}
+              className="w-32 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+            <input
+              type="number"
+              value={newBudget}
+              onChange={(e) => setNewBudget(e.target.value)}
+              placeholder="Budget ($)"
+              min={0}
+              step="0.01"
+              className="w-32 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+            <button
+              onClick={addTier}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+            >
+              Add Tier
+            </button>
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            Save Tiers
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // AI Usage Dashboard
 // ---------------------------------------------------------------------------
 
@@ -2623,6 +2788,9 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
 
       {/* API Keys (owner only) */}
       {isOwner && <ApiKeysSection />}
+
+      {/* Budget Tiers (owner/head_office) */}
+      {isOwner && <BudgetTiersSection />}
 
       {/* User Management (owner + head_office) */}
       {canManageUsers && (
