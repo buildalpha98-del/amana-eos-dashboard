@@ -1,13 +1,15 @@
 # Brevo Email Integration — Design Spec
 
 **Date**: 2026-03-17
-**Status**: Approved
+**Status**: Approved (rev 2 — post-review fixes)
 
 ## Overview
 
 Integrate Brevo email sending into the Marketing and Enquiries tabs, replacing Zoho Campaigns. Staff can import existing Zoho templates (paste HTML), create new emails with a lightweight block editor, send campaigns to centre contact lists, and send welcome/follow-up emails to enquiry parents — all from within the dashboard.
 
 Brevo acts as the delivery pipe only. The dashboard handles all composing, template management, and recipient resolution. Resend continues to handle system/transactional emails (password resets, notifications, digests).
+
+**Note**: The enquiry model is `ParentEnquiry` in Prisma (not `Enquiry`). All references in this spec use "enquiry" colloquially but map to `ParentEnquiry` in code.
 
 ## 1. Email Template System
 
@@ -94,10 +96,12 @@ Block JSON example:
 
 ### Block-to-HTML Rendering
 
-A shared utility `renderBlocksToHtml(blocks, variables)` converts the block array into email-safe HTML wrapped in the branded Amana template (from `baseLayout()` in `email-templates.ts`). This utility:
+A shared utility `renderBlocksToHtml(blocks, variables)` converts the block array into email-safe HTML wrapped in a new `marketingLayout()` wrapper. This utility:
 1. Iterates blocks, rendering each to inline-styled HTML (email-safe, no CSS classes)
 2. Interpolates `{{placeholder}}` variables
-3. Wraps in the existing `baseLayout()` branded wrapper (logo, footer, colours)
+3. Wraps in a new `marketingLayout()` wrapper (parent-facing branding — Amana logo, no "EOS Dashboard" subtitle, no "automated email" footer, includes unsubscribe link)
+
+**Note**: The existing `baseLayout()` in `email-templates.ts` is for internal/system emails and has unsuitable branding for parent-facing marketing emails. A new `marketingLayout()` function will be created in `src/lib/email-marketing-layout.ts` with appropriate parent-facing branding.
 
 ### Placeholder Interpolation
 
@@ -105,8 +109,8 @@ Templates support these variables, resolved at send time:
 
 | Placeholder | Source |
 |---|---|
-| `{{parentName}}` | Enquiry parent name or CentreContact name |
-| `{{parentFirstName}}` | First name only |
+| `{{parentName}}` | `${firstName} ${lastName}`.trim() from ParentEnquiry or CentreContact (handles nulls) |
+| `{{parentFirstName}}` | firstName from ParentEnquiry or CentreContact |
 | `{{serviceName}}` | Service.name |
 | `{{serviceCode}}` | Service.code |
 | `{{enquiryDate}}` | Enquiry.createdAt formatted |
@@ -186,16 +190,32 @@ When platform is `email`:
    - Preview pane showing rendered email
 3. Staff clicks "Send"
 4. Email sent via Brevo `sendTransactionalEmail()` (single recipient)
-5. Logged in `DeliveryLog` with `entityType: "Enquiry"` and `entityId: enquiry.id`
-6. Enquiry's `lastEmailSentAt` updated
+5. Logged in `DeliveryLog` with `entityType: "ParentEnquiry"` and `entityId: enquiry.id`
+6. ParentEnquiry's `lastEmailSentAt` updated
 7. Toast: "Welcome email sent to [parentName]"
 
-### Enquiry Model Changes
+### Schema Changes
 
 ```prisma
-// Add to Enquiry model:
+// Add to ParentEnquiry model:
 lastEmailSentAt  DateTime?
+
+// Add to DeliveryLog model:
+entityType   String?    // "ParentEnquiry", "MarketingPost"
+entityId     String?
+subject      String?
+templateId   String?    // link to EmailTemplate used
+renderedHtml String?    @db.Text  // snapshot of what was actually sent
+
+@@index([entityType, entityId])
 ```
+
+```prisma
+// Add to MarketingPost model:
+deliveryLogId  String?
+```
+
+**Validation**: The "Send Welcome Email" button is disabled when `ParentEnquiry.parentEmail` is null (with tooltip "No email address on this enquiry").
 
 ### Email History on Enquiry
 
@@ -217,7 +237,7 @@ GET    /api/email-templates              — list all templates (optional ?categ
 POST   /api/email-templates              — create template
 GET    /api/email-templates/[id]         — get single template
 PATCH  /api/email-templates/[id]         — update template
-DELETE /api/email-templates/[id]         — soft delete template
+DELETE /api/email-templates/[id]         — hard delete template (consistent with codebase pattern)
 POST   /api/email-templates/[id]/duplicate — clone template
 ```
 
@@ -296,7 +316,7 @@ Returns rendered HTML for the preview pane. Uses sample/placeholder data so staf
 | Component | How Used |
 |---|---|
 | `src/lib/brevo.ts` | `sendTransactionalEmail()` and `sendCampaignEmail()` — unchanged |
-| `src/lib/email-templates.ts` | `baseLayout()` wrapper for branded emails |
+| `src/lib/email-marketing-layout.ts` | New `marketingLayout()` wrapper for parent-facing emails |
 | `DeliveryLog` model | Tracks all sends |
 | `CentreContact` model | Recipient source |
 | `ActivityLog` model | Audit trail |
@@ -311,7 +331,30 @@ Returns rendered HTML for the preview pane. Uses sample/placeholder data so staf
 | Send enquiry welcome emails | owner, head_office, admin, coordinator |
 | View email history | All authenticated users |
 
-## 8. Out of Scope (for now)
+## 8. Registration & Safety
+
+### New Page Registration
+
+The `/marketing/email/compose` route must be added to:
+1. `nav-config.ts` (under Engagement > Marketing)
+2. `TopBar.tsx` pageTitles
+3. `role-permissions.ts` allPages + rolePageAccess
+
+### Double-Send Protection
+
+The `POST /api/email/send` endpoint includes:
+- Confirmation dialog on the frontend ("Send to X recipients? This cannot be undone.")
+- Server-side check: if `postId` is provided and already has a `deliveryLogId`, return 409 Conflict
+- For enquiry welcome emails: warn (not block) if `lastEmailSentAt` is already set
+
+### Scheduling
+
+- Scheduled sends use Brevo's native scheduling (`scheduledAt` param)
+- `DeliveryLog.status` set to `"scheduled"` with the scheduled datetime
+- No cancellation support in v1 (out of scope)
+- All datetimes are in UTC; the frontend converts from the user's local timezone
+
+## 9. Out of Scope (for now)
 
 - Drag-and-drop block reordering (using up/down arrows instead)
 - Rich text editing within blocks (plain text + line breaks only)
