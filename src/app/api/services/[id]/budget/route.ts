@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getMonthlyBudget } from "@/lib/budget-helpers";
 
 // GET /api/services/[id]/budget — budget summary with grocery calc + equipment totals
 export async function GET(
@@ -123,6 +124,24 @@ export async function GET(
     }
   }
 
+  // Resolve budget allocation
+  const budgetAllocation = await getMonthlyBudget(id);
+
+  // Calculate month-to-date non-grocery purchase spend
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+
+  const monthToDateResult = await prisma.budgetItem.aggregate({
+    where: {
+      serviceId: id,
+      date: { gte: monthStart },
+      category: { not: "groceries" },
+    },
+    _sum: { amount: true },
+  });
+  const monthToDatePurchaseSpend = monthToDateResult._sum.amount || 0;
+
   return NextResponse.json({
     groceryBudget: {
       total: groceryTotal,
@@ -135,6 +154,11 @@ export async function GET(
       byCategory,
     },
     combinedTotal: groceryTotal + equipmentTotal,
+    monthlyAllocation: budgetAllocation.amount,
+    allocationSource: budgetAllocation.source,
+    allocationLabel: budgetAllocation.tierLabel || `Override — $${budgetAllocation.amount}/mo`,
+    monthToDatePurchaseSpend,
+    budgetRemaining: budgetAllocation.amount - monthToDatePurchaseSpend,
     periods: periods.sort((a, b) => a.period.localeCompare(b.period)),
     range: { from: from.toISOString(), to: to.toISOString() },
     rates: {
