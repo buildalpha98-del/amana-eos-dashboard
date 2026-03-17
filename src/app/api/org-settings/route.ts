@@ -31,11 +31,15 @@ const updateSchema = z.object({
     .string()
     .regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex colour")
     .optional(),
+  purchaseBudgetTiers: z.array(z.object({
+    minWeeklyChildren: z.number().min(0),
+    monthlyBudget: z.number().min(0),
+  })).optional(),
 });
 
 // PATCH /api/org-settings — update org settings (owner only)
 export async function PATCH(req: NextRequest) {
-  const { error } = await requireAuth(["owner"]);
+  const { error } = await requireAuth(["owner", "head_office"]);
   if (error) return error;
 
   const body = await req.json();
