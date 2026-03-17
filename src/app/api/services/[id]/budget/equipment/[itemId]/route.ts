@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { recalcFinancialsForWeek } from "@/lib/budget-helpers";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   amount: z.number().positive().optional(),
   category: z.enum([
-    "kitchen", "sports", "art_craft", "furniture",
+    "groceries", "kitchen", "sports", "art_craft", "furniture",
     "technology", "cleaning", "safety", "other",
   ]).optional(),
   date: z.string().optional(),
@@ -65,6 +66,13 @@ export async function PATCH(
     },
   });
 
+  // Sync financials — recalc new week (and old week if date changed)
+  const newDate = data.date ? new Date(data.date) : existing.date;
+  await recalcFinancialsForWeek(id, newDate);
+  if (data.date && new Date(data.date).getTime() !== existing.date.getTime()) {
+    await recalcFinancialsForWeek(id, existing.date);
+  }
+
   return NextResponse.json(item);
 }
 
@@ -81,7 +89,7 @@ export async function DELETE(
   // Verify item belongs to this service
   const existing = await prisma.budgetItem.findFirst({
     where: { id: itemId, serviceId: id },
-    select: { id: true, name: true },
+    select: { id: true, name: true, date: true },
   });
 
   if (!existing) {
@@ -99,6 +107,9 @@ export async function DELETE(
   });
 
   await prisma.budgetItem.delete({ where: { id: itemId } });
+
+  // Sync financials after deletion
+  await recalcFinancialsForWeek(id, existing.date);
 
   return NextResponse.json({ success: true });
 }

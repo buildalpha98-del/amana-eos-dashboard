@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { recalcFinancialsForWeek } from "@/lib/budget-helpers";
 
 const equipmentItemSchema = z.object({
   name: z.string().min(1).max(200),
   amount: z.number().positive(),
   category: z.enum([
-    "kitchen", "sports", "art_craft", "furniture",
+    "groceries", "kitchen", "sports", "art_craft", "furniture",
     "technology", "cleaning", "safety", "other",
   ]),
   date: z.string(),
@@ -99,6 +100,9 @@ export async function POST(
       details: { serviceId: id, name: data.name, amount: data.amount, category: data.category },
     },
   });
+
+  // Sync to financials
+  await recalcFinancialsForWeek(id, new Date(data.date));
 
   return NextResponse.json(item, { status: 201 });
 }
