@@ -111,11 +111,13 @@ export function useSendEmail() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: {
-      templateId: string;
+      templateId?: string | null;
+      subject: string;
+      htmlContent?: string | null;
       serviceIds?: string[];
-      subject?: string;
-      entityType?: string;
-      entityId?: string;
+      enquiryId?: string | null;
+      postId?: string | null;
+      variables?: Record<string, string>;
     }) =>
       apiFetch<{ status: string; recipientCount: number }>(
         "/api/email/campaign/send",
@@ -129,6 +131,7 @@ export function useSendEmail() {
       qc.invalidateQueries({ queryKey: ["email-templates"] });
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["enquiry"] });
+      qc.invalidateQueries({ queryKey: ["email-history"] });
       toast({
         description: `Email ${result.status} to ${result.recipientCount} recipient(s)`,
       });
@@ -138,7 +141,11 @@ export function useSendEmail() {
 
 export function useEmailPreview() {
   return useMutation({
-    mutationFn: (data: { templateId: string; variables?: Record<string, string> }) =>
+    mutationFn: (data: {
+      templateId?: string | null;
+      htmlContent?: string | null;
+      variables?: Record<string, string>;
+    }) =>
       apiFetch<{ html: string }>("/api/email/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

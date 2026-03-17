@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { CCSCalculator } from "@/components/shared/CCSCalculator";
 import { AiButton } from "@/components/ui/AiButton";
+import { SendWelcomeEmailModal } from "./SendWelcomeEmailModal";
+import { EmailHistorySection } from "./EmailHistorySection";
 
 interface EnquiryDetailPanelProps {
   enquiryId: string;
@@ -74,6 +76,7 @@ export function EnquiryDetailPanel({
     children: [{ name: "", age: "" }] as { name: string; age: string }[],
   });
   const [saving, setSaving] = useState(false);
+  const [showWelcomeEmail, setShowWelcomeEmail] = useState(false);
 
   const startEditing = () => {
     if (!enquiry) return;
@@ -609,6 +612,21 @@ export function EnquiryDetailPanel({
                 Form Support
               </button>
             </div>
+            <button
+              onClick={() => setShowWelcomeEmail(true)}
+              disabled={!enquiry.parentEmail}
+              title={
+                !enquiry.parentEmail
+                  ? "No email address on this enquiry"
+                  : enquiry.lastEmailSentAt
+                  ? `Welcome email already sent on ${new Date(enquiry.lastEmailSentAt).toLocaleDateString("en-AU")}`
+                  : undefined
+              }
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-brand/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Mail className="h-4 w-4" />
+              {enquiry.lastEmailSentAt ? "Resend Welcome Email" : "Send Welcome Email"}
+            </button>
           </div>
 
           {/* Notes */}
@@ -679,6 +697,12 @@ export function EnquiryDetailPanel({
             )}
           </div>
 
+          {/* Email history */}
+          <div className="mt-6 border-t border-gray-200 pt-4">
+            <h4 className="mb-2 text-sm font-semibold text-gray-900">Emails</h4>
+            <EmailHistorySection enquiryId={enquiry.id} parentEmail={enquiry.parentEmail} parentName={enquiry.parentName} />
+          </div>
+
           {/* CCS Calculator (collapsible) */}
           <div className="border-t pt-4">
             <button
@@ -701,6 +725,20 @@ export function EnquiryDetailPanel({
           </div>
         </div>
       </div>
+
+      {/* Welcome Email Modal */}
+      {showWelcomeEmail && enquiry.parentEmail && (
+        <SendWelcomeEmailModal
+          open={showWelcomeEmail}
+          onClose={() => setShowWelcomeEmail(false)}
+          enquiry={{
+            id: enquiry.id,
+            parentName: enquiry.parentName,
+            parentEmail: enquiry.parentEmail,
+            service: enquiry.service,
+          }}
+        />
+      )}
 
       {/* Quick Action Modal */}
       {actionModal.action && (
