@@ -22,11 +22,20 @@ export async function sendTextMessage(to: string, body: string) {
       }),
     }
   );
+  const responseText = await res.text();
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`WhatsApp API error: ${JSON.stringify(err)}`);
+    let errDetail = responseText;
+    try { errDetail = JSON.stringify(JSON.parse(responseText)); } catch {}
+    throw new Error(`WhatsApp API error (${res.status}): ${errDetail}`);
   }
-  return res.json();
+  if (!responseText) {
+    throw new Error("WhatsApp API returned empty response");
+  }
+  try {
+    return JSON.parse(responseText);
+  } catch {
+    throw new Error(`WhatsApp API returned invalid JSON: ${responseText.substring(0, 200)}`);
+  }
 }
 
 export function verifyWebhookSignature(signature: string, body: string): boolean {

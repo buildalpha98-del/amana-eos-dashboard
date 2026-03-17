@@ -205,8 +205,14 @@ export function useSendMessage() {
         body: JSON.stringify({ body }),
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to send message");
+        let errorMessage = "Failed to send message";
+        try {
+          const err = await res.json();
+          errorMessage = err.error || errorMessage;
+        } catch {
+          errorMessage = `Server error (${res.status})`;
+        }
+        throw new Error(errorMessage);
       }
       return res.json();
     },

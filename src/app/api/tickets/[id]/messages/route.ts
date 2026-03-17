@@ -61,8 +61,17 @@ export async function POST(
   }
 
   // Send via WhatsApp API
-  const waResponse = await sendTextMessage(ticket.contact.waId, body.body.trim());
-  const waMessageId = waResponse.messages?.[0]?.id || null;
+  let waMessageId: string | null = null;
+  try {
+    const waResponse = await sendTextMessage(ticket.contact.waId, body.body.trim());
+    waMessageId = waResponse?.messages?.[0]?.id || null;
+  } catch (err) {
+    console.error("WhatsApp send failed:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to send WhatsApp message" },
+      { status: 502 }
+    );
+  }
 
   // Create outbound message record
   const message = await prisma.ticketMessage.create({
