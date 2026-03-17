@@ -533,6 +533,9 @@ model User {
   // ── AI Usage ───────────────────────────────────────
   aiUsageLogs            AiUsage[]            @relation("AiUsageLogs")
 
+  // ── Email Templates ──────────────────────────────
+  emailTemplates         EmailTemplate[]      @relation("EmailTemplateCreator")
+
   @@index([serviceId])
 }
 
@@ -941,6 +944,7 @@ model MarketingPost {
   externalPostId     String?
   externalUrl        String?
   engagementSyncedAt DateTime?
+  deliveryLogId  String?
   approvedById       String?
   approvedBy         User?                  @relation("MarketingPostApprover", fields: [approvedById], references: [id])
   approvedAt         DateTime?
@@ -3070,11 +3074,17 @@ model DeliveryLog {
   status         String // sent, scheduled, failed
   errorMessage   String?  @db.Text
   payload        Json? // original request body for debugging
+  entityType   String?
+  entityId     String?
+  subject      String?
+  templateId   String?
+  renderedHtml String?    @db.Text
   createdAt      DateTime @default(now())
 
   @@index([channel])
   @@index([serviceCode])
   @@index([createdAt])
+  @@index([entityType, entityId])
 }
 
 // ============================================================
@@ -3361,6 +3371,7 @@ model ParentEnquiry {
   deleted         Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  lastEmailSentAt DateTime?
   touchpoints     ParentEnquiryTouchpoint[]
   nurtureSteps    ParentNurtureStep[]
 
@@ -4040,4 +4051,30 @@ model TrendInsight {
   @@index([severity])
   @@index([dismissed])
   @@index([createdAt])
+}
+
+// ============================================================
+// Email Templates (Brevo Integration)
+// ============================================================
+
+enum EmailTemplateCategory {
+  welcome
+  newsletter
+  event
+  announcement
+  custom
+}
+
+model EmailTemplate {
+  id          String                @id @default(cuid())
+  name        String
+  category    EmailTemplateCategory @default(custom)
+  subject     String
+  htmlContent String?               @db.Text
+  blocks      Json?
+  isDefault   Boolean               @default(false)
+  createdById String?
+  createdBy   User?                 @relation("EmailTemplateCreator", fields: [createdById], references: [id])
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
 }
