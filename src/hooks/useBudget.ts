@@ -34,6 +34,11 @@ export interface BudgetSummary {
     byCategory: EquipmentCategorySummary[];
   };
   combinedTotal: number;
+  monthlyAllocation: number;
+  allocationSource: "override" | "tier";
+  allocationLabel: string;
+  monthToDatePurchaseSpend: number;
+  budgetRemaining: number;
   periods: BudgetPeriod[];
   range: { from: string; to: string };
   rates: { bsc: number; asc: number; vc: number };

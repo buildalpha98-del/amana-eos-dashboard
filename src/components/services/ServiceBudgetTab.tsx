@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import {
   ShoppingCart,
   Wrench,
-  DollarSign,
   TrendingUp,
   Plus,
   Pencil,
@@ -24,7 +23,6 @@ import {
   Check,
   Package,
 } from "lucide-react";
-import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   BarChart,
@@ -41,6 +39,7 @@ import { CHART_COLORS } from "@/components/charts/chart-colors";
 // ── Constants ───────────────────────────────────────────────
 
 const CATEGORY_LABELS: Record<string, string> = {
+  groceries: "Groceries",
   kitchen: "Kitchen",
   sports: "Sports",
   art_craft: "Art & Craft",
@@ -52,6 +51,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
+  groceries: "#16a34a",
   kitchen: "#F59E0B",
   sports: "#10B981",
   art_craft: "#8B5CF6",
@@ -89,7 +89,7 @@ function getFYRange(): { from: string; to: string; label: string } {
 
 export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
   const fy = getFYRange();
-  const [period, setPeriod] = useState<"weekly" | "monthly">("monthly");
+  const [period, setPeriod] = useState<"weekly" | "monthly">("weekly");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingItem, setEditingItem] = useState<BudgetItemRecord | null>(null);
@@ -126,7 +126,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
     return summary.periods.map((p) => ({
       period: p.period,
       Groceries: Math.round(p.groceryCost * 100) / 100,
-      Equipment: Math.round(p.equipmentCost * 100) / 100,
+      "Centre Purchases": Math.round(p.equipmentCost * 100) / 100,
     }));
   }, [summary]);
 
@@ -136,7 +136,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Centre Budget</h2>
-          <p className="text-sm text-gray-500">{fy.label} — Groceries &amp; Equipment</p>
+          <p className="text-sm text-gray-500">{fy.label} — Groceries &amp; Centre Purchases</p>
         </div>
         <div className="flex items-center gap-2">
           <select
@@ -151,40 +151,87 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard
-          size="sm"
-          icon={ShoppingCart}
-          title="Grocery Budget"
-          value={formatCurrency(summary?.groceryBudget.total || 0)}
-          iconColor={CHART_COLORS.success}
-          loading={summaryLoading}
-        />
-        <StatCard
-          size="sm"
-          icon={Wrench}
-          title="Equipment Budget"
-          value={formatCurrency(summary?.equipmentBudget.total || 0)}
-          iconColor={CHART_COLORS.info}
-          loading={summaryLoading}
-        />
-        <StatCard
-          size="sm"
-          icon={DollarSign}
-          title="Combined Total"
-          value={formatCurrency(summary?.combinedTotal || 0)}
-          iconColor={CHART_COLORS.primary}
-          loading={summaryLoading}
-        />
-        <StatCard
-          size="sm"
-          icon={TrendingUp}
-          title="Avg Weekly Cost"
-          value={formatCurrency(avgWeeklyCost)}
-          iconColor={CHART_COLORS.warning}
-          loading={summaryLoading}
-        />
-      </div>
+      {summaryLoading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-7 w-24" />
+              <Skeleton className="h-2.5 w-16" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Grocery Spend */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-xs font-medium text-gray-500 mb-1">Grocery Spend</p>
+            <p className="text-2xl font-bold text-emerald-700">
+              ${summary?.groceryBudget?.total?.toFixed(0) || "0"}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {period === "weekly" ? "This week" : "This month"}
+            </p>
+          </div>
+
+          {/* Card 2: Purchase Budget */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-xs font-medium text-gray-500 mb-1">Purchase Budget</p>
+            <p className="text-2xl font-bold text-gray-900">
+              ${summary?.monthToDatePurchaseSpend?.toFixed(0) || "0"}
+              <span className="text-sm font-normal text-gray-400">
+                {" "}/ ${summary?.monthlyAllocation || 0}
+              </span>
+            </p>
+            {summary?.monthlyAllocation && (
+              <>
+                <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                  <div
+                    className={cn(
+                      "h-1.5 rounded-full transition-all",
+                      (summary.monthToDatePurchaseSpend / summary.monthlyAllocation) > 1
+                        ? "bg-red-500"
+                        : (summary.monthToDatePurchaseSpend / summary.monthlyAllocation) > 0.8
+                        ? "bg-amber-500"
+                        : "bg-blue-500"
+                    )}
+                    style={{
+                      width: `${Math.min((summary.monthToDatePurchaseSpend / summary.monthlyAllocation) * 100, 100)}%`,
+                    }}
+                  />
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1">{summary.allocationLabel}</p>
+              </>
+            )}
+          </div>
+
+          {/* Card 3: Total Spend */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-xs font-medium text-gray-500 mb-1">Total Spend</p>
+            <p className="text-2xl font-bold text-purple-700">
+              ${summary?.combinedTotal?.toFixed(0) || "0"}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              {period === "weekly" ? "This week" : "This month"}
+            </p>
+          </div>
+
+          {/* Card 4: Budget Remaining */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-xs font-medium text-gray-500 mb-1">Budget Remaining</p>
+            <p className={cn(
+              "text-2xl font-bold",
+              (summary?.budgetRemaining ?? 0) < 0 ? "text-red-600" : "text-emerald-700"
+            )}>
+              ${Math.abs(summary?.budgetRemaining ?? 0).toFixed(0)}
+              {(summary?.budgetRemaining ?? 0) < 0 && (
+                <span className="text-xs font-medium ml-1">over</span>
+              )}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">This month</p>
+          </div>
+        </div>
+      )}
 
       {/* Grocery Breakdown */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -328,7 +375,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                 radius={[0, 0, 0, 0]}
               />
               <Bar
-                dataKey="Equipment"
+                dataKey="Centre Purchases"
                 stackId="budget"
                 fill={CHART_COLORS.info}
                 radius={[4, 4, 0, 0]}
@@ -343,7 +390,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
             <Package className="w-4 h-4 text-blue-600" />
-            Equipment Purchases
+            Centre Purchases
           </h3>
           <button
             onClick={() => {
@@ -353,7 +400,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white text-xs font-medium rounded-lg hover:bg-brand-hover transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            Add Equipment
+            Add Purchase
           </button>
         </div>
 
@@ -408,9 +455,9 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
         ) : !items?.length ? (
           <div className="text-center py-8">
             <Wrench className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No equipment purchases recorded</p>
+            <p className="text-sm text-gray-500">No purchases recorded</p>
             <p className="text-xs text-gray-400 mt-1">
-              Click &quot;Add Equipment&quot; to log a purchase
+              Click &quot;Add Purchase&quot; to log a purchase
             </p>
           </div>
         ) : (
@@ -509,7 +556,7 @@ function EquipmentRow({
           onClick={() => {
             if (confirm(`Delete "${item.name}"?`)) {
               deleteMutation.mutate(item.id, {
-                onSuccess: () => toast({ description: "Equipment item deleted" }),
+                onSuccess: () => toast({ description: "Purchase deleted" }),
                 onError: (err) =>
                   toast({
                     description: err.message,
@@ -581,7 +628,7 @@ function EquipmentModal({
         { itemId: item.id, ...payload },
         {
           onSuccess: () => {
-            toast({ description: "Equipment item updated" });
+            toast({ description: "Purchase updated" });
             onClose();
           },
           onError: (err) => toast({ description: err.message, variant: "destructive" }),
@@ -590,7 +637,7 @@ function EquipmentModal({
     } else {
       createMutation.mutate(payload, {
         onSuccess: () => {
-          toast({ description: "Equipment item added" });
+          toast({ description: "Purchase added" });
           onClose();
         },
         onError: (err) => toast({ description: err.message, variant: "destructive" }),
@@ -604,7 +651,7 @@ function EquipmentModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h3 className="text-base font-semibold text-gray-900">
-            {isEditing ? "Edit Equipment Item" : "Add Equipment Item"}
+            {isEditing ? "Edit Purchase" : "Add Purchase"}
           </h3>
           <button
             onClick={onClose}
