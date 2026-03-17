@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
  * Returns current enrolment vs targets, penetration rates, and week-on-week trends.
  */
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { searchParams } = new URL(req.url);

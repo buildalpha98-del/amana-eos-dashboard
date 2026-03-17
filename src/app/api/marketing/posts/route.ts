@@ -30,6 +30,7 @@ const createPostSchema = z.object({
   reach: z.number().default(0),
   recurring: z.enum(["none", "weekly", "fortnightly", "monthly"]).default("none"),
   serviceIds: z.array(z.string()).optional(),
+  canvaDesignUrl: z.string().optional(),
 });
 
 const serviceInclude = {
@@ -44,7 +45,7 @@ const serviceInclude = {
 
 // GET /api/marketing/posts — list posts with optional filters
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { searchParams } = new URL(req.url);
@@ -80,7 +81,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/marketing/posts — create a new post
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const body = await req.json();
@@ -124,6 +125,7 @@ export async function POST(req: NextRequest) {
     reach,
     recurring,
     serviceIds,
+    canvaDesignUrl,
   } = parsed.data;
 
   const post = await prisma.marketingPost.create({
@@ -138,6 +140,7 @@ export async function POST(req: NextRequest) {
       pillar: pillar || null,
       assigneeId: assigneeId || null,
       campaignId: campaignId || null,
+      canvaDesignUrl: canvaDesignUrl || null,
       likes,
       comments,
       shares,

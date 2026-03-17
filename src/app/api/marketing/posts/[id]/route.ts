@@ -49,7 +49,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { id } = await params;
@@ -82,7 +82,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { id } = await params;
@@ -103,10 +103,41 @@ export async function PATCH(
 
   const { serviceIds, ...updateData } = parsed.data;
 
+  // Track revisions for changed fields
+  const revisionFields = [
+    "title", "content", "status", "platform", "scheduledDate",
+    "pillar", "notes", "designLink", "assigneeId", "campaignId",
+  ];
+  const revisions: { field: string; oldValue: string | null; newValue: string | null }[] = [];
+  for (const field of revisionFields) {
+    if (field in updateData) {
+      const oldVal = existing[field as keyof typeof existing];
+      const newVal = updateData[field as keyof typeof updateData];
+      const oldStr = oldVal != null ? String(oldVal instanceof Date ? oldVal.toISOString() : oldVal) : null;
+      const newStr = newVal != null ? String(newVal instanceof Date ? (newVal as Date).toISOString() : newVal) : null;
+      if (oldStr !== newStr) {
+        revisions.push({ field, oldValue: oldStr, newValue: newStr });
+      }
+    }
+  }
+
   const post = await prisma.marketingPost.update({
     where: { id },
     data: updateData,
   });
+
+  // Write revision records
+  if (revisions.length > 0) {
+    await prisma.marketingPostRevision.createMany({
+      data: revisions.map((r) => ({
+        postId: id,
+        userId: session!.user.id,
+        field: r.field,
+        oldValue: r.oldValue,
+        newValue: r.newValue,
+      })),
+    });
+  }
 
   // Sync service join table if serviceIds provided
   if (serviceIds !== undefined) {
@@ -150,7 +181,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { id } = await params;

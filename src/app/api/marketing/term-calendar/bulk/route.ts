@@ -39,7 +39,7 @@ const entryIncludes = {
 
 // POST /api/marketing/term-calendar/bulk — bulk create entries
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const body = await req.json();

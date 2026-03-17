@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
  * GET /api/marketing/launch-tracker — Data for services in launch/ramp-up phase
  */
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   try {

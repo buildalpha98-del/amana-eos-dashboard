@@ -33,7 +33,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { id } = await params;
@@ -58,7 +58,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { id } = await params;
@@ -136,7 +136,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { id } = await params;

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { decryptToken, fetchRecentPosts } from "@/lib/meta";
 
 export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   try {

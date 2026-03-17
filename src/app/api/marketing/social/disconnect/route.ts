@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   try {

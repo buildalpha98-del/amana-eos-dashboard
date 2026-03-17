@@ -19,7 +19,7 @@ interface DraftItem {
  * GET /api/marketing/drafts-queue — Unified queue of all pending/draft items
  */
 export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { searchParams } = new URL(req.url);

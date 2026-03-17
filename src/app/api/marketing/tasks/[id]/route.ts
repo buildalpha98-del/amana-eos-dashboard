@@ -3,6 +3,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 
+const subtaskSchema = z.object({
+  text: z.string().min(1),
+  done: z.boolean(),
+});
+
 const updateTaskSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional().nullable(),
@@ -13,6 +18,7 @@ const updateTaskSchema = z.object({
   campaignId: z.string().optional().nullable(),
   postId: z.string().optional().nullable(),
   serviceId: z.string().optional().nullable(),
+  subtasks: z.array(subtaskSchema).optional().nullable(),
 });
 
 const taskIncludes = {
@@ -27,7 +33,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { id } = await params;
@@ -49,7 +55,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { id } = await params;
@@ -68,9 +74,13 @@ export async function PATCH(
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
 
+  const { subtasks, ...restData } = parsed.data;
   const task = await prisma.marketingTask.update({
     where: { id },
-    data: parsed.data,
+    data: {
+      ...restData,
+      ...(subtasks !== undefined ? { subtasks: subtasks as any } : {}),
+    },
     include: taskIncludes,
   });
 
@@ -92,7 +102,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const { id } = await params;

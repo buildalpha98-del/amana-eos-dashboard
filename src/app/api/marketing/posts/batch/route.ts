@@ -22,7 +22,7 @@ const batchSchema = z.object({
 
 // POST /api/marketing/posts/batch — batch operations on posts
 export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
   if (error) return error;
 
   const body = await req.json();

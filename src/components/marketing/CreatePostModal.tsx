@@ -138,11 +138,11 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="w-full max-w-2xl rounded-xl bg-white shadow-xl max-h-[90vh] overflow-y-auto"
+          className="flex w-full max-w-2xl flex-col rounded-xl bg-white shadow-xl max-h-[90vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-6 py-4">
             <h2 className="text-lg font-semibold text-gray-900">New Post</h2>
             <button
               onClick={handleClose}
@@ -153,7 +153,8 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 px-6 py-4">
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 overflow-y-auto space-y-4 px-6 py-4">
             {error && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
@@ -169,7 +170,6 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                required
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 placeholder="Post title"
               />
@@ -183,7 +183,6 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
-                required
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               >
                 <option value="">Select platform</option>
@@ -371,8 +370,10 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
               />
             </div>
 
+            </div>
+
             {/* Submit */}
-            <div className="flex justify-end gap-3 border-t border-gray-200 pt-4">
+            <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 px-6 py-4">
               <button
                 type="button"
                 onClick={handleClose}
