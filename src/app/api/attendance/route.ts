@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { z } from "zod";
 import type { SessionType } from "@prisma/client";
+import { propagateEnrolledCounts } from "./propagate/route";
 
 // ── GET: List attendance records ────────────────────────────
 
@@ -189,6 +190,12 @@ export async function PUT(req: Request) {
       })
     )
   );
+
+  // Auto-propagate enrolled counts to future weeks (fire-and-forget)
+  const serviceId = items[0]?.serviceId;
+  if (serviceId) {
+    propagateEnrolledCounts(serviceId, 8).catch(() => {});
+  }
 
   return NextResponse.json({ updated: results.length });
 }

@@ -536,6 +536,10 @@ model User {
   // ── Email Templates ──────────────────────────────
   emailTemplates EmailTemplate[] @relation("EmailTemplateCreator")
 
+  // ── Info Snippets ────────────────────────────────
+  infoSnippets InfoSnippet[] @relation("SnippetCreator")
+  snippetAcks  SnippetAck[]  @relation("UserSnippetAcks")
+
   @@index([serviceId])
 }
 
@@ -1753,6 +1757,7 @@ model SupportTicket {
   updatedAt       DateTime        @updatedAt
 
   messages TicketMessage[]
+  emails   TicketEmail[]   @relation("TicketEmails")
 
   @@index([status])
   @@index([priority])
@@ -1760,6 +1765,24 @@ model SupportTicket {
   @@index([contactId])
   @@index([serviceId])
   @@index([createdAt])
+}
+
+model TicketEmail {
+  id          String        @id @default(cuid())
+  ticketId    String
+  ticket      SupportTicket @relation("TicketEmails", fields: [ticketId], references: [id], onDelete: Cascade)
+  messageId   String?       // Email message-id header for dedup
+  from        String
+  to          String
+  subject     String
+  bodyPreview String        @db.Text
+  receivedAt  DateTime
+  linkedBy    String?       // "auto" or userId who manually linked
+  createdAt   DateTime      @default(now())
+
+  @@unique([messageId])
+  @@index([ticketId])
+  @@index([receivedAt])
 }
 
 model TicketMessage {
@@ -4184,4 +4207,38 @@ model ParentExperience {
   @@unique([serviceCode, metricType, period])
   @@index([serviceCode])
   @@index([metricType])
+}
+
+// ── Info Snippets (Acknowledge New Information) ──────────────
+
+model InfoSnippet {
+  id            String    @id @default(cuid())
+  title         String
+  summary       String    @db.Text
+  category      String?   // e.g. "policy", "update", "safety", "general"
+  priority      String    @default("normal") // low, normal, high
+  active        Boolean   @default(true)
+  expiresAt     DateTime?
+  createdById   String?
+  createdBy     User?     @relation("SnippetCreator", fields: [createdById], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  acknowledgements SnippetAck[] @relation("SnippetAcknowledgements")
+
+  @@index([active])
+  @@index([createdById])
+}
+
+model SnippetAck {
+  id             String      @id @default(cuid())
+  snippetId      String
+  snippet        InfoSnippet @relation("SnippetAcknowledgements", fields: [snippetId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User        @relation("UserSnippetAcks", fields: [userId], references: [id], onDelete: Cascade)
+  acknowledgedAt DateTime    @default(now())
+
+  @@unique([snippetId, userId])
+  @@index([snippetId])
+  @@index([userId])
 }

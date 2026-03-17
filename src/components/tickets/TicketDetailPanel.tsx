@@ -124,6 +124,28 @@ export function TicketDetailPanel({
   const [activeTab, setActiveTab] = useState<"chat" | "details">("chat");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  interface TicketEmail {
+    id: string;
+    subject: string;
+    from: string;
+    to: string;
+    bodyPreview: string;
+    receivedAt: string;
+    messageId: string | null;
+    linkedBy: string | null;
+    createdAt: string;
+  }
+
+  const { data: ticketEmails = [] } = useQuery<TicketEmail[]>({
+    queryKey: ["ticket-emails", ticketId],
+    queryFn: async () => {
+      const res = await fetch(`/api/tickets/${ticketId}/emails`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: activeTab === "details",
+  });
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -198,7 +220,7 @@ export function TicketDetailPanel({
       {/* Panel */}
       <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl border-l border-gray-200 z-50 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white shrink-0">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-gray-400">#{ticket.ticketNumber}</span>
@@ -222,7 +244,7 @@ export function TicketDetailPanel({
         </div>
 
         {/* Tab Toggle */}
-        <div className="flex border-b border-gray-200 px-6">
+        <div className="flex border-b border-gray-200 px-6 shrink-0">
           <button
             onClick={() => setActiveTab("chat")}
             className={cn(
@@ -250,7 +272,7 @@ export function TicketDetailPanel({
         </div>
 
         {activeTab === "chat" ? (
-          <>
+          <div className="flex flex-col flex-1 min-h-0">
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto px-6 py-4 bg-gray-50/50 space-y-1">
               {messages.length === 0 ? (
@@ -339,7 +361,7 @@ export function TicketDetailPanel({
             )}
 
             {/* Reply Input */}
-            <div className="border-t border-gray-200 p-4 bg-white">
+            <div className="border-t border-gray-200 p-4 bg-white shrink-0">
               {/* Template Picker */}
               {showTemplates && templates.length > 0 && (
                 <div className="mb-3 max-h-40 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-sm">
@@ -400,7 +422,7 @@ export function TicketDetailPanel({
                 </button>
               </div>
             </div>
-          </>
+          </div>
         ) : (
           /* Details Tab */
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
@@ -529,6 +551,27 @@ export function TicketDetailPanel({
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Linked Emails */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                Linked Emails
+              </label>
+              {ticketEmails.length > 0 ? (
+                <div className="space-y-2">
+                  {ticketEmails.map((email) => (
+                    <div key={email.id} className="bg-gray-50 rounded-lg border border-gray-200 p-3">
+                      <p className="text-sm font-medium text-gray-900 truncate">{email.subject}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">From: {email.from}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(email.receivedAt)}</p>
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{email.bodyPreview}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">No emails linked to this ticket</p>
+              )}
             </div>
 
             {/* Timestamps */}

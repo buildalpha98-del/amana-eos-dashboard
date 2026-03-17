@@ -19,6 +19,7 @@ import { DashboardProjectTodos } from "@/components/dashboard/DashboardProjectTo
 import { StaffDashboard } from "@/components/dashboard/StaffDashboard";
 import { StaffingAlerts } from "@/components/dashboard/StaffingAlerts";
 import { TodaysOps } from "@/components/dashboard/TodaysOps";
+import { InfoSnippets } from "@/components/dashboard/InfoSnippets";
 import { DashboardSchoolHealth } from "@/components/dashboard/DashboardSchoolHealth";
 import { DashboardRecentActivity } from "@/components/dashboard/DashboardRecentActivity";
 import { DashboardStateKPI } from "@/components/dashboard/DashboardStateKPI";
@@ -225,6 +226,11 @@ export function DashboardContent() {
           {/* ── Staffing Alerts ──────────────────────────────── */}
           <WidgetErrorBoundary widgetName="Staffing Alerts">
             <StaffingAlerts />
+          </WidgetErrorBoundary>
+
+          {/* ── Info Snippets (Acknowledge New Information) ───── */}
+          <WidgetErrorBoundary widgetName="Info Snippets">
+            <InfoSnippets />
           </WidgetErrorBoundary>
 
           {/* ── Today's Operations ────────────────────────────── */}

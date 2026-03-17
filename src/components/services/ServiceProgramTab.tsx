@@ -939,6 +939,11 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
   const [newChildName, setNewChildName] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [newSource, setNewSource] = useState<string>("observation");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTopic, setEditTopic] = useState("");
+  const [editChildName, setEditChildName] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editSource, setEditSource] = useState("");
   const queryClient = useQueryClient();
 
   const { data: summary } = useQuery<InterestSummaryData>({
@@ -995,6 +1000,47 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
       queryClient.invalidateQueries({ queryKey: ["interests-summary", serviceId] });
     },
   });
+
+  const updateInterestMutation = useMutation({
+    mutationFn: async ({ interestId, data }: { interestId: string; data: Record<string, unknown> }) => {
+      const res = await fetch(`/api/services/${serviceId}/interests?interestId=${interestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["interests", serviceId] });
+      queryClient.invalidateQueries({ queryKey: ["interests-summary", serviceId] });
+      setEditingId(null);
+      toast({ description: "Interest updated" });
+    },
+  });
+
+  const deleteInterestMutation = useMutation({
+    mutationFn: async (interestId: string) => {
+      const res = await fetch(`/api/services/${serviceId}/interests?interestId=${interestId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["interests", serviceId] });
+      queryClient.invalidateQueries({ queryKey: ["interests-summary", serviceId] });
+      toast({ description: "Interest removed" });
+    },
+  });
+
+  const startEditing = (i: ChildInterestItem) => {
+    setEditingId(i.id);
+    setEditTopic(i.interestTopic);
+    setEditChildName(i.childName || "");
+    setEditCategory(i.interestCategory || "");
+    setEditSource(i.source);
+  };
 
   return (
     <div className="mt-4 space-y-4">
@@ -1107,27 +1153,111 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
       ) : interests && interests.length > 0 ? (
         <div className="space-y-2">
           {interests.slice(0, 10).map((i) => (
-            <div key={i.id} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">{i.interestTopic}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  {i.childName && <span className="text-xs text-gray-500">{i.childName}</span>}
-                  {i.interestCategory && (
-                    <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">{i.interestCategory}</span>
-                  )}
-                  <span className="text-xs text-gray-400">{INTEREST_SOURCES_LABELS[i.source] || i.source}</span>
-                  <span className="text-xs text-gray-400">
-                    {new Date(i.capturedDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                  </span>
+            <div key={i.id} className="p-2.5 bg-gray-50 rounded-lg">
+              {editingId === i.id ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!editTopic.trim()) return;
+                    updateInterestMutation.mutate({
+                      interestId: i.id,
+                      data: {
+                        interestTopic: editTopic,
+                        childName: editChildName || null,
+                        interestCategory: editCategory || null,
+                        source: editSource,
+                      },
+                    });
+                  }}
+                  className="space-y-2"
+                >
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={editTopic}
+                      onChange={(e) => setEditTopic(e.target.value)}
+                      required
+                      placeholder="Interest topic *"
+                      className="px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                    />
+                    <input
+                      type="text"
+                      value={editChildName}
+                      onChange={(e) => setEditChildName(e.target.value)}
+                      placeholder="Child name"
+                      className="px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={editCategory}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                      className="px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                    >
+                      <option value="">Category</option>
+                      {INTEREST_CATEGORIES.map((c) => (
+                        <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={editSource}
+                      onChange={(e) => setEditSource(e.target.value)}
+                      className="px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                    >
+                      {Object.entries(INTEREST_SOURCES_LABELS).map(([k, v]) => (
+                        <option key={k} value={k}>{v}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button type="button" onClick={() => setEditingId(null)} className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+                    <button type="submit" disabled={updateInterestMutation.isPending} className="px-3 py-1 text-xs font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50">
+                      {updateInterestMutation.isPending ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{i.interestTopic}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {i.childName && <span className="text-xs text-gray-500">{i.childName}</span>}
+                      {i.interestCategory && (
+                        <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">{i.interestCategory}</span>
+                      )}
+                      <span className="text-xs text-gray-400">{INTEREST_SOURCES_LABELS[i.source] || i.source}</span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(i.capturedDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 ml-3">
+                    <button
+                      onClick={() => startEditing(i)}
+                      className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+                      title="Edit"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Remove this interest?")) deleteInterestMutation.mutate(i.id);
+                      }}
+                      className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => markActionedMutation.mutate(i.id)}
+                      disabled={markActionedMutation.isPending}
+                      className="px-2.5 py-1 text-xs font-medium text-brand bg-brand/10 rounded-lg hover:bg-brand/20 transition-colors"
+                    >
+                      Mark Actioned
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <button
-                onClick={() => markActionedMutation.mutate(i.id)}
-                disabled={markActionedMutation.isPending}
-                className="shrink-0 ml-3 px-2.5 py-1 text-xs font-medium text-brand bg-brand/10 rounded-lg hover:bg-brand/20 transition-colors"
-              >
-                Mark Actioned
-              </button>
+              )}
             </div>
           ))}
         </div>

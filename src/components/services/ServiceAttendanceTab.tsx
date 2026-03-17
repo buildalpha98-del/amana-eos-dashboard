@@ -11,6 +11,7 @@ import {
   Info,
   FileSpreadsheet,
   AlertTriangle,
+  CopyPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
@@ -20,7 +21,8 @@ import {
   useBatchUpdateAttendance,
   type AttendanceInput,
 } from "@/hooks/useAttendance";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/useToast";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
@@ -42,8 +44,8 @@ const attendanceImportColumns: ColumnConfig[] = [
   { key: "centre", label: "Centre / Code", required: true },
   { key: "date", label: "Date", required: true },
   { key: "sessionType", label: "Session Type (BSC/ASC/VC)", required: true },
-  { key: "enrolled", label: "Enrolled", required: true },
-  { key: "attended", label: "Estimated", required: true },
+  { key: "enrolled", label: "Permanent", required: true },
+  { key: "attended", label: "Casual Bookings", required: true },
   { key: "casual", label: "Casual" },
   { key: "absent", label: "Absent" },
 ];
@@ -110,6 +112,33 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
     });
 
   const batchUpdate = useBatchUpdateAttendance();
+
+  const propagateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/attendance/propagate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceId, weeksAhead: 8 }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to propagate");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ description: `Permanent counts propagated to future weeks (${data.propagated} records)` });
+    },
+    onError: () => {
+      toast({ description: "Failed to propagate permanent counts" });
+    },
+  });
+
+  const handlePropagate = () => {
+    if (window.confirm("This will copy this week's permanent counts to the next 8 weeks. Continue?")) {
+      propagateMutation.mutate();
+    }
+  };
 
   // Attendance anomalies
   const { data: anomalies } = useQuery({
@@ -228,7 +257,7 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
         />
         <StatCard
           size="sm"
-          title="Total Enrolled"
+          title="Total Permanent"
           value={totals ? `${totals.totalEnrolled}` : "—"}
           icon={TrendingUp}
           iconColor="#10B981"
@@ -424,7 +453,7 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
                         <div className="grid grid-cols-2 gap-2">
                           {(["enrolled", "attended"] as const).map((field) => (
                             <div key={field}>
-                              <label className="text-[10px] text-gray-400 uppercase">{field === "attended" ? "Est." : "Enr."}</label>
+                              <label className="text-[10px] text-gray-400 uppercase">{field === "attended" ? "Casual" : "Perm."}</label>
                               <input
                                 type="number"
                                 min={0}
@@ -467,7 +496,7 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
                   </tr>
                   <tr className="border-b border-gray-100">
                     <th className="text-left py-1 px-2 text-xs text-gray-400" />
-                    {["Enrolled", "Estimated"].map((h) => (
+                    {["Permanent", "Casual Bookings"].map((h) => (
                       <th
                         key={`bsc-${h}`}
                         className="text-center py-1 px-1 text-xs text-gray-400 border-l border-gray-50"
@@ -475,7 +504,7 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
                         {h}
                       </th>
                     ))}
-                    {["Enrolled", "Estimated"].map((h) => (
+                    {["Permanent", "Casual Bookings"].map((h) => (
                       <th
                         key={`asc-${h}`}
                         className="text-center py-1 px-1 text-xs text-gray-400 border-l border-gray-50"
@@ -529,18 +558,32 @@ export function ServiceAttendanceTab({ serviceId }: Props) {
                 <Info className="w-3.5 h-3.5" />
                 Data auto-saves per cell on save. Upserts by date + session type.
               </p>
-              <button
-                onClick={handleSave}
-                disabled={!isDirty || batchUpdate.isPending}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {batchUpdate.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                Save Week
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePropagate}
+                  disabled={propagateMutation.isPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {propagateMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <CopyPlus className="w-3.5 h-3.5" />
+                  )}
+                  Propagate to Future Weeks
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={!isDirty || batchUpdate.isPending}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {batchUpdate.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Save Week
+                </button>
+              </div>
             </div>
           </>
         )}

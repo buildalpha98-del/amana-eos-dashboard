@@ -17,6 +17,10 @@ const patchSchema = z.object({
   actioned: z.boolean().optional(),
   linkedToActivityId: z.string().optional(),
   notes: z.string().max(1000).optional(),
+  interestTopic: z.string().min(1).max(300).optional(),
+  childName: z.string().max(100).nullable().optional(),
+  interestCategory: z.string().max(50).nullable().optional(),
+  source: z.enum(INTEREST_SOURCES).optional(),
 });
 
 // GET /api/services/[id]/interests?actioned=true/false&from=&to=&category=
@@ -133,6 +137,10 @@ export async function PATCH(
     updateData.actionedDate = new Date();
   }
   if (parsed.data.notes !== undefined) updateData.notes = parsed.data.notes;
+  if (parsed.data.interestTopic !== undefined) updateData.interestTopic = parsed.data.interestTopic;
+  if (parsed.data.childName !== undefined) updateData.childName = parsed.data.childName;
+  if (parsed.data.interestCategory !== undefined) updateData.interestCategory = parsed.data.interestCategory;
+  if (parsed.data.source !== undefined) updateData.source = parsed.data.source;
 
   const updated = await prisma.childInterest.update({
     where: { id: interestId },
@@ -144,4 +152,31 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
+}
+
+// DELETE /api/services/[id]/interests?interestId=xxx — remove an interest
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { error } = await requireAuth();
+  if (error) return error;
+
+  const { id } = await params;
+  const url = new URL(req.url);
+  const interestId = url.searchParams.get("interestId");
+  if (!interestId) {
+    return NextResponse.json({ error: "interestId query param required" }, { status: 400 });
+  }
+
+  const existing = await prisma.childInterest.findFirst({
+    where: { id: interestId, serviceId: id },
+  });
+  if (!existing) {
+    return NextResponse.json({ error: "Interest not found" }, { status: 404 });
+  }
+
+  await prisma.childInterest.delete({ where: { id: interestId } });
+
+  return NextResponse.json({ ok: true });
 }

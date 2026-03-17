@@ -134,8 +134,14 @@ export function useUpdateMeeting() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update meeting");
+        let errorMessage = "Failed to update meeting";
+        try {
+          const err = await res.json();
+          errorMessage = err.error || errorMessage;
+        } catch {
+          errorMessage = `Server error (${res.status})`;
+        }
+        throw new Error(errorMessage);
       }
       return res.json();
     },

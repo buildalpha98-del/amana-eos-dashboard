@@ -87,7 +87,7 @@ function AttendanceBar({
       <div className="flex items-center justify-between text-xs">
         <span className="font-medium text-gray-700">{label}</span>
         <span className="text-gray-500">
-          {session.attended}/{session.enrolled} enrolled
+          {session.attended}/{session.enrolled} permanent
         </span>
       </div>
       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">

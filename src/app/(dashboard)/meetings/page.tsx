@@ -1661,23 +1661,32 @@ function ActiveMeetingView({
   }, [currentSection, goToSection]);
 
   const handleComplete = useCallback(() => {
+    if (!window.confirm("Are you sure you want to end this meeting? This cannot be undone.")) return;
+
     // Build attendee updates from ratings
     const attendeeUpdates = Object.entries(attendeeRatings).map(([userId, r]) => ({
       userId,
       rating: r,
     }));
 
-    updateMeeting.mutate({
-      id: meeting.id,
-      status: "completed",
-      currentSection,
-      segueNotes,
-      headlines,
-      concludeNotes,
-      cascadeMessages,
-      rating,
-      ...(attendeeUpdates.length > 0 ? { attendeeUpdates } : {}),
-    });
+    updateMeeting.mutate(
+      {
+        id: meeting.id,
+        status: "completed",
+        currentSection,
+        segueNotes,
+        headlines,
+        concludeNotes,
+        cascadeMessages,
+        rating,
+        ...(attendeeUpdates.length > 0 ? { attendeeUpdates } : {}),
+      },
+      {
+        onError: (err: Error) => {
+          alert(`Failed to end meeting: ${err.message}`);
+        },
+      }
+    );
   }, [meeting.id, currentSection, segueNotes, headlines, concludeNotes, cascadeMessages, rating, attendeeRatings, updateMeeting]);
 
   const handleTodoToggle = useCallback(
