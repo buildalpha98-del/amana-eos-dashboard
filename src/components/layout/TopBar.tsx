@@ -70,6 +70,7 @@ const pageTitles: Record<string, string> = {
   "/directory": "Staff Directory",
   "/queue": "My Queue",
   "/queue/all": "All Queues",
+  "/marketing/email/compose": "Compose Email",
 };
 
 export function TopBar() {

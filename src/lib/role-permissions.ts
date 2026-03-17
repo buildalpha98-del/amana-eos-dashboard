@@ -79,6 +79,8 @@ export const allPages = [
   "/directory",
   // Queue — automation reports & tasks
   "/queue",
+  // Email
+  "/marketing/email/compose",
 ] as const;
 
 export type AppPage = (typeof allPages)[number];

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Link2 } from "lucide-react";
 import { usePosts, useBatchPostAction, useCampaigns } from "@/hooks/useMarketing";
 import type { PostData } from "@/hooks/useMarketing";
@@ -9,6 +10,8 @@ import { PlatformBadge } from "./PlatformBadge";
 import { CreatePostModal } from "./CreatePostModal";
 import { BatchActionBar } from "./BatchActionBar";
 import { DuplicateToCentresModal } from "./DuplicateToCentresModal";
+import { toast } from "@/hooks/useToast";
+import ImportTemplateModal from "@/components/email/ImportTemplateModal";
 
 interface PostsTabProps {
   onSelectPost: (id: string) => void;
@@ -51,7 +54,9 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedPostIds, setSelectedPostIds] = useState<Set<string>>(new Set());
   const [showDuplicate, setShowDuplicate] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [page, setPage] = useState(0);
+  const router = useRouter();
 
   const { data: posts, isLoading } = usePosts({
     status: status || undefined,
@@ -97,6 +102,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
         return;
       }
 
+      const count = selectedPostIds.size;
       batchAction.mutate(
         {
           postIds: Array.from(selectedPostIds),
@@ -104,7 +110,18 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
           ...params,
         },
         {
-          onSuccess: () => setSelectedPostIds(new Set()),
+          onSuccess: () => {
+            setSelectedPostIds(new Set());
+            const labels: Record<string, string> = {
+              change_status: "Status updated",
+              assign_campaign: "Campaign assigned",
+              reschedule: "Posts rescheduled",
+              delete: "Posts deleted",
+            };
+            toast({
+              description: `${labels[action] ?? "Action completed"} for ${count} post${count !== 1 ? "s" : ""}.`,
+            });
+          },
         }
       );
     },
@@ -121,8 +138,12 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
         },
         {
           onSuccess: () => {
+            const count = selectedPostIds.size;
             setSelectedPostIds(new Set());
             setShowDuplicate(false);
+            toast({
+              description: `Duplicated ${count} post${count !== 1 ? "s" : ""} to ${serviceIds.length} centre${serviceIds.length !== 1 ? "s" : ""}.`,
+            });
           },
         }
       );
@@ -158,13 +179,25 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
           ))}
         </select>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => setShowCreate(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors"
           >
             <Plus className="h-4 w-4" />
             New Post
+          </button>
+          <button
+            onClick={() => router.push("/marketing/email/compose")}
+            className="flex items-center gap-2 rounded-lg border border-brand px-3 py-1.5 text-sm font-medium text-brand hover:bg-brand/5 transition-colors"
+          >
+            + New Email
+          </button>
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Import Template
           </button>
         </div>
       </div>
@@ -365,6 +398,9 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
 
       {/* Create Post Modal */}
       <CreatePostModal open={showCreate} onClose={() => setShowCreate(false)} />
+
+      {/* Import Template Modal */}
+      <ImportTemplateModal open={showImport} onClose={() => setShowImport(false)} />
     </div>
   );
 }
