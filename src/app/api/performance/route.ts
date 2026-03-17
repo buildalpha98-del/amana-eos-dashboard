@@ -29,8 +29,8 @@ export async function GET(req: NextRequest) {
         take: 1,
       },
       financials: {
-        where: { periodType: "monthly" },
-        orderBy: { periodStart: "desc" },
+        where: { periodType: { in: ["monthly", "weekly"] } },
+        orderBy: [{ periodType: "asc" }, { periodStart: "desc" }],
         take: 1,
       },
       _count: {

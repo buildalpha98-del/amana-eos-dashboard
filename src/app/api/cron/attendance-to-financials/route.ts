@@ -70,8 +70,10 @@ export async function GET(req: NextRequest) {
         let vcTotalAttended = 0;
         let bscTotalEnrolled = 0;
         let ascTotalEnrolled = 0;
+        let vcTotalEnrolled = 0;
         let bscDays = 0;
         let ascDays = 0;
+        let vcDays = 0;
 
         for (const rec of attendance) {
           if (rec.sessionType === "bsc") {
@@ -84,6 +86,8 @@ export async function GET(req: NextRequest) {
             ascDays++;
           } else if (rec.sessionType === "vc") {
             vcTotalAttended += rec.attended;
+            vcTotalEnrolled += rec.enrolled;
+            vcDays++;
           }
         }
 
@@ -96,6 +100,17 @@ export async function GET(req: NextRequest) {
         const ascRevenue = ascTotalAttended * ascRate;
         const vcRevenue = vcTotalAttended * vcRate;
         const totalRevenue = bscRevenue + ascRevenue + vcRevenue;
+        // Revenue-only: costs are 0 from auto-attendance, profit = revenue
+        const grossProfit = totalRevenue;
+        const margin = totalRevenue > 0 ? 100 : 0; // 100% margin when no costs entered
+
+        const attendanceFields = {
+          bscAttendance: bscDays > 0 ? bscTotalAttended / bscDays : 0,
+          ascAttendance: ascDays > 0 ? ascTotalAttended / ascDays : 0,
+          vcAttendance: vcDays > 0 ? vcTotalAttended / vcDays : 0,
+          bscEnrolments: bscDays > 0 ? Math.round(bscTotalEnrolled / bscDays) : 0,
+          ascEnrolments: ascDays > 0 ? Math.round(ascTotalEnrolled / ascDays) : 0,
+        };
 
         // Upsert FinancialPeriod (weekly)
         await prisma.financialPeriod.upsert({
@@ -111,10 +126,9 @@ export async function GET(req: NextRequest) {
             ascRevenue,
             vcRevenue,
             totalRevenue,
-            bscAttendance: bscDays > 0 ? bscTotalAttended / bscDays : 0,
-            ascAttendance: ascDays > 0 ? ascTotalAttended / ascDays : 0,
-            bscEnrolments: bscDays > 0 ? Math.round(bscTotalEnrolled / bscDays) : 0,
-            ascEnrolments: ascDays > 0 ? Math.round(ascTotalEnrolled / ascDays) : 0,
+            grossProfit,
+            margin,
+            ...attendanceFields,
             dataSource: "auto_attendance",
             periodEnd: lastSunday,
           },
@@ -127,10 +141,9 @@ export async function GET(req: NextRequest) {
             ascRevenue,
             vcRevenue,
             totalRevenue,
-            bscAttendance: bscDays > 0 ? bscTotalAttended / bscDays : 0,
-            ascAttendance: ascDays > 0 ? ascTotalAttended / ascDays : 0,
-            bscEnrolments: bscDays > 0 ? Math.round(bscTotalEnrolled / bscDays) : 0,
-            ascEnrolments: ascDays > 0 ? Math.round(ascTotalEnrolled / ascDays) : 0,
+            grossProfit,
+            margin,
+            ...attendanceFields,
             dataSource: "auto_attendance",
           },
         });

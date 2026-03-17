@@ -10,25 +10,37 @@ export async function GET(req: NextRequest) {
 
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
-  const period = searchParams.get("period") || "monthly";
+  const period = (searchParams.get("period") || "monthly") as "weekly" | "monthly" | "quarterly";
   const serviceId = searchParams.get("serviceId");
 
-  const where: Record<string, unknown> = {
-    periodType: period,
-  };
-  if (serviceId) where.serviceId = serviceId;
+  const baseWhere: Record<string, unknown> = {};
+  if (serviceId) baseWhere.serviceId = serviceId;
   // State Manager: only see financials for services in their assigned state
-  if (stateScope) where.service = { state: stateScope };
+  if (stateScope) baseWhere.service = { state: stateScope };
 
-  // dataSource and xeroSyncedAt are included automatically as scalar fields
-  const financials = await prisma.financialPeriod.findMany({
-    where,
+  // Try requested period type first, fall back to weekly if no data exists
+  let usedPeriod = period;
+  let financials = await prisma.financialPeriod.findMany({
+    where: { ...baseWhere, periodType: period },
     include: {
       service: { select: { id: true, name: true, code: true, state: true, status: true } },
     },
     orderBy: { periodStart: "desc" },
     take: 100,
   });
+
+  // Fall back to weekly if no monthly/quarterly data exists
+  if (financials.length === 0 && period !== "weekly") {
+    usedPeriod = "weekly";
+    financials = await prisma.financialPeriod.findMany({
+      where: { ...baseWhere, periodType: "weekly" },
+      include: {
+        service: { select: { id: true, name: true, code: true, state: true, status: true } },
+      },
+      orderBy: { periodStart: "desc" },
+      take: 100,
+    });
+  }
 
   // Calculate summary
   const latestPeriodStart = financials.length > 0 ? financials[0].periodStart : null;
@@ -53,7 +65,7 @@ export async function GET(req: NextRequest) {
     totalBudgetCosts,
   };
 
-  return NextResponse.json({ financials, summary });
+  return NextResponse.json({ financials, summary, usedPeriod });
 }
 
 const financialEntrySchema = z.object({

@@ -63,10 +63,17 @@ export async function POST(request: NextRequest) {
           orderBy: { recordedAt: "desc" },
         }),
 
-        // Latest monthly FinancialPeriod
+        // Latest FinancialPeriod (prefer monthly, fall back to weekly)
         prisma.financialPeriod.findFirst({
           where: { serviceId, periodType: "monthly" },
           orderBy: { periodStart: "desc" },
+        }).then(async (monthly) => {
+          if (monthly) return monthly;
+          // Fall back to weekly if no monthly data
+          return prisma.financialPeriod.findFirst({
+            where: { serviceId, periodType: "weekly" },
+            orderBy: { periodStart: "desc" },
+          });
         }),
 
         // Rock counts — total

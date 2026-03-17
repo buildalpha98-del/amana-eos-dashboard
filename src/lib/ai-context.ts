@@ -31,8 +31,9 @@ export async function buildDashboardContext(): Promise<string> {
     recentReport,
   ] = await Promise.all([
     prisma.financialPeriod.findMany({
-      where: { periodType: "monthly", periodStart: { gte: firstOfMonth, lte: lastOfMonth } },
+      where: { periodType: { in: ["monthly", "weekly"] }, periodStart: { gte: firstOfMonth, lte: lastOfMonth } },
       include: { service: { select: { name: true } } },
+      orderBy: [{ periodType: "asc" }, { periodStart: "desc" }],
     }),
     prisma.user.count({ where: { active: true, role: { in: ["staff", "member"] } } }),
     prisma.lead.groupBy({

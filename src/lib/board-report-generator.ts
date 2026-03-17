@@ -130,11 +130,13 @@ export async function generateBoardReport({
     rocks,
   ] = await Promise.all([
     prisma.financialPeriod.findMany({
-      where: { periodType: "monthly", periodStart: { gte: firstOfMonth, lte: lastOfMonth } },
+      where: { periodType: { in: ["monthly", "weekly"] }, periodStart: { gte: firstOfMonth, lte: lastOfMonth } },
       include: { service: { select: { name: true } } },
+      orderBy: [{ periodType: "asc" }, { periodStart: "desc" }],
     }),
     prisma.financialPeriod.findMany({
-      where: { periodType: "monthly", periodStart: { gte: prevFirstOfMonth, lte: prevLastOfMonth } },
+      where: { periodType: { in: ["monthly", "weekly"] }, periodStart: { gte: prevFirstOfMonth, lte: prevLastOfMonth } },
+      orderBy: [{ periodType: "asc" }, { periodStart: "desc" }],
     }),
     prisma.dailyAttendance.findMany({
       where: { date: { gte: firstOfMonth, lte: lastOfMonth } },

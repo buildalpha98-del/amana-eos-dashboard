@@ -36,6 +36,12 @@ async function computeOnTheFly(serviceId: string) {
     prisma.financialPeriod.findFirst({
       where: { serviceId, periodType: "monthly" },
       orderBy: { periodStart: "desc" },
+    }).then(async (monthly) => {
+      if (monthly) return monthly;
+      return prisma.financialPeriod.findFirst({
+        where: { serviceId, periodType: "weekly" },
+        orderBy: { periodStart: "desc" },
+      });
     }),
     prisma.rock.count({
       where: { serviceId, deleted: false, quarter: currentQuarter },

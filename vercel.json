@@ -42,6 +42,10 @@
       "schedule": "0 13 * * 0"
     },
     {
+      "path": "/api/cron/financials-monthly-rollup",
+      "schedule": "0 14 1 * *"
+    },
+    {
       "path": "/api/health-scores/compute",
       "schedule": "0 20 1 * *"
     },

@@ -27,9 +27,9 @@ export async function GET() {
       },
     });
 
-    // Latest monthly financials (one per centre for the most recent month)
+    // Latest financials (prefer monthly, fall back to weekly)
     const latestFinancials = await prisma.financialPeriod.findMany({
-      where: { periodType: "monthly" },
+      where: { periodType: { in: ["monthly", "weekly"] } },
       orderBy: { periodStart: "desc" },
       take: Math.max(centreCount, 1),
       select: {

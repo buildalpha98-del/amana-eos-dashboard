@@ -244,7 +244,7 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
 }
 
 export default function FinancialsPage() {
-  const [period, setPeriod] = useState<string>("monthly");
+  const [period, setPeriod] = useState<string>("weekly");
   const [showEnterData, setShowEnterData] = useState(false);
   const [showImportOWNA, setShowImportOWNA] = useState(false);
   const [aiCommentary, setAiCommentary] = useState<string | null>(null);

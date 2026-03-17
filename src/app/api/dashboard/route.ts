@@ -29,8 +29,8 @@ export async function GET() {
     include: {
       metrics: { orderBy: { recordedAt: "desc" }, take: 1 },
       financials: {
-        where: { periodType: "monthly" },
-        orderBy: { periodStart: "desc" },
+        where: { periodType: { in: ["monthly", "weekly"] } },
+        orderBy: [{ periodType: "asc" }, { periodStart: "desc" }],
         take: 1,
       },
     },
@@ -353,9 +353,9 @@ export async function GET() {
     rocksOnTrackCount,
     overdueCount,
   ] = await Promise.all([
-    // Total revenue from latest monthly period
+    // Total revenue from latest period (prefer monthly, include weekly)
     prisma.financialPeriod.findMany({
-      where: { periodType: "monthly" },
+      where: { periodType: { in: ["monthly", "weekly"] } },
       orderBy: { periodStart: "desc" },
       take: 50,
     }),
