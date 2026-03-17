@@ -1117,6 +1117,32 @@ model SchoolRelationship {
   @@index([nextActionDate])
 }
 
+// ============================================================
+// Partnership (Cowork ERM — standalone by serviceCode)
+// ============================================================
+
+model Partnership {
+  id                   String   @id @default(cuid())
+  serviceCode          String   @unique
+  schoolName           String
+  principalName        String?
+  principalEmail       String?
+  relationshipScore    Int?
+  status               String   @default("active")
+  contractStart        DateTime?
+  contractEnd          DateTime?
+  facilityAccess       Json?
+  lastPrincipalMeeting DateTime?
+  lastSchoolEvent      DateTime?
+  newsletterInclusion  Boolean  @default(false)
+  notes                String?  @db.Text
+  actionPlan           String?  @db.Text
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([status])
+}
+
 model NpsSurveyResponse {
   id             String        @id @default(cuid())
   serviceId      String

@@ -419,7 +419,14 @@ function UserRow({
               .slice(0, 2)}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">{user.name}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium text-gray-900">{user.name}</p>
+              {user.email === "admin@amanaoshc.com.au" && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                  System
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-500">{user.email}</p>
           </div>
         </div>
