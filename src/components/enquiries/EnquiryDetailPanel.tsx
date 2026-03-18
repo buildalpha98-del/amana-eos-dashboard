@@ -17,6 +17,8 @@ import {
   Plus,
   Trash2,
   ClipboardList,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import { CCSCalculator } from "@/components/shared/CCSCalculator";
 import { AiButton } from "@/components/ui/AiButton";
@@ -628,15 +630,34 @@ export function EnquiryDetailPanel({
               <Mail className="h-4 w-4" />
               {enquiry.lastEmailSentAt ? "Resend Welcome Email" : "Send Welcome Email"}
             </button>
-            <a
-              href={`/enrol/${enquiry.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
-            >
-              <ClipboardList className="h-4 w-4" />
-              Send Enrolment Link
-            </a>
+            <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50/50 p-2.5">
+              <p className="text-xs font-medium text-emerald-800 mb-2 flex items-center gap-1.5">
+                <ClipboardList className="h-3.5 w-3.5" />
+                Enrolment Form
+              </p>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/enrol/${enquiry.id}`;
+                    navigator.clipboard.writeText(url);
+                    setToast("Enrolment link copied to clipboard");
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium text-emerald-700 bg-white rounded-md border border-emerald-200 hover:bg-emerald-50 transition-colors"
+                >
+                  <Copy className="h-3 w-3" />
+                  Copy Link
+                </button>
+                <a
+                  href={`/enrol/${enquiry.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium text-emerald-700 bg-white rounded-md border border-emerald-200 hover:bg-emerald-50 transition-colors"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Preview
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* Notes */}
