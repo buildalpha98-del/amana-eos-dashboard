@@ -18,6 +18,7 @@ import {
   nurtureDay3CheckinEmail,
   nurtureWeek2FeedbackEmail,
   nurtureMonth1ReferralEmail,
+  nurtureSessionReminderEmail,
 } from "@/lib/email-templates";
 
 const TEMPLATE_MAP: Record<string, (firstName: string, centreName: string) => { subject: string; html: string }> = {
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
     },
     include: {
       contact: { select: { email: true, firstName: true, subscribed: true } },
-      service: { select: { name: true, code: true } },
+      service: { select: { name: true, code: true, address: true, suburb: true, state: true, orientationVideoUrl: true } },
     },
     orderBy: { scheduledFor: "asc" },
     take: 50, // Process in batches
@@ -91,19 +92,34 @@ export async function POST(req: NextRequest) {
       continue;
     }
 
-    const templateFn = TEMPLATE_MAP[step.templateKey];
-    if (!templateFn) {
-      await prisma.parentNurtureStep.update({
-        where: { id: step.id },
-        data: { status: "failed" },
-      });
-      failed++;
-      continue;
-    }
-
     const firstName = step.contact.firstName || "Parent";
     const centreName = step.service.name;
-    const { subject, html } = templateFn(firstName, centreName);
+
+    let subject: string;
+    let html: string;
+
+    if (step.templateKey === "session_reminder") {
+      const serviceAddress = [step.service.address, step.service.suburb, step.service.state]
+        .filter(Boolean)
+        .join(", ");
+      ({ subject, html } = nurtureSessionReminderEmail(
+        firstName,
+        centreName,
+        serviceAddress || undefined,
+        step.service.orientationVideoUrl || undefined,
+      ));
+    } else {
+      const templateFn = TEMPLATE_MAP[step.templateKey];
+      if (!templateFn) {
+        await prisma.parentNurtureStep.update({
+          where: { id: step.id },
+          data: { status: "failed" },
+        });
+        failed++;
+        continue;
+      }
+      ({ subject, html } = templateFn(firstName, centreName));
+    }
 
     try {
       const result = await resend.emails.send({

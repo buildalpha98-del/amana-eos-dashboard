@@ -65,6 +65,13 @@ export async function scheduleNurtureFromStageChange(
 
     case "first_session": {
       const sessionDate = enquiry.firstSessionDate ?? now;
+      // Send "See you tomorrow!" reminder the day before first session
+      const reminderDate = addDays(sessionDate, -1);
+      if (reminderDate > now) {
+        stepsToCreate.push(
+          { templateKey: "session_reminder", scheduledFor: reminderDate, stepNumber: 10 },
+        );
+      }
       stepsToCreate.push(
         { templateKey: "day1_checkin", scheduledFor: addDays(sessionDate, 1), stepNumber: 11 },
         { templateKey: "day3_checkin", scheduledFor: addDays(sessionDate, 3), stepNumber: 12 },

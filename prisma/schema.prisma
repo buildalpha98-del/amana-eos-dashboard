@@ -1299,6 +1299,7 @@ model Service {
   parentDriver           String? // Primary driver: "homework", "quran", "enrichment", "working_parents", "traffic"
   launchDate             DateTime? // Date service launched (for launch-phase tracking)
   launchPhase            String? // Phase: "pre_launch", "launch", "ramp_up", "mature"
+  orientationVideoUrl    String? // YouTube/Loom URL for parent orientation video
 
   // ── School Partnership / Contract ──────────────────────────
   contractStartDate          DateTime?

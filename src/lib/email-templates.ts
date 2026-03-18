@@ -1754,3 +1754,89 @@ export function enrolmentLinkEmail(parentName: string, enrolUrl: string) {
 
   return { subject, html };
 }
+
+// ─── First Session Reminder (day before) ─────────────────────
+
+export function nurtureSessionReminderEmail(
+  firstName: string,
+  centreName: string,
+  serviceAddress?: string,
+  orientationVideoUrl?: string
+) {
+  const subject = `See you tomorrow! — ${centreName}`;
+  const addressBlock = serviceAddress
+    ? `<p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+        <strong>Where to go:</strong> ${serviceAddress}
+      </p>`
+    : "";
+  const videoBlock = orientationVideoUrl
+    ? `<p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+        Before your child's first day, we recommend watching our short orientation video:
+      </p>
+      ${buttonHtml("Watch Orientation Video", orientationVideoUrl)}`
+    : "";
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
+      See You Tomorrow!
+    </h2>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Hi ${firstName},
+    </p>
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      We're excited to welcome your child to ${centreName} tomorrow! Here's everything
+      you need to know for a smooth first day.
+    </p>
+    ${addressBlock}
+    <div style="background-color:#f9fafb;border-radius:8px;padding:16px;margin:0 0 16px;">
+      <p style="margin:0 0 8px;color:#111827;font-size:14px;font-weight:600;">What to Bring:</p>
+      <ul style="margin:0;padding:0 0 0 20px;color:#6b7280;font-size:14px;line-height:1.8;">
+        <li>A labelled water bottle</li>
+        <li>A hat (we are a SunSmart centre)</li>
+        <li>Comfortable clothes and shoes for active play</li>
+        <li>A change of clothes (just in case)</li>
+        <li>Any medication with a signed medication form</li>
+      </ul>
+    </div>
+    <div style="background-color:#f9fafb;border-radius:8px;padding:16px;margin:0 0 16px;">
+      <p style="margin:0 0 8px;color:#111827;font-size:14px;font-weight:600;">Drop-off & Pickup:</p>
+      <ul style="margin:0;padding:0 0 0 20px;color:#6b7280;font-size:14px;line-height:1.8;">
+        <li><strong>Before School Care:</strong> Drop off from 6:30 AM</li>
+        <li><strong>After School Care:</strong> Pick up by 6:00 PM</li>
+        <li>Please sign your child in and out at the front desk</li>
+        <li>Only authorised persons can collect your child</li>
+      </ul>
+    </div>
+    ${videoBlock}
+    <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
+      If you have any last-minute questions, feel free to call or message us.
+    </p>
+    <p style="margin:16px 0 0;color:#6b7280;font-size:14px;line-height:1.6;">
+      See you soon!<br/>
+      <strong>The ${centreName} Team</strong>
+    </p>
+  `);
+  return { subject, html };
+}
+
+// ─── Unsubscribe footer helper ───────────────────────────────
+
+export function nurtureUnsubscribeFooter(contactId: string, baseUrl: string) {
+  const unsubUrl = `${baseUrl}/notifications/preferences/${contactId}`;
+  return `
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px;">
+  <tr>
+    <td align="center">
+      <p style="margin:0;color:#9ca3af;font-size:11px;line-height:1.6;">
+        You're receiving this because you enquired about Amana OSHC.<br/>
+        <a href="${unsubUrl}" style="color:#6b7280;text-decoration:underline;">
+          Manage email preferences
+        </a>
+        &nbsp;|&nbsp;
+        <a href="${unsubUrl}?unsubscribe=true" style="color:#6b7280;text-decoration:underline;">
+          Unsubscribe
+        </a>
+      </p>
+    </td>
+  </tr>
+</table>`;
+}
