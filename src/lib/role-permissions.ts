@@ -67,6 +67,7 @@ export const allPages = [
   "/holiday-quest",
   // Engagement
   "/enquiries",
+  "/enrolments",
   "/conversions",
   // HR
   "/recruitment",
@@ -133,6 +134,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/profile",
     "/holiday-quest",
     "/enquiries",
+    "/enrolments",
     "/leave",
     "/timesheets",
     "/tools/ccs-calculator",
@@ -158,6 +160,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/profile",
     "/holiday-quest",
     "/enquiries",
+    "/enrolments",
     "/leave",
     "/timesheets",
     "/tools/ccs-calculator",

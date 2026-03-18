@@ -77,6 +77,7 @@ export const navItems: NavItem[] = [
   { href: "/assistant", label: "AI Assistant", icon: Bot, section: "Strategy", tooltip: "Ask questions about your dashboard data" },
   // Engagement
   { href: "/enquiries", label: "Enquiries", icon: UserPlus, section: "Engagement", tooltip: "Parent enquiry pipeline — track B2C leads from first contact to retention" },
+  { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Engagement", tooltip: "Review and process parent enrolment submissions" },
   { href: "/crm", label: "CRM", icon: Target, section: "Engagement", tooltip: "Sales pipeline & lead management" },
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Engagement" },
   { href: "/communication", label: "Communication", icon: Radio, section: "Engagement" },

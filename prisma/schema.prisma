@@ -1394,6 +1394,7 @@ model Service {
   exitSurveys      ExitSurvey[]       @relation("ServiceExitSurveys")
   parentFeedback   ParentFeedback[]   @relation("ServiceParentFeedback")
   parentExperience ParentExperience[] @relation("ServiceParentExperience")
+  childRecords     Child[]            @relation("ServiceChildren")
 
   // ── Cowork Reports ──────────────────────────────
   coworkReports CoworkReport[] @relation("CoworkReportService")
@@ -4328,7 +4329,40 @@ model EnrolmentSubmission {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  childRecords      Child[]
+
   @@index([status])
   @@index([enquiryId])
   @@index([token])
+}
+
+// ============================================================
+// Children (structured records from enrolment submissions)
+// ============================================================
+
+model Child {
+  id                 String              @id @default(cuid())
+  enrolmentId        String
+  enrolment          EnrolmentSubmission  @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  serviceId          String?
+  service            Service?             @relation("ServiceChildren", fields: [serviceId], references: [id])
+  firstName          String
+  surname            String
+  dob                DateTime?
+  gender             String?
+  address            Json? // { street, suburb, state, postcode }
+  culturalBackground String[]
+  schoolName         String?
+  yearLevel          String?
+  crn                String?
+  medical            Json? // Full medical info
+  dietary            Json? // Dietary requirements
+  bookingPrefs       Json? // Session types, days, booking type
+  status             String               @default("pending") // pending, active, withdrawn
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([enrolmentId])
+  @@index([serviceId])
+  @@index([status])
 }

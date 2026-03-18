@@ -37,6 +37,7 @@ const rolePageAccess: Record<string, string[]> = {
     "/crm",
     "/crm/templates",
     "/queue",
+    "/enrolments",
   ],
   admin: [
     "/dashboard",
@@ -63,6 +64,7 @@ const rolePageAccess: Record<string, string[]> = {
     "/team",
     "/crm",
     "/queue",
+    "/enrolments",
     // No /settings or /crm/templates
   ],
   member: [
@@ -79,6 +81,7 @@ const rolePageAccess: Record<string, string[]> = {
     "/onboarding",
     "/leave",
     "/queue",
+    "/enrolments",
   ],
   marketing: [
     "/dashboard",
@@ -116,6 +119,7 @@ const rolePageAccess: Record<string, string[]> = {
     "/team",
     "/crm",
     "/queue",
+    "/enrolments",
   ],
   coordinator: [
     "/dashboard",
@@ -132,6 +136,7 @@ const rolePageAccess: Record<string, string[]> = {
     "/leave",
     "/queue",
     "/marketing",
+    "/enrolments",
   ],
   staff: [
     "/dashboard",
@@ -255,5 +260,6 @@ export const config = {
     "/queue/:path*",
     "/api/queue/:path*",
     "/api/enrolments/:path*",
+    "/enrolments/:path*",
   ],
 };

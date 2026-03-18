@@ -116,6 +116,28 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Create structured Child records
+    for (const child of enrichedChildren) {
+      await prisma.child.create({
+        data: {
+          enrolmentId: submission.id,
+          serviceId,
+          firstName: child.firstName || "",
+          surname: child.surname || "",
+          dob: child.dob ? new Date(child.dob) : undefined,
+          gender: child.gender || undefined,
+          address: child.street ? { street: child.street, suburb: child.suburb, state: child.state, postcode: child.postcode } : undefined,
+          culturalBackground: child.culturalBackground || [],
+          schoolName: child.schoolName || undefined,
+          yearLevel: child.yearLevel || undefined,
+          crn: child.crn || undefined,
+          medical: child.medical || undefined,
+          dietary: child.medical?.dietaryRequirements ? { details: child.medical.dietaryDetails } : undefined,
+          bookingPrefs: child.bookingPrefs || undefined,
+        },
+      });
+    }
+
     // Update enquiry stage if linked
     if (enquiryId) {
       await prisma.parentEnquiry.update({
