@@ -1,4 +1,52 @@
-export interface CsvColumn {
+/**
+ * Generic CSV export utility.
+ * Two APIs: accessor-based (exportToCsv) and key-based (exportToCSV, legacy).
+ */
+
+// ---------------------------------------------------------------------------
+// Accessor-based API (preferred)
+// ---------------------------------------------------------------------------
+
+export interface CsvColumn<T> {
+  header: string;
+  accessor: (row: T) => string | number | boolean | null | undefined;
+}
+
+export function exportToCsv<T>(
+  filename: string,
+  data: T[],
+  columns: CsvColumn<T>[],
+): void {
+  // Build header row
+  const headers = columns.map((c) => `"${c.header}"`).join(",");
+
+  // Build data rows
+  const rows = data.map((row) =>
+    columns
+      .map((col) => {
+        const val = col.accessor(row);
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      })
+      .join(","),
+  );
+
+  const csv = [headers, ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${filename}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------------------------------------------------------------------------
+// Key-based API (legacy — used by financials, performance, scorecard, etc.)
+// ---------------------------------------------------------------------------
+
+export interface LegacyCsvColumn {
   key: string;
   header: string;
   formatter?: (value: unknown) => string;
@@ -42,11 +90,11 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 export function exportToCSV(
   data: Record<string, unknown>[],
   filename: string,
-  columns?: CsvColumn[]
+  columns?: LegacyCsvColumn[]
 ): void {
   if (data.length === 0) return;
 
-  const cols: CsvColumn[] =
+  const cols: LegacyCsvColumn[] =
     columns || Object.keys(data[0]).map((key) => ({ key, header: key }));
 
   const headerRow = cols.map((col) => escapeCsvValue(col.header)).join(",");

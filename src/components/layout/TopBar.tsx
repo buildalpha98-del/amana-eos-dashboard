@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Plus, Search } from "lucide-react";
 import { getCurrentQuarter } from "@/lib/utils";
 import { QuickAddMenu, type QuickAddMenuPosition } from "./QuickAddMenu";
 import { CommandPalette } from "./CommandPalette";
+import { navItems } from "@/lib/nav-config";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
 
 const NotificationDropdown = dynamic(
   () => import("@/components/notifications/NotificationDropdown").then((m) => m.NotificationDropdown),
@@ -77,6 +79,11 @@ const pageTitles: Record<string, string> = {
   "/policies": "Policies",
 };
 
+/** Build a nav-item lookup from href to label */
+const navLabelMap: Record<string, string> = Object.fromEntries(
+  navItems.map((item) => [item.href, item.label])
+);
+
 export function TopBar() {
   const pathname = usePathname();
   const title =
@@ -85,6 +92,23 @@ export function TopBar() {
       ? "Service Detail"
       : "Dashboard");
   const quarter = getCurrentQuarter();
+
+  // Build breadcrumb items for nested pages (2+ segments)
+  const breadcrumbItems = useMemo(() => {
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length < 2) return null; // single-segment — no breadcrumbs
+
+    const items: Array<{ label: string; href?: string }> = [];
+    // Build parent path(s)
+    for (let i = 0; i < segments.length - 1; i++) {
+      const parentPath = "/" + segments.slice(0, i + 1).join("/");
+      const parentLabel = pageTitles[parentPath] || navLabelMap[parentPath] || segments[i].replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      items.push({ label: parentLabel, href: parentPath });
+    }
+    // Current page (no link)
+    items.push({ label: title });
+    return items;
+  }, [pathname, title]);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<QuickAddMenuPosition>({ top: 0, right: 0 });
   const [searchOpen, setSearchOpen] = useState(false);
@@ -133,7 +157,11 @@ export function TopBar() {
       {/* Desktop header */}
       <header className="h-16 bg-background border-b border-border hidden md:flex items-center justify-between px-6 sticky top-0 z-30">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-heading font-semibold tracking-tight text-gray-900">{title}</h1>
+          {breadcrumbItems ? (
+            <Breadcrumb items={breadcrumbItems} />
+          ) : (
+            <h1 className="text-2xl font-heading font-semibold tracking-tight text-gray-900">{title}</h1>
+          )}
           {quarterRelevantPages.has(pathname) && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/20 text-brand border border-accent/30">
               {quarter}
@@ -166,7 +194,11 @@ export function TopBar() {
       {/* Mobile sub-header — sticky below the fixed mobile header */}
       <div className="md:hidden flex items-center justify-between px-4 py-2 bg-background border-b border-border sticky top-14 z-20">
         <div className="flex items-center gap-2 min-w-0">
-          <h1 className="text-base font-heading font-semibold tracking-tight text-gray-900 truncate">{title}</h1>
+          {breadcrumbItems ? (
+            <Breadcrumb items={breadcrumbItems} />
+          ) : (
+            <h1 className="text-base font-heading font-semibold tracking-tight text-gray-900 truncate">{title}</h1>
+          )}
           {quarterRelevantPages.has(pathname) && (
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent/20 text-brand border border-accent/30 shrink-0">
               {quarter}

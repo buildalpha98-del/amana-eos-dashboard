@@ -15,7 +15,9 @@ import {
   ChevronRight,
   Users,
   Sparkles,
+  Download,
 } from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
 import type { Role } from "@prisma/client";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -131,6 +133,24 @@ export default function PoliciesPage() {
               </div>
             </>
           )}
+
+          <button
+            onClick={() =>
+              exportToCsv("policies", filtered, [
+                { header: "Title", accessor: (p) => p.title },
+                { header: "Version", accessor: (p) => p.version },
+                { header: "Status", accessor: (p) => p.status },
+                { header: "Category", accessor: (p) => p.category ?? "" },
+                { header: "Acknowledgements", accessor: (p) => p._count?.acknowledgements ?? 0 },
+              ])
+            }
+            disabled={filtered.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            title="Export to CSV"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export</span>
+          </button>
 
           {role === "owner" && (
             <button

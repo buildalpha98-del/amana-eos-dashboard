@@ -7,7 +7,7 @@ import { DATA_ROOM_SECTIONS } from "@/lib/data-room-config";
 import { ExitReadinessScore } from "@/components/data-room/ExitReadinessScore";
 import { DataRoomSection } from "@/components/data-room/DataRoomSection";
 import { ExportButton } from "@/components/ui/ExportButton";
-import { exportToCSV, type CsvColumn } from "@/lib/csv-export";
+import { exportToCSV, type LegacyCsvColumn } from "@/lib/csv-export";
 import { toast } from "@/hooks/useToast";
 import { ErrorState } from "@/components/ui/ErrorState";
 
@@ -77,7 +77,7 @@ export default function DataRoomPage() {
           : "N/A",
       })),
     );
-    const columns: CsvColumn[] = [
+    const columns: LegacyCsvColumn[] = [
       { key: "section", header: "DD Section" },
       { key: "sectionCompleteness", header: "Section Completeness" },
       { key: "document", header: "Required Document" },

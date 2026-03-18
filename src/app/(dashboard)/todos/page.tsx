@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, Suspense } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useTodos, useUpdateTodo, useDeleteTodo, useCreateTodo, type TodoData } from "@/hooks/useTodos";
 import { useQuery } from "@tanstack/react-query";
@@ -28,7 +29,9 @@ import {
   ListPlus,
   Repeat,
   Loader2,
+  Download,
 } from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
 import { BulkCreateTodosModal } from "@/components/todos/BulkCreateTodosModal";
 import { TemplateManagerModal } from "@/components/todos/TemplateManagerModal";
 import { cn } from "@/lib/utils";
@@ -42,16 +45,66 @@ interface UserOption {
 }
 
 export default function TodosPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><Skeleton className="h-8 w-48 mb-4" /><Skeleton className="h-64 w-full" /></div>}>
+      <TodosPageContent />
+    </Suspense>
+  );
+}
+
+function TodosPageContent() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const setParam = useCallback(
+    (key: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, router, pathname],
+  );
+
   const [weekOf, setWeekOf] = useState(() => getWeekStart());
   const [showCreate, setShowCreate] = useState(false);
   const [showBulkCreate, setShowBulkCreate] = useState(false);
   const [selectedTodo, setSelectedTodo] = useState<TodoData | null>(null);
-  const [groupBy, setGroupBy] = useState<"person" | "flat">("person");
-  const [viewMode, setViewMode] = useState<"list" | "board">("list");
-  const [filterAssignee, setFilterAssignee] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
+
+  // Read filters from URL search params
+  const groupByParam = searchParams.get("groupBy");
+  const groupBy: "person" | "flat" = groupByParam === "flat" ? "flat" : "person";
+  const viewModeParam = searchParams.get("view");
+  const viewMode: "list" | "board" = viewModeParam === "board" ? "board" : "list";
+  const filterAssignee = searchParams.get("assignee") || "";
+  const filterStatus = searchParams.get("status") || "";
+
+  const setMultiParams = useCallback(
+    (updates: Record<string, string>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(updates)) {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      }
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, router, pathname],
+  );
+
+  const setGroupBy = useCallback((v: "person" | "flat") => setParam("groupBy", v === "person" ? "" : v), [setParam]);
+  const setViewMode = useCallback((v: "list" | "board") => setParam("view", v === "list" ? "" : v), [setParam]);
+  const setFilterAssignee = useCallback((v: string) => setParam("assignee", v), [setParam]);
+  const setFilterStatus = useCallback((v: string) => setParam("status", v), [setParam]);
+
+  const [showFilters, setShowFilters] = useState(!!(filterAssignee || filterStatus));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showCarryForward, setShowCarryForward] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
@@ -197,7 +250,7 @@ export default function TodosPage() {
           {/* View Toggle */}
           <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
             <button
-              onClick={() => { setViewMode("list"); setGroupBy("person"); }}
+              onClick={() => setMultiParams({ view: "", groupBy: "" })}
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 viewMode === "list" && groupBy === "person"
@@ -209,7 +262,7 @@ export default function TodosPage() {
               <Users className="w-4 h-4" />
             </button>
             <button
-              onClick={() => { setViewMode("list"); setGroupBy("flat"); }}
+              onClick={() => setMultiParams({ view: "", groupBy: "flat" })}
               className={cn(
                 "p-1.5 rounded-md transition-colors",
                 viewMode === "list" && groupBy === "flat"
@@ -260,6 +313,24 @@ export default function TodosPage() {
             title="Filters"
           >
             <Filter className="w-4 h-4" />
+          </button>
+
+          {/* Export CSV */}
+          <button
+            onClick={() =>
+              exportToCsv("todos", filteredTodos, [
+                { header: "Title", accessor: (t) => t.title },
+                { header: "Assignee", accessor: (t) => t.assignee?.name ?? "Unassigned" },
+                { header: "Due Date", accessor: (t) => new Date(t.dueDate).toLocaleDateString("en-AU") },
+                { header: "Status", accessor: (t) => t.status },
+                { header: "Rock", accessor: (t) => t.rock?.title ?? "" },
+              ])
+            }
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+            title="Export to CSV"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export</span>
           </button>
 
           {/* Bulk Create */}
@@ -352,10 +423,7 @@ export default function TodosPage() {
 
           {hasActiveFilters && (
             <button
-              onClick={() => {
-                setFilterAssignee("");
-                setFilterStatus("");
-              }}
+              onClick={() => setMultiParams({ assignee: "", status: "" })}
               className="text-xs text-gray-500 hover:text-gray-700 underline"
             >
               Clear filters

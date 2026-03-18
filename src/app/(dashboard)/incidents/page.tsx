@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, Suspense } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   AlertTriangle,
   ChevronDown,
@@ -16,7 +17,9 @@ import {
   ShieldAlert,
   Sparkles,
   Loader2 as SeedLoader,
+  Download,
 } from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
 import { useSession } from "next-auth/react";
 import { useServices } from "@/hooks/useServices";
 import {
@@ -104,17 +107,48 @@ function formatAuDate(iso: string): string {
 // ---------------------------------------------------------------------------
 
 export default function IncidentsPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><Skeleton className="h-8 w-48 mb-4" /><Skeleton className="h-64 w-full" /></div>}>
+      <IncidentsPageContent />
+    </Suspense>
+  );
+}
+
+function IncidentsPageContent() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [tab, setTab] = useState<"overview" | "trends">("overview");
   const [showCreate, setShowCreate] = useState(false);
   const [seedingProtocols, setSeedingProtocols] = useState(false);
 
-  // Filters
-  const [filterService, setFilterService] = useState("");
-  const [filterType, setFilterType] = useState("");
-  const [filterSeverity, setFilterSeverity] = useState("");
-  const [filterFrom, setFilterFrom] = useState("");
-  const [filterTo, setFilterTo] = useState("");
+  // Read filters from URL search params
+  const filterService = searchParams.get("service") || "";
+  const filterType = searchParams.get("type") || "";
+  const filterSeverity = searchParams.get("severity") || "";
+  const filterFrom = searchParams.get("from") || "";
+  const filterTo = searchParams.get("to") || "";
+
+  const setParam = useCallback(
+    (key: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, router, pathname],
+  );
+
+  const setFilterService = useCallback((v: string) => setParam("service", v), [setParam]);
+  const setFilterType = useCallback((v: string) => setParam("type", v), [setParam]);
+  const setFilterSeverity = useCallback((v: string) => setParam("severity", v), [setParam]);
+  const setFilterFrom = useCallback((v: string) => setParam("from", v), [setParam]);
+  const setFilterTo = useCallback((v: string) => setParam("to", v), [setParam]);
 
   const filters: IncidentFilters = useMemo(
     () => ({
@@ -384,6 +418,26 @@ function OverviewTab({
           className={inputClass}
           placeholder="To"
         />
+        <button
+          onClick={() =>
+            exportToCsv("incidents", incidents, [
+              { header: "Date", accessor: (i) => formatAuDate(i.incidentDate) },
+              { header: "Service", accessor: (i) => i.service.name },
+              { header: "Type", accessor: (i) => formatLabel(i.incidentType) },
+              { header: "Severity", accessor: (i) => formatLabel(i.severity) },
+              { header: "Child Name", accessor: (i) => i.childName ?? "" },
+              { header: "Parent Notified", accessor: (i) => (i.parentNotified ? "Yes" : "No") },
+              { header: "Follow-Up Required", accessor: (i) => (i.followUpRequired ? (i.followUpCompleted ? "Done" : "Pending") : "No") },
+              { header: "Description", accessor: (i) => i.description },
+            ])
+          }
+          disabled={incidents.length === 0}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+          title="Export to CSV"
+        >
+          <Download className="h-4 w-4" />
+          Export
+        </button>
       </div>
 
       {/* Table */}

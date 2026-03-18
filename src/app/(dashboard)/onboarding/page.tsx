@@ -53,7 +53,9 @@ import {
   UserPlus,
   Pencil,
   ClipboardCheck,
+  Download,
 } from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { hasMinRole } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
@@ -533,6 +535,37 @@ export default function OnboardingPage() {
                 {activeTab === "onboarding" ? "Seed Packs" : "Seed Training Courses"}
               </button>
             )}
+            <button
+              onClick={() => {
+                if (activeTab === "onboarding") {
+                  exportToCsv("onboarding-assignments", assignments, [
+                    { header: "Staff Member", accessor: (a) => a.user.name },
+                    { header: "Email", accessor: (a) => a.user.email },
+                    { header: "Pack", accessor: (a) => a.pack.name },
+                    { header: "Service", accessor: (a) => a.pack.service?.name ?? "" },
+                    { header: "Status", accessor: (a) => a.status },
+                    { header: "Tasks Total", accessor: (a) => a.pack._count.tasks },
+                    { header: "Tasks Completed", accessor: (a) => a.progress.filter((p) => p.completed).length },
+                    { header: "Due Date", accessor: (a) => a.dueDate ? new Date(a.dueDate).toLocaleDateString("en-AU") : "" },
+                  ]);
+                } else if (activeTab === "lms") {
+                  exportToCsv("lms-courses", courses, [
+                    { header: "Title", accessor: (c) => c.title },
+                    { header: "Category", accessor: (c) => c.category ?? "" },
+                    { header: "Status", accessor: (c) => c.status },
+                    { header: "Required", accessor: (c) => c.isRequired ? "Yes" : "No" },
+                    { header: "Modules", accessor: (c) => c._count?.modules ?? 0 },
+                    { header: "Enrollments", accessor: (c) => c._count?.enrollments ?? 0 },
+                  ]);
+                }
+              }}
+              disabled={activeTab === "exit-surveys"}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              title="Export to CSV"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Export</span>
+            </button>
             <button
               onClick={() => setShowAssign(true)}
               className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"

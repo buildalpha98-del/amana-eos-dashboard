@@ -1,11 +1,24 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { AlertTriangle, ChevronRight, CheckCircle2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronRight,
+  CheckCircle2,
+  ClipboardList,
+  Mountain,
+  AlertCircle,
+  Inbox,
+  Plus,
+  ShieldAlert,
+  UserPlus,
+  CalendarCheck,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Link from "next/link";
 import { getCurrentQuarter } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 // Command Centre components
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -96,6 +109,97 @@ function AlertBanner({
   );
 }
 
+// ─── Time-of-Day Greeting ───────────────────────────────────
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function formatTodayDate(): string {
+  return new Date().toLocaleDateString("en-AU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+// ─── Priority Stats Row ─────────────────────────────────────
+
+function PriorityStats({
+  overdueTodos,
+  offTrackRocks,
+  openIssues,
+  pendingQueue,
+}: {
+  overdueTodos: number;
+  offTrackRocks: number;
+  openIssues: number;
+  pendingQueue: number;
+}) {
+  const stats = [
+    { label: "Overdue To-Dos", value: overdueTodos, icon: ClipboardList, href: "/todos", color: overdueTodos > 0 ? "text-danger" : "text-success" },
+    { label: "Off-Track Rocks", value: offTrackRocks, icon: Mountain, href: "/rocks", color: offTrackRocks > 0 ? "text-warning" : "text-success" },
+    { label: "Open Issues", value: openIssues, icon: AlertCircle, href: "/issues", color: openIssues > 0 ? "text-warning" : "text-success" },
+    { label: "Pending Queue", value: pendingQueue, icon: Inbox, href: "/queue", color: pendingQueue > 0 ? "text-brand" : "text-muted" },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {stats.map((s) => {
+        const Icon = s.icon;
+        return (
+          <Link
+            key={s.label}
+            href={s.href}
+            className="bg-card rounded-xl border border-border p-3 flex items-center gap-3 hover:border-brand/30 transition-colors shadow-[var(--shadow-warm-sm)]"
+          >
+            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-surface flex items-center justify-center">
+              <Icon className={`w-4 h-4 ${s.color}`} />
+            </div>
+            <div className="min-w-0">
+              <div className={`text-lg font-bold leading-none ${s.color}`}>{s.value}</div>
+              <div className="text-[11px] text-muted mt-0.5 truncate">{s.label}</div>
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Quick Action Buttons ───────────────────────────────────
+
+function QuickActionButtons() {
+  const actions = [
+    { label: "Log Incident", href: "/incidents", icon: ShieldAlert },
+    { label: "Create To-Do", href: "/todos", icon: Plus },
+    { label: "New Enquiry", href: "/enquiries", icon: UserPlus },
+    { label: "Record Attendance", href: "/services", icon: CalendarCheck },
+  ];
+
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-2">
+      {actions.map((a) => {
+        const Icon = a.icon;
+        return (
+          <Link
+            key={a.href}
+            href={a.href}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted-foreground hover:text-brand hover:border-brand/40 transition-colors whitespace-nowrap bg-card shadow-[var(--shadow-warm-sm)]"
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {a.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Main Dashboard Content ─────────────────────────────────
 
 function getPeriodOptions(): { value: string; label: string }[] {
@@ -120,25 +224,60 @@ export function DashboardContent() {
   const role = (session?.user?.role as string) || "";
   const isServiceScoped = role === "staff" || role === "member";
 
+  // Fetch pending queue count for priority stats
+  const { data: queueData } = useQuery<{ reports: unknown[] }>({
+    queryKey: ["queue-count"],
+    queryFn: async () => {
+      const res = await fetch("/api/queue");
+      if (!res.ok) return { reports: [] };
+      return res.json();
+    },
+    staleTime: 60_000,
+    enabled: !isServiceScoped,
+  });
+  const pendingQueueCount = queueData?.reports?.length ?? 0;
+
+  const greeting = useMemo(() => getGreeting(), []);
+  const todayDate = useMemo(() => formatTodayDate(), []);
+  const firstName = session?.user?.name?.split(" ")[0] || "there";
+
   if (isServiceScoped) {
     return <StaffDashboard />;
   }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
+      {/* ── Greeting + Priority Stats + Quick Actions ──────── */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-3xl font-heading font-bold tracking-tight text-foreground">
+            {greeting}, {firstName}
+          </h2>
+          <p className="text-muted text-sm mt-1">{todayDate}</p>
+        </div>
+
+        {data && (
+          <PriorityStats
+            overdueTodos={data.actionItems.overdueTodos.length}
+            offTrackRocks={data.actionItems.overdueRocks.length}
+            openIssues={data.actionItems.idsIssues.length}
+            pendingQueue={pendingQueueCount}
+          />
+        )}
+
+        <QuickActionButtons />
+      </div>
+
       {/* Welcome Hero Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-heading font-bold tracking-tight text-foreground">
+          <h2 className="text-lg font-heading font-semibold tracking-tight text-foreground">
             Command Centre
           </h2>
-          <p className="text-muted text-base mt-1 line-clamp-2">
-            Welcome back, {session?.user?.name?.split(" ")[0] || "there"} &mdash;{" "}
-            {isServiceScoped
-              ? "your centre overview."
-              : role === "admin" && session?.user?.state
-              ? `overview for ${session.user.state} centres.`
-              : "overview across all centres."}
+          <p className="text-muted text-sm mt-0.5 line-clamp-2">
+            {role === "admin" && session?.user?.state
+              ? `Overview for ${session.user.state} centres.`
+              : "Overview across all centres."}
           </p>
         </div>
         {!isServiceScoped && (
