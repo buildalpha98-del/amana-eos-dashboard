@@ -39,6 +39,8 @@ const rolePageAccess: Record<string, string[]> = {
     "/queue",
     "/enrolments",
     "/children",
+    "/incidents",
+    "/policies",
   ],
   admin: [
     "/dashboard",
@@ -67,6 +69,8 @@ const rolePageAccess: Record<string, string[]> = {
     "/queue",
     "/enrolments",
     "/children",
+    "/incidents",
+    "/policies",
     // No /settings or /crm/templates
   ],
   member: [
@@ -85,6 +89,8 @@ const rolePageAccess: Record<string, string[]> = {
     "/queue",
     "/enrolments",
     "/children",
+    "/incidents",
+    "/policies",
   ],
   marketing: [
     "/dashboard",
@@ -123,6 +129,8 @@ const rolePageAccess: Record<string, string[]> = {
     "/crm",
     "/queue",
     "/enrolments",
+    "/incidents",
+    "/policies",
   ],
   coordinator: [
     "/dashboard",
@@ -141,6 +149,8 @@ const rolePageAccess: Record<string, string[]> = {
     "/marketing",
     "/enrolments",
     "/children",
+    "/incidents",
+    "/policies",
   ],
   staff: [
     "/dashboard",
@@ -150,6 +160,7 @@ const rolePageAccess: Record<string, string[]> = {
     "/onboarding",
     "/todos",
     "/compliance",
+    "/policies",
     "/leave",
     "/queue",
   ],
@@ -240,6 +251,7 @@ export const config = {
     "/api/timesheets/:path*",
     "/api/timesheet-entries/:path*",
     "/api/contracts/:path*",
+    "/policies/:path*",
     "/api/policies/:path*",
     "/api/offboarding/:path*",
     "/api/my-portal/:path*",
@@ -267,6 +279,8 @@ export const config = {
     "/enrolments/:path*",
     "/api/children/:path*",
     "/children/:path*",
+    "/incidents/:path*",
+    "/api/incidents/:path*",
     "/api/sequences/:path*",
   ],
 };

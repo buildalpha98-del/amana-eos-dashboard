@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   Users,
   TrendingUp,
@@ -93,6 +94,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [showVC, setShowVC] = useState(false);
   const [showImportAttendance, setShowImportAttendance] = useState(false);
+  const [showPropagateConfirm, setShowPropagateConfirm] = useState(false);
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const from = formatDate(weekDates[0]);
   const to = formatDate(weekDates[4]);
@@ -140,11 +142,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
     },
   });
 
-  const handlePropagate = () => {
-    if (window.confirm("This will copy this week's permanent counts to the next 8 weeks. Continue?")) {
-      propagateMutation.mutate();
-    }
-  };
+  const handlePropagate = () => setShowPropagateConfirm(true);
 
   // Attendance anomalies
   const { data: anomalies } = useQuery({
@@ -755,6 +753,20 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
           </p>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showPropagateConfirm}
+        onOpenChange={setShowPropagateConfirm}
+        title="Propagate Permanent Counts"
+        description="This will copy this week's permanent counts to the next 8 weeks. Continue?"
+        confirmLabel="Propagate"
+        variant="default"
+        onConfirm={() => {
+          propagateMutation.mutate();
+          setShowPropagateConfirm(false);
+        }}
+        loading={propagateMutation.isPending}
+      />
     </div>
   );
 }

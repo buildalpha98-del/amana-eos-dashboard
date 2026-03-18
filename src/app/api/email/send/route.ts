@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     const resend = getResend();
     if (!resend) {
-      console.log(`[DEV] Would send ${type} email:`, payload);
+      if (process.env.NODE_ENV !== "production") console.log(`[DEV] Would send ${type} email:`, payload);
       return NextResponse.json({ message: "Email logged (dev mode — no RESEND_API_KEY)" });
     }
 

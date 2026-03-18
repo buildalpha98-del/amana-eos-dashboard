@@ -3,10 +3,10 @@
  * All templates use inline styles for maximum email client compatibility.
  */
 
-const BRAND_COLOR = "#004E64";
-const ACCENT_COLOR = "#FECE00";
+export const BRAND_COLOR = "#004E64";
+export const ACCENT_COLOR = "#FECE00";
 
-function baseLayout(content: string) {
+export function baseLayout(content: string) {
   return `
 <!DOCTYPE html>
 <html>
@@ -53,7 +53,7 @@ function baseLayout(content: string) {
 </html>`;
 }
 
-function buttonHtml(text: string, href: string) {
+export function buttonHtml(text: string, href: string) {
   return `
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
   <tr>

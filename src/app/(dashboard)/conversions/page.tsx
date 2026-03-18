@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   Repeat,
   Phone,
@@ -426,11 +427,48 @@ export default function ConversionsPage() {
         </div>
       </div>
 
+      {/* Conversion Funnel */}
+      {stats && stats.total > 0 && (
+        <div className="bg-surface rounded-xl border border-border p-4">
+          <p className="text-xs font-medium text-foreground/50 mb-3">Conversion Funnel</p>
+          <div className="flex items-center gap-2">
+            {[
+              { label: "Identified", count: stats.identified, color: "bg-blue-500" },
+              { label: "Contacted", count: stats.contacted, color: "bg-amber-500" },
+              { label: "Converted", count: stats.converted, color: "bg-emerald-500" },
+              { label: "Declined", count: stats.declined, color: "bg-gray-400" },
+            ].map((step, i) => (
+              <div key={step.label} className="flex items-center gap-2 flex-1">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-medium text-foreground/60">{step.label}</span>
+                    <span className="text-xs font-bold text-foreground">{step.count}</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full transition-all", step.color)}
+                      style={{ width: `${stats.total > 0 ? (step.count / stats.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+                {i < 3 && <span className="text-foreground/20 text-lg">→</span>}
+              </div>
+            ))}
+          </div>
+          {stats.total > 0 && (
+            <p className="text-[10px] text-foreground/40 mt-2 text-right">
+              Conversion rate: {((stats.converted / stats.total) * 100).toFixed(1)}%
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Opportunity List */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 text-brand animate-spin" />
-          <span className="ml-3 text-gray-500">Loading conversions...</span>
+        <div className="space-y-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
         </div>
       ) : opportunities.length > 0 ? (
         <div className="space-y-6">

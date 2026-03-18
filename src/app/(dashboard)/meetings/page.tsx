@@ -20,6 +20,7 @@ import { useServices } from "@/hooks/useServices";
 import type { ServiceSummary } from "@/hooks/useServices";
 import { cn, formatDateAU, getWeekStart, getCurrentQuarter } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { AiButton } from "@/components/ui/AiButton";
 import {
   Presentation,
@@ -1537,6 +1538,7 @@ function ActiveMeetingView({
   const [concludeNotes, setConcludeNotes] = useState(meeting.concludeNotes || "");
   const [cascadeMessages, setCascadeMessages] = useState(meeting.cascadeMessages || "");
   const [rating, setRating] = useState<number | null>(meeting.rating);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [attendeeRatings, setAttendeeRatings] = useState<Record<string, number>>(() => {
     const ratings: Record<string, number> = {};
     if (meeting.attendees) {
@@ -1661,8 +1663,6 @@ function ActiveMeetingView({
   }, [currentSection, goToSection]);
 
   const handleComplete = useCallback(() => {
-    if (!window.confirm("Are you sure you want to end this meeting? This cannot be undone.")) return;
-
     // Build attendee updates from ratings
     const attendeeUpdates = Object.entries(attendeeRatings).map(([userId, r]) => ({
       userId,
@@ -1829,7 +1829,7 @@ function ActiveMeetingView({
           </span>
         ) : (
           <button
-            onClick={handleComplete}
+            onClick={() => setShowEndConfirm(true)}
             disabled={currentSection !== 6}
             className={cn(
               "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
@@ -2036,7 +2036,7 @@ function ActiveMeetingView({
                 </button>
               ) : (
                 <button
-                  onClick={handleComplete}
+                  onClick={() => setShowEndConfirm(true)}
                   className="inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors"
                 >
                   <CheckCircle2 className="w-4 h-4" />
@@ -2244,6 +2244,20 @@ function ActiveMeetingView({
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showEndConfirm}
+        onOpenChange={setShowEndConfirm}
+        title="End Meeting"
+        description="Are you sure you want to end this meeting? This cannot be undone."
+        confirmLabel="End Meeting"
+        variant="danger"
+        onConfirm={() => {
+          setShowEndConfirm(false);
+          handleComplete();
+        }}
+        loading={updateMeeting.isPending}
+      />
     </div>
   );
 }

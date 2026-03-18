@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/useToast";
 import type { PolicyStatus } from "@prisma/client";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -120,6 +121,10 @@ export function useCreatePolicy() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
+      toast({ description: "Policy created" });
+    },
+    onError: (err: Error) => {
+      toast({ description: err.message });
     },
   });
 }
@@ -158,6 +163,10 @@ export function useUpdatePolicy() {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
       queryClient.invalidateQueries({ queryKey: ["policy"] });
       queryClient.invalidateQueries({ queryKey: ["policies-compliance"] });
+      toast({ description: "Policy updated" });
+    },
+    onError: (err: Error) => {
+      toast({ description: err.message });
     },
   });
 }
@@ -175,6 +184,10 @@ export function useDeletePolicy() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
       queryClient.invalidateQueries({ queryKey: ["policies-compliance"] });
+      toast({ description: "Policy deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ description: err.message });
     },
   });
 }
@@ -199,6 +212,10 @@ export function useAcknowledgePolicy() {
       queryClient.invalidateQueries({ queryKey: ["policy"] });
       queryClient.invalidateQueries({ queryKey: ["policies-compliance"] });
       queryClient.invalidateQueries({ queryKey: ["my-pending-policies"] });
+      toast({ description: "Policy acknowledged" });
+    },
+    onError: (err: Error) => {
+      toast({ description: err.message });
     },
   });
 }

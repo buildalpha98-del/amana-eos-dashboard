@@ -124,7 +124,7 @@ export async function PATCH(
         .send({ from: FROM_EMAIL, to: ticket.assignedTo.email, subject, html })
         .catch((err: unknown) => console.error("Failed to send ticket notification:", err));
     } else {
-      console.log(`[DEV] Ticket notification for ${ticket.assignedTo.email}: ${ticket.subject}`);
+      if (process.env.NODE_ENV !== "production") console.log(`[DEV] Ticket notification for ${ticket.assignedTo.email}: ${ticket.subject}`);
     }
 
     // Teams notification (fire-and-forget)

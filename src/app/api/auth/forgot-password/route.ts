@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       });
     } else {
       // Dev fallback: log the reset URL
-      console.log(`[DEV] Password reset link for ${user.email}: ${resetUrl}`);
+      if (process.env.NODE_ENV !== "production") console.log(`[DEV] Password reset link for ${user.email}: ${resetUrl}`);
     }
 
     return successResponse;

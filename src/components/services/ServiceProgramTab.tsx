@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import {
@@ -136,6 +137,8 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   const [editingActivity, setEditingActivity] = useState<ProgramActivity | null>(null);
   const [prefillTemplate, setPrefillTemplate] = useState<ActivityTemplate | null>(null);
   const [showInterests, setShowInterests] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [interestDeleteId, setInterestDeleteId] = useState<string | null>(null);
 
   const currentWeek = getWeekStart();
   const selectedWeek = new Date(currentWeek);
@@ -206,17 +209,20 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
     }
   };
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync(deleteTarget.id);
       toast({ description: "Activity deleted" });
     } catch {
       toast({ description: "Failed to delete activity", variant: "destructive" });
+    } finally {
+      setDeleteTarget(null);
     }
-  };
+  }, [deleteTarget, deleteMutation]);
 
   return (
+    <>
     <div className="space-y-6">
       {/* Week Navigation */}
       <div className="space-y-3">
@@ -351,7 +357,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
                       setEditingActivity(activity);
                       setShowModal(true);
                     }}
-                    onDelete={() => handleDelete(activity.id, activity.title)}
+                    onDelete={() => setDeleteTarget({ id: activity.id, title: activity.title })}
                   />
                 ))}
                 {byDay[day]?.length === 0 && (
@@ -476,6 +482,18 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
         />
       )}
     </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete Activity"
+        description={`Delete "${deleteTarget?.title}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDelete}
+        loading={deleteMutation.isPending}
+      />
+    </>
   );
 }
 

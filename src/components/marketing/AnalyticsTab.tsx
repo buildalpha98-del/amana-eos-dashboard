@@ -10,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useMarketingAnalytics } from "@/hooks/useMarketing";
 import { ContentHeatmap } from "./ContentHeatmap";
+import { EmailAnalytics } from "./EmailAnalytics";
 
 // ── Platform bar colors (matching PlatformBadge) ───────────
 const platformBarColors: Record<string, string> = {
@@ -444,6 +445,9 @@ export function AnalyticsTab({ serviceId, onCentreClick }: AnalyticsTabProps) {
           </div>
         );
       })()}
+
+      {/* Email & Messaging Activity */}
+      <EmailAnalytics />
     </div>
   );
 }

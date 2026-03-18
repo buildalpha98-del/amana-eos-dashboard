@@ -38,6 +38,8 @@ import {
   Rocket,
   Contact,
   Inbox,
+  AlertTriangle,
+  Shield,
 } from "lucide-react";
 
 export interface NavItem {
@@ -69,6 +71,8 @@ export const navItems: NavItem[] = [
   { href: "/services", label: "Services", icon: Building2, section: "Operations" },
   { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations" },
   { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists" },
+  { href: "/incidents", label: "Incidents", icon: AlertTriangle, section: "Operations", tooltip: "Safety incident tracking" },
+  { href: "/policies", label: "Policies", icon: Shield, section: "Operations", tooltip: "Policy management & compliance" },
   { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator" },
   // Strategy
   { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Strategy", tooltip: "What-if scenario modelling & financial projections" },

@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
       // Don't fail user creation if email fails
     }
   } else {
-    console.log(`[DEV] Welcome email for ${email} — temp password: ${password}`);
+    if (process.env.NODE_ENV !== "production") console.log(`[DEV] Welcome email for ${email} — temp password: ${password}`);
   }
 
   return NextResponse.json(user, { status: 201 });

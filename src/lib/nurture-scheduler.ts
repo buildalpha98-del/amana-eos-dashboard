@@ -3,10 +3,15 @@ import { prisma } from "@/lib/prisma";
 /**
  * Schedule nurture steps when an enquiry changes stage.
  *
- * This creates ParentNurtureStep records with appropriate scheduledFor dates
- * relative to now or the enquiry's firstSessionDate.
+ * DUAL SYSTEM: This function creates records in BOTH systems:
+ * 1. ParentNurtureStep (LEGACY) — hardcoded template keys + timing
+ * 2. SequenceEnrolment + SequenceStepExecution (NEW) — DB-defined sequences
  *
- * The actual sending is handled by the nurture-send cron job.
+ * Migration path: Once all legacy ParentNurtureStep records are processed
+ * (status != "pending"), the legacy block below can be removed. The new
+ * system reads sequences from the DB and supports email template overrides.
+ *
+ * The actual sending is handled by the nurture-send cron job (processes both).
  */
 export async function scheduleNurtureFromStageChange(
   enquiryId: string,
@@ -84,7 +89,8 @@ export async function scheduleNurtureFromStageChange(
 
   if (stepsToCreate.length === 0) return;
 
-  // Create steps, skip if a step with the same contactId+templateKey already exists
+  // LEGACY: Create ParentNurtureStep records. These run in parallel with the new
+  // SequenceStepExecution system. Safe to remove once no pending legacy steps remain.
   for (const step of stepsToCreate) {
     try {
       await prisma.parentNurtureStep.upsert({

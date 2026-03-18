@@ -21,6 +21,9 @@ import {
   nurtureSessionReminderEmail,
 } from "@/lib/email-templates";
 
+// LEGACY: Hardcoded template map for ParentNurtureStep records.
+// The new SequenceStepExecution system uses emailTemplateId from the DB instead.
+// Safe to remove once no pending legacy ParentNurtureStep records remain.
 const TEMPLATE_MAP: Record<string, (firstName: string, centreName: string) => { subject: string; html: string }> = {
   welcome: nurtureWelcomeEmail,
   how_to_enrol: nurtureHowToEnrolEmail,

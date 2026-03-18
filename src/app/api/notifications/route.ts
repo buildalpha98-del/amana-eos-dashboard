@@ -289,7 +289,31 @@ export async function GET(req: NextRequest) {
   });
 
   // Filter out dismissed notifications
-  const active = notifications.filter((n) => !dismissedIds.has(n.id));
+  const undismissed = notifications.filter((n) => !dismissedIds.has(n.id));
+
+  // Enforce user notification preferences
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { notificationPrefs: true },
+  });
+  const prefs = (user?.notificationPrefs ?? {}) as Record<string, boolean>;
+  const prefMap: Record<string, string> = {
+    overdue_todo: "overdueTodos",
+    overdue_rock: "rockUpdates",
+    new_todo_assigned: "newAssignments",
+    new_issue_assigned: "newAssignments",
+    new_rock_assigned: "newAssignments",
+    low_compliance: "complianceAlerts",
+    compliance_expiring: "complianceAlerts",
+    critical_issue: "overdueTodos", // always show critical issues
+    sla_warning: "overdueTodos", // always show SLA warnings
+    unassigned_ticket: "newAssignments",
+  };
+  const active = undismissed.filter((n) => {
+    const prefKey = prefMap[n.type];
+    // Default to showing if preference not explicitly set to false
+    return prefKey ? prefs[prefKey] !== false : true;
+  });
 
   // Sort: critical first, then warning, then info; within each, newest first
   const severityOrder: Record<string, number> = {

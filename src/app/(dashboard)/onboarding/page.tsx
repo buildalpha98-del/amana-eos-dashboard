@@ -22,6 +22,7 @@ import {
   useSelfEnrol,
   useMyEnrollments,
 } from "@/hooks/useLMS";
+import { ExitSurveyDashboard } from "@/components/exit-surveys/ExitSurveyDashboard";
 import { ModuleEditor } from "@/components/lms/ModuleEditor";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -51,6 +52,7 @@ import {
   Trash2,
   UserPlus,
   Pencil,
+  ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hasMinRole } from "@/lib/permissions";
@@ -282,7 +284,7 @@ export default function OnboardingPage() {
   const isStaff = role === "staff";
   const isServiceScoped = role === "staff" || role === "member";
 
-  const [activeTab, setActiveTab] = useState<"onboarding" | "lms">("onboarding");
+  const [activeTab, setActiveTab] = useState<"onboarding" | "lms" | "exit-surveys">("onboarding");
   const [showCreatePack, setShowCreatePack] = useState(false);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [showAssign, setShowAssign] = useState(false);
@@ -570,6 +572,16 @@ export default function OnboardingPage() {
         >
           <GraduationCap className="w-4 h-4" />
           Training / LMS
+        </button>
+        <button
+          onClick={() => setActiveTab("exit-surveys")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
+            activeTab === "exit-surveys" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+          )}
+        >
+          <ClipboardCheck className="w-4 h-4" />
+          Exit Surveys
         </button>
       </div>
 
@@ -1139,6 +1151,11 @@ export default function OnboardingPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Exit Surveys Tab */}
+      {activeTab === "exit-surveys" && (
+        <ExitSurveyDashboard />
       )}
 
       {/* Create Pack Modal */}
