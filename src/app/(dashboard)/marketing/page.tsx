@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import {
   BarChart3,
   FolderOpen,
@@ -12,7 +12,10 @@ import {
   Flame,
   Gift,
   Wrench,
+  Mail,
+  Workflow,
 } from "lucide-react";
+import Link from "next/link";
 import { MarketingTabs } from "@/components/marketing/MarketingTabs";
 import { OverviewTab } from "@/components/marketing/OverviewTab";
 import { CampaignsTab } from "@/components/marketing/CampaignsTab";
@@ -38,9 +41,11 @@ import { ReferralsTab } from "@/components/marketing/ReferralsTab";
 import { BSCGrowthTracker } from "@/components/marketing/BSCGrowthTracker";
 import { ServiceFilter } from "@/components/marketing/ServiceFilter";
 import { QuickAddFAB } from "@/components/marketing/QuickAddFAB";
+import { EmailComposer } from "@/components/email/EmailComposer";
 import { CreatePostModal } from "@/components/marketing/CreatePostModal";
 import { CreateCampaignModal } from "@/components/marketing/CreateCampaignModal";
 import { CreateTaskModal } from "@/components/marketing/CreateTaskModal";
+import { SequencesTab } from "@/components/marketing/SequencesTab";
 
 /* ------------------------------------------------------------------ */
 /* Tab definitions — consolidated from 16 → 8 primary tabs            */
@@ -50,6 +55,7 @@ const tabs = [
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "campaigns", label: "Campaigns", icon: FolderOpen },
+  { key: "sequences", label: "Sequences", icon: Workflow },
   { key: "posts", label: "Posts", icon: FileText },
   { key: "calendar", label: "Calendar", icon: Calendar },
   { key: "growth", label: "Growth", icon: Flame },
@@ -69,7 +75,7 @@ export default function MarketingPage() {
   const [showQuickCampaign, setShowQuickCampaign] = useState(false);
 
   /* Sub-view state for composite tabs */
-  const [toolkitView, setToolkitView] = useState<"assets" | "templates" | "hashtags" | "kpis" | "workload">("assets");
+  const [toolkitView, setToolkitView] = useState<"assets" | "templates" | "email" | "hashtags" | "kpis" | "workload">("assets");
   const [growthView, setGrowthView] = useState<"occupancy" | "referrals" | "launch">("occupancy");
 
   return (
@@ -87,6 +93,13 @@ export default function MarketingPage() {
             value={selectedServiceId}
             onChange={setSelectedServiceId}
           />
+          <Link
+            href="/marketing/email/compose"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors"
+          >
+            <Mail className="h-4 w-4" />
+            Compose Email
+          </Link>
           <button
             onClick={() => setShowImport(true)}
             className="inline-flex items-center gap-2 rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand hover:bg-brand hover:text-white transition-colors"
@@ -125,6 +138,9 @@ export default function MarketingPage() {
             serviceId={selectedServiceId}
           />
         )}
+
+        {/* ---- Sequences ---- */}
+        {activeTab === "sequences" && <SequencesTab />}
 
         {/* ---- Posts ---- */}
         {activeTab === "posts" && (
@@ -200,6 +216,7 @@ export default function MarketingPage() {
               {([
                 { key: "assets", label: "Assets" },
                 { key: "templates", label: "Templates" },
+                { key: "email", label: "Email Composer" },
                 { key: "hashtags", label: "Hashtags" },
                 { key: "kpis", label: "KPIs" },
                 { key: "workload", label: "Workload" },
@@ -220,6 +237,11 @@ export default function MarketingPage() {
 
             {toolkitView === "assets" && <AssetsTab />}
             {toolkitView === "templates" && <TemplatesTab />}
+            {toolkitView === "email" && (
+              <Suspense fallback={<div className="flex items-center justify-center py-16 text-gray-500">Loading composer...</div>}>
+                <EmailComposer />
+              </Suspense>
+            )}
             {toolkitView === "hashtags" && <HashtagsTab />}
             {toolkitView === "kpis" && <KPIsTab />}
             {toolkitView === "workload" && (

@@ -26,9 +26,40 @@ export interface EmailBlock {
   height?: number;
 }
 
+// ── Layout Options ────────────────────────────────────────────
+
+export interface EmailLayoutOptions {
+  headerColor?: string;       // hex, default #004E64
+  headerText?: string;        // default "Amana OSHC"
+  headerLogoUrl?: string;     // optional logo image URL
+  footerText?: string;        // default "Amana OSHC"
+  footerUrl?: string;         // default "https://amanaoshc.com.au"
+  footerUrlLabel?: string;    // default "amanaoshc.com.au"
+  showUnsubscribe?: boolean;  // default true
+}
+
+const DEFAULT_LAYOUT: Required<EmailLayoutOptions> = {
+  headerColor: "#004E64",
+  headerText: "Amana OSHC",
+  headerLogoUrl: "",
+  footerText: "Amana OSHC",
+  footerUrl: "https://amanaoshc.com.au",
+  footerUrlLabel: "amanaoshc.com.au",
+  showUnsubscribe: true,
+};
+
 // ── Layout ────────────────────────────────────────────────────
 
-export function marketingLayout(content: string): string {
+export function marketingLayout(content: string, opts?: EmailLayoutOptions): string {
+  const o = { ...DEFAULT_LAYOUT, ...opts };
+  const headerContent = o.headerLogoUrl
+    ? `<img src="${o.headerLogoUrl}" alt="${o.headerText}" style="max-height:48px;display:block;margin:0 auto;" />`
+    : `<h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.3px;">${o.headerText}</h1>`;
+
+  const unsubLink = o.showUnsubscribe
+    ? `<br/><a href="{{unsubscribeUrl}}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>`
+    : "";
+
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -42,10 +73,8 @@ export function marketingLayout(content: string): string {
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
           <!-- Header -->
           <tr>
-            <td style="background-color:#004E64;padding:24px 32px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.3px;">
-                Amana OSHC
-              </h1>
+            <td style="background-color:${o.headerColor};padding:24px 32px;text-align:center;">
+              ${headerContent}
             </td>
           </tr>
           <!-- Content -->
@@ -58,8 +87,7 @@ export function marketingLayout(content: string): string {
           <tr>
             <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
               <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
-                Amana OSHC &bull; <a href="https://amanaoshc.com.au" style="color:#9ca3af;">amanaoshc.com.au</a><br/>
-                <a href="{{unsubscribeUrl}}" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a>
+                ${o.footerText} &bull; <a href="${o.footerUrl}" style="color:#9ca3af;">${o.footerUrlLabel}</a>${unsubLink}
               </p>
             </td>
           </tr>
@@ -119,12 +147,13 @@ function renderBlock(block: EmailBlock): string {
 export function renderBlocksToHtml(
   blocks: EmailBlock[],
   variables?: Record<string, string>,
+  layoutOptions?: EmailLayoutOptions,
 ): string {
   const blockHtml = blocks.map(renderBlock).join("\n");
   const interpolated = variables
     ? interpolateVariables(blockHtml, variables)
     : blockHtml;
-  return marketingLayout(interpolated);
+  return marketingLayout(interpolated, layoutOptions);
 }
 
 // ── Interpolation ─────────────────────────────────────────────

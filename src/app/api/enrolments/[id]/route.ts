@@ -46,5 +46,13 @@ export async function PATCH(
     data: updateData,
   });
 
+  // When confirmed (processed), activate all Child records
+  if (body.status === "processed") {
+    await prisma.child.updateMany({
+      where: { enrolmentId: id, status: "pending" },
+      data: { status: "active" },
+    });
+  }
+
   return NextResponse.json(updated);
 }

@@ -2983,7 +2983,8 @@ model Lead {
   aiScoreSummary       String?       @db.Text
   aiScoredAt           DateTime?
 
-  touchpoints TouchpointLog[]
+  touchpoints        TouchpointLog[]
+  sequenceEnrolments SequenceEnrolment[] @relation("LeadSequenceEnrolments")
 
   @@index([pipelineStage])
   @@index([assignedToId])
@@ -3048,10 +3049,11 @@ model CentreContact {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  nurtureSteps  ParentNurtureStep[] @relation("ContactNurtureSteps")
-  npsResponses  NpsSurveyResponse[] @relation("ContactNpsResponses")
-  referralsMade Referral[]          @relation("ReferrerContact")
-  exitSurveys   ExitSurvey[]        @relation("ContactExitSurveys")
+  nurtureSteps        ParentNurtureStep[]   @relation("ContactNurtureSteps")
+  npsResponses        NpsSurveyResponse[]   @relation("ContactNpsResponses")
+  referralsMade       Referral[]            @relation("ReferrerContact")
+  exitSurveys         ExitSurvey[]          @relation("ContactExitSurveys")
+  sequenceEnrolments  SequenceEnrolment[]   @relation("ContactSequenceEnrolments")
 
   @@unique([email, serviceId])
   @@index([serviceId])
@@ -4126,6 +4128,8 @@ enum EmailTemplateCategory {
   newsletter
   event
   announcement
+  enrolment
+  nurture
   custom
 }
 
@@ -4141,6 +4145,8 @@ model EmailTemplate {
   createdBy   User?                 @relation("EmailTemplateCreator", fields: [createdById], references: [id])
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
+
+  sequenceSteps SequenceStep[] @relation("StepEmailTemplate")
 }
 
 // ============================================================
@@ -4365,4 +4371,87 @@ model Child {
   @@index([enrolmentId])
   @@index([serviceId])
   @@index([status])
+}
+
+// ── Sequences (Parent Nurture + CRM Outreach) ───────────────
+
+enum SequenceType {
+  parent_nurture
+  crm_outreach
+}
+
+model Sequence {
+  id           String       @id @default(cuid())
+  name         String
+  type         SequenceType
+  triggerStage String?      // enquiry stage (info_sent, nurturing, etc.) or PipelineStage (new_lead, etc.)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  steps       SequenceStep[]
+  enrolments  SequenceEnrolment[]
+
+  @@index([type])
+  @@index([triggerStage])
+}
+
+model SequenceStep {
+  id              String    @id @default(cuid())
+  sequenceId      String
+  sequence        Sequence  @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  stepNumber      Int
+  name            String
+  delayHours      Int       // hours after anchor date (negative = before)
+  templateKey     String    // backward-compat key (e.g. "nudge_1", "ccs_assist")
+  emailTemplateId String?   // FK to EmailTemplate for visual template override
+  emailTemplate   EmailTemplate? @relation("StepEmailTemplate", fields: [emailTemplateId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  executions SequenceStepExecution[]
+
+  @@unique([sequenceId, stepNumber])
+  @@index([sequenceId])
+}
+
+model SequenceEnrolment {
+  id                String    @id @default(cuid())
+  sequenceId        String
+  sequence          Sequence  @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  contactId         String?   // for parent nurture
+  contact           CentreContact? @relation("ContactSequenceEnrolments", fields: [contactId], references: [id])
+  leadId            String?   // for CRM outreach
+  lead              Lead?     @relation("LeadSequenceEnrolments", fields: [leadId], references: [id])
+  enquiryId         String?
+  serviceId         String?
+  status            String    @default("active") // active, paused, completed, cancelled
+  currentStepNumber Int       @default(1)
+  anchorDate        DateTime  @default(now())
+  enrolledAt        DateTime  @default(now())
+  completedAt       DateTime?
+  pausedAt          DateTime?
+
+  executions SequenceStepExecution[]
+
+  @@unique([sequenceId, contactId])
+  @@unique([sequenceId, leadId])
+  @@index([sequenceId])
+  @@index([status])
+}
+
+model SequenceStepExecution {
+  id           String             @id @default(cuid())
+  enrolmentId  String
+  enrolment    SequenceEnrolment  @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  stepId       String
+  step         SequenceStep       @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  scheduledFor DateTime
+  sentAt       DateTime?
+  status       String             @default("pending") // pending, sent, failed, cancelled
+  error        String?
+  createdAt    DateTime           @default(now())
+
+  @@index([status, scheduledFor])
+  @@index([enrolmentId])
 }

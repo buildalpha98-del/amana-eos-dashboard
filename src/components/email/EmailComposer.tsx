@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ArrowLeft, Send, Clock, Eye } from "lucide-react";
+import { ArrowLeft, Send, Clock, Eye, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
@@ -15,7 +15,7 @@ import {
   useEmailTemplate,
   type EmailTemplateData,
 } from "@/hooks/useEmailTemplates";
-import type { EmailBlock } from "@/lib/email-marketing-layout";
+import type { EmailBlock, EmailLayoutOptions } from "@/lib/email-marketing-layout";
 
 export function EmailComposer() {
   const router = useRouter();
@@ -39,6 +39,16 @@ export function EmailComposer() {
   const [previewHtml, setPreviewHtml] = useState("");
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [confirmSend, setConfirmSend] = useState(false);
+  const [showLayoutSettings, setShowLayoutSettings] = useState(false);
+  const [layoutOptions, setLayoutOptions] = useState<EmailLayoutOptions>({
+    headerColor: "#004E64",
+    headerText: "Amana OSHC",
+    headerLogoUrl: "",
+    footerText: "Amana OSHC",
+    footerUrl: "https://amanaoshc.com.au",
+    footerUrlLabel: "amanaoshc.com.au",
+    showUnsubscribe: true,
+  });
 
   // ── Post pre-fill ──────────────────────────────────────────
   const { data: postData } = useQuery({
@@ -91,9 +101,9 @@ export function EmailComposer() {
       import("@/lib/email-marketing-layout").then(
         ({ renderBlocksToHtml, marketingLayout }) => {
           if (mode === "blocks") {
-            setPreviewHtml(renderBlocksToHtml(blocks));
+            setPreviewHtml(renderBlocksToHtml(blocks, undefined, layoutOptions));
           } else {
-            setPreviewHtml(marketingLayout(htmlContent));
+            setPreviewHtml(marketingLayout(htmlContent, layoutOptions));
           }
         },
       );
@@ -102,7 +112,7 @@ export function EmailComposer() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [blocks, htmlContent, mode]);
+  }, [blocks, htmlContent, mode, layoutOptions]);
 
   // ── Services list ──────────────────────────────────────────
   const { data: services } = useQuery<
@@ -261,6 +271,113 @@ export function EmailComposer() {
               <EmailBlockEditor blocks={blocks} onChange={setBlocks} />
             ) : (
               <EmailHtmlEditor value={htmlContent} onChange={setHtmlContent} />
+            )}
+          </div>
+
+          {/* Header & Footer Settings */}
+          <div className="mb-6 rounded-lg border border-border overflow-hidden">
+            <button
+              onClick={() => setShowLayoutSettings(!showLayoutSettings)}
+              className="w-full flex items-center justify-between p-4 hover:bg-hover/50 transition-colors"
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Settings2 className="h-4 w-4 text-brand" />
+                Header & Footer
+              </span>
+              {showLayoutSettings ? (
+                <ChevronUp className="h-4 w-4 text-muted" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted" />
+              )}
+            </button>
+            {showLayoutSettings && (
+              <div className="border-t border-border p-4 space-y-4">
+                {/* Header */}
+                <div>
+                  <p className="text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">Header</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-xs text-muted">Header Text</label>
+                      <input
+                        type="text"
+                        value={layoutOptions.headerText || ""}
+                        onChange={(e) => setLayoutOptions((prev) => ({ ...prev, headerText: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-muted">Background Colour</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={layoutOptions.headerColor || "#004E64"}
+                          onChange={(e) => setLayoutOptions((prev) => ({ ...prev, headerColor: e.target.value }))}
+                          className="h-8 w-10 cursor-pointer rounded border border-border"
+                        />
+                        <input
+                          type="text"
+                          value={layoutOptions.headerColor || "#004E64"}
+                          onChange={(e) => setLayoutOptions((prev) => ({ ...prev, headerColor: e.target.value }))}
+                          className="flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-mono focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <label className="mb-1 block text-xs text-muted">Logo URL (optional — replaces text)</label>
+                    <input
+                      type="text"
+                      value={layoutOptions.headerLogoUrl || ""}
+                      onChange={(e) => setLayoutOptions((prev) => ({ ...prev, headerLogoUrl: e.target.value }))}
+                      placeholder="https://example.com/logo.png"
+                      className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    />
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div>
+                  <p className="text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">Footer</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-xs text-muted">Company Name</label>
+                      <input
+                        type="text"
+                        value={layoutOptions.footerText || ""}
+                        onChange={(e) => setLayoutOptions((prev) => ({ ...prev, footerText: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-muted">Website Label</label>
+                      <input
+                        type="text"
+                        value={layoutOptions.footerUrlLabel || ""}
+                        onChange={(e) => setLayoutOptions((prev) => ({ ...prev, footerUrlLabel: e.target.value }))}
+                        className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <label className="mb-1 block text-xs text-muted">Website URL</label>
+                    <input
+                      type="text"
+                      value={layoutOptions.footerUrl || ""}
+                      onChange={(e) => setLayoutOptions((prev) => ({ ...prev, footerUrl: e.target.value }))}
+                      className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    />
+                  </div>
+                  <label className="mt-3 flex items-center gap-2 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={layoutOptions.showUnsubscribe !== false}
+                      onChange={(e) => setLayoutOptions((prev) => ({ ...prev, showUnsubscribe: e.target.checked }))}
+                      className="rounded border-border text-brand focus:ring-brand"
+                    />
+                    Show unsubscribe link
+                  </label>
+                </div>
+              </div>
             )}
           </div>
 

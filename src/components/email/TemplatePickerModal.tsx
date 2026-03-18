@@ -1,10 +1,13 @@
 "use client";
 
-import { FileText, Star, X } from "lucide-react";
+import { useState } from "react";
+import { FileText, Star, X, Download } from "lucide-react";
+import { toast } from "@/hooks/useToast";
 import {
   useEmailTemplates,
   type EmailTemplateData,
 } from "@/hooks/useEmailTemplates";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   open: boolean;
@@ -13,6 +16,8 @@ interface Props {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
+  enrolment: "Enrolment",
+  nurture: "Nurture / Onboarding",
   welcome: "Welcome",
   newsletter: "Newsletter",
   event: "Event",
@@ -26,8 +31,25 @@ export default function TemplatePickerModal({
   onSelect,
 }: Props) {
   const { data: templates, isLoading } = useEmailTemplates();
+  const queryClient = useQueryClient();
+  const [seeding, setSeeding] = useState(false);
 
   if (!open) return null;
+
+  async function handleSeedTemplates() {
+    setSeeding(true);
+    try {
+      const res = await fetch("/api/email-templates/seed", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to seed templates");
+      const data = await res.json();
+      toast({ description: `Loaded ${data.created} templates (${data.skipped} already existed)` });
+      queryClient.invalidateQueries({ queryKey: ["email-templates"] });
+    } catch {
+      toast({ description: "Failed to load default templates" });
+    } finally {
+      setSeeding(false);
+    }
+  }
 
   // Group by category
   const grouped: Record<string, EmailTemplateData[]> = {};
@@ -79,7 +101,30 @@ export default function TemplatePickerModal({
           )}
 
           {!isLoading && Object.keys(grouped).length === 0 && (
-            <p className="text-sm text-muted">No templates found.</p>
+            <div className="text-center space-y-3">
+              <p className="text-sm text-muted">No templates found.</p>
+              <button
+                type="button"
+                onClick={handleSeedTemplates}
+                disabled={seeding}
+                className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                {seeding ? "Loading..." : "Load Default Templates"}
+              </button>
+            </div>
+          )}
+
+          {!isLoading && Object.keys(grouped).length > 0 && (
+            <button
+              type="button"
+              onClick={handleSeedTemplates}
+              disabled={seeding}
+              className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-brand transition-colors disabled:opacity-50"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {seeding ? "Loading..." : "Load missing default templates"}
+            </button>
           )}
 
           {Object.entries(grouped).map(([category, items]) => (

@@ -60,6 +60,7 @@ const pageTitles: Record<string, string> = {
   "/assistant": "AI Assistant",
   "/enquiries": "Enquiries",
   "/enrolments": "Enrolments",
+  "/children": "Children",
   "/conversions": "Conversions",
   "/recruitment": "Recruitment",
   "/tools/ccs-calculator": "CCS Calculator",

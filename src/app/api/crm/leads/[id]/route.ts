@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/server-auth";
 import { hasFeature } from "@/lib/role-permissions";
 import type { Role, PipelineStage, LeadSource } from "@prisma/client";
 import { handleLeadWon } from "@/lib/crm/handle-lead-won";
+import { scheduleCrmSequence } from "@/lib/crm/schedule-sequence";
 
 const PIPELINE_STAGES: PipelineStage[] = [
   "new_lead", "reviewing", "contact_made", "follow_up_1", "follow_up_2",
@@ -135,6 +136,9 @@ export async function PUT(
         sentById: session!.user.id,
       },
     });
+
+    // Trigger CRM sequences for this stage (fire and forget)
+    scheduleCrmSequence(id, newStage).catch(() => {});
   }
 
   const updated = await prisma.lead.update({

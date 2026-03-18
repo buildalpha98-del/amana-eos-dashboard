@@ -109,6 +109,71 @@ export async function scheduleNurtureFromStageChange(
       // Unique constraint violation is fine — step already exists
     }
   }
+
+  // Also create SequenceEnrolment + SequenceStepExecution for the new system
+  await createSequenceEnrolment(enquiry, contact.id, newStage);
+}
+
+/**
+ * Create SequenceEnrolment + SequenceStepExecution records from DB-defined sequences.
+ * This runs in parallel with the legacy ParentNurtureStep system.
+ */
+async function createSequenceEnrolment(
+  enquiry: { id: string; serviceId: string; firstSessionDate: Date | null },
+  contactId: string,
+  stage: string,
+): Promise<void> {
+  try {
+    const sequences = await prisma.sequence.findMany({
+      where: { type: "parent_nurture", triggerStage: stage, isActive: true },
+      include: { steps: { orderBy: { stepNumber: "asc" } } },
+    });
+
+    if (sequences.length === 0) return;
+
+    const now = new Date();
+
+    for (const seq of sequences) {
+      // Skip if already enrolled
+      const existing = await prisma.sequenceEnrolment.findFirst({
+        where: { sequenceId: seq.id, contactId },
+      });
+      if (existing) continue;
+
+      const anchorDate = stage === "first_session" && enquiry.firstSessionDate
+        ? enquiry.firstSessionDate
+        : now;
+
+      const enrolment = await prisma.sequenceEnrolment.create({
+        data: {
+          sequenceId: seq.id,
+          contactId,
+          enquiryId: enquiry.id,
+          serviceId: enquiry.serviceId,
+          status: "active",
+          currentStepNumber: 1,
+          anchorDate,
+        },
+      });
+
+      // Create execution records for each step
+      for (const step of seq.steps) {
+        const scheduledFor = new Date(anchorDate.getTime() + step.delayHours * 60 * 60 * 1000);
+        if (scheduledFor > now || step.delayHours === 0) {
+          await prisma.sequenceStepExecution.create({
+            data: {
+              enrolmentId: enrolment.id,
+              stepId: step.id,
+              scheduledFor: scheduledFor < now ? now : scheduledFor,
+              status: "pending",
+            },
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Failed to create sequence enrolment:", e);
+  }
 }
 
 function addHours(date: Date, hours: number): Date {
