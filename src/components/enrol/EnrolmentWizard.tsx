@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { AlertCircle, Check, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { AlertCircle, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, FileText, Loader2, Mail, Phone } from "lucide-react";
 import {
   EnrolmentFormData,
   INITIAL_FORM_DATA,
@@ -32,6 +32,11 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
   const [loaded, setLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitResult, setSubmitResult] = useState<{
+    token: string;
+    childNames: string;
+    parentName: string;
+  } | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
@@ -138,11 +143,16 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, prefillToken }),
       });
+      const result = await res.json();
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Submission failed" }));
-        throw new Error(err.error || "Submission failed");
+        throw new Error(result.error || "Submission failed");
       }
       localStorage.removeItem(STORAGE_KEY);
+      setSubmitResult({
+        token: result.token,
+        childNames: result.childNames,
+        parentName: result.parentName,
+      });
       setSubmitted(true);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Something went wrong");
@@ -160,19 +170,124 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
   }
 
   if (submitted) {
+    const TIMELINE = [
+      {
+        icon: CheckCircle,
+        title: "Form Received",
+        description: "Your enrolment has been submitted successfully.",
+        status: "done" as const,
+      },
+      {
+        icon: Mail,
+        title: "Confirmation Email Sent",
+        description: `A confirmation email has been sent to ${data.primaryParent.email}.`,
+        status: "done" as const,
+      },
+      {
+        icon: FileText,
+        title: "Under Review",
+        description: "Our team will review your details within 1-2 business days.",
+        status: "current" as const,
+      },
+      {
+        icon: Phone,
+        title: "We'll Be in Touch",
+        description: "A coordinator will contact you to confirm booking details and answer any questions.",
+        status: "upcoming" as const,
+      },
+      {
+        icon: Clock,
+        title: "First Session",
+        description: "We'll send you a 'What to Bring' guide before your child's first day.",
+        status: "upcoming" as const,
+      },
+    ];
+
     return (
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Check className="h-8 w-8 text-green-600" />
+      <div className="space-y-6">
+        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <Check className="h-10 w-10 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Welcome to the Amana Family!
+          </h2>
+          <p className="text-gray-600">
+            Thank you{submitResult?.parentName ? `, ${submitResult.parentName.split(" ")[0]}` : ""}! Your enrolment
+            {submitResult?.childNames ? ` for ${submitResult.childNames}` : ""} has been submitted.
+          </p>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Enrolment Submitted!</h2>
-        <p className="text-gray-600 mb-6">
-          Thank you for completing your enrolment form. Our team will review your
-          submission and be in touch shortly.
-        </p>
-        <p className="text-sm text-gray-500">
-          You will receive a confirmation email with your enrolment details.
-        </p>
+
+        {/* What Happens Next */}
+        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 sm:p-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-6">What Happens Next</h3>
+          <div className="space-y-0">
+            {TIMELINE.map((item, i) => (
+              <div key={i} className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                      item.status === "done"
+                        ? "bg-green-100 text-green-600"
+                        : item.status === "current"
+                        ? "bg-brand/10 text-brand"
+                        : "bg-gray-100 text-gray-400"
+                    }`}
+                  >
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  {i < TIMELINE.length - 1 && (
+                    <div
+                      className={`w-0.5 h-full min-h-[24px] ${
+                        item.status === "done" ? "bg-green-200" : "bg-gray-200"
+                      }`}
+                    />
+                  )}
+                </div>
+                <div className="pb-6">
+                  <p
+                    className={`text-sm font-semibold ${
+                      item.status === "done"
+                        ? "text-green-700"
+                        : item.status === "current"
+                        ? "text-brand"
+                        : "text-gray-500"
+                    }`}
+                  >
+                    {item.title}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-0.5">{item.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Status tracking link */}
+        {submitResult?.token && (
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 text-center">
+            <p className="text-sm text-gray-600 mb-3">
+              Bookmark this link to check your enrolment status anytime:
+            </p>
+            <a
+              href={`/enrol/status/${submitResult.token}`}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-xl text-sm font-medium hover:bg-brand-hover transition-colors"
+            >
+              <FileText className="h-4 w-4" />
+              Track My Enrolment
+            </a>
+          </div>
+        )}
+
+        {/* Contact info */}
+        <div className="text-center text-white/60 text-sm">
+          <p>
+            Questions? Contact us at{" "}
+            <a href="mailto:info@amanaoshc.com.au" className="text-white/80 underline">
+              info@amanaoshc.com.au
+            </a>
+          </p>
+        </div>
       </div>
     );
   }

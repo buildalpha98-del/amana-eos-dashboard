@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendTeamsNotification } from "@/lib/teams-notify";
+import { sendEmail, FROM_EMAIL } from "@/lib/email";
+import { enrolmentConfirmationEmail } from "@/lib/email-templates";
 
 export async function POST(req: NextRequest) {
   try {
@@ -147,7 +149,27 @@ export async function POST(req: NextRequest) {
       ],
     }).catch(() => {});
 
-    return NextResponse.json({ success: true, id: submission.id });
+    // Send confirmation email to parent (fire and forget)
+    if (primaryParent.email) {
+      const { subject, html } = enrolmentConfirmationEmail(
+        primaryParent.firstName,
+        childNames
+      );
+      sendEmail({
+        from: FROM_EMAIL,
+        to: primaryParent.email,
+        subject,
+        html,
+      }).catch(() => {});
+    }
+
+    return NextResponse.json({
+      success: true,
+      id: submission.id,
+      token: submission.token,
+      childNames,
+      parentName: `${primaryParent.firstName} ${primaryParent.surname}`,
+    });
   } catch (e) {
     console.error("Enrolment submission error:", e);
     return NextResponse.json(

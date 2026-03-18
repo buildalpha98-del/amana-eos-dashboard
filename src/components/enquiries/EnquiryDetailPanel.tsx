@@ -657,6 +657,42 @@ export function EnquiryDetailPanel({
                   Preview
                 </a>
               </div>
+              {enquiry.parentEmail && (
+                <button
+                  onClick={async () => {
+                    setActionLoading("send_enrol_link");
+                    try {
+                      const res = await fetch("/api/enrol/send-link", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          parentName: enquiry.parentName,
+                          parentEmail: enquiry.parentEmail,
+                          enquiryId: enquiry.id,
+                        }),
+                      });
+                      if (res.ok) {
+                        setToast(`Enrolment link sent to ${enquiry.parentEmail}`);
+                      } else {
+                        setToast("Failed to send email");
+                      }
+                    } catch {
+                      setToast("Failed to send email");
+                    } finally {
+                      setActionLoading(null);
+                    }
+                  }}
+                  disabled={actionLoading === "send_enrol_link"}
+                  className="mt-1.5 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  {actionLoading === "send_enrol_link" ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Mail className="h-3 w-3" />
+                  )}
+                  Send Link via Email
+                </button>
+              )}
             </div>
           </div>
 
