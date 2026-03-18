@@ -254,5 +254,6 @@ export const config = {
     "/api/crm/:path*",
     "/queue/:path*",
     "/api/queue/:path*",
+    "/api/enrolments/:path*",
   ],
 };

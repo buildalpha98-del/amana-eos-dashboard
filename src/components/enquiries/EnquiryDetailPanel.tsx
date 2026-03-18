@@ -16,6 +16,7 @@ import {
   Pencil,
   Plus,
   Trash2,
+  ClipboardList,
 } from "lucide-react";
 import { CCSCalculator } from "@/components/shared/CCSCalculator";
 import { AiButton } from "@/components/ui/AiButton";
@@ -627,6 +628,15 @@ export function EnquiryDetailPanel({
               <Mail className="h-4 w-4" />
               {enquiry.lastEmailSentAt ? "Resend Welcome Email" : "Send Welcome Email"}
             </button>
+            <a
+              href={`/enrol/${enquiry.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
+            >
+              <ClipboardList className="h-4 w-4" />
+              Send Enrolment Link
+            </a>
           </div>
 
           {/* Notes */}

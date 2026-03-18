@@ -4273,3 +4273,61 @@ model SnippetAck {
   @@index([snippetId])
   @@index([userId])
 }
+
+// ============================================================
+// Enrolment Submissions (Public parent enrolment form)
+// ============================================================
+
+model EnrolmentSubmission {
+  id               String    @id @default(cuid())
+  token            String    @unique @default(cuid())
+  enquiryId        String?
+  serviceId        String?
+
+  // Phase 1+2: Family data
+  primaryParent    Json // { firstName, surname, dob, email, mobile, address, relationship, occupation, workplace, workPhone, crn }
+  secondaryParent  Json? // same structure
+  children         Json // [{ firstName, surname, dob, gender, address, cultural, school, yearLevel, crn, medical, dietary, bookingPrefs }]
+
+  // Phase 4: Emergency & authorised persons
+  emergencyContacts Json // [{ name, relationship, phone, email }]
+  authorisedPickup  Json? // [{ name, relationship }]
+
+  // Phase 5: Consents
+  consents          Json // { firstAid, medication, ambulance, transport, excursions, photos, sunscreen }
+
+  // Phase 7: Payment (masked for security)
+  paymentMethod     String? // "credit_card" or "bank_account"
+  paymentDetails    Json? // { lastFour, cardType } or { bsbLastThree, accountLastFour } — MASKED
+
+  // Phase 8: Submission
+  referralSource    String?
+  signature         String?  @db.Text
+  termsAccepted     Boolean  @default(false)
+  privacyAccepted   Boolean  @default(false)
+  debitAgreement    Boolean  @default(false)
+
+  // Court orders
+  courtOrders       Boolean  @default(false)
+  courtOrderFiles   Json? // [{ filename, url }]
+
+  // Medical uploads
+  medicalFiles      Json? // [{ childIndex, type, filename, url }]
+
+  // Document uploads (child photos, birth certificates, immunisation records)
+  documentUploads   Json? // [{ childIndex, type, filename, url }]
+
+  // Status
+  status            String   @default("submitted")
+  processedById     String?
+  processedAt       DateTime?
+  pdfUrl            String?
+  notes             String?  @db.Text
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([status])
+  @@index([enquiryId])
+  @@index([token])
+}
