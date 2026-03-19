@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { hasMinRole } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 
@@ -1001,26 +1002,20 @@ export default function ContractsPage() {
 
       {/* Contract List */}
       {filteredContracts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-brand/10 flex items-center justify-center mb-4">
-            <FileSignature className="w-8 h-8 text-brand" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">No contracts found</h3>
-          <p className="text-sm text-gray-500 max-w-sm mb-4">
-            {search || statusFilter || typeFilter
+        <EmptyState
+          icon={FileSignature}
+          title="No Contracts Found"
+          description={
+            search || statusFilter || typeFilter
               ? "No contracts match your current filters. Try adjusting your search criteria."
-              : "Create your first employment contract to get started."}
-          </p>
-          {!search && !statusFilter && !typeFilter && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Create First Contract
-            </button>
-          )}
-        </div>
+              : "Create employment contracts for your team members."
+          }
+          action={
+            !search && !statusFilter && !typeFilter
+              ? { label: "Create First Contract", icon: Plus, onClick: () => setShowCreate(true) }
+              : undefined
+          }
+        />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {/* Table Header */}

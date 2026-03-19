@@ -39,6 +39,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { toast } from "@/hooks/useToast";
 import type { Role } from "@prisma/client";
 import {
@@ -725,7 +726,7 @@ function ActivityLogPanel() {
       {isLoading ? (
         <div className="py-8 text-center text-gray-500">Loading activity...</div>
       ) : logs.length === 0 ? (
-        <div className="py-8 text-center text-gray-400">No activity recorded yet.</div>
+        <EmptyState icon={Activity} title="No Activity" description="No activity recorded yet. Actions will appear here as users interact with the dashboard." variant="inline" />
       ) : (
         <>
           <div className="overflow-x-auto">
@@ -1974,9 +1975,7 @@ function ApiKeysSection() {
       {isLoading ? (
         <div className="py-8 text-center text-gray-500">Loading API keys...</div>
       ) : !keys?.length ? (
-        <div className="py-8 text-center text-gray-400">
-          No API keys created yet. Click &quot;Create Key&quot; to get started.
-        </div>
+        <EmptyState icon={Key} title="No API Keys" description="No API keys created yet. Create a key to allow external systems to push data." variant="inline" />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">

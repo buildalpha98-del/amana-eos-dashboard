@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ScrollableTable } from "@/components/ui/ScrollableTable";
 import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
 import dynamic from "next/dynamic";
@@ -536,18 +537,12 @@ export default function FinancialsPage() {
             ))}
           </div>
         ) : sortedData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-brand/5 flex items-center justify-center mb-4">
-              <DollarSign className="w-8 h-8 text-brand/30" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              No financial data for this period
-            </h3>
-            <p className="text-gray-500 mt-2 max-w-md">
-              Revenue and financial data will appear here once service centres
-              begin reporting or data is synced from Xero.
-            </p>
-          </div>
+          <EmptyState
+            icon={DollarSign}
+            title="No Financial Data"
+            description="Financial data will appear once attendance-to-financials cron runs or data is synced from Xero."
+            variant="inline"
+          />
         ) : (
           <ScrollableTable>
             <table className="w-full min-w-[900px] text-sm">

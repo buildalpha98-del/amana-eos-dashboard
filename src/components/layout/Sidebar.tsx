@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { canAccessPage } from "@/lib/permissions";
@@ -26,7 +27,7 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { collapsed, toggleCollapsed, collapsedSections, toggleSection } = useSidebar();
+  const { collapsed, toggleCollapsed, collapsedSections, toggleSection, favourites, toggleFavourite } = useSidebar();
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -49,6 +50,17 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     }
     return sections;
   }, [session?.user?.role]);
+
+  // Build favourited items list from the filtered nav items
+  const favouriteItems = useMemo(() => {
+    if (favourites.size === 0) return [];
+    const filtered = navItems.filter(
+      (item) =>
+        favourites.has(item.href) &&
+        canAccessPage(session?.user?.role as Role | undefined, item.href)
+    );
+    return filtered;
+  }, [favourites, session?.user?.role]);
 
   return (
     <>
@@ -100,6 +112,68 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto scrollbar-hide">
+          {/* Favourites section — only when expanded and has items */}
+          {!collapsed && favouriteItems.length > 0 && (
+            <div>
+              <div className="my-2 px-3">
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                  <h3 className="text-[11px] font-semibold text-white/30 uppercase tracking-widest">
+                    Favourites
+                  </h3>
+                </div>
+              </div>
+              {favouriteItems.map((item) => {
+                const isActive =
+                  pathname === item.href ||
+                  pathname.startsWith(item.href + "/");
+                const Icon = item.icon;
+
+                return (
+                  <div key={`fav-${item.href}`} className="relative group/nav">
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                        isActive
+                          ? "bg-white/[0.08] text-white border-l-2 border-[#FECE00] ml-0.5"
+                          : "text-white/60 hover:bg-white/[0.05] hover:text-white/90 border-l-2 border-transparent ml-0.5"
+                      )}
+                      title={item.tooltip ?? undefined}
+                    >
+                      <Icon
+                        className={cn(
+                          "w-5 h-5 flex-shrink-0 transition-all duration-200",
+                          isActive && "drop-shadow-[0_0_6px_rgba(254,206,0,0.4)]"
+                        )}
+                      />
+                      <span className="truncate transition-transform duration-200 group-hover/nav:translate-x-0.5">
+                        {item.label}
+                      </span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleFavourite(item.href);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded opacity-0 group-hover/nav:opacity-100 hover:bg-white/10 transition-all duration-150"
+                      title="Remove from favourites"
+                    >
+                      <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    </button>
+                  </div>
+                );
+              })}
+
+              {/* Separator after favourites */}
+              <div className="my-2 px-3">
+                <div className="h-px bg-white/[0.06]" />
+              </div>
+            </div>
+          )}
+
           {groupedItems.map((group, groupIndex) => {
             const isSectionCollapsed = collapsedSections.has(group.key);
 
@@ -143,37 +217,66 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                       pathname === item.href ||
                       pathname.startsWith(item.href + "/");
                     const Icon = item.icon;
+                    const isFavourited = favourites.has(item.href);
 
                     return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={cn(
-                          "group/nav flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                          isActive
-                            ? "bg-white/[0.08] text-white border-l-2 border-[#FECE00] ml-0.5"
-                            : "text-white/60 hover:bg-white/[0.05] hover:text-white/90 border-l-2 border-transparent ml-0.5"
-                        )}
-                        title={
-                          collapsed
-                            ? item.label
-                            : "tooltip" in item && item.tooltip
-                              ? (item.tooltip as string)
-                              : undefined
-                        }
-                      >
-                        <Icon
+                      <div key={item.href} className="relative group/nav">
+                        <Link
+                          href={item.href}
                           className={cn(
-                            "w-5 h-5 flex-shrink-0 transition-all duration-200",
-                            isActive && "drop-shadow-[0_0_6px_rgba(254,206,0,0.4)]"
+                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                            isActive
+                              ? "bg-white/[0.08] text-white border-l-2 border-[#FECE00] ml-0.5"
+                              : "text-white/60 hover:bg-white/[0.05] hover:text-white/90 border-l-2 border-transparent ml-0.5"
                           )}
-                        />
+                          title={
+                            collapsed
+                              ? item.label
+                              : "tooltip" in item && item.tooltip
+                                ? (item.tooltip as string)
+                                : undefined
+                          }
+                        >
+                          <Icon
+                            className={cn(
+                              "w-5 h-5 flex-shrink-0 transition-all duration-200",
+                              isActive && "drop-shadow-[0_0_6px_rgba(254,206,0,0.4)]"
+                            )}
+                          />
+                          {!collapsed && (
+                            <span className="truncate transition-transform duration-200 group-hover/nav:translate-x-0.5">
+                              {item.label}
+                            </span>
+                          )}
+                        </Link>
+                        {/* Star toggle — only when sidebar is expanded */}
                         {!collapsed && (
-                          <span className="truncate transition-transform duration-200 group-hover/nav:translate-x-0.5">
-                            {item.label}
-                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleFavourite(item.href);
+                            }}
+                            className={cn(
+                              "absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/10 transition-all duration-150",
+                              isFavourited
+                                ? "opacity-100"
+                                : "opacity-0 group-hover/nav:opacity-100"
+                            )}
+                            title={isFavourited ? "Remove from favourites" : "Add to favourites"}
+                          >
+                            <Star
+                              className={cn(
+                                "w-3.5 h-3.5 transition-colors duration-150",
+                                isFavourited
+                                  ? "text-amber-400 fill-amber-400"
+                                  : "text-white/40 hover:text-white/60"
+                              )}
+                            />
+                          </button>
                         )}
-                      </Link>
+                      </div>
                     );
                   })}
               </div>

@@ -16,6 +16,7 @@ import {
 import { hasMinRole } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { Role } from "@prisma/client";
 import {
   CalendarDays,
@@ -525,18 +526,11 @@ function MyRequestsTab({
 
   if (myRequests.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-        <div className="w-16 h-16 rounded-2xl bg-brand/5 flex items-center justify-center mb-4">
-          <FileText className="w-8 h-8 text-brand/30" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900">
-          No leave requests
-        </h3>
-        <p className="text-gray-500 mt-2 max-w-md text-sm">
-          You have not submitted any leave requests yet. Click "Request Leave" to
-          get started.
-        </p>
-      </div>
+      <EmptyState
+        icon={CalendarDays}
+        title="No Leave Requests"
+        description='You have not submitted any leave requests yet. Click "Request Leave" to get started.'
+      />
     );
   }
 
@@ -674,17 +668,16 @@ function ApprovalsTab({
 
   if (filteredRequests.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-        <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
-          <CheckCircle2 className="w-8 h-8 text-emerald-300" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900">All caught up</h3>
-        <p className="text-gray-500 mt-2 max-w-md text-sm">
-          {statusFilter === "leave_pending"
+      <EmptyState
+        icon={CheckCircle2}
+        title="All Caught Up"
+        description={
+          statusFilter === "leave_pending"
             ? "No pending leave requests to review."
-            : "No leave requests match your current filters."}
-        </p>
-      </div>
+            : "No leave requests match your current filters."
+        }
+        iconColor="#10B981"
+      />
     );
   }
 
@@ -1203,11 +1196,8 @@ export default function LeavePage() {
       ) : balances.length > 0 ? (
         <BalanceCards balances={balances} />
       ) : (
-        <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200 text-center">
-          <p className="text-sm text-gray-500">
-            No leave balance data available. Balances will appear once synced
-            from your payroll system.
-          </p>
+        <div className="mb-6">
+          <EmptyState icon={CalendarDays} title="No Leave Balances" description="Balances will appear once synced from your payroll system." variant="inline" />
         </div>
       )}
 

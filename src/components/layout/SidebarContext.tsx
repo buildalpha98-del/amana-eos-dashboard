@@ -11,6 +11,7 @@ import {
 // ─── localStorage keys ──────────────────────────────────────
 const STORAGE_KEY_COLLAPSED = "amana-sidebar-collapsed";
 const STORAGE_KEY_SECTIONS = "amana-sidebar-sections";
+const STORAGE_KEY_FAVOURITES = "amana-sidebar-favourites";
 
 // ─── Helpers (try-catch + JSON pattern from CommandPalette) ──
 function loadCollapsed(): boolean {
@@ -49,6 +50,26 @@ function saveCollapsedSections(sections: Set<string>) {
   }
 }
 
+function loadFavourites(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_FAVOURITES);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return new Set(parsed);
+  } catch {
+    // ignore
+  }
+  return new Set();
+}
+
+function saveFavourites(favourites: Set<string>) {
+  try {
+    localStorage.setItem(STORAGE_KEY_FAVOURITES, JSON.stringify([...favourites]));
+  } catch {
+    // ignore
+  }
+}
+
 // ─── Context ────────────────────────────────────────────────
 interface SidebarContextValue {
   collapsed: boolean;
@@ -56,6 +77,8 @@ interface SidebarContextValue {
   toggleCollapsed: () => void;
   collapsedSections: Set<string>;
   toggleSection: (section: string) => void;
+  favourites: Set<string>;
+  toggleFavourite: (href: string) => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
@@ -71,6 +94,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsedRaw] = useState<boolean>(loadCollapsed);
   const [collapsedSections, setCollapsedSections] =
     useState<Set<string>>(loadCollapsedSections);
+  const [favourites, setFavourites] = useState<Set<string>>(loadFavourites);
 
   const setCollapsed = useCallback((value: boolean) => {
     setCollapsedRaw(value);
@@ -98,6 +122,19 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const toggleFavourite = useCallback((href: string) => {
+    setFavourites((prev) => {
+      const next = new Set(prev);
+      if (next.has(href)) {
+        next.delete(href);
+      } else {
+        next.add(href);
+      }
+      saveFavourites(next);
+      return next;
+    });
+  }, []);
+
   return (
     <SidebarContext.Provider
       value={{
@@ -106,6 +143,8 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
         toggleCollapsed,
         collapsedSections,
         toggleSection,
+        favourites,
+        toggleFavourite,
       }}
     >
       {children}

@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import * as XLSX from "xlsx";
 
 /* ------------------------------------------------------------------ */
@@ -1094,10 +1095,7 @@ function TimesheetDetail({
           </div>
         </div>
       ) : (
-        <div className="text-center py-8 mb-4 bg-gray-50 rounded-lg border border-gray-200">
-          <FileSpreadsheet className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">No entries yet</p>
-        </div>
+        <EmptyState icon={FileSpreadsheet} title="No Entries Yet" description="This timesheet has no entries. Add entries manually or import from OWNA." variant="inline" />
       )}
 
       {/* Reject Form */}
@@ -1618,34 +1616,12 @@ export default function TimesheetsPage() {
         </div>
       ) : (
         /* Empty State */
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
-          <div className="w-16 h-16 rounded-2xl bg-brand/5 flex items-center justify-center mb-4">
-            <FileSpreadsheet className="w-8 h-8 text-brand/30" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            No Timesheets Yet
-          </h3>
-          <p className="text-gray-500 mt-2 max-w-md">
-            Import staff timesheets from OWNA or create a new timesheet to get
-            started. Approved timesheets can be exported to Xero.
-          </p>
-          <div className="flex items-center gap-3 mt-6">
-            <button
-              onClick={() => setShowImport(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Upload className="w-4 h-4" />
-              Import from OWNA
-            </button>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-dark transition-colors shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              New Timesheet
-            </button>
-          </div>
-        </div>
+        <EmptyState
+          icon={FileSpreadsheet}
+          title="No Timesheets Yet"
+          description="Import staff timesheets from OWNA or create a new timesheet to get started."
+          action={{ label: "New Timesheet", icon: Plus, onClick: () => setShowCreate(true) }}
+        />
       )}
 
       {/* Modals */}
