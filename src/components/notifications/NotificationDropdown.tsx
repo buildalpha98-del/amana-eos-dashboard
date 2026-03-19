@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import * as Popover from "@radix-ui/react-popover";
 import {
   Bell,
+  CheckCircle,
   CheckSquare,
   Mountain,
   MessageSquare,
@@ -71,6 +72,7 @@ export function NotificationDropdown() {
   const notifications = data?.notifications ?? [];
 
   const handleNotificationClick = (notification: NotificationItem) => {
+    dismiss.mutate([notification.id]);
     setOpen(false);
     router.push(notification.link);
   };
@@ -132,10 +134,10 @@ export function NotificationDropdown() {
                   onClick={handleDismissAll}
                   disabled={dismiss.isPending}
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
-                  title="Dismiss all"
+                  title="Mark all as read"
                 >
                   <CheckCheck className="w-3 h-3" />
-                  Clear all
+                  Mark all as read
                 </button>
               )}
             </div>
@@ -150,13 +152,13 @@ export function NotificationDropdown() {
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                 <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mb-3">
-                  <CheckSquare className="w-5 h-5 text-green-500" />
+                  <CheckCircle className="w-5 h-5 text-green-500" />
                 </div>
                 <p className="text-sm font-medium text-gray-900">
-                  No notifications
+                  You&apos;re all caught up!
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Everything looks good
+                  No new notifications
                 </p>
               </div>
             ) : (

@@ -53,6 +53,51 @@ export function baseLayout(content: string) {
 </html>`;
 }
 
+/** Parent-facing email layout — no "EOS Dashboard" branding */
+export function parentEmailLayout(content: string) {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color:${BRAND_COLOR};padding:24px 32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:-0.3px;">
+                Amana OSHC
+              </h1>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding:32px;">
+              ${content}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
+              <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
+                Amana OSHC — Out of School Hours Care<br/>
+                This is an automated email — please do not reply directly.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 export function buttonHtml(text: string, href: string) {
   return `
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;">
@@ -1701,7 +1746,7 @@ export function nurtureExitSurveyEmail(
 
 export function enrolmentConfirmationEmail(parentName: string, childNames: string) {
   const subject = "Enrolment Received — Amana OSHC";
-  const html = baseLayout(`
+  const html = parentEmailLayout(`
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Enrolment Submitted Successfully
     </h2>
@@ -1729,7 +1774,7 @@ export function enrolmentConfirmationEmail(parentName: string, childNames: strin
 
 export function enrolmentLinkEmail(parentName: string, enrolUrl: string) {
   const subject = "Complete Your Enrolment — Amana OSHC";
-  const html = baseLayout(`
+  const html = parentEmailLayout(`
     <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:600;">
       Complete Your Enrolment
     </h2>

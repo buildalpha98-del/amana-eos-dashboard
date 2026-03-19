@@ -53,9 +53,9 @@ const CONSENT_ITEMS: { key: keyof Consents; label: string; description: string }
 export function ConsentsStep({ data, updateData }: Props) {
   const [uploading, setUploading] = useState(false);
 
-  const toggleConsent = (key: keyof Consents) => {
+  const setConsent = (key: keyof Consents, value: boolean) => {
     updateData({
-      consents: { ...data.consents, [key]: !data.consents[key] },
+      consents: { ...data.consents, [key]: value },
     });
   };
 
@@ -95,27 +95,46 @@ export function ConsentsStep({ data, updateData }: Props) {
         </p>
 
         <div className="space-y-3">
-          {CONSENT_ITEMS.map((item) => (
-            <label
-              key={item.key}
-              className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors ${
-                data.consents[item.key]
-                  ? "bg-green-50 border-green-200"
-                  : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={data.consents[item.key]}
-                onChange={() => toggleConsent(item.key)}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
-              />
-              <div>
-                <p className="text-sm font-medium text-gray-800">{item.label}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{item.description}</p>
+          {CONSENT_ITEMS.map((item) => {
+            const value = data.consents[item.key];
+            return (
+              <div
+                key={item.key}
+                className={`p-4 rounded-xl border transition-colors ${
+                  value === true
+                    ? "bg-green-50 border-green-200"
+                    : value === false
+                      ? "bg-red-50 border-red-200"
+                      : "bg-gray-50 border-gray-200"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-800">{item.label}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{item.description}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    {[true, false].map((opt) => (
+                      <button
+                        key={String(opt)}
+                        type="button"
+                        onClick={() => setConsent(item.key, opt)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                          value === opt
+                            ? opt
+                              ? "bg-green-50 border-green-300 text-green-700"
+                              : "bg-red-50 border-red-300 text-red-700"
+                            : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100"
+                        }`}
+                      >
+                        {opt ? "Yes" : "No"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </label>
-          ))}
+            );
+          })}
         </div>
       </div>
 

@@ -121,6 +121,7 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
         <Field label="Relationship" value={data.primaryParent.relationship} />
         <Field label="Occupation" value={data.primaryParent.occupation} />
         <Field label="CRN" value={data.primaryParent.crn} />
+        <Field label="Sole Custody" value={data.primaryParent.soleCustody} />
         {data.secondaryParent.firstName && (
           <>
             <p className="font-semibold text-gray-800 mt-3 mb-1">Secondary</p>

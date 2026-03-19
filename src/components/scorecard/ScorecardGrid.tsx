@@ -7,6 +7,7 @@ import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Minus, Building2, Pencil, Trash2 } from "lucide-react";
 import { ScrollableTable } from "@/components/ui/ScrollableTable";
+import { Sparkline } from "@/components/ui/Sparkline";
 
 function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goalDirection: "above" | "below" | "exact" }) {
   // values are newest-first; find the two most recent non-null values
@@ -42,49 +43,6 @@ function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goal
     <span className="inline-flex items-center gap-0.5 text-red-500" title={`-${pct.toFixed(0)}% vs previous week`}>
       <TrendingDown className="w-3 h-3" />
     </span>
-  );
-}
-
-function Sparkline({ values, goalValue, width = 64, height = 20 }: { values: (number | null)[]; goalValue: number; width?: number; height?: number }) {
-  const nums = values.filter((v): v is number => v !== null);
-  if (nums.length < 2) return <span className="text-gray-300 text-[10px]">—</span>;
-
-  const min = Math.min(...nums, goalValue);
-  const max = Math.max(...nums, goalValue);
-  const range = max - min || 1;
-  const pad = 2;
-
-  // Reverse so oldest is on the left
-  const reversed = [...values].reverse();
-  const points: string[] = [];
-  let idx = 0;
-  for (let i = 0; i < reversed.length; i++) {
-    if (reversed[i] !== null) {
-      const x = pad + ((i / (reversed.length - 1)) * (width - pad * 2));
-      const y = pad + ((1 - (reversed[i]! - min) / range) * (height - pad * 2));
-      points.push(`${x},${y}`);
-      idx++;
-    }
-  }
-
-  const goalY = pad + ((1 - (goalValue - min) / range) * (height - pad * 2));
-  const lastVal = nums[nums.length - 1];
-  const trending = lastVal >= goalValue;
-
-  return (
-    <svg width={width} height={height} className="inline-block">
-      {/* Goal line */}
-      <line x1={pad} y1={goalY} x2={width - pad} y2={goalY} stroke="#9CA3AF" strokeWidth="0.5" strokeDasharray="2,2" />
-      {/* Trend line */}
-      <polyline
-        fill="none"
-        stroke={trending ? "#10B981" : "#EF4444"}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={points.join(" ")}
-      />
-    </svg>
   );
 }
 

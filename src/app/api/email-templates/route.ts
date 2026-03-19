@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
     "head_office",
     "admin",
     "coordinator",
+    "marketing",
   ]);
   if (error) return error;
 
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
     "owner",
     "head_office",
     "admin",
+    "marketing",
   ]);
   if (error) return error;
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import {
   X,
   Plus,
@@ -12,8 +13,14 @@ import {
 } from "lucide-react";
 import { useUpdateSequence } from "@/hooks/useSequences";
 import type { SequenceData } from "@/hooks/useSequences";
+import type { EmailTemplateData } from "@/hooks/useEmailTemplates";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+
+const TemplatePickerModal = dynamic(
+  () => import("@/components/email/TemplatePickerModal"),
+  { ssr: false },
+);
 
 interface Props {
   sequence: SequenceData;
@@ -72,6 +79,8 @@ export function SequenceBuilder({ sequence, onClose }: Props) {
         order: i,
       })),
   );
+
+  const [linkingStepIndex, setLinkingStepIndex] = useState<number | null>(null);
 
   const stages =
     sequence.type === "parent_nurture" ? PARENT_STAGES : CRM_STAGES;
@@ -293,8 +302,12 @@ export function SequenceBuilder({ sequence, onClose }: Props) {
                               Default ({step.templateKey || "none"})
                             </span>
                           )}
-                          <button className="ml-auto text-xs text-brand hover:underline">
-                            Link Template
+                          <button
+                            type="button"
+                            onClick={() => setLinkingStepIndex(index)}
+                            className="ml-auto text-xs text-brand hover:underline"
+                          >
+                            {step.emailTemplateName ? "Change" : "Link Template"}
                           </button>
                         </div>
 
@@ -359,6 +372,21 @@ export function SequenceBuilder({ sequence, onClose }: Props) {
           </button>
         </div>
       </div>
+
+      {/* Template picker modal */}
+      <TemplatePickerModal
+        open={linkingStepIndex !== null}
+        onClose={() => setLinkingStepIndex(null)}
+        onSelect={(template: EmailTemplateData) => {
+          if (linkingStepIndex !== null) {
+            updateStep(linkingStepIndex, {
+              emailTemplateId: template.id || null,
+              emailTemplateName: template.name || null,
+            });
+          }
+          setLinkingStepIndex(null);
+        }}
+      />
     </div>
   );
 }

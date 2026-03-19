@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   const filter = { contains: q, mode: "insensitive" as const };
 
-  const [rocks, todos, issues, services, projects] = await Promise.all([
+  const [rocks, todos, issues, services, projects, people] = await Promise.all([
     prisma.rock.findMany({
       where: { deleted: false, title: filter },
       select: { id: true, title: true, status: true },
@@ -37,6 +37,16 @@ export async function GET(req: NextRequest) {
     prisma.project.findMany({
       where: { deleted: false, name: filter },
       select: { id: true, name: true, status: true },
+      take: 5,
+    }),
+    prisma.user.findMany({
+      where: {
+        OR: [
+          { name: filter },
+          { email: filter },
+        ],
+      },
+      select: { id: true, name: true, email: true, role: true },
       take: 5,
     }),
   ]);
@@ -71,6 +81,12 @@ export async function GET(req: NextRequest) {
       title: p.name,
       type: "project" as const,
       subtitle: p.status,
+    })),
+    ...people.map((u) => ({
+      id: u.id,
+      title: u.name,
+      type: "person" as const,
+      subtitle: `${u.role} · ${u.email}`,
     })),
   ];
 

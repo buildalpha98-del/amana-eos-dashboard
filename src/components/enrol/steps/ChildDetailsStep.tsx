@@ -9,6 +9,7 @@ import {
   AUSTRALIAN_STATES,
   DOCUMENT_TYPES,
 } from "../types";
+import { stateFromPostcode } from "@/lib/au-postcodes";
 
 interface Props {
   data: EnrolmentFormData;
@@ -145,7 +146,13 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
               <Input
                 label="Postcode"
                 value={child.postcode}
-                onChange={(v) => updateChild(i, "postcode", v)}
+                onChange={(v) => {
+                  updateChild(i, "postcode", v);
+                  if (v.length === 4) {
+                    const state = stateFromPostcode(v);
+                    if (state) updateChild(i, "state", state);
+                  }
+                }}
               />
             </div>
           </div>
@@ -187,9 +194,10 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
               onChange={(v) => updateChild(i, "schoolName", v)}
             />
             <Input
-              label="Year Level"
+              label="Class"
               value={child.yearLevel}
               onChange={(v) => updateChild(i, "yearLevel", v)}
+              placeholder="e.g. 4A, K Blue"
             />
           </div>
 

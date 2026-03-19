@@ -28,6 +28,7 @@ export interface ParentDetails {
   workplace: string;
   workPhone: string;
   crn: string;
+  soleCustody: boolean | null;
 }
 
 export interface MedicalInfo {
@@ -68,13 +69,13 @@ export interface AuthorisedPerson {
 }
 
 export interface Consents {
-  firstAid: boolean;
-  medication: boolean;
-  ambulance: boolean;
-  transport: boolean;
-  excursions: boolean;
-  photos: boolean;
-  sunscreen: boolean;
+  firstAid: boolean | null;
+  medication: boolean | null;
+  ambulance: boolean | null;
+  transport: boolean | null;
+  excursions: boolean | null;
+  photos: boolean | null;
+  sunscreen: boolean | null;
 }
 
 export interface BookingPrefs {
@@ -156,6 +157,7 @@ export const EMPTY_PARENT: ParentDetails = {
   workplace: "",
   workPhone: "",
   crn: "",
+  soleCustody: null,
 };
 
 export const EMPTY_MEDICAL: MedicalInfo = {
@@ -205,13 +207,13 @@ export const INITIAL_FORM_DATA: EnrolmentFormData = {
   ],
   authorisedPickup: [],
   consents: {
-    firstAid: false,
-    medication: false,
-    ambulance: false,
-    transport: false,
-    excursions: false,
-    photos: false,
-    sunscreen: false,
+    firstAid: null,
+    medication: null,
+    ambulance: null,
+    transport: null,
+    excursions: null,
+    photos: null,
+    sunscreen: null,
   },
   courtOrders: false,
   courtOrderFiles: [],
@@ -295,6 +297,8 @@ export function validateStep(step: number, data: EnrolmentFormData): string[] {
       if (!data.primaryParent.email.trim()) errors.push("Primary parent email is required");
       if (!data.primaryParent.mobile.trim()) errors.push("Primary parent mobile is required");
       if (!data.primaryParent.relationship.trim()) errors.push("Relationship to child is required");
+      if (!data.primaryParent.dob) errors.push("Primary parent date of birth is required");
+      if (!data.primaryParent.crn.trim()) errors.push("Primary parent CRN is required");
       if (!data.primaryParent.street.trim()) errors.push("Primary parent address is required");
       if (!data.primaryParent.suburb.trim()) errors.push("Primary parent suburb is required");
       if (!data.primaryParent.state) errors.push("Primary parent state is required");
@@ -330,10 +334,10 @@ export function validateStep(step: number, data: EnrolmentFormData): string[] {
       break;
 
     case 4: // Consents
-      if (!data.consents.firstAid) errors.push("First aid consent is required");
-      if (!data.consents.ambulance) errors.push("Ambulance consent is required");
-      if (!data.consents.transport) errors.push("Transportation consent is required");
-      if (!data.consents.sunscreen) errors.push("Sunscreen consent is required");
+      if (data.consents.firstAid !== true) errors.push("First aid consent is required");
+      if (data.consents.ambulance !== true) errors.push("Ambulance consent is required");
+      if (data.consents.transport !== true) errors.push("Transportation consent is required");
+      if (data.consents.sunscreen !== true) errors.push("Sunscreen consent is required");
       break;
 
     case 5: // Booking

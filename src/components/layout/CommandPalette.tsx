@@ -12,6 +12,8 @@ import {
   X,
   Clock,
   ArrowRight,
+  User,
+  Plus,
 } from "lucide-react";
 import { navItems as sharedNavItems } from "@/lib/nav-config";
 
@@ -22,8 +24,14 @@ import { navItems as sharedNavItems } from "@/lib/nav-config";
 interface SearchResult {
   id: string;
   title: string;
-  type: "rock" | "todo" | "issue" | "service" | "project";
+  type: "rock" | "todo" | "issue" | "service" | "project" | "person";
   subtitle?: string;
+}
+
+interface QuickAction {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 interface PageOption {
@@ -36,6 +44,7 @@ interface PageOption {
 /** A flat item used for keyboard navigation across heterogeneous lists. */
 type FlatItem =
   | { kind: "recent"; query: string }
+  | { kind: "action"; action: QuickAction }
   | { kind: "page"; page: PageOption }
   | { kind: "result"; result: SearchResult };
 
@@ -55,7 +64,14 @@ const typeConfig: Record<
   issue: { icon: AlertCircle, color: "text-red-600", bg: "bg-red-50", href: "/issues", label: "Issues" },
   service: { icon: Building2, color: "text-blue-600", bg: "bg-blue-50", href: "/services", label: "Services" },
   project: { icon: FolderKanban, color: "text-amber-600", bg: "bg-amber-50", href: "/projects", label: "Projects" },
+  person: { icon: User, color: "text-indigo-600", bg: "bg-indigo-50", href: "/team", label: "People" },
 };
+
+const quickActions: QuickAction[] = [
+  { label: "Create To-Do", href: "/todos", icon: Plus },
+  { label: "Log Incident", href: "/incidents", icon: Plus },
+  { label: "New Enquiry", href: "/enquiries", icon: Plus },
+];
 
 // Derive page options from shared nav config — single source of truth
 const pageOptions: PageOption[] = sharedNavItems.map(({ href, label, icon, section }) => ({
@@ -176,9 +192,13 @@ export function CommandPalette({
       return items;
     }
 
-    // When no query (or query < 2 chars), show recents + pages
+    // When no query (or query < 2 chars), show actions + recents + pages
     if (!hasSearchQuery) {
       const items: FlatItem[] = [];
+      // Quick actions
+      for (const action of quickActions) {
+        items.push({ kind: "action", action });
+      }
       // Recent searches
       for (const q of recentSearches) {
         items.push({ kind: "recent", query: q });
@@ -254,6 +274,11 @@ export function CommandPalette({
     onClose();
   };
 
+  const handleSelectAction = (action: QuickAction) => {
+    router.push(action.href);
+    onClose();
+  };
+
   const handleSelectRecent = (q: string) => {
     setQuery(q);
     doSearch(q);
@@ -274,6 +299,9 @@ export function CommandPalette({
     switch (item.kind) {
       case "result":
         handleSelectResult(item.result);
+        break;
+      case "action":
+        handleSelectAction(item.action);
         break;
       case "page":
         handleSelectPage(item.page);
@@ -414,7 +442,13 @@ export function CommandPalette({
                                 </p>
                               )}
                             </div>
-                            <ArrowRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                            {idx === activeIndex ? (
+                              <kbd className="px-1 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-500 shrink-0">
+                                {"\u21B5"}
+                              </kbd>
+                            ) : (
+                              <ArrowRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                            )}
                           </button>
                         );
                       })}
@@ -430,6 +464,43 @@ export function CommandPalette({
             flatIdx = 0;
             return (
               <div className="py-1">
+                {/* Quick actions */}
+                <div>
+                  <div className="px-4 pt-3 pb-1.5">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                      Quick Actions
+                    </span>
+                  </div>
+                  {quickActions.map((action) => {
+                    const idx = flatIdx++;
+                    const Icon = action.icon;
+                    return (
+                      <button
+                        key={action.label}
+                        data-index={idx}
+                        onClick={() => handleSelectAction(action)}
+                        className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors ${
+                          idx === activeIndex ? "bg-gray-100" : "hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 bg-brand/10">
+                          <Icon className="w-3.5 h-3.5 text-brand" />
+                        </div>
+                        <span className="flex-1 text-sm font-medium text-gray-700 truncate">
+                          {action.label}
+                        </span>
+                        {idx === activeIndex ? (
+                          <kbd className="px-1 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-500 shrink-0">
+                            {"\u21B5"}
+                          </kbd>
+                        ) : (
+                          <ArrowRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Recent searches */}
                 {recentSearches.length > 0 && (
                   <div>
@@ -499,7 +570,13 @@ export function CommandPalette({
                               Current
                             </span>
                           )}
-                          <ArrowRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                          {idx === activeIndex ? (
+                            <kbd className="px-1 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-500 shrink-0">
+                              {"\u21B5"}
+                            </kbd>
+                          ) : (
+                            <ArrowRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                          )}
                         </button>
                       );
                     })}
@@ -510,7 +587,7 @@ export function CommandPalette({
                 {recentSearches.length === 0 && filteredPages.length === pageOptions.length && (
                   <div className="px-4 pt-4 pb-3 text-center">
                     <p className="text-xs text-gray-400">
-                      Search across rocks, to-dos, issues, services and projects
+                      Search across rocks, to-dos, issues, services, projects and people
                     </p>
                   </div>
                 )}
