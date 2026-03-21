@@ -206,6 +206,7 @@ export async function GET(req: NextRequest) {
     const serviceGroups = new Map<string, { families: FamilyInfo[]; enrolmentIds: Set<string> }>();
 
     for (const child of children) {
+      if (!child.enrolmentId) continue;
       const submission = submissionMap.get(child.enrolmentId);
       if (!submission) continue;
 

@@ -3441,6 +3441,7 @@ model ParentEnquiry {
   assignee         User?                     @relation("EnquiryAssignee", fields: [assigneeId], references: [id])
   notes            String?                   @db.Text
   deleted          Boolean                   @default(false)
+  ownaEnquiryId    String?                   @unique
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   lastEmailSentAt  DateTime?
@@ -4357,8 +4358,8 @@ model EnrolmentSubmission {
 
 model Child {
   id                 String              @id @default(cuid())
-  enrolmentId        String
-  enrolment          EnrolmentSubmission  @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  enrolmentId        String?
+  enrolment          EnrolmentSubmission?  @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
   serviceId          String?
   service            Service?             @relation("ServiceChildren", fields: [serviceId], references: [id])
   firstName          String
@@ -4374,12 +4375,18 @@ model Child {
   dietary            Json? // Dietary requirements
   bookingPrefs       Json? // Session types, days, booking type
   status             String               @default("pending") // pending, active, withdrawn
+  // OWNA sync fields
+  ownaChildId        String?              @unique
+  ownaRoomId         String?
+  ownaRoomName       String?
+  ownaSyncedAt       DateTime?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
   @@index([enrolmentId])
   @@index([serviceId])
   @@index([status])
+  @@index([ownaChildId])
 }
 
 // ── Sequences (Parent Nurture + CRM Outreach) ───────────────
