@@ -1,4 +1,4 @@
-import jsPDF from "jspdf";
+import type jsPDF from "jspdf";
 
 interface EnrolmentSubmission {
   id: string;
@@ -20,8 +20,9 @@ interface EnrolmentSubmission {
   createdAt: Date | string;
 }
 
-export function generateEnrolmentPdf(submission: EnrolmentSubmission): jsPDF {
-  const doc = new jsPDF("p", "mm", "a4");
+export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Promise<jsPDF> {
+  const { default: JsPDF } = await import("jspdf");
+  const doc = new JsPDF("p", "mm", "a4");
   const pw = doc.internal.pageSize.getWidth();
   const margin = 18;
   const cw = pw - margin * 2;

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Role } from "@prisma/client";
 import type { Session } from "next-auth";
 import { hasFeature, hasMinRole, type Feature } from "@/lib/role-permissions";
+import { prisma } from "@/lib/prisma";
 
 // ---------------------------------------------------------------------------
 // 1. Original requireAuth (kept for backward-compat)
@@ -16,6 +17,22 @@ export async function requireAuth(allowedRoles?: Role[]) {
     return {
       session: null,
       error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+
+  // Verify the user is still active in the database
+  const dbUser = await prisma.user.findUnique({
+    where: { id: session.user.id as string },
+    select: { active: true },
+  });
+
+  if (!dbUser || !dbUser.active) {
+    return {
+      session: null,
+      error: NextResponse.json(
+        { error: "Account deactivated" },
+        { status: 401 },
+      ),
     };
   }
 
@@ -107,6 +124,19 @@ export function withApiAuth(
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // --- Verify user is still active ---
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id as string },
+      select: { active: true },
+    });
+
+    if (!dbUser || !dbUser.active) {
+      return NextResponse.json(
+        { error: "Account deactivated" },
+        { status: 401 },
+      );
     }
 
     const role = session.user.role as Role;

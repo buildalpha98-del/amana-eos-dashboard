@@ -517,7 +517,8 @@ function UserRow({
                   <hr className="my-1" />
                   <button
                     onClick={() => toggleActive.mutate()}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    disabled={toggleActive.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
                   >
                     {user.active ? "Deactivate" : "Reactivate"}
                   </button>

@@ -137,7 +137,7 @@ export async function GET(req: NextRequest) {
 
   summary.total = summary.stuck + summary.formAbandonment + summary.atRisk + summary.retention;
 
-  console.log("[enquiry-alerts]", JSON.stringify(summary));
+  if (process.env.NODE_ENV !== "production") console.log("[enquiry-alerts]", JSON.stringify(summary));
 
   return NextResponse.json({
     ok: true,

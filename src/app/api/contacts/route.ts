@@ -38,11 +38,13 @@ export async function GET(req: NextRequest) {
       items,
       total,
       page: pagination.page,
+      limit: pagination.limit,
       totalPages: Math.ceil(total / pagination.limit),
     });
   }
 
-  const contacts = await prisma.whatsAppContact.findMany({ include, orderBy });
+  // Backward-compatible: no pagination params → return flat array (capped at 500 for safety)
+  const contacts = await prisma.whatsAppContact.findMany({ include, orderBy, take: 500 });
   return NextResponse.json(contacts);
 }
 

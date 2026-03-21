@@ -178,11 +178,12 @@ export async function GET() {
     );
   }
 
-  // Ticket volume trend — tickets created per week
+  // Ticket volume trend — tickets created per week (capped to prevent memory bloat at scale)
   const tickets = await prisma.supportTicket.findMany({
     where: { createdAt: { gte: thirteenWeeksAgo }, deleted: false },
     select: { createdAt: true },
     orderBy: { createdAt: "asc" },
+    take: 500,
   });
 
   const ticketsByWeek = new Map<string, number>();

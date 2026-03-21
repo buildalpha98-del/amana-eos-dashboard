@@ -42,7 +42,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import * as XLSX from "xlsx";
+/* xlsx (~800KB) is dynamically imported at point of use in parseFile() */
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -532,8 +532,9 @@ function ImportFromOWNAModal({
     setParseError("");
     setFileName(file.name);
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
+        const XLSX = await import("xlsx");
         const data = e.target?.result;
         const workbook = XLSX.read(data, { type: "binary" });
         const sheetName = workbook.SheetNames[0];

@@ -86,11 +86,15 @@ const navLabelMap: Record<string, string> = Object.fromEntries(
 
 export function TopBar() {
   const pathname = usePathname();
-  const title =
-    pageTitles[pathname] ||
-    (pathname.startsWith("/services/") && pathname !== "/services"
-      ? "Service Detail"
-      : "Dashboard");
+  const title = useMemo(() => {
+    if (pageTitles[pathname]) return pageTitles[pathname];
+    // Dynamic detail pages
+    if (pathname.startsWith("/services/") && pathname !== "/services") return "Service Detail";
+    if (pathname.startsWith("/crm/") && pathname !== "/crm" && !pathname.startsWith("/crm/templates")) return "Lead Detail";
+    if (pathname.startsWith("/recruitment/") && pathname !== "/recruitment") return "Vacancy Detail";
+    if (pathname.startsWith("/tickets/") && pathname !== "/tickets") return "Ticket Detail";
+    return "Dashboard";
+  }, [pathname]);
   const quarter = getCurrentQuarter();
 
   // Build breadcrumb items for nested pages (2+ segments)
@@ -183,7 +187,7 @@ export function TopBar() {
             </kbd>
           </button>
 
-          <button data-tour="quick-add" onClick={handleQuickAddClick} className={quickAddBtnClasses} title="Quick Add">
+          <button data-tour="quick-add" onClick={handleQuickAddClick} className={quickAddBtnClasses} title="Quick Add" aria-label="Quick add">
             <Plus className="w-4 h-4" />
           </button>
 
@@ -210,10 +214,11 @@ export function TopBar() {
             onClick={() => setSearchOpen(true)}
             className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
             title="Search"
+            aria-label="Search"
           >
             <Search className="w-4 h-4" />
           </button>
-          <button onClick={handleQuickAddClick} className={quickAddBtnClasses} title="Quick Add">
+          <button onClick={handleQuickAddClick} className={quickAddBtnClasses} title="Quick Add" aria-label="Quick add">
             <Plus className="w-4 h-4" />
           </button>
           <NotificationDropdown />

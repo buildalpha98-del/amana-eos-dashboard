@@ -9,8 +9,18 @@ import {
   type QueueReport,
   type QueueTodo,
 } from "@/hooks/useQueue";
-import { ReportViewer } from "@/components/queue/ReportViewer";
+import dynamic from "next/dynamic";
 import { Skeleton } from "@/components/ui/Skeleton";
+
+const ReportViewer = dynamic(
+  () =>
+    import("@/components/queue/ReportViewer").then((m) => ({
+      default: m.ReportViewer,
+    })),
+  {
+    loading: () => <Skeleton className="h-96 w-full" />,
+  }
+);
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import {

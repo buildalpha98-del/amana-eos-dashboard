@@ -423,7 +423,8 @@ export function IssueDetailPanel({
                 </button>
                 <button
                   onClick={() => updateIssue.mutate({ id: issueId, rockId: null })}
-                  className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                  disabled={updateIssue.isPending}
+                  className="p-1 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
                   title="Unlink rock"
                 >
                   <Unlink className="w-3.5 h-3.5" />

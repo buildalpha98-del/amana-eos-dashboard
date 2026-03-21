@@ -51,7 +51,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
   for (const email of recipients) {
     if (await isEmailSuppressed(email)) {
       suppressed.push(email);
-      console.log(`Email suppressed (bounce/complaint): ${email}`);
+      if (process.env.NODE_ENV !== "production") console.log(`Email suppressed (bounce/complaint): ${email}`);
     } else {
       eligible.push(email);
     }

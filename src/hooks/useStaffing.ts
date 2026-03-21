@@ -14,7 +14,7 @@ export function useStaffingDashboard() {
       if (!res.ok) throw new Error("Failed to fetch staffing data");
       return res.json();
     },
-    refetchInterval: 60000, // 1 minute
+    refetchInterval: 5 * 60_000, // 5 minutes
   });
 }
 

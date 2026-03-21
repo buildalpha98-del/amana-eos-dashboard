@@ -89,7 +89,7 @@ export async function PATCH(
         const daysInStage = Math.round(
           (Date.now() - existing.stageChangedAt.getTime()) / (1000 * 60 * 60 * 24),
         );
-        console.log(
+        if (process.env.NODE_ENV !== "production") console.log(
           `[Enquiry] ${id}: stage ${existing.stage} → ${data.stage} (${daysInStage} days in previous stage)`,
         );
         updateData.stageChangedAt = new Date();

@@ -33,6 +33,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
+  // ── Reject stale webhooks (replay attack protection) ───────
+  const timestampHeader = headers["svix-timestamp"];
+  if (timestampHeader) {
+    const timestampSeconds = parseInt(timestampHeader, 10);
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const MAX_AGE_SECONDS = 300; // 5 minutes
+
+    if (isNaN(timestampSeconds) || nowSeconds - timestampSeconds > MAX_AGE_SECONDS) {
+      console.error("Resend webhook rejected: timestamp too old or invalid");
+      return NextResponse.json({ error: "Webhook timestamp expired" }, { status: 401 });
+    }
+  }
+
   // ── Parse event ──────────────────────────────────────────
   const eventType = payload.type as string | undefined;
   const data = payload.data as Record<string, unknown> | undefined;

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { hasFeature } from "@/lib/role-permissions";
+import { parsePagination } from "@/lib/pagination";
 import type { Role, PipelineStage, LeadSource } from "@prisma/client";
 
 const PIPELINE_STAGES: PipelineStage[] = [
@@ -56,16 +57,37 @@ export async function GET(req: NextRequest) {
     where.schoolName = { contains: search, mode: "insensitive" };
   }
 
-  const leads = await prisma.lead.findMany({
-    where,
-    include: {
-      assignedTo: { select: { id: true, name: true, email: true, avatar: true } },
-      service: { select: { id: true, name: true, code: true } },
-      _count: { select: { touchpoints: true } },
-    },
-    orderBy: { stageChangedAt: "desc" },
-  });
+  const include = {
+    assignedTo: { select: { id: true, name: true, email: true, avatar: true } },
+    service: { select: { id: true, name: true, code: true } },
+    _count: { select: { touchpoints: true } },
+  };
+  const orderBy = { stageChangedAt: "desc" as const };
 
+  const pagination = parsePagination(searchParams);
+
+  if (pagination) {
+    const [leads, total] = await Promise.all([
+      prisma.lead.findMany({
+        where,
+        include,
+        orderBy,
+        skip: pagination.skip,
+        take: pagination.limit,
+      }),
+      prisma.lead.count({ where }),
+    ]);
+    return NextResponse.json({
+      leads,
+      total,
+      page: pagination.page,
+      limit: pagination.limit,
+      totalPages: Math.ceil(total / pagination.limit),
+    });
+  }
+
+  // Backward-compatible: no pagination params → return flat array
+  const leads = await prisma.lead.findMany({ where, include, orderBy });
   return NextResponse.json(leads);
 }
 

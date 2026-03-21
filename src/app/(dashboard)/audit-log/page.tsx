@@ -6,12 +6,14 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { exportToCSV, formatDateCSV } from "@/lib/csv-export";
 import {
   Shield,
+  ShieldCheck,
   Download,
   ChevronLeft,
   ChevronRight,
   Search,
   Filter,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 /* ── Types ────────────────────────────────────────────────────── */
 
@@ -326,11 +328,13 @@ export default function AuditLogPage() {
 
               {!isLoading && filteredEntries.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-12 text-center text-gray-500"
-                  >
-                    No audit log entries found.
+                  <td colSpan={6} className="px-4 py-4">
+                    <EmptyState
+                      icon={ShieldCheck}
+                      title="No audit log entries found"
+                      description="Security events will appear here as they occur. Try adjusting your filters."
+                      variant="inline"
+                    />
                   </td>
                 </tr>
               )}

@@ -7,6 +7,16 @@ import { getResend, FROM_EMAIL } from "@/lib/email";
 import { applyMergeTags } from "@/lib/crm/merge-tags";
 import type { Role } from "@prisma/client";
 
+/** Escape HTML special characters to prevent injection */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const sendEmailSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   body: z.string().min(1, "Body is required"),
@@ -72,16 +82,21 @@ export async function POST(
     }
   }
 
-  // Apply merge tags
+  // Escape HTML in user-provided content BEFORE applying merge tags
+  // This prevents HTML injection while keeping merge tags functional
+  subject = escapeHtml(subject);
+  body = escapeHtml(body);
+
+  // Apply merge tags (after escaping — merge tag values are also escaped)
   const sender = await prisma.user.findUnique({
     where: { id: session!.user.id },
     select: { name: true },
   });
 
   const mergeData: Record<string, string> = {
-    schoolName: lead.schoolName,
-    contactName: lead.contactName || "there",
-    senderName: sender?.name || "Amana OSHC",
+    schoolName: escapeHtml(lead.schoolName),
+    contactName: escapeHtml(lead.contactName || "there"),
+    senderName: escapeHtml(sender?.name || "Amana OSHC"),
     companyName: "Amana OSHC",
   };
 
@@ -92,7 +107,7 @@ export async function POST(
   const resend = getResend();
   if (!resend) {
     // Dev mode: log instead of sending
-    console.log("[CRM Email] To:", lead.contactEmail, "Subject:", subject);
+    if (process.env.NODE_ENV !== "production") console.log("[CRM Email] To:", lead.contactEmail, "Subject:", subject);
   } else {
     await resend.emails.send({
       from: FROM_EMAIL,

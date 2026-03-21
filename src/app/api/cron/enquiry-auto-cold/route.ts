@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  console.log(`[enquiry-auto-cold] Moved ${toCold.length} enquiries to cold`);
+  if (process.env.NODE_ENV !== "production") console.log(`[enquiry-auto-cold] Moved ${toCold.length} enquiries to cold`);
 
   return NextResponse.json({
     ok: true,

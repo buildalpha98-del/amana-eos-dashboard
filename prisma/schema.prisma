@@ -2991,6 +2991,8 @@ model Lead {
   @@index([source])
   @@index([state])
   @@index([nextTouchpointAt])
+  @@index([pipelineStage, serviceId])
+  @@index([deleted, stageChangedAt])
 }
 
 model TouchpointLog {
@@ -3151,6 +3153,7 @@ model DeliveryLog {
   @@index([serviceCode])
   @@index([createdAt])
   @@index([entityType, entityId])
+  @@index([serviceCode, createdAt])
 }
 
 // ============================================================

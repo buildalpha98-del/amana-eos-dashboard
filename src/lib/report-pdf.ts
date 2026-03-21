@@ -1,4 +1,4 @@
-import jsPDF from "jspdf";
+import type jsPDF from "jspdf";
 
 interface ActionItem {
   id: string;
@@ -20,8 +20,9 @@ interface ReportPdfOptions {
   createdAt: string;
 }
 
-export function generateReportPdf(options: ReportPdfOptions): jsPDF {
-  const doc = new jsPDF("p", "mm", "a4");
+export async function generateReportPdf(options: ReportPdfOptions): Promise<jsPDF> {
+  const { default: JsPDF } = await import("jspdf");
+  const doc = new JsPDF("p", "mm", "a4");
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
   const contentWidth = pageWidth - margin * 2;

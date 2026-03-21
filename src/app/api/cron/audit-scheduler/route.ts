@@ -54,56 +54,57 @@ export async function GET(req: NextRequest) {
 
     let created = 0;
     let skipped = 0;
-    const todoPromises: Promise<unknown>[] = [];
 
-    for (const template of templates) {
-      for (const service of services) {
-        // Upsert audit instance (idempotent)
-        const existing = await prisma.auditInstance.findUnique({
-          where: {
-            templateId_serviceId_scheduledMonth_scheduledYear: {
+    // Wrap all creates in a transaction so AuditInstance + CoworkTodo are atomic.
+    // If CoworkTodo creation fails, AuditInstance is rolled back too (no orphans).
+    await prisma.$transaction(async (tx) => {
+      for (const template of templates) {
+        for (const service of services) {
+          // Upsert audit instance (idempotent)
+          const existing = await tx.auditInstance.findUnique({
+            where: {
+              templateId_serviceId_scheduledMonth_scheduledYear: {
+                templateId: template.id,
+                serviceId: service.id,
+                scheduledMonth: currentMonth,
+                scheduledYear: currentYear,
+              },
+            },
+          });
+
+          if (existing) {
+            skipped++;
+            continue;
+          }
+
+          // Create instance + pre-create response records
+          await tx.auditInstance.create({
+            data: {
               templateId: template.id,
               serviceId: service.id,
               scheduledMonth: currentMonth,
               scheduledYear: currentYear,
+              dueDate,
+              status: "scheduled",
+              totalItems: template.items.length,
+              responses: {
+                create: template.items.map((item) => ({
+                  templateItemId: item.id,
+                  result: "not_answered",
+                })),
+              },
             },
-          },
-        });
-
-        if (existing) {
-          skipped++;
-          continue;
-        }
-
-        // Create instance + pre-create response records
-        const instance = await prisma.auditInstance.create({
-          data: {
-            templateId: template.id,
-            serviceId: service.id,
-            scheduledMonth: currentMonth,
-            scheduledYear: currentYear,
-            dueDate,
-            status: "scheduled",
-            totalItems: template.items.length,
-            responses: {
-              create: template.items.map((item) => ({
-                templateItemId: item.id,
-                result: "not_answered",
-              })),
-            },
-          },
-        });
-
-        created++;
-
-        // Create CoworkTodo for centre coordinator
-        if (service.managerId) {
-          const dueDateStr = dueDate.toLocaleDateString("en-AU", {
-            day: "numeric",
-            month: "short",
           });
-          todoPromises.push(
-            prisma.coworkTodo.create({
+
+          created++;
+
+          // Create CoworkTodo for centre coordinator
+          if (service.managerId) {
+            const dueDateStr = dueDate.toLocaleDateString("en-AU", {
+              day: "numeric",
+              month: "short",
+            });
+            await tx.coworkTodo.create({
               data: {
                 centreId: service.id,
                 date: new Date(),
@@ -112,29 +113,25 @@ export async function GET(req: NextRequest) {
                 category: "morning-prep",
                 assignedRole: "coordinator",
               },
-            })
-          );
+            });
+          }
         }
       }
-    }
 
-    // Create summary announcement
-    if (created > 0) {
-      const serviceIds = services.map((s) => s.id);
-      const monthName = new Date(currentYear, currentMonth - 1).toLocaleString("en-AU", { month: "long" });
-      todoPromises.push(
-        prisma.coworkAnnouncement.create({
+      // Create summary announcement inside the transaction
+      if (created > 0) {
+        const serviceIds = services.map((s) => s.id);
+        const monthName = new Date(currentYear, currentMonth - 1).toLocaleString("en-AU", { month: "long" });
+        await tx.coworkAnnouncement.create({
           data: {
             title: `${monthName} Compliance Audits Scheduled`,
             body: `${templates.length} audit${templates.length === 1 ? "" : "s"} have been scheduled for ${monthName} ${currentYear} across ${services.length} centres. ${created} audit instances created. Please complete them by end of month.`,
             type: "reminder",
             targetCentres: serviceIds,
           },
-        })
-      );
-    }
-
-    await Promise.all(todoPromises);
+        });
+      }
+    });
 
     await guard.complete({
       month: currentMonth,

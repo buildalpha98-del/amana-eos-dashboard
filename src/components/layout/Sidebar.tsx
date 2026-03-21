@@ -160,6 +160,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                       }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded opacity-0 group-hover/nav:opacity-100 hover:bg-white/10 transition-all duration-150"
                       title="Remove from favourites"
+                      aria-label="Remove from favourites"
                     >
                       <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                     </button>
@@ -193,6 +194,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                       <button
                         type="button"
                         onClick={() => toggleSection(group.key)}
+                        aria-label={`${isSectionCollapsed ? "Expand" : "Collapse"} ${group.key} section`}
+                        aria-expanded={!isSectionCollapsed}
                         className="flex items-center justify-between w-full group"
                       >
                         <h3 className="text-[11px] font-semibold text-white/30 uppercase tracking-widest pl-1">
@@ -265,6 +268,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                                 : "opacity-0 group-hover/nav:opacity-100"
                             )}
                             title={isFavourited ? "Remove from favourites" : "Add to favourites"}
+                            aria-label={`${isFavourited ? "Remove" : "Add"} ${item.label} ${isFavourited ? "from" : "to"} favourites`}
                           >
                             <Star
                               className={cn(
@@ -315,6 +319,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="p-1.5 rounded-md text-white/40 hover:text-white hover:bg-white/10 transition-colors duration-200"
                 title="Sign out"
+                aria-label="Sign out"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -325,6 +330,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         {/* Collapse Toggle (desktop only) */}
         <button
           onClick={toggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className="absolute -right-3.5 top-20 w-7 h-5 rounded-full bg-[#002E3D]/90 backdrop-blur-sm border border-white/15 hidden md:flex items-center justify-center text-white/50 hover:text-white hover:bg-[#002E3D] transition-all duration-200"
         >
           {collapsed ? (

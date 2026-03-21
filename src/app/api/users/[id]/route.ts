@@ -5,11 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
 import { checkPasswordBreach } from "@/lib/password-breach-check";
 import { logAuditEvent } from "@/lib/audit-log";
-import type { PrismaClient } from "@prisma/client";
 
 const updateUserSchema = z.object({
-  name: z.string().min(1).optional(),
-  role: z.enum(["owner", "head_office", "admin", "marketing", "coordinator", "member", "staff"]).optional(),
+  name: z.string().min(1, "Name is required").optional(),
+  role: z.enum(["owner", "head_office", "admin", "marketing", "coordinator", "member", "staff"], {
+    error: "Invalid role. Must be one of: owner, head_office, admin, marketing, coordinator, member, staff",
+  }).optional(),
   active: z.boolean().optional(),
   newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
   state: z.string().optional().nullable(),
@@ -29,7 +30,10 @@ export async function PATCH(
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.issues[0].message },
+      {
+        error: "Validation failed",
+        issues: parsed.error.issues.map(i => ({ field: i.path.join("."), message: i.message })),
+      },
       { status: 400 }
     );
   }
@@ -155,65 +159,74 @@ export async function DELETE(
     }
   }
 
-  // Run in a transaction: nullify FK references, then delete owned cascadeable records, then delete user
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await prisma.$transaction(async (tx: any) => {
-    // Nullify optional foreign-key references pointing to this user
-    await tx.rock.updateMany({ where: { ownerId: id }, data: { ownerId: null } }).catch(() => {});
-    await tx.todo.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } }).catch(() => {});
-    await tx.todo.updateMany({ where: { createdById: id }, data: { createdById: null } }).catch(() => {});
-    await tx.issue.updateMany({ where: { raisedById: id }, data: { raisedById: null } }).catch(() => {});
-    await tx.issue.updateMany({ where: { ownerId: id }, data: { ownerId: null } }).catch(() => {});
-    await tx.marketingPost.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } }).catch(() => {});
-    await tx.marketingPost.updateMany({ where: { approvedById: id }, data: { approvedById: null } }).catch(() => {});
-    await tx.marketingTask.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } }).catch(() => {});
-    await tx.supportTicket.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } }).catch(() => {});
-    await tx.service.updateMany({ where: { managerId: id }, data: { managerId: null } }).catch(() => {});
-    await tx.leaveRequest.updateMany({ where: { approverId: id }, data: { approverId: null } }).catch(() => {});
-    await tx.lead.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } }).catch(() => {});
-    await tx.measurable.updateMany({ where: { ownerId: id }, data: { ownerId: null } }).catch(() => {});
-    await tx.measurableEntry.updateMany({ where: { enteredById: id }, data: { enteredById: null } }).catch(() => {});
-    await tx.project.updateMany({ where: { ownerId: id }, data: { ownerId: null } }).catch(() => {});
-    await tx.meeting.updateMany({ where: { createdById: id }, data: { createdById: null } }).catch(() => {});
-    await tx.document.updateMany({ where: { uploadedById: id }, data: { uploadedById: null } }).catch(() => {});
-    await tx.attachment.updateMany({ where: { uploadedById: id }, data: { uploadedById: null } }).catch(() => {});
-    await tx.announcement.updateMany({ where: { authorId: id }, data: { authorId: null } }).catch(() => {});
-    await tx.todoTemplate.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } }).catch(() => {});
+  // Run in a transaction: nullify FK references, then delete owned cascadeable records, then delete user.
+  // No .catch() handlers — if any operation fails, the entire transaction rolls back atomically.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await prisma.$transaction(async (tx: any) => {
+      // Nullify optional foreign-key references pointing to this user
+      await tx.rock.updateMany({ where: { ownerId: id }, data: { ownerId: null } });
+      await tx.todo.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
+      await tx.todo.updateMany({ where: { createdById: id }, data: { createdById: null } });
+      await tx.issue.updateMany({ where: { raisedById: id }, data: { raisedById: null } });
+      await tx.issue.updateMany({ where: { ownerId: id }, data: { ownerId: null } });
+      await tx.marketingPost.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
+      await tx.marketingPost.updateMany({ where: { approvedById: id }, data: { approvedById: null } });
+      await tx.marketingTask.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
+      await tx.supportTicket.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
+      await tx.service.updateMany({ where: { managerId: id }, data: { managerId: null } });
+      await tx.leaveRequest.updateMany({ where: { approverId: id }, data: { approverId: null } });
+      await tx.lead.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
+      await tx.measurable.updateMany({ where: { ownerId: id }, data: { ownerId: null } });
+      await tx.measurableEntry.updateMany({ where: { enteredById: id }, data: { enteredById: null } });
+      await tx.project.updateMany({ where: { ownerId: id }, data: { ownerId: null } });
+      await tx.meeting.updateMany({ where: { createdById: id }, data: { createdById: null } });
+      await tx.document.updateMany({ where: { uploadedById: id }, data: { uploadedById: null } });
+      await tx.attachment.updateMany({ where: { uploadedById: id }, data: { uploadedById: null } });
+      await tx.announcement.updateMany({ where: { authorId: id }, data: { authorId: null } });
+      await tx.todoTemplate.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
 
-    // Meeting attendees & multi-assign todos
-    await tx.meetingAttendee.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.todoAssignee.deleteMany({ where: { userId: id } }).catch(() => {});
+      // Meeting attendees & multi-assign todos
+      await tx.meetingAttendee.deleteMany({ where: { userId: id } });
+      await tx.todoAssignee.deleteMany({ where: { userId: id } });
 
-    // Delete owned cascadeable records
-    await tx.activityLog.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.notificationDismissal.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.announcementRead.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.cascadeAcknowledgment.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.weeklyPulse.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.passwordResetToken.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.marketingComment.deleteMany({ where: { authorId: id } }).catch(() => {});
-    await tx.accountabilitySeatAssignment.deleteMany({ where: { userId: id } }).catch(() => {});
+      // Delete owned cascadeable records
+      await tx.activityLog.deleteMany({ where: { userId: id } });
+      await tx.notificationDismissal.deleteMany({ where: { userId: id } });
+      await tx.announcementRead.deleteMany({ where: { userId: id } });
+      await tx.cascadeAcknowledgment.deleteMany({ where: { userId: id } });
+      await tx.weeklyPulse.deleteMany({ where: { userId: id } });
+      await tx.passwordResetToken.deleteMany({ where: { userId: id } });
+      await tx.marketingComment.deleteMany({ where: { authorId: id } });
+      await tx.accountabilitySeatAssignment.deleteMany({ where: { userId: id } });
 
-    // HR records
-    await tx.emergencyContact.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.staffQualification.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.leaveBalance.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.timesheetEntry.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.policyAcknowledgement.deleteMany({ where: { userId: id } }).catch(() => {});
+      // HR records
+      await tx.emergencyContact.deleteMany({ where: { userId: id } });
+      await tx.staffQualification.deleteMany({ where: { userId: id } });
+      await tx.leaveBalance.deleteMany({ where: { userId: id } });
+      await tx.timesheetEntry.deleteMany({ where: { userId: id } });
+      await tx.policyAcknowledgement.deleteMany({ where: { userId: id } });
 
-    // Onboarding / LMS
-    await tx.staffOnboarding.deleteMany({ where: { userId: id } }).catch(() => {});
-    await tx.lMSEnrollment.deleteMany({ where: { userId: id } }).catch(() => {});
+      // Onboarding / LMS
+      await tx.staffOnboarding.deleteMany({ where: { userId: id } });
+      await tx.lMSEnrollment.deleteMany({ where: { userId: id } });
 
-    // Compliance
-    await tx.complianceCertificate.deleteMany({ where: { userId: id } }).catch(() => {});
+      // Compliance
+      await tx.complianceCertificate.deleteMany({ where: { userId: id } });
 
-    // API keys
-    await tx.apiKey.deleteMany({ where: { createdById: id } }).catch(() => {});
+      // API keys
+      await tx.apiKey.deleteMany({ where: { createdById: id } });
 
-    // Finally delete the user
-    await tx.user.delete({ where: { id } });
-  });
+      // Finally delete the user
+      await tx.user.delete({ where: { id } });
+    });
+  } catch (err) {
+    console.error(`[users] Failed to delete user ${id}:`, err);
+    return NextResponse.json(
+      { error: "Failed to delete user. Some related records could not be cleaned up. Please try again or contact support." },
+      { status: 500 }
+    );
+  }
 
   // Log deletion (outside transaction since user no longer exists)
   await prisma.activityLog.create({

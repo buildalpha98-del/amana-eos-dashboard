@@ -665,7 +665,8 @@ export function RockDetailPanel({
                     </span>
                     <button
                       onClick={() => deleteMilestone.mutate(m.id)}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all"
+                      disabled={deleteMilestone.isPending}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all disabled:opacity-50"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -819,8 +820,9 @@ export function RockDetailPanel({
                     </span>
                     <button
                       onClick={() => unlinkTodo.mutate(todo.id)}
+                      disabled={unlinkTodo.isPending}
                       title="Unlink from rock"
-                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all"
+                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all disabled:opacity-50"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -1028,8 +1030,9 @@ export function RockDetailPanel({
                     </span>
                     <button
                       onClick={() => unlinkIssue.mutate(issue.id)}
+                      disabled={unlinkIssue.isPending}
                       title="Unlink from rock"
-                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all"
+                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all disabled:opacity-50"
                     >
                       <X className="w-3 h-3" />
                     </button>

@@ -61,13 +61,24 @@ export interface LeadFilters {
   state?: string;
   assigneeId?: string;
   search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedLeads {
+  leads: LeadSummary[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 // ---------------------------------------------------------------------------
 // Queries
 // ---------------------------------------------------------------------------
 
-export function useLeads(filters?: LeadFilters) {
+/** Fetch leads (flat array). For paginated results, use `useLeadsPaginated`. */
+export function useLeads(filters?: Omit<LeadFilters, "page" | "limit">) {
   return useQuery<LeadSummary[]>({
     queryKey: ["leads", filters],
     queryFn: async () => {
@@ -77,6 +88,28 @@ export function useLeads(filters?: LeadFilters) {
       if (filters?.state) params.set("state", filters.state);
       if (filters?.assigneeId) params.set("assigneeId", filters.assigneeId);
       if (filters?.search) params.set("search", filters.search);
+      const res = await fetch(`/api/crm/leads?${params}`);
+      if (!res.ok) throw new Error("Failed to fetch leads");
+      return res.json();
+    },
+  });
+}
+
+/** Fetch leads with server-side pagination. */
+export function useLeadsPaginated(filters?: LeadFilters) {
+  const page = filters?.page ?? 1;
+  const limit = filters?.limit ?? 50;
+  return useQuery<PaginatedLeads>({
+    queryKey: ["leads-paginated", filters],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (filters?.stage) params.set("stage", filters.stage);
+      if (filters?.source) params.set("source", filters.source);
+      if (filters?.state) params.set("state", filters.state);
+      if (filters?.assigneeId) params.set("assigneeId", filters.assigneeId);
+      if (filters?.search) params.set("search", filters.search);
+      params.set("page", String(page));
+      params.set("limit", String(limit));
       const res = await fetch(`/api/crm/leads?${params}`);
       if (!res.ok) throw new Error("Failed to fetch leads");
       return res.json();

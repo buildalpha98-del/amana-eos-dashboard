@@ -195,8 +195,8 @@ export function ReportViewer({
     [report.id]
   );
 
-  const handleExportPdf = useCallback(() => {
-    const doc = generateReportPdf({
+  const handleExportPdf = useCallback(async () => {
+    const doc = await generateReportPdf({
       title: report.title,
       seat: report.seat,
       reportType: report.reportType,

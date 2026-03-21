@@ -39,6 +39,7 @@ export async function GET(
           _count: { select: { todos: { where: { deleted: false } } } },
         },
         orderBy: { createdAt: "desc" },
+        take: 50,
       },
       rocks: {
         where: { deleted: false },
@@ -52,6 +53,7 @@ export async function GET(
           },
         },
         orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+        take: 50,
       },
       _count: {
         select: {

@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
               );
             }
           } else {
-            console.log(`[TouchpointScheduler] Would send email to ${lead.contactEmail}: ${subject}`);
+            if (process.env.NODE_ENV !== "production") console.log(`[TouchpointScheduler] Would send email to ${lead.contactEmail}: ${subject}`);
             emailsSent++;
           }
 

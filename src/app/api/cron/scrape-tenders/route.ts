@@ -47,7 +47,7 @@ async function searchAusTender(keyword: string): Promise<AusTenderResult[]> {
     });
 
     if (!res.ok) {
-      console.log(`[TenderScraper] AusTender API returned ${res.status} for keyword "${keyword}"`);
+      if (process.env.NODE_ENV !== "production") console.log(`[TenderScraper] AusTender API returned ${res.status} for keyword "${keyword}"`);
       return [];
     }
 

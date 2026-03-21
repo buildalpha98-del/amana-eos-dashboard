@@ -87,7 +87,7 @@ export async function sendTeamsNotification(
 ): Promise<boolean> {
   const webhookUrl = process.env.TEAMS_WEBHOOK_URL;
   if (!webhookUrl) {
-    console.log("[TEAMS] No TEAMS_WEBHOOK_URL set — notification skipped:", opts.title);
+    if (process.env.NODE_ENV !== "production") console.log("[TEAMS] No TEAMS_WEBHOOK_URL set — notification skipped:", opts.title);
     return false;
   }
 

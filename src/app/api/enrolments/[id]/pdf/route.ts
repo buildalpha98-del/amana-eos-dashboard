@@ -20,7 +20,7 @@ export async function GET(
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pdf = generateEnrolmentPdf(submission as any);
+  const pdf = await generateEnrolmentPdf(submission as any);
   const buffer = pdf.output("arraybuffer");
 
   return new NextResponse(buffer, {

@@ -4,6 +4,7 @@ import { Clock, Trash2, ArrowRight, Calculator } from "lucide-react";
 import { useDeleteScenario, type SavedScenario } from "@/hooks/useScenarios";
 import { formatAUD, type ScenarioInputs, type ScenarioOutputs } from "@/lib/scenario-engine";
 import { toast } from "@/hooks/useToast";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Props {
   scenarios: SavedScenario[];
@@ -34,11 +35,11 @@ export function SavedScenariosView({ scenarios, isLoading, onLoad }: Props) {
 
   if (scenarios.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
-        <Calculator className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-400 text-sm">No saved scenarios yet</p>
-        <p className="text-gray-400 text-xs mt-1">Use the Modeller tab to create and save a scenario</p>
-      </div>
+      <EmptyState
+        icon={Calculator}
+        title="No saved scenarios yet"
+        description="Use the Modeller tab to create and save a scenario for comparison."
+      />
     );
   }
 

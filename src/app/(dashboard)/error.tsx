@@ -1,6 +1,8 @@
 "use client";
 
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { useEffect } from "react";
+import { AlertTriangle, RotateCcw, Home } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardError({
   error,
@@ -9,28 +11,48 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    console.error(error);
+  }, [error]);
+
   return (
     <div className="flex-1 flex items-center justify-center p-8">
       <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-sm border border-gray-200 text-center">
-        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-          <AlertTriangle className="w-6 h-6 text-red-600" />
+        <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center">
+          <AlertTriangle className="w-7 h-7 text-amber-500" />
         </div>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">
-          Page error
+          Something went wrong
         </h2>
         <p className="text-sm text-gray-500 mb-1">
-          Something went wrong loading this page.
+          This page ran into an issue. You can try again or head back to the
+          dashboard.
         </p>
-        <p className="text-xs text-gray-400 mb-6 font-mono">
+        <p className="text-xs text-gray-400 mb-1 font-mono">
           {error.message || "Unknown error"}
         </p>
-        <button
-          onClick={reset}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-        >
-          <RotateCcw className="w-4 h-4" />
-          Try again
-        </button>
+        {error.digest && (
+          <p className="text-xs text-gray-300 mb-6 font-mono">
+            Ref: {error.digest}
+          </p>
+        )}
+        {!error.digest && <div className="mb-6" />}
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={reset}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Try again
+          </button>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            <Home className="w-4 h-4" />
+            Go to Dashboard
+          </Link>
+        </div>
       </div>
     </div>
   );

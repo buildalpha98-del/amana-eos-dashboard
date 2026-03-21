@@ -138,7 +138,6 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   const [prefillTemplate, setPrefillTemplate] = useState<ActivityTemplate | null>(null);
   const [showInterests, setShowInterests] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
-  const [interestDeleteId, setInterestDeleteId] = useState<string | null>(null);
 
   const currentWeek = getWeekStart();
   const selectedWeek = new Date(currentWeek);
@@ -493,6 +492,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
         onConfirm={handleDelete}
         loading={deleteMutation.isPending}
       />
+
     </>
   );
 }
@@ -958,6 +958,7 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
   const [newCategory, setNewCategory] = useState("");
   const [newSource, setNewSource] = useState<string>("observation");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [interestDeleteId, setInterestDeleteId] = useState<string | null>(null);
   const [editTopic, setEditTopic] = useState("");
   const [editChildName, setEditChildName] = useState("");
   const [editCategory, setEditCategory] = useState("");
@@ -1258,9 +1259,7 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (window.confirm("Remove this interest?")) deleteInterestMutation.mutate(i.id);
-                      }}
+                      onClick={() => setInterestDeleteId(i.id)}
                       className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
                       title="Delete"
                     >
@@ -1282,6 +1281,22 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
       ) : (
         <p className="text-center text-xs text-gray-400 py-4">No unactioned interests. Capture children&apos;s voices to inform programming.</p>
       )}
+
+      <ConfirmDialog
+        open={!!interestDeleteId}
+        onOpenChange={(open) => !open && setInterestDeleteId(null)}
+        title="Remove Interest"
+        description="Remove this interest? This cannot be undone."
+        confirmLabel="Remove"
+        variant="danger"
+        onConfirm={() => {
+          if (interestDeleteId) {
+            deleteInterestMutation.mutate(interestDeleteId);
+            setInterestDeleteId(null);
+          }
+        }}
+        loading={deleteInterestMutation.isPending}
+      />
     </div>
   );
 }

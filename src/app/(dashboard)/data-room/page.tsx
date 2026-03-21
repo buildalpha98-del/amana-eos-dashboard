@@ -10,6 +10,7 @@ import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV, type LegacyCsvColumn } from "@/lib/csv-export";
 import { toast } from "@/hooks/useToast";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function DataRoomPage() {
   const { data, isLoading, error, refetch } = useDataRoom();
@@ -139,19 +140,27 @@ export default function DataRoomPage() {
                 </div>
               </div>
             ))
-          : data?.sections.map((section, idx) => {
-              const config = DATA_ROOM_SECTIONS[idx];
-              if (!config) return null;
-              return (
-                <DataRoomSection
-                  key={section.key}
-                  section={section}
-                  config={config}
-                  expanded={expandedSections.has(section.key)}
-                  onToggle={() => toggleSection(section.key)}
-                />
-              );
-            })}
+          : !data || data.sections.length === 0 ? (
+              <EmptyState
+                icon={FolderLock}
+                title="No data room sections available"
+                description="Due diligence document sections will appear here once data is available."
+              />
+            ) : (
+              data.sections.map((section, idx) => {
+                const config = DATA_ROOM_SECTIONS[idx];
+                if (!config) return null;
+                return (
+                  <DataRoomSection
+                    key={section.key}
+                    section={section}
+                    config={config}
+                    expanded={expandedSections.has(section.key)}
+                    onToggle={() => toggleSection(section.key)}
+                  />
+                );
+              })
+            )}
       </div>
 
       {/* Generated timestamp */}

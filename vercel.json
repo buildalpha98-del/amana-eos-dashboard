@@ -35,7 +35,7 @@
     },
     {
       "path": "/api/cron/weekly-report",
-      "schedule": "0 21 * * 0"
+      "schedule": "15 21 * * 0"
     },
     {
       "path": "/api/cron/attendance-to-financials",
@@ -51,7 +51,7 @@
     },
     {
       "path": "/api/health-scores/compute",
-      "schedule": "0 20 1 * *"
+      "schedule": "30 20 1 * *"
     },
     {
       "path": "/api/cron/recurring-todos",
@@ -79,7 +79,7 @@
     },
     {
       "path": "/api/cron/conversion-analysis",
-      "schedule": "0 20 * * 0"
+      "schedule": "15 20 * * 0"
     },
     {
       "path": "/api/cron/audit-scheduler",
@@ -87,7 +87,7 @@
     },
     {
       "path": "/api/cron/audit-followup",
-      "schedule": "0 20 * * *"
+      "schedule": "15 20 * * *"
     },
     {
       "path": "/api/cron/nurture-send",
@@ -99,11 +99,11 @@
     },
     {
       "path": "/api/cron/coverage-alerts",
-      "schedule": "0 21 * * *"
+      "schedule": "15 21 * * *"
     },
     {
       "path": "/api/cron/photo-compliance",
-      "schedule": "0 23 * * *"
+      "schedule": "30 23 * * *"
     },
     {
       "path": "/api/cron/marketing-digest",
@@ -111,7 +111,7 @@
     },
     {
       "path": "/api/cron/enquiry-alerts",
-      "schedule": "0 21 * * *"
+      "schedule": "30 21 * * *"
     },
     {
       "path": "/api/cron/enquiry-auto-cold",
@@ -119,7 +119,7 @@
     },
     {
       "path": "/api/cron/retention-checkins",
-      "schedule": "0 20 * * 0"
+      "schedule": "30 19 * * 0"
     },
     {
       "path": "/api/cron/staff-pulse",
@@ -131,7 +131,7 @@
     },
     {
       "path": "/api/cron/incident-trends",
-      "schedule": "0 7 * * 1"
+      "schedule": "15 7 * * 1"
     },
     {
       "path": "/api/cron/contract-renewal",
@@ -143,7 +143,7 @@
     },
     {
       "path": "/api/cron/weekly-digest",
-      "schedule": "0 7 * * 1"
+      "schedule": "30 7 * * 1"
     },
     {
       "path": "/api/cron/marketing-stalled",
@@ -155,11 +155,11 @@
     },
     {
       "path": "/api/cron/sentiment-analysis",
-      "schedule": "0 7 * * 1"
+      "schedule": "45 7 * * 1"
     },
     {
       "path": "/api/cron/duplicate-detection",
-      "schedule": "0 8 * * 1"
+      "schedule": "15 8 * * 1"
     },
     {
       "path": "/api/cron/attendance-anomaly",
@@ -171,7 +171,7 @@
     },
     {
       "path": "/api/cron/regulatory-monitor",
-      "schedule": "0 8 * * 1"
+      "schedule": "30 8 * * 1"
     },
     {
       "path": "/api/cron/ratio-risk-forecast",
@@ -179,11 +179,11 @@
     },
     {
       "path": "/api/cron/checklist-audit",
-      "schedule": "0 8 * * *"
+      "schedule": "15 8 * * *"
     },
     {
       "path": "/api/cron/overdue-todo-nudge",
-      "schedule": "0 21 * * *"
+      "schedule": "45 21 * * *"
     },
     {
       "path": "/api/cron/l10-prep-digest",
@@ -191,7 +191,7 @@
     },
     {
       "path": "/api/cron/new-family-welcome",
-      "schedule": "0 22 * * *"
+      "schedule": "15 22 * * *"
     },
     {
       "path": "/api/cron/policy-compliance",
@@ -203,15 +203,15 @@
     },
     {
       "path": "/api/cron/scorecard-missing",
-      "schedule": "0 21 * * 0"
+      "schedule": "45 21 * * 0"
     },
     {
       "path": "/api/cron/shift-gap-detector",
-      "schedule": "0 18 * * *"
+      "schedule": "15 18 * * *"
     },
     {
       "path": "/api/cron/cert-expiry-alert",
-      "schedule": "0 22 * * 0"
+      "schedule": "15 22 * * 0"
     }
   ]
 }

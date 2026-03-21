@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { WifiOff, Wifi } from "lucide-react";
+import { toast } from "@/hooks/useToast";
 
 export function OfflineIndicator() {
+  const queryClient = useQueryClient();
   const [isOnline, setIsOnline] = useState(true);
   const [showReconnected, setShowReconnected] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -20,6 +23,10 @@ export function OfflineIndicator() {
     setShowReconnected(true);
     requestAnimationFrame(() => setVisible(true));
 
+    // Invalidate all queries to refresh stale data after reconnect
+    queryClient.invalidateQueries();
+    toast({ description: "Back online. Refreshing data..." });
+
     const timer = setTimeout(() => {
       setVisible(false);
       // remove from DOM after transition
@@ -27,7 +34,7 @@ export function OfflineIndicator() {
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     // Initialize from current state
@@ -73,7 +80,7 @@ export function OfflineIndicator() {
         {isOfflineBanner ? (
           <>
             <WifiOff className="h-4 w-4" />
-            You&apos;re offline &mdash; some features may be unavailable
+            You&apos;re offline. Changes will sync when you reconnect.
           </>
         ) : (
           <>

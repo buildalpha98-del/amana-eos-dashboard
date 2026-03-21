@@ -157,11 +157,13 @@ export async function GET(req: NextRequest) {
         }
       }
     } else {
-      console.log("[Compliance Cron] No Resend API key — logging only");
-      console.log(`  Expired: ${expired.length}`);
-      console.log(`  Due 7d: ${due7d.length}`);
-      console.log(`  Due 14d: ${due14d.length}`);
-      console.log(`  Due 30d: ${due30d.length}`);
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[Compliance Cron] No Resend API key — logging only");
+        console.log(`  Expired: ${expired.length}`);
+        console.log(`  Due 7d: ${due7d.length}`);
+        console.log(`  Due 14d: ${due14d.length}`);
+        console.log(`  Due 30d: ${due30d.length}`);
+      }
     }
 
     // ── Overdue Audit Escalation ──────────────────────────────

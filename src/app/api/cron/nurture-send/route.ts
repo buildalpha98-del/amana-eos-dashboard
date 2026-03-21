@@ -42,6 +42,8 @@ const TEMPLATE_MAP: Record<string, (firstName: string, centreName: string) => { 
   month1_referral: nurtureMonth1ReferralEmail,
 };
 
+const BATCH_SIZE = 15;
+
 /**
  * POST /api/cron/nurture-send — Send pending nurture emails
  *
@@ -50,6 +52,8 @@ const TEMPLATE_MAP: Record<string, (firstName: string, centreName: string) => { 
  *
  * No cron lock needed — each step has a unique constraint and status tracking,
  * so concurrent runs won't double-send.
+ *
+ * Processes in batches of 15 via Promise.allSettled to avoid Vercel 60s timeout.
  */
 export async function POST(req: NextRequest) {
   const authResult = verifyCronSecret(req);
@@ -77,22 +81,30 @@ export async function POST(req: NextRequest) {
   });
 
   if (pendingSteps.length === 0) {
-    return NextResponse.json({ sent: 0, skipped: 0, failed: 0 });
+    // Still process sequence executions even if no legacy steps
+    const seqResult = await processSequenceExecutions(resend, now);
+    return NextResponse.json({
+      sent: seqResult.sent,
+      skipped: seqResult.skipped,
+      failed: seqResult.failed,
+      legacy: { sent: 0, skipped: 0, failed: 0 },
+      sequences: seqResult,
+    });
   }
 
   let sent = 0;
   let skipped = 0;
   let failed = 0;
 
-  for (const step of pendingSteps) {
+  /** Process a single legacy ParentNurtureStep */
+  async function processLegacyStep(step: (typeof pendingSteps)[number]): Promise<"sent" | "skipped" | "failed"> {
     // Skip unsubscribed contacts
     if (!step.contact.subscribed) {
       await prisma.parentNurtureStep.update({
         where: { id: step.id },
         data: { status: "cancelled" },
       });
-      skipped++;
-      continue;
+      return "skipped";
     }
 
     const firstName = step.contact.firstName || "Parent";
@@ -118,58 +130,75 @@ export async function POST(req: NextRequest) {
           where: { id: step.id },
           data: { status: "failed" },
         });
-        failed++;
-        continue;
+        return "failed";
       }
       ({ subject, html } = templateFn(firstName, centreName));
     }
 
-    try {
-      const result = await resend.emails.send({
-        from: FROM_EMAIL,
-        to: step.contact.email,
-        subject,
-        html,
-      });
+    const result = await resend!.emails.send({
+      from: FROM_EMAIL,
+      to: step.contact.email,
+      subject,
+      html,
+    });
 
-      await prisma.parentNurtureStep.update({
-        where: { id: step.id },
-        data: { status: "sent", sentAt: new Date() },
-      });
+    await prisma.parentNurtureStep.update({
+      where: { id: step.id },
+      data: { status: "sent", sentAt: new Date() },
+    });
 
-      // Log to DeliveryLog
-      await prisma.deliveryLog.create({
-        data: {
-          channel: "email",
-          serviceCode: step.service.code,
-          messageType: "nurture_sequence",
-          externalId: result.data?.id || null,
-          recipientCount: 1,
-          status: "sent",
-        },
-      });
+    // Log to DeliveryLog
+    await prisma.deliveryLog.create({
+      data: {
+        channel: "email",
+        serviceCode: step.service.code,
+        messageType: "nurture_sequence",
+        externalId: result.data?.id || null,
+        recipientCount: 1,
+        status: "sent",
+      },
+    });
 
-      sent++;
-    } catch (err) {
-      console.error(`[nurture-send] Failed to send step ${step.id}:`, err);
+    return "sent";
+  }
 
-      await prisma.parentNurtureStep.update({
-        where: { id: step.id },
-        data: { status: "failed" },
-      });
+  // Process legacy steps in batches of BATCH_SIZE via Promise.allSettled
+  for (let i = 0; i < pendingSteps.length; i += BATCH_SIZE) {
+    const batch = pendingSteps.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(step => processLegacyStep(step))
+    );
 
-      await prisma.deliveryLog.create({
-        data: {
-          channel: "email",
-          serviceCode: step.service.code,
-          messageType: "nurture_sequence",
-          recipientCount: 1,
-          status: "failed",
-          errorMessage: err instanceof Error ? err.message : String(err),
-        },
-      });
-
-      failed++;
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
+      if (result.status === "fulfilled") {
+        if (result.value === "sent") sent++;
+        else if (result.value === "skipped") skipped++;
+        else if (result.value === "failed") failed++;
+      } else {
+        // Promise rejected — log failure and update DB
+        const step = batch[j];
+        console.error(`[nurture-send] Failed to send step ${step.id}:`, result.reason);
+        try {
+          await prisma.parentNurtureStep.update({
+            where: { id: step.id },
+            data: { status: "failed" },
+          });
+          await prisma.deliveryLog.create({
+            data: {
+              channel: "email",
+              serviceCode: step.service.code,
+              messageType: "nurture_sequence",
+              recipientCount: 1,
+              status: "failed",
+              errorMessage: result.reason instanceof Error ? result.reason.message : String(result.reason),
+            },
+          });
+        } catch (dbErr) {
+          console.error(`[nurture-send] Failed to record failure for step ${step.id}:`, dbErr);
+        }
+        failed++;
+      }
     }
   }
 
@@ -188,6 +217,8 @@ export async function POST(req: NextRequest) {
 /**
  * Process pending SequenceStepExecution records for both parent nurture
  * and CRM outreach sequences.
+ *
+ * Processes in batches of BATCH_SIZE via Promise.allSettled for parallelism.
  */
 async function processSequenceExecutions(
   resend: ReturnType<typeof getResend>,
@@ -223,7 +254,11 @@ async function processSequenceExecutions(
   let skipped = 0;
   let failed = 0;
 
-  for (const exec of pending) {
+  // Pre-import email layout module once to avoid repeated dynamic imports
+  const { renderBlocksToHtml, marketingLayout } = await import("@/lib/email-marketing-layout");
+
+  /** Process a single SequenceStepExecution */
+  async function processSequenceExec(exec: (typeof pending)[number]): Promise<"sent" | "skipped"> {
     const isParent = exec.step.sequence.type === "parent_nurture";
     const email = isParent
       ? exec.enrolment.contact?.email
@@ -234,8 +269,7 @@ async function processSequenceExecutions(
         where: { id: exec.id },
         data: { status: "cancelled", error: "No email address" },
       });
-      skipped++;
-      continue;
+      return "skipped";
     }
 
     // Check subscription for parent contacts
@@ -244,8 +278,7 @@ async function processSequenceExecutions(
         where: { id: exec.id },
         data: { status: "cancelled", error: "Unsubscribed" },
       });
-      skipped++;
-      continue;
+      return "skipped";
     }
 
     let subject: string;
@@ -253,7 +286,6 @@ async function processSequenceExecutions(
 
     // Try visual template first, fall back to hardcoded TEMPLATE_MAP
     if (exec.step.emailTemplate?.blocks) {
-      const { renderBlocksToHtml } = await import("@/lib/email-marketing-layout");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const blocks = exec.step.emailTemplate.blocks as any;
       const name = isParent
@@ -262,7 +294,6 @@ async function processSequenceExecutions(
       html = renderBlocksToHtml(blocks, { firstName: name, parentName: name, contactName: name, schoolName: exec.enrolment.lead?.schoolName || "", centreName: "" });
       subject = exec.step.emailTemplate.subject || exec.step.name;
     } else if (exec.step.emailTemplate?.htmlContent) {
-      const { marketingLayout } = await import("@/lib/email-marketing-layout");
       html = marketingLayout(exec.step.emailTemplate.htmlContent);
       subject = exec.step.emailTemplate.subject || exec.step.name;
     } else {
@@ -271,7 +302,6 @@ async function processSequenceExecutions(
       if (!templateFn) {
         // For CRM steps without templates, generate a basic email
         subject = exec.step.name;
-        const { marketingLayout } = await import("@/lib/email-marketing-layout");
         html = marketingLayout(`<p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">${exec.step.name} — this email template has not been configured yet.</p>`);
       } else {
         const name = isParent
@@ -281,44 +311,63 @@ async function processSequenceExecutions(
       }
     }
 
-    try {
-      await resend.emails.send({
-        from: FROM_EMAIL,
-        to: email,
-        subject,
-        html,
-      });
+    await resend!.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject,
+      html,
+    });
 
-      await prisma.sequenceStepExecution.update({
-        where: { id: exec.id },
-        data: { status: "sent", sentAt: new Date() },
-      });
+    await prisma.sequenceStepExecution.update({
+      where: { id: exec.id },
+      data: { status: "sent", sentAt: new Date() },
+    });
 
-      // Update enrolment progress
-      await prisma.sequenceEnrolment.update({
-        where: { id: exec.enrolmentId },
-        data: { currentStepNumber: exec.step.stepNumber },
-      });
+    // Update enrolment progress
+    await prisma.sequenceEnrolment.update({
+      where: { id: exec.enrolmentId },
+      data: { currentStepNumber: exec.step.stepNumber },
+    });
 
-      // For CRM: create touchpoint log
-      if (!isParent && exec.enrolment.lead) {
-        await prisma.touchpointLog.create({
-          data: {
-            leadId: exec.enrolment.leadId!,
-            type: "auto_email",
-            subject,
-          },
-        });
+    // For CRM: create touchpoint log
+    if (!isParent && exec.enrolment.lead) {
+      await prisma.touchpointLog.create({
+        data: {
+          leadId: exec.enrolment.leadId!,
+          type: "auto_email",
+          subject,
+        },
+      });
+    }
+
+    return "sent";
+  }
+
+  // Process sequence executions in batches of BATCH_SIZE via Promise.allSettled
+  for (let i = 0; i < pending.length; i += BATCH_SIZE) {
+    const batch = pending.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(exec => processSequenceExec(exec))
+    );
+
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
+      if (result.status === "fulfilled") {
+        if (result.value === "sent") sent++;
+        else if (result.value === "skipped") skipped++;
+      } else {
+        const exec = batch[j];
+        console.error(`[nurture-send] Sequence exec ${exec.id} failed:`, result.reason);
+        try {
+          await prisma.sequenceStepExecution.update({
+            where: { id: exec.id },
+            data: { status: "failed", error: result.reason instanceof Error ? result.reason.message : String(result.reason) },
+          });
+        } catch (dbErr) {
+          console.error(`[nurture-send] Failed to record failure for exec ${exec.id}:`, dbErr);
+        }
+        failed++;
       }
-
-      sent++;
-    } catch (err) {
-      console.error(`[nurture-send] Sequence exec ${exec.id} failed:`, err);
-      await prisma.sequenceStepExecution.update({
-        where: { id: exec.id },
-        data: { status: "failed", error: err instanceof Error ? err.message : String(err) },
-      });
-      failed++;
     }
   }
 

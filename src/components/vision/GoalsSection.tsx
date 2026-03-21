@@ -198,7 +198,8 @@ function GoalRow({
           <div className="flex items-center gap-1">
             <button
               onClick={() => onDelete.mutate(goal.id)}
-              className="text-xs px-2 py-0.5 bg-red-600 text-white rounded"
+              disabled={onDelete.isPending}
+              className="text-xs px-2 py-0.5 bg-red-600 text-white rounded disabled:opacity-50"
             >
               Delete
             </button>
