@@ -27,6 +27,7 @@ Don't worry about learning everything at once. Start with My Portal and your dai
     slug: "your-first-day",
     sortOrder: 1,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Understanding Your Role",
@@ -51,6 +52,7 @@ You can check your current role in **My Portal** under your profile details.`,
     slug: "understanding-your-role",
     sortOrder: 2,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Setting Up Your Profile",
@@ -79,6 +81,7 @@ You'll receive email reminders before certificates expire, but it's good practic
     slug: "setting-up-your-profile",
     sortOrder: 3,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Using the Mobile App",
@@ -109,6 +112,7 @@ You'll receive email reminders before certificates expire, but it's good practic
     slug: "using-the-mobile-app",
     sortOrder: 4,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Keyboard Shortcuts & Quick Actions",
@@ -142,6 +146,7 @@ The bell icon in the top bar shows your unread notifications. Click it to see:
     slug: "keyboard-shortcuts-quick-actions",
     sortOrder: 5,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Getting Help & Reporting Issues",
@@ -174,6 +179,7 @@ For urgent issues (like being locked out of your account), contact Head Office d
     slug: "getting-help-reporting-issues",
     sortOrder: 6,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
 
   // ─── EOS Basics ─────────────────────────────────────────────────────
@@ -200,6 +206,7 @@ You don't need to be an EOS expert to use the dashboard. Start with your assigne
     slug: "what-is-eos",
     sortOrder: 1,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Rocks: Your 90-Day Priorities",
@@ -231,6 +238,7 @@ You don't need to be an EOS expert to use the dashboard. Start with your assigne
     slug: "rocks-90-day-priorities",
     sortOrder: 2,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "The Scorecard: Weekly Measurables",
@@ -267,6 +275,7 @@ Each measurable has an owner who is responsible for keeping it up to date and ac
     slug: "scorecard-weekly-measurables",
     sortOrder: 3,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "To-Dos: Weekly Action Items",
@@ -299,6 +308,7 @@ To-Dos are reviewed during every L10 meeting. A simple "done" or "not done" keep
     slug: "todos-weekly-action-items",
     sortOrder: 4,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Issues List & IDS",
@@ -330,6 +340,7 @@ The Issues List is one of the most powerful EOS tools. It gives your team a safe
     slug: "issues-list-ids",
     sortOrder: 5,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "L10 Meetings: Your Weekly Pulse",
@@ -365,6 +376,7 @@ All new To-Dos, Issue updates, and Rock status changes are saved in the dashboar
     slug: "l10-meetings-weekly-pulse",
     sortOrder: 6,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
 
   // ─── HR & Leave ─────────────────────────────────────────────────────
@@ -398,6 +410,7 @@ If you need to cancel an approved leave request, contact your coordinator direct
     slug: "submitting-leave-request",
     sortOrder: 1,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Viewing Your Roster & Shifts",
@@ -428,6 +441,7 @@ The roster displays in a card layout that's easy to read on your phone. Each day
     slug: "viewing-roster-shifts",
     sortOrder: 2,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Timesheets: Logging Your Hours",
@@ -459,6 +473,7 @@ If you have questions about pay or hours, speak with your coordinator first. The
     slug: "timesheets-logging-hours",
     sortOrder: 3,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Staff Compliance: Certificates & Checks",
@@ -497,6 +512,7 @@ You'll receive email alerts at 30 days and 7 days before any certificate expires
     slug: "staff-compliance-certificates",
     sortOrder: 4,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Staff Directory",
@@ -530,6 +546,7 @@ The directory is available to coordinators, members, admins, Head Office, and ow
     slug: "staff-directory",
     sortOrder: 5,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Staff Onboarding & Training",
@@ -567,6 +584,7 @@ The system automatically creates check-in reminders at 1, 3, 6, and 12 months fo
     slug: "staff-onboarding-training",
     sortOrder: 6,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
 
   // ─── Compliance ─────────────────────────────────────────────────────
@@ -603,6 +621,7 @@ Compliance isn't just about passing assessments — it's about providing the bes
     slug: "understanding-nqs-compliance",
     sortOrder: 1,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Staff-to-Child Ratios",
@@ -636,6 +655,7 @@ For Victorian centres, the system automatically flags sessions where less than 5
     slug: "staff-to-child-ratios",
     sortOrder: 2,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Daily Checklists",
@@ -669,6 +689,7 @@ Checklist completion rates are tracked and can be reviewed in the service overvi
     slug: "daily-checklists",
     sortOrder: 3,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Incident Reporting",
@@ -713,6 +734,7 @@ The Incidents page shows an overview of all incidents with:
     slug: "incident-reporting",
     sortOrder: 4,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Policies & Acknowledgements",
@@ -750,6 +772,7 @@ If you have questions about a policy, speak with your coordinator or raise it in
     slug: "policies-acknowledgements",
     sortOrder: 5,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Audit Templates & QIP",
@@ -787,6 +810,7 @@ If enabled, the AI assistant can generate NQS-aligned improvement actions based 
     slug: "audit-templates-qip",
     sortOrder: 6,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
 
   // ─── Operations ─────────────────────────────────────────────────────
@@ -822,6 +846,7 @@ You'll spend most of your time in the Operations and Compliance tabs. Set up you
     slug: "managing-your-service",
     sortOrder: 1,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Attendance Tracking",
@@ -861,6 +886,7 @@ For permanent bookings that repeat each week:
     slug: "attendance-tracking",
     sortOrder: 2,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Managing Enquiries & Enrolments",
@@ -898,6 +924,7 @@ The **Conversions** page shows a visual funnel of how many enquiries convert at 
     slug: "managing-enquiries-enrolments",
     sortOrder: 3,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Email & Communication",
@@ -941,6 +968,7 @@ All emails sent through the dashboard are logged. You can view send history and 
     slug: "email-communication",
     sortOrder: 4,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Financial Reports",
@@ -981,6 +1009,7 @@ Each centre receives health scores based on financial performance. These feed in
     slug: "financial-reports",
     sortOrder: 5,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "The Queue: Automated Reports",
@@ -1021,6 +1050,7 @@ Click the **Export PDF** button in the Report Viewer to generate a branded Amana
     slug: "queue-automated-reports",
     sortOrder: 6,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
 
   // ─── Troubleshooting ────────────────────────────────────────────────
@@ -1054,6 +1084,7 @@ Remember: role restrictions exist to keep data secure and ensure people only see
     slug: "cant-access-page",
     sortOrder: 1,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Data Not Loading?",
@@ -1085,6 +1116,7 @@ Most loading issues are temporary and resolve with a simple refresh. If you see 
     slug: "data-not-loading",
     sortOrder: 2,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Email Not Sending?",
@@ -1125,6 +1157,7 @@ The email system uses Resend for delivery, and the team can check delivery logs 
     slug: "email-not-sending",
     sortOrder: 3,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
   {
     title: "Something Looks Wrong?",
@@ -1164,6 +1197,7 @@ You have three options:
     slug: "something-looks-wrong",
     sortOrder: 4,
     audienceRoles: [],
+    videoUrl: null, // Optional: set a Loom/YouTube embed URL for this article
   },
 ];
 

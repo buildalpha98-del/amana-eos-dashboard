@@ -46,6 +46,7 @@ import {
   Lightbulb,
   Activity,
   Map,
+  PlayCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -1061,6 +1062,20 @@ export function GettingStartedContent() {
     },
   });
 
+  // ── Fetch role video URLs ─────────────────────────────────
+  const { data: videoData } = useQuery<{
+    roleVideos: Record<string, string>;
+  }>({
+    queryKey: ["getting-started-videos"],
+    queryFn: async () => {
+      const res = await fetch("/api/getting-started/videos");
+      if (!res.ok) throw new Error("Failed to load videos");
+      return res.json();
+    },
+  });
+
+  const roleVideoUrl = videoData?.roleVideos?.[role as RoleKey] ?? "";
+
   const progress = data?.progress ?? {};
 
   // ── Toggle mutation ─────────────────────────────────────────
@@ -1184,6 +1199,30 @@ export function GettingStartedContent() {
               </p>
             )}
           </div>
+
+          {/* Video walkthrough */}
+          {roleVideoUrl ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <PlayCircle className="w-5 h-5 text-brand" />
+                <h3 className="text-sm font-semibold text-gray-900">Watch the walkthrough</h3>
+                <span className="text-xs text-gray-400">2-5 min</span>
+              </div>
+              <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+                <iframe
+                  src={roleVideoUrl}
+                  className="w-full h-full"
+                  allowFullScreen
+                  allow="autoplay; fullscreen"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-xl border border-dashed border-gray-200 p-4 mb-6 flex items-center gap-3">
+              <PlayCircle className="w-5 h-5 text-gray-300" />
+              <p className="text-xs text-gray-400">Video walkthrough coming soon — check back after rollout!</p>
+            </div>
+          )}
 
           {/* Categorised checklist */}
           {isLoading ? (

@@ -25,6 +25,7 @@ interface Article {
   category: string;
   slug: string;
   sortOrder: number;
+  videoUrl?: string | null;
 }
 
 const categories = [
@@ -197,6 +198,16 @@ export function HelpContent() {
                     >
                       <div className="px-4 pb-4 pt-0">
                         <div className="border-t border-gray-100 pt-3">
+                          {article.videoUrl && (
+                            <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 mb-4">
+                              <iframe
+                                src={article.videoUrl}
+                                className="w-full h-full"
+                                allowFullScreen
+                                allow="autoplay; fullscreen"
+                              />
+                            </div>
+                          )}
                           <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
                             {article.body}
                           </p>
