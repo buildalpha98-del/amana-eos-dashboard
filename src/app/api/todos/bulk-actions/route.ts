@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
   const { session, error } = await requireAuth();
   if (error) return error;
 
+  try {
   const body = await req.json();
   const parsed = bulkActionSchema.safeParse(body);
 
@@ -83,5 +84,12 @@ export async function POST(req: NextRequest) {
 
     default:
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  }
+  } catch (err) {
+    console.error("Bulk todo action error:", err);
+    return NextResponse.json(
+      { error: "Failed to perform bulk action" },
+      { status: 500 },
+    );
   }
 }

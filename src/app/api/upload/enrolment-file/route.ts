@@ -5,7 +5,30 @@ import { uploadFile } from "@/lib/storage";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".jpg", ".jpeg", ".png"]);
 
+// Simple in-memory rate limiter for this public endpoint
+const uploadAttempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_UPLOADS_PER_IP = 20; // 20 uploads per 15 min window
+const WINDOW_MS = 15 * 60 * 1000;
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = uploadAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    uploadAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= MAX_UPLOADS_PER_IP) return false;
+  entry.count++;
+  return true;
+}
+
 export async function POST(req: NextRequest) {
+  // Rate limit — this endpoint is intentionally public for parent enrolment forms
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json({ error: "Too many uploads. Please try again later." }, { status: 429 });
+  }
+
   try {
     const { file, filename, contentType } = await req.json();
     if (!file || !filename) {

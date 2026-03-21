@@ -1865,8 +1865,16 @@ export function nurtureSessionReminderEmail(
 
 // ─── Unsubscribe footer helper ───────────────────────────────
 
+export function generatePrefToken(contactId: string): string {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createHmac } = require("crypto");
+  const secret = process.env.NOTIFICATION_PREF_SECRET || process.env.NEXTAUTH_SECRET || "";
+  return createHmac("sha256", secret).update(contactId).digest("hex");
+}
+
 export function nurtureUnsubscribeFooter(contactId: string, baseUrl: string) {
-  const unsubUrl = `${baseUrl}/notifications/preferences/${contactId}`;
+  const token = generatePrefToken(contactId);
+  const unsubUrl = `${baseUrl}/notifications/preferences/${contactId}?token=${token}`;
   return `
 <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px;">
   <tr>

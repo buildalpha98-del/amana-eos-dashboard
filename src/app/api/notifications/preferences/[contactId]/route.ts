@@ -1,11 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createHmac } from "crypto";
+
+/**
+ * Validate the HMAC token to prevent enumeration of contact IDs.
+ * Links sent to parents include ?token=HMAC(contactId, secret).
+ */
+function validateToken(contactId: string, token: string | null): boolean {
+  if (!token) return false;
+  const secret = process.env.NOTIFICATION_PREF_SECRET || process.env.NEXTAUTH_SECRET || "";
+  const expected = createHmac("sha256", secret).update(contactId).digest("hex");
+  // Constant-time comparison
+  if (expected.length !== token.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < expected.length; i++) {
+    mismatch |= expected.charCodeAt(i) ^ token.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ contactId: string }> }
 ) {
   const { contactId } = await params;
+  const token = req.nextUrl.searchParams.get("token");
+
+  if (!validateToken(contactId, token)) {
+    return NextResponse.json({ error: "Invalid or missing token" }, { status: 403 });
+  }
 
   const contact = await prisma.centreContact.findUnique({
     where: { id: contactId },
@@ -36,21 +59,31 @@ export async function PATCH(
   { params }: { params: Promise<{ contactId: string }> }
 ) {
   const { contactId } = await params;
-  const { subscribed } = await req.json();
+  const token = req.nextUrl.searchParams.get("token");
 
-  const contact = await prisma.centreContact.findUnique({
-    where: { id: contactId },
-    select: { id: true },
-  });
-
-  if (!contact) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!validateToken(contactId, token)) {
+    return NextResponse.json({ error: "Invalid or missing token" }, { status: 403 });
   }
 
-  await prisma.centreContact.update({
-    where: { id: contactId },
-    data: { subscribed: Boolean(subscribed) },
-  });
+  try {
+    const { subscribed } = await req.json();
 
-  return NextResponse.json({ success: true, subscribed: Boolean(subscribed) });
+    const contact = await prisma.centreContact.findUnique({
+      where: { id: contactId },
+      select: { id: true },
+    });
+
+    if (!contact) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    await prisma.centreContact.update({
+      where: { id: contactId },
+      data: { subscribed: Boolean(subscribed) },
+    });
+
+    return NextResponse.json({ success: true, subscribed: Boolean(subscribed) });
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
 }

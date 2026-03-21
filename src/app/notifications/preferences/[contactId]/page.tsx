@@ -16,6 +16,7 @@ export default function NotificationPreferencesPage() {
   const searchParams = useSearchParams();
   const contactId = params.contactId as string;
   const autoUnsubscribe = searchParams.get("unsubscribe") === "true";
+  const token = searchParams.get("token") || "";
 
   const [data, setData] = useState<PrefsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,7 +25,7 @@ export default function NotificationPreferencesPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`/api/notifications/preferences/${contactId}`)
+    fetch(`/api/notifications/preferences/${contactId}?token=${encodeURIComponent(token)}`)
       .then((r) => {
         if (!r.ok) throw new Error("Not found");
         return r.json();
@@ -45,7 +46,7 @@ export default function NotificationPreferencesPage() {
     setSaving(true);
     setSaved(false);
     try {
-      const res = await fetch(`/api/notifications/preferences/${contactId}`, {
+      const res = await fetch(`/api/notifications/preferences/${contactId}?token=${encodeURIComponent(token)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscribed: newValue }),

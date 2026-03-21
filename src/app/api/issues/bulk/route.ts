@@ -27,9 +27,11 @@ export async function POST(req: NextRequest) {
   const { action, ids, assigneeId, category } = parsed.data;
 
   try {
+    let result: { count: number } = { count: 0 };
+
     switch (action) {
       case "resolve": {
-        await prisma.issue.updateMany({
+        result = await prisma.issue.updateMany({
           where: { id: { in: ids }, deleted: false },
           data: { status: "solved", solvedAt: new Date() },
         });
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
       }
 
       case "delete": {
-        await prisma.issue.updateMany({
+        result = await prisma.issue.updateMany({
           where: { id: { in: ids } },
           data: { deleted: true },
         });
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           );
         }
-        await prisma.issue.updateMany({
+        result = await prisma.issue.updateMany({
           where: { id: { in: ids }, deleted: false },
           data: { ownerId: assigneeId },
         });
@@ -65,7 +67,7 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           );
         }
-        await prisma.issue.updateMany({
+        result = await prisma.issue.updateMany({
           where: { id: { in: ids }, deleted: false },
           data: { category },
         });
@@ -84,7 +86,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, count: ids.length });
+    return NextResponse.json({ success: true, count: result.count });
   } catch (err) {
     console.error("Bulk issue action error:", err);
     return NextResponse.json(

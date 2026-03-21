@@ -94,7 +94,7 @@ function AdoptionSkeleton() {
       {/* Stats row skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-200 p-5">
+          <div key={i} className="bg-card rounded-xl border border-border p-5">
             <Skeleton className="h-4 w-24 mb-3" />
             <Skeleton className="h-8 w-16 mb-2" />
             <Skeleton className="h-3 w-32" />
@@ -102,10 +102,10 @@ function AdoptionSkeleton() {
         ))}
       </div>
       {/* Table skeleton */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <Skeleton className="h-5 w-40 mb-4" />
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 py-3 border-b border-gray-100">
+          <div key={i} className="flex items-center gap-4 py-3 border-b border-border/50">
             <Skeleton className="h-8 w-8 rounded-full" />
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-20 ml-auto" />
@@ -139,20 +139,20 @@ function StatCard({
   return (
     <div
       className={cn(
-        "bg-white rounded-xl border p-5 transition-colors",
-        alert ? "border-amber-300 bg-amber-50/30" : "border-gray-200",
+        "bg-card rounded-xl border p-5 transition-colors",
+        alert ? "border-amber-300 bg-amber-50/30" : "border-border",
       )}
     >
       <div className="flex items-center gap-2 mb-2">
         <div className={cn("p-1.5 rounded-lg", color)}>
           <Icon className="w-4 h-4" />
         </div>
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
           {label}
         </span>
       </div>
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
-      <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
+      <div className="text-2xl font-bold text-foreground">{value}</div>
+      <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
       {progress !== undefined && (
         <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
           <div
@@ -170,11 +170,11 @@ function StatCard({
 function UserCard({ user }: { user: AdoptionUser }) {
   const status = getUserStatus(user.lastLoginAt);
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+    <div className="bg-card rounded-lg border border-border p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-          <p className="text-xs text-gray-500">{user.email}</p>
+          <p className="text-sm font-semibold text-foreground">{user.name}</p>
+          <p className="text-xs text-muted-foreground">{user.email}</p>
         </div>
         <span
           className={cn(
@@ -185,14 +185,14 @@ function UserCard({ user }: { user: AdoptionUser }) {
           {status.label}
         </span>
       </div>
-      <div className="flex items-center justify-between text-xs text-gray-500">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{ROLE_LABELS[user.role] ?? user.role}</span>
         <span>Last login: {relativeTime(user.lastLoginAt)}</span>
       </div>
       <div>
         <div className="flex items-center justify-between text-xs mb-1">
-          <span className="text-gray-500">Onboarding</span>
-          <span className="font-medium text-gray-700">{user.onboardingPct}%</span>
+          <span className="text-muted-foreground">Onboarding</span>
+          <span className="font-medium text-foreground">{user.onboardingPct}%</span>
         </div>
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
@@ -296,16 +296,16 @@ export function AdoptionDashboard() {
       </div>
 
       {/* User Table */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">User Adoption</h3>
+          <h3 className="text-lg font-semibold text-foreground">User Adoption</h3>
           <div className="flex items-center gap-2">
             {/* Role filter */}
             <div className="relative">
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="appearance-none pl-3 pr-8 py-1.5 text-sm border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               >
                 <option value="all">All Roles</option>
                 {roles.map((r) => (
@@ -314,14 +314,14 @@ export function AdoptionDashboard() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             </div>
             {/* Status filter */}
             <div className="relative">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                className="appearance-none pl-3 pr-8 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="appearance-none pl-3 pr-8 py-1.5 text-sm border border-border rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               >
                 <option value="all">All Statuses</option>
                 <option value="active_today">Active Today</option>
@@ -329,7 +329,7 @@ export function AdoptionDashboard() {
                 <option value="inactive">Inactive</option>
                 <option value="never">Never Logged In</option>
               </select>
-              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
             </div>
           </div>
         </div>
@@ -338,20 +338,20 @@ export function AdoptionDashboard() {
         <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+              <tr className="border-b border-border">
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-2 px-3">
                   Name
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-2 px-3">
                   Role
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-2 px-3">
                   Last Login
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-2 px-3">
                   Onboarding
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+                <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider py-2 px-3">
                   Status
                 </th>
                 <th className="w-10"></th>
@@ -365,18 +365,18 @@ export function AdoptionDashboard() {
                 return (
                   <tr
                     key={user.id}
-                    className="border-b border-gray-100 hover:bg-gray-50/50"
+                    className="border-b border-border/50 hover:bg-surface/50"
                   >
                     <td className="py-2.5 px-3">
                       <div>
-                        <p className="font-medium text-gray-900">{user.name}</p>
-                        <p className="text-xs text-gray-500">{user.email}</p>
+                        <p className="font-medium text-foreground">{user.name}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 text-gray-600">
+                    <td className="py-2.5 px-3 text-muted-foreground">
                       {ROLE_LABELS[user.role] ?? user.role}
                     </td>
-                    <td className="py-2.5 px-3 text-gray-600">
+                    <td className="py-2.5 px-3 text-muted-foreground">
                       {relativeTime(user.lastLoginAt)}
                     </td>
                     <td className="py-2.5 px-3">
@@ -392,7 +392,7 @@ export function AdoptionDashboard() {
                             style={{ width: `${user.onboardingPct}%` }}
                           />
                         </div>
-                        <span className="text-xs text-gray-500 w-8 text-right">
+                        <span className="text-xs text-muted-foreground w-8 text-right">
                           {user.onboardingPct}%
                         </span>
                       </div>
@@ -425,7 +425,7 @@ export function AdoptionDashboard() {
                 <tr>
                   <td
                     colSpan={6}
-                    className="py-8 text-center text-sm text-gray-500"
+                    className="py-8 text-center text-sm text-muted-foreground"
                   >
                     No users match the selected filters.
                   </td>
@@ -438,7 +438,7 @@ export function AdoptionDashboard() {
         {/* Mobile card layout */}
         <div className="sm:hidden space-y-3">
           {filteredUsers.length === 0 ? (
-            <p className="py-8 text-center text-sm text-gray-500">
+            <p className="py-8 text-center text-sm text-muted-foreground">
               No users match the selected filters.
             </p>
           ) : (

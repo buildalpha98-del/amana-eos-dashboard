@@ -35,23 +35,31 @@ function generateTempPassword(): string {
   const special = "!@#$%&*";
   const all = upper + lower + digits + special;
 
+  // Use cryptographically secure randomness
+  const randomBytes = new Uint8Array(12);
+  crypto.getRandomValues(randomBytes);
+
   // Ensure at least one of each required type
   let pwd = "";
-  pwd += upper[Math.floor(Math.random() * upper.length)];
-  pwd += lower[Math.floor(Math.random() * lower.length)];
-  pwd += digits[Math.floor(Math.random() * digits.length)];
-  pwd += special[Math.floor(Math.random() * special.length)];
+  pwd += upper[randomBytes[0] % upper.length];
+  pwd += lower[randomBytes[1] % lower.length];
+  pwd += digits[randomBytes[2] % digits.length];
+  pwd += special[randomBytes[3] % special.length];
 
   // Fill remaining 8 chars
   for (let i = 0; i < 8; i++) {
-    pwd += all[Math.floor(Math.random() * all.length)];
+    pwd += all[randomBytes[4 + i] % all.length];
   }
 
-  // Shuffle the password
-  return pwd
-    .split("")
-    .sort(() => Math.random() - 0.5)
-    .join("");
+  // Shuffle using Fisher-Yates with crypto randomness
+  const shuffleBytes = new Uint8Array(pwd.length);
+  crypto.getRandomValues(shuffleBytes);
+  const arr = pwd.split("");
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = shuffleBytes[i] % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.join("");
 }
 
 const BATCH_SIZE = 10;

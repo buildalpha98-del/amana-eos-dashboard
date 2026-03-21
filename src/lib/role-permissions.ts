@@ -76,6 +76,7 @@ export const allPages = [
   "/recruitment",
   // Tools
   "/tools/ccs-calculator",
+  "/tools/the-amana-way",
   // Admin
   "/audit-log",
   // Support — accessible to all roles
