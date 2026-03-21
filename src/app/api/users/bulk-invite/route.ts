@@ -182,6 +182,10 @@ export async function POST(req: NextRequest) {
           req,
         );
 
+        // Seed onboarding todos + welcome announcement
+        const { seedOnboardingPackage } = await import("@/lib/onboarding-seed");
+        await seedOnboardingPackage(user.id, { serviceId });
+
         // Send welcome email
         try {
           const { subject, html } = welcomeEmail(

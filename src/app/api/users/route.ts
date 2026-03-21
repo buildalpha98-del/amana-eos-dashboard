@@ -151,6 +151,10 @@ export async function POST(req: NextRequest) {
     metadata: { role: user.role, email: user.email },
   }, req);
 
+  // Seed onboarding todos + welcome announcement
+  const { seedOnboardingPackage } = await import("@/lib/onboarding-seed");
+  await seedOnboardingPackage(user.id, { serviceId: user.serviceId });
+
   // Send welcome email with temporary password
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const loginUrl = `${baseUrl}/login`;
