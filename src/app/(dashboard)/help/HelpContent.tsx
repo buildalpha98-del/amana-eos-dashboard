@@ -14,6 +14,7 @@ import {
   Wrench,
   MessageSquare,
   Database,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,7 @@ const categories = [
   { key: "eos_basics", label: "EOS Basics", icon: HelpCircle },
   { key: "hr", label: "HR & Leave", icon: Users },
   { key: "compliance", label: "Compliance", icon: ShieldCheck },
+  { key: "operations", label: "Operations", icon: Settings },
   { key: "troubleshooting", label: "Troubleshooting", icon: Wrench },
 ] as const;
 

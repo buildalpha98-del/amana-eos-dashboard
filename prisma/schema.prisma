@@ -3915,7 +3915,7 @@ model KnowledgeBaseArticle {
   id            String   @id @default(cuid())
   title         String
   body          String   @db.Text
-  category      String // getting_started, eos_basics, hr, compliance, troubleshooting
+  category      String // getting_started, eos_basics, hr, compliance, operations, troubleshooting
   slug          String   @unique
   sortOrder     Int      @default(0)
   published     Boolean  @default(true)
