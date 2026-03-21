@@ -3,6 +3,8 @@
 import { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImportWizard } from "@/components/import/ImportWizard";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 import {
   Settings,
   Users,
@@ -880,6 +882,8 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
       accentColor !== orgSettings.accentColor
     : false;
 
+  useUnsavedChanges(hasChanges);
+
   const handleSave = () => {
     updateOrg.mutate({ name: orgName, primaryColor, accentColor });
   };
@@ -892,6 +896,7 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
           <h3 className="text-lg font-semibold text-gray-900">
             Organisation Settings
           </h3>
+          {hasChanges && <UnsavedBadge />}
         </div>
         {isOwner && (
           <div className="flex items-center gap-2">

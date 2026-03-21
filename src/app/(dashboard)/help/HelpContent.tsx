@@ -110,6 +110,7 @@ export function HelpContent() {
           <input
             type="text"
             placeholder="Search articles..."
+            aria-label="Search help articles"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent bg-white"

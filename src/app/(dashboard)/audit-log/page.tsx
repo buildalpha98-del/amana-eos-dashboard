@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { StickyTable } from "@/components/ui/StickyTable";
 import { exportToCSV, formatDateCSV } from "@/lib/csv-export";
 import {
   Shield,
@@ -238,6 +239,7 @@ export default function AuditLogPage() {
                   onChange={(e) => setEmailInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleEmailSearch()}
                   placeholder="Search by email..."
+                  aria-label="Search audit log by email"
                   className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
                 <button
@@ -277,7 +279,7 @@ export default function AuditLogPage() {
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
+        <StickyTable>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50/80">
@@ -369,7 +371,7 @@ export default function AuditLogPage() {
                 ))}
             </tbody>
           </table>
-        </div>
+        </StickyTable>
 
         {/* Pagination */}
         {data && data.totalPages > 1 && (

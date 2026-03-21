@@ -7,6 +7,7 @@ import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Minus, Building2, Pencil, Trash2 } from "lucide-react";
 import { ScrollableTable } from "@/components/ui/ScrollableTable";
+import { StickyTable } from "@/components/ui/StickyTable";
 import { Sparkline } from "@/components/ui/Sparkline";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
 
@@ -210,6 +211,7 @@ export function ScorecardGrid({
 
       {/* Grid */}
       <ScrollableTable>
+      <StickyTable maxHeight="calc(100vh - 320px)">
       <div className="bg-white rounded-xl border border-gray-200">
         <table className="w-full min-w-[900px]">
           <thead>
@@ -418,6 +420,7 @@ export function ScorecardGrid({
           </tbody>
         </table>
       </div>
+      </StickyTable>
       </ScrollableTable>
     </div>
   );

@@ -39,6 +39,14 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen">
+      {/* Skip to main content — visible only on keyboard focus */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:p-4 focus:bg-brand focus:text-white focus:rounded-lg focus:top-2 focus:left-2"
+      >
+        Skip to main content
+      </a>
+
       <Sidebar
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
@@ -48,6 +56,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
       <div className="md:hidden fixed top-0 inset-x-0 h-14 bg-background border-b border-border z-30 flex items-center justify-between px-4">
         <button
           onClick={() => setMobileNavOpen(true)}
+          aria-label="Open navigation menu"
           className="p-2 -ml-2 rounded-lg text-foreground/70 hover:bg-surface transition-colors"
         >
           <Menu className="w-5 h-5" />
@@ -55,7 +64,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-2">
           <Image
             src="/logo-icon-white.svg"
-            alt="Amana OSHC"
+            alt="Amana OSHC logo"
             width={20}
             height={28}
             className="invert"
@@ -72,7 +81,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         )}
       >
         <TopBar />
-        <main className="p-4 md:p-8 animate-slide-up">
+        <main id="main-content" className="p-4 md:p-8 animate-slide-up">
           <SystemBannerBar />
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>

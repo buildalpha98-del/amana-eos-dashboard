@@ -91,7 +91,7 @@ export function MobileBottomNav({ onOpenSidebar }: MobileBottomNavProps) {
           />
 
           {/* Bottom sheet */}
-          <div className="absolute bottom-0 inset-x-0 bg-card rounded-t-2xl p-4 pb-6 animate-in slide-in-from-bottom duration-200">
+          <div role="dialog" aria-modal="true" aria-label="Quick actions" className="absolute bottom-0 inset-x-0 bg-card rounded-t-2xl p-4 pb-6 animate-in slide-in-from-bottom duration-200">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-semibold text-foreground">
                 Quick Actions
@@ -137,7 +137,7 @@ export function MobileBottomNav({ onOpenSidebar }: MobileBottomNavProps) {
       )}
 
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 md:hidden">
+      <nav aria-label="Mobile navigation" className="fixed bottom-0 inset-x-0 z-40 md:hidden">
         {/* Top border */}
         <div className="h-px bg-border" />
 

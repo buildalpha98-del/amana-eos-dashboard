@@ -19,8 +19,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 import type { ProfileData } from "@/hooks/useMyPortal";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 
 /* ------------------------------------------------------------------ */
 /* Profile Page                                                        */
@@ -177,6 +179,9 @@ export default function ProfilePage() {
       bankBSB !== (profile.bankBSB ?? "") ||
       bankAccountNumber !== (profile.bankAccountNumber ?? ""));
 
+  // Warn about unsaved changes on navigation / tab close
+  useUnsavedChanges(!!hasChanges);
+
   // ---- Loading / Error ----
   if (isLoading) {
     return (
@@ -227,6 +232,7 @@ export default function ProfilePage() {
         <div className="flex items-center gap-3">
           <Link
             href="/my-portal"
+            aria-label="Back to My Portal"
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-gray-500" />
@@ -274,7 +280,10 @@ export default function ProfilePage() {
             <ArrowLeft className="w-5 h-5 text-gray-500" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
+              {hasChanges && <UnsavedBadge />}
+            </div>
             <p className="text-sm text-gray-500 mt-0.5">
               Update your personal details and superannuation information
             </p>
@@ -302,7 +311,7 @@ export default function ProfilePage() {
             {profile.avatar ? (
               <img
                 src={profile.avatar}
-                alt={profile.name}
+                alt={`${profile.name}'s avatar`}
                 className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
               />
             ) : (
@@ -328,6 +337,7 @@ export default function ProfilePage() {
                 className="hidden"
                 onChange={handleAvatarChange}
                 disabled={avatarUpload.isPending}
+                aria-label="Upload profile photo"
               />
             </label>
             {/* Remove button */}
@@ -338,6 +348,7 @@ export default function ProfilePage() {
                 disabled={avatarRemove.isPending}
                 className="absolute -bottom-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50"
                 title="Remove avatar"
+                aria-label="Remove avatar"
               >
                 <Trash2 className="w-3 h-3 text-white" />
               </button>
@@ -574,11 +585,11 @@ function FieldRow({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-600 mb-1">
+    <label className="block">
+      <span className="block text-sm font-medium text-gray-600 mb-1">
         {label}
-      </label>
+      </span>
       {children}
-    </div>
+    </label>
   );
 }

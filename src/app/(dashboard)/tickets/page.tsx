@@ -268,6 +268,7 @@ export default function TicketsPage() {
             <input
               type="text"
               placeholder="Search tickets by subject or contact..."
+              aria-label="Search tickets"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"

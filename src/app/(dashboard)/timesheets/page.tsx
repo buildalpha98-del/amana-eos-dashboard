@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { StickyTable } from "@/components/ui/StickyTable";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -1035,7 +1036,7 @@ function TimesheetDetail({
       {/* Entries Table */}
       {entries.length > 0 ? (
         <div className="border border-gray-200 rounded-lg overflow-hidden mb-4">
-          <div className="overflow-x-auto">
+          <StickyTable maxHeight="calc(100vh - 400px)">
             <table className="w-full text-sm">
               <thead className="bg-surface">
                 <tr>
@@ -1093,7 +1094,7 @@ function TimesheetDetail({
                 ))}
               </tbody>
             </table>
-          </div>
+          </StickyTable>
         </div>
       ) : (
         <EmptyState icon={FileSpreadsheet} title="No Entries Yet" description="This timesheet has no entries. Add entries manually or import from OWNA." variant="inline" />

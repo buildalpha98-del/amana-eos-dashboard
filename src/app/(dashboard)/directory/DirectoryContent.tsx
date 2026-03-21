@@ -147,6 +147,7 @@ export function DirectoryContent() {
           <input
             type="text"
             placeholder="Search by name or email..."
+            aria-label="Search staff directory"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"

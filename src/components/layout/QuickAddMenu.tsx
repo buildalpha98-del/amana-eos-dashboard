@@ -38,6 +38,8 @@ export function QuickAddMenu({
 
       {/* Menu dropdown — fixed positioned, outside any stacking context */}
       <div
+        role="menu"
+        aria-label="Quick add options"
         className="fixed w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
         style={{ top: position.top, right: position.right }}
       >

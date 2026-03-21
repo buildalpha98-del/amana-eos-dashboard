@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -51,6 +51,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import { TeamOnboardingTracker } from "@/components/getting-started/TeamOnboardingTracker";
+import { WelcomeTour, TOUR_STORAGE_KEY } from "@/components/onboarding/WelcomeTour";
 
 const ADMIN_ROLES = ["owner", "admin", "head_office"];
 
@@ -1035,6 +1036,12 @@ export function GettingStartedContent() {
   const [activeTab, setActiveTab] = useState<"my-setup" | "team-progress">(
     "my-setup",
   );
+  const [showTour, setShowTour] = useState(false);
+
+  const handleReplayTour = useCallback(() => {
+    localStorage.removeItem(TOUR_STORAGE_KEY);
+    setShowTour(true);
+  }, []);
 
   const role = (sessionData?.user?.role ?? "staff") as string;
   const firstName = sessionData?.user?.name?.split(" ")[0] ?? "there";
@@ -1126,11 +1133,20 @@ export function GettingStartedContent() {
     <div className="max-w-3xl mx-auto pb-16">
       {/* Welcome header */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="w-6 h-6 text-brand" />
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome to Amana EOS, {firstName}!
-          </h1>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-brand" />
+            <h1 className="text-2xl font-bold text-gray-900">
+              Welcome to Amana EOS, {firstName}!
+            </h1>
+          </div>
+          <button
+            onClick={handleReplayTour}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand bg-brand/10 hover:bg-brand/20 rounded-lg transition-colors"
+          >
+            <PlayCircle className="w-3.5 h-3.5" />
+            Replay Tour
+          </button>
         </div>
         <div className="flex items-center gap-2 mt-2">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand/10 text-brand">
@@ -1139,6 +1155,16 @@ export function GettingStartedContent() {
           <p className="text-gray-500 text-sm">{getProgressMessage(pct)}</p>
         </div>
       </div>
+
+      {/* Welcome tour replay */}
+      {showTour && (
+        <WelcomeTour
+          onComplete={() => {
+            localStorage.setItem(TOUR_STORAGE_KEY, "true");
+            setShowTour(false);
+          }}
+        />
+      )}
 
       {/* Tab toggle for admins */}
       {isAdmin && (

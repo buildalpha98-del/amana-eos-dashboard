@@ -254,6 +254,7 @@ export default function CrmPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search leads..."
+              aria-label="Search leads"
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>

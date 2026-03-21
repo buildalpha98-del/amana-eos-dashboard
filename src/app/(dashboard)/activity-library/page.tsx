@@ -129,6 +129,7 @@ export default function ActivityLibraryPage() {
           <input
             type="text"
             placeholder="Search activities..."
+            aria-label="Search activities"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"

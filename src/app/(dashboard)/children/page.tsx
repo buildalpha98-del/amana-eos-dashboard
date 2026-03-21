@@ -110,6 +110,7 @@ export default function ChildrenPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name or school..."
+            aria-label="Search children"
             className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-brand/30"
           />
         </div>

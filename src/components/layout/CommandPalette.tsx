@@ -367,7 +367,7 @@ export function CommandPalette({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-label="Command palette" className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 border-b border-gray-200">
           <Search className="w-5 h-5 text-gray-400 shrink-0" />
@@ -378,6 +378,7 @@ export function CommandPalette({
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search or jump to..."
+            aria-label="Search or jump to a page"
             className="flex-1 py-4 text-sm text-gray-900 bg-transparent focus:outline-none placeholder:text-gray-400"
           />
           {query && (
@@ -387,6 +388,7 @@ export function CommandPalette({
                 setResults([]);
                 inputRef.current?.focus();
               }}
+              aria-label="Clear search"
               className="p-1 rounded-md text-gray-400 hover:text-gray-600"
             >
               <X className="w-4 h-4" />
@@ -394,6 +396,7 @@ export function CommandPalette({
           )}
           <button
             onClick={onClose}
+            aria-label="Close command palette"
             className="p-1 rounded-md text-gray-300 hover:text-gray-500 text-xs"
           >
             <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-medium text-gray-400">

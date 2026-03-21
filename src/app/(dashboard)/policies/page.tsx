@@ -297,6 +297,7 @@ function PoliciesTab({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search policies..."
+            aria-label="Search policies"
             className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-xl bg-background focus:outline-none focus:ring-2 focus:ring-brand/30"
           />
         </div>
@@ -701,7 +702,7 @@ function PolicyDetailPanel({
                           {ack.user.avatar ? (
                             <img
                               src={ack.user.avatar}
-                              alt=""
+                              alt={`${ack.user.name}'s avatar`}
                               className="w-7 h-7 rounded-full object-cover"
                             />
                           ) : (

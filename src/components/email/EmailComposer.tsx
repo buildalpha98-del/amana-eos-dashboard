@@ -16,6 +16,9 @@ import {
   type EmailTemplateData,
 } from "@/hooks/useEmailTemplates";
 import type { EmailBlock, EmailLayoutOptions } from "@/lib/email-marketing-layout";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 
 export function EmailComposer() {
   const router = useRouter();
@@ -23,13 +26,31 @@ export function EmailComposer() {
   const postId = searchParams.get("postId");
   const templateIdParam = searchParams.get("templateId");
 
-  // ── State ──────────────────────────────────────────────────
-  const [subject, setSubject] = useState("");
-  const [blocks, setBlocks] = useState<EmailBlock[]>([
-    { type: "text", content: "" },
-  ]);
-  const [htmlContent, setHtmlContent] = useState("");
-  const [mode, setMode] = useState<"blocks" | "html">("blocks");
+  // ── Draft autosave ────────────────────────────────────────
+  const initialDraft = {
+    subject: "",
+    blocks: JSON.stringify([{ type: "text", content: "" }]),
+    htmlContent: "",
+    mode: "blocks" as "blocks" | "html",
+  };
+  const {
+    data: draft,
+    updateField: updateDraft,
+    clearDraft,
+    hasDraft,
+  } = useFormDraft("email-compose", initialDraft);
+
+  // ── State (seeded from draft) ─────────────────────────────
+  const [subject, setSubject] = useState(draft.subject);
+  const [blocks, setBlocks] = useState<EmailBlock[]>(() => {
+    try {
+      return JSON.parse(draft.blocks) as EmailBlock[];
+    } catch {
+      return [{ type: "text", content: "" }];
+    }
+  });
+  const [htmlContent, setHtmlContent] = useState(draft.htmlContent);
+  const [mode, setMode] = useState<"blocks" | "html">(draft.mode);
 
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [allCentres, setAllCentres] = useState(true);
@@ -49,6 +70,27 @@ export function EmailComposer() {
     footerUrlLabel: "amanaoshc.com.au",
     showUnsubscribe: true,
   });
+
+  // ── Sync state → draft for autosave ────────────────────────
+  useEffect(() => {
+    updateDraft("subject", subject);
+  }, [subject, updateDraft]);
+
+  useEffect(() => {
+    updateDraft("blocks", JSON.stringify(blocks));
+  }, [blocks, updateDraft]);
+
+  useEffect(() => {
+    updateDraft("htmlContent", htmlContent);
+  }, [htmlContent, updateDraft]);
+
+  useEffect(() => {
+    updateDraft("mode", mode);
+  }, [mode, updateDraft]);
+
+  // ── Unsaved changes warning ──────────────────────────────
+  const emailIsDirty = subject.trim().length > 0 || blocks.some((b) => "content" in b && (b.content as string)?.trim().length > 0) || htmlContent.trim().length > 0;
+  useUnsavedChanges(emailIsDirty);
 
   // ── Post pre-fill ──────────────────────────────────────────
   const { data: postData } = useQuery({
@@ -160,6 +202,7 @@ export function EmailComposer() {
       },
       {
         onSuccess: () => {
+          clearDraft();
           router.push("/marketing");
         },
         onError: (err) => {
@@ -195,6 +238,7 @@ export function EmailComposer() {
           <h1 className="text-lg font-semibold text-foreground">
             Compose Email
           </h1>
+          {emailIsDirty && <UnsavedBadge />}
         </div>
         <div className="flex items-center gap-2">
           <button

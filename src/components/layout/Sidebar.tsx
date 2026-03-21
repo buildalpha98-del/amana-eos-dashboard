@@ -90,7 +90,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         <div className="relative flex items-center gap-3 px-4 h-16">
           <Image
             src="/logo-icon-white.svg"
-            alt="Amana OSHC"
+            alt="Amana OSHC logo"
             width={28}
             height={40}
             className="flex-shrink-0"
@@ -111,7 +111,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto scrollbar-hide">
+        <nav aria-label="Main navigation" className="flex-1 py-4 px-2 space-y-1 overflow-y-auto scrollbar-hide">
           {/* Favourites section — only when expanded and has items */}
           {!collapsed && favouriteItems.length > 0 && (
             <div>

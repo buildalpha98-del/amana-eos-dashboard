@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useUpdateVTO } from "@/hooks/useVTO";
 import { Pencil, Check, X, Plus, Trash2, Star } from "lucide-react";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 
 export function CoreValuesCard({ values }: { values: string[] }) {
   const updateVTO = useUpdateVTO();
@@ -14,6 +16,10 @@ export function CoreValuesCard({ values }: { values: string[] }) {
     updateVTO.mutate({ coreValues: draft.filter((v) => v.trim()) });
     setEditing(false);
   };
+
+  // Track unsaved changes while editing
+  const hasDirtyValues = editing && JSON.stringify(draft) !== JSON.stringify(values);
+  useUnsavedChanges(hasDirtyValues);
 
   const addValue = () => {
     if (newValue.trim()) {
@@ -29,7 +35,10 @@ export function CoreValuesCard({ values }: { values: string[] }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50/50">
-        <h3 className="text-sm font-semibold text-gray-700">Core Values</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-700">Core Values</h3>
+          {hasDirtyValues && <UnsavedBadge />}
+        </div>
         {!editing && (
           <button
             onClick={() => {

@@ -56,7 +56,7 @@ function DialogContent({
       )}
     >
       {showClose && (
-        <DialogPrimitive.Close className="absolute top-4 right-4 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+        <DialogPrimitive.Close aria-label="Close dialog" className="absolute top-4 right-4 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
           <X className="w-4 h-4" />
         </DialogPrimitive.Close>
       )}

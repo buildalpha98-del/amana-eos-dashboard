@@ -42,6 +42,7 @@ import {
   Files,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { StickyTable } from "@/components/ui/StickyTable";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BulkUploadModal } from "@/components/documents/BulkUploadModal";
@@ -459,6 +460,7 @@ export default function DocumentsPage() {
             <input
               type="text"
               placeholder="Search documents..."
+              aria-label="Search documents"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
@@ -639,7 +641,7 @@ export default function DocumentsPage() {
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
+            <StickyTable>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-left">
@@ -725,7 +727,7 @@ export default function DocumentsPage() {
                   })}
                 </tbody>
               </table>
-            </div>
+            </StickyTable>
           </div>
         )}
 

@@ -92,6 +92,7 @@ export function NotificationDropdown() {
         <button
           className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors relative"
           title="Notifications"
+          aria-label="Notifications"
         >
           <Bell className="w-4 h-4" />
           {total > 0 && (

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { OnboardingTour } from "./OnboardingTour";
+import { WelcomeTour, TOUR_STORAGE_KEY } from "@/components/onboarding/WelcomeTour";
 
 export function OnboardingTourWrapper() {
   const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
     // Only show if not completed before
-    const completed = localStorage.getItem("onboarding-tour-complete");
+    const completed = localStorage.getItem(TOUR_STORAGE_KEY);
     if (!completed) {
       // Delay slightly to let the page render
       const timer = setTimeout(() => setShowTour(true), 1500);
@@ -19,9 +19,9 @@ export function OnboardingTourWrapper() {
   if (!showTour) return null;
 
   return (
-    <OnboardingTour
+    <WelcomeTour
       onComplete={() => {
-        localStorage.setItem("onboarding-tour-complete", "true");
+        localStorage.setItem(TOUR_STORAGE_KEY, "true");
         setShowTour(false);
       }}
     />

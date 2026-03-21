@@ -185,7 +185,7 @@ export function KeyboardShortcuts() {
             if (e.target === e.currentTarget) setOverlayOpen(false);
           }}
         >
-          <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
+          <div role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" className="bg-card border border-border rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-5 pb-3">
               <div className="flex items-center gap-2.5">
@@ -196,6 +196,7 @@ export function KeyboardShortcuts() {
               </div>
               <button
                 onClick={() => setOverlayOpen(false)}
+                aria-label="Close keyboard shortcuts"
                 className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface transition-colors"
               >
                 <X className="w-4 h-4" />

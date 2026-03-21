@@ -1,6 +1,7 @@
 "use client";
 
 import type { LeadSummary } from "@/hooks/useCRM";
+import { StickyTable } from "@/components/ui/StickyTable";
 
 const stageLabels: Record<string, string> = {
   new_lead: "New Lead",
@@ -40,7 +41,8 @@ export function LeadTable({
   onLeadClick: (lead: LeadSummary) => void;
 }) {
   return (
-    <div className="overflow-x-auto bg-white rounded-xl border border-gray-200">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <StickyTable>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
@@ -131,6 +133,7 @@ export function LeadTable({
           )}
         </tbody>
       </table>
+      </StickyTable>
     </div>
   );
 }

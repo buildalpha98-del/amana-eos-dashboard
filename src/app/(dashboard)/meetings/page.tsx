@@ -312,6 +312,7 @@ function MeetingListView({
                     setVisibleCount(10);
                   }}
                   placeholder="Search meetings..."
+                  aria-label="Search meetings"
                   className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
               </div>

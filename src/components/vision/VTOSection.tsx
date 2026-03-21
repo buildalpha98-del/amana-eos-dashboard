@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useUpdateVTO } from "@/hooks/useVTO";
 import { Pencil, Check, X } from "lucide-react";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 
 export function VTOSection({
   title,
@@ -24,6 +26,10 @@ export function VTOSection({
   const [titleDraft, setTitleDraft] = useState("");
 
   const displayTitle = sectionLabels?.[field] || title;
+
+  // Track unsaved changes while editing
+  const hasDirtyContent = editing && draft !== (value || "");
+  useUnsavedChanges(hasDirtyContent);
 
   const handleSave = () => {
     updateVTO.mutate({ [field]: draft });
@@ -80,18 +86,21 @@ export function VTOSection({
             {displayTitle}
           </h3>
         )}
-        {!editing && !editingTitle && (
-          <button
-            onClick={() => {
-              setDraft(value || "");
-              setEditing(true);
-            }}
-            className="p-1 text-gray-400 hover:text-brand transition-colors"
-            title="Edit"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {hasDirtyContent && <UnsavedBadge />}
+          {!editing && !editingTitle && (
+            <button
+              onClick={() => {
+                setDraft(value || "");
+                setEditing(true);
+              }}
+              className="p-1 text-gray-400 hover:text-brand transition-colors"
+              title="Edit"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
       <div className="px-5 py-4">
         {editing ? (

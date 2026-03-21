@@ -109,6 +109,7 @@ export function CentreSwitcher() {
         className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-foreground bg-surface border border-border rounded-lg hover:bg-card transition-colors max-w-[200px] md:max-w-[240px]"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label={`Centre switcher: ${displayName}`}
       >
         <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         <span className="truncate">{displayName}</span>
@@ -127,6 +128,7 @@ export function CentreSwitcher() {
                   ref={searchInputRef}
                   type="text"
                   placeholder="Search centres..."
+                  aria-label="Search centres"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-8 pr-3 py-1.5 text-sm bg-surface border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-brand"

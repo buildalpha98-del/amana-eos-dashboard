@@ -32,6 +32,7 @@ import {
 } from "@/hooks/useIncidents";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
+import { useFormDraft } from "@/hooks/useFormDraft";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -804,7 +805,7 @@ function CreateIncidentModal({ onClose }: { onClose: () => void }) {
   const { data: servicesList } = useServices();
   const createMutation = useCreateIncident();
 
-  const [form, setForm] = useState({
+  const initialForm = {
     serviceId: "",
     incidentDate: new Date().toISOString().split("T")[0],
     childName: "",
@@ -814,10 +815,15 @@ function CreateIncidentModal({ onClose }: { onClose: () => void }) {
     timeOfDay: "",
     description: "",
     actionTaken: "",
-    parentNotified: false,
-    reportableToAuthority: false,
-    followUpRequired: false,
-  });
+    parentNotified: false as boolean,
+    reportableToAuthority: false as boolean,
+    followUpRequired: false as boolean,
+  };
+
+  const { data: form, setData: setForm, clearDraft } = useFormDraft(
+    "incident-create",
+    initialForm,
+  );
 
   const update = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -844,6 +850,7 @@ function CreateIncidentModal({ onClose }: { onClose: () => void }) {
         reportableToAuthority: form.reportableToAuthority,
         followUpRequired: form.followUpRequired,
       });
+      clearDraft();
       toast({ description: "Incident reported successfully" });
       onClose();
     } catch (err) {

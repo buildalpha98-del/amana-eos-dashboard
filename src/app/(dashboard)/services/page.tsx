@@ -247,6 +247,7 @@ export default function ServicesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search centres..."
+            aria-label="Search centres"
             className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
@@ -254,6 +255,7 @@ export default function ServicesPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortKey)}
+            aria-label="Sort centres"
             className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30"
           >
             <option value="name">Sort: Name</option>
