@@ -417,7 +417,7 @@ export default function ServiceDetailPage() {
           />
         )}
         {activeGroup === "daily" && currentSubKey === "checklists" && (
-          <ServiceChecklistsTab serviceId={service.id} />
+          <ServiceChecklistsTab serviceId={service.id} serviceName={service.name} />
         )}
 
         {/* Program group */}

@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   Circle,
-  Clock,
   ChevronDown,
   ChevronRight,
   Loader2,
   ClipboardList,
   AlertCircle,
   CheckCheck,
+  Printer,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
@@ -273,7 +273,99 @@ function ChecklistCard({
   );
 }
 
-export function ServiceChecklistsTab({ serviceId }: { serviceId: string }) {
+/** Build print-optimized HTML and trigger window.print() */
+function printChecklists(checklists: Checklist[], serviceName: string) {
+  const today = new Date().toLocaleDateString("en-AU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  // Build grouped items for each checklist
+  const sections = checklists.map((cl) => {
+    const grouped: Record<string, ChecklistItem[]> = {};
+    for (const item of cl.items) {
+      const cat = item.category || "General";
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(item);
+    }
+    const date = new Date(cl.date).toLocaleDateString("en-AU", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+    return { checklist: cl, grouped, dateStr: date };
+  });
+
+  // Create a hidden print container
+  const printContainer = document.createElement("div");
+  printContainer.id = "print-checklists-container";
+  printContainer.className = "print-only";
+
+  // Print header
+  printContainer.innerHTML = `
+    <div class="print-header">
+      <div class="print-header-brand">Amana OSHC</div>
+      <div class="print-header-subtitle">${serviceName} &mdash; Daily Checklists</div>
+      <div class="print-header-date">Printed ${today}</div>
+    </div>
+  `;
+
+  // Render each checklist
+  sections.forEach((section, sectionIdx) => {
+    const sectionEl = document.createElement("div");
+    sectionEl.className = `print-checklist-section${sectionIdx > 0 ? " print-page-break" : ""}`;
+
+    let html = `<div class="print-checklist-title">${section.dateStr} &mdash; ${sessionLabel(section.checklist.sessionType)}</div>`;
+
+    let itemNumber = 1;
+    for (const [category, items] of Object.entries(section.grouped)) {
+      html += `<div class="print-checklist-category">${category}</div>`;
+      for (const item of items) {
+        html += `
+          <div class="print-checklist-item">
+            <span class="print-item-number">${itemNumber}.</span>
+            <span class="print-checkbox"></span>
+            <span class="print-item-label">${item.label}</span>
+            ${item.isRequired ? '<span class="print-item-required">Required</span>' : ""}
+          </div>
+        `;
+        itemNumber++;
+      }
+    }
+
+    if (section.checklist.notes) {
+      html += `<div style="margin-top: 8pt; font-size: 10pt; color: #555;"><strong>Notes:</strong> ${section.checklist.notes}</div>`;
+    }
+
+    sectionEl.innerHTML = html;
+    printContainer.appendChild(sectionEl);
+  });
+
+  // Footer
+  const footer = document.createElement("div");
+  footer.className = "print-footer print-only";
+  footer.textContent = `Amana OSHC - ${serviceName} - Printed ${today}`;
+  printContainer.appendChild(footer);
+
+  // Append, print, remove
+  document.body.appendChild(printContainer);
+  window.print();
+  // Clean up after print dialog closes
+  setTimeout(() => {
+    document.body.removeChild(printContainer);
+  }, 1000);
+}
+
+export function ServiceChecklistsTab({
+  serviceId,
+  serviceName,
+}: {
+  serviceId: string;
+  serviceName?: string;
+}) {
   const [sessionFilter, setSessionFilter] = useState("");
 
   const { data, isLoading, error } = useQuery({
@@ -291,6 +383,11 @@ export function ServiceChecklistsTab({ serviceId }: { serviceId: string }) {
   });
 
   const checklists = data?.checklists || [];
+
+  const handlePrint = useCallback(() => {
+    if (checklists.length === 0) return;
+    printChecklists(checklists, serviceName || "Centre");
+  }, [checklists, serviceName]);
 
   if (isLoading) {
     return (
@@ -321,12 +418,22 @@ export function ServiceChecklistsTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
           <ClipboardList className="w-4 h-4 text-brand" />
           Daily Checklists
         </h2>
         <div className="flex items-center gap-2">
+          {checklists.length > 0 && (
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors"
+              title="Print checklists"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Print</span>
+            </button>
+          )}
           <select
             value={sessionFilter}
             onChange={(e) => setSessionFilter(e.target.value)}

@@ -39,6 +39,13 @@ import { DashboardStateKPI } from "@/components/dashboard/DashboardStateKPI";
 import { WidgetErrorBoundary } from "@/components/dashboard/WidgetErrorBoundary";
 import { MobileQuickActions } from "@/components/dashboard/MobileQuickActions";
 
+// Role-specific widgets
+import { CentrePerformanceOverview } from "@/components/dashboard/CentrePerformanceOverview";
+import { L10PrepWidget } from "@/components/dashboard/L10PrepWidget";
+import { ComplianceOverviewWidget } from "@/components/dashboard/ComplianceOverviewWidget";
+import { StaffOnboardingWidget } from "@/components/dashboard/StaffOnboardingWidget";
+import { MarketingDashboard } from "@/components/dashboard/MarketingDashboard";
+
 // ─── Section Divider ──────────────────────────────────────────
 
 function SectionDivider({ label }: { label: string }) {
@@ -200,6 +207,17 @@ function QuickActionButtons() {
   );
 }
 
+// ─── Role Helpers ────────────────────────────────────────────
+
+type DashboardRole = "owner" | "head_office" | "admin" | "coordinator" | "member" | "staff" | "marketing";
+
+function getDashboardRole(role: string): DashboardRole {
+  if (["owner", "head_office", "admin", "coordinator", "member", "staff", "marketing"].includes(role)) {
+    return role as DashboardRole;
+  }
+  return "staff";
+}
+
 // ─── Main Dashboard Content ─────────────────────────────────
 
 function getPeriodOptions(): { value: string; label: string }[] {
@@ -219,10 +237,43 @@ export function DashboardContent() {
   const [period, setPeriod] = useState(quarter);
 
   const periodOptions = getPeriodOptions();
-  const { data, isLoading } = useDashboardData(period);
 
-  const role = (session?.user?.role as string) || "";
-  const isServiceScoped = role === "staff" || role === "member";
+  const role = getDashboardRole((session?.user?.role as string) || "");
+
+  // Staff (educator) and Marketing get their own dedicated dashboards
+  if (role === "staff") {
+    return <StaffDashboard />;
+  }
+
+  if (role === "marketing") {
+    return <MarketingDashboard />;
+  }
+
+  // member (Centre Director) gets the StaffDashboard which already
+  // includes DirectorAnalyticsWidget — keep existing behavior
+  if (role === "member") {
+    return <StaffDashboard />;
+  }
+
+  // From here on: owner, head_office, admin, coordinator see the Command Centre
+  return <CommandCentreDashboard role={role} period={period} setPeriod={setPeriod} periodOptions={periodOptions} />;
+}
+
+// ─── Command Centre Dashboard (owner, head_office, admin, coordinator) ──
+
+function CommandCentreDashboard({
+  role,
+  period,
+  setPeriod,
+  periodOptions,
+}: {
+  role: DashboardRole;
+  period: string;
+  setPeriod: (p: string) => void;
+  periodOptions: { value: string; label: string }[];
+}) {
+  const { data: session } = useSession();
+  const { data, isLoading } = useDashboardData(period);
 
   // Fetch pending queue count for priority stats
   const { data: queueData } = useQuery<{ reports: unknown[] }>({
@@ -233,7 +284,6 @@ export function DashboardContent() {
       return res.json();
     },
     staleTime: 60_000,
-    enabled: !isServiceScoped,
   });
   const pendingQueueCount = queueData?.reports?.length ?? 0;
 
@@ -241,9 +291,9 @@ export function DashboardContent() {
   const todayDate = useMemo(() => formatTodayDate(), []);
   const firstName = session?.user?.name?.split(" ")[0] || "there";
 
-  if (isServiceScoped) {
-    return <StaffDashboard />;
-  }
+  const isOwnerOrHO = role === "owner" || role === "head_office";
+  const isAdmin = role === "admin";
+  const isCoordinator = role === "coordinator";
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -275,28 +325,28 @@ export function DashboardContent() {
             Command Centre
           </h2>
           <p className="text-muted text-sm mt-0.5 line-clamp-2">
-            {role === "admin" && session?.user?.state
+            {isAdmin && session?.user?.state
               ? `Overview for ${session.user.state} centres.`
-              : "Overview across all centres."}
+              : isCoordinator
+                ? "Overview for your centres."
+                : "Overview across all centres."}
           </p>
         </div>
-        {!isServiceScoped && (
-          <div className="flex items-center bg-surface rounded-xl p-1 border border-border overflow-x-auto">
-            {periodOptions.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setPeriod(opt.value)}
-                className={`px-2 sm:px-3 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap ${
-                  period === opt.value
-                    ? "bg-card text-brand shadow-[var(--shadow-warm-sm)] font-semibold"
-                    : "text-muted hover:text-foreground"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center bg-surface rounded-xl p-1 border border-border overflow-x-auto">
+          {periodOptions.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setPeriod(opt.value)}
+              className={`px-2 sm:px-3 py-1.5 text-xs rounded-lg transition-colors whitespace-nowrap ${
+                period === opt.value
+                  ? "bg-card text-brand shadow-[var(--shadow-warm-sm)] font-semibold"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Mobile Quick Actions ────────────────────────── */}
@@ -351,7 +401,7 @@ export function DashboardContent() {
           </WidgetErrorBoundary>
 
           {/* ── State KPI Summary (admin only) ────────────────── */}
-          {role === "admin" && session?.user?.state && (
+          {isAdmin && session?.user?.state && (
             <WidgetErrorBoundary widgetName="State KPI">
               <DashboardStateKPI
                 stateName={session.user.state as string}
@@ -359,6 +409,34 @@ export function DashboardContent() {
                 centres={data.centreHealth}
                 opsMetrics={data.opsMetrics}
               />
+            </WidgetErrorBoundary>
+          )}
+
+          {/* ── Owner/HO: Centre Performance Overview ─────────── */}
+          {isOwnerOrHO && (
+            <WidgetErrorBoundary widgetName="Centre Performance Overview">
+              <CentrePerformanceOverview centres={data.centreHealth} />
+            </WidgetErrorBoundary>
+          )}
+
+          {/* ── Owner/HO: L10 Prep Summary ───────────────────── */}
+          {isOwnerOrHO && (
+            <WidgetErrorBoundary widgetName="L10 Prep">
+              <L10PrepWidget />
+            </WidgetErrorBoundary>
+          )}
+
+          {/* ── Admin: Compliance Overview ─────────────────────── */}
+          {isAdmin && (
+            <WidgetErrorBoundary widgetName="Compliance Overview">
+              <ComplianceOverviewWidget />
+            </WidgetErrorBoundary>
+          )}
+
+          {/* ── Admin: Staff Onboarding Progress ──────────────── */}
+          {isAdmin && (
+            <WidgetErrorBoundary widgetName="Staff Onboarding">
+              <StaffOnboardingWidget />
             </WidgetErrorBoundary>
           )}
 
@@ -373,7 +451,7 @@ export function DashboardContent() {
           </WidgetErrorBoundary>
 
           {/* ── Today's Operations ────────────────────────────── */}
-          {!isServiceScoped && data.todaysOps.length > 0 && (
+          {data.todaysOps.length > 0 && (
             <WidgetErrorBoundary widgetName="Today's Operations">
               <TodaysOps centres={data.todaysOps} />
             </WidgetErrorBoundary>
@@ -384,7 +462,7 @@ export function DashboardContent() {
 
           {/* ── Key Metrics Bar ─────────────────────────────── */}
           <WidgetErrorBoundary widgetName="Key Metrics">
-            {isServiceScoped ? (
+            {isCoordinator ? (
               <KeyMetricsBar
                 metrics={{
                   ...data.keyMetrics,
@@ -417,15 +495,15 @@ export function DashboardContent() {
           {/* ── Operations Section Divider ────────────────────── */}
           <SectionDivider label="Operations" />
 
-          {/* ── Centre Health Heatmap ──────────────────────── */}
-          {!isServiceScoped && (
+          {/* ── Centre Health Heatmap (not for coordinator) ──── */}
+          {!isCoordinator && (
             <WidgetErrorBoundary widgetName="Centre Health">
               <CentreHealthHeatmap centres={data.centreHealth} networkAvgScore={data.networkAvgScore} />
             </WidgetErrorBoundary>
           )}
 
           {/* ── School Relationship Health ──────────────────── */}
-          {!isServiceScoped && (
+          {!isCoordinator && (
             <WidgetErrorBoundary widgetName="School Health">
               <DashboardSchoolHealth />
             </WidgetErrorBoundary>
@@ -498,7 +576,7 @@ export function DashboardContent() {
           )}
 
           {/* ── Project To-Dos ─────────────────────────────── */}
-          {!isServiceScoped && (
+          {!isCoordinator && (
             <WidgetErrorBoundary widgetName="Project To-Dos">
               <DashboardProjectTodos todos={data.projectTodos} />
             </WidgetErrorBoundary>
@@ -512,9 +590,9 @@ export function DashboardContent() {
             <div className="lg:col-span-3">
               <WidgetErrorBoundary widgetName="Trends">
                 <TrendSparklines
-                  revenue={isServiceScoped ? [] : data.trends.revenue}
+                  revenue={isCoordinator ? [] : data.trends.revenue}
                   enrolments={data.trends.enrolments}
-                  tickets={isServiceScoped ? [] : data.trends.tickets}
+                  tickets={isCoordinator ? [] : data.trends.tickets}
                 />
               </WidgetErrorBoundary>
             </div>
@@ -522,20 +600,18 @@ export function DashboardContent() {
               <WidgetErrorBoundary widgetName="Action Items">
                 <ActionItemsFeed
                   overdueTodos={data.actionItems.overdueTodos}
-                  unassignedTickets={isServiceScoped ? [] : data.actionItems.unassignedTickets}
+                  unassignedTickets={isCoordinator ? [] : data.actionItems.unassignedTickets}
                   idsIssues={data.actionItems.idsIssues}
-                  overdueRocks={isServiceScoped ? [] : data.actionItems.overdueRocks}
+                  overdueRocks={isCoordinator ? [] : data.actionItems.overdueRocks}
                 />
               </WidgetErrorBoundary>
             </div>
           </div>
 
           {/* ── Recent Activity ──────────────────────────────── */}
-          {!isServiceScoped && (
-            <WidgetErrorBoundary widgetName="Recent Activity">
-              <DashboardRecentActivity />
-            </WidgetErrorBoundary>
-          )}
+          <WidgetErrorBoundary widgetName="Recent Activity">
+            <DashboardRecentActivity />
+          </WidgetErrorBoundary>
         </>
       ) : (
         <div className="text-center py-16 text-muted">

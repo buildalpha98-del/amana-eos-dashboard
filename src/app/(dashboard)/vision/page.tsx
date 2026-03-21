@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import Link from "next/link";
 
 export default function VisionPage() {
@@ -46,7 +47,7 @@ export default function VisionPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Vision / Traction Organiser
+            Vision / Traction Organiser <HelpTooltip id="vto-heading" content="Your Vision/Traction Organizer defines where you're going and how you'll get there. Review quarterly to stay aligned." />
           </h2>
           <p className="text-sm text-gray-500">
             Your strategic compass — click any section to edit

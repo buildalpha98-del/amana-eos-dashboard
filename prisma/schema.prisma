@@ -711,6 +711,7 @@ model Issue {
   service      Service?      @relation("ServiceIssues", fields: [serviceId], references: [id], onDelete: SetNull)
   priority     IssuePriority @default(medium)
   status       IssueStatus   @default(open)
+  category     String?       // "short_term" | "long_term"
   identifiedAt DateTime      @default(now())
   discussedAt  DateTime?
   solvedAt     DateTime?

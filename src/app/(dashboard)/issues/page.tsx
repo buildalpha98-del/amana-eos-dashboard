@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useIssues } from "@/hooks/useIssues";
+import { useState, useMemo, useCallback } from "react";
+import { useIssues, useBulkIssueAction } from "@/hooks/useIssues";
 import { useQuery } from "@tanstack/react-query";
 import { IssueCard } from "@/components/issues/IssueCard";
 import { IssueKanban } from "@/components/issues/IssueKanban";
 import { IssueDetailPanel } from "@/components/issues/IssueDetailPanel";
 import { CreateIssueModal } from "@/components/issues/CreateIssueModal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   AlertCircle,
   Plus,
@@ -19,13 +20,16 @@ import {
   List,
   Archive,
   X,
+  Trash2,
+  UserPlus,
+  ArrowRightCircle,
 } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { HelpTooltip } from "@/components/shared/HelpTooltip";
+import { HelpTooltip } from "@/components/ui/HelpTooltip";
 
 interface UserOption {
   id: string;
@@ -51,6 +55,11 @@ export default function IssuesPage() {
   const [showArchived, setShowArchived] = useState(false);
   const [aiPrioritization, setAiPrioritization] = useState("");
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAssignDropdown, setShowAssignDropdown] = useState(false);
+
   const { data: issues, isLoading, error, refetch } = useIssues({
     ...(statusFilter ? { status: statusFilter } : {}),
     ...(priorityFilter ? { priority: priorityFilter } : {}),
@@ -65,6 +74,8 @@ export default function IssuesPage() {
       return res.json();
     },
   });
+
+  const bulkAction = useBulkIssueAction();
 
   // Filter out closed issues when archive is hidden
   const filteredIssues = useMemo(() => {
@@ -116,13 +127,80 @@ export default function IssuesPage() {
 
   const hasActiveFilters = priorityFilter || ownerFilter;
 
+  // Bulk selection helpers
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    if (selectedIds.size === filteredIssues.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredIssues.map((i) => i.id)));
+    }
+  }, [filteredIssues, selectedIds.size]);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setShowAssignDropdown(false);
+  }, []);
+
+  const handleBulkResolve = () => {
+    bulkAction.mutate(
+      { action: "resolve", ids: Array.from(selectedIds) },
+      { onSuccess: clearSelection }
+    );
+  };
+
+  const handleBulkDelete = () => {
+    bulkAction.mutate(
+      { action: "delete", ids: Array.from(selectedIds) },
+      {
+        onSuccess: () => {
+          clearSelection();
+          setShowDeleteConfirm(false);
+        },
+      }
+    );
+  };
+
+  const handleBulkAssign = (assigneeId: string) => {
+    bulkAction.mutate(
+      { action: "assign", ids: Array.from(selectedIds), assigneeId },
+      {
+        onSuccess: () => {
+          clearSelection();
+          setShowAssignDropdown(false);
+        },
+      }
+    );
+  };
+
+  const handleBulkMove = (category: string) => {
+    bulkAction.mutate(
+      { action: "move", ids: Array.from(selectedIds), category },
+      { onSuccess: clearSelection }
+    );
+  };
+
+  const isAllSelected = filteredIssues.length > 0 && selectedIds.size === filteredIssues.length;
+  const hasBulkSelection = selectedIds.size > 0;
+
+  // Suppress unused variable warnings for boardColumns (used implicitly by board view)
+  void boardColumns;
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Issues <HelpTooltip term="ids" />
+            Issues <HelpTooltip id="issues-heading" content="The Issues List captures problems, ideas, and opportunities. Use IDS (Identify, Discuss, Solve) in your L10 meeting to work through them." />
           </h2>
           <p className="text-sm text-gray-500">
             Track and resolve using IDS (Identify, Discuss, Solve)
@@ -337,14 +415,43 @@ export default function IssuesPage() {
         viewMode === "board" ? (
           <IssueKanban issues={filteredIssues} onSelect={setSelectedId} />
         ) : (
-          /* List View */
+          /* List View with checkboxes */
           <div className="space-y-2">
-            {filteredIssues.map((issue) => (
-              <IssueCard
-                key={issue.id}
-                issue={issue}
-                onClick={() => setSelectedId(issue.id)}
+            {/* Select All header */}
+            <div className="flex items-center gap-3 px-4 py-2">
+              <input
+                type="checkbox"
+                checked={isAllSelected}
+                onChange={toggleSelectAll}
+                className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand cursor-pointer"
+                aria-label="Select all issues"
               />
+              <span className="text-xs text-gray-500 font-medium">
+                {selectedIds.size > 0
+                  ? `${selectedIds.size} of ${filteredIssues.length} selected`
+                  : "Select all"}
+              </span>
+            </div>
+
+            {filteredIssues.map((issue) => (
+              <div key={issue.id} className="flex items-start gap-3">
+                <div className="pt-4 pl-4 flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(issue.id)}
+                    onChange={() => toggleSelect(issue.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand cursor-pointer"
+                    aria-label={`Select issue: ${issue.title}`}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <IssueCard
+                    issue={issue}
+                    onClick={() => setSelectedId(issue.id)}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         )
@@ -357,6 +464,109 @@ export default function IssuesPage() {
           action={{ label: "Raise Your First Issue", onClick: () => setShowCreate(true) }}
         />
       )}
+
+      {/* Bulk Actions Floating Bar */}
+      {hasBulkSelection && (
+        <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-30 bg-card border border-border rounded-xl shadow-lg p-4 w-[95vw] max-w-2xl">
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            {/* Count */}
+            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              {selectedIds.size} selected
+            </span>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              {/* Resolve */}
+              <button
+                onClick={handleBulkResolve}
+                disabled={bulkAction.isPending}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Resolve
+              </button>
+
+              {/* Assign To */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowAssignDropdown(!showAssignDropdown)}
+                  disabled={bulkAction.isPending}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 w-full sm:w-auto"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  Assign To
+                </button>
+                {showAssignDropdown && (
+                  <div className="absolute bottom-full mb-1 left-0 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 max-h-48 overflow-y-auto z-40">
+                    {users?.map((u) => (
+                      <button
+                        key={u.id}
+                        onClick={() => handleBulkAssign(u.id)}
+                        className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        {u.name}
+                      </button>
+                    ))}
+                    {(!users || users.length === 0) && (
+                      <p className="px-3 py-1.5 text-sm text-gray-400">No users found</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Move to Short-term */}
+              <button
+                onClick={() => handleBulkMove("short_term")}
+                disabled={bulkAction.isPending}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+              >
+                <ArrowRightCircle className="w-3.5 h-3.5" />
+                Short-term
+              </button>
+
+              {/* Move to Long-term */}
+              <button
+                onClick={() => handleBulkMove("long_term")}
+                disabled={bulkAction.isPending}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
+              >
+                <ArrowRightCircle className="w-3.5 h-3.5" />
+                Long-term
+              </button>
+
+              {/* Delete */}
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={bulkAction.isPending}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete
+              </button>
+
+              {/* Clear Selection */}
+              <button
+                onClick={clearSelection}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        title="Delete Issues"
+        description={`Are you sure you want to delete ${selectedIds.size} issue(s)? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleBulkDelete}
+        loading={bulkAction.isPending}
+      />
 
       {/* Create Modal */}
       <CreateIssueModal open={showCreate} onClose={() => setShowCreate(false)} />

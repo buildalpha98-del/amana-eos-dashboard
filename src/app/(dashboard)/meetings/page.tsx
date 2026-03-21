@@ -21,6 +21,7 @@ import type { ServiceSummary } from "@/hooks/useServices";
 import { cn, formatDateAU, getWeekStart, getCurrentQuarter } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { AiButton } from "@/components/ui/AiButton";
 import {
   Presentation,
@@ -189,7 +190,7 @@ function MeetingListView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">L10 Meetings</h2>
+          <h2 className="text-xl font-semibold text-gray-900">L10 Meetings <HelpTooltip id="l10-heading" content="The Level 10 Meeting is a weekly 90-minute meeting that keeps your team aligned. Follow the agenda: Segue, Scorecard, Rock Review, To-Do Review, IDS, Conclude." /></h2>
           <p className="text-sm text-gray-500">
             Run your weekly Level 10 leadership meetings
           </p>

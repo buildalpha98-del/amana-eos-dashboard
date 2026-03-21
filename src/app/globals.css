@@ -279,12 +279,4 @@ td, th {
 }
 
 /* ─── Print Styles ──────────────────────────────────────── */
-
-@media print {
-  nav, aside, [data-sidebar], [data-topbar], .no-print { display: none !important; }
-  main { margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
-  .report-section { page-break-inside: avoid; margin-bottom: 24px; }
-  button, .no-print { display: none !important; }
-  body { background: white !important; }
-  body::before { display: none; }
-}
+/* Extended print styles live in src/styles/print.css */

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
+import "@/styles/print.css";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Minus, Building2, Pencil, Trash2 } from "lucide-react";
 import { ScrollableTable } from "@/components/ui/ScrollableTable";
 import { Sparkline } from "@/components/ui/Sparkline";
+import { HelpTooltip } from "@/components/ui/HelpTooltip";
 
 function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goalDirection: "above" | "below" | "exact" }) {
   // values are newest-first; find the two most recent non-null values
@@ -217,7 +218,7 @@ export function ScorecardGrid({
                 Measurable
               </th>
               <th className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-[60px]">
-                Goal
+                <span className="inline-flex items-center gap-1">Goal <HelpTooltip id="scorecard-goal" content="The target number you're aiming for each week." /></span>
               </th>
               <th className="px-2 py-3 text-center text-xs font-semibold text-brand uppercase tracking-wider w-[70px] bg-brand/5">
                 13wk Avg

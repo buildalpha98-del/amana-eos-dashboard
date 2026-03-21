@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { HelpTooltip } from "@/components/shared/HelpTooltip";
+import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { AiButton } from "@/components/ui/AiButton";
 
 export default function ScorecardPage() {
@@ -92,7 +92,7 @@ export default function ScorecardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Scorecard <HelpTooltip term="scorecard" />
+            Scorecard <HelpTooltip id="scorecard-heading" content="Track your centre's key measurables weekly. Green = on track, red = off track. Update numbers each week before your L10 meeting." />
           </h2>
           <p className="text-sm text-gray-500">
             Track your weekly measurables — trailing 13 weeks

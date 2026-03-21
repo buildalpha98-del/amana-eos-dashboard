@@ -17,6 +17,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
@@ -88,6 +89,80 @@ type GridRow = {
   bsc: { enrolled: number; attended: number };
   asc: { enrolled: number; attended: number };
 };
+
+/** Build print-optimized HTML for attendance and trigger window.print() */
+function printAttendance(
+  grid: GridRow[],
+  weekDates: Date[],
+  serviceName?: string
+) {
+  const today = new Date().toLocaleDateString("en-AU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const weekStart = weekDates[0].toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  const printContainer = document.createElement("div");
+  printContainer.id = "print-attendance-container";
+  printContainer.className = "print-only";
+
+  let rows = "";
+  for (const row of grid) {
+    const dateLabel = row.date.toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+    });
+    rows += `
+      <tr>
+        <td style="font-weight: 600; text-align: left;">${row.day} ${dateLabel}</td>
+        <td>${row.bsc.enrolled}</td>
+        <td>${row.bsc.attended}</td>
+        <td>${row.asc.enrolled}</td>
+        <td>${row.asc.attended}</td>
+      </tr>
+    `;
+  }
+
+  printContainer.innerHTML = `
+    <div class="print-header">
+      <div class="print-header-brand">Amana OSHC</div>
+      <div class="print-header-subtitle">${serviceName || "Centre"} &mdash; Weekly Attendance</div>
+      <div class="print-header-date">Week starting ${weekStart} &bull; Printed ${today}</div>
+    </div>
+    <table class="print-attendance-table">
+      <thead>
+        <tr>
+          <th style="text-align: left;">Day</th>
+          <th colspan="2">BSC (Before School)</th>
+          <th colspan="2">ASC (After School)</th>
+        </tr>
+        <tr>
+          <th></th>
+          <th>Permanent</th>
+          <th>Casual</th>
+          <th>Permanent</th>
+          <th>Casual</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+    <div class="print-footer print-only">Amana OSHC - ${serviceName || "Centre"} - Printed ${today}</div>
+  `;
+
+  document.body.appendChild(printContainer);
+  window.print();
+  setTimeout(() => {
+    document.body.removeChild(printContainer);
+  }, 1000);
+}
 
 export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
   const anomalyQC = useQueryClient();
@@ -556,6 +631,14 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               Import CSV
+            </button>
+            <button
+              onClick={() => printAttendance(grid, weekDates, serviceName)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50 text-gray-600"
+              title="Print attendance"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Print</span>
             </button>
             <label className="flex items-center gap-1.5 text-xs text-gray-500">
               <input

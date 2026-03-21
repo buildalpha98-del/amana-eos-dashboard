@@ -10,6 +10,11 @@ import { CommandPalette } from "./CommandPalette";
 import { navItems } from "@/lib/nav-config";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 
+const CentreSwitcher = dynamic(
+  () => import("./CentreSwitcher").then((m) => m.CentreSwitcher),
+  { ssr: false }
+);
+
 const NotificationDropdown = dynamic(
   () => import("@/components/notifications/NotificationDropdown").then((m) => m.NotificationDropdown),
   { ssr: false }
@@ -171,6 +176,7 @@ export function TopBar() {
               {quarter}
             </span>
           )}
+          <CentreSwitcher />
         </div>
 
         <div className="flex items-center gap-2">
@@ -208,6 +214,7 @@ export function TopBar() {
               {quarter}
             </span>
           )}
+          <CentreSwitcher />
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <button

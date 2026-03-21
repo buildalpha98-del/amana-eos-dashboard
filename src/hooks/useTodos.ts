@@ -163,3 +163,43 @@ export function useDeleteTodo() {
     },
   });
 }
+
+export function useBulkTodoAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      action: "complete" | "delete" | "assign";
+      ids: string[];
+      assigneeId?: string;
+    }) => {
+      const res = await fetch("/api/todos/bulk-actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Bulk action failed");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["todos"] });
+      const count = vars.ids.length;
+      switch (vars.action) {
+        case "complete":
+          toast({ description: `${count} to-do${count !== 1 ? "s" : ""} marked complete` });
+          break;
+        case "delete":
+          toast({ description: `${count} to-do${count !== 1 ? "s" : ""} deleted` });
+          break;
+        case "assign":
+          toast({ description: `${count} to-do${count !== 1 ? "s" : ""} reassigned` });
+          break;
+      }
+    },
+    onError: (err: Error) => {
+      toast({ description: err.message });
+    },
+  });
+}

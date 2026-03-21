@@ -176,3 +176,37 @@ export function useDeleteIssue() {
     },
   });
 }
+
+export function useBulkIssueAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: {
+      action: "resolve" | "delete" | "assign" | "move";
+      ids: string[];
+      assigneeId?: string;
+      category?: string;
+    }) => {
+      const res = await fetch("/api/issues/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Bulk action failed");
+      }
+      return res.json();
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["issues"] });
+      queryClient.invalidateQueries({ queryKey: ["issue"] });
+      const labels: Record<string, string> = {
+        resolve: "resolved",
+        delete: "deleted",
+        assign: "reassigned",
+        move: "moved",
+      };
+      toast({ description: `${vars.ids.length} issue(s) ${labels[vars.action]}` });
+    },
+  });
+}
