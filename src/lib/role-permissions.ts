@@ -79,6 +79,7 @@ export const allPages = [
   // Admin
   "/audit-log",
   // Support — accessible to all roles
+  "/guides",
   "/help",
   "/directory",
   // Queue — automation reports & tasks
@@ -115,6 +116,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/documents",
     "/profile",
     "/tools/ccs-calculator",
+    "/guides",
     "/help",
     "/directory",
     "/queue",
@@ -144,6 +146,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/leave",
     "/timesheets",
     "/tools/ccs-calculator",
+    "/guides",
     "/help",
     "/directory",
     "/queue",
@@ -173,6 +176,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/leave",
     "/timesheets",
     "/tools/ccs-calculator",
+    "/guides",
     "/help",
     "/directory",
     "/queue",
@@ -191,6 +195,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/profile",
     "/leave",
     "/tools/ccs-calculator",
+    "/guides",
     "/help",
     "/directory",
     "/queue",

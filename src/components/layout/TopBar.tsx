@@ -76,6 +76,7 @@ const pageTitles: Record<string, string> = {
   "/compliance/templates": "Audit Templates",
   "/audit-log": "Audit Log",
   "/getting-started": "Getting Started",
+  "/guides": "Quick-Start Guides",
   "/help": "Help Centre",
   "/directory": "Staff Directory",
   "/queue": "My Queue",

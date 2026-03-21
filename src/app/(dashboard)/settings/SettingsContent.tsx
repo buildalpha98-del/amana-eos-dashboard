@@ -2,12 +2,14 @@
 
 import { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { ImportWizard } from "@/components/import/ImportWizard";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 import {
   Settings,
   Users,
+  Database,
   UserPlus,
   Shield,
   ShieldCheck,
@@ -2803,6 +2805,27 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
 
       {/* Budget Tiers (owner/head_office) */}
       {isOwner && <BudgetTiersSection />}
+
+      {/* Seed Template Data (owner/admin) */}
+      {(userRole === "owner" || userRole === "admin") && (
+        <Link
+          href="/settings/seed"
+          className="flex items-center gap-4 bg-white rounded-xl border border-gray-200 p-6 hover:border-brand/40 hover:shadow-sm transition-all group"
+        >
+          <div className="p-2.5 rounded-lg bg-brand/10 text-brand shrink-0">
+            <Database className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-brand transition-colors">
+              Seed Template Data
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Populate default templates, policies, checklists, and guides. Safe to run multiple times.
+            </p>
+          </div>
+          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-brand ml-auto shrink-0 transition-colors" />
+        </Link>
+      )}
 
       {/* User Management (owner + head_office) */}
       {canManageUsers && (
