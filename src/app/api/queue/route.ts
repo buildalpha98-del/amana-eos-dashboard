@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getCentreScope } from "@/lib/centre-scope";
 
 /**
  * GET /api/queue — returns the current user's assigned reports and todos
@@ -21,9 +22,12 @@ export async function GET(req: NextRequest) {
   const offset = parseInt(searchParams.get("offset") || "0");
   const viewAll = searchParams.get("view") === "all";
 
-  // Only owner/admin can view all queues
-  const isAdmin = userRole === "owner" || userRole === "admin";
+  // Only owner/admin/head_office can view all queues
+  const isAdmin = userRole === "owner" || userRole === "admin" || userRole === "head_office";
   const showAll = viewAll && isAdmin;
+
+  // Centre scoping for non-admin users
+  const { serviceIds } = await getCentreScope(session);
 
   // Build report filters
   const reportWhere: Record<string, unknown> = showAll ? {} : { assignedToId: userId };
@@ -31,6 +35,21 @@ export async function GET(req: NextRequest) {
   if (serviceCode) reportWhere.serviceCode = serviceCode;
   if (status && status !== "all") reportWhere.status = status;
   else if (!status) reportWhere.status = "pending";
+
+  // For scoped roles viewing all: restrict to their centres' reports
+  if (showAll && serviceIds !== null) {
+    // Resolve service codes for the user's centre IDs
+    const userServices = await prisma.service.findMany({
+      where: serviceIds.length > 0 ? { id: { in: serviceIds } } : { id: "__no_access__" },
+      select: { code: true },
+    });
+    const codes = userServices.map((s) => s.code);
+    if (codes.length > 0) {
+      reportWhere.serviceCode = { in: codes };
+    } else {
+      reportWhere.serviceCode = "__no_access__";
+    }
+  }
 
   // Build todo filters
   const todoWhere: Record<string, unknown> = showAll ? {} : { assignedToId: userId };

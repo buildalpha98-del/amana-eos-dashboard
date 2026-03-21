@@ -40,6 +40,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { FilterPresets } from "@/components/ui/FilterPresets";
 
 interface UserOption {
   id: string;
@@ -450,6 +451,30 @@ function TodosPageContent() {
           )}
         </div>
       )}
+
+      {/* Saved Filter Presets */}
+      <div className="mb-4">
+        <FilterPresets
+          pageKey="todos"
+          currentFilters={{
+            assignee: filterAssignee,
+            status: filterStatus,
+            view: viewModeParam || "",
+            groupBy: groupByParam || "",
+          }}
+          onLoadPreset={(filters) => {
+            setMultiParams({
+              assignee: filters.assignee || "",
+              status: filters.status || "",
+              view: filters.view || "",
+              groupBy: filters.groupBy || "",
+            });
+            if (!showFilters && (filters.assignee || filters.status)) {
+              setShowFilters(true);
+            }
+          }}
+        />
+      </div>
 
       {/* Carry Forward Section (weekly mode only) */}
       {!showAll && carryForwardTodos.length > 0 && (

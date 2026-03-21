@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { getStateScope } from "@/lib/service-scope";
+import { getCentreScope, buildCentreOrPersonalFilter } from "@/lib/centre-scope";
 import { createTodoSchema } from "@/lib/schemas/todo";
 import { parsePagination } from "@/lib/pagination";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
@@ -36,14 +37,12 @@ export async function GET(req: NextRequest) {
     where.serviceId = serviceId;
   }
 
-  // Staff scoping: only see todos assigned to them or related to their centre
-  const scope = getServiceScope(session);
+  // Centre scoping: scoped roles see only their centre's todos + personally assigned
+  const { serviceIds } = await getCentreScope(session);
   const stateScope = getStateScope(session);
-  if (scope) {
-    where.OR = [
-      { assigneeId: session!.user.id },
-      { serviceId: scope },
-    ];
+  const orFilter = buildCentreOrPersonalFilter(serviceIds, session!.user.id);
+  if (orFilter) {
+    where.OR = orFilter;
   }
 
   // State Manager: only see todos for services in their assigned state

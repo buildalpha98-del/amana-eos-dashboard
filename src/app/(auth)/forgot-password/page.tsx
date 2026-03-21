@@ -36,55 +36,84 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-dark via-brand to-brand-light">
-      <div className="w-full max-w-md mx-4">
-        {/* Logo / Brand */}
+    <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-[#001824] via-[#003344] to-[#0A5E7E] overflow-hidden">
+      {/* Animated floating background shapes */}
+      <div
+        className="absolute top-[-10%] left-[-5%] w-96 h-96 rounded-full bg-accent/10 blur-3xl"
+        style={{ animation: "float 6s ease-in-out infinite" }}
+      />
+      <div
+        className="absolute bottom-[-8%] right-[-5%] w-64 h-64 rounded-full bg-brand-light/15 blur-2xl"
+        style={{ animation: "float 8s ease-in-out infinite 1s" }}
+      />
+      <div
+        className="absolute top-[20%] right-[10%] w-48 h-48 rounded-full bg-accent/[0.08] blur-xl"
+        style={{ animation: "float 7s ease-in-out infinite 2s" }}
+      />
+
+      <div
+        className="relative z-10 w-full max-w-md mx-4"
+        style={{ animation: "scale-in 0.6s ease-out both" }}
+      >
+        {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-4">
-            <Image src="/logo-full-white.svg" alt="Amana OSHC" width={180} height={90} priority />
+          <div
+            className="inline-flex items-center justify-center mb-4"
+            style={{ animation: "fade-in-up 0.5s ease-out both" }}
+          >
+            <Image src="/logo-full-white.svg" alt="Amana OSHC" width={200} height={100} priority />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">
+          <h1
+            className="text-4xl font-heading font-bold text-white tracking-tight"
+            style={{
+              textShadow: "0 2px 12px rgba(0,0,0,0.3)",
+              animation: "fade-in-up 0.5s ease-out 0.1s both",
+            }}
+          >
             Amana OSHC
           </h1>
-          <p className="text-white/60 mt-1 text-sm">
+          <p
+            className="text-white/50 mt-2 text-base tracking-wide"
+            style={{ animation: "fade-in-up 0.5s ease-out 0.25s both" }}
+          >
             EOS Management Dashboard
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 sm:p-10 border border-white/50">
           {sent ? (
             <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="text-xl font-heading font-semibold text-gray-900 mb-2">
                 Check your email
               </h2>
-              <p className="text-gray-500 text-sm mb-6">
-                If an account exists for <strong>{email}</strong>, we&apos;ve sent a password reset link.
+              <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+                If an account exists for <strong className="text-gray-700">{email}</strong>, we&apos;ve sent a password reset link.
                 Check your inbox and spam folder.
               </p>
               <Link
                 href="/login"
-                className="inline-block px-6 py-2.5 bg-brand text-white font-medium rounded-lg hover:bg-brand-hover transition-colors"
+                className="inline-block w-full py-3 px-4 bg-gradient-to-r from-brand to-brand-light hover:from-brand-hover hover:to-brand text-white text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 active:scale-[0.98] text-center"
               >
                 Back to Sign In
               </Link>
             </div>
           ) : (
             <>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="text-xl font-heading font-semibold text-gray-900 mb-2">
                 Forgot your password?
               </h2>
-              <p className="text-gray-500 text-sm mb-6">
+              <p className="text-gray-500 text-sm mb-6 leading-relaxed">
                 Enter your email address and we&apos;ll send you a link to reset your password.
               </p>
 
               {error && (
-                <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200/60 text-red-600 text-sm">
                   {error}
                 </div>
               )}
@@ -93,7 +122,7 @@ export default function ForgotPasswordPage() {
                 <div>
                   <label
                     htmlFor="email"
-                    className="block text-sm font-medium text-gray-700 mb-1.5"
+                    className="block font-heading text-sm font-semibold text-gray-700 tracking-wide mb-1.5"
                   >
                     Email address
                   </label>
@@ -103,21 +132,22 @@ export default function ForgotPasswordPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-shadow"
+                    className="w-full px-4 py-3 border-2 border-gray-200/80 rounded-xl bg-gray-50/50 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
                     placeholder="you@amanaoshc.com.au"
                     autoComplete="email"
+                    autoFocus
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-2.5 px-4 bg-brand hover:bg-brand-hover text-white font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand"
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-brand to-brand-light hover:from-brand-hover hover:to-brand text-white text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand"
                 >
                   {loading ? (
-                    <span className="inline-flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center gap-2">
                       <svg
-                        className="animate-spin h-4 w-4"
+                        className="animate-spin h-4 w-4 text-accent"
                         viewBox="0 0 24 24"
                         fill="none"
                       >
@@ -143,8 +173,8 @@ export default function ForgotPasswordPage() {
                 </button>
               </form>
 
-              <p className="text-center text-sm text-gray-400 mt-4">
-                <Link href="/login" className="text-brand font-medium hover:underline">
+              <p className="text-center text-sm text-gray-400 mt-5">
+                <Link href="/login" className="text-brand font-semibold hover:text-brand-light transition-colors">
                   Back to Sign In
                 </Link>
               </p>
@@ -152,10 +182,26 @@ export default function ForgotPasswordPage() {
           )}
         </div>
 
-        <p className="text-center text-white/40 text-xs mt-6">
+        <p className="text-center text-white/30 font-heading tracking-wider uppercase text-[11px] mt-6">
           Amana OSHC Leadership Team Portal
         </p>
       </div>
+
+      {/* Keyframe animations */}
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(-20px) scale(1.05); }
+        }
+        @keyframes scale-in {
+          0% { opacity: 0; transform: scale(0.95); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fade-in-up {
+          0% { opacity: 0; transform: translateY(10px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

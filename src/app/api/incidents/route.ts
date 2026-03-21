@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { getStateScope } from "@/lib/service-scope";
+import { getCentreScope, applyCentreFilter } from "@/lib/centre-scope";
 
 /**
  * GET /api/incidents
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
   const { session, error } = await requireAuth();
   if (error) return error;
 
-  const scope = getServiceScope(session);
+  const { serviceIds } = await getCentreScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
@@ -23,8 +24,12 @@ export async function GET(req: NextRequest) {
 
   try {
     const where: Record<string, unknown> = { deleted: false };
-    if (scope) where.serviceId = scope;
-    else if (serviceId) where.serviceId = serviceId;
+    // Centre scoping: apply centre filter for scoped roles
+    if (serviceIds !== null) {
+      applyCentreFilter(where, serviceIds);
+    } else if (serviceId) {
+      where.serviceId = serviceId;
+    }
     if (stateScope) where.service = { state: stateScope };
     if (type) where.incidentType = type;
     if (severity) where.severity = severity;

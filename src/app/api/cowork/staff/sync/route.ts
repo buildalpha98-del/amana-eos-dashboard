@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import bcrypt from "bcryptjs";
+import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 
 // ── Role mapping ─────────────────────────────────────────────
 
@@ -129,6 +130,7 @@ export async function POST(req: NextRequest) {
             serviceId,
             phone: entry.phone || null,
             active: entry.active !== false,
+            notificationPrefs: getDefaultNotificationPrefs(role),
           },
         });
         created.push(email);

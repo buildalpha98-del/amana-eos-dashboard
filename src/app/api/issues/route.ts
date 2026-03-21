@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { getStateScope } from "@/lib/service-scope";
+import { getCentreScope } from "@/lib/centre-scope";
 import { notifyNewIssue } from "@/lib/teams-notify";
 import { createIssueSchema } from "@/lib/schemas/issue";
 import { parsePagination } from "@/lib/pagination";
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   const { session, error } = await requireAuth();
   if (error) return error;
 
-  const scope = getServiceScope(session);
+  const { serviceIds } = await getCentreScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
@@ -35,13 +36,19 @@ export async function GET(req: NextRequest) {
   if (rockId) where.rockId = rockId;
   if (serviceId) where.serviceId = serviceId;
 
-  // Member/staff: only see issues for their service or raised by/owned by them
-  if (scope) {
-    where.OR = [
-      { serviceId: scope },
+  // Centre scoping: scoped roles see issues for their centres or raised/owned by them
+  if (serviceIds !== null) {
+    const serviceCondition = serviceIds.length === 1
+      ? { serviceId: serviceIds[0] }
+      : serviceIds.length > 1
+      ? { serviceId: { in: serviceIds } }
+      : null;
+    const orClauses: Record<string, unknown>[] = [
       { raisedById: session!.user.id },
       { ownerId: session!.user.id },
     ];
+    if (serviceCondition) orClauses.push(serviceCondition);
+    where.OR = orClauses;
   }
 
   // State Manager: only see issues for services in their assigned state

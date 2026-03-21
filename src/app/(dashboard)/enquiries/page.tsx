@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { UserPlus } from "lucide-react";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
 import { ServiceFilter } from "@/components/marketing/ServiceFilter";
 import { EnquiryKanban } from "@/components/enquiries/EnquiryKanban";
 import { EnquiryStatsBar } from "@/components/enquiries/EnquiryStatsBar";
@@ -16,6 +18,20 @@ export default function EnquiriesPage() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleRefresh = () => setRefreshKey((k) => k + 1);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: enquiriesData } = useQuery<{ enquiries: any[] }>({
+    queryKey: ["enquiries-export", selectedServiceId, refreshKey],
+    queryFn: async () => {
+      const url = selectedServiceId
+        ? `/api/enquiries?serviceId=${selectedServiceId}&limit=500`
+        : "/api/enquiries?limit=500";
+      const res = await fetch(url);
+      if (!res.ok) return { enquiries: [] };
+      return res.json();
+    },
+  });
+  const allEnquiries = enquiriesData?.enquiries || [];
 
   const { data: sentimentSummary } = useQuery({
     queryKey: ["sentiment-summary"],
@@ -42,6 +58,26 @@ export default function EnquiriesPage() {
           <ServiceFilter
             value={selectedServiceId}
             onChange={setSelectedServiceId}
+          />
+          <ExportButton
+            onClick={() =>
+              exportToCsv(
+                `amana-enquiries-${new Date().toISOString().slice(0, 10)}`,
+                allEnquiries,
+                [
+                  { header: "ID", accessor: (e) => e.id },
+                  { header: "Parent Name", accessor: (e) => e.parentName ?? "" },
+                  { header: "Email", accessor: (e) => e.parentEmail ?? "" },
+                  { header: "Phone", accessor: (e) => e.parentPhone ?? "" },
+                  { header: "Child Name", accessor: (e) => e.childName ?? "" },
+                  { header: "Centre", accessor: (e) => e.service?.name ?? "" },
+                  { header: "Stage", accessor: (e) => e.stage ?? "" },
+                  { header: "Source", accessor: (e) => e.source ?? "" },
+                  { header: "Created", accessor: (e) => e.createdAt ? new Date(e.createdAt).toLocaleDateString("en-AU") : "" },
+                ],
+              )
+            }
+            disabled={allEnquiries.length === 0}
           />
           <button
             onClick={() => setShowNewEnquiry(true)}

@@ -34,7 +34,10 @@ import {
   Users,
   User,
 } from "lucide-react";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
+import { FilterPresets } from "@/components/ui/FilterPresets";
 
 const SEATS = [
   "marketing",
@@ -320,6 +323,26 @@ export default function QueuePage() {
               </button>
             </div>
           )}
+          <ExportButton
+            onClick={() =>
+              exportToCsv(
+                `amana-queue-${new Date().toISOString().slice(0, 10)}`,
+                reports,
+                [
+                  { header: "ID", accessor: (r) => r.id },
+                  { header: "Title", accessor: (r) => r.title },
+                  { header: "Seat", accessor: (r) => r.seat },
+                  { header: "Report Type", accessor: (r) => r.reportType },
+                  { header: "Status", accessor: (r) => r.status },
+                  { header: "Centre", accessor: (r) => r.service?.name ?? "" },
+                  { header: "Assigned To", accessor: (r) => r.assignedTo?.name ?? "Unassigned" },
+                  { header: "Created", accessor: (r) => new Date(r.createdAt).toLocaleDateString("en-AU") },
+                  { header: "Reviewed At", accessor: (r) => r.reviewedAt ? new Date(r.reviewedAt).toLocaleDateString("en-AU") : "" },
+                ],
+              )
+            }
+            disabled={reports.length === 0}
+          />
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={cn(
@@ -388,6 +411,22 @@ export default function QueuePage() {
           )}
         </div>
       )}
+
+      {/* Saved Filter Presets */}
+      <FilterPresets
+        pageKey="queue"
+        currentFilters={{
+          seat: seatFilter,
+          status: statusFilter,
+        }}
+        onLoadPreset={(filters) => {
+          setSeatFilter(filters.seat || "");
+          setStatusFilter(filters.status || "");
+          if (!showFilters && (filters.seat || filters.status)) {
+            setShowFilters(true);
+          }
+        }}
+      />
 
       {/* Stats bar */}
       {!isLoading && (

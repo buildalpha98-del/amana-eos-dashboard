@@ -33,6 +33,7 @@ import {
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { useFormDraft } from "@/hooks/useFormDraft";
+import { FilterPresets } from "@/components/ui/FilterPresets";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -246,6 +247,25 @@ function IncidentsPageContent() {
           </>
         )}
       </div>
+
+      {/* Saved Filter Presets */}
+      <FilterPresets
+        pageKey="incidents"
+        currentFilters={{
+          service: filterService,
+          type: filterType,
+          severity: filterSeverity,
+          from: filterFrom,
+          to: filterTo,
+        }}
+        onLoadPreset={(filters) => {
+          setFilterService(filters.service || "");
+          setFilterType(filters.type || "");
+          setFilterSeverity(filters.severity || "");
+          setFilterFrom(filters.from || "");
+          setFilterTo(filters.to || "");
+        }}
+      />
 
       {/* Tab pills */}
       <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit">

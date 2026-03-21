@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Briefcase, Plus, Users, Clock, CheckCircle2, Search } from "lucide-react";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
 import { ServiceFilter } from "@/components/marketing/ServiceFilter";
 import { NewVacancyModal } from "@/components/recruitment/NewVacancyModal";
 import { VacancyTable } from "@/components/recruitment/VacancyTable";
@@ -88,6 +90,25 @@ export default function RecruitmentPage() {
               className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-full sm:w-48"
             />
           </div>
+          <ExportButton
+            onClick={() =>
+              exportToCsv(
+                `amana-recruitment-${new Date().toISOString().slice(0, 10)}`,
+                vacancies,
+                [
+                  { header: "ID", accessor: (v: Record<string, unknown>) => v.id as string },
+                  { header: "Title", accessor: (v: Record<string, unknown>) => v.title as string },
+                  { header: "Status", accessor: (v: Record<string, unknown>) => v.status as string },
+                  { header: "Department", accessor: (v: Record<string, unknown>) => (v.department as string) ?? "" },
+                  { header: "Employment Type", accessor: (v: Record<string, unknown>) => (v.employmentType as string) ?? "" },
+                  { header: "Centre", accessor: (v: Record<string, unknown>) => ((v.service as Record<string, unknown>)?.name as string) ?? "" },
+                  { header: "Candidates", accessor: (v: Record<string, unknown>) => ((v._count as Record<string, unknown>)?.candidates as number) ?? 0 },
+                  { header: "Created", accessor: (v: Record<string, unknown>) => v.createdAt ? new Date(v.createdAt as string).toLocaleDateString("en-AU") : "" },
+                ],
+              )
+            }
+            disabled={vacancies.length === 0}
+          />
           <button
             onClick={() => setShowNewVacancy(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-md bg-brand text-white text-sm font-medium hover:bg-brand-hover transition-colors"

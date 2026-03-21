@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { getStateScope } from "@/lib/service-scope";
+import { getCentreScope, applyCentreFilter, buildCentreOrPersonalFilter } from "@/lib/centre-scope";
 import {
   computeHealthScore,
   getScoreStatus,
@@ -16,16 +17,19 @@ export async function GET() {
   if (error) return error;
 
   const now = new Date();
-  const scope = getServiceScope(session);
+  const { serviceIds } = await getCentreScope(session);
   const stateScope = getStateScope(session);
+
+  // Build service where clause with centre scoping
+  const serviceWhere: Record<string, unknown> = {
+    status: { in: ["active", "onboarding"] },
+  };
+  applyCentreFilter(serviceWhere, serviceIds, "id");
+  if (stateScope) serviceWhere.state = stateScope;
 
   // ── Centre Health ──────────────────────────────────────────
   const services = await prisma.service.findMany({
-    where: {
-      status: { in: ["active", "onboarding"] },
-      ...(scope ? { id: scope } : {}),
-      ...(stateScope ? { state: stateScope } : {}),
-    },
+    where: serviceWhere,
     include: {
       metrics: { orderBy: { recordedAt: "desc" }, take: 1 },
       financials: {
@@ -221,7 +225,7 @@ export async function GET() {
           deleted: false,
           status: { notIn: ["complete", "cancelled"] },
           dueDate: { lt: now },
-          ...(scope ? { OR: [{ assigneeId: session!.user.id }, { serviceId: scope }] } : {}),
+          ...(serviceIds !== null ? { OR: buildCentreOrPersonalFilter(serviceIds, session!.user.id)! } : {}),
         },
         select: {
           id: true,
@@ -249,7 +253,7 @@ export async function GET() {
           deleted: false,
           status: { in: ["open", "in_discussion"] },
           priority: { in: ["critical", "high"] },
-          ...(scope ? { serviceId: scope } : {}),
+          ...(serviceIds !== null ? (serviceIds.length === 1 ? { serviceId: serviceIds[0] } : serviceIds.length > 1 ? { serviceId: { in: serviceIds } } : { serviceId: "__no_access__" }) : {}),
         },
         select: { id: true, title: true, priority: true },
         orderBy: { createdAt: "desc" },
@@ -307,7 +311,7 @@ export async function GET() {
       deleted: false,
       status: { notIn: ["complete", "cancelled"] },
       projectId: { not: null },
-      ...(scope ? { OR: [{ assigneeId: session!.user.id }, { serviceId: scope }] } : {}),
+      ...(serviceIds !== null ? { OR: buildCentreOrPersonalFilter(serviceIds, session!.user.id)! } : {}),
     },
     select: {
       id: true,
@@ -393,7 +397,7 @@ export async function GET() {
         deleted: false,
         status: { notIn: ["complete", "cancelled"] },
         dueDate: { lt: now },
-        ...(scope ? { OR: [{ assigneeId: session!.user.id }, { serviceId: scope }] } : {}),
+        ...(serviceIds !== null ? { OR: buildCentreOrPersonalFilter(serviceIds, session!.user.id)! } : {}),
       },
     }),
   ]);
@@ -448,7 +452,7 @@ export async function GET() {
 
   // ── Today's Operations (admin/owner only) ─────────────────
   const role = session!.user.role as string;
-  const isServiceScoped = role === "staff" || role === "member";
+  const isServiceScoped = serviceIds !== null; // scoped roles: coordinator, member, staff, marketing
 
   const today = new Date(now.toISOString().split("T")[0] + "T00:00:00Z");
 
@@ -610,7 +614,7 @@ export async function GET() {
     _count: true,
     where: {
       respondedAt: { gte: thirtyDaysAgo },
-      ...(scope ? { serviceId: scope } : {}),
+      ...(serviceIds !== null ? (serviceIds.length === 1 ? { serviceId: serviceIds[0] } : serviceIds.length > 1 ? { serviceId: { in: serviceIds } } : { serviceId: "__no_access__" }) : {}),
     },
   });
 

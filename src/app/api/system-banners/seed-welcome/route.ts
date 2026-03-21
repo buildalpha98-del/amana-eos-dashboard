@@ -3,36 +3,62 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
+const SEED_BANNERS = [
+  {
+    title: "Welcome to the Amana OSHC Dashboard! \uD83C\uDF89",
+    body: "Complete your Getting Started checklist to get set up.",
+    type: "celebration",
+    linkUrl: "/getting-started",
+    linkLabel: "Get Started",
+    matchTitle: "Welcome",
+  },
+  {
+    title: "New here? \uD83D\uDCD6",
+    body: "Check out your role's Quick-Start Guide for a walkthrough.",
+    type: "info",
+    linkUrl: "/guides",
+    linkLabel: "View Guides",
+    matchTitle: "Quick-Start Guide",
+  },
+];
+
 export async function POST() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const role = (session.user as any).role;
+  const role = (session.user as Record<string, unknown>).role as string;
   if (!["owner", "head_office"].includes(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Idempotent: check if a welcome banner already exists
-  const existing = await prisma.systemBanner.findFirst({
-    where: { title: { contains: "Welcome" } },
-  });
+  const results: { title: string; status: string }[] = [];
 
-  if (existing) {
-    return NextResponse.json(existing);
+  for (const seed of SEED_BANNERS) {
+    const existing = await prisma.systemBanner.findFirst({
+      where: { title: { contains: seed.matchTitle } },
+    });
+
+    if (existing) {
+      results.push({ title: seed.title, status: "already_exists" });
+      continue;
+    }
+
+    await prisma.systemBanner.create({
+      data: {
+        title: seed.title,
+        body: seed.body,
+        type: seed.type,
+        linkUrl: seed.linkUrl,
+        linkLabel: seed.linkLabel,
+        active: true,
+        dismissible: true,
+        createdById: session.user.id,
+      },
+    });
+
+    results.push({ title: seed.title, status: "created" });
   }
 
-  const banner = await prisma.systemBanner.create({
-    data: {
-      title: "Welcome to the Amana EOS Dashboard! \uD83C\uDF89",
-      body: "Your new hub for managing rocks, to-dos, scorecards, compliance, and more. Head to Getting Started to learn the ropes.",
-      type: "feature",
-      linkUrl: "/getting-started",
-      linkLabel: "Get Started",
-      active: true,
-      createdById: session.user.id,
-    },
-  });
-
-  return NextResponse.json(banner, { status: 201 });
+  return NextResponse.json({ results }, { status: 201 });
 }

@@ -120,8 +120,16 @@ export async function GET(req: NextRequest) {
     where: { token },
   });
 
-  if (!resetToken || resetToken.used || resetToken.expiresAt < new Date()) {
-    return NextResponse.json({ valid: false, error: "Invalid or expired token" });
+  if (!resetToken) {
+    return NextResponse.json({ valid: false, error: "This reset link is invalid. Please request a new one." });
+  }
+
+  if (resetToken.used) {
+    return NextResponse.json({ valid: false, error: "This reset link has already been used. Please request a new one." });
+  }
+
+  if (resetToken.expiresAt < new Date()) {
+    return NextResponse.json({ valid: false, error: "This reset link has expired. Please request a new one." });
   }
 
   return NextResponse.json({ valid: true });

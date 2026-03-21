@@ -4,6 +4,7 @@ import { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { ImportWizard } from "@/components/import/ImportWizard";
+import { BulkInviteModal } from "@/components/settings/BulkInviteModal";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { UnsavedBadge } from "@/components/ui/UnsavedBadge";
 import {
@@ -72,6 +73,8 @@ import {
   useOwnaSync,
 } from "@/hooks/useOwna";
 import { AUSTRALIAN_STATES } from "@/lib/service-scope";
+import { AdoptionDashboard } from "@/components/admin/AdoptionDashboard";
+import { BannerManagementSection } from "@/components/settings/BannerManagementSection";
 
 interface UserData {
   id: string;
@@ -2769,6 +2772,7 @@ function AiUsageDashboard() {
 
 export function SettingsContent({ userRole }: { userRole: Role }) {
   const [showInvite, setShowInvite] = useState(false);
+  const [showBulkInvite, setShowBulkInvite] = useState(false);
   const [showImportStaff, setShowImportStaff] = useState(false);
   const isOwner = userRole === "owner";
   const isHeadOffice = userRole === "head_office";
@@ -2789,6 +2793,9 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Organisation Settings (owner only) */}
       {isOwner && <OrgSettingsSection isOwner={isOwner} />}
+
+      {/* System Banners (owner/head_office) */}
+      {(isOwner || isHeadOffice) && <BannerManagementSection />}
 
       {/* Xero Integration (owner only) */}
       {isOwner && (
@@ -2848,6 +2855,13 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
                 </button>
               )}
               <button
+                onClick={() => setShowBulkInvite(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <Users className="w-4 h-4" />
+                Bulk Invite
+              </button>
+              <button
                 onClick={() => setShowInvite(true)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
               >
@@ -2894,6 +2908,12 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
             currentUserRole={userRole}
           />
 
+          <BulkInviteModal
+            open={showBulkInvite}
+            onClose={() => setShowBulkInvite(false)}
+            currentUserRole={userRole}
+          />
+
           {showImportStaff && (
             <ImportWizard
               title="Import Staff from Spreadsheet"
@@ -2928,6 +2948,19 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
 
       {/* AI Usage Dashboard (owner/head_office) */}
       {(isOwner || isHeadOffice) && <AiUsageDashboard />}
+
+      {/* Adoption Metrics (owner/admin/head_office) */}
+      {(isOwner || isHeadOffice || userRole === "admin") && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-5 h-5 text-gray-400" />
+            <h3 className="text-lg font-semibold text-gray-900">
+              Adoption Metrics
+            </h3>
+          </div>
+          <AdoptionDashboard />
+        </div>
+      )}
 
       {/* Activity Log (owner/head_office/admin) */}
       {(userRole === "owner" || userRole === "head_office" || userRole === "admin") && <ActivityLogPanel />}

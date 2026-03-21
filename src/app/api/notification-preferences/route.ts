@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-
-const DEFAULT_PREFS = {
-  overdueTodos: true,
-  newAssignments: true,
-  complianceAlerts: true,
-  announcements: true,
-  leaveUpdates: true,
-  meetingReminders: true,
-  rockUpdates: true,
-  emailNotifications: true,
-};
+import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 
 // GET /api/notification-preferences — return current user's prefs
 export async function GET() {
@@ -20,10 +10,12 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session!.user.id },
-    select: { notificationPrefs: true },
+    select: { notificationPrefs: true, role: true },
   });
 
-  const prefs = (user?.notificationPrefs as Record<string, boolean> | null) ?? DEFAULT_PREFS;
+  const defaults = getDefaultNotificationPrefs(user?.role ?? "staff");
+  const stored = user?.notificationPrefs as Record<string, boolean> | null;
+  const prefs = stored && Object.keys(stored).length > 0 ? stored : defaults;
 
   return NextResponse.json({ prefs });
 }
@@ -44,8 +36,9 @@ export async function PUT(req: NextRequest) {
   }
 
   // Merge with defaults so we only allow known keys
-  const merged: Record<string, boolean> = { ...DEFAULT_PREFS };
-  for (const key of Object.keys(DEFAULT_PREFS)) {
+  const roleDefaults = getDefaultNotificationPrefs(session!.user.role ?? "staff");
+  const merged: Record<string, boolean> = { ...roleDefaults };
+  for (const key of Object.keys(roleDefaults)) {
     if (key in prefs && typeof prefs[key] === "boolean") {
       merged[key] = prefs[key];
     }

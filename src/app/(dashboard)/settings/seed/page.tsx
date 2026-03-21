@@ -17,6 +17,7 @@ import {
   GitBranch,
   BarChart3,
   Play,
+  Bell,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 
@@ -85,6 +86,13 @@ const SEED_ENDPOINTS: SeedEndpoint[] = [
     description: "Default OSHC measurables per centre",
     endpoint: "/api/scorecard/seed",
     icon: <BarChart3 className="w-5 h-5" />,
+  },
+  {
+    key: "notification-prefs",
+    name: "Notification Preferences",
+    description: "Backfill role-based default prefs for users missing them",
+    endpoint: "/api/users/backfill-prefs",
+    icon: <Bell className="w-5 h-5" />,
   },
 ];
 

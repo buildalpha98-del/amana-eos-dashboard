@@ -25,6 +25,8 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
@@ -607,6 +609,28 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
     <div>
       {/* Actions bar */}
       <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
+        <ExportButton
+          onClick={() =>
+            exportToCsv(
+              `amana-compliance-${new Date().toISOString().slice(0, 10)}`,
+              filteredCerts,
+              [
+                { header: "ID", accessor: (c) => c.id },
+                { header: "Staff", accessor: (c) => c.user?.name ?? "N/A" },
+                { header: "Email", accessor: (c) => c.user?.email ?? "" },
+                { header: "Centre", accessor: (c) => c.service?.name ?? "" },
+                { header: "Type", accessor: (c) => typeLabels[c.type] || c.type },
+                { header: "Label", accessor: (c) => c.label ?? "" },
+                { header: "Issue Date", accessor: (c) => new Date(c.issueDate).toLocaleDateString("en-AU") },
+                { header: "Expiry Date", accessor: (c) => new Date(c.expiryDate).toLocaleDateString("en-AU") },
+                { header: "Days Until Expiry", accessor: (c) => daysUntilExpiry(c.expiryDate) },
+                { header: "Status", accessor: (c) => expiryStatus(daysUntilExpiry(c.expiryDate)) },
+                { header: "Notes", accessor: (c) => c.notes ?? "" },
+              ],
+            )
+          }
+          disabled={filteredCerts.length === 0}
+        />
         <button
           onClick={() => setShowImportCerts(true)}
           className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"

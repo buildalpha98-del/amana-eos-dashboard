@@ -12,6 +12,8 @@ import {
   CheckSquare,
   AlertCircle,
 } from "lucide-react";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -47,31 +49,54 @@ export default function TeamPage() {
               : "Team performance metrics and individual stats"}
           </p>
         </div>
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 self-start sm:self-auto">
-          <button
-            onClick={() => setViewMode("chart")}
-            className={cn(
-              "p-2 rounded-md transition-colors",
-              viewMode === "chart"
-                ? "bg-white text-brand shadow-sm"
-                : "text-gray-400 hover:text-gray-600"
-            )}
-            title="Accountability Chart"
-          >
-            <LayoutGrid className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setViewMode("list")}
-            className={cn(
-              "p-2 rounded-md transition-colors",
-              viewMode === "list"
-                ? "bg-white text-brand shadow-sm"
-                : "text-gray-400 hover:text-gray-600"
-            )}
-            title="Performance List"
-          >
-            <List className="w-4 h-4" />
-          </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <ExportButton
+            onClick={() =>
+              exportToCsv(
+                `amana-team-${new Date().toISOString().slice(0, 10)}`,
+                members || [],
+                [
+                  { header: "ID", accessor: (m) => m.id },
+                  { header: "Name", accessor: (m) => m.name },
+                  { header: "Email", accessor: (m) => m.email },
+                  { header: "Role", accessor: (m) => m.role },
+                  { header: "Active Rocks", accessor: (m) => m.activeRocks },
+                  { header: "Todos (Total)", accessor: (m) => m.totalTodos },
+                  { header: "Todos (Completed)", accessor: (m) => m.completedTodos },
+                  { header: "Todo Completion %", accessor: (m) => `${m.todoCompletionPct}%` },
+                  { header: "Open Issues", accessor: (m) => m.openIssues },
+                  { header: "Managed Services", accessor: (m) => m.managedServices },
+                ],
+              )
+            }
+            disabled={!members || members.length === 0}
+          />
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode("chart")}
+              className={cn(
+                "p-2 rounded-md transition-colors",
+                viewMode === "chart"
+                  ? "bg-white text-brand shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
+              )}
+              title="Accountability Chart"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={cn(
+                "p-2 rounded-md transition-colors",
+                viewMode === "list"
+                  ? "bg-white text-brand shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
+              )}
+              title="Performance List"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 

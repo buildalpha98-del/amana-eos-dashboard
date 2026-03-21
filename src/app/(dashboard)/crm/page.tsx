@@ -15,6 +15,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { FilterPresets } from "@/components/ui/FilterPresets";
 import {
   Target,
   Plus,
@@ -26,6 +27,8 @@ import {
   Handshake,
   Loader2,
 } from "lucide-react";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
 
 const AU_STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 
@@ -106,6 +109,30 @@ export default function CrmPage() {
         </div>
         <div className="flex items-center gap-3">
           <ScraperStatusWidget />
+          <ExportButton
+            onClick={() =>
+              exportToCsv(
+                `amana-crm-leads-${new Date().toISOString().slice(0, 10)}`,
+                leads || [],
+                [
+                  { header: "ID", accessor: (l) => l.id },
+                  { header: "School Name", accessor: (l) => l.schoolName },
+                  { header: "Contact Name", accessor: (l) => l.contactName ?? "" },
+                  { header: "Email", accessor: (l) => l.contactEmail ?? "" },
+                  { header: "Phone", accessor: (l) => l.contactPhone ?? "" },
+                  { header: "State", accessor: (l) => l.state ?? "" },
+                  { header: "Suburb", accessor: (l) => l.suburb ?? "" },
+                  { header: "Stage", accessor: (l) => l.pipelineStage },
+                  { header: "Source", accessor: (l) => l.source },
+                  { header: "Assigned To", accessor: (l) => l.assignedTo?.name ?? "Unassigned" },
+                  { header: "AI Score", accessor: (l) => l.aiScore ?? "" },
+                  { header: "Created", accessor: (l) => new Date(l.createdAt).toLocaleDateString("en-AU") },
+                  { header: "Notes", accessor: (l) => l.notes ?? "" },
+                ],
+              )
+            }
+            disabled={!leads || leads.length === 0}
+          />
           <button
             onClick={() => setShowCreate(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
@@ -342,6 +369,28 @@ export default function CrmPage() {
           </div>
         )}
       </div>
+
+      {/* Saved Filter Presets */}
+      <FilterPresets
+        pageKey="crm"
+        currentFilters={{
+          stage: filters.stage || "",
+          source: filters.source || "",
+          assignee: filters.assigneeId || "",
+          state: filters.state || "",
+        }}
+        onLoadPreset={(preset) => {
+          setFilters({
+            stage: preset.stage || undefined,
+            source: preset.source || undefined,
+            assigneeId: preset.assignee || undefined,
+            state: preset.state || undefined,
+          });
+          if (!showFilters && (preset.source || preset.assignee || preset.state || preset.stage)) {
+            setShowFilters(true);
+          }
+        }}
+      />
 
       {/* Content */}
       {error ? (

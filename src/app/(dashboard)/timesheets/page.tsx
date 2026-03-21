@@ -38,6 +38,8 @@ import {
   Filter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { StickyTable } from "@/components/ui/StickyTable";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -1409,6 +1411,26 @@ export default function TimesheetsPage() {
             <Filter className="w-4 h-4" />
           </button>
 
+          <ExportButton
+            onClick={() =>
+              exportToCsv(
+                `amana-timesheets-${new Date().toISOString().slice(0, 10)}`,
+                timesheets || [],
+                [
+                  { header: "ID", accessor: (t) => t.id },
+                  { header: "Centre", accessor: (t) => t.service?.name ?? "" },
+                  { header: "Week Ending", accessor: (t) => new Date(t.weekEnding).toLocaleDateString("en-AU") },
+                  { header: "Status", accessor: (t) => t.status },
+                  { header: "Entries", accessor: (t) => t._count?.entries ?? 0 },
+                  { header: "Import Source", accessor: (t) => t.importSource ?? "" },
+                  { header: "Submitted At", accessor: (t) => t.submittedAt ? new Date(t.submittedAt).toLocaleDateString("en-AU") : "" },
+                  { header: "Approved At", accessor: (t) => t.approvedAt ? new Date(t.approvedAt).toLocaleDateString("en-AU") : "" },
+                  { header: "Notes", accessor: (t) => t.notes ?? "" },
+                ],
+              )
+            }
+            disabled={!timesheets || timesheets.length === 0}
+          />
           <button
             onClick={() => setShowImport(true)}
             className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"

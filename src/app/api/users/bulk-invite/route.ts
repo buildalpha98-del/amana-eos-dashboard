@@ -1,0 +1,224 @@
+import { NextRequest, NextResponse } from "next/server";
+import { hash } from "bcryptjs";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/server-auth";
+import { sendEmail } from "@/lib/email";
+import { welcomeEmail } from "@/lib/email-templates";
+import { logAuditEvent } from "@/lib/audit-log";
+
+const bulkUserSchema = z.object({
+  email: z.string().email("Valid email is required"),
+  name: z.string().min(1, "Name is required"),
+  role: z
+    .enum([
+      "owner",
+      "head_office",
+      "admin",
+      "marketing",
+      "coordinator",
+      "member",
+      "staff",
+    ])
+    .default("member"),
+  serviceIds: z.array(z.string()).optional(),
+});
+
+const bulkInviteSchema = z.object({
+  users: z.array(bulkUserSchema).min(1).max(500),
+});
+
+function generateTempPassword(): string {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghjkmnpqrstuvwxyz";
+  const digits = "23456789";
+  const special = "!@#$%&*";
+  const all = upper + lower + digits + special;
+
+  // Ensure at least one of each required type
+  let pwd = "";
+  pwd += upper[Math.floor(Math.random() * upper.length)];
+  pwd += lower[Math.floor(Math.random() * lower.length)];
+  pwd += digits[Math.floor(Math.random() * digits.length)];
+  pwd += special[Math.floor(Math.random() * special.length)];
+
+  // Fill remaining 8 chars
+  for (let i = 0; i < 8; i++) {
+    pwd += all[Math.floor(Math.random() * all.length)];
+  }
+
+  // Shuffle the password
+  return pwd
+    .split("")
+    .sort(() => Math.random() - 0.5)
+    .join("");
+}
+
+const BATCH_SIZE = 10;
+
+export async function POST(req: NextRequest) {
+  const { session, error } = await requireAuth([
+    "owner",
+    "admin",
+    "head_office",
+  ]);
+  if (error) return error;
+
+  const body = await req.json();
+  const parsed = bulkInviteSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0].message },
+      { status: 400 },
+    );
+  }
+
+  const { users } = parsed.data;
+  const callerRole = session!.user.role;
+
+  // Guard: non-owners cannot create owner-level users
+  if (callerRole !== "owner" && users.some((u) => u.role === "owner")) {
+    return NextResponse.json(
+      { error: "Only owners can create other owner accounts." },
+      { status: 403 },
+    );
+  }
+
+  // Load existing emails to detect duplicates
+  const existingEmails = new Set(
+    (await prisma.user.findMany({ select: { email: true } })).map((u) =>
+      u.email.toLowerCase(),
+    ),
+  );
+
+  // Load services for serviceId resolution
+  const services = await prisma.service.findMany({
+    select: { id: true, name: true, code: true },
+  });
+  const serviceMap = new Map(services.map((s) => [s.id, s]));
+
+  const created: Array<{ email: string; name: string; role: string }> = [];
+  const skipped: Array<{ email: string; reason: string }> = [];
+  const errors: Array<{ email: string; error: string }> = [];
+
+  const loginUrl = `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/login`;
+
+  // Process users in batches
+  for (let i = 0; i < users.length; i += BATCH_SIZE) {
+    const batch = users.slice(i, i + BATCH_SIZE);
+
+    const results = await Promise.allSettled(
+      batch.map(async (userData) => {
+        const email = userData.email.toLowerCase().trim();
+        const name = userData.name.trim();
+
+        // Skip duplicates (existing in DB or earlier in this batch)
+        if (existingEmails.has(email)) {
+          skipped.push({ email, reason: "Email already exists" });
+          return;
+        }
+
+        // Mark as seen to prevent duplicates within the same request
+        existingEmails.add(email);
+
+        // Resolve serviceId — take first if provided
+        const serviceId =
+          userData.serviceIds?.[0] &&
+          serviceMap.has(userData.serviceIds[0])
+            ? userData.serviceIds[0]
+            : null;
+
+        const tempPassword = generateTempPassword();
+        const passwordHash = await hash(tempPassword, 12);
+
+        const user = await prisma.user.create({
+          data: {
+            name,
+            email,
+            passwordHash,
+            role: userData.role,
+            serviceId:
+              userData.role === "staff" || userData.role === "member"
+                ? serviceId
+                : null,
+          },
+        });
+
+        // Log activity
+        await prisma.activityLog.create({
+          data: {
+            userId: session!.user.id,
+            action: "create",
+            entityType: "User",
+            entityId: user.id,
+            details: {
+              name,
+              email,
+              role: userData.role,
+              serviceId,
+              bulkInvite: true,
+            },
+          },
+        });
+
+        logAuditEvent(
+          {
+            action: "user.bulk_invited",
+            actorId: session!.user.id,
+            actorEmail: session!.user.email,
+            targetId: user.id,
+            targetType: "User",
+            metadata: { role: userData.role, email },
+          },
+          req,
+        );
+
+        // Send welcome email
+        try {
+          const { subject, html } = welcomeEmail(
+            name.split(" ")[0],
+            tempPassword,
+            loginUrl,
+          );
+          await sendEmail({ to: email, subject, html });
+        } catch (emailErr) {
+          if (process.env.NODE_ENV !== "production") {
+            console.log(
+              `[DEV] Welcome email failed for ${email}:`,
+              emailErr,
+            );
+          }
+          // Don't fail user creation if email fails
+        }
+
+        created.push({ email, name, role: userData.role });
+      }),
+    );
+
+    // Collect any rejected promises as errors
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
+      if (result.status === "rejected") {
+        const userData = batch[j];
+        const email = userData.email.toLowerCase().trim();
+        // Check if already in skipped (duplicate handling)
+        if (!skipped.some((s) => s.email === email)) {
+          errors.push({
+            email,
+            error:
+              result.reason instanceof Error
+                ? result.reason.message
+                : "Unknown error",
+          });
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({
+    created: created.length,
+    skipped,
+    errors,
+  });
+}

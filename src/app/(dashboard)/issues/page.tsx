@@ -25,11 +25,14 @@ import {
   ArrowRightCircle,
 } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
+import { FilterPresets } from "@/components/ui/FilterPresets";
 
 interface UserOption {
   id: string;
@@ -263,6 +266,27 @@ export default function IssuesPage() {
             <Filter className="w-4 h-4" />
           </button>
 
+          <ExportButton
+            onClick={() =>
+              exportToCsv(
+                `amana-issues-${new Date().toISOString().slice(0, 10)}`,
+                filteredIssues,
+                [
+                  { header: "ID", accessor: (i) => i.id },
+                  { header: "Title", accessor: (i) => i.title },
+                  { header: "Status", accessor: (i) => i.status },
+                  { header: "Priority", accessor: (i) => i.priority },
+                  { header: "Owner", accessor: (i) => i.owner?.name ?? "Unassigned" },
+                  { header: "Raised By", accessor: (i) => i.raisedBy?.name ?? "" },
+                  { header: "Centre", accessor: (i) => i.service?.name ?? "Company-wide" },
+                  { header: "Identified", accessor: (i) => new Date(i.identifiedAt).toLocaleDateString("en-AU") },
+                  { header: "Resolution", accessor: (i) => i.resolution ?? "" },
+                ],
+              )
+            }
+            disabled={filteredIssues.length === 0}
+          />
+
           <AiButton
             templateSlug="issues/smart-prioritize"
             variables={{ issueList: issueListForAi }}
@@ -351,6 +375,26 @@ export default function IssuesPage() {
           )}
         </div>
       )}
+
+      {/* Saved Filter Presets */}
+      <div className="mb-4">
+        <FilterPresets
+          pageKey="issues"
+          currentFilters={{
+            status: statusFilter,
+            priority: priorityFilter,
+            assignee: ownerFilter,
+          }}
+          onLoadPreset={(filters) => {
+            setStatusFilter(filters.status || "");
+            setPriorityFilter(filters.priority || "");
+            setOwnerFilter(filters.assignee || "");
+            if (!showFilters && (filters.priority || filters.assignee)) {
+              setShowFilters(true);
+            }
+          }}
+        />
+      </div>
 
       {/* Error State */}
       {error && (

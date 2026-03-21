@@ -41,6 +41,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
 
 /* ------------------------------------------------------------------ */
 /* Constants                                                           */
@@ -1165,13 +1167,37 @@ export default function LeavePage() {
               : "View your leave balances and submit leave requests"}
           </p>
         </div>
-        <button
-          onClick={() => setShowRequestModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Request Leave
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportButton
+            onClick={() =>
+              exportToCsv(
+                `amana-leave-${new Date().toISOString().slice(0, 10)}`,
+                filteredRequests,
+                [
+                  { header: "ID", accessor: (r) => r.id },
+                  { header: "Staff", accessor: (r) => r.user?.name ?? "" },
+                  { header: "Email", accessor: (r) => r.user?.email ?? "" },
+                  { header: "Type", accessor: (r) => leaveTypeLabels[r.leaveType] || r.leaveType },
+                  { header: "Start Date", accessor: (r) => new Date(r.startDate).toLocaleDateString("en-AU") },
+                  { header: "End Date", accessor: (r) => new Date(r.endDate).toLocaleDateString("en-AU") },
+                  { header: "Days", accessor: (r) => r.totalDays },
+                  { header: "Half Day", accessor: (r) => r.isHalfDay ? "Yes" : "No" },
+                  { header: "Status", accessor: (r) => r.status.replace("leave_", "") },
+                  { header: "Centre", accessor: (r) => r.service?.name ?? "" },
+                  { header: "Reason", accessor: (r) => r.reason ?? "" },
+                ],
+              )
+            }
+            disabled={filteredRequests.length === 0}
+          />
+          <button
+            onClick={() => setShowRequestModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Request Leave
+          </button>
+        </div>
       </div>
 
       {/* Leave Balance Cards */}

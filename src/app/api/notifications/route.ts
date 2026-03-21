@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
+import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
+import { getCentreScope } from "@/lib/centre-scope";
 
 interface Notification {
   id: string;
@@ -30,6 +32,18 @@ export async function GET(req: NextRequest) {
   const now = new Date();
   const notifications: Notification[] = [];
 
+  // Centre scoping: resolve which service IDs this user can see
+  const { serviceIds } = await getCentreScope(session);
+  // Helper to build a serviceId filter for Prisma where clauses
+  const svcFilter: Record<string, unknown> | null =
+    serviceIds === null
+      ? null
+      : serviceIds.length === 1
+      ? { serviceId: serviceIds[0] }
+      : serviceIds.length > 1
+      ? { serviceId: { in: serviceIds } }
+      : { serviceId: "__no_access__" };
+
   // Get dismissed notification IDs for this user
   const dismissed = await prisma.notificationDismissal.findMany({
     where: { userId: session.user.id },
@@ -43,6 +57,7 @@ export async function GET(req: NextRequest) {
       deleted: false,
       status: { notIn: ["complete", "cancelled"] },
       dueDate: { lt: now },
+      ...(svcFilter ? svcFilter : {}),
     },
     include: { assignee: { select: { name: true } } },
     take: 20,
@@ -68,6 +83,7 @@ export async function GET(req: NextRequest) {
       deleted: false,
       status: { in: ["on_track", "off_track"] },
       quarter: { not: currentQuarter },
+      ...(svcFilter ? svcFilter : {}),
     },
     include: { owner: { select: { name: true } } },
     take: 10,
@@ -91,6 +107,7 @@ export async function GET(req: NextRequest) {
       deleted: false,
       assignedToId: null,
       status: { in: ["new", "open"] },
+      ...(svcFilter ? svcFilter : {}),
     },
     take: 10,
     orderBy: { createdAt: "desc" },
@@ -110,7 +127,7 @@ export async function GET(req: NextRequest) {
 
   // 4. Critical issues: priority=critical, status=open
   const criticalIssues = await prisma.issue.findMany({
-    where: { deleted: false, priority: "critical", status: "open" },
+    where: { deleted: false, priority: "critical", status: "open", ...(svcFilter ? svcFilter : {}) },
     take: 10,
     orderBy: { createdAt: "desc" },
   });
@@ -134,6 +151,7 @@ export async function GET(req: NextRequest) {
       deleted: false,
       status: { notIn: ["resolved", "closed"] },
       lastInboundAt: { lt: twentyHoursAgo, not: null },
+      ...(svcFilter ? svcFilter : {}),
     },
     take: 10,
     orderBy: { lastInboundAt: "asc" },
@@ -156,7 +174,7 @@ export async function GET(req: NextRequest) {
 
   // 6. Low compliance: overallCompliance < 80%
   const lowComplianceCentres = await prisma.centreMetrics.findMany({
-    where: { overallCompliance: { lt: 80 } },
+    where: { overallCompliance: { lt: 80 }, ...(svcFilter ? svcFilter : {}) },
     include: { service: { select: { name: true } } },
     orderBy: { recordedAt: "desc" },
     distinct: ["serviceId"],
@@ -178,7 +196,7 @@ export async function GET(req: NextRequest) {
   // 7. Compliance certificates expiring within 30 days
   const in30d = new Date(now.getTime() + 30 * 86400000);
   const expiringCerts = await prisma.complianceCertificate.findMany({
-    where: { expiryDate: { lte: in30d } },
+    where: { expiryDate: { lte: in30d }, ...(svcFilter ? svcFilter : {}) },
     include: {
       user: { select: { name: true } },
       service: { select: { name: true } },
@@ -291,12 +309,16 @@ export async function GET(req: NextRequest) {
   // Filter out dismissed notifications
   const undismissed = notifications.filter((n) => !dismissedIds.has(n.id));
 
-  // Enforce user notification preferences
+  // Enforce user notification preferences (fall back to role-based defaults)
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { notificationPrefs: true },
+    select: { notificationPrefs: true, role: true },
   });
-  const prefs = (user?.notificationPrefs ?? {}) as Record<string, boolean>;
+  const stored = user?.notificationPrefs as Record<string, boolean> | null;
+  const defaults = getDefaultNotificationPrefs(user?.role ?? "staff");
+  const prefs = (stored && Object.keys(stored).length > 0
+    ? stored
+    : defaults) as Record<string, boolean>;
   const prefMap: Record<string, string> = {
     overdue_todo: "overdueTodos",
     overdue_rock: "rockUpdates",

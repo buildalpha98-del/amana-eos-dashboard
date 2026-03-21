@@ -5,6 +5,7 @@ import * as XLSX from "xlsx";
 import bcrypt from "bcryptjs";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { welcomeEmail } from "@/lib/email-templates";
+import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 
 const COLUMN_MAP: Record<string, string[]> = {
   name: ["name", "full name", "staff name", "employee name", "first name", "employee"],
@@ -178,6 +179,7 @@ export async function POST(req: NextRequest) {
           passwordHash: hash,
           role: user.role as "owner" | "admin" | "member" | "staff",
           serviceId: user.serviceId,
+          notificationPrefs: getDefaultNotificationPrefs(user.role),
         },
       });
       created++;

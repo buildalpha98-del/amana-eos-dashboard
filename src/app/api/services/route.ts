@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/server-auth";
-import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { getStateScope } from "@/lib/service-scope";
+import { getCentreScope, applyCentreFilter } from "@/lib/centre-scope";
 import { parsePagination } from "@/lib/pagination";
 
 const createServiceSchema = z.object({
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
   const { session, error } = await requireAuth();
   if (error) return error;
 
-  const scope = getServiceScope(session);
+  const { serviceIds } = await getCentreScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
@@ -35,8 +36,8 @@ export async function GET(req: NextRequest) {
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
 
-  // Member/staff: only see their assigned service
-  if (scope) where.id = scope;
+  // Centre scoping: scoped roles only see their assigned/managed services
+  applyCentreFilter(where, serviceIds, "id");
   // State Manager: only see services in their assigned state
   if (stateScope) where.state = stateScope;
 

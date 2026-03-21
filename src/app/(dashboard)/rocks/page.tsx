@@ -9,6 +9,8 @@ import { RockListView } from "@/components/rocks/RockListView";
 import { RockDetailPanel } from "@/components/rocks/RockDetailPanel";
 import { CreateRockModal } from "@/components/rocks/CreateRockModal";
 import { Mountain, Plus, LayoutGrid, List } from "lucide-react";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -67,6 +69,28 @@ export default function RocksPage() {
               <List className="w-4 h-4" />
             </button>
           </div>
+
+          <ExportButton
+            onClick={() =>
+              exportToCsv(
+                `amana-rocks-${new Date().toISOString().slice(0, 10)}`,
+                rocks || [],
+                [
+                  { header: "ID", accessor: (r) => r.id },
+                  { header: "Title", accessor: (r) => r.title },
+                  { header: "Owner", accessor: (r) => r.owner?.name ?? "Unassigned" },
+                  { header: "Quarter", accessor: (r) => r.quarter },
+                  { header: "Status", accessor: (r) => r.status },
+                  { header: "Progress", accessor: (r) => `${r.percentComplete}%` },
+                  { header: "Priority", accessor: (r) => r.priority },
+                  { header: "Type", accessor: (r) => r.rockType },
+                  { header: "Todos", accessor: (r) => r._count?.todos ?? 0 },
+                  { header: "Issues", accessor: (r) => r._count?.issues ?? 0 },
+                ],
+              )
+            }
+            disabled={!rocks || rocks.length === 0}
+          />
 
           {/* Add Rock */}
           <button

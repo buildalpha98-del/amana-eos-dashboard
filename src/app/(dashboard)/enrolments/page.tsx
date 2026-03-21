@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useEnrolments, type EnrolmentSubmission } from "@/hooks/useEnrolments";
 import { EnrolmentDetailPanel } from "@/components/enrolments/EnrolmentDetailPanel";
+import { ExportButton } from "@/components/ui/ExportButton";
+import { exportToCsv } from "@/lib/csv-export";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 const STATUS_TABS = [
@@ -68,6 +70,26 @@ export default function EnrolmentsPage() {
             Review and process parent enrolment submissions
           </p>
         </div>
+        <ExportButton
+          onClick={() =>
+            exportToCsv(
+              `amana-enrolments-${new Date().toISOString().slice(0, 10)}`,
+              filtered,
+              [
+                { header: "ID", accessor: (s) => s.id },
+                { header: "Parent First Name", accessor: (s) => s.primaryParent.firstName },
+                { header: "Parent Surname", accessor: (s) => s.primaryParent.surname },
+                { header: "Email", accessor: (s) => s.primaryParent.email ?? "" },
+                { header: "Mobile", accessor: (s) => s.primaryParent.mobile ?? "" },
+                { header: "Children", accessor: (s) => s.children.map((c) => `${c.firstName} ${c.surname}`).join("; ") },
+                { header: "Status", accessor: (s) => s.status },
+                { header: "Referral Source", accessor: (s) => s.referralSource ?? "" },
+                { header: "Submitted", accessor: (s) => new Date(s.createdAt).toLocaleDateString("en-AU") },
+              ],
+            )
+          }
+          disabled={filtered.length === 0}
+        />
       </div>
 
       {/* Stats */}

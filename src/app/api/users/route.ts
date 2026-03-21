@@ -8,6 +8,7 @@ import { welcomeEmail } from "@/lib/email-templates";
 import { passwordSchema } from "@/lib/schemas/auth";
 import { checkPasswordBreach } from "@/lib/password-breach-check";
 import { logAuditEvent } from "@/lib/audit-log";
+import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
       role,
       serviceId: (role === "staff" || role === "member") ? (serviceId || null) : null,
       state: role === "admin" ? (state || null) : null,
+      notificationPrefs: getDefaultNotificationPrefs(role),
     },
     select: {
       id: true,

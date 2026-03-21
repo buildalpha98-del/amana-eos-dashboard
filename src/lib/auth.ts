@@ -39,8 +39,12 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid email or password");
         }
 
-        // Successful login — reset rate limit
+        // Successful login — reset rate limit & track login time
         await resetRateLimit(rateLimitKey);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        });
 
         return {
           id: user.id,
