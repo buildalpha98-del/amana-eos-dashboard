@@ -14,6 +14,7 @@ import { OfflineIndicator } from "@/components/shared/OfflineIndicator";
 import { PWAInstallPrompt } from "@/components/shared/PWAInstallPrompt";
 import { OnboardingTourWrapper } from "@/components/shared/OnboardingTourWrapper";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
+import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
@@ -79,6 +80,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         <PWAInstallPrompt />
         <OfflineIndicator />
         <OnboardingTourWrapper />
+        <KeyboardShortcuts />
       </div>
     </div>
   );

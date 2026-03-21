@@ -1885,3 +1885,153 @@ export function nurtureUnsubscribeFooter(contactId: string, baseUrl: string) {
   </tr>
 </table>`;
 }
+
+// ─── Notification Digest Email ────────────────────────────────
+
+export interface DigestNotification {
+  type: string;
+  severity: "critical" | "warning" | "info";
+  title: string;
+  message: string;
+  link: string;
+}
+
+interface DigestSection {
+  label: string;
+  icon: string;
+  color: string;
+  bg: string;
+  link: string;
+  items: DigestNotification[];
+}
+
+const DIGEST_TYPE_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string; link: string }> = {
+  overdue_todo: { label: "Overdue To-Dos", icon: "&#9745;", color: "#dc2626", bg: "#fef2f2", link: "/todos" },
+  overdue_rock: { label: "Off-Track Rocks", icon: "&#9968;", color: "#f59e0b", bg: "#fffbeb", link: "/rocks" },
+  critical_issue: { label: "Critical Issues", icon: "&#9888;", color: "#dc2626", bg: "#fef2f2", link: "/issues" },
+  sla_warning: { label: "SLA Warnings", icon: "&#9201;", color: "#dc2626", bg: "#fef2f2", link: "/tickets" },
+  unassigned_ticket: { label: "Unassigned Tickets", icon: "&#9993;", color: "#6366f1", bg: "#eef2ff", link: "/tickets" },
+  low_compliance: { label: "Compliance Alerts", icon: "&#9888;", color: "#f97316", bg: "#fff7ed", link: "/performance" },
+  compliance_expiring: { label: "Expiring Certificates", icon: "&#128196;", color: "#f97316", bg: "#fff7ed", link: "/compliance" },
+  new_todo_assigned: { label: "New Assignments", icon: "&#10004;", color: "#3b82f6", bg: "#eff6ff", link: "/todos" },
+  new_issue_assigned: { label: "New Issues", icon: "&#128204;", color: "#3b82f6", bg: "#eff6ff", link: "/issues" },
+  new_rock_assigned: { label: "New Rocks", icon: "&#127919;", color: "#3b82f6", bg: "#eff6ff", link: "/rocks" },
+};
+
+export function notificationDigestEmail(
+  firstName: string,
+  notifications: DigestNotification[],
+  dashboardUrl: string
+) {
+  // Group notifications by type
+  const grouped = new Map<string, DigestNotification[]>();
+  for (const n of notifications) {
+    const existing = grouped.get(n.type) || [];
+    existing.push(n);
+    grouped.set(n.type, existing);
+  }
+
+  // Build sections with config
+  const sections: DigestSection[] = [];
+  for (const [type, items] of grouped) {
+    const config = DIGEST_TYPE_CONFIG[type] || {
+      label: type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      icon: "&#128276;",
+      color: "#6b7280",
+      bg: "#f9fafb",
+      link: "/dashboard",
+    };
+    sections.push({ ...config, items });
+  }
+
+  // Sort sections: critical items first (by max severity), then by count
+  const severityRank: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+  sections.sort((a, b) => {
+    const aMax = Math.min(...a.items.map((i) => severityRank[i.severity] ?? 2));
+    const bMax = Math.min(...b.items.map((i) => severityRank[i.severity] ?? 2));
+    if (aMax !== bMax) return aMax - bMax;
+    return b.items.length - a.items.length;
+  });
+
+  const totalCount = notifications.length;
+  const criticalCount = notifications.filter((n) => n.severity === "critical").length;
+
+  const subject = criticalCount > 0
+    ? `Morning digest: ${criticalCount} critical + ${totalCount - criticalCount} more items — Amana OSHC`
+    : `Morning digest: ${totalCount} item${totalCount !== 1 ? "s" : ""} need attention — Amana OSHC`;
+
+  // Build summary bar
+  const summaryHtml = `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:14px 16px;background-color:#f9fafb;">
+          <span style="font-size:14px;color:#374151;font-weight:600;">${totalCount} notification${totalCount !== 1 ? "s" : ""}</span>
+          ${criticalCount > 0 ? `<span style="display:inline-block;margin-left:8px;padding:2px 8px;background-color:#fef2f2;color:#dc2626;font-size:11px;font-weight:600;border-radius:10px;">${criticalCount} CRITICAL</span>` : ""}
+          <span style="display:inline-block;margin-left:8px;padding:2px 8px;background-color:#f0fdf4;color:#16a34a;font-size:11px;font-weight:600;border-radius:10px;">${sections.length} categor${sections.length !== 1 ? "ies" : "y"}</span>
+        </td>
+      </tr>
+    </table>`;
+
+  // Build each section
+  const baseUrl = dashboardUrl.replace(/\/dashboard\/?$/, "");
+  const sectionsHtml = sections
+    .map((section) => {
+      const topItems = section.items.slice(0, 5);
+      const remaining = section.items.length - topItems.length;
+
+      const itemRows = topItems
+        .map((item) => {
+          const sevDot =
+            item.severity === "critical"
+              ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#dc2626;margin-right:8px;vertical-align:middle;"></span>`
+              : item.severity === "warning"
+              ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#f59e0b;margin-right:8px;vertical-align:middle;"></span>`
+              : `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#3b82f6;margin-right:8px;vertical-align:middle;"></span>`;
+
+          return `<tr><td style="padding:8px 12px;font-size:13px;color:#374151;border-bottom:1px solid #f3f4f6;line-height:1.5;">${sevDot}${item.message}</td></tr>`;
+        })
+        .join("");
+
+      const remainingRow =
+        remaining > 0
+          ? `<tr><td style="padding:8px 12px;font-size:12px;color:#6b7280;font-style:italic;">+ ${remaining} more</td></tr>`
+          : "";
+
+      const viewAllLink = `<tr><td style="padding:8px 12px;"><a href="${baseUrl}${section.link}" style="font-size:12px;font-weight:600;color:${BRAND_COLOR};text-decoration:none;">View All &rarr;</a></td></tr>`;
+
+      return `
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+        <tr>
+          <td style="padding:12px 12px 8px;background-color:${section.bg};">
+            <span style="font-size:14px;font-weight:600;color:${section.color};">
+              ${section.icon} ${section.label}
+            </span>
+            <span style="float:right;font-size:12px;font-weight:700;color:${section.color};background-color:rgba(255,255,255,0.7);padding:2px 8px;border-radius:10px;">
+              ${section.items.length}
+            </span>
+          </td>
+        </tr>
+        ${itemRows}
+        ${remainingRow}
+        ${viewAllLink}
+      </table>`;
+    })
+    .join("");
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 4px;color:#111827;font-size:18px;font-weight:600;">
+      Good morning, ${firstName}!
+    </h2>
+    <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.6;">
+      Here's your daily summary. These items need your attention:
+    </p>
+    ${summaryHtml}
+    ${sectionsHtml}
+    ${buttonHtml("Open Dashboard", dashboardUrl)}
+    <p style="margin:16px 0 0;color:#9ca3af;font-size:11px;text-align:center;">
+      You can manage digest preferences in Settings &gt; Notifications.
+    </p>
+  `);
+
+  return { subject, html };
+}

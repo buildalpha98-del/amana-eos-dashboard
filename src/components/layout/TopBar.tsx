@@ -9,6 +9,7 @@ import { QuickAddMenu, type QuickAddMenuPosition } from "./QuickAddMenu";
 import { CommandPalette } from "./CommandPalette";
 import { navItems } from "@/lib/nav-config";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { useRecentPages } from "@/hooks/useRecentPages";
 
 const CentreSwitcher = dynamic(
   () => import("./CentreSwitcher").then((m) => m.CentreSwitcher),
@@ -91,6 +92,8 @@ const navLabelMap: Record<string, string> = Object.fromEntries(
 
 export function TopBar() {
   const pathname = usePathname();
+  const { recentPages, trackPage } = useRecentPages();
+
   const title = useMemo(() => {
     if (pageTitles[pathname]) return pageTitles[pathname];
     // Dynamic detail pages
@@ -126,6 +129,13 @@ export function TopBar() {
   useEffect(() => {
     setQuickAddOpen(false);
   }, [pathname]);
+
+  // Track recent pages on route change
+  useEffect(() => {
+    if (title) {
+      trackPage(pathname, title);
+    }
+  }, [pathname, title, trackPage]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -235,7 +245,7 @@ export function TopBar() {
       {/* Single QuickAddMenu — rendered at root level to avoid stacking context issues */}
       <QuickAddMenu open={quickAddOpen} onClose={closeQuickAdd} position={menuPosition} />
 
-      <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} recentPages={recentPages} />
     </>
   );
 }

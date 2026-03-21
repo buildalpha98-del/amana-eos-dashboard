@@ -16,6 +16,7 @@ import {
   Plus,
 } from "lucide-react";
 import { navItems as sharedNavItems } from "@/lib/nav-config";
+import { type RecentPage, relativeTime } from "@/hooks/useRecentPages";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,6 +45,7 @@ interface PageOption {
 /** A flat item used for keyboard navigation across heterogeneous lists. */
 type FlatItem =
   | { kind: "recent"; query: string }
+  | { kind: "recentPage"; page: RecentPage }
   | { kind: "action"; action: QuickAction }
   | { kind: "page"; page: PageOption }
   | { kind: "result"; result: SearchResult };
@@ -80,6 +82,9 @@ const pageOptions: PageOption[] = sharedNavItems.map(({ href, label, icon, secti
   icon,
   section,
 }));
+
+/** Lookup nav icon by href for recent pages */
+const navIconMap = new Map(sharedNavItems.map((item) => [item.href, item.icon]));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -132,9 +137,11 @@ function groupResultsByType(results: SearchResult[]) {
 export function CommandPalette({
   open,
   onClose,
+  recentPages = [],
 }: {
   open: boolean;
   onClose: () => void;
+  recentPages?: RecentPage[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -192,12 +199,18 @@ export function CommandPalette({
       return items;
     }
 
-    // When no query (or query < 2 chars), show actions + recents + pages
+    // When no query (or query < 2 chars), show actions + recent pages + recents + pages
     if (!hasSearchQuery) {
       const items: FlatItem[] = [];
       // Quick actions
       for (const action of quickActions) {
         items.push({ kind: "action", action });
+      }
+      // Recent pages (only when input is empty)
+      if (query.trim().length === 0 && recentPages.length > 0) {
+        for (const page of recentPages) {
+          items.push({ kind: "recentPage", page });
+        }
       }
       // Recent searches
       for (const q of recentSearches) {
@@ -211,7 +224,7 @@ export function CommandPalette({
     }
 
     return [];
-  }, [query, results, groupedResults, recentSearches, filteredPages]);
+  }, [query, results, groupedResults, recentSearches, recentPages, filteredPages]);
 
   // ---- Effects ----
 
@@ -245,9 +258,10 @@ export function CommandPalette({
     }
   }, []);
 
+  // Debounce search by 200ms
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSearch(query), 300);
+    debounceRef.current = setTimeout(() => doSearch(query), 200);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
@@ -284,6 +298,11 @@ export function CommandPalette({
     doSearch(q);
   };
 
+  const handleSelectRecentPage = (page: RecentPage) => {
+    router.push(page.path);
+    onClose();
+  };
+
   const handleRemoveRecent = (q: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const updated = recentSearches.filter((s) => s !== q);
@@ -305,6 +324,9 @@ export function CommandPalette({
         break;
       case "page":
         handleSelectPage(item.page);
+        break;
+      case "recentPage":
+        handleSelectRecentPage(item.page);
         break;
       case "recent":
         handleSelectRecent(item.query);
@@ -392,11 +414,12 @@ export function CommandPalette({
           {/* No results */}
           {showNoResults && (
             <div className="px-4 py-8 text-center">
+              <Search className="w-8 h-8 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">
                 No results found for &quot;{query}&quot;
               </p>
               <p className="text-xs text-gray-300 mt-1">
-                Try a different keyword or browse pages below
+                Try searching for people, services, or EOS items
               </p>
             </div>
           )}
@@ -459,7 +482,7 @@ export function CommandPalette({
             );
           })()}
 
-          {/* Idle state: recent searches + quick-nav pages */}
+          {/* Idle state: quick actions + recent pages + recent searches + nav pages */}
           {showIdleState && (() => {
             flatIdx = 0;
             return (
@@ -500,6 +523,49 @@ export function CommandPalette({
                     );
                   })}
                 </div>
+
+                {/* Recent pages — shown when input is empty */}
+                {query.trim().length === 0 && recentPages.length > 0 && (
+                  <div>
+                    <div className="px-4 pt-3 pb-1.5 flex items-center gap-1.5">
+                      <Clock className="w-3 h-3 text-gray-400" />
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                        Recent
+                      </span>
+                    </div>
+                    {recentPages.map((rp) => {
+                      const idx = flatIdx++;
+                      const Icon = navIconMap.get(rp.path);
+                      return (
+                        <button
+                          key={`rp-${rp.path}`}
+                          data-index={idx}
+                          onClick={() => handleSelectRecentPage(rp)}
+                          className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors ${
+                            idx === activeIndex ? "bg-gray-100" : "hover:bg-gray-50"
+                          }`}
+                        >
+                          {Icon ? (
+                            <Icon className="w-4 h-4 text-gray-400 shrink-0" />
+                          ) : (
+                            <Clock className="w-4 h-4 text-gray-300 shrink-0" />
+                          )}
+                          <span className="flex-1 text-sm text-gray-700 truncate">
+                            {rp.title}
+                          </span>
+                          <span className="text-[10px] text-gray-300 shrink-0">
+                            {relativeTime(rp.timestamp)}
+                          </span>
+                          {idx === activeIndex && (
+                            <kbd className="px-1 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-500 shrink-0">
+                              {"\u21B5"}
+                            </kbd>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Recent searches */}
                 {recentSearches.length > 0 && (
@@ -584,7 +650,7 @@ export function CommandPalette({
                 ))}
 
                 {/* Hint */}
-                {recentSearches.length === 0 && filteredPages.length === pageOptions.length && (
+                {recentSearches.length === 0 && recentPages.length === 0 && filteredPages.length === pageOptions.length && (
                   <div className="px-4 pt-4 pb-3 text-center">
                     <p className="text-xs text-gray-400">
                       Search across rocks, to-dos, issues, services, projects and people
@@ -608,7 +674,13 @@ export function CommandPalette({
             <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px]">
               {"\u21B5"}
             </kbd>{" "}
-            Open
+            Select
+          </span>
+          <span>
+            <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px]">
+              Esc
+            </kbd>{" "}
+            Close
           </span>
           <span className="ml-auto text-gray-300">
             {flatItems.length} item{flatItems.length !== 1 ? "s" : ""}
