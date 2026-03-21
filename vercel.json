@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx prisma generate && npx prisma db push --skip-generate && npx tsx prisma/seed.ts && next build",
+  "buildCommand": "npx prisma generate && npx prisma db push --skip-generate --accept-data-loss && npx tsx prisma/seed.ts && next build",
   "crons": [
     {
       "path": "/api/cron/attendance-alerts",
