@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 import { hasMinRole } from "@/lib/permissions";
@@ -164,13 +165,12 @@ export default function ActivityLibraryPage() {
           <Loader2 className="w-8 h-8 text-brand animate-spin" />
         </div>
       ) : !data?.templates.length ? (
-        <div className="text-center py-20 text-muted">
-          <Library className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p className="text-lg font-medium">No templates yet</p>
-          <p className="text-sm mt-1">
-            {isAdmin ? "Click \"Add Template\" to create your first activity template." : "No templates available."}
-          </p>
-        </div>
+        <EmptyState
+          icon={Library}
+          title="No templates yet"
+          description={isAdmin ? "Click \"Add Template\" to create your first activity template." : "No templates available."}
+          action={isAdmin ? { label: "Add Template", onClick: () => { setEditingTemplate(null); setModalOpen(true); } } : undefined}
+        />
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

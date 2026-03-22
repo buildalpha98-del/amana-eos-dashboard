@@ -54,7 +54,9 @@ import {
   Pencil,
   ClipboardCheck,
   Download,
+  Package,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { exportToCsv } from "@/lib/csv-export";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
@@ -718,11 +720,12 @@ export default function OnboardingPage() {
             <div>
               <h3 className="text-lg font-semibold text-foreground mb-3">Onboarding Packs</h3>
               {packs.length === 0 ? (
-                <div className="bg-card rounded-xl border border-border p-8 text-center">
-                  <ClipboardList className="w-12 h-12 text-muted/50 mx-auto mb-3" />
-                  <p className="text-muted">No onboarding packs yet.</p>
-                  <p className="text-muted text-sm mt-1">Create your first pack to start onboarding new staff.</p>
-                </div>
+                <EmptyState
+                  icon={Package}
+                  title="No onboarding packs yet"
+                  description="Create your first pack to start onboarding new staff."
+                  variant="inline"
+                />
               ) : (
                 <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -913,13 +916,12 @@ export default function OnboardingPage() {
       {activeTab === "lms" && !isServiceScoped && (
         <div className="space-y-6">
           {courses.length === 0 ? (
-            <div className="bg-card rounded-xl border border-border p-8 text-center">
-              <GraduationCap className="w-12 h-12 text-muted/50 mx-auto mb-3" />
-              <p className="text-muted text-lg">No training courses yet</p>
-              <p className="text-muted text-sm mt-1">
-                {isAdmin ? "Create your first course to start training staff." : "No courses available at the moment."}
-              </p>
-            </div>
+            <EmptyState
+              icon={GraduationCap}
+              title="No training courses yet"
+              description={isAdmin ? "Create your first course to start training staff." : "No courses available at the moment."}
+              variant="inline"
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {courses.map((course) => (

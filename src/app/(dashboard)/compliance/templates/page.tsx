@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 
 import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   DndContext,
   closestCenter,
@@ -986,10 +987,12 @@ export default function AuditTemplatesPage() {
           <Loader2 className="w-8 h-8 text-brand animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted">
-          <FileText className="w-12 h-12 mx-auto mb-3 text-muted/50" />
-          <p className="text-sm">No templates found</p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No templates found"
+          description="Adjust your filters or create a new template."
+          variant="inline"
+        />
       ) : (
         <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
           {filtered.map((template) => {

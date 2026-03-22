@@ -62,7 +62,7 @@ export function EmptyState({
       </div>
 
       <div
-        className="w-20 h-20 rounded-3xl flex items-center justify-center mb-4 ring-1"
+        className="w-20 h-20 rounded-3xl flex items-center justify-center mb-4 ring-1 animate-float"
         style={{
           backgroundColor: iconColor + "14",
           "--tw-ring-color": iconColor + "1A",

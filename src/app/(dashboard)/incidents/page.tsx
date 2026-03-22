@@ -19,6 +19,7 @@ import {
   Loader2 as SeedLoader,
   Download,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { exportToCsv } from "@/lib/csv-export";
 import { useSession } from "next-auth/react";
 import { useServices } from "@/hooks/useServices";
@@ -449,11 +450,11 @@ function OverviewTab({
           ))}
         </div>
       ) : incidents.length === 0 ? (
-        <div className="text-center py-16 text-foreground/40">
-          <AlertTriangle className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="font-medium">No incidents found</p>
-          <p className="text-sm mt-1">Adjust your filters or report a new incident</p>
-        </div>
+        <EmptyState
+          icon={AlertTriangle}
+          title="No incidents found"
+          description="Adjust your filters or report a new incident."
+        />
       ) : (
         <div className="bg-background border border-border rounded-xl overflow-hidden">
           {/* Desktop table */}

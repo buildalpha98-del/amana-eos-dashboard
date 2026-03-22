@@ -10,6 +10,7 @@ import {
   Phone,
   Users,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -229,12 +230,12 @@ export function DirectoryContent() {
 
       {/* Empty state */}
       {!isLoading && users && users.length === 0 && (
-        <div className="bg-card rounded-xl border border-border p-12 text-center">
-          <Users className="w-10 h-10 text-muted/50 mx-auto mb-3" />
-          <p className="text-muted font-medium">
-            No team members found matching your search
-          </p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No team members found"
+          description="No team members found matching your search."
+          variant="inline"
+        />
       )}
 
       {/* Grid view */}
