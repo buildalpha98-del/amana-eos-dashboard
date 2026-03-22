@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Plus, Search } from "lucide-react";
@@ -212,41 +213,42 @@ export function TopBar() {
         </div>
       </header>
 
-      {/* Mobile sub-header — scrolls with content (not sticky, reduces chrome) */}
-      <div className="md:hidden flex items-center justify-between px-4 py-2 bg-background border-b border-border">
-        <div className="flex items-center gap-2 min-w-0">
-          {breadcrumbItems ? (
-            <Breadcrumb items={breadcrumbItems} />
-          ) : (
-            <h1 className="text-base font-heading font-semibold tracking-tight text-foreground truncate">{title}</h1>
-          )}
-          {quarterRelevantPages.has(pathname) && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent/20 text-brand border border-accent/30 shrink-0">
-              {quarter}
-            </span>
-          )}
-          <CentreSwitcher />
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="p-2 rounded-lg text-muted hover:bg-surface transition-colors"
-            title="Search"
-            aria-label="Search"
-          >
-            <Search className="w-4 h-4" />
-          </button>
-          <button onClick={handleQuickAddClick} className={quickAddBtnClasses} title="Quick Add" aria-label="Quick add">
-            <Plus className="w-4 h-4" />
-          </button>
-          <NotificationDropdown />
-        </div>
-      </div>
+      {/* Mobile utility buttons — portalled into the fixed header bar */}
+      <MobileHeaderActions>
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="p-2 rounded-lg text-muted hover:bg-surface transition-colors"
+          title="Search"
+          aria-label="Search"
+        >
+          <Search className="w-4 h-4" />
+        </button>
+        <button onClick={handleQuickAddClick} className="p-1.5 rounded-lg text-white bg-brand hover:bg-brand-hover transition-all" title="Quick Add" aria-label="Quick add">
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+        <NotificationDropdown />
+      </MobileHeaderActions>
 
       {/* Single QuickAddMenu — rendered at root level to avoid stacking context issues */}
       <QuickAddMenu open={quickAddOpen} onClose={closeQuickAdd} position={menuPosition} />
 
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} recentPages={recentPages} />
     </>
+  );
+}
+
+// ─── Portal for mobile header utility buttons ─────────────
+
+function MobileHeaderActions({ children }: { children: React.ReactNode }) {
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setContainer(document.getElementById("mobile-header-actions"));
+  }, []);
+
+  if (!container) return null;
+  return createPortal(
+    <div className="flex items-center gap-1">{children}</div>,
+    container
   );
 }

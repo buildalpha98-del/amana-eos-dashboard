@@ -55,7 +55,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         onMobileClose={() => setMobileNavOpen(false)}
       />
 
-      {/* Mobile header — single compact bar replacing the old dual-header */}
+      {/* Mobile header — compact bar with hamburger, logo, and utility buttons */}
       <div className="md:hidden fixed top-0 inset-x-0 h-12 bg-background border-b border-border z-30 flex items-center justify-between px-3">
         <button
           onClick={() => setMobileNavOpen(true)}
@@ -74,8 +74,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
           />
           <span className="text-xs font-heading font-semibold text-foreground">Amana</span>
         </div>
-        {/* Spacer — replaced by nothing, right side is empty (search/add moved to TopBar mobile sub-header which is now scrollable) */}
-        <div className="w-8" />
+        {/* Mobile utility buttons — pulled up from old sub-header */}
+        <div className="flex items-center gap-1" id="mobile-header-actions" />
       </div>
 
       <div

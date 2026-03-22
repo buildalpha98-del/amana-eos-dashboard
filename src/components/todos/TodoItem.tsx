@@ -3,8 +3,8 @@
 import type { TodoData } from "@/hooks/useTodos";
 import { useUpdateTodo, useDeleteTodo } from "@/hooks/useTodos";
 import { cn } from "@/lib/utils";
-import { Mountain, AlertCircle, Trash2, Lock } from "lucide-react";
-import { useState } from "react";
+import { Mountain, AlertCircle, Trash2, Lock, Check } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
 
 export function TodoItem({
   todo,
@@ -28,6 +28,48 @@ export function TodoItem({
   const isDone = isComplete || isCancelled;
   const [justCompleted, setJustCompleted] = useState(false);
 
+  // ── Swipe gesture state ──
+  const swipeRef = useRef<HTMLDivElement>(null);
+  const startX = useRef(0);
+  const currentX = useRef(0);
+  const swiping = useRef(false);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    currentX.current = 0;
+    swiping.current = false;
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    const delta = e.touches[0].clientX - startX.current;
+    currentX.current = delta;
+    if (Math.abs(delta) > 10) swiping.current = true;
+    if (swipeRef.current && Math.abs(delta) > 10) {
+      // Clamp to [-120, 120]
+      const clamped = Math.max(-120, Math.min(120, delta));
+      swipeRef.current.style.transform = `translateX(${clamped}px)`;
+      swipeRef.current.style.transition = "none";
+    }
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    if (swipeRef.current) {
+      swipeRef.current.style.transition = "transform 0.3s ease-out";
+      swipeRef.current.style.transform = "";
+    }
+    const delta = currentX.current;
+    if (delta > 80 && !isDone) {
+      // Swipe right → complete
+      setJustCompleted(true);
+      updateTodo.mutate({ id: todo.id, status: "complete" });
+    } else if (delta < -80) {
+      // Swipe left → delete
+      deleteTodo.mutate(todo.id);
+    }
+    currentX.current = 0;
+    swiping.current = false;
+  }, [isDone, todo.id, updateTodo, deleteTodo]);
+
   const toggleComplete = (e: React.MouseEvent) => {
     e.stopPropagation();
     const newStatus = isComplete ? "pending" : "complete";
@@ -49,19 +91,35 @@ export function TodoItem({
     !isDone && dueDate < new Date(new Date().setHours(0, 0, 0, 0));
 
   return (
-    <div
-      onClick={onClick}
-      className={cn(
-        "group flex items-start gap-3 px-4 py-3 rounded-lg border transition-all",
-        onClick && "cursor-pointer",
-        isDone
-          ? "bg-surface/50 border-border/50"
-          : isOverdue
-          ? "bg-red-50/50 border-red-100"
-          : "bg-card border-border hover:border-border",
-        justCompleted && "animate-row-complete"
-      )}
-    >
+    <div className="relative overflow-hidden rounded-lg md:overflow-visible">
+      {/* Swipe background indicators (mobile only) */}
+      <div className="absolute inset-0 flex items-center justify-between px-5 md:hidden pointer-events-none" aria-hidden="true">
+        <div className="flex items-center gap-2 text-success">
+          <Check className="w-5 h-5" />
+          <span className="text-xs font-medium">Done</span>
+        </div>
+        <div className="flex items-center gap-2 text-danger">
+          <span className="text-xs font-medium">Delete</span>
+          <Trash2 className="w-5 h-5" />
+        </div>
+      </div>
+      <div
+        ref={swipeRef}
+        onClick={(e) => { if (!swiping.current) onClick?.(); }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        className={cn(
+          "group relative flex items-start gap-3 px-4 py-3 rounded-lg border transition-all",
+          onClick && "cursor-pointer",
+          isDone
+            ? "bg-surface/50 border-border/50"
+            : isOverdue
+            ? "bg-red-50/50 border-red-100"
+            : "bg-card border-border hover:border-border",
+          justCompleted && "animate-row-complete"
+        )}
+      >
       {/* Selection checkbox */}
       {selectable && (
         <button
@@ -185,6 +243,7 @@ export function TodoItem({
           <Trash2 className="w-4 h-4" />
         </button>
       )}
+      </div>
     </div>
   );
 }

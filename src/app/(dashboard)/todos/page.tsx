@@ -41,6 +41,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FilterPresets } from "@/components/ui/FilterPresets";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { PullToRefreshIndicator } from "@/components/ui/PullToRefreshIndicator";
 
 interface UserOption {
   id: string;
@@ -126,6 +128,11 @@ function TodosPageContent() {
     ...(showAll ? {} : { weekOf: weekOf.toISOString() }),
     ...(filterAssignee ? { assigneeId: filterAssignee } : {}),
     ...(filterStatus ? { status: filterStatus } : {}),
+  });
+
+  // Pull-to-refresh (mobile)
+  const { isRefreshing, pullDistance } = usePullToRefresh({
+    onRefresh: async () => { await refetch(); },
   });
 
   // Fetch prior week's incomplete todos for carry-forward
@@ -254,6 +261,8 @@ function TodosPageContent() {
 
   return (
     <div className="max-w-7xl mx-auto">
+      <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
+
       {/* Header */}
       <PageHeader
         title="To-Dos"
