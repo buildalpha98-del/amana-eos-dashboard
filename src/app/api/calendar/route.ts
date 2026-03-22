@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import {
   getAuthUrl,
   isCalendarConfigured,
@@ -7,16 +6,14 @@ import {
 } from "@/lib/microsoft-calendar";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { withApiAuth } from "@/lib/server-auth";
 
 /**
  * GET /api/calendar
  * Returns the calendar integration status and auth URL if needed.
  */
-export async function GET() {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  if (!isCalendarConfigured()) {
+export const GET = withApiAuth(async (req, session) => {
+if (!isCalendarConfigured()) {
     return NextResponse.json({
       configured: false,
       connected: false,
@@ -40,19 +37,16 @@ export async function GET() {
     authUrl,
     state,
   });
-}
+});
 
 /**
  * DELETE /api/calendar
  * Disconnect the calendar integration.
  */
-export async function DELETE() {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  await prisma.calendarIntegration.deleteMany({
+export const DELETE = withApiAuth(async (req, session) => {
+await prisma.calendarIntegration.deleteMany({
     where: { userId: session!.user.id },
   });
 
   return NextResponse.json({ success: true, message: "Calendar disconnected" });
-}
+});

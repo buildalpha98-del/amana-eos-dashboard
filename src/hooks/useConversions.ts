@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/useToast";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
 export interface ConversionOpportunity {
   id: string;
@@ -46,11 +48,8 @@ export function useConversions(filters?: {
 
   return useQuery<ConversionsResponse>({
     queryKey: ["conversions", filters],
-    queryFn: async () => {
-      const res = await fetch(`/api/conversions${qs}`);
-      if (!res.ok) throw new Error("Failed to fetch conversions");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ConversionsResponse>(`/api/conversions${qs}`),
+    retry: 2,
   });
 }
 
@@ -62,19 +61,16 @@ export function useUpdateConversion() {
       status: string;
       notes?: string;
     }) => {
-      const res = await fetch("/api/conversions", {
+      return mutateApi<ConversionOpportunity>("/api/conversions", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["conversions"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

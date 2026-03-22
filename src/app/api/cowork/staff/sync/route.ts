@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import bcrypt from "bcryptjs";
 import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // ── Role mapping ─────────────────────────────────────────────
 
@@ -26,6 +29,21 @@ function mapRegistryRole(registryRole: string): string {
 
 // ── Types ────────────────────────────────────────────────────
 
+const staffEntrySchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  role: z.string().optional(),
+  state: z.string().nullable().optional(),
+  serviceCode: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  active: z.boolean().optional(),
+});
+
+const postBodySchema = z.object({
+  staff: z.array(staffEntrySchema).min(1),
+  deactivateMissing: z.boolean().optional(),
+});
+
 interface RegistryStaffEntry {
   name: string;
   email: string;
@@ -46,23 +64,20 @@ interface RegistryStaffEntry {
  * - Updates role, state, serviceId, phone, active status for existing users
  * - Optionally deactivates users not in the registry (owner/head_office excluded)
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { staff, deactivateMissing = false } = body as {
-      staff: RegistryStaffEntry[];
-      deactivateMissing?: boolean;
-    };
-
-    if (!Array.isArray(staff) || staff.length === 0) {
+    const parsed = postBodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "staff array is required and must not be empty" },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { staff, deactivateMissing = false } = parsed.data;
 
     // Pre-resolve service codes → IDs
     const serviceCodes = [
@@ -176,13 +191,13 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Staff sync failed:", error);
+    logger.error("Staff sync failed", { error });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * GET /api/cowork/staff/sync — Retrieve current active staff list
@@ -190,8 +205,8 @@ export async function POST(req: NextRequest) {
  * Auth: API key with `staff:sync` scope
  * Query: ?active=true (default: true)
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -216,4 +231,4 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({ staff: users, total: users.length });
-}
+});

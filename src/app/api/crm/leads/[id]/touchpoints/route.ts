@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { hasFeature } from "@/lib/role-permissions";
 import type { Role, TouchpointType } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
 
 const TOUCHPOINT_TYPES: TouchpointType[] = [
   "email_sent", "call", "meeting", "note", "stage_change", "auto_email",
@@ -16,18 +16,12 @@ const createTouchpointSchema = z.object({
 });
 
 // GET /api/crm/leads/[id]/touchpoints
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  if (!hasFeature(session!.user.role as Role, "crm.view")) {
+export const GET = withApiAuth(async (req, session, context) => {
+if (!hasFeature(session!.user.role as Role, "crm.view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id } = await params;
+  const { id } = await context!.params!;
 
   const touchpoints = await prisma.touchpointLog.findMany({
     where: { leadId: id },
@@ -38,21 +32,15 @@ export async function GET(
   });
 
   return NextResponse.json(touchpoints);
-}
+});
 
 // POST /api/crm/leads/[id]/touchpoints
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  if (!hasFeature(session!.user.role as Role, "crm.create")) {
+export const POST = withApiAuth(async (req, session, context) => {
+if (!hasFeature(session!.user.role as Role, "crm.create")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id } = await params;
+  const { id } = await context!.params!;
   const body = await req.json();
   const parsed = createTouchpointSchema.safeParse(body);
 
@@ -87,4 +75,4 @@ export async function POST(
   });
 
   return NextResponse.json(touchpoint, { status: 201 });
-}
+});

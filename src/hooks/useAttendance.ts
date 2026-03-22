@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import type { SessionType } from "@prisma/client";
 
 // ── Types ───────────────────────────────────────────────────
@@ -75,16 +77,15 @@ export function useAttendance(params?: {
 }) {
   return useQuery<AttendanceRecord[]>({
     queryKey: ["attendance", params],
-    queryFn: async () => {
+    queryFn: () => {
       const sp = new URLSearchParams();
       if (params?.serviceId) sp.set("serviceId", params.serviceId);
       if (params?.from) sp.set("from", params.from);
       if (params?.to) sp.set("to", params.to);
       if (params?.sessionType) sp.set("sessionType", params.sessionType);
-      const res = await fetch(`/api/attendance?${sp}`);
-      if (!res.ok) throw new Error("Failed to fetch attendance");
-      return res.json();
+      return fetchApi<AttendanceRecord[]>(`/api/attendance?${sp}`);
     },
+    retry: 2,
   });
 }
 
@@ -96,16 +97,15 @@ export function useAttendanceSummary(params?: {
 }) {
   return useQuery<AttendanceSummaryResponse>({
     queryKey: ["attendance-summary", params],
-    queryFn: async () => {
+    queryFn: () => {
       const sp = new URLSearchParams();
       if (params?.serviceId) sp.set("serviceId", params.serviceId);
       if (params?.from) sp.set("from", params.from);
       if (params?.to) sp.set("to", params.to);
       if (params?.period) sp.set("period", params.period);
-      const res = await fetch(`/api/attendance/summary?${sp}`);
-      if (!res.ok) throw new Error("Failed to fetch attendance summary");
-      return res.json();
+      return fetchApi<AttendanceSummaryResponse>(`/api/attendance/summary?${sp}`);
     },
+    retry: 2,
   });
 }
 
@@ -113,20 +113,14 @@ export function useCreateAttendance() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: AttendanceInput) => {
-      const res = await fetch("/api/attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create attendance record");
-      }
-      return res.json();
+      return mutateApi("/api/attendance", { method: "POST", body: data });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["attendance"] });
       qc.invalidateQueries({ queryKey: ["attendance-summary"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -135,20 +129,14 @@ export function useBatchUpdateAttendance() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (records: AttendanceInput[]) => {
-      const res = await fetch("/api/attendance", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(records),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to batch update attendance");
-      }
-      return res.json();
+      return mutateApi("/api/attendance", { method: "PUT", body: records });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["attendance"] });
       qc.invalidateQueries({ queryKey: ["attendance-summary"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

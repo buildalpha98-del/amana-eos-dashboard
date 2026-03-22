@@ -1,205 +1,390 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sendTeamsNotification } from "@/lib/teams-notify";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { enrolmentConfirmationEmail } from "@/lib/email-templates";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { withApiHandler } from "@/lib/api-handler";
+import { ApiError } from "@/lib/api-error";
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const {
-      children,
-      primaryParent,
-      secondaryParent,
-      medicals,
-      emergencyContacts,
-      authorisedPickup,
-      consents,
-      courtOrders,
-      courtOrderFiles,
-      medicalFiles,
-      documentUploads,
-      bookingPrefs,
-      payment,
-      referralSource,
-      termsAccepted,
-      privacyAccepted,
-      debitAgreement,
-      signature,
-      prefillToken,
-    } = body;
+// ---------------------------------------------------------------------------
+// Zod schemas — mirrors src/components/enrol/types.ts
+// ---------------------------------------------------------------------------
 
-    // Basic validation
-    if (!children?.length || !children[0]?.firstName) {
-      return NextResponse.json({ error: "At least one child is required" }, { status: 400 });
-    }
-    if (!primaryParent?.firstName || !primaryParent?.email) {
-      return NextResponse.json({ error: "Primary parent details required" }, { status: 400 });
-    }
-    if (!termsAccepted || !privacyAccepted) {
-      return NextResponse.json({ error: "Terms and Privacy must be accepted" }, { status: 400 });
-    }
-    if (!signature) {
-      return NextResponse.json({ error: "Digital signature required" }, { status: 400 });
-    }
-    if (!payment?.method) {
-      return NextResponse.json({ error: "Payment method is required" }, { status: 400 });
-    }
-    if (!debitAgreement) {
-      return NextResponse.json({ error: "Direct debit agreement is required" }, { status: 400 });
-    }
+const childSchema = z.object({
+  firstName: z.string().min(1, "Child first name is required"),
+  surname: z.string().min(1, "Child surname is required"),
+  dob: z.string().min(1, "Child date of birth is required"),
+  gender: z.enum(["female", "male", ""]).default(""),
+  street: z.string().default(""),
+  suburb: z.string().default(""),
+  state: z.string().default(""),
+  postcode: z.string().default(""),
+  culturalBackground: z.array(z.string()).default([]),
+  schoolName: z.string().default(""),
+  yearLevel: z.string().default(""),
+  crn: z.string().default(""),
+});
 
-    // Mask payment details — only store last 4 digits
-    let maskedPayment = null;
-    let paymentMethod = payment?.method || null;
-    if (payment?.method === "credit_card" && payment.cardNumber) {
-      maskedPayment = {
-        lastFour: payment.cardNumber.slice(-4),
-        cardType: detectCardType(payment.cardNumber),
-        nameOnCard: payment.cardName,
-      };
-    } else if (payment?.method === "bank_account" && payment.bankAccountNumber) {
-      maskedPayment = {
-        bsbLastThree: payment.bankBsb.slice(-3),
-        accountLastFour: payment.bankAccountNumber.slice(-4),
-        accountName: payment.bankAccountName,
-      };
-    }
+const parentSchema = z.object({
+  firstName: z.string().min(1, "Parent first name is required"),
+  surname: z.string().min(1, "Parent surname is required"),
+  dob: z.string().default(""),
+  email: z.string().email("Valid email is required"),
+  mobile: z.string().min(1, "Mobile is required"),
+  street: z.string().default(""),
+  suburb: z.string().default(""),
+  state: z.string().default(""),
+  postcode: z.string().default(""),
+  relationship: z.string().default(""),
+  occupation: z.string().default(""),
+  workplace: z.string().default(""),
+  workPhone: z.string().default(""),
+  crn: z.string().default(""),
+  soleCustody: z.boolean().nullable().default(null),
+});
 
-    // Merge medical + booking into children array for storage
-    const enrichedChildren = children.map((child: Record<string, unknown>, i: number) => ({
-      ...child,
-      medical: medicals?.[i] || null,
-      bookingPrefs: bookingPrefs?.[i] || null,
-    }));
+const secondaryParentSchema = z.object({
+  firstName: z.string().default(""),
+  surname: z.string().default(""),
+  dob: z.string().default(""),
+  email: z.string().default(""),
+  mobile: z.string().default(""),
+  street: z.string().default(""),
+  suburb: z.string().default(""),
+  state: z.string().default(""),
+  postcode: z.string().default(""),
+  relationship: z.string().default(""),
+  occupation: z.string().default(""),
+  workplace: z.string().default(""),
+  workPhone: z.string().default(""),
+  crn: z.string().default(""),
+  soleCustody: z.boolean().nullable().default(null),
+});
 
-    // Find linked enquiry
-    let enquiryId: string | null = null;
-    let serviceId: string | null = null;
-    if (prefillToken) {
-      const enquiry = await prisma.parentEnquiry.findFirst({
-        where: { id: prefillToken },
-        select: { id: true, serviceId: true },
-      });
-      if (enquiry) {
-        enquiryId = enquiry.id;
-        serviceId = enquiry.serviceId;
-      }
-    }
-    // Also try serviceId from first booking pref
-    if (!serviceId && bookingPrefs?.[0]?.serviceId) {
-      serviceId = bookingPrefs[0].serviceId;
-    }
+const medicationSchema = z.object({
+  name: z.string().default(""),
+  dosage: z.string().default(""),
+  frequency: z.string().default(""),
+});
 
-    // Create submission
-    const submission = await prisma.enrolmentSubmission.create({
-      data: {
-        enquiryId,
-        serviceId,
-        primaryParent,
-        secondaryParent: secondaryParent?.firstName ? secondaryParent : undefined,
-        children: enrichedChildren,
-        emergencyContacts: emergencyContacts.filter((c: { name: string }) => c.name),
-        authorisedPickup: authorisedPickup?.length > 0 ? authorisedPickup : undefined,
-        consents,
-        paymentMethod,
-        paymentDetails: maskedPayment ?? undefined,
-        referralSource,
-        signature,
-        termsAccepted,
-        privacyAccepted,
-        debitAgreement,
-        courtOrders,
-        courtOrderFiles: courtOrderFiles?.length > 0 ? courtOrderFiles : undefined,
-        medicalFiles: medicalFiles?.length > 0 ? medicalFiles : undefined,
-        documentUploads: documentUploads?.length > 0 ? documentUploads : undefined,
-      },
-    });
+const medicalSchema = z.object({
+  doctorName: z.string().default(""),
+  doctorPractice: z.string().default(""),
+  doctorPhone: z.string().default(""),
+  medicareNumber: z.string().default(""),
+  medicareRef: z.string().default(""),
+  medicareExpiry: z.string().default(""),
+  immunisationUpToDate: z.boolean().nullable().default(null),
+  immunisationDetails: z.string().default(""),
+  anaphylaxisRisk: z.boolean().nullable().default(null),
+  allergies: z.boolean().nullable().default(null),
+  allergyDetails: z.string().default(""),
+  asthma: z.boolean().nullable().default(null),
+  otherConditions: z.string().default(""),
+  medications: z.array(medicationSchema).default([]),
+  dietaryRequirements: z.boolean().nullable().default(null),
+  dietaryDetails: z.string().default(""),
+});
 
-    // Create structured Child records
-    for (const child of enrichedChildren) {
-      await prisma.child.create({
-        data: {
-          enrolmentId: submission.id,
-          serviceId,
-          firstName: child.firstName || "",
-          surname: child.surname || "",
-          dob: child.dob ? new Date(child.dob) : undefined,
-          gender: child.gender || undefined,
-          address: child.street ? { street: child.street, suburb: child.suburb, state: child.state, postcode: child.postcode } : undefined,
-          culturalBackground: child.culturalBackground || [],
-          schoolName: child.schoolName || undefined,
-          yearLevel: child.yearLevel || undefined,
-          crn: child.crn || undefined,
-          medical: child.medical || undefined,
-          dietary: child.medical?.dietaryRequirements ? { details: child.medical.dietaryDetails } : undefined,
-          bookingPrefs: child.bookingPrefs || undefined,
-        },
-      });
-    }
+const emergencyContactSchema = z.object({
+  name: z.string().default(""),
+  relationship: z.string().default(""),
+  phone: z.string().default(""),
+  email: z.string().default(""),
+});
 
-    // Update enquiry stage if linked
-    if (enquiryId) {
-      await prisma.parentEnquiry.update({
-        where: { id: enquiryId },
-        data: {
-          stage: "enrolled",
-          formCompleted: true,
-          stageChangedAt: new Date(),
-        },
-      });
-    }
+const authorisedPersonSchema = z.object({
+  name: z.string().min(1),
+  relationship: z.string().min(1),
+});
 
-    // Teams notification (fire and forget)
-    const childNames = children
-      .map((c: { firstName: string; surname: string }) => `${c.firstName} ${c.surname}`)
-      .join(", ");
-    sendTeamsNotification({
-      title: "New Enrolment Submitted",
-      body: `${primaryParent.firstName} ${primaryParent.surname} has submitted an enrolment for ${childNames}.`,
-      facts: [
-        { title: "Parent Email", value: primaryParent.email },
-        { title: "Parent Phone", value: primaryParent.mobile || "—" },
-        { title: "Children", value: childNames },
-      ],
-      actions: [
-        {
-          type: "Action.OpenUrl",
-          title: "View Submission",
-          url: `${process.env.NEXTAUTH_URL}/enrolments`,
-        },
-      ],
-    }).catch(() => {});
+const consentsSchema = z.object({
+  firstAid: z.boolean().nullable().default(null),
+  medication: z.boolean().nullable().default(null),
+  ambulance: z.boolean().nullable().default(null),
+  transport: z.boolean().nullable().default(null),
+  excursions: z.boolean().nullable().default(null),
+  photos: z.boolean().nullable().default(null),
+  sunscreen: z.boolean().nullable().default(null),
+});
 
-    // Send confirmation email to parent (fire and forget)
-    if (primaryParent.email) {
-      const { subject, html } = enrolmentConfirmationEmail(
-        primaryParent.firstName,
-        childNames
-      );
-      sendEmail({
-        from: FROM_EMAIL,
-        to: primaryParent.email,
-        subject,
-        html,
-      }).catch(() => {});
-    }
+const bookingPrefsSchema = z.object({
+  serviceId: z.string().default(""),
+  sessionTypes: z.array(z.string()).default([]),
+  days: z.record(z.string(), z.array(z.string())).default({}),
+  bookingType: z.enum(["permanent", "casual", ""]).default(""),
+  startDate: z.string().default(""),
+  requirements: z.string().default(""),
+});
 
-    return NextResponse.json({
-      success: true,
-      id: submission.id,
-      token: submission.token,
-      childNames,
-      parentName: `${primaryParent.firstName} ${primaryParent.surname}`,
-    });
-  } catch (e) {
-    console.error("Enrolment submission error:", e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Submission failed" },
-      { status: 500 }
+const paymentSchema = z.object({
+  method: z.enum(["credit_card", "bank_account", ""]),
+  cardName: z.string().default(""),
+  cardNumber: z.string().default(""),
+  cardExpiryMonth: z.string().default(""),
+  cardExpiryYear: z.string().default(""),
+  cardCcv: z.string().default(""),
+  bankAccountName: z.string().default(""),
+  bankBsb: z.string().default(""),
+  bankAccountNumber: z.string().default(""),
+});
+
+const fileUploadSchema = z.object({
+  filename: z.string(),
+  url: z.string(),
+});
+
+const documentUploadSchema = z.object({
+  childIndex: z.number(),
+  type: z.string(),
+  filename: z.string(),
+  url: z.string(),
+});
+
+const medicalFileSchema = z.object({
+  childIndex: z.number(),
+  type: z.string(),
+  filename: z.string(),
+  url: z.string(),
+});
+
+const enrolmentBodySchema = z.object({
+  children: z.array(childSchema).min(1, "At least one child is required"),
+  primaryParent: parentSchema,
+  secondaryParent: secondaryParentSchema.optional(),
+  medicals: z.array(medicalSchema).default([]),
+  emergencyContacts: z.array(emergencyContactSchema).default([]),
+  authorisedPickup: z.array(authorisedPersonSchema).default([]),
+  consents: consentsSchema,
+  courtOrders: z.boolean().default(false),
+  courtOrderFiles: z.array(fileUploadSchema).default([]),
+  medicalFiles: z.array(medicalFileSchema).default([]),
+  documentUploads: z.array(documentUploadSchema).default([]),
+  bookingPrefs: z.array(bookingPrefsSchema).default([]),
+  payment: paymentSchema,
+  referralSource: z.string().default(""),
+  termsAccepted: z.literal(true, { message: "Terms must be accepted" }),
+  privacyAccepted: z.literal(true, { message: "Privacy Policy must be accepted" }),
+  debitAgreement: z.literal(true, { message: "Direct debit agreement is required" }),
+  signature: z.string().min(1, "Digital signature is required"),
+  prefillToken: z.string().optional(),
+});
+
+// ---------------------------------------------------------------------------
+// Route handler
+// ---------------------------------------------------------------------------
+
+export const POST = withApiHandler(async (req: NextRequest) => {
+  // Rate limit: 5 submissions per IP per 15 minutes
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+  const rl = await checkRateLimit(`enrol:${ip}`, 5, 15 * 60 * 1000);
+  if (rl.limited) {
+    throw new ApiError(429, "Too many submissions. Please try again later.");
+  }
+
+  const raw = await req.json();
+  const parsed = enrolmentBodySchema.safeParse(raw);
+  if (!parsed.success) {
+    throw ApiError.badRequest(
+      "Validation failed",
+      parsed.error.flatten().fieldErrors,
     );
   }
-}
+
+  const {
+    children,
+    primaryParent,
+    secondaryParent,
+    medicals,
+    emergencyContacts,
+    authorisedPickup,
+    consents,
+    courtOrders,
+    courtOrderFiles,
+    medicalFiles,
+    documentUploads,
+    bookingPrefs,
+    payment,
+    referralSource,
+    signature,
+    prefillToken,
+  } = parsed.data;
+
+  // Payment method validation — require payment-specific fields
+  if (payment.method === "credit_card") {
+    if (!payment.cardName || !payment.cardNumber || payment.cardNumber.length < 13) {
+      throw ApiError.badRequest("Valid credit card details are required");
+    }
+    if (!payment.cardExpiryMonth || !payment.cardExpiryYear || !payment.cardCcv) {
+      throw ApiError.badRequest("Card expiry and CCV are required");
+    }
+  } else if (payment.method === "bank_account") {
+    if (!payment.bankAccountName || !payment.bankBsb || payment.bankBsb.length < 6) {
+      throw ApiError.badRequest("Valid bank account details are required");
+    }
+    if (!payment.bankAccountNumber) {
+      throw ApiError.badRequest("Bank account number is required");
+    }
+  } else if (!payment.method) {
+    throw ApiError.badRequest("Payment method is required");
+  }
+
+  // Mask payment details — only store last 4 digits
+  let maskedPayment = null;
+  const paymentMethod = payment.method || null;
+  if (payment.method === "credit_card" && payment.cardNumber) {
+    maskedPayment = {
+      lastFour: payment.cardNumber.slice(-4),
+      cardType: detectCardType(payment.cardNumber),
+      nameOnCard: payment.cardName,
+    };
+  } else if (payment.method === "bank_account" && payment.bankAccountNumber) {
+    maskedPayment = {
+      bsbLastThree: payment.bankBsb.slice(-3),
+      accountLastFour: payment.bankAccountNumber.slice(-4),
+      accountName: payment.bankAccountName,
+    };
+  }
+
+  // Merge medical + booking into children array for storage
+  const enrichedChildren = children.map((child, i) => ({
+    ...child,
+    medical: medicals[i] ?? null,
+    bookingPrefs: bookingPrefs[i] ?? null,
+  }));
+
+  // Find linked enquiry
+  let enquiryId: string | null = null;
+  let serviceId: string | null = null;
+  if (prefillToken) {
+    const enquiry = await prisma.parentEnquiry.findFirst({
+      where: { id: prefillToken },
+      select: { id: true, serviceId: true },
+    });
+    if (enquiry) {
+      enquiryId = enquiry.id;
+      serviceId = enquiry.serviceId;
+    }
+  }
+  if (!serviceId && bookingPrefs[0]?.serviceId) {
+    serviceId = bookingPrefs[0].serviceId;
+  }
+
+  // Create submission
+  const submission = await prisma.enrolmentSubmission.create({
+    data: {
+      enquiryId,
+      serviceId,
+      primaryParent,
+      secondaryParent: secondaryParent?.firstName ? secondaryParent : undefined,
+      children: enrichedChildren,
+      emergencyContacts: emergencyContacts.filter((c) => c.name),
+      authorisedPickup: authorisedPickup.length > 0 ? authorisedPickup : undefined,
+      consents,
+      paymentMethod,
+      paymentDetails: maskedPayment ?? undefined,
+      referralSource,
+      signature,
+      termsAccepted: true,
+      privacyAccepted: true,
+      debitAgreement: true,
+      courtOrders,
+      courtOrderFiles: courtOrderFiles.length > 0 ? courtOrderFiles : undefined,
+      medicalFiles: medicalFiles.length > 0 ? medicalFiles : undefined,
+      documentUploads: documentUploads.length > 0 ? documentUploads : undefined,
+    },
+  });
+
+  // Create structured Child records
+  for (const child of enrichedChildren) {
+    await prisma.child.create({
+      data: {
+        enrolmentId: submission.id,
+        serviceId,
+        firstName: child.firstName,
+        surname: child.surname,
+        dob: child.dob ? new Date(child.dob) : undefined,
+        gender: child.gender || undefined,
+        address: child.street
+          ? { street: child.street, suburb: child.suburb, state: child.state, postcode: child.postcode }
+          : undefined,
+        culturalBackground: child.culturalBackground,
+        schoolName: child.schoolName || undefined,
+        yearLevel: child.yearLevel || undefined,
+        crn: child.crn || undefined,
+        medical: child.medical || undefined,
+        dietary: child.medical?.dietaryRequirements
+          ? { details: child.medical.dietaryDetails }
+          : undefined,
+        bookingPrefs: child.bookingPrefs || undefined,
+      },
+    });
+  }
+
+  // Update enquiry stage if linked
+  if (enquiryId) {
+    await prisma.parentEnquiry.update({
+      where: { id: enquiryId },
+      data: {
+        stage: "enrolled",
+        formCompleted: true,
+        stageChangedAt: new Date(),
+      },
+    });
+  }
+
+  // Teams notification (fire and forget)
+  const childNames = children
+    .map((c) => `${c.firstName} ${c.surname}`)
+    .join(", ");
+  sendTeamsNotification({
+    title: "New Enrolment Submitted",
+    body: `${primaryParent.firstName} ${primaryParent.surname} has submitted an enrolment for ${childNames}.`,
+    facts: [
+      { title: "Parent Email", value: primaryParent.email },
+      { title: "Parent Phone", value: primaryParent.mobile || "—" },
+      { title: "Children", value: childNames },
+    ],
+    actions: [
+      {
+        type: "Action.OpenUrl",
+        title: "View Submission",
+        url: `${process.env.NEXTAUTH_URL}/enrolments`,
+      },
+    ],
+  }).catch(() => {});
+
+  // Send confirmation email to parent (fire and forget)
+  if (primaryParent.email) {
+    const { subject, html } = enrolmentConfirmationEmail(
+      primaryParent.firstName,
+      childNames,
+    );
+    sendEmail({
+      from: FROM_EMAIL,
+      to: primaryParent.email,
+      subject,
+      html,
+    }).catch(() => {});
+  }
+
+  return NextResponse.json({
+    success: true,
+    id: submission.id,
+    token: submission.token,
+    childNames,
+    parentName: `${primaryParent.firstName} ${primaryParent.surname}`,
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function detectCardType(number: string): string {
   if (number.startsWith("4")) return "visa";

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateModuleSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
@@ -16,14 +15,8 @@ const updateModuleSchema = z.object({
 });
 
 // PATCH /api/lms/modules/[moduleId] — update a module
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ moduleId: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { moduleId } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { moduleId } = await context!.params!;
   const body = await req.json();
   const parsed = updateModuleSchema.safeParse(body);
 
@@ -37,21 +30,15 @@ export async function PATCH(
   });
 
   return NextResponse.json(module);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/lms/modules/[moduleId] — delete a module
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ moduleId: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { moduleId } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { moduleId } = await context!.params!;
 
   await prisma.lMSModule.delete({
     where: { id: moduleId },
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

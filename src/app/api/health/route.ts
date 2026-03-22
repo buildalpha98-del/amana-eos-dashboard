@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withApiHandler } from "@/lib/api-handler";
 
 /**
  * GET /api/health — Public health check endpoint.
@@ -7,7 +8,7 @@ import { prisma } from "@/lib/prisma";
  * Returns database connectivity status for uptime monitors.
  * No authentication required — designed for external monitoring (UptimeRobot, Better Stack).
  */
-export async function GET() {
+export const GET = withApiHandler(async (req) => {
   const checks: Record<string, "connected" | "error"> = {
     database: "error",
     redis: "error",
@@ -48,4 +49,4 @@ export async function GET() {
     },
     { status: allHealthy ? 200 : 503 },
   );
-}
+});

@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -80,10 +82,9 @@ export function useTimesheets(filters?: TimesheetFilters) {
       if (filters?.status) params.set("status", filters.status);
       if (filters?.weekEndingAfter) params.set("weekEndingAfter", filters.weekEndingAfter);
       if (filters?.weekEndingBefore) params.set("weekEndingBefore", filters.weekEndingBefore);
-      const res = await fetch(`/api/timesheets?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch timesheets");
-      return res.json();
+      return fetchApi<TimesheetData[]>(`/api/timesheets?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -93,11 +94,10 @@ export function useTimesheet(id: string | null) {
   return useQuery<TimesheetData>({
     queryKey: ["timesheet", id],
     queryFn: async () => {
-      const res = await fetch(`/api/timesheets/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch timesheet");
-      return res.json();
+      return fetchApi<TimesheetData>(`/api/timesheets/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -111,19 +111,16 @@ export function useCreateTimesheet() {
       weekEnding: string;
       notes?: string;
     }) => {
-      const res = await fetch("/api/timesheets", {
+      return mutateApi("/api/timesheets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create timesheet");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["timesheets"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -140,20 +137,17 @@ export function useUpdateTimesheet() {
       id: string;
       notes?: string | null;
     }) => {
-      const res = await fetch(`/api/timesheets/${id}`, {
+      return mutateApi(`/api/timesheets/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update timesheet");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["timesheets"] });
       qc.invalidateQueries({ queryKey: ["timesheet"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -164,15 +158,13 @@ export function useDeleteTimesheet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/timesheets/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to delete timesheet");
-      }
-      return res.json();
+      return mutateApi(`/api/timesheets/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["timesheets"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -198,20 +190,17 @@ export function useImportTimesheet() {
     }
   >({
     mutationFn: async (data) => {
-      const res = await fetch("/api/timesheets/import", {
+      return mutateApi<TimesheetImportResult>("/api/timesheets/import", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to import timesheet");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["timesheets"] });
       qc.invalidateQueries({ queryKey: ["timesheet"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -237,20 +226,17 @@ export function useAddTimesheetEntries() {
         payRate?: number;
       }>;
     }) => {
-      const res = await fetch(`/api/timesheets/${timesheetId}/entries`, {
+      return mutateApi(`/api/timesheets/${timesheetId}/entries`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(entries),
+        body: entries,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to add entries");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["timesheet"] });
       qc.invalidateQueries({ queryKey: ["timesheets"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -274,20 +260,17 @@ export function useUpdateTimesheetEntry() {
       payRate?: number | null;
       isOvertime?: boolean;
     }) => {
-      const res = await fetch(`/api/timesheet-entries/${id}`, {
+      return mutateApi(`/api/timesheet-entries/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update entry");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["timesheet"] });
       qc.invalidateQueries({ queryKey: ["timesheets-summary"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -298,19 +281,17 @@ export function useDeleteTimesheetEntry() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/timesheet-entries/${id}`, {
+      return mutateApi(`/api/timesheet-entries/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to delete entry");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["timesheet"] });
       qc.invalidateQueries({ queryKey: ["timesheets"] });
       qc.invalidateQueries({ queryKey: ["timesheets-summary"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -321,18 +302,16 @@ export function useSubmitTimesheet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/timesheets/${id}/submit`, {
+      return mutateApi(`/api/timesheets/${id}/submit`, {
         method: "POST",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to submit timesheet");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["timesheets"] });
       qc.invalidateQueries({ queryKey: ["timesheet"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -343,18 +322,16 @@ export function useApproveTimesheet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/timesheets/${id}/approve`, {
+      return mutateApi(`/api/timesheets/${id}/approve`, {
         method: "POST",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to approve timesheet");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["timesheets"] });
       qc.invalidateQueries({ queryKey: ["timesheet"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -365,20 +342,17 @@ export function useRejectTimesheet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      const res = await fetch(`/api/timesheets/${id}/reject`, {
+      return mutateApi(`/api/timesheets/${id}/reject`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason }),
+        body: { reason },
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to reject timesheet");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["timesheets"] });
       qc.invalidateQueries({ queryKey: ["timesheet"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -388,14 +362,12 @@ export function useRejectTimesheet() {
 export function useExportTimesheetToXero() {
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/timesheets/${id}/export-to-xero`, {
+      return mutateApi(`/api/timesheets/${id}/export-to-xero`, {
         method: "POST",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to export to Xero");
-      }
-      return res.json();
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -414,11 +386,10 @@ export function useTimesheetsSummary(
       if (serviceId) params.set("serviceId", serviceId);
       if (startDate) params.set("startDate", startDate);
       if (endDate) params.set("endDate", endDate);
-      const res = await fetch(`/api/timesheets/summary?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch timesheet summary");
-      return res.json();
+      return fetchApi<TimesheetSummaryEntry[]>(`/api/timesheets/summary?${params}`);
     },
     enabled: !!startDate && !!endDate,
+    retry: 2,
   });
 }
 

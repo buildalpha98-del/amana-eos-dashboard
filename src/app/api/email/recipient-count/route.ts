@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const serviceIds = req.nextUrl.searchParams.getAll("serviceId");
 
   const contacts = await prisma.centreContact.findMany({
@@ -21,4 +18,4 @@ export async function GET(req: NextRequest) {
   );
 
   return NextResponse.json({ count: uniqueEmails.size });
-}
+});

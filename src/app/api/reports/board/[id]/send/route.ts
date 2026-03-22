@@ -1,31 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { boardReportEmail } from "@/lib/email-templates";
 import type { BoardReportData } from "@/lib/board-report-generator";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+
+const bodySchema = z.object({
+  recipients: z.array(z.string().email()).optional(),
+});
 
 /**
  * POST /api/reports/board/[id]/send — Send the report to board members
  *
  * Body (optional): { recipients?: string[] }
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const report = await prisma.boardReport.findUnique({ where: { id } });
 
   if (!report) {
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  let recipients: string[] = body.recipients || [];
+  const raw = await req.json().catch(() => ({}));
+  const parsed = bodySchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
+  let recipients: string[] = parsed.data.recipients || [];
 
   // Default to all owner/admin users if no recipients specified
   if (recipients.length === 0) {
@@ -69,7 +76,7 @@ export async function POST(
       await resend.emails.send({ from: FROM_EMAIL, to: recipient, subject, html });
       emailsSent++;
     } catch (err) {
-      console.error(`Board report email to ${recipient} failed:`, err);
+      logger.error("Board report email failed", { recipient, err });
     }
   }
 
@@ -84,4 +91,4 @@ export async function POST(
   });
 
   return NextResponse.json({ success: true, emailsSent });
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
 import { getCentreScope } from "@/lib/centre-scope";
+import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fields";
+import { withApiAuth } from "@/lib/server-auth";
 
 interface Notification {
   id: string;
@@ -25,10 +26,7 @@ interface Notification {
   entityId: string;
 }
 
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const GET = withApiAuth(async (req, session) => {
   const now = new Date();
   const notifications: Notification[] = [];
 
@@ -314,9 +312,9 @@ export async function GET(req: NextRequest) {
     where: { id: session.user.id },
     select: { notificationPrefs: true, role: true },
   });
-  const stored = user?.notificationPrefs as Record<string, boolean> | null;
+  const stored = parseJsonField(user?.notificationPrefs, notificationPrefsSchema, {});
   const defaults = getDefaultNotificationPrefs(user?.role ?? "staff");
-  const prefs = (stored && Object.keys(stored).length > 0
+  const prefs = (Object.keys(stored).length > 0
     ? stored
     : defaults) as Record<string, boolean>;
   const prefMap: Record<string, string> = {
@@ -354,4 +352,4 @@ export async function GET(req: NextRequest) {
     total: active.length,
     critical: active.filter((n) => n.severity === "critical").length,
   });
-}
+});

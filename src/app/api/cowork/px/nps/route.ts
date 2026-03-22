@@ -1,29 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const npsResponseSchema = z.object({
+  email: z.string().email(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  score: z.number().min(0).max(10),
+  comment: z.string().nullable().optional(),
+  respondedAt: z.string().optional(),
+});
+
+const bodySchema = z.object({
+  serviceCode: z.string().min(1),
+  responses: z.array(npsResponseSchema).min(1),
+});
 
 /**
  * POST /api/cowork/px/nps
  * Record NPS survey responses and auto-categorise.
  * Used by: px-nps-analysis, px-detractor-recovery, px-satisfaction-trend
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceCode, responses } = body;
-
-    if (!serviceCode || !responses || !Array.isArray(responses)) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          error: "Bad Request",
-          message: "serviceCode and responses[] required",
-        },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { serviceCode, responses } = parsed.data;
 
     const service = await prisma.service.findUnique({
       where: { code: serviceCode },
@@ -32,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     if (!service) {
       return NextResponse.json(
-        { error: "Not Found", message: `Service ${serviceCode} not found` },
+        { error: `Service ${serviceCode} not found` },
         { status: 404 }
       );
     }
@@ -118,10 +132,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /cowork/px/nps]", err);
+    logger.error("POST /cowork/px/nps", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});

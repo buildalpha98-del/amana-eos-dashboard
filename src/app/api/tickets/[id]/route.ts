@@ -1,19 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { ticketNotificationEmail } from "@/lib/email-templates";
 import { notifyTicketAssigned, notifyTicketStatusChange } from "@/lib/teams-notify";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+import { logger } from "@/lib/logger";
+
+const patchTicketSchema = z.object({
+  subject: z.string().min(1).optional(),
+  priority: z.enum(["urgent", "high", "normal", "low"]).optional(),
+  status: z.enum(["open", "in_progress", "waiting", "resolved", "closed"]).optional(),
+  assignedToId: z.string().nullable().optional(),
+  serviceId: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional(),
+});
 
 // GET /api/tickets/[id]
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const ticket = await prisma.supportTicket.findUnique({
     where: { id, deleted: false },
@@ -35,18 +40,17 @@ export async function GET(
   }
 
   return NextResponse.json(ticket);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // PATCH /api/tickets/[id]
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
+  const parsed = patchTicketSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+  const { subject, priority, status, assignedToId, serviceId, tags } = parsed.data;
 
   const existing = await prisma.supportTicket.findUnique({
     where: { id, deleted: false },
@@ -58,24 +62,24 @@ export async function PATCH(
 
   const data: Record<string, unknown> = {};
 
-  if (body.subject !== undefined) data.subject = body.subject;
-  if (body.priority !== undefined) data.priority = body.priority;
-  if (body.assignedToId !== undefined) data.assignedToId = body.assignedToId || null;
-  if (body.serviceId !== undefined) data.serviceId = body.serviceId || null;
-  if (body.tags !== undefined) data.tags = body.tags;
+  if (subject !== undefined) data.subject = subject;
+  if (priority !== undefined) data.priority = priority;
+  if (assignedToId !== undefined) data.assignedToId = assignedToId || null;
+  if (serviceId !== undefined) data.serviceId = serviceId || null;
+  if (tags !== undefined) data.tags = tags;
 
   // Auto-set firstResponseAt when first assigned
-  if (body.assignedToId && !existing.firstResponseAt) {
+  if (assignedToId && !existing.firstResponseAt) {
     data.firstResponseAt = new Date();
   }
 
-  if (body.status !== undefined) {
-    data.status = body.status;
+  if (status !== undefined) {
+    data.status = status;
 
-    if (body.status === "resolved" && !existing.resolvedAt) {
+    if (status === "resolved" && !existing.resolvedAt) {
       data.resolvedAt = new Date();
     }
-    if (body.status === "closed" && !existing.closedAt) {
+    if (status === "closed" && !existing.closedAt) {
       data.closedAt = new Date();
     }
   }
@@ -107,8 +111,8 @@ export async function PATCH(
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const ticketUrl = `${baseUrl}/tickets?id=${ticket.id}`;
 
-  if (body.assignedToId && ticket.assignedTo) {
-    const { subject, html } = ticketNotificationEmail(
+  if (assignedToId && ticket.assignedTo) {
+    const { subject: emailSubject, html } = ticketNotificationEmail(
       ticket.assignedTo.name.split(" ")[0],
       {
         title: ticket.subject || `Ticket #${ticket.ticketNumber}`,
@@ -121,8 +125,8 @@ export async function PATCH(
     const resend = getResend();
     if (resend) {
       resend.emails
-        .send({ from: FROM_EMAIL, to: ticket.assignedTo.email, subject, html })
-        .catch((err: unknown) => console.error("Failed to send ticket notification:", err));
+        .send({ from: FROM_EMAIL, to: ticket.assignedTo.email, subject: emailSubject, html })
+        .catch((err) => logger.error("Failed to send ticket notification", { err }));
     } else {
       if (process.env.NODE_ENV !== "production") console.log(`[DEV] Ticket notification for ${ticket.assignedTo.email}: ${ticket.subject}`);
     }
@@ -139,27 +143,21 @@ export async function PATCH(
   }
 
   // Teams notification for status changes
-  if (body.status !== undefined && body.status !== existing.status) {
+  if (status !== undefined && status !== existing.status) {
     notifyTicketStatusChange({
       ticketNumber: ticket.ticketNumber,
       subject: ticket.subject,
-      newStatus: body.status,
+      newStatus: status,
       url: ticketUrl,
     }).catch(() => {});
   }
 
   return NextResponse.json(ticket);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/tickets/[id] — soft delete
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const ticket = await prisma.supportTicket.update({
     where: { id },
@@ -176,4 +174,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

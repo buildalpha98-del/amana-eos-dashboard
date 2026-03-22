@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { acquireCronLock } from "@/lib/cron-guard";
+import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fields";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
@@ -142,7 +145,7 @@ function buildAdminSummaryEmail(
  *
  * Auth: Bearer CRON_SECRET
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -202,8 +205,8 @@ export async function GET(req: NextRequest) {
       if (!todo.assignee || !todo.assignee.active) continue;
 
       // Respect notification preferences
-      const prefs = todo.assignee.notificationPrefs as Record<string, boolean> | null;
-      if (prefs && prefs.overdueTodos === false) continue;
+      const prefs = parseJsonField(todo.assignee.notificationPrefs, notificationPrefsSchema, {});
+      if (prefs.overdueTodos === false) continue;
 
       const daysOverdue = Math.floor(
         (now.getTime() - new Date(todo.dueDate).getTime()) / 86400000,
@@ -291,10 +294,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     await guard.fail(err);
-    console.error("Overdue todo nudge cron failed:", err);
+    logger.error("Overdue todo nudge cron failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },
       { status: 500 },
     );
   }
-}
+});

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import type {
   TicketStatus,
   TicketPriority,
@@ -93,10 +94,9 @@ export function useTickets(filters?: {
   return useQuery<TicketData[]>({
     queryKey: ["tickets", filters],
     queryFn: async () => {
-      const res = await fetch(`/api/tickets${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch tickets");
-      return res.json();
+      return fetchApi<TicketData[]>(`/api/tickets${query ? `?${query}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -104,11 +104,10 @@ export function useTicket(id: string) {
   return useQuery<TicketDetail>({
     queryKey: ["ticket", id],
     queryFn: async () => {
-      const res = await fetch(`/api/tickets/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch ticket");
-      return res.json();
+      return fetchApi<TicketDetail>(`/api/tickets/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -123,20 +122,17 @@ export function useCreateTicket() {
       serviceId?: string | null;
       tags?: string[];
     }) => {
-      const res = await fetch("/api/tickets", {
+      return mutateApi<{ id: string }>("/api/tickets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create ticket");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tickets"] });
       toast({ description: "Ticket created" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -156,20 +152,17 @@ export function useUpdateTicket() {
       serviceId?: string | null;
       tags?: string[];
     }) => {
-      const res = await fetch(`/api/tickets/${id}`, {
+      return mutateApi(`/api/tickets/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update ticket");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tickets"] });
       queryClient.invalidateQueries({ queryKey: ["ticket"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -178,13 +171,14 @@ export function useDeleteTicket() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/tickets/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete ticket");
-      return res.json();
+      return mutateApi(`/api/tickets/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tickets"] });
       toast({ description: "Ticket deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -199,22 +193,10 @@ export function useSendMessage() {
       ticketId: string;
       body: string;
     }) => {
-      const res = await fetch(`/api/tickets/${ticketId}/messages`, {
+      return mutateApi(`/api/tickets/${ticketId}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: { body },
       });
-      if (!res.ok) {
-        let errorMessage = "Failed to send message";
-        try {
-          const err = await res.json();
-          errorMessage = err.error || errorMessage;
-        } catch {
-          errorMessage = `Server error (${res.status})`;
-        }
-        throw new Error(errorMessage);
-      }
-      return res.json();
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -225,6 +207,9 @@ export function useSendMessage() {
       });
       toast({ description: "Message sent" });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -232,11 +217,10 @@ export function useTicketMessages(ticketId: string) {
   return useQuery<TicketMessageData[]>({
     queryKey: ["ticket-messages", ticketId],
     queryFn: async () => {
-      const res = await fetch(`/api/tickets/${ticketId}/messages`);
-      if (!res.ok) throw new Error("Failed to fetch messages");
-      return res.json();
+      return fetchApi<TicketMessageData[]>(`/api/tickets/${ticketId}/messages`);
     },
     enabled: !!ticketId,
     refetchInterval: 5000,
+    retry: 2,
   });
 }

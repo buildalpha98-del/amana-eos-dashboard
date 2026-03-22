@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { decryptToken, fetchPostMetrics } from "@/lib/meta";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   // Validate CRON_SECRET
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
@@ -112,10 +114,7 @@ export async function GET(req: NextRequest) {
               connectionSynced++;
             }
           } catch (postErr) {
-            console.error(
-              `Failed to sync post ${post.id} (${post.externalPostId}):`,
-              postErr
-            );
+            logger.error("Failed to sync post", { postId: post.id, externalPostId: post.externalPostId, err: postErr });
             // Continue with other posts
           }
         }
@@ -131,10 +130,7 @@ export async function GET(req: NextRequest) {
 
         synced += connectionSynced;
       } catch (connErr) {
-        console.error(
-          `Failed to sync connection ${connection.id}:`,
-          connErr
-        );
+        logger.error("Failed to sync connection", { connectionId: connection.id, err: connErr });
         const errorMessage =
           connErr instanceof Error ? connErr.message : "Unknown error";
 
@@ -153,10 +149,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ synced, errors });
   } catch (err) {
-    console.error("Social sync cron error:", err);
+    logger.error("Social sync cron error", { err });
     return NextResponse.json(
       { error: "Social sync failed", synced, errors },
       { status: 500 }
     );
   }
-}
+});

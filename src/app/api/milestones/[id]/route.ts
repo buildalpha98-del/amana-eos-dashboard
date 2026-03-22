@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const patchSchema = z.object({
+  completed: z.boolean().optional(),
+  title: z.string().min(1).optional(),
+  dueDate: z.string().optional(),
+});
 
 // PATCH /api/milestones/:id — toggle completed or update
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const body = await req.json();
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
 
   const milestone = await prisma.milestone.findUnique({ where: { id } });
   if (!milestone) {
@@ -19,23 +27,17 @@ export async function PATCH(
   }
 
   const data: Record<string, unknown> = {};
-  if (typeof body.completed === "boolean") data.completed = body.completed;
-  if (typeof body.title === "string") data.title = body.title;
-  if (typeof body.dueDate === "string") data.dueDate = new Date(body.dueDate);
+  if (parsed.data.completed !== undefined) data.completed = parsed.data.completed;
+  if (parsed.data.title !== undefined) data.title = parsed.data.title;
+  if (parsed.data.dueDate !== undefined) data.dueDate = new Date(parsed.data.dueDate);
 
   const updated = await prisma.milestone.update({ where: { id }, data });
   return NextResponse.json(updated);
-}
+});
 
 // DELETE /api/milestones/:id
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const milestone = await prisma.milestone.findUnique({ where: { id } });
   if (!milestone) {
@@ -55,4 +57,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+});

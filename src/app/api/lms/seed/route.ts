@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 /**
  * POST /api/lms/seed
  *
@@ -1003,10 +1003,7 @@ const ALL_COURSES: CourseDef[] = [
   },
 ];
 
-export async function POST() {
-  const { error } = await requireAuth(["owner"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   try {
     const existingTitles = new Set(
       (
@@ -1056,10 +1053,10 @@ export async function POST() {
       total: ALL_COURSES.length,
     });
   } catch (err) {
-    console.error("LMS seed error:", err);
+    logger.error("LMS seed error", { err });
     return NextResponse.json(
       { error: "Failed to seed LMS courses" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner"] });

@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const url = req.nextUrl;
   const search = url.searchParams.get("search")?.trim() || "";
   const role = url.searchParams.get("role") || "";
@@ -45,4 +42,4 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(users);
-}
+});

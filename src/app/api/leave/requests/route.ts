@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createLeaveSchema = z.object({
   leaveType: z.enum([
     "annual",
@@ -20,11 +20,8 @@ const createLeaveSchema = z.object({
 });
 
 // GET /api/leave/requests — list leave requests
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { searchParams } = new URL(req.url);
+export const GET = withApiAuth(async (req, session) => {
+const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
   const status = searchParams.get("status");
   const serviceId = searchParams.get("serviceId");
@@ -62,14 +59,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(requests);
-}
+});
 
 // POST /api/leave/requests — submit a leave request
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await parseJsonBody(req);
   const parsed = createLeaveSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -129,4 +123,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(leaveRequest, { status: 201 });
-}
+});

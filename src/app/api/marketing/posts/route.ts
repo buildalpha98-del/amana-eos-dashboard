@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createPostSchema = z.object({
   title: z.string().min(1, "Title is required"),
   platform: z.enum([
@@ -44,10 +43,7 @@ const serviceInclude = {
 } as const;
 
 // GET /api/marketing/posts — list posts with optional filters
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const platform = searchParams.get("platform");
@@ -77,14 +73,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(posts);
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });
 
 // POST /api/marketing/posts — create a new post
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createPostSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -233,4 +226,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(fullPost, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

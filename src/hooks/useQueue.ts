@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
 export interface QueueReport {
@@ -60,12 +61,9 @@ export function useQueue(filters?: {
 
   return useQuery<QueueData>({
     queryKey: ["queue", filters],
-    queryFn: async () => {
-      const res = await fetch(`/api/queue${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch queue");
-      return res.json();
-    },
+    queryFn: () => fetchApi<QueueData>(`/api/queue${query ? `?${query}` : ""}`),
     staleTime: 30_000,
+    retry: 2,
   });
 }
 
@@ -73,14 +71,7 @@ export function useReviewReport() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (reportId: string) => {
-      const res = await fetch(`/api/queue/${reportId}/review`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to mark as reviewed");
-      }
-      return res.json();
+      return mutateApi(`/api/queue/${reportId}/review`, { method: "POST" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["queue"] });
@@ -97,14 +88,7 @@ export function useCompleteTodo() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (todoId: string) => {
-      const res = await fetch(`/api/queue/${todoId}/complete`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to complete task");
-      }
-      return res.json();
+      return mutateApi(`/api/queue/${todoId}/complete`, { method: "POST" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["queue"] });
@@ -133,11 +117,8 @@ export interface AllQueuesData {
 export function useAllQueues() {
   return useQuery<AllQueuesData>({
     queryKey: ["queue-all"],
-    queryFn: async () => {
-      const res = await fetch("/api/queue/all");
-      if (!res.ok) throw new Error("Failed to fetch all queues");
-      return res.json();
-    },
+    queryFn: () => fetchApi<AllQueuesData>("/api/queue/all"),
     staleTime: 30_000,
+    retry: 2,
   });
 }

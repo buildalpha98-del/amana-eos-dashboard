@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const CATEGORIES = [
   "physical_play", "creative_arts", "music_movement", "literacy", "numeracy",
@@ -19,10 +19,7 @@ const createSchema = z.object({
 });
 
 // GET /api/activity-templates?category=X&search=X&page=1&limit=20
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const url = new URL(req.url);
   const category = url.searchParams.get("category");
   const search = url.searchParams.get("search");
@@ -52,14 +49,11 @@ export async function GET(req: NextRequest) {
   ]);
 
   return NextResponse.json({ templates, total, page, limit });
-}
+});
 
 // POST /api/activity-templates
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -88,4 +82,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(template, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

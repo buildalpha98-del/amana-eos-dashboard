@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { z } from "zod";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const createIncidentSchema = z.object({
   serviceCode: z.string(),
@@ -26,8 +28,8 @@ const createIncidentSchema = z.object({
  * GET /api/cowork/operations/incidents
  * Returns incident summary and trends for Cowork automation
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -134,104 +136,99 @@ export async function GET(req: NextRequest) {
       byTimeOfDay,
     });
   } catch (err) {
-    console.error("[Cowork Incidents GET]", err);
+    logger.error("Cowork Incidents GET", { err });
     return NextResponse.json({ error: "Failed to fetch incident data" }, { status: 500 });
   }
-}
+});
 
 /**
  * POST /api/cowork/operations/incidents
  * Creates a new incident record for a service
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  try {
-    const body = await req.json();
-    const parsed = createIncidentSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid request body", issues: parsed.error.issues }, { status: 400 });
-    }
-
-    const {
-      serviceCode,
-      date,
-      incidentType,
-      severity,
-      childName,
-      description,
-      actionTaken,
-      location,
-      timeOfDay,
-      witnesses,
-      parentNotified,
-      regulatoryReport,
-      followUpRequired,
-      followUpNotes,
-      reportedBy,
-      status,
-    } = parsed.data;
-
-    // Resolve serviceCode to serviceId
-    const service = await prisma.service.findUnique({ where: { code: serviceCode } });
-    if (!service) {
-      return NextResponse.json({ error: `Service not found: ${serviceCode}` }, { status: 404 });
-    }
-
-    // Map severity values to model's severity names
-    const severityMap: Record<string, string> = {
-      low: "minor",
-      medium: "moderate",
-      high: "reportable",
-      critical: "serious",
-    };
-    const mappedSeverity = severityMap[severity];
-
-    // Compose actionTaken — append witnesses and followUpNotes if provided
-    const actionParts: string[] = [];
-    if (actionTaken) actionParts.push(actionTaken);
-    if (witnesses) actionParts.push(`Witnesses: ${witnesses}`);
-    if (followUpNotes) actionParts.push(`Follow-up notes: ${followUpNotes}`);
-    const composedActionTaken = actionParts.length > 0 ? actionParts.join("\n") : undefined;
-
-    // Prefix description with reportedBy
-    const composedDescription = `Reported by: ${reportedBy}\n${description}`;
-
-    const incident = await prisma.incidentRecord.create({
-      data: {
-        serviceId: service.id,
-        incidentDate: new Date(date),
-        incidentType,
-        severity: mappedSeverity,
-        childName: childName ?? null,
-        description: composedDescription,
-        actionTaken: composedActionTaken ?? null,
-        location: location ?? null,
-        timeOfDay: timeOfDay ?? null,
-        parentNotified,
-        reportableToAuthority: regulatoryReport,
-        followUpRequired,
-        deleted: false,
-      },
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        incident: {
-          id: incident.id,
-          serviceCode,
-          date: incident.incidentDate.toISOString(),
-          incidentType: incident.incidentType,
-          severity,
-          status,
-        },
-      },
-      { status: 201 }
-    );
-  } catch (err) {
-    console.error("[Cowork Incidents POST]", err);
-    return NextResponse.json({ error: "Failed to create incident" }, { status: 500 });
+  const body = await req.json();
+  const parsed = createIncidentSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid request body", issues: parsed.error.issues }, { status: 400 });
   }
-}
+
+  const {
+    serviceCode,
+    date,
+    incidentType,
+    severity,
+    childName,
+    description,
+    actionTaken,
+    location,
+    timeOfDay,
+    witnesses,
+    parentNotified,
+    regulatoryReport,
+    followUpRequired,
+    followUpNotes,
+    reportedBy,
+    status,
+  } = parsed.data;
+
+  // Resolve serviceCode to serviceId
+  const service = await prisma.service.findUnique({ where: { code: serviceCode } });
+  if (!service) {
+    return NextResponse.json({ error: `Service not found: ${serviceCode}` }, { status: 404 });
+  }
+
+  // Map severity values to model's severity names
+  const severityMap: Record<string, string> = {
+    low: "minor",
+    medium: "moderate",
+    high: "reportable",
+    critical: "serious",
+  };
+  const mappedSeverity = severityMap[severity];
+
+  // Compose actionTaken — append witnesses and followUpNotes if provided
+  const actionParts: string[] = [];
+  if (actionTaken) actionParts.push(actionTaken);
+  if (witnesses) actionParts.push(`Witnesses: ${witnesses}`);
+  if (followUpNotes) actionParts.push(`Follow-up notes: ${followUpNotes}`);
+  const composedActionTaken = actionParts.length > 0 ? actionParts.join("\n") : undefined;
+
+  // Prefix description with reportedBy
+  const composedDescription = `Reported by: ${reportedBy}\n${description}`;
+
+  const incident = await prisma.incidentRecord.create({
+    data: {
+      serviceId: service.id,
+      incidentDate: new Date(date),
+      incidentType,
+      severity: mappedSeverity,
+      childName: childName ?? null,
+      description: composedDescription,
+      actionTaken: composedActionTaken ?? null,
+      location: location ?? null,
+      timeOfDay: timeOfDay ?? null,
+      parentNotified,
+      reportableToAuthority: regulatoryReport,
+      followUpRequired,
+      deleted: false,
+    },
+  });
+
+  return NextResponse.json(
+    {
+      success: true,
+      incident: {
+        id: incident.id,
+        serviceCode,
+        date: incident.incidentDate.toISOString(),
+        incidentType: incident.incidentType,
+        severity,
+        status,
+      },
+    },
+    { status: 201 }
+  );
+});

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { POST as todosPost, GET as todosGet } from "../todos/route";
+import { withApiHandler } from "@/lib/api-handler";
 
 /**
  * /api/cowork/tasks — Thin alias for /api/cowork/todos
@@ -7,10 +8,10 @@ import { POST as todosPost, GET as todosGet } from "../todos/route";
  * Some Cowork automations reference "tasks" instead of "todos".
  * This endpoint re-exports the same handlers to avoid 404s.
  */
-export async function POST(req: NextRequest) {
+export const POST = withApiHandler(async (req) => {
   return todosPost(req);
-}
+});
 
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   return todosGet(req);
-}
+});

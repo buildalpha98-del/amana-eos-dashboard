@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { resolveServiceByCode } from "../../../_lib/resolve-service";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const MEAL_SLOTS = ["morning_tea", "lunch", "afternoon_tea"] as const;
@@ -28,23 +30,20 @@ const importMenuSchema = z.object({
 });
 
 // POST /api/cowork/services/[serviceCode]/menus — Import menu for a week
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ serviceCode: string }> },
-) {
+export const POST = withApiHandler(async (req, context) => {
   // 1. Authenticate
-  const authError = authenticateCowork(req);
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   // 2. Rate limit
 
   try {
     // 3. Resolve service
-    const { serviceCode } = await params;
+    const { serviceCode } = await context!.params!;
     const service = await resolveServiceByCode(serviceCode);
     if (!service) {
       return NextResponse.json(
-        { error: "Not Found", message: `Service with code "${serviceCode}" not found` },
+        { error: `Service with code "${serviceCode}" not found` },
         { status: 404 },
       );
     }
@@ -135,7 +134,7 @@ export async function POST(
       { status: 201 },
     );
   } catch (err) {
-    console.error("[Cowork Menus Import]", err);
+    logger.error("Cowork Menus Import", { err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});

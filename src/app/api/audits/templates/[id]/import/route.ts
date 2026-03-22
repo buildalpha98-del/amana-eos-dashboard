@@ -1,29 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import type { AuditResponseFormat } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const postSchema = z.object({
+  items: z.array(z.object({
+    section: z.string().optional(),
+    question: z.string().min(1),
+    guidance: z.string().optional(),
+    responseFormat: z.enum(["yes_no", "rating_1_5", "compliant", "reverse_yes_no", "review_date", "inventory"]).optional(),
+    isRequired: z.boolean().optional(),
+  })).min(1, "items array is required"),
+  mode: z.enum(["replace", "append"]).default("replace"),
+  sourceFileName: z.string().optional(),
+});
 
 /**
  * POST /api/audits/templates/[id]/import — import parsed items into a template
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
-  const { items, mode = "replace", sourceFileName } = body;
-
-  if (!Array.isArray(items) || items.length === 0) {
-    return NextResponse.json({ error: "items array is required" }, { status: 400 });
+  const parsed = postSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
   }
-
-  if (mode !== "replace" && mode !== "append") {
-    return NextResponse.json({ error: "mode must be 'replace' or 'append'" }, { status: 400 });
-  }
+  const { items, mode, sourceFileName } = parsed.data;
 
   // Verify template exists
   const template = await prisma.auditTemplate.findUnique({ where: { id } });
@@ -89,4 +95,4 @@ export async function POST(
     templateId: id,
     mode,
   });
-}
+}, { roles: ["owner", "head_office", "admin"] });

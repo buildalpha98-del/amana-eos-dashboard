@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -59,14 +61,13 @@ export interface TriggerSurveyResponse {
 export function useExitSurveySummary(filters?: { serviceId?: string; months?: number }) {
   return useQuery<ExitSurveySummary>({
     queryKey: ["exit-survey-summary", filters?.serviceId, filters?.months],
-    queryFn: async () => {
+    queryFn: () => {
       const params = new URLSearchParams();
       if (filters?.serviceId) params.set("serviceId", filters.serviceId);
       if (filters?.months) params.set("months", String(filters.months));
-      const res = await fetch(`/api/exit-survey/summary?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch exit survey summary");
-      return res.json();
+      return fetchApi<ExitSurveySummary>(`/api/exit-survey/summary?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -74,19 +75,16 @@ export function useTriggerExitSurvey() {
   const qc = useQueryClient();
   return useMutation<TriggerSurveyResponse, Error, TriggerSurveyPayload>({
     mutationFn: async (data) => {
-      const res = await fetch("/api/exit-survey/trigger", {
+      return mutateApi<TriggerSurveyResponse>("/api/exit-survey/trigger", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to trigger exit survey");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["exit-survey-summary"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

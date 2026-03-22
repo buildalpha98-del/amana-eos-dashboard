@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { parseComplianceCalendar } from "@/lib/audit-calendar-parser";
 import type { AuditFrequency } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { validateFileContent } from "@/lib/file-validation";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = [
@@ -23,10 +25,7 @@ const ALLOWED_TYPES = [
  *  - year: target year for instances, defaults to current year (optional)
  *  - preview: "true" to only return parsed data without writing to DB (optional)
  */
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const generateInstances = formData.get("generateInstances") === "true";
@@ -56,8 +55,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const arrayBuf = await file.arrayBuffer();
+  if (!validateFileContent(arrayBuf, file.type)) {
+    return NextResponse.json(
+      { error: "File content does not match declared type" },
+      { status: 400 },
+    );
+  }
+
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = Buffer.from(arrayBuf);
     const parsed = await parseComplianceCalendar(buffer);
 
     if (parsed.templates.length === 0) {
@@ -233,7 +240,7 @@ export async function POST(req: NextRequest) {
       templates: templateRecords,
     });
   } catch (err) {
-    console.error("Calendar import error:", err);
+    logger.error("Calendar import error", { err });
     return NextResponse.json(
       {
         error:
@@ -242,4 +249,4 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });

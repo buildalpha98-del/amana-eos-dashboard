@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -102,12 +104,11 @@ function buildParams(filters?: IncidentFilters, extra?: Record<string, string>):
 export function useIncidents(filters?: IncidentFilters) {
   return useQuery<IncidentListResponse>({
     queryKey: ["incidents", filters],
-    queryFn: async () => {
+    queryFn: () => {
       const qs = buildParams(filters);
-      const res = await fetch(`/api/incidents${qs ? `?${qs}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch incidents");
-      return res.json();
+      return fetchApi<IncidentListResponse>(`/api/incidents${qs ? `?${qs}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -115,12 +116,11 @@ export function useIncidents(filters?: IncidentFilters) {
 export function useIncidentSummary(filters?: IncidentFilters) {
   return useQuery<IncidentSummary>({
     queryKey: ["incidents-summary", filters],
-    queryFn: async () => {
+    queryFn: () => {
       const qs = buildParams(filters, { summary: "true" });
-      const res = await fetch(`/api/incidents?${qs}`);
-      if (!res.ok) throw new Error("Failed to fetch incident summary");
-      return res.json();
+      return fetchApi<IncidentSummary>(`/api/incidents?${qs}`);
     },
+    retry: 2,
   });
 }
 
@@ -128,14 +128,13 @@ export function useIncidentSummary(filters?: IncidentFilters) {
 export function useIncidentTrends(weeks?: number) {
   return useQuery<IncidentTrends>({
     queryKey: ["incidents-trends", weeks],
-    queryFn: async () => {
+    queryFn: () => {
       const params = new URLSearchParams();
       if (weeks) params.set("weeks", String(weeks));
       const qs = params.toString();
-      const res = await fetch(`/api/incidents/trends${qs ? `?${qs}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch incident trends");
-      return res.json();
+      return fetchApi<IncidentTrends>(`/api/incidents/trends${qs ? `?${qs}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -157,21 +156,15 @@ export function useCreateIncident() {
       reportableToAuthority?: boolean;
       followUpRequired?: boolean;
     }) => {
-      const res = await fetch("/api/incidents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create incident");
-      }
-      return res.json();
+      return mutateApi("/api/incidents", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["incidents"] });
       queryClient.invalidateQueries({ queryKey: ["incidents-summary"] });
       queryClient.invalidateQueries({ queryKey: ["incidents-trends"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getStateScope } from "@/lib/service-scope";
 import { getCentreScope, buildCentreOrPersonalFilter } from "@/lib/centre-scope";
 import { createTodoSchema } from "@/lib/schemas/todo";
 import { parsePagination } from "@/lib/pagination";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
+import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 
 // GET /api/todos — list todos with optional filters
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const weekOf = searchParams.get("weekOf");
   const assigneeId = searchParams.get("assigneeId");
@@ -75,14 +73,11 @@ export async function GET(req: NextRequest) {
 
   const todos = await prisma.todo.findMany({ where, include, orderBy });
   return NextResponse.json(todos);
-}
+});
 
 // POST /api/todos — create a new todo
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await parseJsonBody(req);
   const parsed = createTodoSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -150,4 +145,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(todo, { status: 201 });
-}
+});

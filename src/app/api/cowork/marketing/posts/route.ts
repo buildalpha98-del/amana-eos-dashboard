@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const createPostSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -37,8 +39,8 @@ const batchSchema = z.object({
  * Body (single): { title, platform, status, ... }
  * Body (batch):  { posts: [{ title, platform, ... }, ...] }
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -137,20 +139,20 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    console.error("[Cowork Marketing Posts]", err);
+    logger.error("Cowork Marketing Posts", { err });
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+});
 
 /**
  * GET /api/cowork/marketing/posts — List posts via API key
  * Auth: API key with "marketing:read" scope
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -184,4 +186,4 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({ posts, count: posts.length });
-}
+});

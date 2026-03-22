@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 // GET /api/knowledge-base — list published articles
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  try {
+export const GET = withApiAuth(async (req, session) => {
+try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const search = searchParams.get("search");
@@ -36,10 +33,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ articles: filtered });
   } catch (err) {
-    console.error("[Knowledge Base GET]", err);
+    logger.error("Knowledge Base GET", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+});

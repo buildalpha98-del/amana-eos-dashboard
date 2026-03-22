@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
 
 export interface TicketAnalyticsData {
   totalTickets: number;
@@ -21,12 +22,9 @@ export interface TicketAnalyticsData {
 export function useTicketAnalytics(days: number = 30, enabled: boolean = true) {
   return useQuery<TicketAnalyticsData>({
     queryKey: ["ticket-analytics", days],
-    queryFn: async () => {
-      const res = await fetch(`/api/tickets/analytics?days=${days}`);
-      if (!res.ok) throw new Error("Failed to fetch ticket analytics");
-      return res.json();
-    },
+    queryFn: () => fetchApi<TicketAnalyticsData>(`/api/tickets/analytics?days=${days}`),
     enabled,
+    retry: 2,
     refetchInterval: 60000,
   });
 }

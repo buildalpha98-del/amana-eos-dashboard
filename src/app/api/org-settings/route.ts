@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // GET /api/org-settings — fetch org settings (singleton)
-export async function GET() {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   let settings = await prisma.orgSettings.findUnique({
     where: { id: "singleton" },
   });
@@ -19,7 +15,7 @@ export async function GET() {
   }
 
   return NextResponse.json(settings);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 const updateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -38,10 +34,7 @@ const updateSchema = z.object({
 });
 
 // PATCH /api/org-settings — update org settings (owner only)
-export async function PATCH(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office"]);
-  if (error) return error;
-
+export const PATCH = withApiAuth(async (req, session) => {
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
 
@@ -59,4 +52,4 @@ export async function PATCH(req: NextRequest) {
   });
 
   return NextResponse.json(settings);
-}
+}, { roles: ["owner", "head_office"] });

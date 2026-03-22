@@ -4,6 +4,8 @@ import { generateBoardReport } from "@/lib/board-report-generator";
 import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { boardReportDraftNotificationEmail } from "@/lib/email-templates";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cron/board-report
@@ -13,7 +15,7 @@ import { boardReportDraftNotificationEmail } from "@/lib/email-templates";
  *
  * Auth: Bearer CRON_SECRET
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authResult = verifyCronSecret(req);
   if (authResult) return authResult.error;
 
@@ -52,7 +54,7 @@ export async function GET(req: NextRequest) {
           await resend.emails.send({ from: FROM_EMAIL, to: admin.email, subject, html });
           notificationsSent++;
         } catch (err) {
-          console.error(`Board report notification to ${admin.email} failed:`, err);
+          logger.error("Board report notification failed", { recipient: admin.email, err });
         }
       }
     }
@@ -73,10 +75,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     await guard.fail(err);
-    console.error("Board report cron failed:", err);
+    logger.error("Board report cron failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },
       { status: 500 },
     );
   }
-}
+});

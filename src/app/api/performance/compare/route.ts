@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+import { withApiAuth } from "@/lib/server-auth";
+export const GET = withApiAuth(async (req, session) => {
   const url = new URL(req.url);
   const serviceIdsParam = url.searchParams.get("serviceIds");
   const period = url.searchParams.get("period") || "monthly";
@@ -163,4 +159,4 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => b.avgScore - a.avgScore);
 
   return NextResponse.json({ centres, regional });
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { hasFeature } from "@/lib/role-permissions";
 import type { Role, PipelineStage, LeadSource } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
 
 const PIPELINE_STAGES: PipelineStage[] = [
   "new_lead", "reviewing", "contact_made", "follow_up_1", "follow_up_2",
@@ -29,18 +29,12 @@ const updateTemplateSchema = z.object({
 });
 
 // PUT /api/crm/email-templates/[id]
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  if (!hasFeature(session!.user.role as Role, "crm.manage_templates")) {
+export const PUT = withApiAuth(async (req, session, context) => {
+if (!hasFeature(session!.user.role as Role, "crm.manage_templates")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id } = await params;
+  const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateTemplateSchema.safeParse(body);
 
@@ -85,21 +79,15 @@ export async function PUT(
   });
 
   return NextResponse.json(template);
-}
+});
 
 // DELETE /api/crm/email-templates/[id]
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  if (!hasFeature(session!.user.role as Role, "crm.manage_templates")) {
+export const DELETE = withApiAuth(async (req, session, context) => {
+if (!hasFeature(session!.user.role as Role, "crm.manage_templates")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id } = await params;
+  const { id } = await context!.params!;
 
   const existing = await prisma.crmEmailTemplate.findUnique({ where: { id } });
   if (!existing) {
@@ -118,5 +106,5 @@ export async function DELETE(
     },
   });
 
-  return NextResponse.json({ ok: true });
-}
+  return NextResponse.json({ success: true });
+});

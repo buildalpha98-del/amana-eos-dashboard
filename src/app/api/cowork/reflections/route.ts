@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "../../_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // ── Validation ──────────────────────────────────────────────
 
@@ -39,8 +41,8 @@ const bulkReflectionSchema = z.object({
 });
 
 // POST /api/cowork/reflections — Create educator reflections
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -93,14 +95,14 @@ export async function POST(req: NextRequest) {
       { status: 201 },
     );
   } catch (err) {
-    console.error("[Cowork Reflections POST]", err);
+    logger.error("Cowork Reflections POST", { err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});
 
 // GET /api/cowork/reflections — Retrieve reflections with filters
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -134,7 +136,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ reflections, total: reflections.length });
   } catch (err) {
-    console.error("[Cowork Reflections GET]", err);
+    logger.error("Cowork Reflections GET", { err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});

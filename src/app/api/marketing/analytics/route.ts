@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // GET /api/marketing/analytics — aggregated analytics data
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const period = parseInt(searchParams.get("period") || "30", 10);
   const serviceId = searchParams.get("serviceId");
@@ -241,4 +237,4 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json(response);
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

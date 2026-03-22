@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { notifyNewRock } from "@/lib/teams-notify";
 import { createRockSchema } from "@/lib/schemas/rock";
 import { parsePagination } from "@/lib/pagination";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
+import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 
 // GET /api/rocks — list rocks with optional quarter filter
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const scope = getServiceScope(session);
+export const GET = withApiAuth(async (req, session) => {
+const scope = getServiceScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const quarter = searchParams.get("quarter");
@@ -66,14 +64,11 @@ export async function GET(req: NextRequest) {
 
   const rocks = await prisma.rock.findMany({ where, include, orderBy });
   return NextResponse.json(rocks);
-}
+});
 
 // POST /api/rocks — create a new rock
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await parseJsonBody(req);
   const parsed = createRockSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -137,4 +132,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(rock, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

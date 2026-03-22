@@ -1,29 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const forecastSchema = z.object({
+  date: z.string().min(1),
+  sessionType: z.enum(["bsc", "asc", "vc"]),
+  regular: z.number().optional(),
+  casual: z.number().optional(),
+  total: z.number().optional(),
+  capacity: z.number().optional(),
+});
+
+const bodySchema = z.object({
+  serviceCode: z.string().min(1),
+  forecasts: z.array(forecastSchema).min(1),
+});
 
 /**
  * POST /api/cowork/finance/bookings
  * Bulk upsert booking forecasts for a service.
  * Used by: fin-booking-forecast, fin-casual-to-regular-conversion, ops-capacity-planner
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceCode, forecasts } = body;
-
-    if (!serviceCode || !forecasts || !Array.isArray(forecasts)) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          error: "Bad Request",
-          message: "serviceCode and forecasts[] required",
-        },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { serviceCode, forecasts } = parsed.data;
 
     const service = await prisma.service.findUnique({
       where: { code: serviceCode },
@@ -32,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     if (!service) {
       return NextResponse.json(
-        { error: "Not Found", message: `Service ${serviceCode} not found` },
+        { error: `Service ${serviceCode} not found` },
         { status: 404 }
       );
     }
@@ -74,10 +88,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /cowork/finance/bookings]", err);
+    logger.error("POST /cowork/finance/bookings", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});

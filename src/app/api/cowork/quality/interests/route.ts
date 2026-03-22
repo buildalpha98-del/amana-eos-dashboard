@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
 
 const INTEREST_SOURCES = ["interest_book", "verbal", "observation", "parent", "suggestion_box"] as const;
 
@@ -19,8 +20,8 @@ const batchCreateSchema = z.object({
 });
 
 // GET /api/cowork/quality/interests?serviceCode=xxx — read unactioned interests for programme generation
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const url = new URL(req.url);
@@ -91,11 +92,11 @@ export async function GET(req: NextRequest) {
   );
 
   return NextResponse.json({ centres: results });
-}
+});
 
 // POST /api/cowork/quality/interests — batch capture interests
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const body = await req.json();
@@ -133,7 +134,7 @@ export async function POST(req: NextRequest) {
     },
     { status: 201 },
   );
-}
+});
 
 // Helper: extract top topics from interest list
 function getTopTopics(

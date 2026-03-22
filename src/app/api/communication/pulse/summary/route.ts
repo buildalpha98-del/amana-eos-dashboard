@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // GET /api/communication/pulse/summary — Aggregated pulse data for leadership view
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const weekOf = searchParams.get("weekOf");
 
@@ -70,4 +66,4 @@ export async function GET(req: NextRequest) {
       submittedAt: p.submittedAt,
     })),
   });
-}
+}, { roles: ["owner", "head_office", "admin"] });

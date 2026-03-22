@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { isEmailSuppressed } from "@/lib/email-suppression";
+import { logger } from "@/lib/logger";
 
 // Lazy singleton — Resend only initialises when actually called,
 // preventing build-time errors when RESEND_API_KEY isn't set.
@@ -51,7 +52,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
   for (const email of recipients) {
     if (await isEmailSuppressed(email)) {
       suppressed.push(email);
-      if (process.env.NODE_ENV !== "production") console.log(`Email suppressed (bounce/complaint): ${email}`);
+      if (process.env.NODE_ENV !== "production") logger.info("Email suppressed (bounce/complaint)", { email });
     } else {
       eligible.push(email);
     }

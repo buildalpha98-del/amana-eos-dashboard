@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { logAuditEvent } from "@/lib/audit-log";
+import { withApiAuth } from "@/lib/server-auth";
 
 /**
  * POST /api/users/[id]/revoke-sessions
@@ -9,14 +9,8 @@ import { logAuditEvent } from "@/lib/audit-log";
  * Bumps tokenVersion to invalidate all existing JWT sessions for a user.
  * Owner/admin can revoke anyone; users can revoke their own sessions.
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   // Users can revoke their own sessions; owners/admins can revoke anyone
   const isOwn = session!.user.id === id;
@@ -46,4 +40,4 @@ export async function POST(
   }, req);
 
   return NextResponse.json({ message: "All sessions have been revoked." });
-}
+});

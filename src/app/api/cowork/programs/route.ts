@@ -3,11 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "../../_lib/auth";
 import { programSchema } from "../../_lib/validation";
 import { saveBase64File } from "../../_lib/upload";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // POST /api/cowork/programs — Upload a weekly program (upsert)
 // Supports both base64 file upload and pre-signed URL references
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -153,17 +155,17 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(record, { status: 201 });
   } catch (err) {
-    console.error("[Cowork Programs POST]", err);
+    logger.error("Cowork Programs POST", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+});
 
 // GET /api/cowork/programs — Retrieve programs
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -189,10 +191,10 @@ export async function GET(req: NextRequest) {
     res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     return res;
   } catch (err) {
-    console.error("[Cowork Programs GET]", err);
+    logger.error("Cowork Programs GET", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+});

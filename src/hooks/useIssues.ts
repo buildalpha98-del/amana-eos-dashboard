@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IssueStatus, IssuePriority } from "@prisma/client";
 import { toast } from "@/hooks/useToast";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
 export interface IssueUser {
   id: string;
@@ -58,25 +59,19 @@ export function useIssues(filters?: {
   const query = params.toString();
 
   return useQuery<IssueData[]>({
-    queryKey: ["issues", filters],
-    queryFn: async () => {
-      const res = await fetch(`/api/issues${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch issues");
-      return res.json();
-    },
+    queryKey: ["issues", filters?.status, filters?.priority, filters?.ownerId, filters?.rockId],
+    queryFn: () => fetchApi<IssueData[]>(`/api/issues${query ? `?${query}` : ""}`),
     staleTime: 30_000,
+    retry: 2,
   });
 }
 
 export function useIssue(id: string) {
   return useQuery<IssueDetail>({
     queryKey: ["issue", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/issues/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch issue");
-      return res.json();
-    },
+    queryFn: () => fetchApi<IssueDetail>(`/api/issues/${id}`),
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -91,20 +86,17 @@ export function useCreateIssue() {
       serviceId?: string | null;
       priority?: IssuePriority;
     }) => {
-      const res = await fetch("/api/issues", {
+      return mutateApi<IssueData>("/api/issues", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create issue");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
       toast({ description: "Issue created" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -125,16 +117,10 @@ export function useUpdateIssue() {
       rockId?: string | null;
       resolution?: string | null;
     }) => {
-      const res = await fetch(`/api/issues/${id}`, {
+      return mutateApi<IssueData>(`/api/issues/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update issue");
-      }
-      return res.json();
     },
     onMutate: async (vars) => {
       if (!vars.status) return;
@@ -148,12 +134,13 @@ export function useUpdateIssue() {
       }
       return { queries };
     },
-    onError: (_err, _vars, ctx) => {
+    onError: (_err: Error, _vars, ctx) => {
       if (ctx?.queries) {
         for (const [key, data] of ctx.queries) {
           queryClient.setQueryData(key, data);
         }
       }
+      toast({ variant: "destructive", description: _err.message || "Something went wrong" });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
@@ -166,13 +153,14 @@ export function useDeleteIssue() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/issues/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete issue");
-      return res.json();
+      return mutateApi(`/api/issues/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
       toast({ description: "Issue deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -186,16 +174,10 @@ export function useBulkIssueAction() {
       assigneeId?: string;
       category?: string;
     }) => {
-      const res = await fetch("/api/issues/bulk", {
+      return mutateApi("/api/issues/bulk", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Bulk action failed");
-      }
-      return res.json();
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["issues"] });
@@ -207,6 +189,9 @@ export function useBulkIssueAction() {
         move: "moved",
       };
       toast({ description: `${vars.ids.length} issue(s) ${labels[vars.action]}` });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

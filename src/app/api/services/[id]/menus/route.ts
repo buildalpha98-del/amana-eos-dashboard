@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const MEAL_SLOTS = ["morning_tea", "lunch", "afternoon_tea"] as const;
@@ -22,14 +22,8 @@ const saveMenuSchema = z.object({
 });
 
 // GET /api/services/[id]/menus?weekStart=YYYY-MM-DD
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const url = new URL(req.url);
   const weekStartParam = url.searchParams.get("weekStart");
 
@@ -61,17 +55,11 @@ export async function GET(
   });
 
   return NextResponse.json(menuWeek);
-}
+});
 
 // PUT /api/services/[id]/menus — upsert full week menu
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const PUT = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = saveMenuSchema.safeParse(body);
 
@@ -146,4 +134,4 @@ export async function PUT(
   });
 
   return NextResponse.json(result);
-}
+});

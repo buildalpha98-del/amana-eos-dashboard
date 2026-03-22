@@ -1,21 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+const updateReferralSchema = z.object({
+  status: z.enum(["pending", "enquired", "enrolled", "rewarded", "expired"]).optional(),
+  rewardIssuedAt: z.string().optional(),
+  rewardAmount: z.number().optional(),
+});
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const body = await req.json();
+  const parsed = updateReferralSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 }
+    );
+  }
 
   const data: Record<string, unknown> = {};
-  if (body.status) data.status = body.status;
-  if (body.rewardIssuedAt) data.rewardIssuedAt = new Date(body.rewardIssuedAt);
-  if (body.rewardAmount !== undefined) data.rewardAmount = body.rewardAmount;
+  if (parsed.data.status) data.status = parsed.data.status;
+  if (parsed.data.rewardIssuedAt) data.rewardIssuedAt = new Date(parsed.data.rewardIssuedAt);
+  if (parsed.data.rewardAmount !== undefined) data.rewardAmount = parsed.data.rewardAmount;
 
   const referral = await prisma.referral.update({
     where: { id },
@@ -26,4 +33,4 @@ export async function PATCH(
   });
 
   return NextResponse.json(referral);
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
+const postSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  qualityArea: z.number(),
+  nqsReference: z.string().min(1),
+  frequency: z.enum(["monthly", "half_yearly", "yearly"]),
+  scheduledMonths: z.array(z.number()),
+  responseFormat: z.enum(["yes_no", "rating_1_5", "compliant", "reverse_yes_no", "review_date", "inventory"]).optional(),
+  estimatedMinutes: z.number().optional(),
+});
 /**
  * GET /api/audits/templates — list audit templates
  */
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const qualityArea = searchParams.get("qualityArea");
   const frequency = searchParams.get("frequency");
@@ -28,16 +36,20 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(templates);
-}
+});
 
 /**
  * POST /api/audits/templates — create a new template (admin only)
  */
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
+  const parsed = postSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
   const {
     name,
     description,
@@ -47,14 +59,7 @@ export async function POST(req: NextRequest) {
     scheduledMonths,
     responseFormat,
     estimatedMinutes,
-  } = body;
-
-  if (!name || !qualityArea || !nqsReference || !frequency || !scheduledMonths) {
-    return NextResponse.json(
-      { error: "name, qualityArea, nqsReference, frequency, and scheduledMonths are required" },
-      { status: 400 }
-    );
-  }
+  } = parsed.data;
 
   const template = await prisma.auditTemplate.create({
     data: {
@@ -80,4 +85,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(template, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,29 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const attendanceRecordSchema = z.object({
+  date: z.string().min(1),
+  sessionType: z.enum(["bsc", "asc", "vc"]),
+  enrolled: z.number().optional(),
+  attended: z.number().optional(),
+  capacity: z.number().optional(),
+  casual: z.number().optional(),
+  absent: z.number().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+const bodySchema = z.object({
+  serviceCode: z.string().min(1),
+  records: z.array(attendanceRecordSchema).min(1),
+});
 
 /**
  * POST /api/cowork/finance/attendance
  * Bulk upsert daily attendance records for a service.
  * Used by: fin-daily-attendance-reconciler, fin-ccs-claim-tracker, ops-utilisation-dashboard
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceCode, records } = body;
-
-    if (!serviceCode || !records || !Array.isArray(records)) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          error: "Bad Request",
-          message: "serviceCode and records[] required",
-        },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { serviceCode, records } = parsed.data;
 
     const service = await prisma.service.findUnique({
       where: { code: serviceCode },
@@ -32,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     if (!service) {
       return NextResponse.json(
-        { error: "Not Found", message: `Service ${serviceCode} not found` },
+        { error: `Service ${serviceCode} not found` },
         { status: 404 }
       );
     }
@@ -81,10 +97,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /cowork/finance/attendance]", err);
+    logger.error("POST /cowork/finance/attendance", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});

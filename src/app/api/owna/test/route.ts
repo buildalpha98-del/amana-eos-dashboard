@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { getOwnaClient } from "@/lib/owna";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET() {
-  const { error } = await requireAuth(["owner", "admin", "head_office"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const owna = getOwnaClient();
   if (!owna) {
     return NextResponse.json({
@@ -27,4 +24,4 @@ export async function GET() {
       error: err instanceof Error ? err.message : "Connection failed",
     });
   }
-}
+}, { roles: ["owner", "admin", "head_office"] });

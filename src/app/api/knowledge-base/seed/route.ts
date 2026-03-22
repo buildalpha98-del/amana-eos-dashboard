@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 const seedArticles = [
   // ─── Getting Started ────────────────────────────────────────────────
   {
@@ -1202,10 +1202,7 @@ You have three options:
 ];
 
 // POST /api/knowledge-base/seed — seed knowledge base articles (owner only)
-export async function POST() {
-  const { error } = await requireAuth(["owner"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   try {
     const existing = await prisma.knowledgeBaseArticle.count();
     if (existing > 0) {
@@ -1224,10 +1221,10 @@ export async function POST() {
       { status: 201 },
     );
   } catch (err) {
-    console.error("[Knowledge Base Seed POST]", err);
+    logger.error("Knowledge Base Seed POST", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner"] });

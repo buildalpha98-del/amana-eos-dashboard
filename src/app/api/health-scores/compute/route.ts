@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import {
   computeHealthScore,
@@ -7,23 +6,20 @@ import {
   type ScoreInputFinancials,
   type ScoreInputEOS,
 } from "@/lib/health-score";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
-export async function POST(request: NextRequest) {
-  // ── Auth: session OR cron secret ──────────────────────────
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
+export const POST = withApiHandler(async (request) => {
+  // ── Auth: cron secret ──────────────────────────
+  const authHeader = request.headers.get("Authorization");
+  const cronSecret = process.env.CRON_SECRET;
 
-  if (error) {
-    // Fallback: check CRON_SECRET bearer token
-    const authHeader = request.headers.get("Authorization");
-    const cronSecret = process.env.CRON_SECRET;
-
-    if (
-      !cronSecret ||
-      !authHeader ||
-      authHeader !== `Bearer ${cronSecret}`
-    ) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (
+    !cronSecret ||
+    !authHeader ||
+    authHeader !== `Bearer ${cronSecret}`
+  ) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -248,10 +244,10 @@ export async function POST(request: NextRequest) {
       avgScore,
     });
   } catch (err) {
-    console.error("[health-scores/compute] Error:", err);
+    logger.error("health-scores/compute: Error", { err });
     return NextResponse.json(
       { error: "Failed to compute health scores" },
       { status: 500 }
     );
   }
-}
+});

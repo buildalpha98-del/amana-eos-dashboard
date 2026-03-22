@@ -1,26 +1,27 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { decryptToken, fetchPostMetrics } from "@/lib/meta";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
 
-export async function POST(req: Request) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
+const postSchema = z.object({
+  postId: z.string().min(1),
+  externalPostId: z.string().min(1),
+  externalUrl: z.string().optional(),
+});
 
-  try {
+export const POST = withApiAuth(async (req, session) => {
+try {
     const body = await req.json();
-    const { postId, externalPostId, externalUrl } = body as {
-      postId?: string;
-      externalPostId?: string;
-      externalUrl?: string;
-    };
-
-    if (!postId || !externalPostId) {
+    const parsed = postSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "postId and externalPostId are required" },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { postId, externalPostId, externalUrl } = parsed.data;
 
     // Get the post to determine platform
     const post = await prisma.marketingPost.findUnique({
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
             });
           }
         } catch (syncErr) {
-          console.error("Failed to sync metrics on link:", syncErr);
+          logger.error("Failed to sync metrics on link", { err: syncErr });
           // Non-fatal: the link was saved even if metrics fetch failed
         }
       }
@@ -84,10 +85,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json(updatedPost);
   } catch (err) {
-    console.error("Link social post error:", err);
+    logger.error("Link social post error", { err });
     return NextResponse.json(
       { error: "Failed to link social post" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

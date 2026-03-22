@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import type { PolicyStatus } from "@prisma/client";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -72,11 +73,9 @@ export function usePolicies(filters?: {
 
   return useQuery<PolicyData[]>({
     queryKey: ["policies", filters],
-    queryFn: async () => {
-      const res = await fetch(`/api/policies${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch policies");
-      return res.json();
-    },
+    queryFn: () => fetchApi<PolicyData[]>(`/api/policies${query ? `?${query}` : ""}`),
+    staleTime: 30_000,
+    retry: 2,
   });
 }
 
@@ -85,12 +84,10 @@ export function usePolicies(filters?: {
 export function usePolicy(id: string) {
   return useQuery<PolicyDetail>({
     queryKey: ["policy", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/policies/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch policy");
-      return res.json();
-    },
+    queryFn: () => fetchApi<PolicyDetail>(`/api/policies/${id}`),
     enabled: !!id,
+    staleTime: 30_000,
+    retry: 2,
   });
 }
 
@@ -108,23 +105,17 @@ export function useCreatePolicy() {
       status?: PolicyStatus;
       requiresReack?: boolean;
     }) => {
-      const res = await fetch("/api/policies", {
+      return mutateApi<PolicyData>("/api/policies", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create policy");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
       toast({ description: "Policy created" });
     },
     onError: (err: Error) => {
-      toast({ description: err.message });
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -148,16 +139,10 @@ export function useUpdatePolicy() {
       requiresReack?: boolean;
       content?: string;
     }) => {
-      const res = await fetch(`/api/policies/${id}`, {
+      return mutateApi<PolicyData>(`/api/policies/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update policy");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
@@ -166,7 +151,7 @@ export function useUpdatePolicy() {
       toast({ description: "Policy updated" });
     },
     onError: (err: Error) => {
-      toast({ description: err.message });
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -177,9 +162,7 @@ export function useDeletePolicy() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/policies/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete policy");
-      return res.json();
+      return mutateApi(`/api/policies/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
@@ -187,7 +170,7 @@ export function useDeletePolicy() {
       toast({ description: "Policy deleted" });
     },
     onError: (err: Error) => {
-      toast({ description: err.message });
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -198,14 +181,9 @@ export function useAcknowledgePolicy() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (policyId: string) => {
-      const res = await fetch(`/api/policies/${policyId}/acknowledge`, {
+      return mutateApi(`/api/policies/${policyId}/acknowledge`, {
         method: "POST",
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to acknowledge policy");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
@@ -215,7 +193,7 @@ export function useAcknowledgePolicy() {
       toast({ description: "Policy acknowledged" });
     },
     onError: (err: Error) => {
-      toast({ description: err.message });
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -225,11 +203,9 @@ export function useAcknowledgePolicy() {
 export function usePolicyCompliance() {
   return useQuery<PolicyCompliance[]>({
     queryKey: ["policies-compliance"],
-    queryFn: async () => {
-      const res = await fetch("/api/policies/compliance");
-      if (!res.ok) throw new Error("Failed to fetch policy compliance");
-      return res.json();
-    },
+    queryFn: () => fetchApi<PolicyCompliance[]>("/api/policies/compliance"),
+    staleTime: 60_000,
+    retry: 2,
   });
 }
 
@@ -238,10 +214,8 @@ export function usePolicyCompliance() {
 export function useMyPendingPolicies() {
   return useQuery<PolicyData[]>({
     queryKey: ["my-pending-policies"],
-    queryFn: async () => {
-      const res = await fetch("/api/policies/my-pending");
-      if (!res.ok) throw new Error("Failed to fetch pending policies");
-      return res.json();
-    },
+    queryFn: () => fetchApi<PolicyData[]>("/api/policies/my-pending"),
+    staleTime: 30_000,
+    retry: 2,
   });
 }

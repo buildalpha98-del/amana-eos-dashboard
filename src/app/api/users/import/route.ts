@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import * as XLSX from "xlsx";
 import bcrypt from "bcryptjs";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { welcomeEmail } from "@/lib/email-templates";
 import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
+import { withApiAuth } from "@/lib/server-auth";
 
 const COLUMN_MAP: Record<string, string[]> = {
   name: ["name", "full name", "staff name", "employee name", "first name", "employee"],
@@ -33,16 +33,18 @@ function generatePassword(): string {
   return pwd;
 }
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner"]);
-  if (error) return error;
-
-  const formData = await req.formData();
+export const POST = withApiAuth(async (req, session) => {
+const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const mode = (formData.get("mode") as string) || "dry-run";
 
   if (!file) {
     return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+  }
+
+  const MAX_IMPORT_SIZE = 10 * 1024 * 1024; // 10MB
+  if (file.size > MAX_IMPORT_SIZE) {
+    return NextResponse.json({ error: "File exceeds 10MB limit" }, { status: 400 });
   }
 
   const buffer = await file.arrayBuffer();
@@ -205,4 +207,4 @@ export async function POST(req: NextRequest) {
     skipped,
     errors: execErrors,
   });
-}
+}, { roles: ["owner"] });

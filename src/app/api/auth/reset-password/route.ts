@@ -5,9 +5,9 @@ import { passwordSchema } from "@/lib/schemas/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { checkPasswordBreach } from "@/lib/password-breach-check";
 import { logAuditEvent } from "@/lib/audit-log";
+import { withApiHandler } from "@/lib/api-handler";
 
-export async function POST(req: NextRequest) {
-  try {
+export const POST = withApiHandler(async (req) => {
     // Rate limit: 5 attempts per 15 minutes per IP
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
     const rl = await checkRateLimit(`pwd-reset-attempt:${ip}`);
@@ -96,17 +96,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       message: "Password has been reset successfully. You can now sign in.",
     });
-  } catch (error) {
-    console.error("Reset password error:", error);
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 500 }
-    );
-  }
-}
+  });
 
 // GET: Validate that a token is still valid (used by the reset page)
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const token = req.nextUrl.searchParams.get("token");
 
   if (!token) {
@@ -133,4 +126,4 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ valid: true });
-}
+});

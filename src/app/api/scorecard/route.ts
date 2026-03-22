@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { withApiAuth } from "@/lib/server-auth";
 
 // GET /api/scorecard — get scorecard with measurables and trailing entries
-export async function GET() {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const scope = getServiceScope(session);
+export const GET = withApiAuth(async (req, session) => {
+const scope = getServiceScope(session);
   const stateScope = getStateScope(session);
 
   // Build measurable filter: service scope for staff/member, state scope for State Manager
@@ -44,4 +41,4 @@ export async function GET() {
   }
 
   return NextResponse.json(scorecard);
-}
+});

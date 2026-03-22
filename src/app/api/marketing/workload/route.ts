@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // GET /api/marketing/workload — per-centre workload stats
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -92,4 +88,4 @@ export async function GET(req: NextRequest) {
   }));
 
   return NextResponse.json({ centres });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { hasFeature } from "@/lib/role-permissions";
 import type { Role, PipelineStage, LeadSource } from "@prisma/client";
 import { handleLeadWon } from "@/lib/crm/handle-lead-won";
 import { scheduleCrmSequence } from "@/lib/crm/schedule-sequence";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 const PIPELINE_STAGES: PipelineStage[] = [
   "new_lead", "reviewing", "contact_made", "follow_up_1", "follow_up_2",
@@ -38,18 +39,12 @@ const updateLeadSchema = z.object({
 });
 
 // GET /api/crm/leads/[id]
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  if (!hasFeature(session!.user.role as Role, "crm.view")) {
+export const GET = withApiAuth(async (req, session, context) => {
+if (!hasFeature(session!.user.role as Role, "crm.view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id } = await params;
+  const { id } = await context!.params!;
 
   const lead = await prisma.lead.findUnique({
     where: { id },
@@ -71,21 +66,15 @@ export async function GET(
   }
 
   return NextResponse.json(lead);
-}
+});
 
 // PUT /api/crm/leads/[id]
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  if (!hasFeature(session!.user.role as Role, "crm.edit")) {
+export const PUT = withApiAuth(async (req, session, context) => {
+if (!hasFeature(session!.user.role as Role, "crm.edit")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id } = await params;
+  const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateLeadSchema.safeParse(body);
 
@@ -170,7 +159,7 @@ export async function PUT(
       const result = await handleLeadWon(id, session!.user.id);
       return NextResponse.json({ ...updated, wonResult: result });
     } catch (err) {
-      console.error("handleLeadWon error:", err);
+      logger.error("handleLeadWon error", { err });
       // Still return the updated lead even if automation fails
       return NextResponse.json({
         ...updated,
@@ -180,21 +169,15 @@ export async function PUT(
   }
 
   return NextResponse.json(updated);
-}
+});
 
 // DELETE /api/crm/leads/[id]
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  if (!hasFeature(session!.user.role as Role, "crm.edit")) {
+export const DELETE = withApiAuth(async (req, session, context) => {
+if (!hasFeature(session!.user.role as Role, "crm.edit")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id } = await params;
+  const { id } = await context!.params!;
 
   const existing = await prisma.lead.findUnique({
     where: { id },
@@ -220,5 +203,5 @@ export async function DELETE(
     },
   });
 
-  return NextResponse.json({ ok: true });
-}
+  return NextResponse.json({ success: true });
+});

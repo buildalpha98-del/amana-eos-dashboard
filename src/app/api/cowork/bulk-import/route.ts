@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "../../_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // ── Validation ──────────────────────────────────────────────
 
@@ -44,8 +46,8 @@ const bulkImportSchema = z.object({
 });
 
 // POST /api/cowork/bulk-import — Bulk upsert activity templates
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   // Rate limit: 10 req/min (use a fixed key id for cowork bearer)
@@ -117,14 +119,14 @@ export async function POST(req: NextRequest) {
       { status: 201 },
     );
   } catch (err) {
-    console.error("[Cowork Bulk Import Templates]", err);
+    logger.error("Cowork Bulk Import Templates", { err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});
 
 // GET /api/cowork/bulk-import — Retrieve activity templates with filters
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -156,7 +158,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ templates, total: templates.length });
   } catch (err) {
-    console.error("[Cowork Bulk Import GET]", err);
+    logger.error("Cowork Bulk Import GET", { err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});

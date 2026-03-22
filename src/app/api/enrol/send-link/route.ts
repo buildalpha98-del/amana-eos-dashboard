@@ -1,20 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { enrolmentLinkEmail } from "@/lib/email-templates";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
+const bodySchema = z.object({
+  parentName: z.string().optional(),
+  parentEmail: z.string().email("Valid parent email is required"),
+  enquiryId: z.string().min(1, "Enquiry ID is required"),
+});
 
-  const { parentName, parentEmail, enquiryId } = await req.json();
-
-  if (!parentEmail) {
-    return NextResponse.json({ error: "Parent email is required" }, { status: 400 });
+export const POST = withApiAuth(async (req, session) => {
+  const raw = await req.json();
+  const parsed = bodySchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
   }
-  if (!enquiryId) {
-    return NextResponse.json({ error: "Enquiry ID is required" }, { status: 400 });
-  }
+  const { parentName, parentEmail, enquiryId } = parsed.data;
 
   const baseUrl = process.env.NEXTAUTH_URL || "https://app.amanaoshc.com.au";
   const enrolUrl = `${baseUrl}/enrol/${enquiryId}`;
@@ -30,4 +35,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ success: true });
-}
+});

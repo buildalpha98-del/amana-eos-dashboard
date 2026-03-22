@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { uploadFile } from "@/lib/storage";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/cron/backup-export
@@ -14,7 +16,7 @@ import { uploadFile } from "@/lib/storage";
  *   4. Rock — strategic priorities
  *   5. ComplianceCert — regulatory compliance records
  */
-export async function POST(req: NextRequest) {
+export const POST = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
@@ -80,14 +82,14 @@ export async function POST(req: NextRequest) {
       exports: results,
     });
   } catch (err) {
-    console.error("[Cron: backup-export]", err);
+    logger.error("Cron: backup-export", { err });
     await lock.fail(err instanceof Error ? err.message : "Unknown error");
     return NextResponse.json(
       { error: "Backup export failed" },
       { status: 500 },
     );
   }
-}
+});
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "@/lib/server-auth";
 import {
   listEvents,
   createEvent,
   isCalendarConnected,
   type CalendarEvent,
 } from "@/lib/microsoft-calendar";
+import { withApiAuth } from "@/lib/server-auth";
 
 const createCalendarEventSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
@@ -32,11 +32,8 @@ const createCalendarEventSchema = z.object({
  * GET /api/calendar/events?start=ISO&end=ISO
  * List calendar events in a date range.
  */
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const connected = await isCalendarConnected(session!.user.id);
+export const GET = withApiAuth(async (req, session) => {
+const connected = await isCalendarConnected(session!.user.id);
   if (!connected) {
     return NextResponse.json(
       { error: "Calendar not connected. Please connect from Settings." },
@@ -65,17 +62,14 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json(events);
-}
+});
 
 /**
  * POST /api/calendar/events
  * Create a new calendar event.
  */
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const connected = await isCalendarConnected(session!.user.id);
+export const POST = withApiAuth(async (req, session) => {
+const connected = await isCalendarConnected(session!.user.id);
   if (!connected) {
     return NextResponse.json(
       { error: "Calendar not connected. Please connect from Settings." },
@@ -119,4 +113,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(created, { status: 201 });
-}
+});

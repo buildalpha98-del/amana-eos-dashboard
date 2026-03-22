@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const connection = await prisma.xeroConnection.findUnique({
+export const GET = withApiAuth(async (req, session) => {
+const connection = await prisma.xeroConnection.findUnique({
     where: { id: "singleton" },
     select: {
       status: true,
@@ -35,4 +32,4 @@ export async function GET(req: NextRequest) {
     mappedCentres,
     accountMappings,
   });
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { getNetworkStaffingSummary } from "@/lib/staffing-analysis";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET() {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  // Only owner/admin get the full network staffing view
+export const GET = withApiAuth(async (req, session) => {
+// Only owner/admin get the full network staffing view
   const role = session.user.role;
   if (!["owner", "admin"].includes(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -25,4 +22,4 @@ export async function GET() {
     today: todaySummary,
     tomorrow: tomorrowSummary,
   });
-}
+});

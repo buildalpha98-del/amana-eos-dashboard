@@ -1,14 +1,8 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withApiAuth(async (req, session) => {
   const logins = await prisma.securityAuditLog.findMany({
     where: { actorId: session.user.id, action: "user.login" },
     orderBy: { createdAt: "desc" },
@@ -17,4 +11,4 @@ export async function GET() {
   });
 
   return NextResponse.json({ sessions: logins });
-}
+});

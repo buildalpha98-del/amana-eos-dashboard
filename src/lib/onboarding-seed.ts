@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 /**
  * Owner user ID (Jayden) — all onboarding todos are assigned "from" this user.
@@ -147,6 +148,6 @@ export async function seedOnboardingPackage(
     }
   } catch (err) {
     // Don't let onboarding seed failure break user creation
-    console.error("Onboarding seed error (non-fatal):", err);
+    logger.error("Onboarding seed error (non-fatal)", { err });
   }
 }

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 // ─── GET /api/xero/mappings ─────────────────────────────────────────────────
 
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   try {
     const [connection, services, accountMappings] = await Promise.all([
       prisma.xeroConnection.findUnique({
@@ -31,13 +29,13 @@ export async function GET(req: NextRequest) {
       accountMappings,
     });
   } catch (err) {
-    console.error("Failed to fetch Xero mappings:", err);
+    logger.error("Failed to fetch Xero mappings", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to fetch mappings" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // ─── POST /api/xero/mappings ────────────────────────────────────────────────
 
@@ -70,11 +68,8 @@ const saveMappingsSchema = z.object({
   ),
 });
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = saveMappingsSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -143,10 +138,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Failed to save Xero mappings:", err);
+    logger.error("Failed to save Xero mappings", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to save mappings" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner"] });

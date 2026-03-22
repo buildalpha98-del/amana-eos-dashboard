@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import * as XLSX from "xlsx";
 import type { SessionType } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
 
 const COLUMN_MAP: Record<string, string[]> = {
   centre: ["centre", "center", "service", "site", "location", "service name", "centre name"],
@@ -46,16 +46,18 @@ function parseSessionType(val: string): SessionType | null {
   return null;
 }
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const formData = await req.formData();
+export const POST = withApiAuth(async (req, session) => {
+const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const mode = (formData.get("mode") as string) || "dry-run";
 
   if (!file) {
     return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+  }
+
+  const MAX_IMPORT_SIZE = 10 * 1024 * 1024; // 10MB
+  if (file.size > MAX_IMPORT_SIZE) {
+    return NextResponse.json({ error: "File exceeds 10MB limit" }, { status: 400 });
   }
 
   const buffer = await file.arrayBuffer();
@@ -219,4 +221,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ created, updated, skipped, errors: execErrors });
-}
+}, { roles: ["owner", "head_office", "admin"] });

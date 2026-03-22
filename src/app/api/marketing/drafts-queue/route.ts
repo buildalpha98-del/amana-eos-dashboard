@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 interface DraftItem {
   id: string;
@@ -18,10 +19,7 @@ interface DraftItem {
 /**
  * GET /api/marketing/drafts-queue — Unified queue of all pending/draft items
  */
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
 
@@ -183,10 +181,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ items, count: items.length });
   } catch (err) {
-    console.error("[Drafts Queue GET]", err);
+    logger.error("Drafts Queue GET", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

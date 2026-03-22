@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updatePackSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional().nullable(),
@@ -11,14 +10,8 @@ const updatePackSchema = z.object({
 });
 
 // GET /api/onboarding/packs/[id] — get pack details with tasks & assignments
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const pack = await prisma.onboardingPack.findUnique({
     where: { id },
@@ -44,17 +37,11 @@ export async function GET(
   }
 
   return NextResponse.json(pack);
-}
+});
 
 // PATCH /api/onboarding/packs/[id] — update pack
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updatePackSchema.safeParse(body);
 
@@ -76,17 +63,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(pack);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/onboarding/packs/[id] — soft delete pack
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   await prisma.onboardingPack.update({
     where: { id },
@@ -94,4 +75,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

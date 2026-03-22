@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const updateDocumentSchema = z.object({
   folderId: z.string().nullable().optional(),
@@ -12,14 +12,8 @@ const updateDocumentSchema = z.object({
   centreId: z.string().nullable().optional(),
 });
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateDocumentSchema.safeParse(body);
 
@@ -44,16 +38,10 @@ export async function PATCH(
   });
 
   return NextResponse.json(document);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   await prisma.document.update({
     where: { id },
@@ -61,4 +49,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

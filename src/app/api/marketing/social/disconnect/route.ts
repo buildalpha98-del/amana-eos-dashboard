@@ -1,21 +1,24 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
 
-export async function POST(req: Request) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
+const postSchema = z.object({
+  connectionId: z.string().min(1),
+});
 
-  try {
+export const POST = withApiAuth(async (req, session) => {
+try {
     const body = await req.json();
-    const { connectionId } = body as { connectionId?: string };
-
-    if (!connectionId) {
+    const parsed = postSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "connectionId is required" },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { connectionId } = parsed.data;
 
     // Verify the connection exists
     const connection = await prisma.socialConnection.findUnique({
@@ -35,10 +38,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Social disconnect error:", err);
+    logger.error("Social disconnect error", { err });
     return NextResponse.json(
       { error: "Failed to disconnect social account" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

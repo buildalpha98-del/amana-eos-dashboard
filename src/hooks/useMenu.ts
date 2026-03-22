@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface MenuItemData {
   id?: string;
@@ -37,13 +39,11 @@ export interface SaveMenuInput {
 export function useMenuWeek(serviceId: string, weekStart: string) {
   return useQuery<MenuWeekData | null>({
     queryKey: ["menu-week", serviceId, weekStart],
-    queryFn: async () => {
-      const res = await fetch(
+    queryFn: () =>
+      fetchApi<MenuWeekData | null>(
         `/api/services/${serviceId}/menus?weekStart=${weekStart}`
-      );
-      if (!res.ok) throw new Error("Failed to fetch menu");
-      return res.json();
-    },
+      ),
+    retry: 2,
     enabled: !!serviceId && !!weekStart,
   });
 }
@@ -51,17 +51,13 @@ export function useMenuWeek(serviceId: string, weekStart: string) {
 export function useSaveMenu(serviceId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (data: SaveMenuInput) => {
-      const res = await fetch(`/api/services/${serviceId}/menus`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to save menu");
-      return res.json();
-    },
+    mutationFn: (data: SaveMenuInput) =>
+      mutateApi(`/api/services/${serviceId}/menus`, { method: "PUT", body: data }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["menu-week", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -92,6 +88,9 @@ export function useUploadMenuFile(serviceId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["menu-week", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

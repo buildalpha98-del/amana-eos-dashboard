@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET() {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const weekAgo = new Date(Date.now() - 7 * 86400000);
 
   const scores = await prisma.sentimentScore.findMany({
@@ -28,4 +25,4 @@ export async function GET() {
     total: scores.length,
     avgScore,
   });
-}
+});

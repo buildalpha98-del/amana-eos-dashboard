@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
 // ---------------------------------------------------------------------------
@@ -86,10 +87,9 @@ export function useSequences(type?: string) {
   return useQuery<SequencesResponse>({
     queryKey: ["sequences", type || "all"],
     queryFn: async () => {
-      const res = await fetch(`/api/sequences?${params}`);
-      if (!res.ok) throw new Error("Failed to load sequences");
-      return res.json();
+      return fetchApi<SequencesResponse>(`/api/sequences?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -97,11 +97,10 @@ export function useSequence(id: string | null) {
   return useQuery<SequenceData>({
     queryKey: ["sequence", id],
     queryFn: async () => {
-      const res = await fetch(`/api/sequences/${id}`);
-      if (!res.ok) throw new Error("Failed to load sequence");
-      return res.json();
+      return fetchApi<SequenceData>(`/api/sequences/${id}`);
     },
     enabled: Boolean(id),
+    retry: 2,
   });
 }
 
@@ -120,20 +119,17 @@ export function useCreateSequence() {
         emailTemplateId?: string;
       }>;
     }) => {
-      const res = await fetch("/api/sequences", {
+      return mutateApi("/api/sequences", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create sequence");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sequences"] });
       toast({ description: "Sequence created" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -157,21 +153,18 @@ export function useUpdateSequence() {
         emailTemplateId?: string;
       }>;
     }) => {
-      const res = await fetch(`/api/sequences/${id}`, {
+      return mutateApi(`/api/sequences/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update sequence");
-      }
-      return res.json();
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["sequences"] });
       queryClient.invalidateQueries({ queryKey: ["sequence", vars.id] });
       toast({ description: "Sequence updated" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -181,18 +174,16 @@ export function useDeleteSequence() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/sequences/${id}`, {
+      return mutateApi(`/api/sequences/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to delete sequence");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sequences"] });
       toast({ description: "Sequence deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -220,10 +211,9 @@ export function useSequenceEnrolments(filters?: {
       filters?.sequenceId || "",
     ],
     queryFn: async () => {
-      const res = await fetch(`/api/sequences/enrolments?${params}`);
-      if (!res.ok) throw new Error("Failed to load sequence enrolments");
-      return res.json();
+      return fetchApi<EnrolmentsResponse>(`/api/sequences/enrolments?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -237,21 +227,18 @@ function useEnrolmentAction(action: "pause" | "resume" | "cancel") {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/sequences/enrolments/${id}`, {
+      return mutateApi(`/api/sequences/enrolments/${id}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: { action },
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Failed to ${action} enrolment`);
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sequence-enrolments"] });
       queryClient.invalidateQueries({ queryKey: ["sequences"] });
       toast({ description: labels[action] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

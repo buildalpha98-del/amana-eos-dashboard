@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // ── Validation ──────────────────────────────────────────────
 
@@ -26,8 +28,8 @@ const auditFindingSchema = z.object({
 /**
  * GET /api/cowork/audits — list completed but unreviewed audits
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -56,13 +58,13 @@ export async function GET(req: NextRequest) {
   const res = NextResponse.json({ audits, total: audits.length });
   res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
   return res;
-}
+});
 
 /**
  * POST /api/cowork/audits — Submit audit findings
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -144,7 +146,7 @@ export async function POST(req: NextRequest) {
       { status: 201 },
     );
   } catch (err) {
-    console.error("[Cowork Audits POST]", err);
+    logger.error("Cowork Audits POST", { err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});

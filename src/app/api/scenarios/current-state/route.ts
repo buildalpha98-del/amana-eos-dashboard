@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { DEFAULT_INPUTS, type ScenarioInputs } from "@/lib/scenario-engine";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/scenarios/current-state — seed "Current State" inputs from real data
  * Falls back to DEFAULT_INPUTS if no financial data exists.
  */
-export async function GET() {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   try {
     // Count active centres
     const centreCount = await prisma.service.count({ where: { status: "active" } });
@@ -73,10 +71,10 @@ export async function GET() {
       inputs,
     });
   } catch (err) {
-    console.error("[Scenarios Current State]", err);
+    logger.error("Scenarios Current State", { err });
     return NextResponse.json({
       source: "defaults",
       inputs: DEFAULT_INPUTS,
     });
   }
-}
+});

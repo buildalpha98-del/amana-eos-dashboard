@@ -5,6 +5,7 @@ import {
   rockAssignedEmail,
   issueAssignedEmail,
 } from "@/lib/email-templates";
+import { logger } from "@/lib/logger";
 
 /**
  * Fire-and-forget assignment notification email.
@@ -87,5 +88,5 @@ export function sendAssignmentEmail(params: {
   };
 
   // Fire-and-forget: kick off the async work, catch any errors
-  run().catch(console.error);
+  run().catch((err) => logger.error("Failed to send assignment email", { err, type: params.type, assigneeId: params.assigneeId }));
 }

@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
 export interface ChildRecord {
   id: string;
@@ -51,23 +52,17 @@ export function useChildren(filters?: { status?: string; serviceId?: string; sea
 
   return useQuery<ChildrenResponse>({
     queryKey: ["children", filters?.status || "all", filters?.serviceId || "", filters?.search || ""],
-    queryFn: async () => {
-      const res = await fetch(`/api/children?${params}`);
-      if (!res.ok) throw new Error("Failed to load children");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ChildrenResponse>(`/api/children?${params}`),
+    retry: 2,
   });
 }
 
 export function useChild(id: string | null) {
   return useQuery<ChildRecord>({
     queryKey: ["child", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/children/${id}`);
-      if (!res.ok) throw new Error("Failed to load child");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ChildRecord>(`/api/children/${id}`),
     enabled: Boolean(id),
+    retry: 2,
   });
 }
 
@@ -76,18 +71,18 @@ export function useUpdateChild() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; status?: string; serviceId?: string }) => {
-      const res = await fetch(`/api/children/${id}`, {
+      return mutateApi<ChildRecord>(`/api/children/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Update failed");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["children"] });
       queryClient.invalidateQueries({ queryKey: ["child"] });
       toast({ description: "Child record updated" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

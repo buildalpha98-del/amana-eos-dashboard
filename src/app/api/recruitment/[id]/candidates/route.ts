@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
+const createCandidateSchema = z.object({
+  name: z.string().min(1, "name is required"),
+  email: z.string().email().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  source: z.string().min(1, "source is required"),
+  notes: z.string().optional().nullable(),
+  referredByUserId: z.string().optional().nullable(),
+  resumeText: z.string().optional().nullable(),
+  resumeFileUrl: z.string().optional().nullable(),
+});
 
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const candidates = await prisma.recruitmentCandidate.findMany({
     where: { vacancyId: id },
@@ -20,25 +26,21 @@ export async function GET(
   });
 
   return NextResponse.json(candidates);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
-  const { name, email, phone, source, notes, referredByUserId, resumeText, resumeFileUrl } = body;
+  const parsed = createCandidateSchema.safeParse(body);
 
-  if (!name || !source) {
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "name and source are required" },
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
       { status: 400 }
     );
   }
+
+  const { name, email, phone, source, notes, referredByUserId, resumeText, resumeFileUrl } = parsed.data;
 
   // Verify vacancy exists
   const vacancy = await prisma.recruitmentVacancy.findUnique({
@@ -63,4 +65,4 @@ export async function POST(
   });
 
   return NextResponse.json(candidate, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

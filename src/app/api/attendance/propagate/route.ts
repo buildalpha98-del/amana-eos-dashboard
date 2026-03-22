@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const schema = z.object({
   serviceId: z.string().min(1),
@@ -97,16 +97,8 @@ export async function propagateEnrolledCounts(
 
 // ── POST /api/attendance/propagate ──────────────────────────
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth([
-    "owner",
-    "head_office",
-    "admin",
-    "coordinator",
-  ]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -124,4 +116,4 @@ export async function POST(req: NextRequest) {
     propagated: result.propagated,
     weeksAhead,
   });
-}
+});

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { acquireCronLock } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // ── Brand constants ─────────────────────────────────────────
 const BRAND_COLOR = "#004E64";
@@ -232,7 +234,7 @@ function buildPrepDigestHtml(data: PrepDigestData): string {
  *
  * Auth: Bearer CRON_SECRET
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -375,7 +377,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     await guard.fail(err);
-    console.error("[Cron: l10-prep-digest]", err);
+    logger.error("Cron: l10-prep-digest", { err });
     return NextResponse.json(
       {
         error: "L10 prep digest cron failed",
@@ -384,4 +386,4 @@ export async function GET(req: NextRequest) {
       { status: 500 },
     );
   }
-}
+});

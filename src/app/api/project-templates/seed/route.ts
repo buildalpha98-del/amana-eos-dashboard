@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 /**
  * POST /api/project-templates/seed
  *
@@ -277,10 +277,7 @@ const ALL_TEMPLATES = [
   },
 ];
 
-export async function POST() {
-  const { error } = await requireAuth(["owner"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   try {
     const existingNames = new Set(
       (await prisma.projectTemplate.findMany({ select: { name: true } })).map(
@@ -313,10 +310,10 @@ export async function POST() {
       total: ALL_TEMPLATES.length,
     });
   } catch (err) {
-    console.error("Template seed error:", err);
+    logger.error("Template seed error", { err });
     return NextResponse.json(
       { error: "Failed to seed templates" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner"] });

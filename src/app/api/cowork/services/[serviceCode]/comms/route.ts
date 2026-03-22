@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
 
 const VALID_TYPES = [
   "newsletter",
@@ -11,21 +13,27 @@ const VALID_TYPES = [
   "staff_memo",
   "term_letter",
   "custom",
-];
+] as const;
+
+const postBodySchema = z.object({
+  type: z.enum(VALID_TYPES),
+  subject: z.string().min(1),
+  body: z.string().min(1),
+  termWeek: z.number().nullable().optional(),
+  schoolName: z.string().optional(),
+  contactEmail: z.string().nullable().optional(),
+});
 
 /**
  * POST /api/cowork/services/[serviceCode]/comms
  * Create a school communication (newsletter, memo, term letter, etc.) in draft status.
  * Called by automation tasks (newsletter-*, staff-memo-*, term-letter-*, etc.).
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ serviceCode: string }> }
-) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req, context) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const { serviceCode } = await params;
+  const { serviceCode } = await context!.params!;
 
   const service = await prisma.service.findUnique({
     where: { code: serviceCode },
@@ -34,12 +42,19 @@ export async function POST(
 
   if (!service) {
     return NextResponse.json(
-      { error: "Not Found", message: `Service ${serviceCode} not found` },
+      { error: `Service ${serviceCode} not found` },
       { status: 404 }
     );
   }
 
-  const body = await req.json();
+  const reqBody = await req.json();
+  const parsed = postBodySchema.safeParse(reqBody);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
   const {
     type,
     subject,
@@ -47,27 +62,7 @@ export async function POST(
     termWeek,
     schoolName,
     contactEmail,
-  } = body;
-
-  if (!type || !subject || !commBody) {
-    return NextResponse.json(
-      {
-        error: "Bad Request",
-        message: "type, subject, and body are required",
-      },
-      { status: 400 }
-    );
-  }
-
-  if (!VALID_TYPES.includes(type)) {
-    return NextResponse.json(
-      {
-        error: "Bad Request",
-        message: `type must be one of: ${VALID_TYPES.join(", ")}`,
-      },
-      { status: 400 }
-    );
-  }
+  } = parsed.data;
 
   const comm = await prisma.schoolComm.create({
     data: {
@@ -93,20 +88,17 @@ export async function POST(
     },
     { status: 201 }
   );
-}
+});
 
 /**
  * GET /api/cowork/services/[serviceCode]/comms?type=newsletter&limit=20
  * Fetch communications for a centre.
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ serviceCode: string }> }
-) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req, context) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const { serviceCode } = await params;
+  const { serviceCode } = await context!.params!;
 
   const service = await prisma.service.findUnique({
     where: { code: serviceCode },
@@ -115,7 +107,7 @@ export async function GET(
 
   if (!service) {
     return NextResponse.json(
-      { error: "Not Found", message: `Service ${serviceCode} not found` },
+      { error: `Service ${serviceCode} not found` },
       { status: 404 }
     );
   }
@@ -134,4 +126,4 @@ export async function GET(
   });
 
   return NextResponse.json({ comms });
-}
+});

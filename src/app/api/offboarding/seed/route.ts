@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 /**
  * POST /api/offboarding/seed
  *
@@ -81,10 +81,7 @@ const DEFAULT_PACK = {
   ],
 };
 
-export async function POST() {
-  const { error } = await requireAuth(["owner"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   try {
     const existing = await prisma.offboardingPack.findFirst({
       where: { name: DEFAULT_PACK.name, deleted: false },
@@ -120,10 +117,10 @@ export async function POST() {
       total: 1,
     });
   } catch (err) {
-    console.error("Offboarding seed error:", err);
+    logger.error("Offboarding seed error", { err });
     return NextResponse.json(
       { error: "Failed to seed offboarding pack" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner"] });

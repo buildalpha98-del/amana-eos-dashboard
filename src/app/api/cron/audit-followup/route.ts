@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
 
 /**
  * GET /api/cron/audit-followup
@@ -8,7 +9,7 @@ import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
  * Daily cron — creates follow-up CoworkTodos from completed audits
  * with non-compliant items, and flags low-scoring audits.
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
@@ -98,10 +99,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     await guard.fail(err);
-    console.error("Audit follow-up cron failed:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Cron failed" },
-      { status: 500 }
-    );
+    throw err;
   }
-}
+});

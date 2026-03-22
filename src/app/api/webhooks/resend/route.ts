@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { prisma } from "@/lib/prisma";
 import { suppressEmail } from "@/lib/email-suppression";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/webhooks/resend — Handle Resend webhook events
@@ -9,10 +11,10 @@ import { suppressEmail } from "@/lib/email-suppression";
  * Verifies the signature via Svix, logs all events, and
  * suppresses email addresses that bounce or complain.
  */
-export async function POST(req: NextRequest) {
+export const POST = withApiHandler(async (req: NextRequest) => {
   const secret = process.env.RESEND_WEBHOOK_SECRET;
   if (!secret) {
-    console.error("RESEND_WEBHOOK_SECRET is not configured");
+    logger.error("RESEND_WEBHOOK_SECRET is not configured");
     return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
   }
 
@@ -29,7 +31,7 @@ export async function POST(req: NextRequest) {
     const wh = new Webhook(secret);
     payload = wh.verify(body, headers) as Record<string, unknown>;
   } catch {
-    console.error("Resend webhook signature verification failed");
+    logger.error("Resend webhook signature verification failed");
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
@@ -41,7 +43,7 @@ export async function POST(req: NextRequest) {
     const MAX_AGE_SECONDS = 300; // 5 minutes
 
     if (isNaN(timestampSeconds) || nowSeconds - timestampSeconds > MAX_AGE_SECONDS) {
-      console.error("Resend webhook rejected: timestamp too old or invalid");
+      logger.error("Resend webhook rejected: timestamp too old or invalid");
       return NextResponse.json({ error: "Webhook timestamp expired" }, { status: 401 });
     }
   }
@@ -91,9 +93,9 @@ export async function POST(req: NextRequest) {
     // ── Suppress on bounce / complaint ─────────────────────
     if (shortType === "bounced" || shortType === "complained") {
       await suppressEmail(email, shortType, messageId);
-      console.warn(`Email suppressed: ${email} (${shortType}, messageId: ${messageId})`);
+      logger.warn("Email suppressed", { email, reason: shortType, messageId });
     }
   }
 
   return NextResponse.json({ received: true });
-}
+});

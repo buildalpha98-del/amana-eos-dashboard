@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -67,16 +69,15 @@ export function useBudgetSummary(params: {
 }) {
   return useQuery<BudgetSummary>({
     queryKey: ["budget-summary", params.serviceId, params.from, params.to, params.period],
-    queryFn: async () => {
+    queryFn: () => {
       const sp = new URLSearchParams();
       if (params.from) sp.set("from", params.from);
       if (params.to) sp.set("to", params.to);
       if (params.period) sp.set("period", params.period);
-      const res = await fetch(`/api/services/${params.serviceId}/budget?${sp}`);
-      if (!res.ok) throw new Error("Failed to fetch budget summary");
-      return res.json();
+      return fetchApi<BudgetSummary>(`/api/services/${params.serviceId}/budget?${sp}`);
     },
     enabled: !!params.serviceId,
+    retry: 2,
   });
 }
 
@@ -90,16 +91,15 @@ export function useEquipmentItems(params: {
 }) {
   return useQuery<BudgetItemRecord[]>({
     queryKey: ["equipment-items", params.serviceId, params.from, params.to, params.category],
-    queryFn: async () => {
+    queryFn: () => {
       const sp = new URLSearchParams();
       if (params.from) sp.set("from", params.from);
       if (params.to) sp.set("to", params.to);
       if (params.category) sp.set("category", params.category);
-      const res = await fetch(`/api/services/${params.serviceId}/budget/equipment?${sp}`);
-      if (!res.ok) throw new Error("Failed to fetch equipment items");
-      return res.json();
+      return fetchApi<BudgetItemRecord[]>(`/api/services/${params.serviceId}/budget/equipment?${sp}`);
     },
     enabled: !!params.serviceId,
+    retry: 2,
   });
 }
 
@@ -115,20 +115,14 @@ export function useCreateEquipmentItem(serviceId: string) {
       date: string;
       notes?: string;
     }) => {
-      const res = await fetch(`/api/services/${serviceId}/budget/equipment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create equipment item");
-      }
-      return res.json();
+      return mutateApi(`/api/services/${serviceId}/budget/equipment`, { method: "POST", body: data });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["equipment-items", serviceId] });
       qc.invalidateQueries({ queryKey: ["budget-summary", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -149,20 +143,17 @@ export function useUpdateEquipmentItem(serviceId: string) {
       date?: string;
       notes?: string | null;
     }) => {
-      const res = await fetch(`/api/services/${serviceId}/budget/equipment/${itemId}`, {
+      return mutateApi(`/api/services/${serviceId}/budget/equipment/${itemId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update equipment item");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["equipment-items", serviceId] });
       qc.invalidateQueries({ queryKey: ["budget-summary", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -173,18 +164,14 @@ export function useDeleteEquipmentItem(serviceId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (itemId: string) => {
-      const res = await fetch(`/api/services/${serviceId}/budget/equipment/${itemId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to delete equipment item");
-      }
-      return res.json();
+      return mutateApi(`/api/services/${serviceId}/budget/equipment/${itemId}`, { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["equipment-items", serviceId] });
       qc.invalidateQueries({ queryKey: ["budget-summary", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

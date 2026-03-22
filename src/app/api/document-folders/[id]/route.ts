@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const updateFolderSchema = z.object({
   name: z.string().min(1).optional(),
 });
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateFolderSchema.safeParse(body);
 
@@ -31,16 +25,10 @@ export async function PATCH(
   });
 
   return NextResponse.json(folder);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   // Check if folder has documents or children
   const folder = await prisma.documentFolder.findUnique({
@@ -64,4 +52,4 @@ export async function DELETE(
   await prisma.documentFolder.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

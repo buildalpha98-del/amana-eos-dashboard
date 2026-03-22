@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { generateEnrolmentPdf } from "@/lib/enrolment-pdf";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const submission = await prisma.enrolmentSubmission.findUnique({
     where: { id },
@@ -29,4 +24,4 @@ export async function GET(
       "Content-Disposition": `inline; filename="enrolment-${submission.id}.pdf"`,
     },
   });
-}
+});

@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface ContactData {
   id: string;
@@ -19,11 +21,8 @@ export interface ContactData {
 export function useContacts() {
   return useQuery<ContactData[]>({
     queryKey: ["contacts"],
-    queryFn: async () => {
-      const res = await fetch("/api/contacts");
-      if (!res.ok) throw new Error("Failed to fetch contacts");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ContactData[]>("/api/contacts"),
+    retry: 2,
   });
 }
 
@@ -37,20 +36,12 @@ export function useCreateContact() {
       parentName?: string | null;
       childName?: string | null;
       serviceId?: string | null;
-    }) => {
-      const res = await fetch("/api/contacts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create contact");
-      }
-      return res.json();
-    },
+    }) => mutateApi<ContactData>("/api/contacts", { method: "POST", body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

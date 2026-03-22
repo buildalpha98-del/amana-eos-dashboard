@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface DocumentData {
   id: string;
@@ -59,10 +61,9 @@ export function useDocuments(filters?: {
   return useQuery<DocumentsResponse>({
     queryKey: ["documents", filters],
     queryFn: async () => {
-      const res = await fetch(`/api/documents${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch documents");
-      return res.json();
+      return fetchApi<DocumentsResponse>(`/api/documents${query ? `?${query}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -70,10 +71,9 @@ export function useDocumentFolders() {
   return useQuery<DocumentFolder[]>({
     queryKey: ["document-folders"],
     queryFn: async () => {
-      const res = await fetch("/api/document-folders");
-      if (!res.ok) throw new Error("Failed to fetch folders");
-      return res.json();
+      return fetchApi<DocumentFolder[]>("/api/document-folders");
     },
+    retry: 2,
   });
 }
 
@@ -92,17 +92,17 @@ export function useCreateDocument() {
       folderId?: string | null;
       tags?: string[];
     }) => {
-      const res = await fetch("/api/documents", {
+      return mutateApi("/api/documents", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Failed to create document");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
       queryClient.invalidateQueries({ queryKey: ["document-folders"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -111,16 +111,16 @@ export function useCreateFolder() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: { name: string; parentId?: string | null }) => {
-      const res = await fetch("/api/document-folders", {
+      return mutateApi("/api/document-folders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Failed to create folder");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["document-folders"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -129,16 +129,16 @@ export function useRenameFolder() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const res = await fetch(`/api/document-folders/${id}`, {
+      return mutateApi(`/api/document-folders/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: { name },
       });
-      if (!res.ok) throw new Error("Failed to rename folder");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["document-folders"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -147,15 +147,13 @@ export function useDeleteFolder() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/document-folders/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to delete folder");
-      }
-      return res.json();
+      return mutateApi(`/api/document-folders/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["document-folders"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -174,16 +172,16 @@ export function useUpdateDocument() {
       tags?: string[];
       centreId?: string | null;
     }) => {
-      const res = await fetch(`/api/documents/${id}`, {
+      return mutateApi(`/api/documents/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Failed to update document");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -192,21 +190,22 @@ export function useMoveDocument() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, folderId }: { id: string; folderId: string | null }) => {
-      const res = await fetch(`/api/documents/${id}`, {
+      return mutateApi(`/api/documents/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folderId }),
+        body: { folderId },
       });
-      if (!res.ok) throw new Error("Failed to move document");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
       queryClient.invalidateQueries({ queryKey: ["document-folders"] });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
+// FormData upload — keep raw fetch
 export function useBulkCreateDocuments() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -230,6 +229,9 @@ export function useBulkCreateDocuments() {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
       queryClient.invalidateQueries({ queryKey: ["document-folders"] });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -237,13 +239,14 @@ export function useDeleteDocument() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/documents/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete document");
-      return res.json();
+      return mutateApi(`/api/documents/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });
       queryClient.invalidateQueries({ queryKey: ["document-folders"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

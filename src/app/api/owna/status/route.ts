@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
-export async function GET() {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const isConfigured = !!(process.env.OWNA_API_URL && process.env.OWNA_API_KEY);
+import { withApiAuth } from "@/lib/server-auth";
+export const GET = withApiAuth(async (req, session) => {
+const isConfigured = !!(process.env.OWNA_API_URL && process.env.OWNA_API_KEY);
 
   const services = await prisma.service.findMany({
     where: { status: "active" },
@@ -29,4 +25,4 @@ export async function GET() {
     mappedCount,
     totalServices: services.length,
   });
-}
+});

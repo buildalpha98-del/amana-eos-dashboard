@@ -8,6 +8,8 @@
  * Real API endpoints discovered from Swagger + live testing (March 2026).
  */
 
+import { logger } from "@/lib/logger";
+
 // ── Response wrapper ──────────────────────────────────────────
 
 interface OwnaListResponse<T> {
@@ -313,9 +315,7 @@ export class OwnaClient {
           const waitMs = retryAfter
             ? parseInt(retryAfter, 10) * 1000
             : BASE_DELAY_MS * Math.pow(2, attempt);
-          console.warn(
-            `[OWNA] Rate limited on ${path}, waiting ${waitMs}ms (attempt ${attempt + 1}/${MAX_RETRIES + 1})`,
-          );
+          logger.warn("OWNA rate limited, backing off", { path, waitMs, attempt: attempt + 1, maxAttempts: MAX_RETRIES + 1 });
           await new Promise((r) => setTimeout(r, waitMs));
           continue;
         }
@@ -337,9 +337,7 @@ export class OwnaClient {
             res.status,
             true,
           );
-          console.warn(
-            `[OWNA] Retryable error on ${path}: ${res.status} (attempt ${attempt + 1}/${MAX_RETRIES + 1})`,
-          );
+          logger.warn("OWNA retryable error", { path, status: res.status, attempt: attempt + 1, maxAttempts: MAX_RETRIES + 1 });
           continue;
         }
 
@@ -352,9 +350,7 @@ export class OwnaClient {
 
         if (attempt === MAX_RETRIES) break;
 
-        console.warn(
-          `[OWNA] Network error on ${path}: ${lastError.message} (attempt ${attempt + 1}/${MAX_RETRIES + 1})`,
-        );
+        logger.warn("OWNA network error, retrying", { path, error: lastError.message, attempt: attempt + 1, maxAttempts: MAX_RETRIES + 1 });
       }
     }
 
@@ -464,7 +460,7 @@ export class OwnaClient {
     _dateFrom: string,
     _dateTo: string,
   ): Promise<OwnaBookingRecord[]> {
-    console.warn("[OWNA] getLegacyAttendance is deprecated — use getAttendance()");
+    logger.warn("OWNA getLegacyAttendance is deprecated — use getAttendance()");
     return [];
   }
 
@@ -474,13 +470,13 @@ export class OwnaClient {
     _dateFrom: string,
     _dateTo: string,
   ): Promise<OwnaBookingRecord[]> {
-    console.warn("[OWNA] getBookings is deprecated — use getCasualBookings()");
+    logger.warn("OWNA getBookings is deprecated — use getCasualBookings()");
     return [];
   }
 
   /** @deprecated No longer available via public API */
   async getEnrolments(_serviceCode: string): Promise<OwnaChild[]> {
-    console.warn("[OWNA] getEnrolments is deprecated — use getChildren()");
+    logger.warn("OWNA getEnrolments is deprecated — use getChildren()");
     return [];
   }
 
@@ -490,7 +486,7 @@ export class OwnaClient {
     _dateFrom: string,
     _dateTo: string,
   ): Promise<OwnaRosterShift[]> {
-    console.warn("[OWNA] getRoster is deprecated — use getStaff()");
+    logger.warn("OWNA getRoster is deprecated — use getStaff()");
     return [];
   }
 
@@ -500,7 +496,7 @@ export class OwnaClient {
     _dateFrom: string,
     _dateTo: string,
   ): Promise<OwnaCCSRecord[]> {
-    console.warn("[OWNA] getCCSData — not yet available on public API");
+    logger.warn("OWNA getCCSData — not yet available on public API");
     return [];
   }
 }

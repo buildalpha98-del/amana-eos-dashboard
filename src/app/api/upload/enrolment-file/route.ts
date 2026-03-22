@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { uploadFile } from "@/lib/storage";
+import { validateFileContent } from "@/lib/file-validation";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+
+const bodySchema = z.object({
+  file: z.string().min(1, "file is required"),
+  filename: z.string().min(1, "filename is required"),
+  contentType: z.string().optional(),
+});
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".jpg", ".jpeg", ".png"]);
@@ -22,7 +32,7 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withApiHandler(async (req) => {
   // Rate limit — this endpoint is intentionally public for parent enrolment forms
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   if (!checkRateLimit(ip)) {
@@ -30,10 +40,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { file, filename, contentType } = await req.json();
-    if (!file || !filename) {
-      return NextResponse.json({ error: "Missing file or filename" }, { status: 400 });
+    const raw = await req.json();
+    const parsed = bodySchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
     }
+    const { file, filename, contentType } = parsed.data;
 
     const buffer = Buffer.from(file, "base64");
     if (buffer.length > MAX_FILE_SIZE) {
@@ -44,6 +59,15 @@ export async function POST(req: NextRequest) {
     if (!ALLOWED_EXTENSIONS.has(ext)) {
       return NextResponse.json(
         { error: `File type "${ext}" not allowed. Accepted: ${[...ALLOWED_EXTENSIONS].join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate magic bytes match declared content type
+    const declaredMime = contentType || "application/octet-stream";
+    if (!validateFileContent(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength), declaredMime)) {
+      return NextResponse.json(
+        { error: "File content does not match declared type" },
         { status: 400 }
       );
     }
@@ -61,10 +85,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ fileUrl: url, fileName: filename, fileSize: buffer.length });
   } catch (e) {
-    console.error("Enrolment file upload error:", e);
+    logger.error("Enrolment file upload error", { e });
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Upload failed" },
       { status: 500 }
     );
   }
-}
+});

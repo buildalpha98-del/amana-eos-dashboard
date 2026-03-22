@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { parsePagination } from "@/lib/pagination";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const pagination = parsePagination(searchParams);
 
@@ -114,4 +111,4 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json(teamMembers);
-}
+}, { roles: ["owner", "head_office", "admin"] });

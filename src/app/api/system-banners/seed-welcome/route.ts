@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { withApiAuth } from "@/lib/server-auth";
 
 const SEED_BANNERS = [
   {
@@ -22,11 +21,7 @@ const SEED_BANNERS = [
   },
 ];
 
-export async function POST() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const POST = withApiAuth(async (req, session) => {
   const role = (session.user as Record<string, unknown>).role as string;
   if (!["owner", "head_office"].includes(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -61,4 +56,4 @@ export async function POST() {
   }
 
   return NextResponse.json({ results }, { status: 201 });
-}
+});

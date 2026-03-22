@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const schema = z.object({
   campaignId: z.string().optional(),
@@ -9,13 +9,8 @@ const schema = z.object({
   startDate: z.string().optional(),
 });
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = schema.parse(await req.json());
 
   const template = await prisma.marketingTaskTemplate.findUnique({
@@ -58,4 +53,4 @@ export async function POST(
   });
 
   return NextResponse.json({ created: tasks.length, tasks });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

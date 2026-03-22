@@ -1,20 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+
+const postBodySchema = z.object({
+  date: z.string().min(1),
+  theme: z.string().min(1),
+  morningActivity: z.string().min(1),
+  afternoonActivity: z.string().min(1),
+  isExcursion: z.boolean().optional(),
+  excursionVenue: z.string().nullable().optional(),
+  excursionCost: z.number().nullable().optional(),
+  materialsNeeded: z.string().nullable().optional(),
+  dietaryNotes: z.string().nullable().optional(),
+  maxCapacity: z.number().optional(),
+  status: z.string().optional(),
+});
 
 /**
  * POST /api/cowork/services/[serviceCode]/holiday-quest
  * Create or update a holiday quest day from automation output.
  * Upserts by [serviceId, date] unique constraint.
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ serviceCode: string }> }
-) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req, context) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const { serviceCode } = await params;
+  const { serviceCode } = await context!.params!;
 
   const service = await prisma.service.findUnique({
     where: { code: serviceCode },
@@ -23,12 +36,19 @@ export async function POST(
 
   if (!service) {
     return NextResponse.json(
-      { error: "Not Found", message: `Service ${serviceCode} not found` },
+      { error: `Service ${serviceCode} not found` },
       { status: 404 }
     );
   }
 
   const body = await req.json();
+  const parsed = postBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
   const {
     date,
     theme,
@@ -41,18 +61,7 @@ export async function POST(
     dietaryNotes,
     maxCapacity,
     status,
-  } = body;
-
-  if (!date || !theme || !morningActivity || !afternoonActivity) {
-    return NextResponse.json(
-      {
-        error: "Bad Request",
-        message:
-          "date, theme, morningActivity, and afternoonActivity are required",
-      },
-      { status: 400 }
-    );
-  }
+  } = parsed.data;
 
   const dateObj = new Date(date);
 
@@ -102,20 +111,17 @@ export async function POST(
     },
     { status: 201 }
   );
-}
+});
 
 /**
  * GET /api/cowork/services/[serviceCode]/holiday-quest?from=2026-04-01&to=2026-04-14
  * Fetch holiday quest days for a centre within a date range.
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ serviceCode: string }> }
-) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req, context) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const { serviceCode } = await params;
+  const { serviceCode } = await context!.params!;
 
   const service = await prisma.service.findUnique({
     where: { code: serviceCode },
@@ -124,7 +130,7 @@ export async function GET(
 
   if (!service) {
     return NextResponse.json(
-      { error: "Not Found", message: `Service ${serviceCode} not found` },
+      { error: `Service ${serviceCode} not found` },
       { status: 404 }
     );
   }
@@ -146,4 +152,4 @@ export async function GET(
   });
 
   return NextResponse.json({ days });
-}
+});

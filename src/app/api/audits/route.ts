@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 /**
  * GET /api/audits — list audit instances with filters + pagination
  */
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const templateId = searchParams.get("templateId");
@@ -91,4 +87,4 @@ export async function GET(req: NextRequest) {
     stats: { ...stats, avgScore: avgScore._avg.complianceScore },
     pagination: { page, limit, total, pages: Math.ceil(total / limit) },
   });
-}
+});

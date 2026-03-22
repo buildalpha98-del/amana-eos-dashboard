@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const createEnquirySchema = z.object({
   serviceId: z.string().min(1),
@@ -20,8 +22,8 @@ const createEnquirySchema = z.object({
  * GET /api/cowork/enquiries — List active enquiries for pipeline scan
  * Auth: API key with "enquiries:read" scope
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -63,20 +65,20 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ enquiries: result, count: result.length });
   } catch (err) {
-    console.error("[Cowork Enquiries GET]", err);
+    logger.error("Cowork Enquiries GET", { err });
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+});
 
 /**
  * POST /api/cowork/enquiries — Create a new enquiry via API key
  * Auth: API key with "enquiries:write" scope
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -120,10 +122,10 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    console.error("[Cowork Enquiries POST]", err);
+    logger.error("Cowork Enquiries POST", { err });
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+});

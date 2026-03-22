@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { withApiAuth } from "@/lib/server-auth";
 
 const createAnnouncementSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -15,11 +15,8 @@ const createAnnouncementSchema = z.object({
 });
 
 // GET /api/communication/announcements — list announcements
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { searchParams } = new URL(req.url);
+export const GET = withApiAuth(async (req, session) => {
+const { searchParams } = new URL(req.url);
   const audience = searchParams.get("audience");
   const serviceId = searchParams.get("serviceId");
   const drafts = searchParams.get("drafts");
@@ -70,14 +67,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(announcements);
-}
+});
 
 // POST /api/communication/announcements — create announcement
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createAnnouncementSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -120,4 +114,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(announcement, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

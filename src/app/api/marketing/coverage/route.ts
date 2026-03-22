@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // GET /api/marketing/coverage — centre content coverage report
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const now = new Date();
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -135,4 +131,4 @@ export async function GET(req: NextRequest) {
       globalPosts,
     },
   });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

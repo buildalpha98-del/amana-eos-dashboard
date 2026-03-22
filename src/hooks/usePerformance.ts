@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
 
 export interface CentrePerformance {
   id: string;
@@ -52,11 +53,8 @@ export interface CentrePerformance {
 export function usePerformance() {
   return useQuery<CentrePerformance[]>({
     queryKey: ["performance"],
-    queryFn: async () => {
-      const res = await fetch("/api/performance");
-      if (!res.ok) throw new Error("Failed to fetch performance");
-      return res.json();
-    },
+    queryFn: () => fetchApi<CentrePerformance[]>("/api/performance"),
+    retry: 2,
     refetchInterval: 60000,
   });
 }

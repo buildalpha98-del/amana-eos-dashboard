@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateLeaveSchema = z.object({
   status: z
     .enum(["leave_pending", "leave_approved", "leave_rejected", "leave_cancelled"])
@@ -25,14 +24,8 @@ const updateLeaveSchema = z.object({
 });
 
 // GET /api/leave/requests/[id] — leave request detail
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const leaveRequest = await prisma.leaveRequest.findUnique({
     where: { id },
@@ -48,17 +41,11 @@ export async function GET(
   }
 
   return NextResponse.json(leaveRequest);
-}
+});
 
 // PATCH /api/leave/requests/[id] — update leave request
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateLeaveSchema.safeParse(body);
 
@@ -154,17 +141,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+});
 
 // DELETE /api/leave/requests/[id] — cancel own pending request
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const existing = await prisma.leaveRequest.findUnique({ where: { id } });
   if (!existing) {
@@ -198,4 +179,4 @@ export async function DELETE(
   });
 
   return NextResponse.json(updated);
-}
+});

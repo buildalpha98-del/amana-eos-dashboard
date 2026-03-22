@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createContractSchema = z.object({
   userId: z.string().min(1, "User ID is required"),
   contractType: z.enum(["ct_casual", "ct_part_time", "ct_permanent", "ct_fixed_term"]),
@@ -28,11 +28,8 @@ const createContractSchema = z.object({
 });
 
 // GET /api/contracts — list contracts with filters
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { searchParams } = new URL(req.url);
+export const GET = withApiAuth(async (req, session) => {
+const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
   const status = searchParams.get("status");
   const serviceId = searchParams.get("serviceId");
@@ -72,14 +69,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(contracts);
-}
+});
 
 // POST /api/contracts — create contract (owner/admin only)
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await parseJsonBody(req);
   const parsed = createContractSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -135,4 +129,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(contract, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

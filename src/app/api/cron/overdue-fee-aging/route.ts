@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cron/overdue-fee-aging
@@ -8,7 +10,7 @@ import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
  * Auto-generates reminder Todos at 14/30/60 day thresholds.
  * Schedule: daily at 8pm AEST (10:00 UTC) — "0 10 * * *"
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
@@ -158,10 +160,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     await guard.fail(err);
-    console.error("[Cron overdue-fee-aging]", err);
+    logger.error("Cron overdue-fee-aging", { err });
     return NextResponse.json(
       { error: "Cron failed" },
       { status: 500 },
     );
   }
-}
+});

@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
+const patchSchema = z.object({
+  theme: z.string().optional(),
+  morningActivity: z.string().optional(),
+  afternoonActivity: z.string().optional(),
+  isExcursion: z.boolean().optional(),
+  excursionVenue: z.string().optional(),
+  excursionCost: z.number().optional(),
+  materialsNeeded: z.string().optional(),
+  dietaryNotes: z.string().optional(),
+  maxCapacity: z.number().optional(),
+  currentBookings: z.number().optional(),
+  status: z.string().optional(),
+});
 /**
  * GET /api/holiday-quest/[id] — single day detail
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const day = await prisma.holidayQuestDay.findUnique({
     where: { id },
@@ -24,38 +32,25 @@ export async function GET(
   }
 
   return NextResponse.json(day);
-}
+});
 
 /**
  * PATCH /api/holiday-quest/[id] — update a day
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const body = await req.json();
-
-  const allowedFields = [
-    "theme",
-    "morningActivity",
-    "afternoonActivity",
-    "isExcursion",
-    "excursionVenue",
-    "excursionCost",
-    "materialsNeeded",
-    "dietaryNotes",
-    "maxCapacity",
-    "currentBookings",
-    "status",
-  ];
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
 
   const data: Record<string, unknown> = {};
-  for (const key of allowedFields) {
-    if (key in body) data[key] = body[key];
+  for (const [key, value] of Object.entries(parsed.data)) {
+    if (value !== undefined) data[key] = value;
   }
 
   if (Object.keys(data).length === 0) {
@@ -73,19 +68,13 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 /**
  * DELETE /api/holiday-quest/[id] — delete a day
  */
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const existing = await prisma.holidayQuestDay.findUnique({ where: { id } });
   if (!existing) {
@@ -95,4 +84,4 @@ export async function DELETE(
   await prisma.holidayQuestDay.delete({ where: { id } });
 
   return NextResponse.json({ deleted: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const completeSchema = z.object({
   reason: z.enum([
@@ -20,11 +22,8 @@ const completeSchema = z.object({
 });
 
 // GET /api/exit-survey/[token] — public, returns survey data if token valid
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
-) {
-  const { token } = await params;
+export const GET = withApiHandler(async (req, context) => {
+  const { token } = await context!.params!;
 
   const survey = await prisma.exitSurvey.findUnique({
     where: { surveyToken: token },
@@ -47,14 +46,11 @@ export async function GET(
   }
 
   return NextResponse.json(survey);
-}
+});
 
 // PATCH /api/exit-survey/[token] — public, completes the survey
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
-) {
-  const { token } = await params;
+export const PATCH = withApiHandler(async (req, context) => {
+  const { token } = await context!.params!;
 
   try {
     const survey = await prisma.exitSurvey.findUnique({
@@ -94,7 +90,7 @@ export async function PATCH(
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: err.issues[0].message }, { status: 400 });
     }
-    console.error("[ExitSurvey PATCH]", err);
+    logger.error("ExitSurvey PATCH", { err });
     return NextResponse.json({ error: "Failed to complete survey" }, { status: 500 });
   }
-}
+});

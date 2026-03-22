@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createContactSchema = z.object({
   name: z.string().min(1, "Name is required"),
   phone: z.string().min(1, "Phone is required"),
@@ -11,14 +10,8 @@ const createContactSchema = z.object({
 });
 
 // POST /api/users/[id]/emergency-contacts
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const isAdmin = ["owner", "admin"].includes(session!.user.role);
   const isSelf = session!.user.id === id;
 
@@ -70,4 +63,4 @@ export async function POST(
   });
 
   return NextResponse.json(contact, { status: 201 });
-}
+});

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 interface SeedSnippet {
   title: string;
   summary: string;
@@ -83,10 +82,7 @@ const SEED_SNIPPETS: SeedSnippet[] = [
 ];
 
 // POST /api/incidents/seed — owner-only seed of incident response protocol snippets
-export async function POST() {
-  const { error, session } = await requireAuth(["owner"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   const created: string[] = [];
   const skipped: string[] = [];
 
@@ -120,4 +116,4 @@ export async function POST() {
     skipped,
     message: `Created ${created.length} snippets, skipped ${skipped.length} (already exist)`,
   });
-}
+}, { roles: ["owner"] });

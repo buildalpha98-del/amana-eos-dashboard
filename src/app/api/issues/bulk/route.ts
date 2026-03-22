@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 const bulkSchema = z.object({
   action: z.enum(["resolve", "delete", "assign", "move"]),
   ids: z.array(z.string()).min(1),
@@ -11,11 +11,8 @@ const bulkSchema = z.object({
 });
 
 // POST /api/issues/bulk
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = bulkSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -88,10 +85,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, count: result.count });
   } catch (err) {
-    console.error("Bulk issue action error:", err);
+    logger.error("Bulk issue action error", { err });
     return NextResponse.json(
       { error: "Failed to perform bulk action" },
       { status: 500 }
     );
   }
-}
+});

@@ -4,6 +4,8 @@ import { acquireCronLock } from "@/lib/cron-guard";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { applyMergeTags } from "@/lib/crm/merge-tags";
 import type { PipelineStage } from "@prisma/client";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cron/touchpoint-scheduler
@@ -24,7 +26,7 @@ const STAGE_DELAYS: Partial<Record<PipelineStage, { nextStage: PipelineStage; de
   proposal_sent: { nextStage: "submitted", delayMs: 72 * 3600 * 1000 },     // 3 days check-in
 };
 
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -211,11 +213,11 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    console.error("[TouchpointScheduler] Cron failed:", err);
+    logger.error("TouchpointScheduler: Cron failed", { err });
 
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },
       { status: 500 }
     );
   }
-}
+});

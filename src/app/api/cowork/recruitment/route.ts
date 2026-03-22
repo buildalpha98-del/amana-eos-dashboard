@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const postBodySchema = z.object({
+  serviceId: z.string().min(1),
+  role: z.string().min(1),
+  employmentType: z.enum(["casual", "part_time", "permanent", "fixed_term"]),
+  qualificationRequired: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
 
 /**
  * GET /api/cowork/recruitment — List open vacancies
  * Auth: API key with "recruitment:read" scope
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -26,26 +37,26 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({ vacancies });
-}
+});
 
 /**
  * POST /api/cowork/recruitment — Create a vacancy
  * Auth: API key with "recruitment:write" scope
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceId, role, employmentType, qualificationRequired, notes } = body;
-
-    if (!serviceId || !role || !employmentType) {
+    const parsed = postBodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "serviceId, role, and employmentType are required" },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { serviceId, role, employmentType, qualificationRequired, notes } = parsed.data;
 
     const vacancy = await prisma.recruitmentVacancy.create({
       data: {
@@ -63,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(vacancy, { status: 201 });
   } catch (err) {
-    console.error("Cowork recruitment POST error:", err);
+    logger.error("Cowork recruitment POST error", { err });
     return NextResponse.json({ error: "Failed to create vacancy" }, { status: 500 });
   }
-}
+});

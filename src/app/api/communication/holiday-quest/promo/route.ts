@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { holidayQuestProgrammeEmail } from "@/lib/email-templates";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const bodySchema = z.object({
+  serviceId: z.string().min(1, "serviceId is required"),
+  from: z.string().min(1, "from date is required"),
+  to: z.string().min(1, "to date is required"),
+});
 
 /**
  * POST /api/communication/holiday-quest/promo — Generate promotional content
@@ -9,23 +16,16 @@ import { holidayQuestProgrammeEmail } from "@/lib/email-templates";
  * Body: { serviceId, from, to }
  * Returns email HTML + social post captions for the holiday period.
  */
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
-  const { serviceId, from, to } = body as {
-    serviceId?: string;
-    from?: string;
-    to?: string;
-  };
-
-  if (!serviceId || !from || !to) {
+export const POST = withApiAuth(async (req, session) => {
+  const raw = await req.json();
+  const parsed = bodySchema.safeParse(raw);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "serviceId, from, and to are required" },
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
       { status: 400 },
     );
   }
+  const { serviceId, from, to } = parsed.data;
 
   const service = await prisma.service.findUnique({
     where: { id: serviceId },
@@ -107,4 +107,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ email, socialPosts });
-}
+}, { roles: ["owner", "head_office", "admin"] });

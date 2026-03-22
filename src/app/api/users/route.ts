@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { welcomeEmail } from "@/lib/email-templates";
 import { passwordSchema } from "@/lib/schemas/auth";
 import { checkPasswordBreach } from "@/lib/password-breach-check";
 import { logAuditEvent } from "@/lib/audit-log";
 import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { parseJsonBody } from "@/lib/api-error";
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -21,10 +23,7 @@ const createUserSchema = z.object({
 
 // GET /api/users — list all users (any authenticated user)
 // Optional filters: ?serviceId=xxx&role=xxx&active=true
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const role = searchParams.get("role");
@@ -54,14 +53,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(users);
-}
+});
 
 // POST /api/users — create a new user (owner + admin)
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+  const body = await parseJsonBody(req);
   const parsed = createUserSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -165,7 +161,7 @@ export async function POST(req: NextRequest) {
     try {
       await resend.emails.send({ from: FROM_EMAIL, to: email, subject, html });
     } catch (emailErr) {
-      console.error("Failed to send welcome email:", emailErr);
+      logger.error("Failed to send welcome email", { err: emailErr });
       // Don't fail user creation if email fails
     }
   } else {
@@ -173,4 +169,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(user, { status: 201 });
-}
+}, { roles: ["owner", "admin"] });

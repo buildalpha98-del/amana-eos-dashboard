@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
+const postSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["parent_nurture", "crm_outreach"]),
+  triggerStage: z.string().optional(),
+  steps: z.array(z.object({
+    name: z.string().min(1),
+    delayHours: z.number(),
+    templateKey: z.string().min(1),
+    emailTemplateId: z.string().optional(),
+  })).min(1),
+});
 // GET /api/sequences — list sequences with step count + active enrolment count
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") || undefined;
 
@@ -26,32 +35,19 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({ sequences });
-}
+});
 
 // POST /api/sequences — create sequence with steps
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   const body = await req.json();
-  const { name, type, triggerStage, steps } = body as {
-    name: string;
-    type: "parent_nurture" | "crm_outreach";
-    triggerStage?: string;
-    steps: Array<{
-      name: string;
-      delayHours: number;
-      templateKey: string;
-      emailTemplateId?: string;
-    }>;
-  };
-
-  if (!name || !type || !steps?.length) {
+  const parsed = postSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "name, type, and steps are required" },
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
       { status: 400 },
     );
   }
+  const { name, type, triggerStage, steps } = parsed.data;
 
   const sequence = await prisma.sequence.create({
     data: {
@@ -79,4 +75,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(sequence, { status: 201 });
-}
+});

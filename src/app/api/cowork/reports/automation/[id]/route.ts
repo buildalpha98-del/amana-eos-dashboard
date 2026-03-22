@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 /**
  * GET /api/cowork/reports/automation/[id]
  * Fetch a single report with full relations (for the report viewer)
  */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const report = await prisma.coworkReport.findUnique({
     where: { id },
     include: {
@@ -30,4 +23,4 @@ export async function GET(
   }
 
   return NextResponse.json(report);
-}
+});

@@ -1,47 +1,67 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { resolveAssignee } from "../../_lib/resolve-assignee";
 import { resolveServiceByCode } from "../../_lib/resolve-service";
+import { withApiHandler } from "@/lib/api-handler";
+import { ApiError } from "@/lib/api-error";
 
-/**
- * POST /api/cowork/reports/automation — Accept automation-generated reports
- *
- * Auth: API key with `reports:write` scope
- * Body: { seat, reportType?, title, content, assignee?, serviceCode?, metrics?, alerts? }
- */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+const reportBodySchema = z.object({
+  seat: z.string().min(1, "seat is required"),
+  reportType: z.string().default("general"),
+  title: z.string().min(1, "title is required"),
+  content: z.string().min(1, "content is required"),
+  assignee: z.string().default(""),
+  serviceCode: z.string().optional(),
+  metrics: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+  alerts: z.record(z.string(), z.union([z.string(), z.boolean(), z.number()])).optional(),
+});
+
+// POST /api/cowork/reports/automation — Accept automation-generated reports
+export const POST = withApiHandler(async (req: NextRequest) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  try {
-    const body = await req.json();
-    const { seat, reportType, title, content, assignee, serviceCode, metrics, alerts } = body;
+  const body = await req.json();
+  const parsed = reportBodySchema.safeParse(body);
+  if (!parsed.success) {
+    throw ApiError.badRequest("Validation failed", parsed.error.flatten().fieldErrors);
+  }
 
-    if (!seat || !title || !content) {
-      return NextResponse.json(
-        { error: "seat, title, and content are required" },
-        { status: 400 }
-      );
-    }
+  const { seat, reportType, title, content, assignee, serviceCode, metrics, alerts } = parsed.data;
 
-    // Resolve service
-    let serviceId: string | undefined;
-    if (serviceCode) {
-      const service = await resolveServiceByCode(serviceCode);
-      serviceId = service?.id;
-    }
+  let serviceId: string | undefined;
+  if (serviceCode) {
+    const service = await resolveServiceByCode(serviceCode);
+    serviceId = service?.id;
+  }
 
-    // Resolve assignee
-    const assignedUserIds = await resolveAssignee({
-      assignee: assignee || "",
-      seat,
-      serviceCode,
+  const assignedUserIds = await resolveAssignee({
+    assignee: assignee || "",
+    seat,
+    serviceCode,
+  });
+
+  if (assignedUserIds.length === 0) {
+    const report = await prisma.coworkReport.create({
+      data: {
+        seat,
+        reportType: reportType || "general",
+        title,
+        content,
+        metrics: metrics || undefined,
+        alerts: alerts || undefined,
+        serviceCode,
+        serviceId,
+      },
     });
+    return NextResponse.json({ report, assignedTo: null }, { status: 201 });
+  }
 
-    // Create report(s) — one per assigned user, or one unassigned if no users resolved
-    if (assignedUserIds.length === 0) {
-      const report = await prisma.coworkReport.create({
+  const reports = await prisma.$transaction(
+    assignedUserIds.map((userId) =>
+      prisma.coworkReport.create({
         data: {
           seat,
           reportType: reportType || "general",
@@ -51,50 +71,21 @@ export async function POST(req: NextRequest) {
           alerts: alerts || undefined,
           serviceCode,
           serviceId,
+          assignedToId: userId,
         },
-      });
-      return NextResponse.json({ report, assignedTo: null }, { status: 201 });
-    }
+      })
+    )
+  );
 
-    const reports = await prisma.$transaction(
-      assignedUserIds.map((userId) =>
-        prisma.coworkReport.create({
-          data: {
-            seat,
-            reportType: reportType || "general",
-            title,
-            content,
-            metrics: metrics || undefined,
-            alerts: alerts || undefined,
-            serviceCode,
-            serviceId,
-            assignedToId: userId,
-          },
-        })
-      )
-    );
+  return NextResponse.json(
+    { reports, assignedTo: assignedUserIds },
+    { status: 201 },
+  );
+});
 
-    return NextResponse.json(
-      { reports, assignedTo: assignedUserIds },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Cowork report creation failed:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * GET /api/cowork/reports/automation — Fetch reports filtered by user, seat, or status
- *
- * Auth: API key with `reports:write` scope
- * Query: ?userId=...&seat=...&status=...&limit=50
- */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+// GET /api/cowork/reports/automation — Fetch reports
+export const GET = withApiHandler(async (req: NextRequest) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -119,4 +110,4 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({ reports });
-}
+});

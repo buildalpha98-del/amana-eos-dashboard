@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const importEntrySchema = z.object({
   email: z.string().email(),
   date: z.string().min(1),
@@ -26,11 +25,8 @@ const importSchema = z.object({
 });
 
 // POST /api/timesheets/import — bulk import entries from parsed data
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = importSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -149,4 +145,4 @@ export async function POST(req: NextRequest) {
     unmatched,
     entriesCreated: created.count,
   });
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const patchSchema = z.object({
+  itemIds: z.array(z.string().min(1)).min(1, "itemIds array is required"),
+});
 
 /**
  * PATCH /api/audits/templates/[id]/items/reorder — reorder items
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
-  const { itemIds } = await req.json();
-
-  if (!Array.isArray(itemIds) || itemIds.length === 0) {
-    return NextResponse.json({ error: "itemIds array is required" }, { status: 400 });
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
+  const body = await req.json();
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
   }
+  const { itemIds } = parsed.data;
 
   // Verify all items belong to this template
   const items = await prisma.auditTemplateItem.findMany({
@@ -45,4 +48,4 @@ export async function PATCH(
   );
 
   return NextResponse.json({ reordered: itemIds.length });
-}
+}, { roles: ["owner", "head_office", "admin"] });

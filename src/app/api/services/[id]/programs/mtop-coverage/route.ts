@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const MTOP_LABELS: Record<number, string> = {
   1: "Identity",
   2: "Connected",
@@ -11,14 +10,8 @@ const MTOP_LABELS: Record<number, string> = {
 };
 
 // GET /api/services/[id]/programs/mtop-coverage?weekStart=YYYY-MM-DD
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const url = new URL(req.url);
   const weekStartParam = url.searchParams.get("weekStart");
 
@@ -65,4 +58,4 @@ export async function GET(
     untaggedActivities: untagged,
     coverage,
   });
-}
+});

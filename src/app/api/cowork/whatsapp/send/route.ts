@@ -9,6 +9,8 @@ import {
   GROUP_TYPES,
   MESSAGE_TYPES,
 } from "@/lib/whatsapp-360";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const whatsappSendSchema = z.object({
   group: z.enum([...GROUP_TYPES]),
@@ -35,9 +37,9 @@ const whatsappSendSchema = z.object({
  * Send WhatsApp messages to parent groups via 360dialog.
  * Scope required: whatsapp:write
  */
-export async function POST(req: NextRequest) {
+export const POST = withApiHandler(async (req) => {
   // 1. Authenticate
-  const authError = authenticateCowork(req);
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -197,7 +199,7 @@ export async function POST(req: NextRequest) {
       ...(errors.length > 0 ? { warnings: errors } : {}),
     });
   } catch (err) {
-    console.error("[Cowork WhatsApp Send]", err);
+    logger.error("Cowork WhatsApp Send", { err });
     return NextResponse.json(
       {
         success: false,
@@ -206,4 +208,4 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
-}
+});

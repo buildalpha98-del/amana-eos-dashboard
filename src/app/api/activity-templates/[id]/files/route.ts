@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { withApiAuth } from "@/lib/server-auth";
+import { validateFileContent } from "@/lib/file-validation";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -20,14 +21,8 @@ const ALLOWED_TYPES = [
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 // GET /api/activity-templates/[id]/files
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const files = await prisma.activityTemplateFile.findMany({
     where: { templateId: id },
@@ -35,17 +30,11 @@ export async function GET(
   });
 
   return NextResponse.json(files);
-}
+});
 
 // POST /api/activity-templates/[id]/files — upload file
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   // Verify template exists
   const template = await prisma.activityTemplate.findFirst({
@@ -75,6 +64,18 @@ export async function POST(
     return NextResponse.json({ error: "File exceeds 10MB limit" }, { status: 400 });
   }
 
+  const bytes = await file.arrayBuffer();
+
+  // Validate file content matches declared MIME type (skip for text/csv and text/plain)
+  if (file.type !== "text/csv" && file.type !== "text/plain") {
+    if (!validateFileContent(bytes, file.type)) {
+      return NextResponse.json(
+        { error: "File content does not match declared type" },
+        { status: 400 },
+      );
+    }
+  }
+
   const ext = path.extname(file.name) || "";
   const baseName = path
     .basename(file.name, ext)
@@ -85,7 +86,6 @@ export async function POST(
   const uploadsDir = path.join(process.cwd(), "public", "uploads");
   await mkdir(uploadsDir, { recursive: true });
 
-  const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
   const filePath = path.join(uploadsDir, uniqueName);
   await writeFile(filePath, buffer);
@@ -102,4 +102,4 @@ export async function POST(
   });
 
   return NextResponse.json(record, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

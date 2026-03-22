@@ -1,17 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+
+const postSchema = z.object({
+  serviceId: z.string().min(1, "serviceId is required"),
+  parentName: z.string().min(1, "parentName is required"),
+  parentEmail: z.string().email().optional(),
+  parentPhone: z.string().optional(),
+  childName: z.string().optional(),
+  invoiceRef: z.string().optional(),
+  invoiceDate: z.string().min(1, "invoiceDate is required"),
+  dueDate: z.string().min(1, "dueDate is required"),
+  amountDue: z.number().positive("amountDue must be positive"),
+  amountPaid: z.number().min(0).default(0),
+  notes: z.string().optional(),
+  assigneeId: z.string().optional(),
+});
 
 /**
  * GET /api/billing/overdue
  * List overdue fee records with filters + summary stats
  */
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const scope = getServiceScope(session);
+export const GET = withApiAuth(async (req, session) => {
+const scope = getServiceScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
@@ -89,24 +103,28 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("[Billing Overdue GET]", err);
+    logger.error("Billing Overdue GET", { err });
     return NextResponse.json(
       { error: "Failed to fetch overdue records" },
       { status: 500 },
     );
   }
-}
+});
 
 /**
  * POST /api/billing/overdue
  * Create a new overdue fee record
  */
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  try {
-    const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+try {
+    const raw = await req.json();
+    const parsed = postSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
     const {
       serviceId,
       parentName,
@@ -117,20 +135,10 @@ export async function POST(req: NextRequest) {
       invoiceDate,
       dueDate,
       amountDue,
-      amountPaid = 0,
+      amountPaid,
       notes,
       assigneeId,
-    } = body;
-
-    if (!serviceId || !parentName || !invoiceDate || !dueDate || !amountDue) {
-      return NextResponse.json(
-        {
-          error:
-            "serviceId, parentName, invoiceDate, dueDate, and amountDue are required",
-        },
-        { status: 400 },
-      );
-    }
+    } = parsed.data;
 
     const balance = amountDue - amountPaid;
     const now = new Date();
@@ -173,10 +181,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(record, { status: 201 });
   } catch (err) {
-    console.error("[Billing Overdue POST]", err);
+    logger.error("Billing Overdue POST", { err });
     return NextResponse.json(
       { error: "Failed to create overdue record" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
-export async function GET() {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  try {
+export const GET = withApiAuth(async (req, session) => {
+try {
     const accounts = await prisma.socialConnection.findMany({
       where: { status: "connected" },
       select: {
@@ -22,10 +20,10 @@ export async function GET() {
 
     return NextResponse.json(accounts);
   } catch (err) {
-    console.error("Social accounts error:", err);
+    logger.error("Social accounts error", { err });
     return NextResponse.json(
       { error: "Failed to fetch social accounts" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

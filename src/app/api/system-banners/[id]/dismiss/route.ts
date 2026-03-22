@@ -1,16 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // POST /api/system-banners/[id]/dismiss — dismiss a banner for the current user
-export async function POST(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id: bannerId } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id: bannerId } = await context!.params!;
   const userId = session!.user.id;
 
   // Check banner exists
@@ -28,5 +21,5 @@ export async function POST(
     update: {},
   });
 
-  return NextResponse.json({ ok: true });
-}
+  return NextResponse.json({ success: true });
+});

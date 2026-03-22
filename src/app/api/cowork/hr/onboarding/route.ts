@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cowork/hr/onboarding
@@ -13,8 +15,8 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
  *   - status: "not_started" | "in_progress" | "completed" | "all" (default "all")
  *   - type: "onboarding" | "offboarding" | "all" (default "all")
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -141,10 +143,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ records: results, count: results.length, summary });
   } catch (err) {
-    console.error("[Cowork HR Onboarding GET]", err);
+    logger.error("Cowork HR Onboarding GET", { err });
     return NextResponse.json(
       { error: "Failed to fetch onboarding data" },
       { status: 500 },
     );
   }
-}
+});

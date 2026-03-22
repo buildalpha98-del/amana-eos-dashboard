@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/incidents/trends
@@ -10,11 +11,8 @@ import { getServiceScope, getStateScope } from "@/lib/service-scope";
  * - 4-week rolling average per centre
  * - Flagged centres (3+ incidents or rising trend)
  */
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const scope = getServiceScope(session);
+export const GET = withApiAuth(async (req, session) => {
+const scope = getServiceScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const weeks = parseInt(searchParams.get("weeks") || "8");
@@ -144,7 +142,7 @@ export async function GET(req: NextRequest) {
       byTimeOfDay,
     });
   } catch (err) {
-    console.error("[Incidents Trends GET]", err);
+    logger.error("Incidents Trends GET", { err });
     return NextResponse.json({ error: "Failed to compute incident trends" }, { status: 500 });
   }
-}
+});

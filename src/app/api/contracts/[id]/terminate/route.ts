@@ -1,22 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const terminateSchema = z.object({
   notes: z.string().optional(),
   endDate: z.string().optional(),
 });
 
 // POST /api/contracts/[id]/terminate — terminate a contract (owner/admin only)
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const contract = await prisma.employmentContract.findUnique({
     where: { id },
@@ -89,4 +82,4 @@ export async function POST(
   });
 
   return NextResponse.json(updated);
-}
+}, { roles: ["owner", "head_office", "admin"] });

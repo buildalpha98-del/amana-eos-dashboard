@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import type { ScenarioInputs, ScenarioOutputs } from "@/lib/scenario-engine";
 
 export interface SavedScenario {
@@ -19,11 +20,8 @@ export interface SavedScenario {
 export function useScenarios() {
   return useQuery<SavedScenario[]>({
     queryKey: ["scenarios"],
-    queryFn: async () => {
-      const res = await fetch("/api/scenarios");
-      if (!res.ok) throw new Error("Failed to fetch scenarios");
-      return res.json();
-    },
+    queryFn: () => fetchApi<SavedScenario[]>("/api/scenarios"),
+    retry: 2,
   });
 }
 
@@ -32,12 +30,9 @@ export function useScenarios() {
 export function useCurrentStateInputs() {
   return useQuery<{ source: string; inputs: ScenarioInputs }>({
     queryKey: ["scenarios", "current-state"],
-    queryFn: async () => {
-      const res = await fetch("/api/scenarios/current-state");
-      if (!res.ok) throw new Error("Failed to fetch current state");
-      return res.json();
-    },
+    queryFn: () => fetchApi<{ source: string; inputs: ScenarioInputs }>("/api/scenarios/current-state"),
     staleTime: 5 * 60 * 1000,
+    retry: 2,
   });
 }
 
@@ -52,17 +47,17 @@ export function useSaveScenario() {
       inputs: ScenarioInputs;
       outputs: ScenarioOutputs;
     }) => {
-      const res = await fetch("/api/scenarios", {
+      return mutateApi<SavedScenario>("/api/scenarios", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Failed to save scenario");
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["scenarios"] });
       toast({ description: "Scenario saved" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -73,13 +68,14 @@ export function useDeleteScenario() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/scenarios/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete scenario");
-      return res.json();
+      return mutateApi(`/api/scenarios/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["scenarios"] });
       toast({ description: "Scenario deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 /**
  * Manual sync trigger — proxies to the cron endpoint with CRON_SECRET auth.
  * This allows the settings UI to trigger a sync without exposing the secret.
  */
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   if (!["owner", "admin"].includes(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -40,10 +37,10 @@ export async function POST(req: NextRequest) {
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
-    console.error("[OWNA] Manual sync trigger failed:", err);
+    logger.error("OWNA: Manual sync trigger failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Sync failed" },
       { status: 500 },
     );
   }
-}
+});

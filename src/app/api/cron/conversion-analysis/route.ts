@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cron/conversion-analysis
@@ -12,7 +14,7 @@ import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
  * When OWNA API family-level data becomes available, this will be enhanced
  * to identify specific families rather than service-level aggregates.
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
@@ -125,10 +127,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     await guard.fail(err);
-    console.error("Conversion analysis cron failed:", err);
+    logger.error("Conversion analysis cron failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },
       { status: 500 }
     );
   }
-}
+});

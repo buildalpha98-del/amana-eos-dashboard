@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateProjectSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
@@ -14,14 +13,8 @@ const updateProjectSchema = z.object({
 });
 
 // GET /api/projects/[id]
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const project = await prisma.project.findUnique({
     where: { id },
@@ -44,17 +37,11 @@ export async function GET(
   }
 
   return NextResponse.json(project);
-}
+});
 
 // PATCH /api/projects/[id]
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateProjectSchema.safeParse(body);
   if (!parsed.success) {
@@ -97,17 +84,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(project);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/projects/[id] - soft delete
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   await prisma.project.update({
     where: { id },
@@ -125,4 +106,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

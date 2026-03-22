@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import {
   computeHealthScore,
   type ScoreInputMetrics,
   type ScoreInputFinancials,
   type ScoreInputEOS,
 } from "@/lib/health-score";
+import { withApiAuth } from "@/lib/server-auth";
 
 // GET /api/performance/history — returns last 6 months of scores per centre
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const months = parseInt(new URL(req.url).searchParams.get("months") || "6", 10);
   const since = new Date();
   since.setMonth(since.getMonth() - months);
@@ -288,4 +285,4 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({ centres: history, orgAvg, months: sortedMonths });
-}
+}, { roles: ["owner", "head_office", "admin"] });

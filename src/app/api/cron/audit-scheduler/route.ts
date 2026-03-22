@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cron/audit-scheduler
@@ -8,7 +10,7 @@ import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
  * Monthly cron (1st of month, 5 AM AEST / 19:00 UTC prev day) — schedules
  * audit instances for the current month based on active templates.
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
@@ -153,10 +155,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     await guard.fail(err);
-    console.error("Audit scheduler cron failed:", err);
+    logger.error("Audit scheduler cron failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },
       { status: 500 }
     );
   }
-}
+});

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
 import type { DocumentStatus } from "@/lib/data-room-config";
 
 export interface DataRoomItem {
@@ -32,11 +33,8 @@ export interface DataRoomResponse {
 export function useDataRoom() {
   return useQuery<DataRoomResponse>({
     queryKey: ["data-room"],
-    queryFn: async () => {
-      const res = await fetch("/api/data-room");
-      if (!res.ok) throw new Error("Failed to fetch data room");
-      return res.json();
-    },
+    queryFn: () => fetchApi<DataRoomResponse>("/api/data-room"),
+    retry: 2,
     staleTime: 60_000,
   });
 }

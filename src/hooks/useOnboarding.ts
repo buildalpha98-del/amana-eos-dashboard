@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface OnboardingTaskData {
   id: string;
@@ -57,10 +59,9 @@ export function useOnboardingPacks(serviceId?: string) {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (serviceId) params.set("serviceId", serviceId);
-      const res = await fetch(`/api/onboarding/packs?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch onboarding packs");
-      return res.json();
+      return fetchApi<OnboardingPackData[]>(`/api/onboarding/packs?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -68,11 +69,10 @@ export function useOnboardingPack(id: string | null) {
   return useQuery<OnboardingPackData & { tasks: OnboardingTaskData[]; assignments: StaffOnboardingData[] }>({
     queryKey: ["onboarding-pack", id],
     queryFn: async () => {
-      const res = await fetch(`/api/onboarding/packs/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch onboarding pack");
-      return res.json();
+      return fetchApi(`/api/onboarding/packs/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -80,19 +80,16 @@ export function useCreateOnboardingPack() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
-      const res = await fetch("/api/onboarding/packs", {
+      return mutateApi("/api/onboarding/packs", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create pack");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["onboarding-packs"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -101,21 +98,18 @@ export function useUpdateOnboardingPack() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string } & Record<string, unknown>) => {
-      const res = await fetch(`/api/onboarding/packs/${id}`, {
+      return mutateApi(`/api/onboarding/packs/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update pack");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["onboarding-packs"] });
       qc.invalidateQueries({ queryKey: ["onboarding-pack"] });
       qc.invalidateQueries({ queryKey: ["onboarding-pack-detail"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -124,15 +118,13 @@ export function useDeleteOnboardingPack() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/onboarding/packs/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to delete pack");
-      }
-      return res.json();
+      return mutateApi(`/api/onboarding/packs/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["onboarding-packs"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -143,10 +135,9 @@ export function useOnboardingAssignments(userId?: string) {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (userId) params.set("userId", userId);
-      const res = await fetch(`/api/onboarding/assign?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch assignments");
-      return res.json();
+      return fetchApi<StaffOnboardingData[]>(`/api/onboarding/assign?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -154,20 +145,17 @@ export function useAssignOnboarding() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { userId: string; packId: string; dueDate?: string }) => {
-      const res = await fetch("/api/onboarding/assign", {
+      return mutateApi("/api/onboarding/assign", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to assign pack");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["onboarding-assignments"] });
       qc.invalidateQueries({ queryKey: ["onboarding-pack"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -176,20 +164,17 @@ export function useUpdateOnboardingProgress() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { onboardingId: string; taskId: string; completed: boolean; notes?: string }) => {
-      const res = await fetch("/api/onboarding/assign", {
+      return mutateApi("/api/onboarding/assign", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update progress");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["onboarding-assignments"] });
       qc.invalidateQueries({ queryKey: ["onboarding-pack"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

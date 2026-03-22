@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const patchSchema = z.object({
+  title: z.string().min(1).optional(),
+  responsibilities: z.array(z.string()).optional(),
+  parentId: z.string().nullable().optional(),
+  order: z.number().optional(),
+  assigneeIds: z.array(z.string()).optional(),
+});
 
 // ---------- PATCH /api/accountability-chart/[id] ----------
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const body = await req.json();
-  const { title, responsibilities, parentId, order, assigneeIds } = body;
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
+  const { title, responsibilities, parentId, order, assigneeIds } = parsed.data;
 
   // Verify seat exists
   const existing = await prisma.accountabilitySeat.findUnique({ where: { id } });
@@ -27,9 +37,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Cannot set seat as its own parent" }, { status: 400 });
     }
     // Walk up tree to check for circular reference
-    let current = parentId;
+    let current: string | null = parentId;
     while (current) {
-      const node = await prisma.accountabilitySeat.findUnique({
+      const node: { parentId: string | null } | null = await prisma.accountabilitySeat.findUnique({
         where: { id: current },
         select: { parentId: true },
       });
@@ -72,18 +82,12 @@ export async function PATCH(
   });
 
   return NextResponse.json(seat);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // ---------- DELETE /api/accountability-chart/[id] ----------
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const existing = await prisma.accountabilitySeat.findUnique({
     where: { id },
@@ -106,4 +110,4 @@ export async function DELETE(
   await prisma.accountabilitySeat.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { parseJsonBody } from "@/lib/api-error";
 
 const childSchema = z.object({
   name: z.string(),
@@ -30,14 +32,8 @@ const updateEnquirySchema = z.object({
 });
 
 // GET /api/enquiries/[id] — single enquiry with all relations
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   try {
     const enquiry = await prisma.parentEnquiry.findUnique({
@@ -55,30 +51,24 @@ export async function GET(
 
     return NextResponse.json(enquiry);
   } catch (err) {
-    console.error("[Enquiry GET]", err);
+    logger.error("Enquiry GET", { err });
     return NextResponse.json(
       { error: "Failed to fetch enquiry" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // PATCH /api/enquiries/[id] — update enquiry
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const data = updateEnquirySchema.parse(body);
 
     // If stage is changing, auto-update stageChangedAt and log daysInStage
-    const updateData: any = { ...data };
+    const updateData: Record<string, unknown> = { ...data };
     if (data.stage) {
       const existing = await prisma.parentEnquiry.findUnique({
         where: { id },
@@ -96,7 +86,7 @@ export async function PATCH(
 
         // Schedule nurture steps for the new stage (fire-and-forget)
         scheduleNurtureFromStageChange(id, data.stage).catch((err) =>
-          console.error("[Enquiry] Nurture scheduling failed:", err),
+          logger.error("Enquiry: Nurture scheduling failed", { err }),
         );
       }
     }
@@ -118,23 +108,17 @@ export async function PATCH(
         { status: 400 },
       );
     }
-    console.error("[Enquiry PATCH]", err);
+    logger.error("Enquiry PATCH", { err });
     return NextResponse.json(
       { error: "Failed to update enquiry" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/enquiries/[id] — soft delete
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   try {
     await prisma.parentEnquiry.update({
@@ -144,10 +128,10 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[Enquiry DELETE]", err);
+    logger.error("Enquiry DELETE", { err });
     return NextResponse.json(
       { error: "Failed to delete enquiry" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });

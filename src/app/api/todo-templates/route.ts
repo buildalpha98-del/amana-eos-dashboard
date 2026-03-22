@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createTemplateSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -13,11 +12,8 @@ const createTemplateSchema = z.object({
 });
 
 // GET /api/todo-templates — list all active templates
-export async function GET() {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const templates = await prisma.todoTemplate.findMany({
+export const GET = withApiAuth(async (req, session) => {
+const templates = await prisma.todoTemplate.findMany({
     where: { isActive: true },
     include: {
       assignee: { select: { id: true, name: true, email: true, avatar: true } },
@@ -27,14 +23,11 @@ export async function GET() {
   });
 
   return NextResponse.json(templates);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // POST /api/todo-templates — create a new template
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createTemplateSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -71,4 +64,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(template, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

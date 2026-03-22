@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateAssetSchema = z.object({
   name: z.string().min(1).optional(),
   type: z
@@ -13,14 +12,8 @@ const updateAssetSchema = z.object({
 });
 
 // GET /api/marketing/assets/:id — get a single asset
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const asset = await prisma.marketingAsset.findUnique({
     where: { id },
@@ -31,17 +24,11 @@ export async function GET(
   }
 
   return NextResponse.json(asset);
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });
 
 // PATCH /api/marketing/assets/:id — update an asset
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateAssetSchema.safeParse(body);
 
@@ -73,17 +60,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(asset);
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });
 
 // DELETE /api/marketing/assets/:id — soft delete an asset
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const existing = await prisma.marketingAsset.findUnique({ where: { id } });
   if (!existing || existing.deleted) {
@@ -105,4 +86,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

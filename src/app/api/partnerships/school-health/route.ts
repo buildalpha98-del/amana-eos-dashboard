@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 /**
  * GET /api/partnerships/school-health
  *
@@ -15,10 +14,7 @@ import { requireAuth } from "@/lib/server-auth";
  *
  * Sorted ascending (weakest first).
  */
-export async function GET() {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const services = await prisma.service.findMany({
     where: { status: "active" },
     select: {
@@ -134,4 +130,4 @@ export async function GET() {
   results.sort((a, b) => a.healthScore - b.healthScore);
 
   return NextResponse.json({ schools: results });
-}
+});

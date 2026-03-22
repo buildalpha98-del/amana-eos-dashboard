@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { complianceAlertEmail, complianceAdminSummaryEmail } from "@/lib/email-templates";
 import { acquireCronLock } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cron/compliance-alerts
@@ -12,7 +14,7 @@ import { acquireCronLock } from "@/lib/cron-guard";
  *
  * Auth: Bearer CRON_SECRET
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -157,13 +159,12 @@ export async function GET(req: NextRequest) {
         }
       }
     } else {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("[Compliance Cron] No Resend API key — logging only");
-        console.log(`  Expired: ${expired.length}`);
-        console.log(`  Due 7d: ${due7d.length}`);
-        console.log(`  Due 14d: ${due14d.length}`);
-        console.log(`  Due 30d: ${due30d.length}`);
-      }
+      logger.debug("Compliance cron: no Resend API key — logging only", {
+        expired: expired.length,
+        due7d: due7d.length,
+        due14d: due14d.length,
+        due30d: due30d.length,
+      });
     }
 
     // ── Overdue Audit Escalation ──────────────────────────────
@@ -218,7 +219,7 @@ export async function GET(req: NextRequest) {
         });
       }
     } catch (auditErr) {
-      console.error("Overdue audit escalation failed:", auditErr);
+      logger.error("Overdue audit escalation failed", { err: auditErr });
     }
 
     await guard.complete({ total: expiringCerts.length, emailsSent, overdueAudits });
@@ -238,10 +239,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     await guard.fail(err);
-    console.error("Compliance alert cron failed:", err);
+    logger.error("Compliance alert cron failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },
       { status: 500 }
     );
   }
-}
+});

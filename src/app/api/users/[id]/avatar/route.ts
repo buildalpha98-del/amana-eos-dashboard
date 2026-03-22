@@ -1,20 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { uploadFile, deleteFile } from "@/lib/storage";
+import { withApiAuth } from "@/lib/server-auth";
+import { validateFileContent } from "@/lib/file-validation";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 // POST /api/users/[id]/avatar — upload or replace avatar
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const isAdmin = ["owner", "admin"].includes(session!.user.role);
   const isSelf = session!.user.id === id;
 
@@ -51,8 +46,17 @@ export async function POST(
     );
   }
 
+  // Validate file content matches declared MIME type
+  const arrayBuf = await file.arrayBuffer();
+  if (!validateFileContent(arrayBuf, file.type)) {
+    return NextResponse.json(
+      { error: "File content does not match declared type" },
+      { status: 400 },
+    );
+  }
+
   // Convert file to buffer
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = Buffer.from(arrayBuf);
 
   // Determine extension from MIME type
   const ext = file.type === "image/png" ? ".png"
@@ -84,17 +88,11 @@ export async function POST(
   });
 
   return NextResponse.json({ avatar: url });
-}
+});
 
 // DELETE /api/users/[id]/avatar — remove avatar
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const isAdmin = ["owner", "admin"].includes(session!.user.role);
   const isSelf = session!.user.id === id;
 
@@ -125,4 +123,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ avatar: null });
-}
+});

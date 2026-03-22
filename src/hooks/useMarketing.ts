@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import type {
   MarketingPlatform,
   MarketingPostStatus,
@@ -111,10 +113,9 @@ export function useCampaigns(filters?: {
   return useQuery<CampaignData[]>({
     queryKey: ["campaigns", filters?.status, filters?.type, filters?.serviceId],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/campaigns${qs ? `?${qs}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch campaigns");
-      return res.json();
+      return fetchApi<CampaignData[]>(`/api/marketing/campaigns${qs ? `?${qs}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -122,11 +123,10 @@ export function useCampaign(id: string) {
   return useQuery<CampaignDetail>({
     queryKey: ["campaign", id],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/campaigns/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch campaign");
-      return res.json();
+      return fetchApi<CampaignDetail>(`/api/marketing/campaigns/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -148,20 +148,17 @@ export function useCreateCampaign() {
       deliverables?: string;
       serviceIds?: string[];
     }) => {
-      const res = await fetch("/api/marketing/campaigns", {
+      return mutateApi("/api/marketing/campaigns", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create campaign");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -188,21 +185,18 @@ export function useUpdateCampaign() {
       deliverables?: string | null;
       serviceIds?: string[];
     }) => {
-      const res = await fetch(`/api/marketing/campaigns/${id}`, {
+      return mutateApi(`/api/marketing/campaigns/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update campaign");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["campaign"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -211,15 +205,16 @@ export function useDeleteCampaign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/marketing/campaigns/${id}`, {
+      return mutateApi(`/api/marketing/campaigns/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete campaign");
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -230,13 +225,12 @@ export function useCampaignComments(campaignId: string) {
   return useQuery<CommentData[]>({
     queryKey: ["campaignComments", campaignId],
     queryFn: async () => {
-      const res = await fetch(
+      return fetchApi<CommentData[]>(
         `/api/marketing/campaigns/${campaignId}/comments`
       );
-      if (!res.ok) throw new Error("Failed to fetch comments");
-      return res.json();
     },
     enabled: !!campaignId,
+    retry: 2,
   });
 }
 
@@ -250,25 +244,22 @@ export function useAddCampaignComment() {
       campaignId: string;
       text: string;
     }) => {
-      const res = await fetch(
+      return mutateApi(
         `/api/marketing/campaigns/${campaignId}/comments`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: { text },
         }
       );
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to add comment");
-      }
-      return res.json();
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({
         queryKey: ["campaignComments", vars.campaignId],
       });
       qc.invalidateQueries({ queryKey: ["campaign", vars.campaignId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -300,10 +291,9 @@ export function usePosts(filters?: {
       filters?.serviceId,
     ],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/posts${qs ? `?${qs}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch posts");
-      return res.json();
+      return fetchApi<PostData[]>(`/api/marketing/posts${qs ? `?${qs}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -311,11 +301,10 @@ export function usePost(id: string) {
   return useQuery<PostData & { recurringChildren?: { id: string; title: string; scheduledDate: string | null; status: MarketingPostStatus }[] }>({
     queryKey: ["post", id],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/posts/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch post");
-      return res.json();
+      return fetchApi(`/api/marketing/posts/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -337,20 +326,17 @@ export function useCreatePost() {
       serviceIds?: string[];
       canvaDesignUrl?: string;
     }) => {
-      const res = await fetch("/api/marketing/posts", {
+      return mutateApi("/api/marketing/posts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create post");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -381,21 +367,18 @@ export function useUpdatePost() {
       externalPostId?: string | null;
       externalUrl?: string | null;
     }) => {
-      const res = await fetch(`/api/marketing/posts/${id}`, {
+      return mutateApi(`/api/marketing/posts/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update post");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["post"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -404,15 +387,16 @@ export function useDeletePost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/marketing/posts/${id}`, {
+      return mutateApi(`/api/marketing/posts/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete post");
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -427,10 +411,9 @@ export function useMarketingOverview(serviceId?: string) {
   return useQuery<OverviewData>({
     queryKey: ["marketing-overview", serviceId],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/overview${qs ? `?${qs}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch overview");
-      return res.json();
+      return fetchApi<OverviewData>(`/api/marketing/overview${qs ? `?${qs}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -460,10 +443,9 @@ export function useMarketingAnalytics(period: number, serviceId?: string) {
   return useQuery<AnalyticsData>({
     queryKey: ["marketing-analytics", period, serviceId],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/analytics?${qs}`);
-      if (!res.ok) throw new Error("Failed to fetch analytics");
-      return res.json();
+      return fetchApi<AnalyticsData>(`/api/marketing/analytics?${qs}`);
     },
+    retry: 2,
   });
 }
 
@@ -473,10 +455,9 @@ export function useCentreCoverage() {
   return useQuery({
     queryKey: ["marketing-coverage"],
     queryFn: async () => {
-      const res = await fetch("/api/marketing/coverage");
-      if (!res.ok) throw new Error("Failed to fetch coverage");
-      return res.json();
+      return fetchApi<any>("/api/marketing/coverage");
     },
+    retry: 2,
   });
 }
 
@@ -486,18 +467,18 @@ export function useBatchPostAction() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { postIds: string[]; action: string; [key: string]: unknown }) => {
-      const res = await fetch("/api/marketing/posts/batch", {
+      return mutateApi("/api/marketing/posts/batch", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Batch action failed");
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["marketing-overview"] });
       qc.invalidateQueries({ queryKey: ["marketing-coverage"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -518,10 +499,9 @@ export function useKPIs() {
   return useQuery<KPIData[]>({
     queryKey: ["marketingKPIs"],
     queryFn: async () => {
-      const res = await fetch("/api/marketing/kpis");
-      if (!res.ok) throw new Error("Failed to fetch KPIs");
-      return res.json();
+      return fetchApi<KPIData[]>("/api/marketing/kpis");
     },
+    retry: 2,
   });
 }
 
@@ -536,19 +516,16 @@ export function useCreateKPI() {
       period: string;
       category: string;
     }) => {
-      const res = await fetch("/api/marketing/kpis", {
+      return mutateApi("/api/marketing/kpis", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create KPI");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketingKPIs"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -568,19 +545,16 @@ export function useUpdateKPI() {
       period?: string;
       category?: string;
     }) => {
-      const res = await fetch(`/api/marketing/kpis/${id}`, {
+      return mutateApi(`/api/marketing/kpis/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update KPI");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketingKPIs"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -589,14 +563,15 @@ export function useDeleteKPI() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/marketing/kpis/${id}`, {
+      return mutateApi(`/api/marketing/kpis/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete KPI");
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketingKPIs"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -621,10 +596,9 @@ export function useAssets(filters?: { type?: string; search?: string }) {
   return useQuery<AssetData[]>({
     queryKey: ["marketingAssets", filters?.type, filters?.search],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/assets${qs ? `?${qs}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch assets");
-      return res.json();
+      return fetchApi<AssetData[]>(`/api/marketing/assets${qs ? `?${qs}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -632,15 +606,15 @@ export function useCreateAsset() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { name: string; type?: string; url: string; tags?: string[] }) => {
-      const res = await fetch("/api/marketing/assets", {
+      return mutateApi("/api/marketing/assets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to create asset"); }
-      return res.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketingAssets"] }); },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -648,15 +622,15 @@ export function useUpdateAsset() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; name?: string; type?: string; url?: string; tags?: string[] }) => {
-      const res = await fetch(`/api/marketing/assets/${id}`, {
+      return mutateApi(`/api/marketing/assets/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to update asset"); }
-      return res.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketingAssets"] }); },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -664,11 +638,12 @@ export function useDeleteAsset() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/marketing/assets/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete asset");
-      return res.json();
+      return mutateApi(`/api/marketing/assets/${id}`, { method: "DELETE" });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketingAssets"] }); },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -690,10 +665,9 @@ export function useTemplates(platform?: string) {
   return useQuery<TemplateData[]>({
     queryKey: ["marketingTemplates", platform],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/templates${qs}`);
-      if (!res.ok) throw new Error("Failed to fetch templates");
-      return res.json();
+      return fetchApi<TemplateData[]>(`/api/marketing/templates${qs}`);
     },
+    retry: 2,
   });
 }
 
@@ -701,15 +675,15 @@ export function useCreateTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { name: string; platform: string; pillar?: string; content: string; notes?: string; hashtags?: string }) => {
-      const res = await fetch("/api/marketing/templates", {
+      return mutateApi("/api/marketing/templates", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to create template"); }
-      return res.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketingTemplates"] }); },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -717,15 +691,15 @@ export function useUpdateTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; name?: string; platform?: string; pillar?: string | null; content?: string; notes?: string | null; hashtags?: string | null }) => {
-      const res = await fetch(`/api/marketing/templates/${id}`, {
+      return mutateApi(`/api/marketing/templates/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to update template"); }
-      return res.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketingTemplates"] }); },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -733,11 +707,12 @@ export function useDeleteTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/marketing/templates/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete template");
-      return res.json();
+      return mutateApi(`/api/marketing/templates/${id}`, { method: "DELETE" });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketingTemplates"] }); },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -745,11 +720,12 @@ export function useUseTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (templateId: string) => {
-      const res = await fetch(`/api/marketing/templates/${templateId}/use`, { method: "POST" });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to use template"); }
-      return res.json();
+      return mutateApi(`/api/marketing/templates/${templateId}/use`, { method: "POST" });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketing-posts"] }); },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -768,10 +744,9 @@ export function useHashtagSets(category?: string) {
   return useQuery<HashtagSetData[]>({
     queryKey: ["marketingHashtags", category],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/hashtags${qs}`);
-      if (!res.ok) throw new Error("Failed to fetch hashtag sets");
-      return res.json();
+      return fetchApi<HashtagSetData[]>(`/api/marketing/hashtags${qs}`);
     },
+    retry: 2,
   });
 }
 
@@ -779,15 +754,15 @@ export function useCreateHashtagSet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { name: string; category: string; tags: string }) => {
-      const res = await fetch("/api/marketing/hashtags", {
+      return mutateApi("/api/marketing/hashtags", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to create hashtag set"); }
-      return res.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketingHashtags"] }); },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -795,15 +770,15 @@ export function useUpdateHashtagSet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; name?: string; category?: string; tags?: string }) => {
-      const res = await fetch(`/api/marketing/hashtags/${id}`, {
+      return mutateApi(`/api/marketing/hashtags/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Failed to update hashtag set"); }
-      return res.json();
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketingHashtags"] }); },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -811,11 +786,12 @@ export function useDeleteHashtagSet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/marketing/hashtags/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete hashtag set");
-      return res.json();
+      return mutateApi(`/api/marketing/hashtags/${id}`, { method: "DELETE" });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["marketingHashtags"] }); },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -860,6 +836,7 @@ export interface ImportResultData {
   errors: { row: number; message: string }[];
 }
 
+// FormData upload — keep raw fetch
 export function useImportCalendarPreview() {
   return useMutation<ImportPreviewData, Error, File>({
     mutationFn: async (file: File) => {
@@ -875,9 +852,13 @@ export function useImportCalendarPreview() {
       }
       return res.json();
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
+// FormData upload — keep raw fetch
 export function useImportCalendar() {
   const qc = useQueryClient();
   return useMutation<ImportResultData, Error, File>({
@@ -898,6 +879,9 @@ export function useImportCalendar() {
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["campaigns"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -942,10 +926,9 @@ export function useMarketingTasks(filters?: {
   return useQuery<MarketingTaskData[]>({
     queryKey: ["marketing-tasks", filters],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/tasks${qs ? `?${qs}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch tasks");
-      return res.json();
+      return fetchApi<MarketingTaskData[]>(`/api/marketing/tasks${qs ? `?${qs}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -953,11 +936,10 @@ export function useMarketingTask(id: string) {
   return useQuery<MarketingTaskData>({
     queryKey: ["marketing-task", id],
     queryFn: async () => {
-      const res = await fetch(`/api/marketing/tasks/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch task");
-      return res.json();
+      return fetchApi<MarketingTaskData>(`/api/marketing/tasks/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -975,19 +957,16 @@ export function useCreateMarketingTask() {
       postId?: string;
       serviceId?: string;
     }) => {
-      const res = await fetch("/api/marketing/tasks", {
+      return mutateApi("/api/marketing/tasks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create task");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-tasks"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -1011,20 +990,17 @@ export function useUpdateMarketingTask() {
       serviceId?: string | null;
       subtasks?: { text: string; done: boolean }[] | null;
     }) => {
-      const res = await fetch(`/api/marketing/tasks/${id}`, {
+      return mutateApi(`/api/marketing/tasks/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update task");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-tasks"] });
       qc.invalidateQueries({ queryKey: ["marketing-task"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -1033,14 +1009,15 @@ export function useDeleteMarketingTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/marketing/tasks/${id}`, {
+      return mutateApi(`/api/marketing/tasks/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete task");
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-tasks"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -1069,10 +1046,9 @@ export function useMarketingTaskTemplates() {
   return useQuery<MarketingTaskTemplateData[]>({
     queryKey: ["marketing-task-templates"],
     queryFn: async () => {
-      const res = await fetch("/api/marketing/task-templates");
-      if (!res.ok) throw new Error("Failed to fetch task templates");
-      return res.json();
+      return fetchApi<MarketingTaskTemplateData[]>("/api/marketing/task-templates");
     },
+    retry: 2,
   });
 }
 
@@ -1086,23 +1062,20 @@ export function useApplyMarketingTaskTemplate() {
       startDate?: string;
     }) => {
       const { templateId, ...body } = data;
-      const res = await fetch(
+      return mutateApi<{ created: number }>(
         `/api/marketing/task-templates/${templateId}/apply`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body,
         }
       );
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to apply template");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-tasks"] });
       qc.invalidateQueries({ queryKey: ["marketing-overview"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -1128,13 +1101,12 @@ export function useActivationAssignments(campaignId: string) {
   return useQuery<ActivationAssignmentData[]>({
     queryKey: ["activation-assignments", campaignId],
     queryFn: async () => {
-      const res = await fetch(
+      return fetchApi<ActivationAssignmentData[]>(
         `/api/marketing/campaigns/${campaignId}/activations`
       );
-      if (!res.ok) throw new Error("Failed to fetch activation assignments");
-      return res.json();
     },
     enabled: !!campaignId,
+    retry: 2,
   });
 }
 
@@ -1155,21 +1127,21 @@ export function useUpdateActivationAssignments() {
         status?: string;
       }[];
     }) => {
-      const res = await fetch(
+      return mutateApi(
         `/api/marketing/campaigns/${campaignId}/activations`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(assignments),
+          body: assignments,
         }
       );
-      if (!res.ok) throw new Error("Failed to update assignments");
-      return res.json();
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({
         queryKey: ["activation-assignments", vars.campaignId],
       });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -1180,19 +1152,17 @@ export function useApprovePost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (postId: string) => {
-      const res = await fetch(`/api/marketing/posts/${postId}/approve`, {
+      return mutateApi(`/api/marketing/posts/${postId}/approve`, {
         method: "POST",
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to approve post");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["post"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -1207,21 +1177,18 @@ export function useRejectPost() {
       postId: string;
       reason?: string;
     }) => {
-      const res = await fetch(`/api/marketing/posts/${postId}/reject`, {
+      return mutateApi(`/api/marketing/posts/${postId}/reject`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason }),
+        body: { reason },
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to reject post");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["post"] });
       qc.invalidateQueries({ queryKey: ["marketingOverview"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -1267,23 +1234,22 @@ export function useSocialConnections() {
   return useQuery<SocialConnectionData[]>({
     queryKey: ["social-connections"],
     queryFn: async () => {
-      const res = await fetch("/api/marketing/social/status");
-      if (!res.ok) throw new Error("Failed to fetch social connections");
-      return res.json();
+      return fetchApi<SocialConnectionData[]>("/api/marketing/social/status");
     },
+    retry: 2,
   });
 }
 
 export function useConnectSocial() {
   return useMutation({
     mutationFn: async (data: { platform: string }) => {
-      const res = await fetch("/api/marketing/social/connect", {
+      return mutateApi<{ authUrl: string; state: string }>("/api/marketing/social/connect", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Failed to initiate connection");
-      return res.json() as Promise<{ authUrl: string; state: string }>;
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -1292,15 +1258,15 @@ export function useDisconnectSocial() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { connectionId: string }) => {
-      const res = await fetch("/api/marketing/social/disconnect", {
+      return mutateApi("/api/marketing/social/disconnect", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Failed to disconnect");
-      return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["social-connections"] }),
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -1308,10 +1274,9 @@ export function useSocialAccounts() {
   return useQuery<SocialAccountData[]>({
     queryKey: ["social-accounts"],
     queryFn: async () => {
-      const res = await fetch("/api/marketing/social/accounts");
-      if (!res.ok) throw new Error("Failed to fetch social accounts");
-      return res.json();
+      return fetchApi<SocialAccountData[]>("/api/marketing/social/accounts");
     },
+    retry: 2,
   });
 }
 
@@ -1323,18 +1288,18 @@ export function useLinkSocialPost() {
       externalPostId: string;
       externalUrl: string;
     }) => {
-      const res = await fetch("/api/marketing/social/link-post", {
+      return mutateApi("/api/marketing/social/link-post", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Failed to link post");
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["marketing-posts"] });
       qc.invalidateQueries({ queryKey: ["social-connections"] });
       qc.invalidateQueries({ queryKey: ["post"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -1343,13 +1308,12 @@ export function useFetchSocialPosts(connectionId?: string) {
   return useQuery<SocialPostData[]>({
     queryKey: ["social-posts", connectionId],
     queryFn: async () => {
-      const res = await fetch(
+      return fetchApi<SocialPostData[]>(
         `/api/marketing/social/fetch-posts?connectionId=${connectionId}`
       );
-      if (!res.ok) throw new Error("Failed to fetch social posts");
-      return res.json();
     },
     enabled: !!connectionId,
+    retry: 2,
   });
 }
 
@@ -1389,10 +1353,9 @@ export function useTermCalendar(year?: number, term?: number, serviceId?: string
       if (term) params.set("term", String(term));
       if (serviceId) params.set("serviceId", serviceId);
       const qs = params.toString();
-      const res = await fetch(`/api/marketing/term-calendar${qs ? `?${qs}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch term calendar");
-      return res.json();
+      return fetchApi<TermCalendarData>(`/api/marketing/term-calendar${qs ? `?${qs}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -1423,9 +1386,8 @@ export function usePhotoCompliance() {
   return useQuery<PhotoComplianceData>({
     queryKey: ["photo-compliance"],
     queryFn: async () => {
-      const res = await fetch("/api/marketing/photo-compliance");
-      if (!res.ok) throw new Error("Failed to fetch photo compliance");
-      return res.json();
+      return fetchApi<PhotoComplianceData>("/api/marketing/photo-compliance");
     },
+    retry: 2,
   });
 }

@@ -1,21 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+
+const bodySchema = z.object({
+  reviewNotes: z.string().optional(),
+});
 
 /**
  * POST /api/cowork/audits/[id]/review — mark audit as reviewed
  * Auto-creates follow-up CoworkTodos from NO items.
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req, context) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const { id } = await params;
+  const { id } = await context!.params!;
   const body = await req.json();
-  const { reviewNotes } = body as { reviewNotes?: string };
+  const parsed = bodySchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
+  const { reviewNotes } = parsed.data;
 
   const instance = await prisma.auditInstance.findUnique({
     where: { id },
@@ -77,4 +87,4 @@ export async function POST(
     todosCreated,
     auditId: id,
   });
-}
+});

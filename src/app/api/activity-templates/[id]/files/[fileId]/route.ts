@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // DELETE /api/activity-templates/[id]/files/[fileId]
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string; fileId: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id, fileId } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id, fileId } = await context!.params!;
 
   const file = await prisma.activityTemplateFile.findFirst({
     where: { id: fileId, templateId: id },
@@ -34,4 +27,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

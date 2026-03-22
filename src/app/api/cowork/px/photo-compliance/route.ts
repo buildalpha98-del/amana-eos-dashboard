@@ -1,26 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const bodySchema = z.object({
+  serviceCode: z.string().min(1),
+  date: z.string().min(1),
+  confirmed: z.boolean().optional(),
+  notes: z.string().nullable().optional(),
+});
 
 /**
  * POST /api/cowork/px/photo-compliance
  * Log daily photo compliance confirmation for a centre.
  * Used by: px-daily-photo-check, daily checklist automations
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceCode, date, confirmed, notes } = body;
-
-    if (!serviceCode || !date) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Bad Request", message: "serviceCode and date required" },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { serviceCode, date, confirmed, notes } = parsed.data;
 
     const service = await prisma.service.findUnique({
       where: { code: serviceCode },
@@ -29,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     if (!service) {
       return NextResponse.json(
-        { error: "Not Found", message: `Service ${serviceCode} not found` },
+        { error: `Service ${serviceCode} not found` },
         { status: 404 }
       );
     }
@@ -65,10 +75,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /cowork/px/photo-compliance]", err);
+    logger.error("POST /cowork/px/photo-compliance", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});

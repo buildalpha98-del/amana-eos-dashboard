@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner"]);
-  if (error) return error;
-
-  await prisma.xeroConnection.update({
+export const POST = withApiAuth(async (req, session) => {
+await prisma.xeroConnection.update({
     where: { id: "singleton" },
     data: {
       status: "disconnected",
@@ -19,4 +16,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner"] });

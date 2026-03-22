@@ -1,29 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const opportunitySchema = z.object({
+  familyRef: z.string().min(1),
+  sessionType: z.enum(["bsc", "asc", "vc"]),
+  casualCount: z.number().optional(),
+  periodStart: z.string().min(1),
+  periodEnd: z.string().min(1),
+  status: z.string().optional(),
+  notes: z.string().nullable().optional(),
+  contactedAt: z.string().nullable().optional(),
+  convertedAt: z.string().nullable().optional(),
+});
+
+const bodySchema = z.object({
+  serviceCode: z.string().min(1),
+  opportunities: z.array(opportunitySchema).min(1),
+});
 
 /**
  * POST /api/cowork/finance/conversions
  * Upsert conversion opportunities identified by automation.
  * Used by: fin-casual-to-regular-conversion, mktg-casual-conversion-campaign
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceCode, opportunities } = body;
-
-    if (!serviceCode || !opportunities || !Array.isArray(opportunities)) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          error: "Bad Request",
-          message: "serviceCode and opportunities[] required",
-        },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { serviceCode, opportunities } = parsed.data;
 
     const service = await prisma.service.findUnique({
       where: { code: serviceCode },
@@ -32,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     if (!service) {
       return NextResponse.json(
-        { error: "Not Found", message: `Service ${serviceCode} not found` },
+        { error: `Service ${serviceCode} not found` },
         { status: 404 }
       );
     }
@@ -98,10 +115,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /cowork/finance/conversions]", err);
+    logger.error("POST /cowork/finance/conversions", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});

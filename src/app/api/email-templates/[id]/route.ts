@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const blockSchema = z.object({
   type: z.enum(["heading", "text", "image", "button", "divider", "spacer"]),
   text: z.string().optional(),
@@ -33,20 +32,8 @@ const templateInclude = {
 } as const;
 
 // GET /api/email-templates/:id
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth([
-    "owner",
-    "head_office",
-    "admin",
-    "coordinator",
-    "marketing",
-  ]);
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const template = await prisma.emailTemplate.findUnique({
     where: { id },
@@ -61,17 +48,11 @@ export async function GET(
   }
 
   return NextResponse.json(template);
-}
+});
 
 // PATCH /api/email-templates/:id
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const existing = await prisma.emailTemplate.findUnique({ where: { id } });
   if (!existing) {
@@ -114,17 +95,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(template);
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });
 
 // DELETE /api/email-templates/:id
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const existing = await prisma.emailTemplate.findUnique({ where: { id } });
   if (!existing) {
@@ -137,4 +112,4 @@ export async function DELETE(
   await prisma.emailTemplate.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import type { PipelineStage, LeadSource } from "@prisma/client";
 
 export interface CrmEmailTemplateData {
@@ -16,11 +18,8 @@ export interface CrmEmailTemplateData {
 export function useCrmEmailTemplates() {
   return useQuery<CrmEmailTemplateData[]>({
     queryKey: ["crm-email-templates"],
-    queryFn: async () => {
-      const res = await fetch("/api/crm/email-templates");
-      if (!res.ok) throw new Error("Failed to fetch email templates");
-      return res.json();
-    },
+    queryFn: () => fetchApi<CrmEmailTemplateData[]>("/api/crm/email-templates"),
+    retry: 2,
   });
 }
 
@@ -34,20 +33,12 @@ export function useCreateCrmEmailTemplate() {
       triggerStage?: string | null;
       pipeline?: string | null;
       sortOrder?: number;
-    }) => {
-      const res = await fetch("/api/crm/email-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create template");
-      }
-      return res.json();
-    },
+    }) => mutateApi("/api/crm/email-templates", { method: "POST", body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crm-email-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -66,20 +57,12 @@ export function useUpdateCrmEmailTemplate() {
       triggerStage?: string | null;
       pipeline?: string | null;
       sortOrder?: number;
-    }) => {
-      const res = await fetch(`/api/crm/email-templates/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update template");
-      }
-      return res.json();
-    },
+    }) => mutateApi(`/api/crm/email-templates/${id}`, { method: "PUT", body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crm-email-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -87,15 +70,13 @@ export function useUpdateCrmEmailTemplate() {
 export function useDeleteCrmEmailTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/crm/email-templates/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete template");
-      return res.json();
-    },
+    mutationFn: (id: string) =>
+      mutateApi(`/api/crm/email-templates/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["crm-email-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

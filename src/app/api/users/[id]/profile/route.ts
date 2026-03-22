@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { encrypt } from "@/lib/encryption";
+import { withApiAuth } from "@/lib/server-auth";
 
 const profileUpdateSchema = z.object({
   phone: z.string().optional(),
@@ -55,14 +55,8 @@ const STAFF_SELF_FIELDS = new Set([
 ]);
 
 // GET /api/users/[id]/profile
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   // Staff can only view own profile
   if (
@@ -118,17 +112,11 @@ export async function GET(
   }
 
   return NextResponse.json(user);
-}
+});
 
 // PATCH /api/users/[id]/profile
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const isAdmin = ["owner", "admin"].includes(session!.user.role);
   const isSelf = session!.user.id === id;
 
@@ -232,4 +220,4 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+});

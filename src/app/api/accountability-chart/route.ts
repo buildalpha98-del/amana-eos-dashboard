@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
+const postSchema = z.object({
+  title: z.string().min(1),
+  responsibilities: z.array(z.string()).default([]),
+  parentId: z.string().nullable().default(null),
+  order: z.number().default(0),
+  assigneeIds: z.array(z.string()).default([]),
+});
 // ---------- Helpers ----------
 
 interface SeatRow {
@@ -63,10 +71,7 @@ function buildTree(rows: SeatRow[]): SeatNode[] {
 
 // ---------- GET /api/accountability-chart ----------
 
-export async function GET() {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const rows = await prisma.accountabilitySeat.findMany({
     include: {
       assignees: {
@@ -79,20 +84,20 @@ export async function GET() {
   });
 
   return NextResponse.json(buildTree(rows));
-}
+});
 
 // ---------- POST /api/accountability-chart ----------
 
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   const body = await req.json();
-  const { title, responsibilities = [], parentId = null, order = 0, assigneeIds = [] } = body;
-
-  if (!title || typeof title !== "string") {
-    return NextResponse.json({ error: "Title is required" }, { status: 400 });
+  const parsed = postSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
   }
+  const { title, responsibilities, parentId, order, assigneeIds } = parsed.data;
 
   const seat = await prisma.accountabilitySeat.create({
     data: {
@@ -114,4 +119,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(seat, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

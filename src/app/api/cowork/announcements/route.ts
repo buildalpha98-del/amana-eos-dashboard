@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { authenticateCowork } from "../../_lib/auth";
+import { authenticateCowork, setVersionHeaders } from "../../_lib/auth";
 import { announcementSchema } from "../../_lib/validation";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // POST /api/cowork/announcements — Create an announcement
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -13,9 +15,10 @@ export async function POST(req: NextRequest) {
     const parsed = announcementSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0].message },
-        { status: 400 }
+      return setVersionHeaders(
+        NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 }),
+        1,
+        { deprecated: true },
       );
     }
 
@@ -34,19 +37,24 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(announcement, { status: 201 });
+    return setVersionHeaders(
+      NextResponse.json(announcement, { status: 201 }),
+      1,
+      { deprecated: true },
+    );
   } catch (err) {
-    console.error("[Cowork Announcements POST]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    logger.error("Cowork Announcements POST", { err });
+    return setVersionHeaders(
+      NextResponse.json({ error: "Internal server error" }, { status: 500 }),
+      1,
+      { deprecated: true },
     );
   }
-}
+});
 
 // GET /api/cowork/announcements — Retrieve announcements
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -68,14 +76,19 @@ export async function GET(req: NextRequest) {
       take: 20,
     });
 
-    const res = NextResponse.json({ announcements });
+    const res = setVersionHeaders(
+      NextResponse.json({ announcements }),
+      1,
+      { deprecated: true },
+    );
     res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     return res;
   } catch (err) {
-    console.error("[Cowork Announcements GET]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    logger.error("Cowork Announcements GET", { err });
+    return setVersionHeaders(
+      NextResponse.json({ error: "Internal server error" }, { status: 500 }),
+      1,
+      { deprecated: true },
     );
   }
-}
+});

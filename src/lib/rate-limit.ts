@@ -14,17 +14,26 @@ import { Redis } from "@upstash/redis";
 // ---------------------------------------------------------------------------
 
 let ratelimit: Ratelimit | null = null;
+let sharedRedis: Redis | null = null;
+
+/** Get or create the shared Redis client (reused across rate limiter and reset) */
+function getSharedRedis(): Redis | null {
+  if (sharedRedis) return sharedRedis;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+  sharedRedis = new Redis({ url, token });
+  return sharedRedis;
+}
 
 function getUpstashRatelimit(): Ratelimit | null {
   if (ratelimit) return ratelimit;
 
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-  if (!url || !token) return null;
+  const redis = getSharedRedis();
+  if (!redis) return null;
 
   ratelimit = new Ratelimit({
-    redis: new Redis({ url, token }),
+    redis,
     // 5 requests per 15-minute sliding window (matches original behaviour)
     limiter: Ratelimit.slidingWindow(5, "15 m"),
     analytics: true,
@@ -132,12 +141,11 @@ let apiKeyRatelimit: Ratelimit | null = null;
 function getApiKeyRatelimit(): Ratelimit | null {
   if (apiKeyRatelimit) return apiKeyRatelimit;
 
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
+  const redis = getSharedRedis();
+  if (!redis) return null;
 
   apiKeyRatelimit = new Ratelimit({
-    redis: new Redis({ url, token }),
+    redis,
     limiter: Ratelimit.slidingWindow(100, "1 m"),
     analytics: true,
     prefix: "ratelimit:apikey",
@@ -175,13 +183,9 @@ export async function checkApiKeyRateLimit(
  * Reset rate-limit for a key (e.g. on successful login).
  */
 export async function resetRateLimit(key: string): Promise<void> {
-  const upstash = getUpstashRatelimit();
+  const redis = getSharedRedis();
 
-  if (upstash) {
-    const redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    });
+  if (redis) {
     // Remove all sliding-window keys for this identifier
     const keys = await redis.keys(`ratelimit:login:${key}*`);
     if (keys.length > 0) {

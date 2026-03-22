@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+const bodySchema = z.object({
+  notificationIds: z.array(z.string().min(1)).min(1, "At least one notification ID is required"),
+});
 
-  const body = await req.json();
-  const { notificationIds } = body as { notificationIds?: string[] };
-
-  if (!notificationIds || notificationIds.length === 0) {
-    return NextResponse.json({ error: "No notification IDs provided" }, { status: 400 });
+export const POST = withApiAuth(async (req, session) => {
+  const raw = await req.json();
+  const parsed = bodySchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
   }
+  const { notificationIds } = parsed.data;
 
   await prisma.$transaction(
     notificationIds.map((id) =>
@@ -24,4 +29,4 @@ export async function POST(req: NextRequest) {
   );
 
   return NextResponse.json({ success: true });
-}
+});

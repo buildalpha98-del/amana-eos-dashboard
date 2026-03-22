@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // POST /api/marketing/templates/seed — seed pre-built OSHC content templates
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner"]);
-  if (error) return error;
-
-  const templates = [
+export const POST = withApiAuth(async (req, session) => {
+const templates = [
     {
       name: "Enrolment Open — Term Announcement",
       platform: "facebook" as const,
@@ -126,4 +122,4 @@ export async function POST(req: NextRequest) {
     skipped: templates.length - created,
     total: templates.length,
   });
-}
+}, { roles: ["owner"] });

@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import type { RecurrenceRule } from "@prisma/client";
 
 export interface TemplateAssignee {
@@ -34,11 +36,8 @@ export interface TodoTemplateData {
 export function useTodoTemplates() {
   return useQuery<TodoTemplateData[]>({
     queryKey: ["todo-templates"],
-    queryFn: async () => {
-      const res = await fetch("/api/todo-templates");
-      if (!res.ok) throw new Error("Failed to fetch templates");
-      return res.json();
-    },
+    queryFn: () => fetchApi<TodoTemplateData[]>("/api/todo-templates"),
+    retry: 2,
   });
 }
 
@@ -53,19 +52,13 @@ export function useCreateTemplate() {
       recurrence: RecurrenceRule;
       nextRunAt: string;
     }) => {
-      const res = await fetch("/api/todo-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create template");
-      }
-      return res.json();
+      return mutateApi("/api/todo-templates", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todo-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -86,19 +79,13 @@ export function useUpdateTemplate() {
       nextRunAt?: string;
       isActive?: boolean;
     }) => {
-      const res = await fetch(`/api/todo-templates/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update template");
-      }
-      return res.json();
+      return mutateApi(`/api/todo-templates/${id}`, { method: "PATCH", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todo-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -107,14 +94,13 @@ export function useDeleteTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/todo-templates/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete template");
-      return res.json();
+      return mutateApi(`/api/todo-templates/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todo-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
+const createVacancySchema = z.object({
+  serviceId: z.string().min(1, "serviceId is required"),
+  role: z.string().min(1, "role is required"),
+  employmentType: z.enum(["casual", "part_time", "permanent", "fixed_term"]),
+  qualificationRequired: z.string().optional().nullable(),
+  postedChannels: z.array(z.string()).optional(),
+  targetFillDate: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  assignedToId: z.string().optional().nullable(),
+});
 
-  const { searchParams } = new URL(req.url);
+export const GET = withApiAuth(async (req, session) => {
+const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const status = searchParams.get("status");
   const role = searchParams.get("role");
@@ -34,21 +43,20 @@ export async function GET(req: NextRequest) {
   ]);
 
   return NextResponse.json({ vacancies, total, page, limit });
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
+  const parsed = createVacancySchema.safeParse(body);
 
-  const body = await req.json();
-  const { serviceId, role, employmentType, qualificationRequired, postedChannels, targetFillDate, notes, assignedToId } = body;
-
-  if (!serviceId || !role || !employmentType) {
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "serviceId, role, and employmentType are required" },
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
       { status: 400 }
     );
   }
+
+  const { serviceId, role, employmentType, qualificationRequired, postedChannels, targetFillDate, notes, assignedToId } = parsed.data;
 
   const vacancy = await prisma.recruitmentVacancy.create({
     data: {
@@ -67,4 +75,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(vacancy, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

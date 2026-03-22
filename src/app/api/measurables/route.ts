@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createMeasurableSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -15,11 +15,8 @@ const createMeasurableSchema = z.object({
 });
 
 // POST /api/measurables — create a new measurable
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await parseJsonBody(req);
   const parsed = createMeasurableSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -65,4 +62,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(measurable, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

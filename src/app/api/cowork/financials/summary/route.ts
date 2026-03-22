@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cowork/financials/summary
@@ -13,8 +15,8 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
  *   - to: "2026-03" (range end for aggregation)
  *   - serviceId: filter to specific centre
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -141,10 +143,10 @@ export async function GET(req: NextRequest) {
     res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     return res;
   } catch (err) {
-    console.error("[Cowork Financials Summary GET]", err);
+    logger.error("Cowork Financials Summary GET", { err });
     return NextResponse.json(
       { error: "Failed to fetch financial summary" },
       { status: 500 },
     );
   }
-}
+});

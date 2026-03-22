@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { uploadFile } from "@/lib/storage";
+import { withApiAuth } from "@/lib/server-auth";
+import { validateFileContent } from "@/lib/file-validation";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -36,11 +37,8 @@ const VALID_CATEGORIES = [
   "other",
 ];
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const formData = await req.formData();
+export const POST = withApiAuth(async (req, session) => {
+const formData = await req.formData();
 
   // Collect all files from formData
   const files: File[] = [];
@@ -99,6 +97,23 @@ export async function POST(req: NextRequest) {
   if (validationErrors.length > 0) {
     return NextResponse.json(
       { error: "File validation failed", details: validationErrors },
+      { status: 400 },
+    );
+  }
+
+  // Validate magic bytes for binary files
+  for (const file of files) {
+    if (file.type !== "text/csv" && file.type !== "text/plain") {
+      const bytes = await file.arrayBuffer();
+      if (!validateFileContent(bytes, file.type)) {
+        validationErrors.push(`${file.name}: file content does not match declared type`);
+      }
+    }
+  }
+
+  if (validationErrors.length > 0) {
+    return NextResponse.json(
+      { error: "File content validation failed", details: validationErrors },
       { status: 400 },
     );
   }
@@ -172,4 +187,4 @@ export async function POST(req: NextRequest) {
     documents: created.map((d) => ({ id: d.id, title: d.title })),
     ...(failedFiles.length > 0 ? { failedFiles } : {}),
   });
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { getResend, sendEmail } from "@/lib/email";
 import { marketingDigestEmail } from "@/lib/email-templates";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // ── Thresholds ──────────────────────────────────────────────
 const WEEKLY_TARGET = 3;
@@ -23,7 +25,7 @@ function formatAU(date: Date): string {
  * Weekly Friday email digest that compiles marketing performance data
  * and sends it to leadership.
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
@@ -321,7 +323,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err) {
     await guard.fail(err);
-    console.error("[Cron: marketing-digest]", err);
+    logger.error("Cron: marketing-digest", { err });
     return NextResponse.json(
       {
         error: "Marketing digest cron failed",
@@ -330,4 +332,4 @@ export async function GET(req: NextRequest) {
       { status: 500 },
     );
   }
-}
+});

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createTemplateSchema = z.object({
   title: z.string().min(1, "Title is required"),
   body: z.string().min(1, "Body is required"),
@@ -11,23 +10,17 @@ const createTemplateSchema = z.object({
 });
 
 // GET /api/response-templates — list all templates
-export async function GET(_req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const templates = await prisma.responseTemplate.findMany({
     orderBy: [{ category: "asc" }, { title: "asc" }],
   });
 
   return NextResponse.json(templates);
-}
+});
 
 // POST /api/response-templates — create a new template
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createTemplateSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -57,4 +50,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(template, { status: 201 });
-}
+});

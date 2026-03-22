@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createPolicySchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -14,11 +13,8 @@ const createPolicySchema = z.object({
 });
 
 // GET /api/policies — list policies
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { searchParams } = new URL(req.url);
+export const GET = withApiAuth(async (req, session) => {
+const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const category = searchParams.get("category");
   const isAdmin = ["owner", "admin"].includes(session!.user.role);
@@ -47,14 +43,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(policies);
-}
+});
 
 // POST /api/policies — create policy (owner/admin only)
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createPolicySchema.safeParse(body);
 
   if (!parsed.success) {
@@ -89,4 +82,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(policy, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

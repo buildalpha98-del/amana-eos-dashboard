@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getCentreScope } from "@/lib/centre-scope";
+import { withApiAuth } from "@/lib/server-auth";
 
 /**
  * GET /api/queue — returns the current user's assigned reports and todos
  * Query params: seat, serviceCode, status, limit, offset
  * Admin-only: view=all returns ALL reports/todos across all users (grouped by assignee)
  */
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const userId = session!.user.id;
   const userRole = (session!.user as { role?: string }).role;
   const { searchParams } = new URL(req.url);
@@ -88,4 +85,4 @@ export async function GET(req: NextRequest) {
     todos,
     counts: { reports: reportCount, todos: todoCount },
   });
-}
+});

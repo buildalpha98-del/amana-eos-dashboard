@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 /**
  * POST /api/onboarding/seed
  *
@@ -209,10 +209,7 @@ const ALL_PACKS = [
   },
 ];
 
-export async function POST() {
-  const { error } = await requireAuth(["owner"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   try {
     const existingNames = new Set(
       (
@@ -255,10 +252,10 @@ export async function POST() {
       total: ALL_PACKS.length,
     });
   } catch (err) {
-    console.error("Onboarding seed error:", err);
+    logger.error("Onboarding seed error", { err });
     return NextResponse.json(
       { error: "Failed to seed onboarding packs" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner"] });

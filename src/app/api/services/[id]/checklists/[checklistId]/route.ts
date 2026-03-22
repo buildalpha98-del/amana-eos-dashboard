@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const patchSchema = z.object({
+  itemId: z.string().min(1).optional(),
+  checked: z.boolean().optional(),
+  notes: z.string().optional(),
+  status: z.string().optional(),
+});
 
 /**
  * PATCH /api/services/[id]/checklists/[checklistId]
  * Toggle checklist items, update status, add notes.
  * Used by the dashboard Checklists tab to mark items checked/unchecked.
  */
-export async function PATCH(
-  req: NextRequest,
-  {
-    params,
-  }: { params: Promise<{ id: string; checklistId: string }> }
-) {
-  const { error, session } = await requireAuth();
-  if (error) return error;
-
+export const PATCH = withApiAuth(async (req, session, context) => {
   const userId = session!.user.id;
-  const { id, checklistId } = await params;
+  const { id, checklistId } = await context!.params!;
 
   // Verify the checklist exists and belongs to this service
   const checklist = await prisma.dailyChecklist.findFirst({
@@ -33,7 +33,14 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const { itemId, checked, notes, status } = body;
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
+  const { itemId, checked, notes, status } = parsed.data;
 
   // Toggle a specific item
   if (itemId) {
@@ -110,22 +117,14 @@ export async function PATCH(
   });
 
   return NextResponse.json({ checklist: updated });
-}
+});
 
 /**
  * GET /api/services/[id]/checklists/[checklistId]
  * Get a single checklist with its items.
  */
-export async function GET(
-  _req: NextRequest,
-  {
-    params,
-  }: { params: Promise<{ id: string; checklistId: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id, checklistId } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id, checklistId } = await context!.params!;
 
   const checklist = await prisma.dailyChecklist.findFirst({
     where: { id: checklistId, serviceId: id },
@@ -148,4 +147,4 @@ export async function GET(
   }
 
   return NextResponse.json({ checklist });
-}
+});

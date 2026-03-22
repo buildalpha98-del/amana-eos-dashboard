@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { RockStatus, RockPriority, RockType } from "@prisma/client";
 import { toast } from "@/hooks/useToast";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
 export interface RockOwner {
   id: string;
@@ -33,28 +34,56 @@ export interface RockData {
 export function useRocks(quarter?: string, rockType?: string) {
   return useQuery<RockData[]>({
     queryKey: ["rocks", quarter, rockType],
-    queryFn: async () => {
+    queryFn: () => {
       const params = new URLSearchParams();
       if (quarter) params.set("quarter", quarter);
       if (rockType) params.set("rockType", rockType);
       const qs = params.toString();
-      const res = await fetch(`/api/rocks${qs ? `?${qs}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch rocks");
-      return res.json();
+      return fetchApi<RockData[]>(`/api/rocks${qs ? `?${qs}` : ""}`);
     },
     staleTime: 30_000,
+    retry: 2,
   });
 }
 
+export interface RockMilestone {
+  id: string;
+  title: string;
+  dueDate: string;
+  completed: boolean;
+  createdAt: string;
+}
+
+export interface RockDetail extends Omit<RockData, "_count"> {
+  milestones: RockMilestone[];
+  todos: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: string;
+    dueDate: string | null;
+    assigneeId: string | null;
+    assignee: RockOwner | null;
+    createdAt: string;
+  }[];
+  issues: {
+    id: string;
+    title: string;
+    description: string | null;
+    priority: string;
+    status: string;
+    owner: RockOwner | null;
+    createdAt: string;
+  }[];
+}
+
 export function useRock(id: string) {
-  return useQuery({
+  return useQuery<RockDetail>({
     queryKey: ["rock", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/rocks/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch rock");
-      return res.json();
-    },
+    queryFn: () => fetchApi<RockDetail>(`/api/rocks/${id}`),
     enabled: !!id,
+    staleTime: 30_000,
+    retry: 2,
   });
 }
 
@@ -70,20 +99,17 @@ export function useCreateRock() {
       rockType?: RockType;
       oneYearGoalId?: string | null;
     }) => {
-      const res = await fetch("/api/rocks", {
+      return mutateApi<RockData>("/api/rocks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create rock");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rocks"] });
       toast({ description: "Rock created" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -105,16 +131,10 @@ export function useUpdateRock() {
       rockType?: RockType;
       oneYearGoalId?: string | null;
     }) => {
-      const res = await fetch(`/api/rocks/${id}`, {
+      return mutateApi<RockData>(`/api/rocks/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update rock");
-      }
-      return res.json();
     },
     onMutate: async (vars) => {
       await queryClient.cancelQueries({ queryKey: ["rocks"] });
@@ -127,12 +147,13 @@ export function useUpdateRock() {
       }
       return { queries };
     },
-    onError: (_err, _vars, ctx) => {
+    onError: (_err: Error, _vars, ctx) => {
       if (ctx?.queries) {
         for (const [key, data] of ctx.queries) {
           queryClient.setQueryData(key, data);
         }
       }
+      toast({ variant: "destructive", description: _err.message || "Something went wrong" });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["rocks"] });
@@ -145,13 +166,14 @@ export function useDeleteRock() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/rocks/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete rock");
-      return res.json();
+      return mutateApi(`/api/rocks/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rocks"] });
       toast({ description: "Rock deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

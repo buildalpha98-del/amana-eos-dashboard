@@ -68,7 +68,9 @@ const todoItem = z.object({
 });
 
 export const todosSchema = z.object({
-  centreId: z.string().min(1, "centreId is required"),
+  centreId: z.enum([...CENTRE_IDS], {
+    error: `centreId must be one of: ${CENTRE_IDS.join(", ")}`,
+  }),
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}/, "Must be an ISO date (YYYY-MM-DD)")

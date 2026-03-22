@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 /**
  * Schedule nurture steps when an enquiry changes stage.
@@ -178,7 +179,7 @@ async function createSequenceEnrolment(
       }
     }
   } catch (e) {
-    console.error("Failed to create sequence enrolment:", e);
+    logger.error("Failed to create sequence enrolment", { err: e });
   }
 }
 

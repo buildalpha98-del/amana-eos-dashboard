@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { PipelineStage, LeadSource, TouchpointType } from "@prisma/client";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -88,10 +90,9 @@ export function useLeads(filters?: Omit<LeadFilters, "page" | "limit">) {
       if (filters?.state) params.set("state", filters.state);
       if (filters?.assigneeId) params.set("assigneeId", filters.assigneeId);
       if (filters?.search) params.set("search", filters.search);
-      const res = await fetch(`/api/crm/leads?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch leads");
-      return res.json();
+      return fetchApi<LeadSummary[]>(`/api/crm/leads?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -110,10 +111,9 @@ export function useLeadsPaginated(filters?: LeadFilters) {
       if (filters?.search) params.set("search", filters.search);
       params.set("page", String(page));
       params.set("limit", String(limit));
-      const res = await fetch(`/api/crm/leads?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch leads");
-      return res.json();
+      return fetchApi<PaginatedLeads>(`/api/crm/leads?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -121,11 +121,10 @@ export function useLead(id: string) {
   return useQuery<LeadDetail>({
     queryKey: ["lead", id],
     queryFn: async () => {
-      const res = await fetch(`/api/crm/leads/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch lead");
-      return res.json();
+      return fetchApi<LeadDetail>(`/api/crm/leads/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -133,11 +132,10 @@ export function useTouchpoints(leadId: string) {
   return useQuery<TouchpointEntry[]>({
     queryKey: ["touchpoints", leadId],
     queryFn: async () => {
-      const res = await fetch(`/api/crm/leads/${leadId}/touchpoints`);
-      if (!res.ok) throw new Error("Failed to fetch touchpoints");
-      return res.json();
+      return fetchApi<TouchpointEntry[]>(`/api/crm/leads/${leadId}/touchpoints`);
     },
     enabled: !!leadId,
+    retry: 2,
   });
 }
 
@@ -165,19 +163,16 @@ export function useCreateLead() {
       notes?: string;
       assignedToId?: string;
     }) => {
-      const res = await fetch("/api/crm/leads", {
+      return mutateApi("/api/crm/leads", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create lead");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -192,20 +187,17 @@ export function useUpdateLead() {
       id: string;
       [key: string]: unknown;
     }) => {
-      const res = await fetch(`/api/crm/leads/${id}`, {
+      return mutateApi(`/api/crm/leads/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update lead");
-      }
-      return res.json();
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["lead", vars.id] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -214,12 +206,13 @@ export function useDeleteLead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/crm/leads/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete lead");
-      return res.json();
+      return mutateApi(`/api/crm/leads/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -236,17 +229,17 @@ export function useCreateTouchpoint() {
       subject?: string;
       body?: string;
     }) => {
-      const res = await fetch(`/api/crm/leads/${leadId}/touchpoints`, {
+      return mutateApi(`/api/crm/leads/${leadId}/touchpoints`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Failed to create touchpoint");
-      return res.json();
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["touchpoints", vars.leadId] });
       queryClient.invalidateQueries({ queryKey: ["lead", vars.leadId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -263,20 +256,17 @@ export function useSendLeadEmail() {
       body: string;
       templateId?: string;
     }) => {
-      const res = await fetch(`/api/crm/leads/${leadId}/send-email`, {
+      return mutateApi(`/api/crm/leads/${leadId}/send-email`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to send email");
-      }
-      return res.json();
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["touchpoints", vars.leadId] });
       queryClient.invalidateQueries({ queryKey: ["lead", vars.leadId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -293,18 +283,16 @@ export function useScoreLead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (leadId: string): Promise<LeadScoreResult> => {
-      const res = await fetch(`/api/crm/leads/${leadId}/score`, {
+      return mutateApi<LeadScoreResult>(`/api/crm/leads/${leadId}/score`, {
         method: "POST",
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to score lead");
-      }
-      return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       queryClient.invalidateQueries({ queryKey: ["lead", data.id] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

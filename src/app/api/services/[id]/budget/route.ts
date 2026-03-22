@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getMonthlyBudget } from "@/lib/budget-helpers";
+import { withApiAuth } from "@/lib/server-auth";
 
 // GET /api/services/[id]/budget — budget summary with grocery calc + equipment totals
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const url = new URL(req.url);
 
   // Default range: current Australian FY (Jul 1 – today)
@@ -167,7 +161,7 @@ export async function GET(
       vc: service.vcGroceryRate,
     },
   });
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // ── Helpers ─────────────────────────────────────────────────
 

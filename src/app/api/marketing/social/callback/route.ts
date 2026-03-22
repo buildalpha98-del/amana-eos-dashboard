@@ -8,9 +8,10 @@ import {
   encryptToken,
   isConfigured,
 } from "@/lib/meta";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = withApiHandler(async (req) => {
     if (!isConfigured()) {
       return NextResponse.redirect(
         new URL("/marketing?tab=analytics&social=error&reason=not_configured", req.url)
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
     const errorParam = req.nextUrl.searchParams.get("error");
 
     if (errorParam) {
-      console.error("Meta OAuth error:", errorParam);
+      logger.error("Meta OAuth error", { err: errorParam });
       return NextResponse.redirect(
         new URL("/marketing?tab=analytics&social=error&reason=denied", req.url)
       );
@@ -127,10 +128,4 @@ export async function GET(req: NextRequest) {
     response.cookies.delete("meta_oauth_platform");
 
     return response;
-  } catch (err) {
-    console.error("Meta callback error:", err);
-    return NextResponse.redirect(
-      new URL("/marketing?tab=analytics&social=error&reason=callback_failed", req.url)
-    );
-  }
-}
+  });

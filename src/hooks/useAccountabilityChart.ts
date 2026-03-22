@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface SeatAssignee {
   id: string;
@@ -21,11 +23,8 @@ const QUERY_KEY = ["accountability-chart"];
 export function useAccountabilityChart() {
   return useQuery<SeatNode[]>({
     queryKey: QUERY_KEY,
-    queryFn: async () => {
-      const res = await fetch("/api/accountability-chart");
-      if (!res.ok) throw new Error("Failed to fetch accountability chart");
-      return res.json();
-    },
+    queryFn: () => fetchApi<SeatNode[]>("/api/accountability-chart"),
+    retry: 2,
   });
 }
 
@@ -39,18 +38,12 @@ export function useCreateSeat() {
       order?: number;
       assigneeIds?: string[];
     }) => {
-      const res = await fetch("/api/accountability-chart", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create seat");
-      }
-      return res.json();
+      return mutateApi("/api/accountability-chart", { method: "POST", body: data });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -68,18 +61,12 @@ export function useUpdateSeat() {
       order?: number;
       assigneeIds?: string[];
     }) => {
-      const res = await fetch(`/api/accountability-chart/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update seat");
-      }
-      return res.json();
+      return mutateApi(`/api/accountability-chart/${id}`, { method: "PATCH", body: data });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -87,15 +74,11 @@ export function useDeleteSeat() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/accountability-chart/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to delete seat");
-      }
-      return res.json();
+      return mutateApi(`/api/accountability-chart/${id}`, { method: "DELETE" });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }

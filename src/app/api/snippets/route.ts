@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createSchema = z.object({
   title: z.string().min(1).max(200),
   summary: z.string().min(1).max(2000),
@@ -11,11 +10,8 @@ const createSchema = z.object({
   expiresAt: z.string().datetime().optional(),
 });
 
-export async function GET() {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const userId = session!.user.id;
+export const GET = withApiAuth(async (req, session) => {
+const userId = session!.user.id;
 
   const totalUsers = await prisma.user.count({ where: { active: true } });
 
@@ -50,17 +46,10 @@ export async function GET() {
   }));
 
   return NextResponse.json(result);
-}
+});
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth([
-    "owner",
-    "head_office",
-    "admin",
-  ]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -83,4 +72,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(snippet, { status: 201 });
-}
+});

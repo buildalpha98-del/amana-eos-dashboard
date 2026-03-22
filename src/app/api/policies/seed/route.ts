@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 /**
  * POST /api/policies/seed
  *
@@ -144,10 +144,7 @@ const DEFAULT_POLICIES = [
   },
 ];
 
-export async function POST() {
-  const { error } = await requireAuth(["owner"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   try {
     const created: string[] = [];
     const skipped: string[] = [];
@@ -184,10 +181,10 @@ export async function POST() {
       total: DEFAULT_POLICIES.length,
     });
   } catch (err) {
-    console.error("Policy seed error:", err);
+    logger.error("Policy seed error", { err });
     return NextResponse.json(
       { error: "Failed to seed policies" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner"] });

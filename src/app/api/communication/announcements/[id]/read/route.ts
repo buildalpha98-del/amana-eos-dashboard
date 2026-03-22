@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // POST /api/communication/announcements/[id]/read — mark announcement as read
-export async function POST(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const announcement = await prisma.announcement.findUnique({
     where: { id, deleted: false },
@@ -35,4 +28,4 @@ export async function POST(
   });
 
   return NextResponse.json({ success: true });
-}
+});

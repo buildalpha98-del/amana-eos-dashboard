@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
-) {
+export const GET = withApiHandler(async (_req, context) => {
   try {
-    const { token } = await params;
+    const { token } = await context!.params!;
 
     // Look up the enquiry by ID (token = enquiry ID)
     const enquiry = await prisma.parentEnquiry.findUnique({
@@ -95,7 +94,7 @@ export async function GET(
 
     return NextResponse.json(prefill);
   } catch (e) {
-    console.error("Enrol prefill error:", e);
+    logger.error("Enrol prefill error", { e });
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-}
+});

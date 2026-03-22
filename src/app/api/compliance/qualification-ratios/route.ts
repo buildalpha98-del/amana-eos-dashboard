@@ -1,17 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 /**
  * GET /api/compliance/qualification-ratios
  *
  * Per-centre qualification ratio breakdown:
  * educator count, Cert III %, Diploma+ %, 50% compliance indicator
  */
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const services = await prisma.service.findMany({
     where: { status: "active" },
     select: { id: true, name: true, code: true },
@@ -100,4 +96,4 @@ export async function GET(req: NextRequest) {
           : 0,
     },
   });
-}
+});

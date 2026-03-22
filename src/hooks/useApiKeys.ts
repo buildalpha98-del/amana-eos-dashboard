@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -30,11 +32,8 @@ export interface CreateApiKeyResponse extends Omit<ApiKeyData, "createdBy" | "re
 export function useApiKeys() {
   return useQuery<ApiKeyData[]>({
     queryKey: ["api-keys"],
-    queryFn: async () => {
-      const res = await fetch("/api/settings/api-keys");
-      if (!res.ok) throw new Error("Failed to fetch API keys");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ApiKeyData[]>("/api/settings/api-keys"),
+    retry: 2,
   });
 }
 
@@ -43,19 +42,16 @@ export function useCreateApiKey() {
   const queryClient = useQueryClient();
   return useMutation<CreateApiKeyResponse, Error, CreateApiKeyInput>({
     mutationFn: async (data) => {
-      const res = await fetch("/api/settings/api-keys", {
+      return mutateApi<CreateApiKeyResponse>("/api/settings/api-keys", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create API key");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -65,16 +61,15 @@ export function useRevokeApiKey() {
   const queryClient = useQueryClient();
   return useMutation<void, Error, string>({
     mutationFn: async (id) => {
-      const res = await fetch(`/api/settings/api-keys/${id}`, {
+      return mutateApi<void>(`/api/settings/api-keys/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to revoke API key");
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

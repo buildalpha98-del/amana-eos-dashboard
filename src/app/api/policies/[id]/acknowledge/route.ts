@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // POST /api/policies/[id]/acknowledge — current user acknowledges policy
-export async function POST(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const policy = await prisma.policy.findUnique({
     where: { id, deleted: false },
@@ -64,4 +57,4 @@ export async function POST(
   });
 
   return NextResponse.json(acknowledgement, { status: 201 });
-}
+});

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
+import { withApiAuth } from "@/lib/server-auth";
 
 /**
  * POST /api/users/backfill-prefs
@@ -12,12 +12,7 @@ import { getDefaultNotificationPrefs } from "@/lib/notification-defaults";
  *
  * Auth: owner or admin only.
  */
-export async function POST() {
-  const { session, error } = await requireAuth();
-  if (error || !session) {
-    return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = withApiAuth(async (req, session) => {
   const role = session.user.role;
   if (role !== "owner" && role !== "admin") {
     return NextResponse.json({ error: "Forbidden — owner or admin only" }, { status: 403 });
@@ -52,4 +47,4 @@ export async function POST() {
     updated,
     total: users.length,
   });
-}
+});

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getStateScope } from "@/lib/service-scope";
 import {
   computeHealthScore,
@@ -9,12 +8,10 @@ import {
   type ScoreInputFinancials,
   type ScoreInputEOS,
 } from "@/lib/health-score";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const stateScope = getStateScope(session);
+export const GET = withApiAuth(async (req, session) => {
+const stateScope = getStateScope(session);
 
   // Get all active services with their latest metrics and financials
   const services = await prisma.service.findMany({
@@ -197,4 +194,4 @@ export async function GET(req: NextRequest) {
   performance.sort((a, b) => b.score - a.score);
 
   return NextResponse.json(performance);
-}
+}, { roles: ["owner", "head_office", "admin"] });

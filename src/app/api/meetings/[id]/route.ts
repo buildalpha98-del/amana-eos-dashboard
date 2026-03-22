@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateMeetingSchema = z.object({
   title: z.string().min(1).optional(),
   status: z.enum(["scheduled", "in_progress", "completed", "cancelled"]).optional(),
@@ -23,14 +22,8 @@ const updateMeetingSchema = z.object({
 });
 
 // GET /api/meetings/:id — get a single meeting
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const meeting = await prisma.meeting.findUnique({
     where: { id },
@@ -52,17 +45,11 @@ export async function GET(
   }
 
   return NextResponse.json(meeting);
-}
+});
 
 // PATCH /api/meetings/:id — update a meeting
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateMeetingSchema.safeParse(body);
 
@@ -164,4 +151,4 @@ export async function PATCH(
   });
 
   return NextResponse.json(meeting);
-}
+}, { roles: ["owner", "head_office", "admin"] });

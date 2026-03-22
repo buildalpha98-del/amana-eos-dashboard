@@ -2,17 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "../../../_lib/auth";
 import { todoUpdateSchema } from "../../../_lib/validation";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // PATCH /api/cowork/todos/[id] — Mark a todo as complete/incomplete
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const authError = authenticateCowork(req);
+export const PATCH = withApiHandler(async (req, context) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
-    const { id } = await params;
+    const { id } = await context!.params!;
     const body = await req.json();
     const parsed = todoUpdateSchema.safeParse(body);
 
@@ -39,10 +38,10 @@ export async function PATCH(
 
     return NextResponse.json(updated);
   } catch (err) {
-    console.error("[Cowork Todos PATCH]", err);
+    logger.error("Cowork Todos PATCH", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
-}
+});

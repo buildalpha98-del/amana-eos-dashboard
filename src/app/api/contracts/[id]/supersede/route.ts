@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const supersedeSchema = z.object({
   contractType: z.enum(["ct_casual", "ct_part_time", "ct_permanent", "ct_fixed_term"]),
   awardLevel: z
@@ -26,14 +25,8 @@ const supersedeSchema = z.object({
 });
 
 // POST /api/contracts/[id]/supersede — create new contract version
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const oldContract = await prisma.employmentContract.findUnique({
     where: { id },
@@ -116,4 +109,4 @@ export async function POST(
   });
 
   return NextResponse.json(newContract, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateContactSchema = z.object({
   name: z.string().min(1).optional(),
   phone: z.string().min(1).optional(),
@@ -11,14 +10,8 @@ const updateContactSchema = z.object({
 });
 
 // PATCH /api/emergency-contacts/[id]
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const contact = await prisma.emergencyContact.findUnique({
     where: { id },
@@ -72,17 +65,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+});
 
 // DELETE /api/emergency-contacts/[id]
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const contact = await prisma.emergencyContact.findUnique({
     where: { id },
@@ -115,4 +102,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+});

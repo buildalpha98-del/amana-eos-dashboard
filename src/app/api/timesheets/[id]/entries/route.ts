@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { withApiAuth } from "@/lib/server-auth";
 
 const entrySchema = z.object({
   userId: z.string().min(1),
@@ -25,14 +25,8 @@ const entrySchema = z.object({
 const createEntriesSchema = z.array(entrySchema).min(1, "At least one entry is required");
 
 // POST /api/timesheets/[id]/entries — add individual entries
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const timesheet = await prisma.timesheet.findUnique({ where: { id } });
   if (!timesheet || timesheet.deleted) {
@@ -113,4 +107,4 @@ export async function POST(
   });
 
   return NextResponse.json({ entriesCreated: created.count }, { status: 201 });
-}
+});

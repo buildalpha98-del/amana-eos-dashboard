@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface ResponseTemplateData {
   id: string;
@@ -15,11 +17,8 @@ export interface ResponseTemplateData {
 export function useResponseTemplates() {
   return useQuery<ResponseTemplateData[]>({
     queryKey: ["response-templates"],
-    queryFn: async () => {
-      const res = await fetch("/api/response-templates");
-      if (!res.ok) throw new Error("Failed to fetch response templates");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ResponseTemplateData[]>("/api/response-templates"),
+    retry: 2,
   });
 }
 
@@ -32,19 +31,13 @@ export function useCreateResponseTemplate() {
       category?: string | null;
       shortcut?: string | null;
     }) => {
-      const res = await fetch("/api/response-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create response template");
-      }
-      return res.json();
+      return mutateApi("/api/response-templates", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["response-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -53,14 +46,13 @@ export function useDeleteResponseTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/response-templates/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete template");
-      return res.json();
+      return mutateApi(`/api/response-templates/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["response-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

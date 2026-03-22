@@ -21,6 +21,7 @@
 import { ConfidentialClientApplication } from "@azure/msal-node";
 import { Client } from "@microsoft/microsoft-graph-client";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 // ── Config ───────────────────────────────────────────────
 
@@ -135,7 +136,7 @@ export async function refreshAccessToken(userId: string): Promise<string | null>
     });
 
     if (!res.ok) {
-      console.error("[CALENDAR] Token refresh failed:", await res.text());
+      logger.error("Calendar token refresh failed", { body: await res.text() });
       return null;
     }
 
@@ -153,7 +154,7 @@ export async function refreshAccessToken(userId: string): Promise<string | null>
 
     return data.access_token;
   } catch (err) {
-    console.error("[CALENDAR] Token refresh error:", err);
+    logger.error("Calendar token refresh error", { err });
     return null;
   }
 }
@@ -222,7 +223,7 @@ export async function listEvents(
 
     return result.value;
   } catch (err) {
-    console.error("[CALENDAR] List events error:", err);
+    logger.error("Calendar list events error", { err });
     return null;
   }
 }
@@ -238,7 +239,7 @@ export async function createEvent(
   try {
     return await client.api("/me/events").post(event);
   } catch (err) {
-    console.error("[CALENDAR] Create event error:", err);
+    logger.error("Calendar create event error", { err });
     return null;
   }
 }
@@ -255,7 +256,7 @@ export async function updateEvent(
   try {
     return await client.api(`/me/events/${eventId}`).patch(updates);
   } catch (err) {
-    console.error("[CALENDAR] Update event error:", err);
+    logger.error("Calendar update event error", { err });
     return null;
   }
 }
@@ -272,7 +273,7 @@ export async function deleteEvent(
     await client.api(`/me/events/${eventId}`).delete();
     return true;
   } catch (err) {
-    console.error("[CALENDAR] Delete event error:", err);
+    logger.error("Calendar delete event error", { err });
     return false;
   }
 }

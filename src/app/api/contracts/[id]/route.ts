@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateContractSchema = z.object({
   contractType: z
     .enum(["ct_casual", "ct_part_time", "ct_permanent", "ct_fixed_term"])
@@ -29,14 +28,8 @@ const updateContractSchema = z.object({
 });
 
 // GET /api/contracts/[id] — contract detail
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const contract = await prisma.employmentContract.findUnique({
     where: { id },
@@ -84,17 +77,11 @@ export async function GET(
   }
 
   return NextResponse.json(contract);
-}
+});
 
 // PATCH /api/contracts/[id] — update contract (owner/admin only)
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const existing = await prisma.employmentContract.findUnique({
     where: { id },
@@ -148,4 +135,4 @@ export async function PATCH(
   });
 
   return NextResponse.json(contract);
-}
+}, { roles: ["owner", "head_office", "admin"] });

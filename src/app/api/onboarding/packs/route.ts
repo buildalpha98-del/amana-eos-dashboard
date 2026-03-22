@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createPackSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
@@ -23,11 +22,8 @@ const createPackSchema = z.object({
 });
 
 // GET /api/onboarding/packs — list all onboarding packs
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { searchParams } = new URL(req.url);
+export const GET = withApiAuth(async (req, session) => {
+const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
 
   const where: Record<string, unknown> = { deleted: false };
@@ -53,14 +49,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(packs);
-}
+});
 
 // POST /api/onboarding/packs — create a new pack (owner/admin only)
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createPackSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -102,4 +95,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(pack, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

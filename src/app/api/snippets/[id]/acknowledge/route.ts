@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
-export async function POST(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+import { withApiAuth } from "@/lib/server-auth";
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const userId = session!.user.id;
 
   // Verify snippet exists and is active
@@ -31,4 +24,4 @@ export async function POST(
   });
 
   return NextResponse.json(ack);
-}
+});

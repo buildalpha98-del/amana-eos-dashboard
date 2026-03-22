@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { hasFeature } from "@/lib/role-permissions";
 import { getAI } from "@/lib/ai";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
 import type { Role } from "@prisma/client";
 import { Prisma } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/crm/leads/[id]/score
@@ -13,14 +14,8 @@ import { Prisma } from "@prisma/client";
  * Score a single lead using AI. Gathers all lead data, calls the AI,
  * parses the JSON response, and updates the lead with score + summary.
  */
-export async function POST(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const role = session!.user.role as Role;
+export const POST = withApiAuth(async (req, session, context) => {
+const role = session!.user.role as Role;
   if (!hasFeature(role, "crm.view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -33,7 +28,7 @@ export async function POST(
     );
   }
 
-  const { id } = await params;
+  const { id } = await context!.params!;
 
   const lead = await prisma.lead.findUnique({
     where: { id },
@@ -136,13 +131,13 @@ Scoring criteria:
       aiScoreFactors: parsed.factors,
     });
   } catch (err) {
-    console.error("Lead scoring failed:", err);
+    logger.error("Lead scoring failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Scoring failed" },
       { status: 500 },
     );
   }
-}
+});
 
 // ---------------------------------------------------------------------------
 // Helpers

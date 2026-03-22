@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -71,10 +73,9 @@ export function useLeaveRequests(filters?: LeaveRequestFilters) {
       if (filters?.leaveType) params.set("leaveType", filters.leaveType);
       if (filters?.startAfter) params.set("startAfter", filters.startAfter);
       if (filters?.startBefore) params.set("startBefore", filters.startBefore);
-      const res = await fetch(`/api/leave/requests?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch leave requests");
-      return res.json();
+      return fetchApi<LeaveRequestData[]>(`/api/leave/requests?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -82,11 +83,10 @@ export function useLeaveRequest(id: string | null) {
   return useQuery<LeaveRequestData>({
     queryKey: ["leave-request", id],
     queryFn: async () => {
-      const res = await fetch(`/api/leave/requests/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch leave request");
-      return res.json();
+      return fetchApi<LeaveRequestData>(`/api/leave/requests/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -100,20 +100,17 @@ export function useCreateLeaveRequest() {
       isHalfDay?: boolean;
       reason?: string;
     }) => {
-      const res = await fetch("/api/leave/requests", {
+      return mutateApi("/api/leave/requests", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create leave request");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leave-requests"] });
       qc.invalidateQueries({ queryKey: ["leave-balances"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -133,16 +130,10 @@ export function useUpdateLeaveRequest() {
       reason?: string;
       reviewNotes?: string;
     }) => {
-      const res = await fetch(`/api/leave/requests/${id}`, {
+      return mutateApi(`/api/leave/requests/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update leave request");
-      }
-      return res.json();
     },
     onMutate: async (vars) => {
       if (!vars.status) return;
@@ -160,12 +151,13 @@ export function useUpdateLeaveRequest() {
       }
       return { queries };
     },
-    onError: (_err, _vars, ctx) => {
+    onError: (_err: Error, _vars, ctx) => {
       if (ctx?.queries) {
         for (const [key, data] of ctx.queries) {
           qc.setQueryData(key, data);
         }
       }
+      toast({ variant: "destructive", description: _err.message || "Something went wrong" });
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["leave-requests"] });
@@ -179,19 +171,17 @@ export function useCancelLeaveRequest() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/leave/requests/${id}`, {
+      return mutateApi(`/api/leave/requests/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to cancel leave request");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["leave-requests"] });
       qc.invalidateQueries({ queryKey: ["leave-request"] });
       qc.invalidateQueries({ queryKey: ["leave-calendar"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -202,10 +192,9 @@ export function useLeaveBalances(userId?: string) {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (userId) params.set("userId", userId);
-      const res = await fetch(`/api/leave/balances?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch leave balances");
-      return res.json();
+      return fetchApi<LeaveBalanceData[]>(`/api/leave/balances?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -221,10 +210,9 @@ export function useLeaveCalendar(
       if (serviceId) params.set("serviceId", serviceId);
       if (year) params.set("year", year.toString());
       if (month) params.set("month", month.toString());
-      const res = await fetch(`/api/leave/calendar?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch leave calendar");
-      return res.json();
+      return fetchApi<LeaveCalendarEntry[]>(`/api/leave/calendar?${params}`);
     },
     enabled: !!year && !!month,
+    retry: 2,
   });
 }

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
 
 /**
  * GET /api/audit-log
@@ -9,12 +8,7 @@ import { prisma } from "@/lib/prisma";
  * Returns security audit log entries. Owner / head_office / admin only.
  * Query params: ?page=1&limit=50&action=user.login&actorId=xxx
  */
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const GET = withApiAuth(async (req, session) => {
   const role = (session.user as any).role;
   if (!["owner", "head_office", "admin"].includes(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -51,4 +45,4 @@ export async function GET(req: NextRequest) {
     total,
     totalPages: Math.ceil(total / limit),
   });
-}
+});

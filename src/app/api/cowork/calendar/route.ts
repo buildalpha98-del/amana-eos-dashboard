@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "../../_lib/auth";
 import { calendarEventsSchema } from "../../_lib/validation";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // POST /api/cowork/calendar — Add calendar events (batch)
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -38,17 +40,17 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ events: created }, { status: 201 });
   } catch (err) {
-    console.error("[Cowork Calendar POST]", err);
+    logger.error("Cowork Calendar POST", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
-}
+});
 
 // GET /api/cowork/calendar — Retrieve events
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -98,10 +100,10 @@ export async function GET(req: NextRequest) {
     res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     return res;
   } catch (err) {
-    console.error("[Cowork Calendar GET]", err);
+    logger.error("Cowork Calendar GET", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
-}
+});

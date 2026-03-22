@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface ProgramActivity {
   id: string;
@@ -41,14 +43,12 @@ export interface BulkUpsertInput {
 export function useWeeklyProgram(serviceId: string, weekStart: string) {
   return useQuery<ProgramActivity[]>({
     queryKey: ["weekly-program", serviceId, weekStart],
-    queryFn: async () => {
-      const res = await fetch(
+    queryFn: () =>
+      fetchApi<ProgramActivity[]>(
         `/api/services/${serviceId}/programs?weekStart=${weekStart}`
-      );
-      if (!res.ok) throw new Error("Failed to fetch program");
-      return res.json();
-    },
+      ),
     enabled: !!serviceId && !!weekStart,
+    retry: 2,
   });
 }
 
@@ -56,19 +56,13 @@ export function useCreateActivity(serviceId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: CreateActivityInput) => {
-      const res = await fetch(`/api/services/${serviceId}/programs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error?.formErrors?.[0] || "Failed to create activity");
-      }
-      return res.json();
+      return mutateApi(`/api/services/${serviceId}/programs`, { method: "POST", body: data });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["weekly-program", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -80,19 +74,16 @@ export function useUpdateActivity(serviceId: string) {
       activityId,
       ...data
     }: Partial<CreateActivityInput> & { activityId: string }) => {
-      const res = await fetch(
-        `/api/services/${serviceId}/programs/${activityId}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        }
-      );
-      if (!res.ok) throw new Error("Failed to update activity");
-      return res.json();
+      return mutateApi(`/api/services/${serviceId}/programs/${activityId}`, {
+        method: "PATCH",
+        body: data,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["weekly-program", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -101,15 +92,13 @@ export function useDeleteActivity(serviceId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (activityId: string) => {
-      const res = await fetch(
-        `/api/services/${serviceId}/programs/${activityId}`,
-        { method: "DELETE" }
-      );
-      if (!res.ok) throw new Error("Failed to delete activity");
-      return res.json();
+      return mutateApi(`/api/services/${serviceId}/programs/${activityId}`, { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["weekly-program", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -118,16 +107,13 @@ export function useBulkUpsertProgram(serviceId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: BulkUpsertInput) => {
-      const res = await fetch(`/api/services/${serviceId}/programs`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to save program");
-      return res.json();
+      return mutateApi(`/api/services/${serviceId}/programs`, { method: "PUT", body: data });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["weekly-program", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

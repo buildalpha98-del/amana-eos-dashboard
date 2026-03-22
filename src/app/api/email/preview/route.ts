@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import {
   renderBlocksToHtml,
@@ -8,6 +7,7 @@ import {
   marketingLayout,
   type EmailBlock,
 } from "@/lib/email-marketing-layout";
+import { withApiAuth } from "@/lib/server-auth";
 
 const bodySchema = z.object({
   templateId: z.string().optional().nullable(),
@@ -27,15 +27,8 @@ const SAMPLE_VARIABLES: Record<string, string> = {
   centrePhone: "(02) 1234 5678",
 };
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth([
-    "owner",
-    "head_office",
-    "admin",
-    "coordinator",
-  ]);
-  if (error) return error;
-  // Use session to avoid unused-var lint error
+export const POST = withApiAuth(async (req, session) => {
+// Use session to avoid unused-var lint error
   void session;
 
   let raw: unknown;
@@ -92,4 +85,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ html });
-}
+});

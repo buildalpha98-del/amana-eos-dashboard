@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { resolveServiceByCode } from "../_lib/resolve-service";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const bodySchema = z.object({
+  serviceCode: z.string().min(1),
+  email: z.string().email(),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+});
 
 /**
  * POST /api/cowork/nurture — Trigger nurture sequence via API key
@@ -9,25 +19,20 @@ import { resolveServiceByCode } from "../_lib/resolve-service";
  * Body: { serviceCode, email, firstName?, lastName? }
  * Auth: API key with "email:write" scope
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceCode, email, firstName, lastName } = body as {
-      serviceCode?: string;
-      email?: string;
-      firstName?: string;
-      lastName?: string;
-    };
-
-    if (!serviceCode || !email) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "serviceCode and email are required" },
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
+    const { serviceCode, email, firstName, lastName } = parsed.data;
 
     // Resolve service
     const service = await resolveServiceByCode(serviceCode);
@@ -92,10 +97,10 @@ export async function POST(req: NextRequest) {
       stepsCreated: created.count,
     });
   } catch (err) {
-    console.error("[Cowork Nurture POST]", err);
+    logger.error("Cowork Nurture POST", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+});

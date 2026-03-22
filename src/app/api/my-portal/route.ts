@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
-export async function GET() {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const userId = session!.user.id;
+import { withApiAuth } from "@/lib/server-auth";
+export const GET = withApiAuth(async (req, session) => {
+const userId = session!.user.id;
 
   // Run all queries in parallel for efficiency
   const [
@@ -295,4 +291,4 @@ export async function GET() {
     complianceCerts,
     recentActivity,
   });
-}
+});

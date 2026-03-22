@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const putSchema = z.object({
+  name: z.string().min(1).optional(),
+  triggerStage: z.string().nullable().optional(),
+  isActive: z.boolean().optional(),
+  steps: z.array(z.object({
+    name: z.string().min(1),
+    delayHours: z.number(),
+    templateKey: z.string().min(1),
+    emailTemplateId: z.string().optional(),
+  })).optional(),
+});
 
 const sequenceInclude = {
   steps: {
@@ -19,14 +32,8 @@ const sequenceInclude = {
 };
 
 // GET /api/sequences/:id — single sequence with steps and enrolment stats
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const sequence = await prisma.sequence.findUnique({
     where: { id },
@@ -67,17 +74,11 @@ export async function GET(
   }
 
   return NextResponse.json({ ...sequence, enrolmentStats: stats });
-}
+});
 
 // PUT /api/sequences/:id — update sequence and optionally replace steps
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const PUT = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const existing = await prisma.sequence.findUnique({ where: { id } });
   if (!existing) {
@@ -88,17 +89,14 @@ export async function PUT(
   }
 
   const body = await req.json();
-  const { name, triggerStage, isActive, steps } = body as {
-    name?: string;
-    triggerStage?: string | null;
-    isActive?: boolean;
-    steps?: Array<{
-      name: string;
-      delayHours: number;
-      templateKey: string;
-      emailTemplateId?: string;
-    }>;
-  };
+  const parsed = putSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
+  const { name, triggerStage, isActive, steps } = parsed.data;
 
   // If steps provided, delete existing and recreate
   if (steps) {
@@ -126,17 +124,11 @@ export async function PUT(
   });
 
   return NextResponse.json(sequence);
-}
+});
 
 // DELETE /api/sequences/:id — only if no active enrolments
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const existing = await prisma.sequence.findUnique({ where: { id } });
   if (!existing) {
@@ -162,4 +154,4 @@ export async function DELETE(
   await prisma.sequence.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
-}
+});

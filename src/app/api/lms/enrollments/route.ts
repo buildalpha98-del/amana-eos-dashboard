@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const enrollSchema = z.object({
   courseId: z.string().min(1),
   userIds: z.array(z.string().min(1)).min(1),
@@ -20,11 +19,8 @@ const unenrollSchema = z.object({
 });
 
 // POST /api/lms/enrollments — enrol staff OR update module progress
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
 
   // ── Mode B: Progress update ──
   if (body.enrollmentId && body.moduleId !== undefined) {
@@ -226,14 +222,11 @@ export async function POST(req: NextRequest) {
     },
     { status: 201 }
   );
-}
+});
 
 // DELETE /api/lms/enrollments — unenrol a user (owner/admin only)
-export async function DELETE(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const DELETE = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = unenrollSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -273,4 +266,4 @@ export async function DELETE(req: NextRequest) {
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

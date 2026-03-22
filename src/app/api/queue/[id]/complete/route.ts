@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 /**
  * POST /api/queue/[id]/complete — mark a CoworkTodo as completed
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const userId = session!.user.id;
 
   const todo = await prisma.coworkTodo.findUnique({ where: { id } });
@@ -30,4 +23,4 @@ export async function POST(
   });
 
   return NextResponse.json({ todo: updated });
-}
+});

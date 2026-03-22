@@ -1,13 +1,16 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { getMetaAuthUrl, isConfigured } from "@/lib/meta";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
 
-export async function POST(req: Request) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
+const postSchema = z.object({
+  platform: z.enum(["facebook", "instagram"]),
+});
 
-  if (!isConfigured()) {
+export const POST = withApiAuth(async (req, session) => {
+if (!isConfigured()) {
     return NextResponse.json(
       { error: "Meta OAuth is not configured. Please set META_APP_ID, META_APP_SECRET, META_REDIRECT_URI, and META_ENCRYPTION_KEY." },
       { status: 500 }
@@ -16,14 +19,14 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const platform = body.platform as string;
-
-    if (!platform || !["facebook", "instagram"].includes(platform)) {
+    const parsed = postSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid platform. Must be 'facebook' or 'instagram'." },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { platform } = parsed.data;
 
     const state = crypto.randomBytes(16).toString("hex");
     const authUrl = getMetaAuthUrl(state);
@@ -51,10 +54,10 @@ export async function POST(req: Request) {
 
     return response;
   } catch (err) {
-    console.error("Social connect error:", err);
+    logger.error("Social connect error", { err });
     return NextResponse.json(
       { error: "Failed to initiate social connection" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

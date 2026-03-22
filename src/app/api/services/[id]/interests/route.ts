@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const INTEREST_SOURCES = ["interest_book", "verbal", "observation", "parent", "suggestion_box"] as const;
 
@@ -24,29 +24,23 @@ const patchSchema = z.object({
 });
 
 // GET /api/services/[id]/interests?actioned=true/false&from=&to=&category=
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const url = new URL(req.url);
   const actioned = url.searchParams.get("actioned");
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
   const category = url.searchParams.get("category");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = { serviceId: id };
+  const where: Record<string, unknown> = { serviceId: id };
   if (actioned === "true") where.actioned = true;
   if (actioned === "false") where.actioned = false;
   if (category) where.interestCategory = category;
   if (from || to) {
-    where.capturedDate = {};
-    if (from) where.capturedDate.gte = new Date(from);
-    if (to) where.capturedDate.lte = new Date(to);
+    const dateFilter: Record<string, Date> = {};
+    if (from) dateFilter.gte = new Date(from);
+    if (to) dateFilter.lte = new Date(to);
+    where.capturedDate = dateFilter;
   }
 
   const interests = await prisma.childInterest.findMany({
@@ -60,17 +54,11 @@ export async function GET(
   });
 
   return NextResponse.json(interests);
-}
+});
 
 // POST /api/services/[id]/interests — create interest
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
@@ -95,17 +83,11 @@ export async function POST(
   });
 
   return NextResponse.json(interest, { status: 201 });
-}
+});
 
 // PATCH /api/services/[id]/interests?interestId=xxx — mark actioned / link to activity
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const url = new URL(req.url);
   const interestId = url.searchParams.get("interestId");
   if (!interestId) {
@@ -125,8 +107,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Interest not found" }, { status: 404 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateData: any = {};
+  const updateData: Record<string, unknown> = {};
   if (parsed.data.actioned !== undefined) {
     updateData.actioned = parsed.data.actioned;
     if (parsed.data.actioned) updateData.actionedDate = new Date();
@@ -152,17 +133,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+});
 
 // DELETE /api/services/[id]/interests?interestId=xxx — remove an interest
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const url = new URL(req.url);
   const interestId = url.searchParams.get("interestId");
   if (!interestId) {
@@ -178,5 +153,5 @@ export async function DELETE(
 
   await prisma.childInterest.delete({ where: { id: interestId } });
 
-  return NextResponse.json({ ok: true });
-}
+  return NextResponse.json({ success: true });
+});

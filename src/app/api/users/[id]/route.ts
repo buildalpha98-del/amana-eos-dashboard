@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { checkPasswordBreach } from "@/lib/password-breach-check";
 import { logAuditEvent } from "@/lib/audit-log";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { parseJsonBody } from "@/lib/api-error";
 
 const updateUserSchema = z.object({
   name: z.string().min(1, "Name is required").optional(),
@@ -17,15 +20,9 @@ const updateUserSchema = z.object({
 });
 
 // PATCH /api/users/:id — update a user (owner + admin)
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
-  const body = await req.json();
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
+  const body = await parseJsonBody(req);
   const parsed = updateUserSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -123,17 +120,11 @@ export async function PATCH(
   }
 
   return NextResponse.json(updated);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/users/:id — hard delete a user (owner only)
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   // Prevent self-delete
   if (id === session!.user.id) {
@@ -162,8 +153,7 @@ export async function DELETE(
   // Run in a transaction: nullify FK references, then delete owned cascadeable records, then delete user.
   // No .catch() handlers — if any operation fails, the entire transaction rolls back atomically.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Nullify optional foreign-key references pointing to this user
       await tx.rock.updateMany({ where: { ownerId: id }, data: { ownerId: null } });
       await tx.todo.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
@@ -173,10 +163,10 @@ export async function DELETE(
       await tx.marketingPost.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
       await tx.marketingPost.updateMany({ where: { approvedById: id }, data: { approvedById: null } });
       await tx.marketingTask.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
-      await tx.supportTicket.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
+      await tx.supportTicket.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } });
       await tx.service.updateMany({ where: { managerId: id }, data: { managerId: null } });
-      await tx.leaveRequest.updateMany({ where: { approverId: id }, data: { approverId: null } });
-      await tx.lead.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
+      await tx.leaveRequest.updateMany({ where: { reviewedById: id }, data: { reviewedById: null } });
+      await tx.lead.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } });
       await tx.measurable.updateMany({ where: { ownerId: id }, data: { ownerId: null } });
       await tx.measurableEntry.updateMany({ where: { enteredById: id }, data: { enteredById: null } });
       await tx.project.updateMany({ where: { ownerId: id }, data: { ownerId: null } });
@@ -221,7 +211,7 @@ export async function DELETE(
       await tx.user.delete({ where: { id } });
     });
   } catch (err) {
-    console.error(`[users] Failed to delete user ${id}:`, err);
+    logger.error("Failed to delete user", { id, err });
     return NextResponse.json(
       { error: "Failed to delete user. Some related records could not be cleaned up. Please try again or contact support." },
       { status: 500 }
@@ -240,4 +230,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true, message: `User "${user.name}" has been permanently deleted.` });
-}
+}, { roles: ["owner"] });

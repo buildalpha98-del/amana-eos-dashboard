@@ -1,17 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const patchBannerSchema = z.object({
+  title: z.string().min(1).optional(),
+  body: z.string().min(1).optional(),
+  type: z.enum(["info", "success", "warning", "feature", "celebration"]).optional(),
+  linkUrl: z.string().nullable().optional(),
+  linkLabel: z.string().nullable().optional(),
+  active: z.boolean().optional(),
+  dismissible: z.boolean().optional(),
+  startsAt: z.string().nullable().optional(),
+  expiresAt: z.string().nullable().optional(),
+});
 
 // PATCH /api/system-banners/[id] — update a banner (owner/head_office only)
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth(["owner", "head_office"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
+  const parsed = patchBannerSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
 
   const existing = await prisma.systemBanner.findUnique({ where: { id } });
   if (!existing) {
@@ -28,25 +39,7 @@ export async function PATCH(
     dismissible,
     startsAt,
     expiresAt,
-  } = body as {
-    title?: string;
-    body?: string;
-    type?: string;
-    linkUrl?: string | null;
-    linkLabel?: string | null;
-    active?: boolean;
-    dismissible?: boolean;
-    startsAt?: string | null;
-    expiresAt?: string | null;
-  };
-
-  const validTypes = ["info", "success", "warning", "feature", "celebration"];
-  if (type && !validTypes.includes(type)) {
-    return NextResponse.json(
-      { error: "Invalid type. Must be one of: info, success, warning, feature, celebration" },
-      { status: 400 },
-    );
-  }
+  } = parsed.data;
 
   const banner = await prisma.systemBanner.update({
     where: { id },
@@ -67,17 +60,11 @@ export async function PATCH(
   void session;
 
   return NextResponse.json({ banner });
-}
+}, { roles: ["owner", "head_office"] });
 
 // DELETE /api/system-banners/[id] — delete a banner (owner/head_office only)
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const existing = await prisma.systemBanner.findUnique({ where: { id } });
   if (!existing) {
@@ -86,5 +73,5 @@ export async function DELETE(
 
   await prisma.systemBanner.delete({ where: { id } });
 
-  return NextResponse.json({ ok: true });
-}
+  return NextResponse.json({ success: true });
+}, { roles: ["owner", "head_office"] });

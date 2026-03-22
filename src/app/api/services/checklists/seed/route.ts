@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 interface SeedItem {
   category: string;
   label: string;
@@ -67,10 +66,7 @@ const SEED_CHECKLISTS: SeedChecklist[] = [
 ];
 
 // POST /api/services/checklists/seed — owner-only seed of default checklists for all active services
-export async function POST() {
-  const { error } = await requireAuth(["owner"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   const services = await prisma.service.findMany({
     where: { status: "active" },
     select: { id: true, name: true },
@@ -155,4 +151,4 @@ export async function POST() {
     skipped,
     message: `Created ${created.length} checklists, skipped ${skipped.length} (already exist)`,
   });
-}
+}, { roles: ["owner"] });

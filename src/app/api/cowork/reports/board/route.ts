@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { generateBoardReport } from "@/lib/board-report-generator";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const bodySchema = z.object({
+  month: z.number().min(1).max(12),
+  year: z.number().min(2000).max(2100),
+});
 
 /**
  * POST /api/cowork/reports/board — Generate a board report via API key
@@ -8,28 +16,28 @@ import { generateBoardReport } from "@/lib/board-report-generator";
  * Auth: API key with `reports:write` scope
  * Body: { month: 1-12, year: number }
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { month, year } = body as { month: number; year: number };
-
-    if (!month || !year || month < 1 || month > 12) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid month (1-12) or year" },
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
+    const { month, year } = parsed.data;
 
     const report = await generateBoardReport({ month, year });
     return NextResponse.json(report);
   } catch (err) {
-    console.error("Cowork board report generation failed:", err);
+    logger.error("Cowork board report generation failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Generation failed" },
       { status: 500 },
     );
   }
-}
+});

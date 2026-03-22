@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createHmac } from "crypto";
+import { withApiHandler } from "@/lib/api-handler";
+import { z } from "zod";
+
+const patchSchema = z.object({
+  subscribed: z.boolean(),
+});
 
 /**
  * Validate the HMAC token to prevent enumeration of contact IDs.
@@ -19,11 +25,8 @@ function validateToken(contactId: string, token: string | null): boolean {
   return mismatch === 0;
 }
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ contactId: string }> }
-) {
-  const { contactId } = await params;
+export const GET = withApiHandler(async (req, context) => {
+  const { contactId } = await context!.params!;
   const token = req.nextUrl.searchParams.get("token");
 
   if (!validateToken(contactId, token)) {
@@ -52,13 +55,10 @@ export async function GET(
     subscribed: contact.subscribed,
     serviceName: contact.service.name,
   });
-}
+});
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ contactId: string }> }
-) {
-  const { contactId } = await params;
+export const PATCH = withApiHandler(async (req, context) => {
+  const { contactId } = await context!.params!;
   const token = req.nextUrl.searchParams.get("token");
 
   if (!validateToken(contactId, token)) {
@@ -66,7 +66,15 @@ export async function PATCH(
   }
 
   try {
-    const { subscribed } = await req.json();
+    const raw = await req.json();
+    const parsed = patchSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const { subscribed } = parsed.data;
 
     const contact = await prisma.centreContact.findUnique({
       where: { id: contactId },
@@ -79,11 +87,11 @@ export async function PATCH(
 
     await prisma.centreContact.update({
       where: { id: contactId },
-      data: { subscribed: Boolean(subscribed) },
+      data: { subscribed },
     });
 
-    return NextResponse.json({ success: true, subscribed: Boolean(subscribed) });
+    return NextResponse.json({ success: true, subscribed });
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
-}
+});

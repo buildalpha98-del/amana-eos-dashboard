@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
 
 export interface FinancialService {
   id: string;
@@ -62,10 +63,10 @@ export function useFinancials(filters?: { period?: string; serviceId?: string })
 
   return useQuery<{ financials: FinancialPeriodData[]; summary: FinancialSummary }>({
     queryKey: ["financials", filters?.period ?? null, filters?.serviceId ?? null],
-    queryFn: async () => {
-      const res = await fetch(`/api/financials${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch financials");
-      return res.json();
-    },
+    queryFn: () =>
+      fetchApi<{ financials: FinancialPeriodData[]; summary: FinancialSummary }>(
+        `/api/financials${query ? `?${query}` : ""}`,
+      ),
+    retry: 2,
   });
 }

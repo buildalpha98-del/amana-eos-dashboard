@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+const submitPulseSchema = z.object({
+  surveyId: z.string().min(1, "surveyId required"),
+  q1Happy: z.number().int().min(1).max(5),
+  q2Supported: z.number().int().min(1).max(5),
+  q3Schedule: z.number().int().min(1).max(5),
+  q4Recommend: z.number().int().min(1).max(5),
+  q5Feedback: z.string().optional(),
+});
 
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const periodMonth = searchParams.get("periodMonth");
@@ -75,30 +79,15 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(surveys);
-}
+});
 
-export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export const POST = withApiAuth(async (req, session) => {
   const body = await req.json();
-  const { surveyId, q1Happy, q2Supported, q3Schedule, q4Recommend, q5Feedback } = body;
-
-  if (!surveyId) {
-    return NextResponse.json({ error: "surveyId required" }, { status: 400 });
+  const parsed = submitPulseSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
-
-  // Validate ratings are 1-5
-  for (const val of [q1Happy, q2Supported, q3Schedule, q4Recommend]) {
-    if (typeof val !== "number" || val < 1 || val > 5) {
-      return NextResponse.json(
-        { error: "All ratings must be between 1 and 5" },
-        { status: 400 },
-      );
-    }
-  }
+  const { surveyId, q1Happy, q2Supported, q3Schedule, q4Recommend, q5Feedback } = parsed.data;
 
   // Verify ownership for staff
   const survey = await prisma.staffPulseSurvey.findUnique({
@@ -133,4 +122,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(updated);
-}
+});

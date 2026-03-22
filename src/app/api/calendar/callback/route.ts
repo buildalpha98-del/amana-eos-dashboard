@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/calendar/callback
  * Microsoft redirects here after the user authorises calendar access.
  * We exchange the auth code for tokens and store them.
  */
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
   const error = searchParams.get("error");
@@ -22,7 +17,7 @@ export async function GET(req: NextRequest) {
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
   if (error) {
-    console.error("[CALENDAR] Auth error:", error, errorDescription);
+    logger.error("CALENDAR: Auth error", { error, err: errorDescription });
     return NextResponse.redirect(
       `${baseUrl}/settings?calendar=error&message=${encodeURIComponent(errorDescription || error)}`
     );
@@ -58,7 +53,7 @@ export async function GET(req: NextRequest) {
 
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
-      console.error("[CALENDAR] Token exchange failed:", errText);
+      logger.error("CALENDAR: Token exchange failed", { err: errText });
       return NextResponse.redirect(
         `${baseUrl}/settings?calendar=error&message=Token+exchange+failed`
       );
@@ -87,9 +82,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.redirect(`${baseUrl}/settings?calendar=connected`);
   } catch (err) {
-    console.error("[CALENDAR] Callback error:", err);
+    logger.error("CALENDAR: Callback error", { err });
     return NextResponse.redirect(
       `${baseUrl}/settings?calendar=error&message=Unexpected+error`
     );
   }
-}
+});

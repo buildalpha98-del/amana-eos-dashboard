@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -23,11 +25,8 @@ interface OwnaStatus {
 export function useOwnaStatus() {
   return useQuery<OwnaStatus>({
     queryKey: ["owna-status"],
-    queryFn: async () => {
-      const res = await fetch("/api/owna/status");
-      if (!res.ok) throw new Error("Failed to fetch OWNA status");
-      return res.json();
-    },
+    queryFn: () => fetchApi<OwnaStatus>("/api/owna/status"),
+    retry: 2,
   });
 }
 
@@ -41,19 +40,13 @@ export function useUpdateOwnaMapping() {
       ownaServiceId: string | null;
       ownaLocationId?: string | null;
     }) => {
-      const res = await fetch("/api/owna/mapping", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update mapping");
-      }
-      return res.json();
+      return mutateApi("/api/owna/mapping", { method: "PUT", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["owna-status"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -64,15 +57,13 @@ export function useOwnaSync() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/owna/sync", { method: "POST" });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Sync failed");
-      }
-      return res.json();
+      return mutateApi("/api/owna/sync", { method: "POST" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["owna-status"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

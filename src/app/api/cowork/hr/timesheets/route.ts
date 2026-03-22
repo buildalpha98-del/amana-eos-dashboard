@@ -1,30 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const timesheetEntrySchema = z.object({
+  userEmail: z.string().email(),
+  date: z.string().min(1),
+  shiftStart: z.string().min(1),
+  shiftEnd: z.string().min(1),
+  breakMinutes: z.number().optional(),
+  totalHours: z.number(),
+  shiftType: z.enum(["shift_bsc", "shift_asc", "shift_vac", "pd", "shift_admin", "shift_other"]).optional(),
+  notes: z.string().nullable().optional(),
+  isOvertime: z.boolean().optional(),
+  payRate: z.number().nullable().optional(),
+});
+
+const bodySchema = z.object({
+  serviceCode: z.string().min(1),
+  weekEnding: z.string().min(1),
+  entries: z.array(timesheetEntrySchema).min(1),
+  notes: z.string().nullable().optional(),
+  importSource: z.string().optional(),
+});
 
 /**
  * POST /api/cowork/hr/timesheets
  * Import timesheet data for a centre's week.
  * Used by: hr-timesheet-variance-scan, hr-overtime-alert
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceCode, weekEnding, entries, notes, importSource } = body;
-
-    if (!serviceCode || !weekEnding || !entries || !Array.isArray(entries)) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          error: "Bad Request",
-          message:
-            "serviceCode, weekEnding (YYYY-MM-DD), and entries[] required",
-        },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { serviceCode, weekEnding, entries, notes, importSource } = parsed.data;
 
     const service = await prisma.service.findUnique({
       where: { code: serviceCode },
@@ -33,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     if (!service) {
       return NextResponse.json(
-        { error: "Not Found", message: `Service ${serviceCode} not found` },
+        { error: `Service ${serviceCode} not found` },
         { status: 404 }
       );
     }
@@ -109,10 +129,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /cowork/hr/timesheets]", err);
+    logger.error("POST /cowork/hr/timesheets", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});

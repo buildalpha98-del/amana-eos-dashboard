@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/useToast";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
 export interface ServiceSummary {
   id: string;
@@ -65,29 +67,25 @@ export interface ServiceDetail extends Omit<ServiceSummary, "_count"> {
 }
 
 export function useServices(status?: string) {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const qs = params.toString();
+
   return useQuery<ServiceSummary[]>({
     queryKey: ["services", status],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (status) params.set("status", status);
-      const res = await fetch(`/api/services?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch services");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ServiceSummary[]>(`/api/services${qs ? `?${qs}` : ""}`),
     staleTime: 5 * 60_000, // Reference data: 5 min stale time
+    retry: 2,
   });
 }
 
 export function useService(id: string) {
   return useQuery<ServiceDetail>({
     queryKey: ["service", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/services/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch service");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ServiceDetail>(`/api/services/${id}`),
     enabled: !!id,
     refetchInterval: 5 * 60_000, // Auto-refetch every 5 min for stale data
+    retry: 2,
   });
 }
 
@@ -108,19 +106,16 @@ export function useCreateService() {
       operatingDays?: string;
       notes?: string;
     }) => {
-      const res = await fetch("/api/services", {
+      return mutateApi<ServiceSummary>("/api/services", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create service");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -155,20 +150,17 @@ export function useUpdateService() {
       ascGroceryRate?: number;
       vcGroceryRate?: number;
     }) => {
-      const res = await fetch(`/api/services/${id}`, {
+      return mutateApi<ServiceDetail>(`/api/services/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update service");
-      }
-      return res.json();
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["services"] });
       queryClient.invalidateQueries({ queryKey: ["service", vars.id] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -177,15 +169,13 @@ export function useDeleteService() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/services/${id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to delete service");
-      }
-      return res.json();
+      return mutateApi(`/api/services/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["services"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

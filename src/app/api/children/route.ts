@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+import { withApiAuth } from "@/lib/server-auth";
+export const GET = withApiAuth(async (req, session) => {
   const url = new URL(req.url);
   const search = url.searchParams.get("search") || "";
   const status = url.searchParams.get("status") || "";
   const serviceId = url.searchParams.get("serviceId") || "";
   const limit = Math.min(Number(url.searchParams.get("limit") || "100"), 200);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {};
+  const where: Record<string, unknown> = {};
 
   if (status && status !== "all") {
     where.status = status;
@@ -52,4 +47,4 @@ export async function GET(req: NextRequest) {
   ]);
 
   return NextResponse.json({ children, total });
-}
+});

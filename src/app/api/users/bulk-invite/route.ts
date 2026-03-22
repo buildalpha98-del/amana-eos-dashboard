@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { sendEmail } from "@/lib/email";
+import { logger } from "@/lib/logger";
 import { welcomeEmail } from "@/lib/email-templates";
 import { logAuditEvent } from "@/lib/audit-log";
+import { withApiAuth } from "@/lib/server-auth";
 
 const bulkUserSchema = z.object({
   email: z.string().email("Valid email is required"),
@@ -64,13 +65,13 @@ function generateTempPassword(): string {
 
 const BATCH_SIZE = 10;
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth([
-    "owner",
-    "admin",
-    "head_office",
-  ]);
-  if (error) return error;
+export const POST = withApiAuth(async (req, session) => {
+  const callerRole = session.user.role;
+
+  // Guard: only owner/admin/head_office can bulk invite
+  if (!["owner", "admin", "head_office"].includes(callerRole)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const body = await req.json();
   const parsed = bulkInviteSchema.safeParse(body);
@@ -83,7 +84,6 @@ export async function POST(req: NextRequest) {
   }
 
   const { users } = parsed.data;
-  const callerRole = session!.user.role;
 
   // Guard: non-owners cannot create owner-level users
   if (callerRole !== "owner" && users.some((u) => u.role === "owner")) {
@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
         // Log activity
         await prisma.activityLog.create({
           data: {
-            userId: session!.user.id,
+            userId: session.user.id,
             action: "create",
             entityType: "User",
             entityId: user.id,
@@ -173,8 +173,8 @@ export async function POST(req: NextRequest) {
         logAuditEvent(
           {
             action: "user.bulk_invited",
-            actorId: session!.user.id,
-            actorEmail: session!.user.email,
+            actorId: session.user.id,
+            actorEmail: session.user.email,
             targetId: user.id,
             targetType: "User",
             metadata: { role: userData.role, email },
@@ -195,12 +195,7 @@ export async function POST(req: NextRequest) {
           );
           await sendEmail({ to: email, subject, html });
         } catch (emailErr) {
-          if (process.env.NODE_ENV !== "production") {
-            console.log(
-              `[DEV] Welcome email failed for ${email}:`,
-              emailErr,
-            );
-          }
+          logger.warn("Welcome email failed", { email, err: emailErr });
           // Don't fail user creation if email fails
         }
 
@@ -233,4 +228,4 @@ export async function POST(req: NextRequest) {
     skipped,
     errors,
   });
-}
+});

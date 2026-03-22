@@ -1,19 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
-export async function DELETE(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth([
-    "owner",
-    "head_office",
-    "admin",
-  ]);
-  if (error) return error;
-
-  const { id } = await params;
+import { withApiAuth } from "@/lib/server-auth";
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const snippet = await prisma.infoSnippet.findUnique({ where: { id } });
   if (!snippet) {
@@ -28,5 +17,5 @@ export async function DELETE(
     data: { active: false },
   });
 
-  return NextResponse.json({ ok: true });
-}
+  return NextResponse.json({ success: true });
+});

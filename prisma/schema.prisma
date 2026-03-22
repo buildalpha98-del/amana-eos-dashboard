@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -1678,6 +1679,7 @@ model Scenario {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@unique([name, createdById]) // prevent duplicate scenario names per user
   @@index([createdById])
 }
 
@@ -2600,7 +2602,7 @@ model StaffQualification {
 
 model Policy {
   id            String       @id @default(cuid())
-  title         String
+  title         String       @unique // policy names must be unique
   description   String?      @db.Text
   version       Int          @default(1)
   status        PolicyStatus @default(draft)
@@ -3015,7 +3017,7 @@ model TouchpointLog {
 
 model CrmEmailTemplate {
   id           String         @id @default(cuid())
-  name         String
+  name         String         @unique // template names must be unique
   subject      String
   body         String         @db.Text
   triggerStage PipelineStage?
@@ -3114,7 +3116,7 @@ model WhatsAppGroup {
   id               String   @id @default(cuid())
   groupType        String // announcements, centre_parents, lunchbox, ccs_help, ideas
   serviceCode      String? // null for broadcast groups
-  whatsappGroupJid String // WhatsApp group JID from 360dialog
+  whatsappGroupJid String   @unique // WhatsApp group JID from 360dialog — must be unique
   name             String
   memberCount      Int      @default(0)
   active           Boolean  @default(true)
@@ -3157,6 +3159,8 @@ model DeliveryLog {
   @@index([createdAt])
   @@index([entityType, entityId])
   @@index([serviceCode, createdAt])
+  @@index([status])
+  @@index([channel, status])
 }
 
 // ============================================================
@@ -4157,6 +4161,8 @@ model EmailTemplate {
   updatedAt   DateTime              @updatedAt
 
   sequenceSteps SequenceStep[] @relation("StepEmailTemplate")
+
+  @@unique([name, category])
 }
 
 // ============================================================
@@ -4408,6 +4414,7 @@ model Sequence {
   steps       SequenceStep[]
   enrolments  SequenceEnrolment[]
 
+  @@unique([name, type])
   @@index([type])
   @@index([triggerStage])
 }

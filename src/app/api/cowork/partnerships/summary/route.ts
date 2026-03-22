@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
 
 /**
  * GET /api/cowork/partnerships/summary
@@ -10,8 +11,8 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
  *
  * Auth: API key with partnerships:read scope
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const now = new Date();
@@ -155,4 +156,4 @@ export async function GET(req: NextRequest) {
   });
   res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
   return res;
-}
+});

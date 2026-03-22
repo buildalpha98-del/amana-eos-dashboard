@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { syncXeroFinancials } from "@/lib/xero-sync";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
+const bodySchema = z.object({
+  months: z.number().int().min(1).max(24).default(1),
+});
 
-  try {
-    const body = await req.json().catch(() => ({}));
-    const months = typeof body.months === "number" && body.months > 0
-      ? body.months
-      : 1;
+export const POST = withApiAuth(async (req, session) => {
+try {
+    const raw = await req.json().catch(() => ({}));
+    const parsed = bodySchema.safeParse(raw);
+    const months = parsed.success ? parsed.data.months : 1;
 
     const result = await syncXeroFinancials({ months });
 
@@ -33,10 +35,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (err) {
-    console.error("Xero sync failed:", err);
+    logger.error("Xero sync failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Sync failed" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 const STAGES = [
   "new_enquiry",
   "info_sent",
@@ -17,14 +17,11 @@ const STAGES = [
 ] as const;
 
 // GET /api/enquiries/stats — pipeline stats
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
 
-  const baseWhere: any = { deleted: false };
+  const baseWhere: Record<string, unknown> = { deleted: false };
   if (serviceId) baseWhere.serviceId = serviceId;
 
   try {
@@ -111,10 +108,10 @@ export async function GET(req: NextRequest) {
       totalActive,
     });
   } catch (err) {
-    console.error("[Enquiry Stats]", err);
+    logger.error("Enquiry Stats", { err });
     return NextResponse.json(
       { error: "Failed to fetch enquiry stats" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });

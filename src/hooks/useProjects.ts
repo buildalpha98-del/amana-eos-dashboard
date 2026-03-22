@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
 export interface ProjectSummary {
@@ -77,27 +78,23 @@ export function useProjects(filters?: {
 }) {
   return useQuery<ProjectSummary[]>({
     queryKey: ["projects", filters],
-    queryFn: async () => {
+    queryFn: () => {
       const params = new URLSearchParams();
       if (filters?.status) params.set("status", filters.status);
       if (filters?.serviceId) params.set("serviceId", filters.serviceId);
       if (filters?.ownerId) params.set("ownerId", filters.ownerId);
-      const res = await fetch(`/api/projects?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch projects");
-      return res.json();
+      return fetchApi<ProjectSummary[]>(`/api/projects?${params}`);
     },
+    retry: 2,
   });
 }
 
 export function useProject(id: string) {
   return useQuery<ProjectDetail>({
     queryKey: ["project", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/projects/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch project");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ProjectDetail>(`/api/projects/${id}`),
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -113,21 +110,15 @@ export function useCreateProject() {
       startDate?: string | null;
       targetDate?: string | null;
     }) => {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create project");
-      }
-      return res.json();
+      return mutateApi("/api/projects", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["services"] });
       toast({ description: "Project created" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -148,21 +139,15 @@ export function useUpdateProject() {
       startDate?: string | null;
       targetDate?: string | null;
     }) => {
-      const res = await fetch(`/api/projects/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update project");
-      }
-      return res.json();
+      return mutateApi(`/api/projects/${id}`, { method: "PATCH", body: data });
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["project", vars.id] });
       queryClient.invalidateQueries({ queryKey: ["services"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -171,14 +156,15 @@ export function useDeleteProject() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete project");
-      return res.json();
+      return mutateApi(`/api/projects/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["services"] });
       toast({ description: "Project deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

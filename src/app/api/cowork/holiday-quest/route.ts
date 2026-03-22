@@ -1,7 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { resolveServiceByCode } from "../_lib/resolve-service";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const holidayDaySchema = z.object({
+  date: z.string().min(1),
+  theme: z.string().min(1),
+  morningActivity: z.string().min(1),
+  afternoonActivity: z.string().min(1),
+  isExcursion: z.boolean().optional(),
+  excursionVenue: z.string().nullable().optional(),
+  excursionCost: z.number().nullable().optional(),
+  materialsNeeded: z.string().nullable().optional(),
+  dietaryNotes: z.string().nullable().optional(),
+  maxCapacity: z.number().optional(),
+});
+
+const bodySchema = z.object({
+  serviceCode: z.string().min(1),
+  days: z.array(holidayDaySchema).min(1),
+});
 
 /**
  * POST /api/cowork/holiday-quest — Create/update Holiday Quest days via API key
@@ -9,34 +30,20 @@ import { resolveServiceByCode } from "../_lib/resolve-service";
  * Body: { serviceCode, days: [{ date, theme, morningActivity, afternoonActivity, ... }] }
  * Auth: API key with "holiday-quest:write" scope
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceCode, days } = body as {
-      serviceCode?: string;
-      days?: Array<{
-        date: string;
-        theme: string;
-        morningActivity: string;
-        afternoonActivity: string;
-        isExcursion?: boolean;
-        excursionVenue?: string;
-        excursionCost?: number;
-        materialsNeeded?: string;
-        dietaryNotes?: string;
-        maxCapacity?: number;
-      }>;
-    };
-
-    if (!serviceCode || !days || days.length === 0) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "serviceCode and days array are required" },
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
+    const { serviceCode, days } = parsed.data;
 
     const service = await resolveServiceByCode(serviceCode);
     if (!service) {
@@ -87,10 +94,10 @@ export async function POST(req: NextRequest) {
       daysUpserted: results.length,
     });
   } catch (err) {
-    console.error("[Cowork Holiday Quest POST]", err);
+    logger.error("Cowork Holiday Quest POST", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+});

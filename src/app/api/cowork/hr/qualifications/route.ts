@@ -1,26 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const qualificationSchema = z.object({
+  userEmail: z.string().email(),
+  type: z.enum(["cert_iii", "diploma", "bachelor", "masters", "first_aid", "wwcc", "other"]),
+  name: z.string().min(1),
+  institution: z.string().nullable().optional(),
+  completedDate: z.string().nullable().optional(),
+  expiryDate: z.string().nullable().optional(),
+  certificateUrl: z.string().nullable().optional(),
+  verified: z.boolean().optional(),
+});
+
+const bodySchema = z.object({
+  qualifications: z.array(qualificationSchema).min(1),
+});
 
 /**
  * POST /api/cowork/hr/qualifications
  * Upsert staff qualifications (Cert III, Diploma, etc.).
  * Used by: hr-training-needs-scan, hr-pd-opportunity-matcher
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { qualifications } = body;
-
-    if (!qualifications || !Array.isArray(qualifications)) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "Bad Request", message: "qualifications[] required" },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { qualifications } = parsed.data;
 
     let created = 0,
       updated = 0;
@@ -77,10 +95,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /cowork/hr/qualifications]", err);
+    logger.error("POST /cowork/hr/qualifications", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});

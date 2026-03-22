@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/marketing/occupancy — Occupancy heatmap data per centre
  * Returns current enrolment vs targets, penetration rates, and week-on-week trends.
  */
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const stateFilter = searchParams.get("state");
 
@@ -170,10 +168,10 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("[Occupancy GET]", err);
+    logger.error("Occupancy GET", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

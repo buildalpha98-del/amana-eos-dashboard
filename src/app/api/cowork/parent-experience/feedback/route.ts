@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { z } from "zod";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
@@ -13,8 +15,8 @@ function getWeekStart(date: Date): Date {
 }
 
 // GET /api/cowork/parent-experience/feedback — per-centre weekly averages for Cowork report
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest) {
   weeksAgo.setDate(weeksAgo.getDate() - weeks * 7);
   const weekStartCutoff = getWeekStart(weeksAgo);
 
-  const where: any = {
+  const where: Record<string, unknown> = {
     createdAt: { gte: weekStartCutoff },
   };
 
@@ -81,10 +83,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ centres: result });
   } catch (err) {
-    console.error("[Cowork Feedback GET]", err);
+    logger.error("Cowork Feedback GET", { err });
     return NextResponse.json({ error: "Failed to fetch feedback" }, { status: 500 });
   }
-}
+});
 
 const singleFeedbackSchema = z.object({
   serviceCode: z.string(),
@@ -106,8 +108,8 @@ const batchFeedbackSchema = z.object({
 });
 
 // POST /api/cowork/parent-experience/feedback — create single or batch ParentFeedback records
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   let body: unknown;
@@ -156,7 +158,7 @@ export async function POST(req: NextRequest) {
       const result = await prisma.parentFeedback.createMany({ data });
       return NextResponse.json({ success: true, count: result.count }, { status: 201 });
     } catch (err) {
-      console.error("[Cowork Feedback POST batch]", err);
+      logger.error("Cowork Feedback POST batch", { err });
       return NextResponse.json({ error: "Failed to create feedback" }, { status: 500 });
     }
   } else {
@@ -188,8 +190,8 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ success: true, count: 1 }, { status: 201 });
     } catch (err) {
-      console.error("[Cowork Feedback POST single]", err);
+      logger.error("Cowork Feedback POST single", { err });
       return NextResponse.json({ error: "Failed to create feedback" }, { status: 500 });
     }
   }
-}
+});

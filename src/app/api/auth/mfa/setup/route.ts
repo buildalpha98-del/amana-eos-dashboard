@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { generateSecret, generateTotpUri, verifyTotp, generateBackupCodes } from "@/lib/totp";
 import { logAuditEvent } from "@/lib/audit-log";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const bodySchema = z.object({
+  code: z.string().min(6).max(8).optional(),
+});
 
 /**
  * POST /api/auth/mfa/setup
@@ -12,11 +17,8 @@ import { logAuditEvent } from "@/lib/audit-log";
  *
  * Body: {} (step 1) or { code: "123456" } (step 2)
  */
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const userId = session!.user.id;
+export const POST = withApiAuth(async (req, session) => {
+const userId = session!.user.id;
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { email: true, mfaEnabledAt: true, mfaSecret: true },
@@ -26,8 +28,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const body = await req.json().catch(() => ({}));
-  const { code } = body as { code?: string };
+  const raw = await req.json().catch(() => ({}));
+  const parsed = bodySchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
+  const { code } = parsed.data;
 
   // Step 2: Verify code and activate MFA
   if (code) {
@@ -104,4 +113,4 @@ export async function POST(req: NextRequest) {
     otpauthUri,
     message: "Scan this QR code with your authenticator app, then submit a code to verify.",
   });
-}
+});

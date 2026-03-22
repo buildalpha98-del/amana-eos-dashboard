@@ -1,15 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
 
+const createCashFlowSchema = z.object({
+  periodMonth: z.string().min(1),
+  openingBalance: z.number().optional().default(0),
+  parentFeeReceipts: z.number().optional().default(0),
+  ccsReceipts: z.number().optional().default(0),
+  otherReceipts: z.number().optional().default(0),
+  payrollPayments: z.number().optional().default(0),
+  supplierPayments: z.number().optional().default(0),
+  rentPayments: z.number().optional().default(0),
+  overheadPayments: z.number().optional().default(0),
+  debtRepayments: z.number().optional().default(0),
+  investmentOutflows: z.number().optional().default(0),
+  isActual: z.boolean().optional(),
+});
+
+const forecastSchema = z.object({
+  startingBalance: z.number().optional().default(0),
+  monthlyGrowthRate: z.number().optional().default(0.02),
+  monthlyDebtRepayment: z.number().optional().default(2000),
+});
 /**
  * GET /api/financials/cashflow
  * Returns all cash flow periods (12+ months)
  */
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   try {
     const periods = await prisma.cashFlowPeriod.findMany({
       orderBy: { periodMonth: "asc" },
@@ -17,41 +36,38 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ periods, count: periods.length });
   } catch (err) {
-    console.error("[CashFlow GET]", err);
+    logger.error("CashFlow GET", { err });
     return NextResponse.json({ error: "Failed to fetch cash flow data" }, { status: 500 });
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 /**
  * POST /api/financials/cashflow
  * Create or update a cash flow period
  */
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   try {
     const body = await req.json();
-    const { periodMonth, ...fields } = body;
-
-    if (!periodMonth) {
-      return NextResponse.json({ error: "periodMonth is required" }, { status: 400 });
+    const parsed = createCashFlowSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
+    const { periodMonth, ...fields } = parsed.data;
 
     // Auto-calculate derived fields
     const totalReceipts =
-      (fields.parentFeeReceipts || 0) +
-      (fields.ccsReceipts || 0) +
-      (fields.otherReceipts || 0);
+      fields.parentFeeReceipts +
+      fields.ccsReceipts +
+      fields.otherReceipts;
     const totalPayments =
-      (fields.payrollPayments || 0) +
-      (fields.supplierPayments || 0) +
-      (fields.rentPayments || 0) +
-      (fields.overheadPayments || 0) +
-      (fields.debtRepayments || 0) +
-      (fields.investmentOutflows || 0);
+      fields.payrollPayments +
+      fields.supplierPayments +
+      fields.rentPayments +
+      fields.overheadPayments +
+      fields.debtRepayments +
+      fields.investmentOutflows;
     const netMovement = totalReceipts - totalPayments;
-    const closingBalance = (fields.openingBalance || 0) + netMovement;
+    const closingBalance = fields.openingBalance + netMovement;
 
     const data = {
       ...fields,
@@ -69,26 +85,23 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(period, { status: 201 });
   } catch (err) {
-    console.error("[CashFlow POST]", err);
+    logger.error("CashFlow POST", { err });
     return NextResponse.json({ error: "Failed to save cash flow period" }, { status: 500 });
   }
-}
+}, { roles: ["owner", "head_office"] });
 
 /**
  * PUT /api/financials/cashflow
  * Auto-generate 12-month forecast from current financial data
  */
-export async function PUT(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office"]);
-  if (error) return error;
-
+export const PUT = withApiAuth(async (req, session) => {
   try {
     const body = await req.json();
-    const {
-      startingBalance = 0,
-      monthlyGrowthRate = 0.02, // 2% monthly growth default
-      monthlyDebtRepayment = 2000, // Amex paydown
-    } = body;
+    const parsed = forecastSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
+    const { startingBalance, monthlyGrowthRate, monthlyDebtRepayment } = parsed.data;
 
     // Get latest 3 months of financial data for baseline
     const now = new Date();
@@ -219,7 +232,7 @@ export async function PUT(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("[CashFlow PUT/forecast]", err);
+    logger.error("CashFlow PUT/forecast", { err });
     return NextResponse.json({ error: "Failed to generate forecast" }, { status: 500 });
   }
-}
+}, { roles: ["owner", "head_office"] });

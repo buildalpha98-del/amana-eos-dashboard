@@ -1,28 +1,67 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const leaveTypeEnum = z.enum([
+  "annual", "sick", "personal", "unpaid",
+  "long_service", "parental", "compassionate",
+]);
+
+const balanceSchema = z.object({
+  userEmail: z.string().email(),
+  leaveType: leaveTypeEnum,
+  balance: z.number(),
+  accrued: z.number().optional(),
+  taken: z.number().optional(),
+  pending: z.number().optional(),
+  source: z.string().optional(),
+});
+
+const syncBalancesSchema = z.object({
+  action: z.literal("sync_balances"),
+  balances: z.array(balanceSchema).min(1),
+});
+
+const createRequestSchema = z.object({
+  action: z.literal("create_request"),
+  userEmail: z.string().email(),
+  leaveType: leaveTypeEnum,
+  startDate: z.string().min(1),
+  endDate: z.string().min(1),
+  totalDays: z.number().optional(),
+  reason: z.string().nullable().optional(),
+  serviceCode: z.string().optional(),
+});
+
+const bodySchema = z.discriminatedUnion("action", [
+  syncBalancesSchema,
+  createRequestSchema,
+]);
 
 /**
  * POST /api/cowork/hr/leave
  * Sync leave balances and/or create leave request records.
  * Used by: hr-leave-liability-scan, hr-staff-availability-forecast
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { action } = body;
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
 
-    if (action === "sync_balances") {
-      const { balances } = body;
-      if (!balances || !Array.isArray(balances)) {
-        return NextResponse.json(
-          { error: "Bad Request", message: "balances[] required" },
-          { status: 400 }
-        );
-      }
+    if (parsed.data.action === "sync_balances") {
+      const { balances } = parsed.data;
 
       let synced = 0;
       for (const bal of balances) {
@@ -66,7 +105,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (action === "create_request") {
+    if (parsed.data.action === "create_request") {
       const {
         userEmail,
         leaveType,
@@ -75,7 +114,7 @@ export async function POST(req: NextRequest) {
         totalDays,
         reason,
         serviceCode,
-      } = body;
+      } = parsed.data;
 
       const user = await prisma.user.findFirst({
         where: { email: userEmail },
@@ -83,7 +122,7 @@ export async function POST(req: NextRequest) {
       });
       if (!user) {
         return NextResponse.json(
-          { error: "Not Found", message: "User not found" },
+          { error: "User not found" },
           { status: 404 }
         );
       }
@@ -120,6 +159,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // This is unreachable due to discriminated union validation, but keep for safety
     return NextResponse.json(
       {
         error: "Bad Request",
@@ -129,10 +169,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /cowork/hr/leave]", err);
+    logger.error("POST /cowork/hr/leave", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getWeekStart } from "@/lib/utils";
 import type { CertificateType } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
 
 // The 6 required certification types for compliance calculation
 const REQUIRED_CERT_TYPES: CertificateType[] = [
@@ -51,11 +51,8 @@ function getDaysLeft(expiryDate: Date | null): number | null {
 }
 
 // GET /api/dashboard/my-hub
-export async function GET() {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const userId = session!.user.id;
+export const GET = withApiAuth(async (req, session) => {
+const userId = session!.user.id;
   const userServiceId = session!.user.serviceId;
   const now = new Date();
   const weekStart = getWeekStart(now);
@@ -271,4 +268,4 @@ export async function GET() {
       serviceName: s.service.name,
     })),
   });
-}
+});

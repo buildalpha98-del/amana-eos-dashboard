@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
 
 export interface EmergencyContactData {
   id: string;
@@ -146,11 +147,8 @@ export interface MyPortalData {
 export function useMyPortal() {
   return useQuery<MyPortalData>({
     queryKey: ["my-portal"],
-    queryFn: async () => {
-      const res = await fetch("/api/my-portal");
-      if (!res.ok) throw new Error("Failed to fetch portal data");
-      return res.json();
-    },
+    queryFn: () => fetchApi<MyPortalData>("/api/my-portal"),
+    retry: 2,
     staleTime: 60_000, // Staff portal: 1 min stale time
   });
 }

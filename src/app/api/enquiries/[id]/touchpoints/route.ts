@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 const createTouchpointSchema = z.object({
   type: z.string().min(1, "Type is required"),
   channel: z.string().min(1, "Channel is required"),
@@ -12,14 +12,8 @@ const createTouchpointSchema = z.object({
 });
 
 // GET /api/enquiries/[id]/touchpoints — list touchpoints for an enquiry
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   try {
     const touchpoints = await prisma.parentEnquiryTouchpoint.findMany({
@@ -29,23 +23,17 @@ export async function GET(
 
     return NextResponse.json({ touchpoints });
   } catch (err) {
-    console.error("[Touchpoints GET]", err);
+    logger.error("Touchpoints GET", { err });
     return NextResponse.json(
       { error: "Failed to fetch touchpoints" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // POST /api/enquiries/[id]/touchpoints — create a touchpoint
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   try {
     const body = await req.json();
@@ -70,10 +58,10 @@ export async function POST(
         { status: 400 },
       );
     }
-    console.error("[Touchpoints POST]", err);
+    logger.error("Touchpoints POST", { err });
     return NextResponse.json(
       { error: "Failed to create touchpoint" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });

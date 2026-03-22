@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getResend, FROM_EMAIL } from "@/lib/email";
+import { logger } from "@/lib/logger";
 
 /**
  * Generate a unique service code from a school name.
@@ -173,7 +174,7 @@ export async function handleLeadWon(
           </div>
         `,
       })
-      .catch(console.error);
+      .catch((err) => logger.error("Failed to send deal-won notification email", { err }));
   }
 
   return { serviceId: service.id, projectId };

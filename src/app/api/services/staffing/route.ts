@@ -1,18 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import {
   analyseStaffingForWeek,
   SHIFT_COST,
 } from "@/lib/staffing-analysis";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { searchParams } = new URL(req.url);
+export const GET = withApiAuth(async (req, session) => {
+const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   if (!serviceId) {
     return NextResponse.json(
@@ -96,4 +93,4 @@ export async function GET(req: NextRequest) {
     week: weekAnalysis,
     monthlyOverstaffCost: Math.round(monthlyOverstaffCost * 100) / 100,
   });
-}
+});

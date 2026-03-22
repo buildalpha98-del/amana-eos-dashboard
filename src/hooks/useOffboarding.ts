@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -64,25 +66,21 @@ export interface StaffOffboardingData {
 export function useOffboardingPacks(serviceId?: string) {
   return useQuery<OffboardingPackData[]>({
     queryKey: ["offboarding-packs", serviceId],
-    queryFn: async () => {
+    queryFn: () => {
       const params = new URLSearchParams();
       if (serviceId) params.set("serviceId", serviceId);
-      const res = await fetch(`/api/offboarding/packs?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch offboarding packs");
-      return res.json();
+      return fetchApi<OffboardingPackData[]>(`/api/offboarding/packs?${params}`);
     },
+    retry: 2,
   });
 }
 
 export function useOffboardingPack(id: string | null) {
   return useQuery<OffboardingPackData & { tasks: OffboardingTaskData[]; assignments: StaffOffboardingData[] }>({
     queryKey: ["offboarding-pack", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/offboarding/packs/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch offboarding pack");
-      return res.json();
-    },
+    queryFn: () => fetchApi(`/api/offboarding/packs/${id}`),
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -90,19 +88,13 @@ export function useCreateOffboardingPack() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
-      const res = await fetch("/api/offboarding/packs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create pack");
-      }
-      return res.json();
+      return mutateApi("/api/offboarding/packs", { method: "POST", body: data });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["offboarding-packs"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -110,13 +102,12 @@ export function useCreateOffboardingPack() {
 export function useOffboardingAssignments(userId?: string) {
   return useQuery<StaffOffboardingData[]>({
     queryKey: ["offboarding-assignments", userId],
-    queryFn: async () => {
+    queryFn: () => {
       const params = new URLSearchParams();
       if (userId) params.set("userId", userId);
-      const res = await fetch(`/api/offboarding/assign?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch assignments");
-      return res.json();
+      return fetchApi<StaffOffboardingData[]>(`/api/offboarding/assign?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -129,20 +120,14 @@ export function useInitiateOffboarding() {
       lastDay?: string;
       reason?: string;
     }) => {
-      const res = await fetch("/api/offboarding/assign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to initiate offboarding");
-      }
-      return res.json();
+      return mutateApi("/api/offboarding/assign", { method: "POST", body: data });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["offboarding-assignments"] });
       qc.invalidateQueries({ queryKey: ["offboarding-pack"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -156,20 +141,14 @@ export function useUpdateOffboardingProgress() {
       completed: boolean;
       notes?: string;
     }) => {
-      const res = await fetch("/api/offboarding/assign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update progress");
-      }
-      return res.json();
+      return mutateApi("/api/offboarding/assign", { method: "POST", body: data });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["offboarding-assignments"] });
       qc.invalidateQueries({ queryKey: ["offboarding-pack"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

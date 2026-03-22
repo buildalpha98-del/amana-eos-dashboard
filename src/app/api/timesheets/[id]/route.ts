@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { withApiAuth } from "@/lib/server-auth";
 
 const updateTimesheetSchema = z.object({
   notes: z.string().optional().nullable(),
@@ -11,14 +11,8 @@ const updateTimesheetSchema = z.object({
 });
 
 // GET /api/timesheets/[id] — timesheet detail with entries
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const timesheet = await prisma.timesheet.findUnique({
     where: { id },
@@ -52,17 +46,11 @@ export async function GET(
   }
 
   return NextResponse.json(timesheet);
-}
+});
 
 // PATCH /api/timesheets/[id] — update timesheet fields
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateTimesheetSchema.safeParse(body);
 
@@ -109,17 +97,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(timesheet);
-}
+});
 
 // DELETE /api/timesheets/[id] — soft delete (draft only)
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const existing = await prisma.timesheet.findUnique({ where: { id } });
   if (!existing || existing.deleted) {
@@ -149,4 +131,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

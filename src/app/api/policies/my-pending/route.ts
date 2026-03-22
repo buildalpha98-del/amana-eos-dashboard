@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
 
 // GET /api/policies/my-pending — published policies user hasn't acknowledged at current version
-export async function GET() {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const userId = session!.user.id;
+export const GET = withApiAuth(async (req, session) => {
+  const userId = session.user.id;
 
   // Get all published policies
   const publishedPolicies = await prisma.policy.findMany({
@@ -32,4 +29,4 @@ export async function GET() {
   );
 
   return NextResponse.json(pending);
-}
+});

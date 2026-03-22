@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const npsSchema = z.object({
   email: z.string().email(),
@@ -23,11 +25,11 @@ function categorise(score: number): "promoter" | "passive" | "detractor" {
  *
  * Auth: shared secret via query param or header.
  */
-export async function POST(req: NextRequest) {
+export const POST = withApiHandler(async (req: NextRequest) => {
   // ── Auth ─────────────────────────────────────────────────────
   const secret = process.env.WEBHOOK_NPS_SECRET;
   if (!secret) {
-    console.error("WEBHOOK_NPS_SECRET is not configured");
+    logger.error("WEBHOOK_NPS_SECRET is not configured");
     return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
   }
 
@@ -255,4 +257,4 @@ export async function POST(req: NextRequest) {
     category,
     actionsTriggered,
   });
-}
+});

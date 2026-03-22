@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const qualityAreaSchema = z.object({
+  qualityArea: z.number().min(1).max(7).optional(),
+  qualityAreaNumber: z.number().min(1).max(7).optional(),
+  strengths: z.string().nullable().optional(),
+  areasForImprovement: z.string().nullable().optional(),
+  improvementGoal: z.string().nullable().optional(),
+  strategies: z.string().nullable().optional(),
+  timeline: z.string().nullable().optional(),
+  responsiblePerson: z.string().nullable().optional(),
+  evidenceIndicators: z.string().nullable().optional(),
+  evidenceCollected: z.string().nullable().optional(),
+  progressNotes: z.string().nullable().optional(),
+  progressStatus: z.string().optional(),
+});
+
+const postBodySchema = z.object({
+  serviceId: z.string().min(1),
+  qualityAreas: z.array(qualityAreaSchema).min(1),
+  status: z.string().optional(),
+  documentType: z.string().optional(),
+});
 
 const QA_NAMES = [
   "Educational Program and Practice",
@@ -16,8 +41,8 @@ const QA_NAMES = [
  * GET /api/cowork/operations/qip — Read QIP by serviceId
  * Scope: operations:read
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -45,30 +70,30 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json({ qips, count: qips.length });
   } catch (err) {
-    console.error("[Cowork QIP GET]", err);
+    logger.error("Cowork QIP GET", { err });
     return NextResponse.json({ error: "Failed to fetch QIP" }, { status: 500 });
   }
-}
+});
 
 /**
  * POST /api/cowork/operations/qip — Create or update QIP content
  * Scope: operations:write
  * Body: { serviceId, qualityAreas: [{ qualityArea: 1, strengths, areasForImprovement, ... }] }
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceId, qualityAreas, status: qipStatus, documentType } = body;
-
-    if (!serviceId || !qualityAreas || !Array.isArray(qualityAreas)) {
+    const parsed = postBodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "serviceId and qualityAreas array are required" },
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
+    const { serviceId, qualityAreas, status: qipStatus, documentType } = parsed.data;
 
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
@@ -140,7 +165,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
-    console.error("[Cowork QIP POST]", err);
+    logger.error("Cowork QIP POST", { err });
     return NextResponse.json({ error: "Failed to upsert QIP" }, { status: 500 });
   }
-}
+});

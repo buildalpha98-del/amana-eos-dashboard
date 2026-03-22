@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { parseJsonField, gettingStartedProgressSchema } from "@/lib/schemas/json-fields";
 import type { Role } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
 
 // Checklist item counts per role — must match the CHECKLISTS in GettingStartedContent.tsx
 const CHECKLIST_COUNTS: Record<string, number> = {
@@ -19,12 +20,9 @@ function getTotalForRole(role: string): number {
 }
 
 // GET /api/getting-started/team — team onboarding progress (admin+ only)
-export async function GET() {
+export const GET = withApiAuth(async (req, session) => {
   const allowedRoles: Role[] = ["owner", "admin", "head_office"];
-  const { session, error } = await requireAuth(allowedRoles);
-  if (error) return error;
-
-  const users = await prisma.user.findMany({
+const users = await prisma.user.findMany({
     where: { active: true },
     select: {
       id: true,
@@ -39,8 +37,7 @@ export async function GET() {
   });
 
   const mapped = users.map((u) => {
-    const progress =
-      (u.gettingStartedProgress as Record<string, boolean>) ?? {};
+    const progress = parseJsonField(u.gettingStartedProgress, gettingStartedProgressSchema, {});
     const totalCount = getTotalForRole(u.role);
     const completedCount = Object.values(progress).filter(Boolean).length;
     // Clamp to totalCount in case stale keys exist
@@ -71,4 +68,4 @@ export async function GET() {
   };
 
   return NextResponse.json({ users: mapped, summary });
-}
+});

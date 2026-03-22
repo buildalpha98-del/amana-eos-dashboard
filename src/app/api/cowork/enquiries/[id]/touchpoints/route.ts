@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const createTouchpointSchema = z.object({
   type: z.string().min(1, "Type is required"),
@@ -13,14 +15,11 @@ const createTouchpointSchema = z.object({
  * POST /api/cowork/enquiries/[id]/touchpoints — Push a draft touchpoint
  * Auth: API key with "enquiries:write" scope
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req, context) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const { id } = await params;
+  const { id } = await context!.params!;
 
   try {
     const body = await req.json();
@@ -58,10 +57,10 @@ export async function POST(
         { status: 400 },
       );
     }
-    console.error("[Cowork Touchpoints POST]", err);
+    logger.error("Cowork Touchpoints POST", { err });
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+});

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const updateStageSchema = z.object({
   stage: z.string().min(1, "Stage is required"),
@@ -11,14 +13,11 @@ const updateStageSchema = z.object({
  * PATCH /api/cowork/enquiries/[id]/stage — Move an enquiry to a new stage
  * Auth: API key with "enquiries:write" scope
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const authError = authenticateCowork(req);
+export const PATCH = withApiHandler(async (req, context) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const { id } = await params;
+  const { id } = await context!.params!;
 
   try {
     const body = await req.json();
@@ -64,10 +63,10 @@ export async function PATCH(
         { status: 400 },
       );
     }
-    console.error("[Cowork Stage PATCH]", err);
+    logger.error("Cowork Stage PATCH", { err });
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+});

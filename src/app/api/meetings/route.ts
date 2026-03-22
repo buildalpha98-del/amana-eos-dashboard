@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 
 const createMeetingSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -12,11 +13,8 @@ const createMeetingSchema = z.object({
 });
 
 // GET /api/meetings — list meetings ordered by date desc
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const scope = getServiceScope(session);
+export const GET = withApiAuth(async (req, session) => {
+const scope = getServiceScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
@@ -52,14 +50,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(meetings);
-}
+});
 
 // POST /api/meetings — create a new meeting
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await parseJsonBody(req);
   const parsed = createMeetingSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -108,4 +103,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(meeting, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

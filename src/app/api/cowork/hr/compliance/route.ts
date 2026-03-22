@@ -1,29 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const certificateSchema = z.object({
+  userEmail: z.string().email().optional(),
+  staffName: z.string().optional(),
+  type: z.enum([
+    "wwcc", "first_aid", "anaphylaxis", "asthma", "cpr",
+    "police_check", "annual_review", "child_protection",
+    "geccko", "food_safety", "food_handler", "other",
+  ]),
+  expiryDate: z.string().min(1),
+  issueDate: z.string().optional(),
+  label: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  fileUrl: z.string().nullable().optional(),
+  alertDays: z.number().optional(),
+});
+
+const bodySchema = z.object({
+  serviceCode: z.string().min(1),
+  certificates: z.array(certificateSchema).min(1),
+});
 
 /**
  * POST /api/cowork/hr/compliance
  * Upserts compliance certificates for a service.
  * Used by: hr-compliance-scanner, hr-full-compliance-audit, hr-expiry-alert-generator
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceCode, certificates } = body;
-
-    if (!serviceCode || !certificates || !Array.isArray(certificates)) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          error: "Bad Request",
-          message: "serviceCode and certificates[] required",
-        },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { serviceCode, certificates } = parsed.data;
 
     const service = await prisma.service.findUnique({
       where: { code: serviceCode },
@@ -32,7 +53,7 @@ export async function POST(req: NextRequest) {
 
     if (!service) {
       return NextResponse.json(
-        { error: "Not Found", message: `Service ${serviceCode} not found` },
+        { error: `Service ${serviceCode} not found` },
         { status: 404 }
       );
     }
@@ -112,13 +133,13 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /cowork/hr/compliance]", err);
+    logger.error("POST /cowork/hr/compliance", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * GET /api/cowork/hr/compliance
@@ -129,8 +150,8 @@ export async function POST(req: NextRequest) {
  *   - status: "valid" | "expiring" | "expired" | "all" (default "all")
  *   - type: CertificateType filter (optional)
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -216,10 +237,10 @@ export async function GET(req: NextRequest) {
     );
     return res;
   } catch (err) {
-    console.error("[Cowork HR Compliance GET]", err);
+    logger.error("Cowork HR Compliance GET", { err });
     return NextResponse.json(
       { error: "Failed to fetch compliance data" },
       { status: 500 }
     );
   }
-}
+});

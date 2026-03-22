@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updatePolicySchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
@@ -15,14 +14,8 @@ const updatePolicySchema = z.object({
 });
 
 // GET /api/policies/[id] — policy detail + acknowledgement stats
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const policy = await prisma.policy.findUnique({
     where: { id, deleted: false },
@@ -66,17 +59,11 @@ export async function GET(
       pendingCount,
     },
   });
-}
+});
 
 // PATCH /api/policies/[id] — update policy (owner/admin only)
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const existing = await prisma.policy.findUnique({
     where: { id, deleted: false },
@@ -146,17 +133,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(policy);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/policies/[id] — soft delete (owner/admin only)
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const existing = await prisma.policy.findUnique({
     where: { id, deleted: false },
@@ -182,4 +163,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

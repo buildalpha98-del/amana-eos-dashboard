@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface LMSModuleData {
   id: string;
@@ -61,10 +63,9 @@ export function useLMSCourses(status?: string, serviceId?: string) {
       const params = new URLSearchParams();
       if (status) params.set("status", status);
       if (serviceId) params.set("serviceId", serviceId);
-      const res = await fetch(`/api/lms/courses?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch courses");
-      return res.json();
+      return fetchApi<LMSCourseData[]>(`/api/lms/courses?${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -72,11 +73,10 @@ export function useLMSCourse(id: string | null) {
   return useQuery<LMSCourseData & { modules: LMSModuleData[]; enrollments: LMSEnrollmentData[] }>({
     queryKey: ["lms-course", id],
     queryFn: async () => {
-      const res = await fetch(`/api/lms/courses/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch course");
-      return res.json();
+      return fetchApi(`/api/lms/courses/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -84,19 +84,16 @@ export function useCreateLMSCourse() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
-      const res = await fetch("/api/lms/courses", {
+      return mutateApi("/api/lms/courses", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create course");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lms-courses"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -105,20 +102,17 @@ export function useUpdateLMSCourse() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string } & Record<string, unknown>) => {
-      const res = await fetch(`/api/lms/courses/${id}`, {
+      return mutateApi(`/api/lms/courses/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update course");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lms-courses"] });
       qc.invalidateQueries({ queryKey: ["lms-course"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -136,19 +130,16 @@ export function useCreateModule() {
       duration?: number;
       isRequired?: boolean;
     }) => {
-      const res = await fetch(`/api/lms/courses/${courseId}/modules`, {
+      return mutateApi(`/api/lms/courses/${courseId}/modules`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create module");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lms-course"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -166,19 +157,16 @@ export function useUpdateModule() {
       duration?: number | null;
       isRequired?: boolean;
     }) => {
-      const res = await fetch(`/api/lms/modules/${moduleId}`, {
+      return mutateApi(`/api/lms/modules/${moduleId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update module");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lms-course"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -187,12 +175,13 @@ export function useDeleteModule() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (moduleId: string) => {
-      const res = await fetch(`/api/lms/modules/${moduleId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete module");
-      return res.json();
+      return mutateApi(`/api/lms/modules/${moduleId}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lms-course"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -201,16 +190,16 @@ export function useReorderModules() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ courseId, moduleIds }: { courseId: string; moduleIds: string[] }) => {
-      const res = await fetch(`/api/lms/courses/${courseId}/modules`, {
+      return mutateApi(`/api/lms/courses/${courseId}/modules`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ moduleIds }),
+        body: { moduleIds },
       });
-      if (!res.ok) throw new Error("Failed to reorder modules");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["lms-course"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -219,20 +208,17 @@ export function useEnrollStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { courseId: string; userIds: string[]; dueDate?: string }) => {
-      const res = await fetch("/api/lms/enrollments", {
+      return mutateApi("/api/lms/enrollments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to enrol staff");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lms-course"] });
       qc.invalidateQueries({ queryKey: ["lms-courses"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -241,20 +227,17 @@ export function useUnenrollStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (enrollmentId: string) => {
-      const res = await fetch("/api/lms/enrollments", {
+      return mutateApi("/api/lms/enrollments", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enrollmentId }),
+        body: { enrollmentId },
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to unenrol");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lms-course"] });
       qc.invalidateQueries({ queryKey: ["lms-courses"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -263,21 +246,18 @@ export function useSelfEnrol() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (courseId: string) => {
-      const res = await fetch("/api/lms/enrollments", {
+      return mutateApi("/api/lms/enrollments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selfEnrol: true, courseId }),
+        body: { selfEnrol: true, courseId },
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to enrol");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lms-courses"] });
       qc.invalidateQueries({ queryKey: ["lms-course"] });
       qc.invalidateQueries({ queryKey: ["my-enrollments"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -286,10 +266,9 @@ export function useMyEnrollments() {
   return useQuery<(LMSEnrollmentData & { course: LMSCourseData & { modules: LMSModuleData[] } })[]>({
     queryKey: ["my-enrollments"],
     queryFn: async () => {
-      const res = await fetch("/api/lms/my-enrollments");
-      if (!res.ok) throw new Error("Failed to fetch enrollments");
-      return res.json();
+      return fetchApi("/api/lms/my-enrollments");
     },
+    retry: 2,
   });
 }
 
@@ -297,19 +276,16 @@ export function useUpdateModuleProgress() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { enrollmentId: string; moduleId: string; completed: boolean }) => {
-      const res = await fetch("/api/lms/enrollments", {
+      return mutateApi("/api/lms/enrollments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update progress");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lms-course"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

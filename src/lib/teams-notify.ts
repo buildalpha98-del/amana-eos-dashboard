@@ -11,6 +11,8 @@
  * Rate limits: 4 requests/sec, max 28 KB per message.
  */
 
+import { logger } from "@/lib/logger";
+
 // ── Types ────────────────────────────────────────────────
 
 interface AdaptiveCardAction {
@@ -87,7 +89,7 @@ export async function sendTeamsNotification(
 ): Promise<boolean> {
   const webhookUrl = process.env.TEAMS_WEBHOOK_URL;
   if (!webhookUrl) {
-    if (process.env.NODE_ENV !== "production") console.log("[TEAMS] No TEAMS_WEBHOOK_URL set — notification skipped:", opts.title);
+    if (process.env.NODE_ENV !== "production") logger.info("TEAMS notification skipped — no TEAMS_WEBHOOK_URL set", { title: opts.title });
     return false;
   }
 
@@ -101,13 +103,13 @@ export async function sendTeamsNotification(
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      console.error(`[TEAMS] Webhook returned ${res.status}: ${text}`);
+      logger.error("TEAMS webhook returned non-OK status", { status: res.status, body: text });
       return false;
     }
 
     return true;
   } catch (err) {
-    console.error("[TEAMS] Webhook error:", err);
+    logger.error("TEAMS webhook error", { err });
     return false;
   }
 }

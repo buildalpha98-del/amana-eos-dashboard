@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { parsePagination } from "@/lib/pagination";
+import { withApiAuth } from "@/lib/server-auth";
 
 const createContactSchema = z.object({
   waId: z.string().min(1, "WhatsApp ID is required"),
@@ -14,10 +14,7 @@ const createContactSchema = z.object({
 });
 
 // GET /api/contacts — list all WhatsApp contacts
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const include = {
     service: { select: { id: true, name: true, code: true } },
@@ -46,14 +43,11 @@ export async function GET(req: NextRequest) {
   // Backward-compatible: no pagination params → return flat array (capped at 500 for safety)
   const contacts = await prisma.whatsAppContact.findMany({ include, orderBy, take: 500 });
   return NextResponse.json(contacts);
-}
+});
 
 // POST /api/contacts — create a new WhatsApp contact
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createContactSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -91,4 +85,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(contact, { status: 201 });
-}
+});

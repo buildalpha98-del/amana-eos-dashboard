@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface EntryUser {
   id: string;
@@ -51,12 +53,9 @@ export interface ScorecardData {
 export function useScorecard() {
   return useQuery<ScorecardData>({
     queryKey: ["scorecard"],
-    queryFn: async () => {
-      const res = await fetch("/api/scorecard");
-      if (!res.ok) throw new Error("Failed to fetch scorecard");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ScorecardData>("/api/scorecard"),
     staleTime: 2 * 60_000, // Scorecard data: 2 min stale time
+    retry: 2,
   });
 }
 
@@ -74,19 +73,16 @@ export function useCreateEntry() {
       value: number;
       notes?: string;
     }) => {
-      const res = await fetch(`/api/measurables/${measurableId}/entries`, {
+      return mutateApi(`/api/measurables/${measurableId}/entries`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weekOf, value, notes }),
+        body: { weekOf, value, notes },
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to save entry");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scorecard"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

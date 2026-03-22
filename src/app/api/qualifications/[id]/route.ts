@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateQualificationSchema = z.object({
   type: z
     .enum([
@@ -24,14 +23,8 @@ const updateQualificationSchema = z.object({
 });
 
 // PATCH /api/qualifications/[id] — owner/admin only
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const qualification = await prisma.staffQualification.findUnique({
     where: { id },
@@ -83,17 +76,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/qualifications/[id] — owner/admin only
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const qualification = await prisma.staffQualification.findUnique({
     where: { id },
@@ -119,4 +106,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

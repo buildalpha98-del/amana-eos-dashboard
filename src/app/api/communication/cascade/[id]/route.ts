@@ -1,21 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateCascadeSchema = z.object({
   message: z.string().min(1, "Message is required"),
 });
 
 // GET /api/communication/cascade/[id] — single cascade message with acknowledgments
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const cascade = await prisma.cascadeMessage.findUnique({
     where: { id, deleted: false },
@@ -38,17 +31,11 @@ export async function GET(
   }
 
   return NextResponse.json(cascade);
-}
+});
 
 // PATCH /api/communication/cascade/[id] — update message text
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateCascadeSchema.safeParse(body);
 
@@ -90,17 +77,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(cascade);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/communication/cascade/[id] — soft delete
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const existing = await prisma.cascadeMessage.findUnique({
     where: { id, deleted: false },
@@ -128,4 +109,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

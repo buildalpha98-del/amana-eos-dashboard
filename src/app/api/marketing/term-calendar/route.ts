@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // ── Australian school terms (approximate) ────────────────────
 function getCurrentTerm(
   date: Date = new Date(),
@@ -51,10 +50,7 @@ const entryIncludes = {
 } as const;
 
 // GET /api/marketing/term-calendar — fetch entries grouped by week
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const current = getCurrentTerm();
   const year = parseInt(searchParams.get("year") || String(current.year), 10);
@@ -102,14 +98,11 @@ export async function GET(req: NextRequest) {
       byChannel,
     },
   });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });
 
 // POST /api/marketing/term-calendar — create a single entry
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createEntrySchema.safeParse(body);
 
   if (!parsed.success) {
@@ -150,4 +143,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(entry, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

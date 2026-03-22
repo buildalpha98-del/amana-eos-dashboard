@@ -1,30 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const scoresSchema = z.object({
+  overall: z.number(),
+  trend: z.string().optional(),
+  financial: z.number().optional(),
+  operational: z.number().optional(),
+  compliance: z.number().optional(),
+  satisfaction: z.number().optional(),
+  teamCulture: z.number().optional(),
+});
+
+const breakdownsSchema = z.object({
+  financial: z.record(z.string(), z.any()).optional(),
+  operational: z.record(z.string(), z.any()).optional(),
+  compliance: z.record(z.string(), z.any()).optional(),
+  satisfaction: z.record(z.string(), z.any()).optional(),
+  teamCulture: z.record(z.string(), z.any()).optional(),
+}).optional();
+
+const bodySchema = z.object({
+  serviceCode: z.string().min(1),
+  periodStart: z.string().min(1),
+  periodType: z.string().optional(),
+  scores: scoresSchema,
+  breakdowns: breakdownsSchema,
+});
 
 /**
  * POST /api/cowork/finance/health-score
  * Upsert a centre's health score for a period.
  * Used by: fin-centre-health-score, fin-monthly-pl-summary, ops-weekly-scorecard
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { serviceCode, periodStart, periodType, scores, breakdowns } = body;
-
-    if (!serviceCode || !periodStart || !scores) {
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        {
-          error: "Bad Request",
-          message:
-            "serviceCode, periodStart (YYYY-MM-DD), and scores object required",
-        },
-        { status: 400 }
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
+    const { serviceCode, periodStart, periodType, scores, breakdowns } = parsed.data;
 
     const service = await prisma.service.findUnique({
       where: { code: serviceCode },
@@ -33,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     if (!service) {
       return NextResponse.json(
-        { error: "Not Found", message: `Service ${serviceCode} not found` },
+        { error: `Service ${serviceCode} not found` },
         { status: 404 }
       );
     }
@@ -75,11 +100,11 @@ export async function POST(req: NextRequest) {
         complianceScore: scores.compliance || 0,
         satisfactionScore: scores.satisfaction || 0,
         teamCultureScore: scores.teamCulture || 0,
-        financialBreakdown: breakdowns?.financial || null,
-        operationalBreakdown: breakdowns?.operational || null,
-        complianceBreakdown: breakdowns?.compliance || null,
-        satisfactionBreakdown: breakdowns?.satisfaction || null,
-        teamCultureBreakdown: breakdowns?.teamCulture || null,
+        financialBreakdown: breakdowns?.financial ?? undefined,
+        operationalBreakdown: breakdowns?.operational ?? undefined,
+        complianceBreakdown: breakdowns?.compliance ?? undefined,
+        satisfactionBreakdown: breakdowns?.satisfaction ?? undefined,
+        teamCultureBreakdown: breakdowns?.teamCulture ?? undefined,
       },
     });
 
@@ -95,10 +120,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /cowork/finance/health-score]", err);
+    logger.error("POST /cowork/finance/health-score", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});

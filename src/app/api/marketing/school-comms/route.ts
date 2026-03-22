@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createSchoolCommSchema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
   type: z.enum([
@@ -27,10 +26,7 @@ const schoolCommIncludes = {
 } as const;
 
 // GET /api/marketing/school-comms — list school comms with optional filters
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const type = searchParams.get("type");
@@ -49,14 +45,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(comms);
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });
 
 // POST /api/marketing/school-comms — create a new school comm
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createSchoolCommSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -90,4 +83,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(comm, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

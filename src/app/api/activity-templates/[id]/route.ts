@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const CATEGORIES = [
   "physical_play", "creative_arts", "music_movement", "literacy", "numeracy",
@@ -19,14 +19,8 @@ const updateSchema = z.object({
 });
 
 // GET /api/activity-templates/[id]
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const template = await prisma.activityTemplate.findFirst({
     where: { id, deleted: false },
@@ -41,17 +35,11 @@ export async function GET(
   }
 
   return NextResponse.json(template);
-}
+});
 
 // PATCH /api/activity-templates/[id]
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
 
@@ -87,17 +75,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(template);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/activity-templates/[id] — soft delete
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const existing = await prisma.activityTemplate.findFirst({
     where: { id, deleted: false },
@@ -124,4 +106,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import type { MeetingStatus } from "@prisma/client";
 
 export interface MeetingUser {
@@ -61,23 +63,17 @@ export function useMeetings(filters?: { status?: string; limit?: number }) {
 
   return useQuery<MeetingData[]>({
     queryKey: ["meetings", filters],
-    queryFn: async () => {
-      const res = await fetch(`/api/meetings${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch meetings");
-      return res.json();
-    },
+    queryFn: () => fetchApi<MeetingData[]>(`/api/meetings${query ? `?${query}` : ""}`),
+    retry: 2,
   });
 }
 
 export function useMeeting(id: string) {
   return useQuery<MeetingData>({
     queryKey: ["meeting", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/meetings/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch meeting");
-      return res.json();
-    },
+    queryFn: () => fetchApi<MeetingData>(`/api/meetings/${id}`),
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -90,19 +86,13 @@ export function useCreateMeeting() {
       serviceIds?: string[];
       attendeeIds?: string[];
     }) => {
-      const res = await fetch("/api/meetings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create meeting");
-      }
-      return res.json();
+      return mutateApi<MeetingData>("/api/meetings", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["meetings"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -128,26 +118,14 @@ export function useUpdateMeeting() {
       rockIds?: string[];
       attendeeUpdates?: { userId: string; status?: "present" | "absent"; rating?: number }[];
     }) => {
-      const res = await fetch(`/api/meetings/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        let errorMessage = "Failed to update meeting";
-        try {
-          const err = await res.json();
-          errorMessage = err.error || errorMessage;
-        } catch {
-          errorMessage = `Server error (${res.status})`;
-        }
-        throw new Error(errorMessage);
-      }
-      return res.json();
+      return mutateApi(`/api/meetings/${id}`, { method: "PATCH", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["meetings"] });
       queryClient.invalidateQueries({ queryKey: ["meeting"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

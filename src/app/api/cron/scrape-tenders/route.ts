@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cron/scrape-tenders
@@ -88,7 +90,7 @@ async function searchAusTender(keyword: string): Promise<AusTenderResult[]> {
 
     return results;
   } catch (err) {
-    console.error(`[TenderScraper] Error searching "${keyword}":`, err);
+    logger.error("TenderScraper: error searching keyword", { keyword, err });
     return [];
   }
 }
@@ -100,7 +102,7 @@ function extractState(result: AusTenderResult): string | undefined {
   return stateMatch ? stateMatch[1].toUpperCase() : undefined;
 }
 
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -199,11 +201,11 @@ export async function GET(req: NextRequest) {
     });
 
     await guard.fail(err);
-    console.error("[TenderScraper] Cron failed:", err);
+    logger.error("TenderScraper: Cron failed", { err });
 
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },
       { status: 500 }
     );
   }
-}
+});

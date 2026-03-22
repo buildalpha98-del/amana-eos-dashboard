@@ -1,34 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const patchSchema = z.object({
+  responses: z.array(z.object({
+    id: z.string().min(1),
+    result: z.string().optional(),
+    ratingValue: z.number().nullable().optional(),
+    actionRequired: z.string().nullable().optional(),
+    evidenceSighted: z.string().nullable().optional(),
+    notes: z.string().nullable().optional(),
+    photoUrl: z.string().nullable().optional(),
+  })).min(1, "responses array is required"),
+});
 
 /**
  * PATCH /api/audits/[id]/responses — bulk save progress on audit responses
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "admin", "member"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const body = await req.json();
-  const { responses } = body as {
-    responses: Array<{
-      id: string;
-      result?: string;
-      ratingValue?: number | null;
-      actionRequired?: string | null;
-      evidenceSighted?: string | null;
-      notes?: string | null;
-      photoUrl?: string | null;
-    }>;
-  };
-
-  if (!Array.isArray(responses) || responses.length === 0) {
-    return NextResponse.json({ error: "responses array is required" }, { status: 400 });
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
   }
+  const { responses } = parsed.data;
 
   // Verify audit instance exists and belongs to caller
   const instance = await prisma.auditInstance.findUnique({
@@ -59,4 +59,4 @@ export async function PATCH(
   );
 
   return NextResponse.json({ updated: results.length });
-}
+}, { roles: ["owner", "admin", "member"] });

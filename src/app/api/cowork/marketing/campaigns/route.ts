@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const createCampaignSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -33,8 +35,8 @@ const createCampaignSchema = z.object({
  * POST /api/cowork/marketing/campaigns — Create a marketing campaign via API key
  * Auth: API key with "marketing-campaigns:write" scope
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -111,20 +113,20 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    console.error("[Cowork Marketing Campaigns]", err);
+    logger.error("Cowork Marketing Campaigns", { err });
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+});
 
 /**
  * GET /api/cowork/marketing/campaigns — List campaigns via API key
  * Auth: API key with "marketing-campaigns:read" scope
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -158,4 +160,4 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({ campaigns, count: campaigns.length });
-}
+});

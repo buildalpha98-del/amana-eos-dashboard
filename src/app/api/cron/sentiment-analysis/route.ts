@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAI } from "@/lib/ai";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
 import { acquireCronLock } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
 
 /**
  * GET /api/cron/sentiment-analysis
@@ -12,7 +13,7 @@ import { acquireCronLock } from "@/lib/cron-guard";
  *
  * Auth: Bearer CRON_SECRET
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -221,4 +222,4 @@ export async function GET(req: NextRequest) {
     await guard.fail(err instanceof Error ? err.message : "Unknown error");
     return NextResponse.json({ error: "Failed to run sentiment analysis" }, { status: 500 });
   }
-}
+});

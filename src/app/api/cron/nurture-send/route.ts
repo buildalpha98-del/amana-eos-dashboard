@@ -20,6 +20,8 @@ import {
   nurtureMonth1ReferralEmail,
   nurtureSessionReminderEmail,
 } from "@/lib/email-templates";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // LEGACY: Hardcoded template map for ParentNurtureStep records.
 // The new SequenceStepExecution system uses emailTemplateId from the DB instead.
@@ -55,7 +57,7 @@ const BATCH_SIZE = 15;
  *
  * Processes in batches of 15 via Promise.allSettled to avoid Vercel 60s timeout.
  */
-export async function POST(req: NextRequest) {
+export const POST = withApiHandler(async (req) => {
   const authResult = verifyCronSecret(req);
   if (authResult) return authResult.error;
 
@@ -178,7 +180,7 @@ export async function POST(req: NextRequest) {
       } else {
         // Promise rejected — log failure and update DB
         const step = batch[j];
-        console.error(`[nurture-send] Failed to send step ${step.id}:`, result.reason);
+        logger.error("nurture-send: Failed to send step", { stepId: step.id, err: result.reason });
         try {
           await prisma.parentNurtureStep.update({
             where: { id: step.id },
@@ -195,7 +197,7 @@ export async function POST(req: NextRequest) {
             },
           });
         } catch (dbErr) {
-          console.error(`[nurture-send] Failed to record failure for step ${step.id}:`, dbErr);
+          logger.error("nurture-send: Failed to record failure for step", { stepId: step.id, err: dbErr });
         }
         failed++;
       }
@@ -212,7 +214,7 @@ export async function POST(req: NextRequest) {
     legacy: { sent, skipped, failed },
     sequences: seqResult,
   });
-}
+});
 
 /**
  * Process pending SequenceStepExecution records for both parent nurture
@@ -357,14 +359,14 @@ async function processSequenceExecutions(
         else if (result.value === "skipped") skipped++;
       } else {
         const exec = batch[j];
-        console.error(`[nurture-send] Sequence exec ${exec.id} failed:`, result.reason);
+        logger.error("nurture-send: Sequence exec failed", { execId: exec.id, err: result.reason });
         try {
           await prisma.sequenceStepExecution.update({
             where: { id: exec.id },
             data: { status: "failed", error: result.reason instanceof Error ? result.reason.message : String(result.reason) },
           });
         } catch (dbErr) {
-          console.error(`[nurture-send] Failed to record failure for exec ${exec.id}:`, dbErr);
+          logger.error("nurture-send: Failed to record failure for exec", { execId: exec.id, err: dbErr });
         }
         failed++;
       }

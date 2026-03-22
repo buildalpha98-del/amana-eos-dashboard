@@ -1,20 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+
+const auditResponseSchema = z.object({
+  templateItemId: z.string().optional(),
+  sortOrder: z.number().optional(),
+  result: z.enum(["yes", "no", "na", "not_answered"]).optional(),
+  ratingValue: z.number().nullable().optional(),
+  actionRequired: z.string().nullable().optional(),
+  evidenceSighted: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+const postBodySchema = z.object({
+  templateName: z.string().min(1),
+  scheduledMonth: z.number().min(1).max(12),
+  scheduledYear: z.number().min(2000).max(2100),
+  dueDate: z.string().optional(),
+  status: z.enum(["scheduled", "in_progress", "completed", "overdue", "skipped"]).optional(),
+  auditorName: z.string().nullable().optional(),
+  strengths: z.string().nullable().optional(),
+  areasForImprovement: z.string().nullable().optional(),
+  actionPlan: z.string().nullable().optional(),
+  comments: z.string().nullable().optional(),
+  responses: z.array(auditResponseSchema).optional(),
+});
 
 /**
  * POST /api/cowork/services/[serviceCode]/audits
  * Create or update an audit instance from automation output.
  * Called after a centre audit is completed by automation tasks.
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ serviceCode: string }> }
-) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req, context) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const { serviceCode } = await params;
+  const { serviceCode } = await context!.params!;
 
   const service = await prisma.service.findUnique({
     where: { code: serviceCode },
@@ -23,12 +46,19 @@ export async function POST(
 
   if (!service) {
     return NextResponse.json(
-      { error: "Not Found", message: `Service ${serviceCode} not found` },
+      { error: `Service ${serviceCode} not found` },
       { status: 404 }
     );
   }
 
   const body = await req.json();
+  const parsed = postBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
   const {
     templateName,
     scheduledMonth,
@@ -41,17 +71,7 @@ export async function POST(
     actionPlan,
     comments,
     responses,
-  } = body;
-
-  if (!templateName || !scheduledMonth || !scheduledYear) {
-    return NextResponse.json(
-      {
-        error: "Bad Request",
-        message: "templateName, scheduledMonth, and scheduledYear are required",
-      },
-      { status: 400 }
-    );
-  }
+  } = parsed.data;
 
   // Find the audit template by name
   const template = await prisma.auditTemplate.findUnique({
@@ -142,7 +162,7 @@ export async function POST(
 
     for (const r of responses) {
       const templateItemId =
-        r.templateItemId || templateItemMap.get(r.sortOrder);
+        r.templateItemId || (r.sortOrder != null ? templateItemMap.get(r.sortOrder) : undefined);
 
       if (!templateItemId) continue;
 
@@ -184,20 +204,17 @@ export async function POST(
     },
     { status: 201 }
   );
-}
+});
 
 /**
  * GET /api/cowork/services/[serviceCode]/audits?year=2026&month=3
  * Fetch audit instances for a centre.
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ serviceCode: string }> }
-) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req, context) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const { serviceCode } = await params;
+  const { serviceCode } = await context!.params!;
 
   const service = await prisma.service.findUnique({
     where: { code: serviceCode },
@@ -206,7 +223,7 @@ export async function GET(
 
   if (!service) {
     return NextResponse.json(
-      { error: "Not Found", message: `Service ${serviceCode} not found` },
+      { error: `Service ${serviceCode} not found` },
       { status: 404 }
     );
   }
@@ -238,4 +255,4 @@ export async function GET(
   });
 
   return NextResponse.json({ audits });
-}
+});

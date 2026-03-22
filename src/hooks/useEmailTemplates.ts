@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
 // ── Types ──────────────────────────────────────────────────
@@ -18,32 +19,23 @@ export interface EmailTemplateData {
   updatedAt: string;
 }
 
-// ── Helpers ────────────────────────────────────────────────
-
-async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: "Request failed" }));
-    throw new Error(body.error || "Request failed");
-  }
-  return res.json();
-}
-
 // ── Templates ──────────────────────────────────────────────
 
 export function useEmailTemplates(category?: string) {
   const params = category ? `?category=${category}` : "";
   return useQuery<EmailTemplateData[]>({
     queryKey: ["email-templates", category || "all"],
-    queryFn: () => apiFetch(`/api/email-templates${params}`),
+    queryFn: () => fetchApi<EmailTemplateData[]>(`/api/email-templates${params}`),
+    retry: 2,
   });
 }
 
 export function useEmailTemplate(id: string | null) {
   return useQuery<EmailTemplateData>({
     queryKey: ["email-template", id],
-    queryFn: () => apiFetch(`/api/email-templates/${id}`),
+    queryFn: () => fetchApi<EmailTemplateData>(`/api/email-templates/${id}`),
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -51,14 +43,16 @@ export function useCreateEmailTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Partial<EmailTemplateData>) =>
-      apiFetch<EmailTemplateData>("/api/email-templates", {
+      mutateApi<EmailTemplateData>("/api/email-templates", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-templates"] });
       toast({ description: "Template created" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -67,14 +61,16 @@ export function useUpdateEmailTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...data }: { id: string } & Partial<EmailTemplateData>) =>
-      apiFetch<EmailTemplateData>(`/api/email-templates/${id}`, {
+      mutateApi<EmailTemplateData>(`/api/email-templates/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-templates"] });
       toast({ description: "Template updated" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -83,10 +79,13 @@ export function useDeleteEmailTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch(`/api/email-templates/${id}`, { method: "DELETE" }),
+      mutateApi(`/api/email-templates/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-templates"] });
       toast({ description: "Template deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -95,12 +94,15 @@ export function useDuplicateEmailTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch<EmailTemplateData>(`/api/email-templates/${id}/duplicate`, {
+      mutateApi<EmailTemplateData>(`/api/email-templates/${id}/duplicate`, {
         method: "POST",
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["email-templates"] });
       toast({ description: "Template duplicated" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -119,13 +121,9 @@ export function useSendEmail() {
       postId?: string | null;
       variables?: Record<string, string>;
     }) =>
-      apiFetch<{ status: string; recipientCount: number }>(
+      mutateApi<{ status: string; recipientCount: number }>(
         "/api/email/campaign/send",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        },
+        { method: "POST", body: data },
       ),
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["email-templates"] });
@@ -135,6 +133,9 @@ export function useSendEmail() {
       toast({
         description: `Email ${result.status} to ${result.recipientCount} recipient(s)`,
       });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -146,11 +147,13 @@ export function useEmailPreview() {
       htmlContent?: string | null;
       variables?: Record<string, string>;
     }) =>
-      apiFetch<{ html: string }>("/api/email/preview", {
+      mutateApi<{ html: string }>("/api/email/preview", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       }),
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -168,9 +171,10 @@ export function useEmailHistory(entityType: string, entityId: string | null) {
   return useQuery<EmailHistoryEntry[]>({
     queryKey: ["email-history", entityType, entityId],
     queryFn: () =>
-      apiFetch(
+      fetchApi<EmailHistoryEntry[]>(
         `/api/email/history?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId!)}`,
       ),
     enabled: !!entityId,
+    retry: 2,
   });
 }

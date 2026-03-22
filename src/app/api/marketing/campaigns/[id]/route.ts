@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateCampaignSchema = z.object({
   name: z.string().min(1).optional(),
   type: z
@@ -38,14 +37,8 @@ const serviceInclude = {
 } as const;
 
 // GET /api/marketing/campaigns/:id — get a single campaign with all related data
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const campaign = await prisma.marketingCampaign.findUnique({
     where: { id },
@@ -81,17 +74,11 @@ export async function GET(
   }
 
   return NextResponse.json(campaign);
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });
 
 // PATCH /api/marketing/campaigns/:id — update a campaign
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateCampaignSchema.safeParse(body);
 
@@ -181,17 +168,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(fullCampaign);
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });
 
 // DELETE /api/marketing/campaigns/:id — soft delete a campaign
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const existing = await prisma.marketingCampaign.findUnique({ where: { id } });
   if (!existing || existing.deleted) {
@@ -210,4 +191,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

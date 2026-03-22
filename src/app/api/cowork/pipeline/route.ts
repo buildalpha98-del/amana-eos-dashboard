@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { z } from "zod";
 import { resolveServiceByCode } from "../_lib/resolve-service";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const STAGES = [
   "new_enquiry",
@@ -27,8 +29,8 @@ const STAGES = [
  * Query params:
  *   - serviceId (optional — filter to a single centre)
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -144,13 +146,13 @@ export async function GET(req: NextRequest) {
     res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
     return res;
   } catch (err) {
-    console.error("[Cowork Pipeline]", err);
+    logger.error("Cowork Pipeline", { err });
     return NextResponse.json(
       { error: "Failed to fetch pipeline stats" },
       { status: 500 },
     );
   }
-}
+});
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -200,8 +202,8 @@ const batchEnquirySchema = z.object({
  * Upsert key: (serviceId + parentEmail + childName) when parentEmail is present.
  * Returns: { success, count, created, updated }
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   let body: unknown;
@@ -309,13 +311,13 @@ export async function POST(req: NextRequest) {
       updated,
     });
   } catch (err) {
-    console.error("[Cowork Pipeline POST]", err);
+    logger.error("Cowork Pipeline POST", { err });
     return NextResponse.json(
       { error: "Failed to upsert pipeline records" },
       { status: 500 },
     );
   }
-}
+});
 
 // ---------------------------------------------------------------------------
 // PUT /api/cowork/pipeline
@@ -333,8 +335,8 @@ const putSchema = z.object({
  * Update the stage (and optionally notes) of an existing enquiry.
  * Returns: { success, record: { id, stage, stageChangedAt } }
  */
-export async function PUT(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const PUT = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   let body: unknown;
@@ -380,10 +382,10 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ success: true, record: updated });
   } catch (err) {
-    console.error("[Cowork Pipeline PUT]", err);
+    logger.error("Cowork Pipeline PUT", { err });
     return NextResponse.json(
       { error: "Failed to update pipeline record" },
       { status: 500 },
     );
   }
-}
+});

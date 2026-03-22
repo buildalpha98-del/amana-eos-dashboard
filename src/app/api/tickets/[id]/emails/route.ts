@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const linkEmailSchema = z.object({
   from: z.string().min(1),
@@ -13,14 +13,8 @@ const linkEmailSchema = z.object({
 });
 
 // GET /api/tickets/[id]/emails — list emails linked to this ticket
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const emails = await prisma.ticketEmail.findMany({
     where: { ticketId: id },
@@ -28,17 +22,11 @@ export async function GET(
   });
 
   return NextResponse.json(emails);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // POST /api/tickets/[id]/emails — manually link an email to a ticket
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
 
   const parsed = linkEmailSchema.safeParse(body);
@@ -82,4 +70,4 @@ export async function POST(
   });
 
   return NextResponse.json(email, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

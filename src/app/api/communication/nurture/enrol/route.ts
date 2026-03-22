@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const bodySchema = z.object({
+  email: z.string().email("Valid email is required"),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  serviceId: z.string().min(1, "serviceId is required"),
+});
 
 /**
  * POST /api/communication/nurture/enrol — Trigger a nurture sequence
@@ -8,24 +16,16 @@ import { requireAuth } from "@/lib/server-auth";
  * Creates a CentreContact if it doesn't exist, then creates 6 staggered
  * ParentNurtureStep records (Day 0, 2, 5, 7, 14, 30).
  */
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
-  const { email, firstName, lastName, serviceId } = body as {
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    serviceId?: string;
-  };
-
-  if (!email || !serviceId) {
+export const POST = withApiAuth(async (req, session) => {
+  const raw = await req.json();
+  const parsed = bodySchema.safeParse(raw);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "email and serviceId are required" },
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
       { status: 400 },
     );
   }
+  const { email, firstName, lastName, serviceId } = parsed.data;
 
   // Verify service exists
   const service = await prisma.service.findUnique({
@@ -83,4 +83,4 @@ export async function POST(req: NextRequest) {
     contactId: contact.id,
     stepsCreated: created.count,
   });
-}
+}, { roles: ["owner", "head_office", "admin"] });

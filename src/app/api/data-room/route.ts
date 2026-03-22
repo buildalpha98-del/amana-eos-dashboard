@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { DATA_ROOM_SECTIONS, TOTAL_WEIGHT, type DocumentStatus } from "@/lib/data-room-config";
+import { withApiAuth } from "@/lib/server-auth";
 
 /**
  * GET /api/data-room — returns DD sections with completeness scores
  * Restricted to owner / admin roles.
  */
-export async function GET() {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   // ── Run all queries in parallel ──────────────────────────────────────────
   const [
     documents,
@@ -256,4 +253,4 @@ export async function GET() {
     sections,
     generatedAt: new Date().toISOString(),
   });
-}
+}, { roles: ["owner", "head_office", "admin"] });

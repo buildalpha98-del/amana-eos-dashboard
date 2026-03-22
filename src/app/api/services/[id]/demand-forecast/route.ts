@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getAI } from "@/lib/ai";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
 import { Prisma } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/services/[id]/demand-forecast
@@ -12,14 +13,8 @@ import { Prisma } from "@prisma/client";
  * Gathers 13 weeks of attendance data + 90 days of enquiry data,
  * sends to AI for analysis, and returns the forecast.
  */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id: serviceId } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+const { id: serviceId } = await context!.params!;
 
   // ── Load service ────────────────────────────────────────────
   const service = await prisma.service.findUnique({
@@ -234,13 +229,13 @@ export async function GET(
       },
     });
   } catch (err) {
-    console.error("Demand forecast generation failed:", err);
+    logger.error("Demand forecast generation failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Forecast generation failed" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 /** Get the Monday of the week for a given date */
 function getWeekStart(date: Date): Date {

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const childSchema = z.object({
   name: z.string().min(1),
   age: z.number().int().min(3).max(16).optional().nullable(),
@@ -26,10 +26,7 @@ const createEnquirySchema = z.object({
 });
 
 // GET /api/enquiries — list enquiries with filters
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const stage = searchParams.get("stage");
@@ -39,7 +36,7 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50")));
   const skip = (page - 1) * limit;
 
-  const where: any = { deleted: false };
+  const where: Record<string, unknown> = { deleted: false };
   if (serviceId) where.serviceId = serviceId;
   if (stage) where.stage = stage;
   if (assigneeId) where.assigneeId = assigneeId;
@@ -52,88 +49,70 @@ export async function GET(req: NextRequest) {
     ];
   }
 
-  try {
-    const [enquiries, total] = await Promise.all([
-      prisma.parentEnquiry.findMany({
-        where,
-        include: {
-          service: { select: { id: true, name: true, code: true } },
-          assignee: { select: { id: true, name: true } },
-        },
-        orderBy: { stageChangedAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.parentEnquiry.count({ where }),
-    ]);
-
-    return NextResponse.json({
-      enquiries,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    });
-  } catch (err) {
-    console.error("[Enquiries GET]", err);
-    return NextResponse.json(
-      { error: "Failed to fetch enquiries" },
-      { status: 500 },
-    );
-  }
-}
-
-// POST /api/enquiries — create a new enquiry
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  try {
-    const body = await req.json();
-    const data = createEnquirySchema.parse(body);
-
-    // Build childName summary from childrenDetails if provided
-    const children = data.childrenDetails?.filter((c) => c.name.trim());
-    let childName = data.childName || null;
-    let childAge = data.childAge || null;
-
-    if (children && children.length > 0) {
-      childName = children.map((c) => c.name).join(", ");
-      childAge = children[0].age || null; // Store first child's age for backward compat
-    }
-
-    const enquiry = await prisma.parentEnquiry.create({
-      data: {
-        serviceId: data.serviceId,
-        parentName: data.parentName,
-        parentEmail: data.parentEmail || null,
-        parentPhone: data.parentPhone || null,
-        childName,
-        childAge,
-        childrenDetails: children && children.length > 0 ? children : undefined,
-        channel: data.channel,
-        parentDriver: data.parentDriver || null,
-        assigneeId: data.assigneeId || null,
-        notes: data.notes || null,
-        stageChangedAt: new Date(),
-      },
+  const [enquiries, total] = await Promise.all([
+    prisma.parentEnquiry.findMany({
+      where,
       include: {
         service: { select: { id: true, name: true, code: true } },
+        assignee: { select: { id: true, name: true } },
       },
-    });
+      orderBy: { stageChangedAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.parentEnquiry.count({ where }),
+  ]);
 
-    return NextResponse.json(enquiry, { status: 201 });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: err.issues[0].message },
-        { status: 400 },
-      );
-    }
-    console.error("[Enquiries POST]", err);
+  return NextResponse.json({
+    enquiries,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  });
+}, { roles: ["owner", "head_office", "admin"] });
+
+// POST /api/enquiries — create a new enquiry
+export const POST = withApiAuth(async (req) => {
+  const body = await parseJsonBody(req);
+  const parsed = createEnquirySchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Failed to create enquiry" },
-      { status: 500 },
+      { error: parsed.error.issues[0].message },
+      { status: 400 },
     );
   }
-}
+  const data = parsed.data;
+
+  // Build childName summary from childrenDetails if provided
+  const children = data.childrenDetails?.filter((c) => c.name.trim());
+  let childName = data.childName || null;
+  let childAge = data.childAge || null;
+
+  if (children && children.length > 0) {
+    childName = children.map((c) => c.name).join(", ");
+    childAge = children[0].age || null; // Store first child's age for backward compat
+  }
+
+  const enquiry = await prisma.parentEnquiry.create({
+    data: {
+      serviceId: data.serviceId,
+      parentName: data.parentName,
+      parentEmail: data.parentEmail || null,
+      parentPhone: data.parentPhone || null,
+      childName,
+      childAge,
+      childrenDetails: children && children.length > 0 ? children : undefined,
+      channel: data.channel,
+      parentDriver: data.parentDriver || null,
+      assigneeId: data.assigneeId || null,
+      notes: data.notes || null,
+      stageChangedAt: new Date(),
+    },
+    include: {
+      service: { select: { id: true, name: true, code: true } },
+    },
+  });
+
+  return NextResponse.json(enquiry, { status: 201 });
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // GET /api/lms/my-enrollments — get current user's enrollments with course + module data
-export async function GET() {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const enrollments = await prisma.lMSEnrollment.findMany({
+export const GET = withApiAuth(async (req, session) => {
+const enrollments = await prisma.lMSEnrollment.findMany({
     where: { userId: session!.user.id },
     include: {
       user: { select: { id: true, name: true, email: true, avatar: true } },
@@ -28,4 +24,4 @@ export async function GET() {
   });
 
   return NextResponse.json(enrollments);
-}
+});

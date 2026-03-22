@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { requireAuth } from "@/lib/server-auth";
 import { getAI } from "@/lib/ai";
 import { prisma } from "@/lib/prisma";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+
+const bodySchema = z.object({
+  templateSlug: z.string().min(1, "templateSlug is required"),
+  variables: z.record(z.string(), z.string()).default({}),
+  stream: z.boolean().default(false),
+  model: z.string().optional(),
+  section: z.string().optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
+});
 
 /**
  * POST /api/ai/generate — Unified AI generation endpoint
@@ -18,11 +29,8 @@ import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
  *   section?: string            — dashboard section for usage tracking (falls back to slug prefix)
  *   metadata?: object           — extra context logged to AiUsage
  */
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const ai = getAI();
+export const POST = withApiAuth(async (req, session) => {
+const ai = getAI();
   if (!ai) {
     return NextResponse.json(
       { error: "AI is not configured. Set ANTHROPIC_API_KEY environment variable." },
@@ -31,26 +39,22 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const raw = await req.json();
+    const parsed = bodySchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
     const {
       templateSlug,
-      variables = {},
-      stream = false,
+      variables,
+      stream,
       model: modelOverride,
       section: sectionOverride,
       metadata,
-    } = body as {
-      templateSlug: string;
-      variables?: Record<string, string>;
-      stream?: boolean;
-      model?: string;
-      section?: string;
-      metadata?: Record<string, unknown>;
-    };
-
-    if (!templateSlug) {
-      return NextResponse.json({ error: "templateSlug is required" }, { status: 400 });
-    }
+    } = parsed.data;
 
     // ── Load template ─────────────────────────────────────────
     const template = await prisma.aiPromptTemplate.findUnique({
@@ -145,7 +149,7 @@ export async function POST(req: NextRequest) {
                 section,
                 metadata: (metadata as Prisma.InputJsonValue) ?? undefined,
               },
-            }).catch((err) => console.error("Failed to log AI usage:", err));
+            }).catch((err) => logger.error("Failed to log AI usage", { err }));
           } catch (err) {
             const errMsg = err instanceof Error ? err.message : "Stream error";
             controller.enqueue(
@@ -208,10 +212,10 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("AI generate failed:", err);
+    logger.error("AI generate failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Generation failed" },
       { status: 500 },
     );
   }
-}
+});

@@ -1,15 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
+const postSchema = z.object({
+  serviceId: z.string().min(1),
+  days: z.array(z.object({
+    date: z.string().min(1),
+    theme: z.string().min(1),
+    morningActivity: z.string().min(1),
+    afternoonActivity: z.string().min(1),
+    isExcursion: z.boolean().optional(),
+    excursionVenue: z.string().optional(),
+    excursionCost: z.number().optional(),
+    materialsNeeded: z.string().optional(),
+    dietaryNotes: z.string().optional(),
+    maxCapacity: z.number().optional(),
+  })).min(1),
+});
 /**
  * GET /api/holiday-quest — list Holiday Quest days
  * Query: serviceId (required), from, to, status
  */
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const from = searchParams.get("from");
@@ -35,39 +48,22 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(days);
-}
+});
 
 /**
  * POST /api/holiday-quest — create Holiday Quest days (bulk)
  * Body: { serviceId, days: [{ date, theme, morningActivity, afternoonActivity, ... }] }
  */
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   const body = await req.json();
-  const { serviceId, days } = body as {
-    serviceId?: string;
-    days?: Array<{
-      date: string;
-      theme: string;
-      morningActivity: string;
-      afternoonActivity: string;
-      isExcursion?: boolean;
-      excursionVenue?: string;
-      excursionCost?: number;
-      materialsNeeded?: string;
-      dietaryNotes?: string;
-      maxCapacity?: number;
-    }>;
-  };
-
-  if (!serviceId || !days || days.length === 0) {
+  const parsed = postSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "serviceId and days array are required" },
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
       { status: 400 },
     );
   }
+  const { serviceId, days } = parsed.data;
 
   // Verify service exists
   const service = await prisma.service.findUnique({
@@ -76,16 +72,6 @@ export async function POST(req: NextRequest) {
   });
   if (!service) {
     return NextResponse.json({ error: "Service not found" }, { status: 404 });
-  }
-
-  // Validate each day
-  for (const day of days) {
-    if (!day.date || !day.theme || !day.morningActivity || !day.afternoonActivity) {
-      return NextResponse.json(
-        { error: "Each day requires date, theme, morningActivity, and afternoonActivity" },
-        { status: 400 },
-      );
-    }
   }
 
   // Upsert each day (serviceId+date is unique)
@@ -124,4 +110,4 @@ export async function POST(req: NextRequest) {
   );
 
   return NextResponse.json({ created: results.length, days: results });
-}
+}, { roles: ["owner", "head_office", "admin"] });

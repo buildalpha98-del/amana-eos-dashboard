@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { acquireCronLock } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cron/contract-renewal
@@ -11,7 +13,7 @@ import { acquireCronLock } from "@/lib/cron-guard";
  *
  * Auth: Bearer CRON_SECRET
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -88,10 +90,10 @@ export async function GET(req: NextRequest) {
       alertsCreated,
     });
   } catch (err) {
-    console.error("Contract renewal cron error:", err);
+    logger.error("Contract renewal cron error", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Contract renewal check failed" },
       { status: 500 }
     );
   }
-}
+});

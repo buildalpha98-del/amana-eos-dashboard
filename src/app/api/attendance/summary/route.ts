@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { authenticateApiKey } from "@/lib/api-key-auth";
+import { withApiAuth } from "@/lib/server-auth";
 
 /**
  * GET /api/attendance/summary
@@ -15,9 +15,8 @@ import { authenticateApiKey } from "@/lib/api-key-auth";
  *   - to   (ISO date)
  *   - period: "weekly" | "monthly" (default "weekly")
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiAuth(async (req, session) => {
   // Try session auth first, fall back to API key auth
-  const { session, error: sessionError } = await requireAuth();
   let effectiveServiceId: string | null = null;
   let stateScope: string | null = null;
 
@@ -27,21 +26,13 @@ export async function GET(req: NextRequest) {
   const to = searchParams.get("to");
   const period = searchParams.get("period") || "weekly";
 
-  if (sessionError) {
-    // Fallback: API key auth
-    const { error: apiKeyError } = await authenticateApiKey(req, "attendance:read");
-    if (apiKeyError) return apiKeyError;
-    // API key access — serviceId from query param, no scope restrictions
-    effectiveServiceId = serviceId;
-  } else {
-    // Session auth — apply service/state scope
-    const scope = getServiceScope(session);
-    stateScope = getStateScope(session);
-    effectiveServiceId = scope || serviceId;
+  // Session auth — apply service/state scope
+  const scope = getServiceScope(session);
+  stateScope = getStateScope(session);
+  effectiveServiceId = scope || serviceId;
 
-    if (scope && serviceId && serviceId !== scope) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  if (scope && serviceId && serviceId !== scope) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Default: last 13 weeks
@@ -193,4 +184,4 @@ export async function GET(req: NextRequest) {
     range: { from: fromDate.toISOString(), to: toDate.toISOString() },
     recordCount: records.length,
   });
-}
+});

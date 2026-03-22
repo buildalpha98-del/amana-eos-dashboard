@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getStateScope } from "@/lib/service-scope";
 import { getCentreScope } from "@/lib/centre-scope";
 import { notifyNewIssue } from "@/lib/teams-notify";
 import { createIssueSchema } from "@/lib/schemas/issue";
 import { parsePagination } from "@/lib/pagination";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
+import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 
 // GET /api/issues — list issues with optional filters
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { serviceIds } = await getCentreScope(session);
+export const GET = withApiAuth(async (req, session) => {
+const { serviceIds } = await getCentreScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
@@ -82,14 +80,11 @@ export async function GET(req: NextRequest) {
 
   const issues = await prisma.issue.findMany({ where, include, orderBy });
   return NextResponse.json(issues);
-}
+});
 
 // POST /api/issues — create a new issue
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await parseJsonBody(req);
   const parsed = createIssueSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -151,4 +146,4 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json(issue, { status: 201 });
-}
+});

@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -57,23 +59,17 @@ export function useActivityTemplates(filters?: ActivityTemplateFilters) {
 
   return useQuery<{ templates: ActivityTemplate[]; total: number; page: number; limit: number }>({
     queryKey: ["activity-templates", filters],
-    queryFn: async () => {
-      const res = await fetch(`/api/activity-templates?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch templates");
-      return res.json();
-    },
+    queryFn: () => fetchApi(`/api/activity-templates?${params}`),
+    retry: 2,
   });
 }
 
 export function useActivityTemplate(id: string | null) {
   return useQuery<ActivityTemplate>({
     queryKey: ["activity-template", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/activity-templates/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch template");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ActivityTemplate>(`/api/activity-templates/${id}`),
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -83,19 +79,13 @@ export function useCreateActivityTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateTemplateInput) => {
-      const res = await fetch("/api/activity-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create template");
-      }
-      return res.json() as Promise<ActivityTemplate>;
+      return mutateApi<ActivityTemplate>("/api/activity-templates", { method: "POST", body: input });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["activity-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -104,20 +94,14 @@ export function useUpdateActivityTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: CreateTemplateInput & { id: string }) => {
-      const res = await fetch(`/api/activity-templates/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update template");
-      }
-      return res.json() as Promise<ActivityTemplate>;
+      return mutateApi<ActivityTemplate>(`/api/activity-templates/${id}`, { method: "PATCH", body: data });
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["activity-templates"] });
       qc.invalidateQueries({ queryKey: ["activity-template", vars.id] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -126,15 +110,18 @@ export function useDeleteActivityTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/activity-templates/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete template");
+      return mutateApi(`/api/activity-templates/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["activity-templates"] });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
+// FormData upload — keep raw fetch (mutateApi sets Content-Type to application/json)
 export function useUploadTemplateFile() {
   const qc = useQueryClient();
   return useMutation({
@@ -155,6 +142,9 @@ export function useUploadTemplateFile() {
       qc.invalidateQueries({ queryKey: ["activity-templates"] });
       qc.invalidateQueries({ queryKey: ["activity-template", vars.templateId] });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -162,14 +152,14 @@ export function useDeleteTemplateFile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ templateId, fileId }: { templateId: string; fileId: string }) => {
-      const res = await fetch(`/api/activity-templates/${templateId}/files/${fileId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete file");
+      return mutateApi(`/api/activity-templates/${templateId}/files/${fileId}`, { method: "DELETE" });
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["activity-templates"] });
       qc.invalidateQueries({ queryKey: ["activity-template", vars.templateId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

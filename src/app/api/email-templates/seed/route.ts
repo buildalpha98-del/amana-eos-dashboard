@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import type { EmailBlock } from "@/lib/email-marketing-layout";
 import type { EmailTemplateCategory } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
 
 /**
  * POST /api/email-templates/seed
@@ -11,10 +11,8 @@ import type { EmailTemplateCategory } from "@prisma/client";
  * email templates so they're editable in the visual email composer.
  * Only creates templates that don't already exist (by name).
  */
-export async function POST() {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-  if (!["owner", "admin", "head_office"].includes(session?.user?.role || "")) {
+export const POST = withApiAuth(async (req, session) => {
+if (!["owner", "admin", "head_office"].includes(session?.user?.role || "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -163,4 +161,4 @@ export async function POST() {
     skipped,
     total: templates.length,
   });
-}
+});

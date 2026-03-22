@@ -1,21 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createCommentSchema = z.object({
   text: z.string().min(1, "Comment text is required"),
 });
 
 // GET /api/marketing/campaigns/:id/comments — list comments for a campaign
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const { id: campaignId } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id: campaignId } = await context!.params!;
 
   const campaign = await prisma.marketingCampaign.findUnique({ where: { id: campaignId } });
   if (!campaign || campaign.deleted) {
@@ -33,17 +26,11 @@ export async function GET(
   });
 
   return NextResponse.json(comments);
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });
 
 // POST /api/marketing/campaigns/:id/comments — add a comment to a campaign
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  const { id: campaignId } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id: campaignId } = await context!.params!;
   const body = await req.json();
   const parsed = createCommentSchema.safeParse(body);
 
@@ -83,4 +70,4 @@ export async function POST(
   });
 
   return NextResponse.json(comment, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

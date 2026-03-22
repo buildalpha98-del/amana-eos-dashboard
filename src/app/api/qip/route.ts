@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+
+const createQipSchema = z.object({
+  serviceId: z.string().min(1, "serviceId is required"),
+  documentType: z.string().default("qip"),
+});
 
 const QA_NAMES = [
   "Educational Program and Practice",
@@ -16,11 +23,8 @@ const QA_NAMES = [
 /**
  * GET /api/qip — List all QIPs
  */
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const scope = getServiceScope(session);
+export const GET = withApiAuth(async (req, session) => {
+const scope = getServiceScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const state = searchParams.get("state");
@@ -45,25 +49,27 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ qips, count: qips.length });
   } catch (err) {
-    console.error("[QIP GET]", err);
+    logger.error("QIP GET", { err });
     return NextResponse.json({ error: "Failed to fetch QIPs" }, { status: 500 });
   }
-}
+});
 
 /**
  * POST /api/qip — Create QIP for a service (auto-creates 7 quality areas)
  */
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   try {
     const body = await req.json();
-    const { serviceId, documentType = "qip" } = body;
+    const parsed = createQipSchema.safeParse(body);
 
-    if (!serviceId) {
-      return NextResponse.json({ error: "serviceId is required" }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
     }
+
+    const { serviceId, documentType } = parsed.data;
 
     // Get service state
     const service = await prisma.service.findUnique({
@@ -105,7 +111,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(qip, { status: 201 });
   } catch (err) {
-    console.error("[QIP POST]", err);
+    logger.error("QIP POST", { err });
     return NextResponse.json({ error: "Failed to create QIP" }, { status: 500 });
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });

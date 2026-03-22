@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const weeklyDataSchema = z.object({
   weekOf: z.string(),
@@ -17,14 +17,8 @@ const weeklyDataSchema = z.object({
 });
 
 // GET /api/services/[id]/weekly-data — last 13 weekly records
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const records = await prisma.financialPeriod.findMany({
     where: {
@@ -36,17 +30,11 @@ export async function GET(
   });
 
   return NextResponse.json(records);
-}
+});
 
 // POST /api/services/[id]/weekly-data — create/update weekly record with auto-revenue calc
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = weeklyDataSchema.safeParse(body);
 
@@ -148,4 +136,4 @@ export async function POST(
   });
 
   return NextResponse.json(record);
-}
+}, { roles: ["owner", "head_office", "admin"] });

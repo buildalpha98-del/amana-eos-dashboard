@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import type { ContractType, ContractStatus, AwardLevel } from "@prisma/client";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -75,11 +77,8 @@ export function useContracts(filters?: {
 
   return useQuery<ContractData[]>({
     queryKey: ["contracts", filters],
-    queryFn: async () => {
-      const res = await fetch(`/api/contracts${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch contracts");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ContractData[]>(`/api/contracts${query ? `?${query}` : ""}`),
+    retry: 2,
   });
 }
 
@@ -88,12 +87,9 @@ export function useContracts(filters?: {
 export function useContract(id: string | null) {
   return useQuery<ContractDetail>({
     queryKey: ["contract", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/contracts/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch contract");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ContractDetail>(`/api/contracts/${id}`),
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -117,19 +113,13 @@ export function useCreateContract() {
       notes?: string | null;
       previousContractId?: string;
     }) => {
-      const res = await fetch("/api/contracts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create contract");
-      }
-      return res.json();
+      return mutateApi("/api/contracts", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -156,20 +146,14 @@ export function useUpdateContract() {
       documentId?: string | null;
       notes?: string | null;
     }) => {
-      const res = await fetch(`/api/contracts/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update contract");
-      }
-      return res.json();
+      return mutateApi(`/api/contracts/${id}`, { method: "PATCH", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       queryClient.invalidateQueries({ queryKey: ["contract"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -199,20 +183,14 @@ export function useSupersedeContract() {
       notes?: string | null;
     }) => {
       const targetId = id || contractId;
-      const res = await fetch(`/api/contracts/${targetId}/supersede`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to supersede contract");
-      }
-      return res.json();
+      return mutateApi(`/api/contracts/${targetId}/supersede`, { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       queryClient.invalidateQueries({ queryKey: ["contract"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -223,18 +201,14 @@ export function useAcknowledgeContract() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (contractId: string) => {
-      const res = await fetch(`/api/contracts/${contractId}/acknowledge`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to acknowledge contract");
-      }
-      return res.json();
+      return mutateApi(`/api/contracts/${contractId}/acknowledge`, { method: "POST" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       queryClient.invalidateQueries({ queryKey: ["contract"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -250,20 +224,14 @@ export function useTerminateContract() {
       const id = typeof input === "string" ? input : input.id;
       const body =
         typeof input === "string" ? {} : { notes: input.notes, endDate: input.endDate };
-      const res = await fetch(`/api/contracts/${id}/terminate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to terminate contract");
-      }
-      return res.json();
+      return mutateApi(`/api/contracts/${id}/terminate`, { method: "POST", body });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       queryClient.invalidateQueries({ queryKey: ["contract"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

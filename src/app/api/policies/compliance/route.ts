@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // GET /api/policies/compliance — compliance dashboard (owner/admin only)
-export async function GET() {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const totalStaff = await prisma.user.count({
     where: { active: true },
   });
@@ -54,4 +50,4 @@ export async function GET() {
   );
 
   return NextResponse.json(results);
-}
+}, { roles: ["owner", "head_office", "admin"] });

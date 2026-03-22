@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyTotp, decryptSecret, verifyBackupCode } from "@/lib/totp";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { withApiHandler } from "@/lib/api-handler";
+import { z } from "zod";
+
+const bodySchema = z.object({
+  userId: z.string().min(1, "userId is required"),
+  code: z.string().min(6).max(8, "code must be 6-8 characters"),
+});
 
 /**
  * POST /api/auth/mfa/verify
@@ -11,7 +18,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
  *
  * Body: { userId: string, code: string }
  */
-export async function POST(req: NextRequest) {
+export const POST = withApiHandler(async (req) => {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const rl = await checkRateLimit(`mfa-verify:${ip}`, 10, 15 * 60 * 1000);
   if (rl.limited) {
@@ -21,14 +28,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { userId, code } = await req.json();
-
-  if (!userId || !code) {
+  const raw = await req.json();
+  const parsed = bodySchema.safeParse(raw);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "userId and code are required" },
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
       { status: 400 },
     );
   }
+  const { userId, code } = parsed.data;
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -71,4 +79,4 @@ export async function POST(req: NextRequest) {
     { error: "Invalid code. Please try again." },
     { status: 400 },
   );
-}
+});

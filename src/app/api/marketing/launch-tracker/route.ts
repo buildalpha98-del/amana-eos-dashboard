@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/marketing/launch-tracker — Data for services in launch/ramp-up phase
  */
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   try {
     const services = await prisma.service.findMany({
       where: {
@@ -180,10 +178,10 @@ export async function GET(req: NextRequest) {
       currentWeek: globalWeek,
     });
   } catch (err) {
-    console.error("[Launch Tracker GET]", err);
+    logger.error("Launch Tracker GET", { err });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

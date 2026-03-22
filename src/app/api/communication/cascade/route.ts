@@ -1,19 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createCascadeSchema = z.object({
   meetingId: z.string().min(1, "Meeting ID is required"),
   message: z.string().min(1, "Message is required"),
 });
 
 // GET /api/communication/cascade — list cascade messages
-export async function GET(_req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const messages = await prisma.cascadeMessage.findMany({
+export const GET = withApiAuth(async (req, session) => {
+const messages = await prisma.cascadeMessage.findMany({
     where: { deleted: false },
     include: {
       meeting: { select: { id: true, title: true, date: true } },
@@ -27,14 +23,11 @@ export async function GET(_req: NextRequest) {
   });
 
   return NextResponse.json(messages);
-}
+});
 
 // POST /api/communication/cascade — publish a cascade message from a meeting
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createCascadeSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -70,4 +63,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(cascade, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

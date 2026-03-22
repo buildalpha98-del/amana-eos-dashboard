@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { hasFeature } from "@/lib/role-permissions";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { applyMergeTags } from "@/lib/crm/merge-tags";
 import type { Role } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
 
 /** Escape HTML special characters to prevent injection */
 function escapeHtml(str: string): string {
@@ -24,18 +24,12 @@ const sendEmailSchema = z.object({
 });
 
 // POST /api/crm/leads/[id]/send-email
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  if (!hasFeature(session!.user.role as Role, "crm.create")) {
+export const POST = withApiAuth(async (req, session, context) => {
+if (!hasFeature(session!.user.role as Role, "crm.create")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id } = await params;
+  const { id } = await context!.params!;
   const reqBody = await req.json();
   const parsed = sendEmailSchema.safeParse(reqBody);
 
@@ -146,4 +140,4 @@ export async function POST(
   });
 
   return NextResponse.json(touchpoint, { status: 201 });
-}
+});

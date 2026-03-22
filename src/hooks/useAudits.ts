@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ── Types ────────────────────────────────────────────────
 
@@ -125,10 +127,9 @@ export function useAuditTemplates(filters?: { qualityArea?: number; frequency?: 
   return useQuery<AuditTemplateSummary[]>({
     queryKey: ["audit-templates", filters],
     queryFn: async () => {
-      const res = await fetch(`/api/audits/templates${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch audit templates");
-      return res.json();
+      return fetchApi<AuditTemplateSummary[]>(`/api/audits/templates${query ? `?${query}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -156,10 +157,9 @@ export function useAuditInstances(filters?: {
   }>({
     queryKey: ["audit-instances", filters],
     queryFn: async () => {
-      const res = await fetch(`/api/audits${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch audits");
-      return res.json();
+      return fetchApi(`/api/audits${query ? `?${query}` : ""}`);
     },
+    retry: 2,
   });
 }
 
@@ -169,11 +169,10 @@ export function useAuditDetail(id: string) {
   return useQuery<AuditInstanceDetail>({
     queryKey: ["audit-detail", id],
     queryFn: async () => {
-      const res = await fetch(`/api/audits/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch audit detail");
-      return res.json();
+      return fetchApi<AuditInstanceDetail>(`/api/audits/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -193,20 +192,17 @@ export function useUpdateAudit() {
       actionPlan?: string;
       comments?: string;
     }) => {
-      const res = await fetch(`/api/audits/${id}`, {
+      return mutateApi(`/api/audits/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update audit");
-      }
-      return res.json();
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["audit-instances"] });
       queryClient.invalidateQueries({ queryKey: ["audit-detail", vars.id] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -228,19 +224,16 @@ export function useSaveAuditResponses() {
         notes?: string | null;
       }>;
     }) => {
-      const res = await fetch(`/api/audits/${instanceId}/responses`, {
+      return mutateApi(`/api/audits/${instanceId}/responses`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ responses }),
+        body: { responses },
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to save responses");
-      }
-      return res.json();
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["audit-detail", vars.instanceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -265,11 +258,10 @@ export function useAuditTemplateDetail(id: string) {
   return useQuery<AuditTemplateDetail>({
     queryKey: ["audit-template-detail", id],
     queryFn: async () => {
-      const res = await fetch(`/api/audits/templates/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch template detail");
-      return res.json();
+      return fetchApi<AuditTemplateDetail>(`/api/audits/templates/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -279,17 +271,17 @@ export function useUpdateTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; [key: string]: unknown }) => {
-      const res = await fetch(`/api/audits/templates/${id}`, {
+      return mutateApi(`/api/audits/templates/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Failed to update template");
-      return res.json();
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
       queryClient.invalidateQueries({ queryKey: ["audit-template-detail", vars.id] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -298,14 +290,15 @@ export function useDeleteTemplateItem() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ templateId, itemId }: { templateId: string; itemId: string }) => {
-      const res = await fetch(`/api/audits/templates/${templateId}/items/${itemId}`, {
+      return mutateApi(`/api/audits/templates/${templateId}/items/${itemId}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete item");
-      return res.json();
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["audit-template-detail", vars.templateId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -322,16 +315,16 @@ export function useUpdateTemplateItem() {
       itemId: string;
       [key: string]: unknown;
     }) => {
-      const res = await fetch(`/api/audits/templates/${templateId}/items/${itemId}`, {
+      return mutateApi(`/api/audits/templates/${templateId}/items/${itemId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Failed to update item");
-      return res.json();
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["audit-template-detail", vars.templateId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -340,16 +333,16 @@ export function useReorderTemplateItems() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ templateId, itemIds }: { templateId: string; itemIds: string[] }) => {
-      const res = await fetch(`/api/audits/templates/${templateId}/items/reorder`, {
+      return mutateApi(`/api/audits/templates/${templateId}/items/reorder`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemIds }),
+        body: { itemIds },
       });
-      if (!res.ok) throw new Error("Failed to reorder items");
-      return res.json();
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["audit-template-detail", vars.templateId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -374,6 +367,7 @@ export interface ParsedAuditResult {
   };
 }
 
+// FormData upload — keep raw fetch
 export function useParseAuditDocument() {
   return useMutation({
     mutationFn: async (file: File): Promise<ParsedAuditResult> => {
@@ -388,6 +382,9 @@ export function useParseAuditDocument() {
         throw new Error(err.error || "Failed to parse document");
       }
       return res.json();
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -406,20 +403,17 @@ export function useImportAuditItems() {
       mode: "replace" | "append";
       sourceFileName?: string;
     }) => {
-      const res = await fetch(`/api/audits/templates/${templateId}/import`, {
+      return mutateApi(`/api/audits/templates/${templateId}/import`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, mode, sourceFileName }),
+        body: { items, mode, sourceFileName },
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to import items");
-      }
-      return res.json();
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
       queryClient.invalidateQueries({ queryKey: ["audit-template-detail", vars.templateId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -438,6 +432,7 @@ export interface BulkParseResult {
   }>;
 }
 
+// FormData upload — keep raw fetch
 export function useBulkParseAudit() {
   return useMutation({
     mutationFn: async (files: File[]): Promise<BulkParseResult> => {
@@ -454,6 +449,9 @@ export function useBulkParseAudit() {
         throw new Error(err.error || "Failed to bulk parse");
       }
       return res.json();
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -495,6 +493,7 @@ export interface CalendarImportResult {
   }>;
 }
 
+// FormData upload — keep raw fetch
 export function usePreviewCalendar() {
   return useMutation({
     mutationFn: async (file: File): Promise<CalendarPreviewResult> => {
@@ -511,9 +510,13 @@ export function usePreviewCalendar() {
       }
       return res.json();
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
+// FormData upload — keep raw fetch
 export function useImportCalendar() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -544,6 +547,9 @@ export function useImportCalendar() {
       queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
       queryClient.invalidateQueries({ queryKey: ["audit-instances"] });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 }
 
@@ -565,9 +571,8 @@ export function useQualificationRatios() {
   }>({
     queryKey: ["qualification-ratios"],
     queryFn: async () => {
-      const res = await fetch("/api/compliance/qualification-ratios");
-      if (!res.ok) throw new Error("Failed to fetch qualification ratios");
-      return res.json();
+      return fetchApi("/api/compliance/qualification-ratios");
     },
+    retry: 2,
   });
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // ── Alert thresholds ────────────────────────────────────────
 const NO_CONTENT_DAYS = 5;
@@ -32,7 +34,7 @@ interface AlertDetail {
  * 2. < 3 posts in last 7 days → medium priority task
  * 3. Tier 3 centre (occupancy < 25%) with 0 active campaigns → medium priority task
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
@@ -211,13 +213,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(result);
   } catch (err) {
     await guard.fail(err);
-    console.error("[Cron: coverage-alerts]", err);
+    logger.error("Cron: coverage-alerts", { err });
     return NextResponse.json(
-      { error: "Coverage alert cron failed", message: err instanceof Error ? err.message : String(err) },
+      { error: "Coverage alert cron failed", details: err instanceof Error ? err.message : String(err) },
       { status: 500 },
     );
   }
-}
+});
 
 // ── Helpers ──────────────────────────────────────────────────
 

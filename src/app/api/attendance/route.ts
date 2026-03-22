@@ -1,40 +1,35 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { z } from "zod";
 import type { SessionType } from "@prisma/client";
 import { propagateEnrolledCounts } from "./propagate/route";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 
 // ── GET: List attendance records ────────────────────────────
 
-export async function GET(req: Request) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const sessionType = searchParams.get("sessionType") as SessionType | null;
 
-  // Scope to user's service if staff/member
   const scope = getServiceScope(session);
   const stateScope = getStateScope(session);
 
   const where: Record<string, unknown> = {};
 
   if (scope) {
-    // Staff/member can only see their own service
     where.serviceId = scope;
     if (serviceId && serviceId !== scope) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      throw ApiError.forbidden();
     }
   } else if (serviceId) {
     where.serviceId = serviceId;
   }
 
-  // State Manager: only see attendance for services in their assigned state
   if (stateScope) where.service = { state: stateScope };
 
   if (from || to) {
@@ -57,13 +52,13 @@ export async function GET(req: Request) {
   });
 
   return NextResponse.json(records);
-}
+});
 
 // ── POST: Create or upsert a single attendance record ───────
 
 const createSchema = z.object({
   serviceId: z.string().min(1),
-  date: z.string().min(1), // ISO date string
+  date: z.string().min(1),
   sessionType: z.enum(["bsc", "asc", "vc"]),
   enrolled: z.number().int().min(0).default(0),
   attended: z.number().int().min(0).default(0),
@@ -73,25 +68,18 @@ const createSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function POST(req: Request) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+  const body = await parseJsonBody(req);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
-      { status: 400 }
-    );
+    throw ApiError.badRequest("Validation failed", parsed.error.flatten());
   }
 
   const data = parsed.data;
 
-  // Scope check
   const scope = getServiceScope(session);
   if (scope && data.serviceId !== scope) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    throw ApiError.forbidden();
   }
 
   const record = await prisma.dailyAttendance.upsert({
@@ -109,7 +97,7 @@ export async function POST(req: Request) {
       casual: data.casual,
       absent: data.absent,
       notes: data.notes,
-      recordedById: session!.user.id,
+      recordedById: session.user.id,
     },
     create: {
       serviceId: data.serviceId,
@@ -121,39 +109,30 @@ export async function POST(req: Request) {
       casual: data.casual,
       absent: data.absent,
       notes: data.notes,
-      recordedById: session!.user.id,
+      recordedById: session.user.id,
     },
   });
 
   return NextResponse.json(record, { status: 201 });
-}
+});
 
 // ── PUT: Batch upsert (weekly grid save) ────────────────────
 
 const batchSchema = z.array(createSchema).min(1).max(50);
 
-export async function PUT(req: Request) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const PUT = withApiAuth(async (req, session) => {
+  const body = await parseJsonBody(req);
   const parsed = batchSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
-      { status: 400 }
-    );
+    throw ApiError.badRequest("Validation failed", parsed.error.flatten());
   }
 
   const items = parsed.data;
 
-  // Scope check
   const scope = getServiceScope(session);
   if (scope) {
     const forbidden = items.some((i) => i.serviceId !== scope);
-    if (forbidden) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    if (forbidden) throw ApiError.forbidden();
   }
 
   const results = await prisma.$transaction(
@@ -173,7 +152,7 @@ export async function PUT(req: Request) {
           casual: item.casual,
           absent: item.absent,
           notes: item.notes,
-          recordedById: session!.user.id,
+          recordedById: session.user.id,
         },
         create: {
           serviceId: item.serviceId,
@@ -185,17 +164,16 @@ export async function PUT(req: Request) {
           casual: item.casual,
           absent: item.absent,
           notes: item.notes,
-          recordedById: session!.user.id,
+          recordedById: session.user.id,
         },
       })
     )
   );
 
-  // Auto-propagate enrolled counts to future weeks (fire-and-forget)
   const serviceId = items[0]?.serviceId;
   if (serviceId) {
     propagateEnrolledCounts(serviceId, 8).catch(() => {});
   }
 
   return NextResponse.json({ updated: results.length });
-}
+});

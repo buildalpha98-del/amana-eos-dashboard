@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "../../../_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // ── Validation ──────────────────────────────────────────────
 
@@ -33,8 +35,8 @@ const evidenceReviewSchema = z.object({
  * POST /api/cowork/audits/evidence-review — Submit NQS Quality Area evidence pack
  * Creates an AuditReview record with element-level ratings and evidence.
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -96,17 +98,17 @@ export async function POST(req: NextRequest) {
       { status: 201 },
     );
   } catch (err) {
-    console.error("[Cowork Audit Evidence Review POST]", err);
+    logger.error("Cowork Audit Evidence Review POST", { err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});
 
 /**
  * GET /api/cowork/audits/evidence-review — Retrieve evidence reviews
  * Filters: ?centreId=, ?qualityArea=, ?limit=
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -127,7 +129,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ reviews, total: reviews.length });
   } catch (err) {
-    console.error("[Cowork Audit Evidence Review GET]", err);
+    logger.error("Cowork Audit Evidence Review GET", { err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});

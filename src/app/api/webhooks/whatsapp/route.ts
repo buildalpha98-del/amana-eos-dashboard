@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyWebhookSignature } from "@/lib/whatsapp";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const WHATSAPP_VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN!;
 
 // GET /api/webhooks/whatsapp — verify webhook (no auth required)
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const { searchParams } = new URL(req.url);
   const mode = searchParams.get("hub.mode");
   const token = searchParams.get("hub.verify_token");
@@ -16,10 +18,10 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-}
+});
 
 // POST /api/webhooks/whatsapp — receive messages & status updates (no auth, HMAC verified)
-export async function POST(req: NextRequest) {
+export const POST = withApiHandler(async (req) => {
   const rawBody = await req.text();
   const signature = req.headers.get("x-hub-signature-256") || "";
 
@@ -55,11 +57,11 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err) {
-    console.error("Webhook processing error:", err);
+    logger.error("Webhook processing error", { err });
   }
 
   return NextResponse.json({ success: true }, { status: 200 });
-}
+});
 
 async function handleInboundMessage(
   value: { contacts?: { wa_id: string; profile?: { name: string } }[] },

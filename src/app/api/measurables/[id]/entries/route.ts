@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const entrySchema = z.object({
   weekOf: z.string().min(1, "Week is required"),
   value: z.number(),
@@ -10,14 +9,8 @@ const entrySchema = z.object({
 });
 
 // POST /api/measurables/[id]/entries — create or update an entry
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id: measurableId } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id: measurableId } = await context!.params!;
   const body = await req.json();
   const parsed = entrySchema.safeParse(body);
 
@@ -92,4 +85,4 @@ export async function POST(
   });
 
   return NextResponse.json(entry, { status: 201 });
-}
+});

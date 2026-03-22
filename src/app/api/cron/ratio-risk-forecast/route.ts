@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { acquireCronLock } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
 
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
@@ -172,7 +173,7 @@ function buildAdminSummaryEmail(
  *
  * Auth: Bearer CRON_SECRET
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -185,176 +186,167 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: guard.reason, skipped: true });
   }
 
-  try {
-    // Tomorrow's date (start of day UTC)
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
+  // Tomorrow's date (start of day UTC)
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
 
-    const tomorrowEnd = new Date(tomorrow);
-    tomorrowEnd.setHours(23, 59, 59, 999);
+  const tomorrowEnd = new Date(tomorrow);
+  tomorrowEnd.setHours(23, 59, 59, 999);
 
-    const dateLabel = tomorrow.toLocaleDateString("en-AU", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+  const dateLabel = tomorrow.toLocaleDateString("en-AU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
-    // Get all active services
-    const services = await prisma.service.findMany({
-      where: { status: "active" },
-      include: {
-        manager: { select: { id: true, name: true, email: true, active: true } },
+  // Get all active services
+  const services = await prisma.service.findMany({
+    where: { status: "active" },
+    include: {
+      manager: { select: { id: true, name: true, email: true, active: true } },
+    },
+  });
+
+  const allFlags: FlaggedService[] = [];
+
+  for (const service of services) {
+    // Get tomorrow's attendance records (all session types)
+    const attendance = await prisma.dailyAttendance.findMany({
+      where: {
+        serviceId: service.id,
+        date: { gte: tomorrow, lte: tomorrowEnd },
       },
     });
 
-    const allFlags: FlaggedService[] = [];
+    // Get tomorrow's roster shifts
+    const shifts = await prisma.rosterShift.findMany({
+      where: {
+        serviceId: service.id,
+        date: { gte: tomorrow, lte: tomorrowEnd },
+      },
+    });
 
-    for (const service of services) {
-      // Get tomorrow's attendance records (all session types)
-      const attendance = await prisma.dailyAttendance.findMany({
-        where: {
-          serviceId: service.id,
-          date: { gte: tomorrow, lte: tomorrowEnd },
-        },
-      });
+    // Group by session type
+    const sessionTypes = new Set([
+      ...attendance.map((a) => a.sessionType),
+      ...shifts.map((s) => s.sessionType),
+    ]);
 
-      // Get tomorrow's roster shifts
-      const shifts = await prisma.rosterShift.findMany({
-        where: {
-          serviceId: service.id,
-          date: { gte: tomorrow, lte: tomorrowEnd },
-        },
-      });
-
-      // Group by session type
-      const sessionTypes = new Set([
-        ...attendance.map((a) => a.sessionType),
-        ...shifts.map((s) => s.sessionType),
-      ]);
-
-      for (const sessionType of sessionTypes) {
-        const sessionAttendance = attendance.filter(
-          (a) => a.sessionType === sessionType,
-        );
-        const sessionShifts = shifts.filter(
-          (s) => s.sessionType === sessionType,
-        );
-
-        const totalChildren = sessionAttendance.reduce(
-          (sum, a) => sum + a.enrolled + a.casual,
-          0,
-        );
-        const staffCount = sessionShifts.length;
-
-        if (totalChildren === 0) continue;
-
-        const ratio = staffCount > 0 ? totalChildren / staffCount : totalChildren;
-        const overCapacity =
-          service.capacity != null && totalChildren > service.capacity;
-
-        if (ratio > RATIO_WARNING || overCapacity) {
-          allFlags.push({
-            serviceName: service.name,
-            serviceCode: service.code,
-            sessionType,
-            totalChildren,
-            staffCount,
-            ratio,
-            capacity: service.capacity,
-            overCapacity,
-            severity: ratio > RATIO_CRITICAL ? "critical" : "warning",
-          });
-        }
-      }
-    }
-
-    let emailsSent = 0;
-    const errors: string[] = [];
-
-    if (allFlags.length > 0) {
-      // Group flags by manager and send per-manager emails
-      const byManager = new Map<
-        string,
-        { name: string; email: string; flags: FlaggedService[] }
-      >();
-
-      for (const flag of allFlags) {
-        const service = services.find((s) => s.code === flag.serviceCode);
-        if (!service?.manager || !service.manager.active) continue;
-
-        const mgr = service.manager;
-        if (!byManager.has(mgr.id)) {
-          byManager.set(mgr.id, { name: mgr.name, email: mgr.email, flags: [] });
-        }
-        byManager.get(mgr.id)!.flags.push(flag);
-      }
-
-      for (const [, mgr] of byManager) {
-        try {
-          const { subject, html } = buildManagerEmail(
-            mgr.name,
-            mgr.flags,
-            dateLabel,
-          );
-          await sendEmail({ to: mgr.email, subject, html });
-          emailsSent++;
-        } catch (err) {
-          errors.push(
-            `Failed to email manager ${mgr.email}: ${err instanceof Error ? err.message : "Unknown"}`,
-          );
-        }
-      }
-
-      // Admin summary
-      const admins = await prisma.user.findMany({
-        where: { role: { in: ["owner", "admin"] }, active: true },
-        select: { email: true },
-      });
-
-      const { subject, html } = buildAdminSummaryEmail(
-        allFlags,
-        dateLabel,
-        services.length,
+    for (const sessionType of sessionTypes) {
+      const sessionAttendance = attendance.filter(
+        (a) => a.sessionType === sessionType,
+      );
+      const sessionShifts = shifts.filter(
+        (s) => s.sessionType === sessionType,
       );
 
-      for (const admin of admins) {
-        try {
-          await sendEmail({ to: admin.email, subject, html });
-          emailsSent++;
-        } catch (err) {
-          errors.push(
-            `Failed admin email ${admin.email}: ${err instanceof Error ? err.message : "Unknown"}`,
-          );
-        }
+      const totalChildren = sessionAttendance.reduce(
+        (sum, a) => sum + a.enrolled + a.casual,
+        0,
+      );
+      const staffCount = sessionShifts.length;
+
+      if (totalChildren === 0) continue;
+
+      const ratio = staffCount > 0 ? totalChildren / staffCount : totalChildren;
+      const overCapacity =
+        service.capacity != null && totalChildren > service.capacity;
+
+      if (ratio > RATIO_WARNING || overCapacity) {
+        allFlags.push({
+          serviceName: service.name,
+          serviceCode: service.code,
+          sessionType,
+          totalChildren,
+          staffCount,
+          ratio,
+          capacity: service.capacity,
+          overCapacity,
+          severity: ratio > RATIO_CRITICAL ? "critical" : "warning",
+        });
+      }
+    }
+  }
+
+  let emailsSent = 0;
+  const errors: string[] = [];
+
+  if (allFlags.length > 0) {
+    // Group flags by manager and send per-manager emails
+    const byManager = new Map<
+      string,
+      { name: string; email: string; flags: FlaggedService[] }
+    >();
+
+    for (const flag of allFlags) {
+      const service = services.find((s) => s.code === flag.serviceCode);
+      if (!service?.manager || !service.manager.active) continue;
+
+      const mgr = service.manager;
+      if (!byManager.has(mgr.id)) {
+        byManager.set(mgr.id, { name: mgr.name, email: mgr.email, flags: [] });
+      }
+      byManager.get(mgr.id)!.flags.push(flag);
+    }
+
+    for (const [, mgr] of byManager) {
+      try {
+        const { subject, html } = buildManagerEmail(
+          mgr.name,
+          mgr.flags,
+          dateLabel,
+        );
+        await sendEmail({ to: mgr.email, subject, html });
+        emailsSent++;
+      } catch (err) {
+        errors.push(
+          `Failed to email manager ${mgr.email}: ${err instanceof Error ? err.message : "Unknown"}`,
+        );
       }
     }
 
-    await guard.complete({
-      totalServices: services.length,
-      flagged: allFlags.length,
-      emailsSent,
+    // Admin summary
+    const admins = await prisma.user.findMany({
+      where: { role: { in: ["owner", "admin"] }, active: true },
+      select: { email: true },
     });
 
-    return NextResponse.json({
-      message: "Ratio risk forecast processed",
-      date: dateLabel,
-      totalServices: services.length,
-      flagged: allFlags.length,
-      critical: allFlags.filter((f) => f.severity === "critical").length,
-      warning: allFlags.filter((f) => f.severity === "warning").length,
-      overCapacity: allFlags.filter((f) => f.overCapacity).length,
-      emailsSent,
-      errors: errors.length > 0 ? errors : undefined,
-    });
-  } catch (err) {
-    await guard.fail(err);
-    console.error("Ratio risk forecast cron failed:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Cron failed" },
-      { status: 500 },
+    const { subject, html } = buildAdminSummaryEmail(
+      allFlags,
+      dateLabel,
+      services.length,
     );
+
+    for (const admin of admins) {
+      try {
+        await sendEmail({ to: admin.email, subject, html });
+        emailsSent++;
+      } catch (err) {
+        errors.push(
+          `Failed admin email ${admin.email}: ${err instanceof Error ? err.message : "Unknown"}`,
+        );
+      }
+    }
   }
-}
+
+  await guard.complete({
+    totalServices: services.length,
+    flagged: allFlags.length,
+    emailsSent,
+  });
+
+  return NextResponse.json({
+    message: "Ratio risk forecast processed",
+    date: dateLabel,
+    totalServices: services.length,
+    flagged: allFlags.length,
+    critical: allFlags.filter((f) => f.severity === "critical").length,
+    warning: allFlags.filter((f) => f.severity === "warning").length,
+    overCapacity: allFlags.filter((f) => f.overCapacity).length,
+    emailsSent,
+    errors: errors.length > 0 ? errors : undefined,
+  });
+});

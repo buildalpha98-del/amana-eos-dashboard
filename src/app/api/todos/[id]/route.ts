@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
+import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
+
+const updateTodoSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  assigneeId: z.string().optional(),
+  status: z.enum(["pending", "in_progress", "complete", "cancelled"]).optional(),
+  dueDate: z.string().optional(),
+  weekOf: z.string().optional(),
+  rockId: z.string().nullable().optional(),
+  issueId: z.string().nullable().optional(),
+  isPrivate: z.boolean().optional(),
+});
 
 // GET /api/todos/[id]
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const todo = await prisma.todo.findUnique({
     where: { id, deleted: false },
@@ -27,18 +35,19 @@ export async function GET(
   }
 
   return NextResponse.json(todo);
-}
+});
 
 // PATCH /api/todos/[id]
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
-  const body = await req.json();
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
+  const body = await parseJsonBody(req);
+  const parsed = updateTodoSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 }
+    );
+  }
 
   const existing = await prisma.todo.findUnique({
     where: { id, deleted: false },
@@ -50,22 +59,22 @@ export async function PATCH(
 
   const data: Record<string, unknown> = {};
 
-  if (body.title !== undefined) data.title = body.title;
-  if (body.description !== undefined) data.description = body.description;
-  if (body.assigneeId !== undefined) data.assigneeId = body.assigneeId;
-  if (body.status !== undefined) {
-    data.status = body.status;
-    if (body.status === "complete") {
+  if (parsed.data.title !== undefined) data.title = parsed.data.title;
+  if (parsed.data.description !== undefined) data.description = parsed.data.description;
+  if (parsed.data.assigneeId !== undefined) data.assigneeId = parsed.data.assigneeId;
+  if (parsed.data.status !== undefined) {
+    data.status = parsed.data.status;
+    if (parsed.data.status === "complete") {
       data.completedAt = new Date();
     } else {
       data.completedAt = null;
     }
   }
-  if (body.dueDate !== undefined) data.dueDate = new Date(body.dueDate);
-  if (body.weekOf !== undefined) data.weekOf = new Date(body.weekOf);
-  if (body.rockId !== undefined) data.rockId = body.rockId || null;
-  if (body.issueId !== undefined) data.issueId = body.issueId || null;
-  if (body.isPrivate !== undefined) data.isPrivate = body.isPrivate;
+  if (parsed.data.dueDate !== undefined) data.dueDate = new Date(parsed.data.dueDate);
+  if (parsed.data.weekOf !== undefined) data.weekOf = new Date(parsed.data.weekOf);
+  if (parsed.data.rockId !== undefined) data.rockId = parsed.data.rockId || null;
+  if (parsed.data.issueId !== undefined) data.issueId = parsed.data.issueId || null;
+  if (parsed.data.isPrivate !== undefined) data.isPrivate = parsed.data.isPrivate;
 
   const todo = await prisma.todo.update({
     where: { id },
@@ -78,7 +87,7 @@ export async function PATCH(
   });
 
   // Auto-update rock progress when a linked todo status changes
-  if (body.status !== undefined && todo.rockId) {
+  if (parsed.data.status !== undefined && todo.rockId) {
     const linkedTodos = await prisma.todo.findMany({
       where: { rockId: todo.rockId, deleted: false },
       select: { status: true },
@@ -105,30 +114,24 @@ export async function PATCH(
 
   // Notify new assignee if assigneeId changed and it's not the current user
   if (
-    body.assigneeId !== undefined &&
-    body.assigneeId !== existing.assigneeId &&
-    body.assigneeId !== session!.user.id
+    parsed.data.assigneeId !== undefined &&
+    parsed.data.assigneeId !== existing.assigneeId &&
+    parsed.data.assigneeId !== session!.user.id
   ) {
     sendAssignmentEmail({
       type: "todo",
-      assigneeId: body.assigneeId,
+      assigneeId: parsed.data.assigneeId,
       assignerId: session!.user.id,
       entityTitle: todo.title,
     });
   }
 
   return NextResponse.json(todo);
-}
+});
 
 // DELETE /api/todos/[id] — soft delete
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const todo = await prisma.todo.update({
     where: { id },
@@ -145,4 +148,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+});

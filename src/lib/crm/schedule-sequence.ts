@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 /**
  * Schedule CRM outreach sequences when a lead's pipeline stage changes.
@@ -50,6 +51,6 @@ export async function scheduleCrmSequence(
       }
     }
   } catch (e) {
-    console.error("Failed to schedule CRM sequence:", e);
+    logger.error("Failed to schedule CRM sequence", { err: e });
   }
 }

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { acquireCronLock } from "@/lib/cron-guard";
+import { parseJsonField, primaryParentSchema } from "@/lib/schemas/json-fields";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // ── Brand constants ─────────────────────────────────────────
 const BRAND_COLOR = "#004E64";
@@ -135,7 +138,7 @@ function buildWelcomeCheckHtml(
  *
  * Auth: Bearer CRON_SECRET
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -210,12 +213,7 @@ export async function GET(req: NextRequest) {
       const submission = submissionMap.get(child.enrolmentId);
       if (!submission) continue;
 
-      const parent = submission.primaryParent as {
-        firstName?: string;
-        surname?: string;
-        email?: string;
-        mobile?: string;
-      } | null;
+      const parent = parseJsonField(submission.primaryParent, primaryParentSchema, { firstName: "", surname: "" });
 
       if (!parent?.email) continue;
 
@@ -304,7 +302,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     await guard.fail(err);
-    console.error("[Cron: new-family-welcome]", err);
+    logger.error("Cron: new-family-welcome", { err });
     return NextResponse.json(
       {
         error: "New family welcome cron failed",
@@ -313,4 +311,4 @@ export async function GET(req: NextRequest) {
       { status: 500 },
     );
   }
-}
+});

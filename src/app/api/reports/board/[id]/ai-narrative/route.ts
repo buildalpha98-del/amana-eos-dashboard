@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { generateSectionNarrative, type NarrativeSection } from "@/lib/ai-narratives";
 import type { BoardReportData } from "@/lib/board-report-generator";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
 
 const VALID_SECTIONS: NarrativeSection[] = [
   "executive",
@@ -14,30 +16,28 @@ const VALID_SECTIONS: NarrativeSection[] = [
   "rocks",
 ];
 
+const bodySchema = z.object({
+  section: z.enum(["executive", "financial", "operations", "compliance", "growth", "people", "rocks"]),
+});
+
 /**
  * POST /api/reports/board/[id]/ai-narrative — Generate AI narrative for a section
  *
  * Body: { section: NarrativeSection }
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   try {
-    const body = await req.json();
-    const section = body.section as NarrativeSection;
-
-    if (!section || !VALID_SECTIONS.includes(section)) {
+    const raw = await req.json();
+    const parsed = bodySchema.safeParse(raw);
+    if (!parsed.success) {
       return NextResponse.json(
         { error: `Invalid section. Must be one of: ${VALID_SECTIONS.join(", ")}` },
         { status: 400 },
       );
     }
+    const section = parsed.data.section as NarrativeSection;
 
     const report = await prisma.boardReport.findUnique({ where: { id } });
     if (!report) {
@@ -49,10 +49,10 @@ export async function POST(
 
     return NextResponse.json({ narrative });
   } catch (err) {
-    console.error("AI narrative generation failed:", err);
+    logger.error("AI narrative generation failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "AI generation failed" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });

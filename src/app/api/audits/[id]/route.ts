@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
+const patchSchema = z.object({
+  action: z.enum(["start", "complete", "skip"]).optional(),
+  strengths: z.string().optional(),
+  areasForImprovement: z.string().optional(),
+  actionPlan: z.string().optional(),
+  comments: z.string().optional(),
+});
 /**
  * GET /api/audits/[id] — full audit instance detail with responses
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const instance = await prisma.auditInstance.findUnique({
     where: { id },
@@ -40,33 +42,28 @@ export async function GET(
   }
 
   return NextResponse.json(instance);
-}
+});
 
 /**
  * PATCH /api/audits/[id] — update audit (start, complete, save summary)
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "admin", "member"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
   const {
     action,
     strengths,
     areasForImprovement,
     actionPlan,
     comments,
-  } = body as {
-    action?: "start" | "complete" | "skip";
-    strengths?: string;
-    areasForImprovement?: string;
-    actionPlan?: string;
-    comments?: string;
-  };
+  } = parsed.data;
 
   const instance = await prisma.auditInstance.findUnique({
     where: { id },
@@ -156,4 +153,4 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+}, { roles: ["owner", "admin", "member"] });

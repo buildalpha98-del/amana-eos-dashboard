@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
+const updateVacancySchema = z.object({
+  role: z.string().min(1).optional(),
+  employmentType: z.string().optional(),
+  qualificationRequired: z.string().nullable().optional(),
+  status: z.string().optional(),
+  postedChannels: z.array(z.string()).optional(),
+  postedAt: z.string().nullable().optional(),
+  targetFillDate: z.string().nullable().optional(),
+  filledAt: z.string().nullable().optional(),
+  filledByUserId: z.string().nullable().optional(),
+  assignedToId: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
 
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const vacancy = await prisma.recruitmentVacancy.findUnique({
     where: { id },
@@ -31,36 +40,32 @@ export async function GET(
   }
 
   return NextResponse.json(vacancy);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
+  const parsed = updateVacancySchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 }
+    );
+  }
 
   const data: Record<string, unknown> = {};
-  const allowedFields = [
-    "role", "employmentType", "qualificationRequired", "status",
-    "postedChannels", "postedAt", "targetFillDate", "filledAt",
-    "filledByUserId", "assignedToId", "notes",
-  ];
 
-  for (const field of allowedFields) {
-    if (field in body) {
-      if (["postedAt", "targetFillDate", "filledAt"].includes(field) && body[field]) {
-        data[field] = new Date(body[field]);
-      } else {
-        data[field] = body[field];
-      }
+  for (const [field, value] of Object.entries(parsed.data)) {
+    if (value === undefined) continue;
+    if (["postedAt", "targetFillDate", "filledAt"].includes(field) && value) {
+      data[field] = new Date(value as string);
+    } else {
+      data[field] = value;
     }
   }
 
-  if (body.status === "filled" && !data.filledAt) {
+  if (parsed.data.status === "filled" && !data.filledAt) {
     data.filledAt = new Date();
   }
 
@@ -73,16 +78,10 @@ export async function PATCH(
   });
 
   return NextResponse.json(vacancy);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   await prisma.recruitmentVacancy.update({
     where: { id },
@@ -90,4 +89,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

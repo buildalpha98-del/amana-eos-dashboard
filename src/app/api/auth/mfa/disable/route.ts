@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { compare } from "bcryptjs";
 import { logAuditEvent } from "@/lib/audit-log";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const bodySchema = z.object({
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
 
 /**
  * POST /api/auth/mfa/disable
@@ -11,17 +16,16 @@ import { logAuditEvent } from "@/lib/audit-log";
  *
  * Body: { password: string }
  */
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { password } = await req.json();
-  if (!password) {
+export const POST = withApiAuth(async (req, session) => {
+const raw = await req.json();
+  const parsed = bodySchema.safeParse(raw);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Password is required to disable MFA" },
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
       { status: 400 },
     );
   }
+  const { password } = parsed.data;
 
   const userId = session!.user.id;
   const user = await prisma.user.findUnique({
@@ -60,4 +64,4 @@ export async function POST(req: NextRequest) {
   }, req);
 
   return NextResponse.json({ message: "MFA has been disabled." });
-}
+});

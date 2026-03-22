@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAI } from "@/lib/ai";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
-import { acquireCronLock } from "@/lib/cron-guard";
+import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
+import { ApiError } from "@/lib/api-error";
 
 /**
  * GET /api/cron/attendance-anomaly
@@ -12,13 +14,9 @@ import { acquireCronLock } from "@/lib/cron-guard";
  *
  * Auth: Bearer CRON_SECRET
  */
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = withApiHandler(async (req) => {
+  const auth = verifyCronSecret(req);
+  if (auth) return auth.error;
 
   const guard = await acquireCronLock("attendance-anomaly", "daily");
   if (!guard.acquired) {
@@ -29,7 +27,7 @@ export async function GET(req: NextRequest) {
     const ai = getAI();
     if (!ai) {
       await guard.fail("AI not configured");
-      return NextResponse.json({ error: "AI not configured" }, { status: 503 });
+      throw new ApiError(503, "AI not configured");
     }
 
     const now = new Date();
@@ -191,6 +189,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, totalAnomalies, centresScanned: services.length });
   } catch (err) {
     await guard.fail(err instanceof Error ? err.message : "Unknown error");
-    return NextResponse.json({ error: "Failed to run attendance anomaly detection" }, { status: 500 });
+    throw err;
   }
-}
+});

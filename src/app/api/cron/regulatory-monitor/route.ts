@@ -4,6 +4,7 @@ import { getAI } from "@/lib/ai";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { sendTeamsNotification } from "@/lib/teams-notify";
+import { withApiHandler } from "@/lib/api-handler";
 
 /**
  * GET /api/cron/regulatory-monitor
@@ -13,7 +14,7 @@ import { sendTeamsNotification } from "@/lib/teams-notify";
  *
  * Auth: Bearer CRON_SECRET
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
@@ -148,4 +149,4 @@ export async function GET(req: NextRequest) {
       { status: 500 },
     );
   }
-}
+});

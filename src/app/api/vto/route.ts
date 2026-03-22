@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateVtoSchema = z.object({
   coreValues: z.array(z.string()).optional(),
   corePurpose: z.string().nullable().optional(),
@@ -14,10 +13,7 @@ const updateVtoSchema = z.object({
 });
 
 // GET /api/vto — get the V/TO with 1-year goals
-export async function GET() {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const vto = await prisma.visionTractionOrganiser.findFirst({
     include: {
       oneYearGoals: {
@@ -39,14 +35,11 @@ export async function GET() {
   }
 
   return NextResponse.json(vto);
-}
+});
 
 // PATCH /api/vto — update V/TO fields
-export async function PATCH(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const PATCH = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = updateVtoSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -98,4 +91,4 @@ export async function PATCH(req: NextRequest) {
   });
 
   return NextResponse.json(updated);
-}
+}, { roles: ["owner", "head_office", "admin"] });

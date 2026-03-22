@@ -771,7 +771,7 @@ export function RockDetailPanel({
                   id: string;
                   title: string;
                   status: string;
-                  assignee: { name: string };
+                  assignee: { name: string } | null;
                 }) => (
                   <div
                     key={todo.id}

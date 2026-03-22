@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createGoalSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -11,11 +10,8 @@ const createGoalSchema = z.object({
 });
 
 // POST /api/goals — create a 1-year goal
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createGoalSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -51,4 +47,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(goal, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

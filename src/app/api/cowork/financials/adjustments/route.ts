@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cowork/financials/adjustments
@@ -12,8 +14,8 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
  *   - from: "2025-01" (range start)
  *   - to: "2026-03" (range end)
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -48,7 +50,7 @@ export async function GET(req: NextRequest) {
       summary: { totalAddBacks, byCategory },
     });
   } catch (err) {
-    console.error("[Cowork Adjustments GET]", err);
+    logger.error("Cowork Adjustments GET", { err });
     return NextResponse.json({ error: "Failed to fetch adjustments" }, { status: 500 });
   }
-}
+});

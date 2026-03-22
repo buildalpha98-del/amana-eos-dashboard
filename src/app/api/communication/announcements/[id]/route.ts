@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateAnnouncementSchema = z.object({
   title: z.string().min(1).optional(),
   body: z.string().min(1).optional(),
@@ -15,14 +14,8 @@ const updateAnnouncementSchema = z.object({
 });
 
 // GET /api/communication/announcements/[id] — single announcement with read receipts
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const announcement = await prisma.announcement.findUnique({
     where: { id, deleted: false },
@@ -43,17 +36,11 @@ export async function GET(
   }
 
   return NextResponse.json(announcement);
-}
+});
 
 // PATCH /api/communication/announcements/[id] — update announcement
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateAnnouncementSchema.safeParse(body);
 
@@ -114,17 +101,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(announcement);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // DELETE /api/communication/announcements/[id] — soft delete
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const existing = await prisma.announcement.findUnique({
     where: { id, deleted: false },
@@ -149,4 +130,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

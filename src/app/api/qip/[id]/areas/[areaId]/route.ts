@@ -1,36 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
+const updateQualityAreaSchema = z.object({
+  strengths: z.string().optional(),
+  areasForImprovement: z.string().optional(),
+  improvementGoal: z.string().optional(),
+  strategies: z.string().optional(),
+  timeline: z.string().optional(),
+  responsiblePerson: z.string().optional(),
+  evidenceIndicators: z.string().optional(),
+  evidenceCollected: z.string().optional(),
+  progressNotes: z.string().optional(),
+  progressStatus: z.string().optional(),
+});
 /**
  * PATCH /api/qip/[id]/areas/[areaId] — Update individual quality area content
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string; areaId: string }> },
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "member"]);
-  if (error) return error;
-  const { areaId } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { areaId } = await context!.params!;
 
   try {
     const body = await req.json();
-    const data: Record<string, unknown> = {};
+    const parsed = updateQualityAreaSchema.safeParse(body);
 
-    const fields = [
-      "strengths",
-      "areasForImprovement",
-      "improvementGoal",
-      "strategies",
-      "timeline",
-      "responsiblePerson",
-      "evidenceIndicators",
-      "evidenceCollected",
-      "progressNotes",
-      "progressStatus",
-    ];
-    for (const f of fields) {
-      if (body[f] !== undefined) data[f] = body[f];
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const data: Record<string, unknown> = {};
+    for (const [f, value] of Object.entries(parsed.data)) {
+      if (value === undefined) continue;
+      data[f] = value;
     }
 
     const area = await prisma.qIPQualityArea.update({
@@ -40,7 +46,7 @@ export async function PATCH(
 
     return NextResponse.json(area);
   } catch (err) {
-    console.error("[QIP Area PATCH]", err);
+    logger.error("QIP Area PATCH", { err });
     return NextResponse.json({ error: "Failed to update quality area" }, { status: 500 });
   }
-}
+}, { roles: ["owner", "head_office", "admin", "member"] });

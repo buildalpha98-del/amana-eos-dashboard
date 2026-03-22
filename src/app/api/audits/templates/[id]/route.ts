@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
+const patchSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  qualityArea: z.number().optional(),
+  nqsReference: z.string().optional(),
+  frequency: z.enum(["monthly", "half_yearly", "yearly"]).optional(),
+  scheduledMonths: z.array(z.number()).optional(),
+  responseFormat: z.enum(["yes_no", "rating_1_5", "compliant", "reverse_yes_no", "review_date", "inventory"]).optional(),
+  estimatedMinutes: z.number().optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().optional(),
+  sourceFileName: z.string().optional(),
+});
 /**
  * GET /api/audits/templates/[id] — template detail with items
  */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const template = await prisma.auditTemplate.findUnique({
     where: { id },
@@ -27,38 +35,25 @@ export async function GET(
   }
 
   return NextResponse.json(template);
-}
+});
 
 /**
  * PATCH /api/audits/templates/[id] — update template (admin/owner)
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
-
-  const allowedFields = [
-    "name",
-    "description",
-    "qualityArea",
-    "nqsReference",
-    "frequency",
-    "scheduledMonths",
-    "responseFormat",
-    "estimatedMinutes",
-    "isActive",
-    "sortOrder",
-    "sourceFileName",
-  ];
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
 
   const data: Record<string, unknown> = {};
-  for (const key of allowedFields) {
-    if (key in body) data[key] = body[key];
+  for (const [key, value] of Object.entries(parsed.data)) {
+    if (value !== undefined) data[key] = value;
   }
 
   if (Object.keys(data).length === 0) {
@@ -85,4 +80,4 @@ export async function PATCH(
   });
 
   return NextResponse.json(template);
-}
+}, { roles: ["owner", "head_office", "admin"] });

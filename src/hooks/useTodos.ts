@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TodoStatus } from "@prisma/client";
 import { toast } from "@/hooks/useToast";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
 export interface TodoAssignee {
   id: string;
@@ -46,13 +47,10 @@ export function useTodos(filters?: {
   const query = params.toString();
 
   return useQuery<TodoData[]>({
-    queryKey: ["todos", filters],
-    queryFn: async () => {
-      const res = await fetch(`/api/todos${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch todos");
-      return res.json();
-    },
+    queryKey: ["todos", filters?.weekOf, filters?.assigneeId, filters?.status, filters?.rockId],
+    queryFn: () => fetchApi<TodoData[]>(`/api/todos${query ? `?${query}` : ""}`),
     staleTime: 30_000,
+    retry: 2,
   });
 }
 
@@ -71,20 +69,17 @@ export function useCreateTodo() {
       dueDate: string;
       weekOf: string;
     }) => {
-      const res = await fetch("/api/todos", {
+      return mutateApi<TodoData>("/api/todos", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create todo");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
       toast({ description: "To-do created" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -107,16 +102,10 @@ export function useUpdateTodo() {
       issueId?: string | null;
       isPrivate?: boolean;
     }) => {
-      const res = await fetch(`/api/todos/${id}`, {
+      return mutateApi<TodoData>(`/api/todos/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update todo");
-      }
-      return res.json();
     },
     onMutate: async (vars) => {
       // Optimistic update for status toggle
@@ -135,13 +124,14 @@ export function useUpdateTodo() {
       }
       return { queries };
     },
-    onError: (_err, _vars, ctx) => {
+    onError: (_err: Error, _vars, ctx) => {
       // Rollback on error
       if (ctx?.queries) {
         for (const [key, data] of ctx.queries) {
           queryClient.setQueryData(key, data);
         }
       }
+      toast({ variant: "destructive", description: _err.message || "Something went wrong" });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
@@ -153,13 +143,14 @@ export function useDeleteTodo() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/todos/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete todo");
-      return res.json();
+      return mutateApi(`/api/todos/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });
       toast({ description: "To-do deleted" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -172,16 +163,10 @@ export function useBulkTodoAction() {
       ids: string[];
       assigneeId?: string;
     }) => {
-      const res = await fetch("/api/todos/bulk-actions", {
+      return mutateApi("/api/todos/bulk-actions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Bulk action failed");
-      }
-      return res.json();
     },
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["todos"] });

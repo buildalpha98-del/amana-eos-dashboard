@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { withApiAuth } from "@/lib/server-auth";
 
 const createTimesheetSchema = z.object({
   serviceId: z.string().min(1, "Service ID is required"),
@@ -11,10 +11,7 @@ const createTimesheetSchema = z.object({
 });
 
 // GET /api/timesheets — list timesheets (scoped to service for staff/member)
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const GET = withApiAuth(async (req, session) => {
   const scope = getServiceScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
@@ -50,13 +47,10 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(timesheets);
-}
+});
 
 // POST /api/timesheets — create empty timesheet
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
+export const POST = withApiAuth(async (req, session) => {
   const scope = getServiceScope(session);
   const body = await req.json();
   const parsed = createTimesheetSchema.safeParse(body);
@@ -121,4 +115,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(timesheet, { status: 201 });
-}
+});

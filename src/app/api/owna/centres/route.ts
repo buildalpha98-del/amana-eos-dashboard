@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { getOwnaClient } from "@/lib/owna";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
-export async function GET() {
-  const { error } = await requireAuth(["owner", "admin", "head_office"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const owna = getOwnaClient();
   if (!owna) {
     return NextResponse.json(
@@ -30,10 +28,10 @@ export async function GET() {
       count: centres.length,
     });
   } catch (err) {
-    console.error("[OWNA] Failed to fetch centres:", err);
+    logger.error("OWNA: Failed to fetch centres", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to fetch OWNA centres" },
       { status: 502 },
     );
   }
-}
+}, { roles: ["owner", "admin", "head_office"] });

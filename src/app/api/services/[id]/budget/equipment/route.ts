@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
 import { recalcFinancialsForWeek } from "@/lib/budget-helpers";
+import { withApiAuth } from "@/lib/server-auth";
 
 const equipmentItemSchema = z.object({
   name: z.string().min(1).max(200),
@@ -16,14 +16,8 @@ const equipmentItemSchema = z.object({
 });
 
 // GET /api/services/[id]/budget/equipment — list equipment items
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const url = new URL(req.url);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
@@ -46,17 +40,11 @@ export async function GET(
   });
 
   return NextResponse.json(items);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 // POST /api/services/[id]/budget/equipment — create equipment item
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = equipmentItemSchema.safeParse(body);
 
@@ -105,4 +93,4 @@ export async function POST(
   await recalcFinancialsForWeek(id, new Date(data.date));
 
   return NextResponse.json(item, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

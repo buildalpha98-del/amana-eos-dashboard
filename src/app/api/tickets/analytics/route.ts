@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+import { withApiAuth } from "@/lib/server-auth";
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const rangeDays = parseInt(searchParams.get("days") || "30");
   const since = new Date();
@@ -154,4 +150,4 @@ export async function GET(req: NextRequest) {
     byCentre,
     agentWorkload,
   });
-}
+}, { roles: ["owner", "head_office", "admin"] });

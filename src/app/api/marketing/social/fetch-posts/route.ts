@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { decryptToken, fetchRecentPosts } from "@/lib/meta";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
-  try {
+export const GET = withApiAuth(async (req, session) => {
+try {
     const connectionId = req.nextUrl.searchParams.get("connectionId");
 
     if (!connectionId) {
@@ -61,10 +59,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(posts);
   } catch (err) {
-    console.error("Fetch social posts error:", err);
+    logger.error("Fetch social posts error", { err });
     return NextResponse.json(
       { error: "Failed to fetch social posts" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

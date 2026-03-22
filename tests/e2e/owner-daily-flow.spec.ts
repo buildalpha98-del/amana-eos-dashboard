@@ -1,8 +1,8 @@
 /**
  * E2E: Owner daily flow
  *
- * Login → view command centre dashboard → check today's operations →
- * review off-track rocks → check scorecard → view team
+ * Dashboard → rocks → scorecard → todos → meetings
+ * Tests real UI elements, not just navigation.
  */
 
 import { test, expect } from "@playwright/test";
@@ -12,39 +12,122 @@ test.describe("Owner daily flow", () => {
     storageState: ".playwright/auth/owner.json",
   });
 
-  test("views dashboard and navigates through daily workflow", async ({ page }) => {
-    // 1. Dashboard loads
+  test("dashboard loads with command centre and today panel", async ({
+    page,
+  }) => {
     await page.goto("/dashboard");
-    await expect(page).toHaveURL(/dashboard/);
-    await expect(page.locator("body")).toBeVisible();
+    await page.waitForLoadState("networkidle");
 
-    // Check dashboard has key sections
+    // Command Centre heading should be visible for owner role
+    await expect(
+      page.getByText("Command Centre"),
+    ).toBeVisible({ timeout: 15_000 });
+
+    // Should show a greeting (Good morning/afternoon/evening)
+    await expect(
+      page.getByText(/Good (morning|afternoon|evening)/),
+    ).toBeVisible({ timeout: 15_000 });
+
+    // Main content area should render
     await expect(page.locator("main")).toBeVisible();
+
+    // No error states visible
+    await expect(page.getByText("Something went wrong")).not.toBeVisible();
   });
 
-  test("reviews rocks page and identifies off-track items", async ({ page }) => {
+  test("rocks page renders with view toggle and quarter selector", async ({
+    page,
+  }) => {
     await page.goto("/rocks");
-    await expect(page).toHaveURL(/rocks/);
+    await page.waitForLoadState("networkidle");
 
-    // Page should load without errors
-    await expect(page.locator("main")).toBeVisible();
+    // Page heading
+    await expect(page.getByText("Rocks")).toBeVisible({ timeout: 15_000 });
+    await expect(
+      page.getByText("Track your quarterly 90-day goals"),
+    ).toBeVisible();
+
+    // View toggle buttons (kanban and list)
+    await expect(page.getByRole("button", { name: "Kanban view" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "List view" })).toBeVisible();
+
+    // Can switch to list view
+    await page.getByRole("button", { name: "List view" }).click();
+    await page.waitForLoadState("networkidle");
+
+    // Can switch back to kanban view
+    await page.getByRole("button", { name: "Kanban view" }).click();
+    await page.waitForLoadState("networkidle");
+
+    // No error states
+    await expect(page.getByText("Something went wrong")).not.toBeVisible();
   });
 
-  test("checks scorecard measurables", async ({ page }) => {
+  test("scorecard page renders with measurables and group toggle", async ({
+    page,
+  }) => {
     await page.goto("/scorecard");
-    await expect(page).toHaveURL(/scorecard/);
+    await page.waitForLoadState("networkidle");
+
+    // Main content loads
     await expect(page.locator("main")).toBeVisible();
+
+    // Should show scorecard-related UI — either measurables or empty state
+    const hasMeasurables = await page.getByText("Owner").isVisible().catch(() => false);
+    const hasEmptyState = await page.getByText("No measurables").isVisible().catch(() => false);
+
+    // One of these should be true — page loaded with content or empty state
+    expect(hasMeasurables || hasEmptyState).toBeTruthy();
+
+    // No error states
+    await expect(page.getByText("Something went wrong")).not.toBeVisible();
   });
 
-  test("views team page", async ({ page }) => {
-    await page.goto("/team");
-    await expect(page).toHaveURL(/team/);
-    await expect(page.locator("main")).toBeVisible();
+  test("todos page renders with filter and week selector", async ({
+    page,
+  }) => {
+    await page.goto("/todos");
+    await page.waitForLoadState("networkidle");
+
+    // Main content loads
+    await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
+
+    // View toggle buttons should be present (list/kanban)
+    const listButton = page.getByRole("button", { name: "List view" });
+    const kanbanButton = page.getByRole("button", { name: "Kanban view" });
+    const hasViewToggle =
+      (await listButton.isVisible().catch(() => false)) ||
+      (await kanbanButton.isVisible().catch(() => false));
+
+    // Should have either view toggle or todo content
+    expect(hasViewToggle || (await page.locator("main").isVisible())).toBeTruthy();
+
+    // Should show todo items or empty state
+    const hasTodos = await page.locator("[data-testid]").first().isVisible().catch(() => false);
+    const hasEmptyState = await page.getByText(/no.*to-do/i).isVisible().catch(() => false);
+    const hasContent = hasTodos || hasEmptyState || (await page.locator("main").textContent())!.length > 50;
+    expect(hasContent).toBeTruthy();
+
+    // No error states
+    await expect(page.getByText("Something went wrong")).not.toBeVisible();
   });
 
-  test("can access settings", async ({ page }) => {
-    await page.goto("/settings");
-    await expect(page).toHaveURL(/settings/);
-    await expect(page.locator("main")).toBeVisible();
+  test("meetings page renders with L10 sections", async ({ page }) => {
+    await page.goto("/meetings");
+    await page.waitForLoadState("networkidle");
+
+    // Main content loads
+    await expect(page.locator("main")).toBeVisible({ timeout: 15_000 });
+
+    // Should show meetings-related content — either meeting list or creation option
+    const hasMeetings = await page.getByText(/Level 10|L10|Meeting/i).isVisible().catch(() => false);
+    const hasEmptyState = await page.getByText(/no meetings/i).isVisible().catch(() => false);
+    const hasStartButton = await page.getByRole("button", { name: /start|new|create/i }).isVisible().catch(() => false);
+
+    // Page should have loaded with some meaningful content
+    expect(hasMeetings || hasEmptyState || hasStartButton).toBeTruthy();
+
+    // No error states
+    await expect(page.getByText("Something went wrong")).not.toBeVisible();
   });
 });

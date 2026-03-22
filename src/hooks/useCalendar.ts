@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ── Types ────────────────────────────────────────────────
 
@@ -43,12 +45,9 @@ interface CreateEventInput {
 export function useCalendarStatus() {
   return useQuery<CalendarStatus>({
     queryKey: ["calendar-status"],
-    queryFn: async () => {
-      const res = await fetch("/api/calendar");
-      if (!res.ok) throw new Error("Failed to check calendar status");
-      return res.json();
-    },
+    queryFn: () => fetchApi<CalendarStatus>("/api/calendar"),
     staleTime: 60_000, // cache for 1 minute
+    retry: 2,
   });
 }
 
@@ -56,17 +55,12 @@ export function useCalendarStatus() {
 export function useCalendarEvents(startDate: string | null, endDate: string | null) {
   return useQuery<CalendarEvent[]>({
     queryKey: ["calendar-events", startDate, endDate],
-    queryFn: async () => {
-      const res = await fetch(
+    queryFn: () =>
+      fetchApi<CalendarEvent[]>(
         `/api/calendar/events?start=${encodeURIComponent(startDate!)}&end=${encodeURIComponent(endDate!)}`
-      );
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to fetch events");
-      }
-      return res.json();
-    },
+      ),
     enabled: !!startDate && !!endDate,
+    retry: 2,
   });
 }
 
@@ -75,19 +69,13 @@ export function useCreateCalendarEvent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateEventInput) => {
-      const res = await fetch("/api/calendar/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to create event");
-      }
-      return res.json();
+      return mutateApi("/api/calendar/events", { method: "POST", body: input });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["calendar-events"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -100,19 +88,13 @@ export function useUpdateCalendarEvent() {
       eventId,
       ...updates
     }: Partial<CreateEventInput> & { eventId: string }) => {
-      const res = await fetch(`/api/calendar/events/${eventId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to update event");
-      }
-      return res.json();
+      return mutateApi(`/api/calendar/events/${eventId}`, { method: "PATCH", body: updates });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["calendar-events"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -122,17 +104,13 @@ export function useDeleteCalendarEvent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (eventId: string) => {
-      const res = await fetch(`/api/calendar/events/${eventId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to delete event");
-      }
-      return res.json();
+      return mutateApi(`/api/calendar/events/${eventId}`, { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["calendar-events"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -142,13 +120,14 @@ export function useDisconnectCalendar() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/calendar", { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to disconnect calendar");
-      return res.json();
+      return mutateApi("/api/calendar", { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["calendar-status"] });
       qc.invalidateQueries({ queryKey: ["calendar-events"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

@@ -5,9 +5,9 @@ import {
   fetchXeroConnections,
   encryptToken,
 } from "@/lib/xero";
+import { withApiHandler } from "@/lib/api-handler";
 
-export async function GET(req: NextRequest) {
-  try {
+export const GET = withApiHandler(async (req) => {
     const code = req.nextUrl.searchParams.get("code");
     const state = req.nextUrl.searchParams.get("state");
 
@@ -45,8 +45,4 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.redirect(new URL("/settings?xero=connected", req.url));
-  } catch (err) {
-    console.error("Xero callback error:", err);
-    return NextResponse.redirect(new URL("/settings?xero=error", req.url));
-  }
-}
+  });

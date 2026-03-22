@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
+const updateQipSchema = z.object({
+  status: z.string().optional(),
+  documentType: z.string().optional(),
+  markReviewed: z.boolean().optional(),
+});
 /**
  * GET /api/qip/[id] — Full QIP with all 7 quality areas
  */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   try {
     const qip = await prisma.qualityImprovementPlan.findUnique({
@@ -25,29 +27,33 @@ export async function GET(
     if (!qip) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(qip);
   } catch (err) {
-    console.error("[QIP GET/:id]", err);
+    logger.error("QIP GET/:id", { err });
     return NextResponse.json({ error: "Failed to fetch QIP" }, { status: 500 });
   }
-}
+});
 
 /**
  * PATCH /api/qip/[id] — Update QIP status/review info
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   try {
     const body = await req.json();
+    const parsed = updateQipSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
     const data: Record<string, unknown> = {};
 
-    if (body.status !== undefined) data.status = body.status;
-    if (body.documentType !== undefined) data.documentType = body.documentType;
-    if (body.markReviewed) {
+    if (parsed.data.status !== undefined) data.status = parsed.data.status;
+    if (parsed.data.documentType !== undefined) data.documentType = parsed.data.documentType;
+    if (parsed.data.markReviewed) {
       data.lastReviewDate = new Date();
       data.reviewedById = session!.user.id;
     }
@@ -63,7 +69,7 @@ export async function PATCH(
 
     return NextResponse.json(qip);
   } catch (err) {
-    console.error("[QIP PATCH/:id]", err);
+    logger.error("QIP PATCH/:id", { err });
     return NextResponse.json({ error: "Failed to update QIP" }, { status: 500 });
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });

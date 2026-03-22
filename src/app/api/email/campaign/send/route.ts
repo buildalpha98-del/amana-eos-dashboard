@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import {
   isBrevoConfigured,
@@ -13,6 +12,7 @@ import {
   marketingLayout,
   type EmailBlock,
 } from "@/lib/email-marketing-layout";
+import { withApiAuth } from "@/lib/server-auth";
 
 const bodySchema = z.object({
   templateId: z.string().optional().nullable(),
@@ -27,16 +27,8 @@ const bodySchema = z.object({
   variables: z.record(z.string(), z.string()).optional(),
 });
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth([
-    "owner",
-    "head_office",
-    "admin",
-    "coordinator",
-  ]);
-  if (error) return error;
-
-  if (!isBrevoConfigured()) {
+export const POST = withApiAuth(async (req, session) => {
+if (!isBrevoConfigured()) {
     return NextResponse.json(
       { error: "Email service not configured" },
       { status: 503 },
@@ -307,4 +299,4 @@ export async function POST(req: NextRequest) {
     recipientCount: recipients.length,
     status,
   });
-}
+});

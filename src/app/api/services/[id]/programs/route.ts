@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 
@@ -40,14 +40,8 @@ const bulkSchema = z.object({
 });
 
 // GET /api/services/[id]/programs?weekStart=YYYY-MM-DD
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const url = new URL(req.url);
   const weekStartParam = url.searchParams.get("weekStart");
 
@@ -76,17 +70,11 @@ export async function GET(
   });
 
   return NextResponse.json(activities);
-}
+});
 
 // POST /api/services/[id]/programs — create single activity
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = activitySchema.safeParse(body);
 
@@ -128,17 +116,11 @@ export async function POST(
   });
 
   return NextResponse.json(activity, { status: 201 });
-}
+});
 
 // PUT /api/services/[id]/programs — bulk upsert (replace all for a week)
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const PUT = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
   const parsed = bulkSchema.safeParse(body);
 
@@ -194,4 +176,4 @@ export async function PUT(
   });
 
   return NextResponse.json(result);
-}
+});

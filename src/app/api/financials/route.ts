@@ -1,72 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
 import { getStateScope } from "@/lib/service-scope";
 import { z } from "zod";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
+export const GET = withApiAuth(
+  async (req, session) => {
+    const stateScope = getStateScope(session);
+    const { searchParams } = new URL(req.url);
+    const period = (searchParams.get("period") || "monthly") as "weekly" | "monthly" | "quarterly";
+    const serviceId = searchParams.get("serviceId");
 
-  const stateScope = getStateScope(session);
-  const { searchParams } = new URL(req.url);
-  const period = (searchParams.get("period") || "monthly") as "weekly" | "monthly" | "quarterly";
-  const serviceId = searchParams.get("serviceId");
+    const baseWhere: Record<string, unknown> = {};
+    if (serviceId) baseWhere.serviceId = serviceId;
+    if (stateScope) baseWhere.service = { state: stateScope };
 
-  const baseWhere: Record<string, unknown> = {};
-  if (serviceId) baseWhere.serviceId = serviceId;
-  // State Manager: only see financials for services in their assigned state
-  if (stateScope) baseWhere.service = { state: stateScope };
-
-  // Try requested period type first, fall back to weekly if no data exists
-  let usedPeriod = period;
-  let financials = await prisma.financialPeriod.findMany({
-    where: { ...baseWhere, periodType: period },
-    include: {
-      service: { select: { id: true, name: true, code: true, state: true, status: true } },
-    },
-    orderBy: { periodStart: "desc" },
-    take: 100,
-  });
-
-  // Fall back to weekly if no monthly/quarterly data exists
-  if (financials.length === 0 && period !== "weekly") {
-    usedPeriod = "weekly";
-    financials = await prisma.financialPeriod.findMany({
-      where: { ...baseWhere, periodType: "weekly" },
+    let usedPeriod = period;
+    let financials = await prisma.financialPeriod.findMany({
+      where: { ...baseWhere, periodType: period },
       include: {
         service: { select: { id: true, name: true, code: true, state: true, status: true } },
       },
       orderBy: { periodStart: "desc" },
       take: 100,
     });
-  }
 
-  // Calculate summary
-  const latestPeriodStart = financials.length > 0 ? financials[0].periodStart : null;
-  const latestPeriod = latestPeriodStart
-    ? financials.filter(f => f.periodStart.getTime() === latestPeriodStart.getTime())
-    : [];
+    if (financials.length === 0 && period !== "weekly") {
+      usedPeriod = "weekly";
+      financials = await prisma.financialPeriod.findMany({
+        where: { ...baseWhere, periodType: "weekly" },
+        include: {
+          service: { select: { id: true, name: true, code: true, state: true, status: true } },
+        },
+        orderBy: { periodStart: "desc" },
+        take: 100,
+      });
+    }
 
-  const totalBudgetRevenue = latestPeriod.reduce((sum, f) => sum + (f.budgetRevenue ?? 0), 0);
-  const totalBudgetCosts = latestPeriod.reduce((sum, f) => sum + (f.budgetCosts ?? 0), 0);
+    const latestPeriodStart = financials.length > 0 ? financials[0].periodStart : null;
+    const latestPeriod = latestPeriodStart
+      ? financials.filter(f => f.periodStart.getTime() === latestPeriodStart.getTime())
+      : [];
 
-  const summary = {
-    totalRevenue: latestPeriod.reduce((sum, f) => sum + f.totalRevenue, 0),
-    totalCosts: latestPeriod.reduce((sum, f) => sum + f.totalCosts, 0),
-    totalProfit: latestPeriod.reduce((sum, f) => sum + f.grossProfit, 0),
-    avgMargin: latestPeriod.length > 0
-      ? latestPeriod.reduce((sum, f) => sum + f.margin, 0) / latestPeriod.length
-      : 0,
-    centreCount: latestPeriod.length,
-    totalBscAttendance: latestPeriod.reduce((sum, f) => sum + f.bscAttendance, 0),
-    totalAscAttendance: latestPeriod.reduce((sum, f) => sum + f.ascAttendance, 0),
-    totalBudgetRevenue,
-    totalBudgetCosts,
-  };
+    const totalBudgetRevenue = latestPeriod.reduce((sum, f) => sum + (f.budgetRevenue ?? 0), 0);
+    const totalBudgetCosts = latestPeriod.reduce((sum, f) => sum + (f.budgetCosts ?? 0), 0);
 
-  return NextResponse.json({ financials, summary, usedPeriod });
-}
+    const summary = {
+      totalRevenue: latestPeriod.reduce((sum, f) => sum + f.totalRevenue, 0),
+      totalCosts: latestPeriod.reduce((sum, f) => sum + f.totalCosts, 0),
+      totalProfit: latestPeriod.reduce((sum, f) => sum + f.grossProfit, 0),
+      avgMargin: latestPeriod.length > 0
+        ? latestPeriod.reduce((sum, f) => sum + f.margin, 0) / latestPeriod.length
+        : 0,
+      centreCount: latestPeriod.length,
+      totalBscAttendance: latestPeriod.reduce((sum, f) => sum + f.bscAttendance, 0),
+      totalAscAttendance: latestPeriod.reduce((sum, f) => sum + f.ascAttendance, 0),
+      totalBudgetRevenue,
+      totalBudgetCosts,
+    };
+
+    return NextResponse.json({ financials, summary, usedPeriod });
+  },
+  { roles: ["owner", "head_office", "admin"] },
+);
 
 const financialEntrySchema = z.object({
   serviceId: z.string().min(1),
@@ -92,101 +89,101 @@ const financialEntrySchema = z.object({
   budgetCosts: z.number().min(0).optional(),
 });
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
+export const POST = withApiAuth(
+  async (req, session) => {
+    const body = await parseJsonBody(req);
+    const parsed = financialEntrySchema.safeParse(body);
 
-  const body = await req.json();
-  const parsed = financialEntrySchema.safeParse(body);
+    if (!parsed.success) {
+      throw ApiError.badRequest("Validation failed", parsed.error.flatten());
+    }
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
+    const d = parsed.data;
+    const totalRevenue = d.bscRevenue + d.ascRevenue + d.vcRevenue + d.otherRevenue;
+    const totalCosts = d.staffCosts + d.foodCosts + d.suppliesCosts + d.rentCosts + d.adminCosts + d.otherCosts;
+    const grossProfit = totalRevenue - totalCosts;
+    const margin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
 
-  const d = parsed.data;
-  const totalRevenue = d.bscRevenue + d.ascRevenue + d.vcRevenue + d.otherRevenue;
-  const totalCosts = d.staffCosts + d.foodCosts + d.suppliesCosts + d.rentCosts + d.adminCosts + d.otherCosts;
-  const grossProfit = totalRevenue - totalCosts;
-  const margin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+    const periodStart = new Date(d.periodStart);
+    const periodEnd = new Date(d.periodEnd);
 
-  const periodStart = new Date(d.periodStart);
-  const periodEnd = new Date(d.periodEnd);
-
-  const record = await prisma.financialPeriod.upsert({
-    where: {
-      serviceId_periodType_periodStart: {
+    const record = await prisma.financialPeriod.upsert({
+      where: {
+        serviceId_periodType_periodStart: {
+          serviceId: d.serviceId,
+          periodType: d.periodType,
+          periodStart,
+        },
+      },
+      update: {
+        periodEnd,
+        bscRevenue: d.bscRevenue,
+        ascRevenue: d.ascRevenue,
+        vcRevenue: d.vcRevenue,
+        otherRevenue: d.otherRevenue,
+        totalRevenue,
+        staffCosts: d.staffCosts,
+        foodCosts: d.foodCosts,
+        suppliesCosts: d.suppliesCosts,
+        rentCosts: d.rentCosts,
+        adminCosts: d.adminCosts,
+        otherCosts: d.otherCosts,
+        totalCosts,
+        grossProfit,
+        margin,
+        bscAttendance: d.bscAttendance,
+        ascAttendance: d.ascAttendance,
+        vcAttendance: d.vcAttendance,
+        bscEnrolments: d.bscEnrolments,
+        ascEnrolments: d.ascEnrolments,
+        ...(d.budgetRevenue !== undefined && { budgetRevenue: d.budgetRevenue }),
+        ...(d.budgetCosts !== undefined && { budgetCosts: d.budgetCosts }),
+        dataSource: "manual",
+      },
+      create: {
         serviceId: d.serviceId,
         periodType: d.periodType,
         periodStart,
+        periodEnd,
+        bscRevenue: d.bscRevenue,
+        ascRevenue: d.ascRevenue,
+        vcRevenue: d.vcRevenue,
+        otherRevenue: d.otherRevenue,
+        totalRevenue,
+        staffCosts: d.staffCosts,
+        foodCosts: d.foodCosts,
+        suppliesCosts: d.suppliesCosts,
+        rentCosts: d.rentCosts,
+        adminCosts: d.adminCosts,
+        otherCosts: d.otherCosts,
+        totalCosts,
+        grossProfit,
+        margin,
+        bscAttendance: d.bscAttendance,
+        ascAttendance: d.ascAttendance,
+        vcAttendance: d.vcAttendance,
+        bscEnrolments: d.bscEnrolments,
+        ascEnrolments: d.ascEnrolments,
+        ...(d.budgetRevenue !== undefined && { budgetRevenue: d.budgetRevenue }),
+        ...(d.budgetCosts !== undefined && { budgetCosts: d.budgetCosts }),
+        dataSource: "manual",
       },
-    },
-    update: {
-      periodEnd,
-      bscRevenue: d.bscRevenue,
-      ascRevenue: d.ascRevenue,
-      vcRevenue: d.vcRevenue,
-      otherRevenue: d.otherRevenue,
-      totalRevenue,
-      staffCosts: d.staffCosts,
-      foodCosts: d.foodCosts,
-      suppliesCosts: d.suppliesCosts,
-      rentCosts: d.rentCosts,
-      adminCosts: d.adminCosts,
-      otherCosts: d.otherCosts,
-      totalCosts,
-      grossProfit,
-      margin,
-      bscAttendance: d.bscAttendance,
-      ascAttendance: d.ascAttendance,
-      vcAttendance: d.vcAttendance,
-      bscEnrolments: d.bscEnrolments,
-      ascEnrolments: d.ascEnrolments,
-      ...(d.budgetRevenue !== undefined && { budgetRevenue: d.budgetRevenue }),
-      ...(d.budgetCosts !== undefined && { budgetCosts: d.budgetCosts }),
-      dataSource: "manual",
-    },
-    create: {
-      serviceId: d.serviceId,
-      periodType: d.periodType,
-      periodStart,
-      periodEnd,
-      bscRevenue: d.bscRevenue,
-      ascRevenue: d.ascRevenue,
-      vcRevenue: d.vcRevenue,
-      otherRevenue: d.otherRevenue,
-      totalRevenue,
-      staffCosts: d.staffCosts,
-      foodCosts: d.foodCosts,
-      suppliesCosts: d.suppliesCosts,
-      rentCosts: d.rentCosts,
-      adminCosts: d.adminCosts,
-      otherCosts: d.otherCosts,
-      totalCosts,
-      grossProfit,
-      margin,
-      bscAttendance: d.bscAttendance,
-      ascAttendance: d.ascAttendance,
-      vcAttendance: d.vcAttendance,
-      bscEnrolments: d.bscEnrolments,
-      ascEnrolments: d.ascEnrolments,
-      ...(d.budgetRevenue !== undefined && { budgetRevenue: d.budgetRevenue }),
-      ...(d.budgetCosts !== undefined && { budgetCosts: d.budgetCosts }),
-      dataSource: "manual",
-    },
-    include: {
-      service: { select: { id: true, name: true, code: true } },
-    },
-  });
+      include: {
+        service: { select: { id: true, name: true, code: true } },
+      },
+    });
 
-  await prisma.activityLog.create({
-    data: {
-      userId: session!.user.id,
-      action: "create",
-      entityType: "FinancialPeriod",
-      entityId: record.id,
-      details: { serviceId: d.serviceId, periodType: d.periodType },
-    },
-  });
+    await prisma.activityLog.create({
+      data: {
+        userId: session.user.id,
+        action: "create",
+        entityType: "FinancialPeriod",
+        entityId: record.id,
+        details: { serviceId: d.serviceId, periodType: d.periodType },
+      },
+    });
 
-  return NextResponse.json(record, { status: 201 });
-}
+    return NextResponse.json(record, { status: 201 });
+  },
+  { roles: ["owner", "head_office", "admin"] },
+);

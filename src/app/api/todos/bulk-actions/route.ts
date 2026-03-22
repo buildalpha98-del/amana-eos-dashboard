@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 const bulkActionSchema = z.object({
   action: z.enum(["complete", "delete", "assign"]),
@@ -9,11 +10,8 @@ const bulkActionSchema = z.object({
   assigneeId: z.string().min(1).optional(),
 });
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  try {
+export const POST = withApiAuth(async (req, session) => {
+try {
   const body = await req.json();
   const parsed = bulkActionSchema.safeParse(body);
 
@@ -86,10 +84,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
   } catch (err) {
-    console.error("Bulk todo action error:", err);
+    logger.error("Bulk todo action error", { err });
     return NextResponse.json(
       { error: "Failed to perform bulk action" },
       { status: 500 },
     );
   }
-}
+});

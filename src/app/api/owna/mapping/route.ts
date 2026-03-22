@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const updateSchema = z.object({
   serviceId: z.string().min(1),
@@ -10,11 +10,8 @@ const updateSchema = z.object({
   ownaLocationId: z.string().nullable().optional(),
 });
 
-export async function PUT(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  // Only owner/admin can update mappings
+export const PUT = withApiAuth(async (req, session) => {
+// Only owner/admin can update mappings
   if (!["owner", "admin"].includes(session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -47,4 +44,4 @@ export async function PUT(req: NextRequest) {
   });
 
   return NextResponse.json(service);
-}
+});

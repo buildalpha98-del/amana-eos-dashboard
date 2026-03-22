@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
 const VALID_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"];
 const TIME_RE = /^\d{2}:\d{2}$/;
@@ -15,29 +16,32 @@ interface ImportRow {
   location?: string;
 }
 
+const postSchema = z.object({
+  dryRun: z.boolean().default(false),
+  data: z.array(z.object({
+    day: z.string().optional(),
+    startTime: z.string().optional(),
+    endTime: z.string().optional(),
+    title: z.string().optional(),
+    description: z.string().optional(),
+    staffName: z.string().optional(),
+    location: z.string().optional(),
+  })).min(1, "data array required"),
+  weekStart: z.string().min(1, "weekStart required"),
+});
+
 // POST /api/services/[id]/programs/import
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
-  const { dryRun, data, weekStart } = body as {
-    dryRun: boolean;
-    data: ImportRow[];
-    weekStart: string;
-  };
-
-  if (!data || !Array.isArray(data)) {
-    return NextResponse.json({ error: "data array required" }, { status: 400 });
+  const parsed = postSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
   }
-
-  if (!weekStart) {
-    return NextResponse.json({ error: "weekStart required" }, { status: 400 });
-  }
+  const { dryRun, data, weekStart } = parsed.data;
 
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -169,4 +173,4 @@ export async function POST(
     skipped: data.length - validRows.length,
     errors,
   });
-}
+});

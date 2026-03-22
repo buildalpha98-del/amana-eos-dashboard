@@ -3,6 +3,8 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const postSchema = z.object({
   serviceCode: z.string(),
@@ -32,8 +34,8 @@ const postSchema = z.object({
  * POST /api/cowork/finance/reports
  * Create or update a finance report (upsert by serviceCode + reportType + period).
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Bad Request", message: parsed.error.message },
+        { error: parsed.error.message },
         { status: 400 }
       );
     }
@@ -112,21 +114,21 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /api/cowork/finance/reports]", err);
+    logger.error("POST /api/cowork/finance/reports", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * GET /api/cowork/finance/reports
  * List finance reports. Supports filtering by serviceCode, reportType, period, status.
  * Content is excluded from list view for performance.
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -165,10 +167,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, reports, count: reports.length });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[GET /api/cowork/finance/reports]", err);
+    logger.error("GET /api/cowork/finance/reports", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});

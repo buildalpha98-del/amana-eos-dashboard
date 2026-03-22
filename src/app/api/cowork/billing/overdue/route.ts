@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const postBodySchema = z.object({
+  recordId: z.string().min(1),
+  message: z.string().min(1),
+  assigneeId: z.string().optional(),
+});
 
 /**
  * GET /api/cowork/billing/overdue
@@ -12,8 +21,8 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
  *   - agingBucket (optional)
  *   - status: "outstanding" | "all" (default "outstanding")
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   const { searchParams } = new URL(req.url);
@@ -71,30 +80,30 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("[Cowork Billing Overdue GET]", err);
+    logger.error("Cowork Billing Overdue GET", { err });
     return NextResponse.json({ error: "Failed to fetch overdue data" }, { status: 500 });
   }
-}
+});
 
 /**
  * POST /api/cowork/billing/overdue
  * Cowork API — push reminder draft messages as Todo items
  * Scope: billing:write
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { recordId, message, assigneeId } = body;
-
-    if (!recordId || !message) {
+    const parsed = postBodySchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: "recordId and message are required" },
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
         { status: 400 },
       );
     }
+    const { recordId, message, assigneeId } = parsed.data;
 
     const record = await prisma.overdueFeeRecord.findUnique({
       where: { id: recordId },
@@ -120,7 +129,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, todoId: todo.id }, { status: 201 });
   } catch (err) {
-    console.error("[Cowork Billing Overdue POST]", err);
+    logger.error("Cowork Billing Overdue POST", { err });
     return NextResponse.json({ error: "Failed to create reminder draft" }, { status: 500 });
   }
-}
+});

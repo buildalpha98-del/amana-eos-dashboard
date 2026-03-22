@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { resolveServicesByCode } from "../../_lib/resolve-service";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 
@@ -40,9 +42,9 @@ interface ServiceResult {
 }
 
 // POST /api/cowork/programs/bulk-import — Push programs to multiple centres
-export async function POST(req: NextRequest) {
+export const POST = withApiHandler(async (req) => {
   // 1. Authenticate
-  const authError = authenticateCowork(req);
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   // 2. Rate limit
@@ -132,7 +134,7 @@ export async function POST(req: NextRequest) {
           count: activities.length,
         });
       } catch (err) {
-        console.error(`[Bulk Import] Failed for ${serviceCode}:`, err);
+        logger.error("Bulk import failed", { serviceCode, err });
         results.push({
           serviceCode,
           serviceName: service.name,
@@ -154,7 +156,7 @@ export async function POST(req: NextRequest) {
       { status: failCount === results.length ? 422 : 201 },
     );
   } catch (err) {
-    console.error("[Cowork Bulk Import]", err);
+    logger.error("Cowork Bulk Import", { err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});

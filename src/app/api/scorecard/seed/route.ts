@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 /**
  * POST /api/scorecard/seed
  *
@@ -69,10 +69,7 @@ const SERVICE_MEASURABLES = [
   },
 ];
 
-export async function POST() {
-  const { error } = await requireAuth(["owner"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   try {
     // Get or create the default scorecard
     let scorecard = await prisma.scorecard.findFirst({
@@ -134,10 +131,10 @@ export async function POST() {
       total: created.length,
     });
   } catch (err) {
-    console.error("Scorecard seed error:", err);
+    logger.error("Scorecard seed error", { err });
     return NextResponse.json(
       { error: "Failed to seed scorecard measurables" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner"] });

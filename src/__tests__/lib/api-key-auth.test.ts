@@ -20,6 +20,7 @@ const validKeyRecord = {
   createdById: "user-1",
   revokedAt: null,
   expiresAt: null,
+  allowedIps: [],
 };
 
 describe("hashApiKey", () => {

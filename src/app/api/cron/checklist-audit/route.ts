@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
-import { acquireCronLock } from "@/lib/cron-guard";
+import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
+import { withApiHandler } from "@/lib/api-handler";
 
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
@@ -171,13 +172,9 @@ function buildAdminSummaryEmail(
  *
  * Auth: Bearer CRON_SECRET
  */
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+export const GET = withApiHandler(async (req) => {
+  const auth = verifyCronSecret(req);
+  if (auth) return auth.error;
 
   const guard = await acquireCronLock("checklist-audit", "daily");
   if (!guard.acquired) {
@@ -338,10 +335,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     await guard.fail(err);
-    console.error("Checklist audit cron failed:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Cron failed" },
-      { status: 500 },
-    );
+    throw err;
   }
-}
+});

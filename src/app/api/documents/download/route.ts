@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile, stat } from "fs/promises";
 import path from "path";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 // Mapping of file extensions to MIME types
 const MIME_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -24,10 +24,7 @@ const MIME_TYPES: Record<string, string> = {
   ".webp": "image/webp",
 };
 
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const file = searchParams.get("file");
 
@@ -104,17 +101,17 @@ export async function GET(req: NextRequest) {
         "Cache-Control": "private, max-age=3600",
       },
     });
-  } catch (err: any) {
-    if (err.code === "ENOENT") {
+  } catch (err: unknown) {
+    if (err instanceof Error && (err as NodeJS.ErrnoException).code === "ENOENT") {
       return NextResponse.json(
         { error: "File not found" },
         { status: 404 }
       );
     }
-    console.error("Download error:", err);
+    logger.error("Download error", { err });
     return NextResponse.json(
       { error: "Failed to read file" },
       { status: 500 }
     );
   }
-}
+});

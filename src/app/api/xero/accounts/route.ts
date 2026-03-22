@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import { xeroApiRequest } from "@/lib/xero";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 interface XeroAccount {
   Code: string;
@@ -11,10 +12,7 @@ interface XeroAccount {
   [key: string]: unknown;
 }
 
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   try {
     const data = await xeroApiRequest("/Accounts");
 
@@ -31,10 +29,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(filtered);
   } catch (err) {
-    console.error("Failed to fetch Xero accounts:", err);
+    logger.error("Failed to fetch Xero accounts", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to fetch accounts" },
       { status: 500 }
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });

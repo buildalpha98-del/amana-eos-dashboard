@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
+const createFeedbackSchema = z.object({
+  category: z.enum(["bug", "feature_request", "question", "general"]),
+  message: z.string().min(1, "Message is required"),
+  screenshotUrl: z.string().optional(),
+  page: z.string().optional(),
+});
 // GET /api/internal-feedback — list feedback (admin+ only)
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth([
-    "owner",
-    "head_office",
-    "admin",
-  ]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const status = searchParams.get("status");
   const category = searchParams.get("category");
@@ -28,35 +28,16 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({ feedback });
-}
+});
 
 // POST /api/internal-feedback — create feedback (any authenticated user)
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
-  const { category, message, screenshotUrl, page } = body as {
-    category?: string;
-    message?: string;
-    screenshotUrl?: string;
-    page?: string;
-  };
-
-  const validCategories = ["bug", "feature_request", "question", "general"];
-  if (!category || !validCategories.includes(category)) {
-    return NextResponse.json(
-      { error: "Invalid category. Must be one of: bug, feature_request, question, general" },
-      { status: 400 },
-    );
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
+  const parsed = createFeedbackSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
-
-  if (!message || message.trim().length === 0) {
-    return NextResponse.json(
-      { error: "Message is required" },
-      { status: 400 },
-    );
-  }
+  const { category, message, screenshotUrl, page } = parsed.data;
 
   const feedback = await prisma.internalFeedback.create({
     data: {
@@ -69,4 +50,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ feedback }, { status: 201 });
-}
+});

@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
+const patchConversionSchema = z.object({
+  id: z.string().min(1),
+  status: z.enum(["identified", "contacted", "converted", "declined"]),
+  notes: z.string().optional(),
+});
 // GET /api/conversions — list opportunities with filters
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const status = searchParams.get("status");
@@ -36,34 +39,16 @@ export async function GET(req: NextRequest) {
   };
 
   return NextResponse.json({ opportunities, stats });
-}
+});
 
 // PATCH /api/conversions — update status
-export async function PATCH(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
-  const { id, status, notes } = body as {
-    id: string;
-    status: string;
-    notes?: string;
-  };
-
-  if (!id || !status) {
-    return NextResponse.json(
-      { error: "id and status are required" },
-      { status: 400 }
-    );
+export const PATCH = withApiAuth(async (req, session) => {
+const body = await req.json();
+  const parsed = patchConversionSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
-
-  const validStatuses = ["identified", "contacted", "converted", "declined"];
-  if (!validStatuses.includes(status)) {
-    return NextResponse.json(
-      { error: `Status must be one of: ${validStatuses.join(", ")}` },
-      { status: 400 }
-    );
-  }
+  const { id, status, notes } = parsed.data;
 
   const data: Record<string, unknown> = { status };
   if (status === "contacted") data.contactedAt = new Date();
@@ -89,4 +74,4 @@ export async function PATCH(req: NextRequest) {
   });
 
   return NextResponse.json(updated);
-}
+}, { roles: ["owner", "head_office", "admin"] });

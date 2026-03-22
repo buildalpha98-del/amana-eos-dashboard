@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { parsePagination } from "@/lib/pagination";
+import { withApiAuth } from "@/lib/server-auth";
 
 const createCertSchema = z.object({
   serviceId: z.string().min(1),
@@ -18,10 +18,7 @@ const createCertSchema = z.object({
   fileName: z.string().optional().nullable(),
 });
 
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const upcoming = searchParams.get("upcoming"); // "30" = next 30 days
@@ -75,13 +72,10 @@ export async function GET(req: NextRequest) {
 
   const certificates = await prisma.complianceCertificate.findMany({ where, include, orderBy });
   return NextResponse.json(certificates);
-}
+});
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = createCertSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -129,4 +123,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(cert, { status: 201 });
-}
+});

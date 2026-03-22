@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import * as XLSX from "xlsx";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/billing/overdue/import
  * Import overdue fee records from OWNA XLSX export
  */
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  try {
+export const POST = withApiAuth(async (req, session) => {
+try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const defaultServiceId = formData.get("serviceId") as string | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    }
+
+    const MAX_IMPORT_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_IMPORT_SIZE) {
+      return NextResponse.json({ error: "File exceeds 10MB limit" }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -166,10 +169,10 @@ export async function POST(req: NextRequest) {
       errors: errors.length > 0 ? errors.slice(0, 20) : undefined,
     });
   } catch (err) {
-    console.error("[Billing Import POST]", err);
+    logger.error("Billing Import POST", { err });
     return NextResponse.json(
       { error: "Failed to import overdue records" },
       { status: 500 },
     );
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });

@@ -1,29 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
+
+const createPolicySchema = z.object({
+  action: z.literal("create_policy"),
+  title: z.string().min(1),
+  description: z.string().nullable().optional(),
+  category: z.string().optional(),
+  version: z.number().optional(),
+  requiresReack: z.boolean().optional(),
+});
+
+const checkAcknowledgementsSchema = z.object({
+  action: z.literal("check_acknowledgements"),
+});
+
+const bodySchema = z.discriminatedUnion("action", [
+  createPolicySchema,
+  checkAcknowledgementsSchema,
+]);
 
 /**
  * POST /api/cowork/hr/policies
  * Create or update policies and check acknowledgement status.
  * Used by: hr-policy-update-tracker, hr-staff-handbook-updater
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
     const body = await req.json();
-    const { action } = body;
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
 
-    if (action === "create_policy") {
-      const { title, description, category, version, requiresReack } = body;
-
-      if (!title) {
-        return NextResponse.json(
-          { error: "Bad Request", message: "title required" },
-          { status: 400 }
-        );
-      }
+    if (parsed.data.action === "create_policy") {
+      const { title, description, category, version, requiresReack } = parsed.data;
 
       const existing = await prisma.policy.findFirst({
         where: { title, deleted: false },
@@ -67,7 +87,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (action === "check_acknowledgements") {
+    if (parsed.data.action === "check_acknowledgements") {
       const policies = await prisma.policy.findMany({
         where: { status: "published", deleted: false, requiresReack: true },
         include: {
@@ -100,6 +120,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ pending, totalPolicies: policies.length });
     }
 
+    // Unreachable due to discriminated union validation, but keep for safety
     return NextResponse.json(
       {
         error: "Bad Request",
@@ -109,10 +130,10 @@ export async function POST(req: NextRequest) {
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[POST /cowork/hr/policies]", err);
+    logger.error("POST /cowork/hr/policies", { err });
     return NextResponse.json(
       { error: "Internal Server Error", message },
       { status: 500 }
     );
   }
-}
+});

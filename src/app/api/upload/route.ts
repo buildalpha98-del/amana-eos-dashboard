@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
-import { requireAuth } from "@/lib/server-auth";
 import { uploadFile } from "@/lib/storage";
+import { validateFileContent } from "@/lib/file-validation";
+import { withApiAuth } from "@/lib/server-auth";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -21,10 +22,7 @@ const ALLOWED_TYPES = [
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
 
@@ -46,6 +44,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Read file content and validate magic bytes
+  const bytes = await file.arrayBuffer();
+  if (!validateFileContent(bytes, file.type)) {
+    return NextResponse.json(
+      { error: "File content does not match declared type" },
+      { status: 400 }
+    );
+  }
+
   // Generate unique filename
   const ext = path.extname(file.name) || "";
   const baseName = path
@@ -55,7 +62,6 @@ export async function POST(req: NextRequest) {
   const uniqueName = `${baseName}-${Date.now()}${ext}`;
 
   // Upload to Vercel Blob
-  const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
   const { url } = await uploadFile(buffer, uniqueName, {
     contentType: file.type,
@@ -68,4 +74,4 @@ export async function POST(req: NextRequest) {
     fileSize: file.size,
     mimeType: file.type,
   });
-}
+});

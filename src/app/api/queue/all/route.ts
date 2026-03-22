@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 /**
  * GET /api/queue/all — admin view of all user queues
  * Returns summary counts per user + unassigned
  */
-export async function GET() {
-  const { error } = await requireAuth(["owner", "head_office"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   // Get all users who have assigned reports or todos
   const [reportCounts, todoCounts, unassignedReports, unassignedTodos] =
     await Promise.all([
@@ -68,4 +64,4 @@ export async function GET() {
     queues,
     unassigned: { reports: unassignedReports, todos: unassignedTodos },
   });
-}
+}, { roles: ["owner", "head_office"] });

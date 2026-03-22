@@ -1,23 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/server-auth";
 import {
   updateEvent,
   deleteEvent,
   isCalendarConnected,
 } from "@/lib/microsoft-calendar";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const patchEventSchema = z.object({
+  subject: z.string().min(1).optional(),
+  body: z.string().optional(),
+  start: z.object({
+    dateTime: z.string().min(1),
+    timeZone: z.string().optional(),
+  }).optional(),
+  end: z.object({
+    dateTime: z.string().min(1),
+    timeZone: z.string().optional(),
+  }).optional(),
+  location: z.string().optional(),
+});
 
 /**
  * PATCH /api/calendar/events/[eventId]
  * Update a calendar event.
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ eventId: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const connected = await isCalendarConnected(session!.user.id);
+export const PATCH = withApiAuth(async (req, session, context) => {
+const connected = await isCalendarConnected(session!.user.id);
   if (!connected) {
     return NextResponse.json(
       { error: "Calendar not connected" },
@@ -25,26 +34,30 @@ export async function PATCH(
     );
   }
 
-  const { eventId } = await params;
+  const { eventId } = await context!.params!;
   const body = await req.json();
+  const parsed = patchEventSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
 
   const updates: Record<string, unknown> = {};
-  if (body.subject !== undefined) updates.subject = body.subject;
-  if (body.body !== undefined) updates.body = body.body;
-  if (body.start !== undefined) {
+  if (parsed.data.subject !== undefined) updates.subject = parsed.data.subject;
+  if (parsed.data.body !== undefined) updates.body = parsed.data.body;
+  if (parsed.data.start !== undefined) {
     updates.start = {
-      dateTime: body.start.dateTime,
-      timeZone: body.start.timeZone || "Australia/Sydney",
+      dateTime: parsed.data.start.dateTime,
+      timeZone: parsed.data.start.timeZone || "Australia/Sydney",
     };
   }
-  if (body.end !== undefined) {
+  if (parsed.data.end !== undefined) {
     updates.end = {
-      dateTime: body.end.dateTime,
-      timeZone: body.end.timeZone || "Australia/Sydney",
+      dateTime: parsed.data.end.dateTime,
+      timeZone: parsed.data.end.timeZone || "Australia/Sydney",
     };
   }
-  if (body.location !== undefined) {
-    updates.location = { displayName: body.location };
+  if (parsed.data.location !== undefined) {
+    updates.location = { displayName: parsed.data.location };
   }
 
   const updated = await updateEvent(session!.user.id, eventId, updates);
@@ -57,20 +70,14 @@ export async function PATCH(
   }
 
   return NextResponse.json(updated);
-}
+});
 
 /**
  * DELETE /api/calendar/events/[eventId]
  * Delete a calendar event.
  */
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ eventId: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const connected = await isCalendarConnected(session!.user.id);
+export const DELETE = withApiAuth(async (req, session, context) => {
+const connected = await isCalendarConnected(session!.user.id);
   if (!connected) {
     return NextResponse.json(
       { error: "Calendar not connected" },
@@ -78,7 +85,7 @@ export async function DELETE(
     );
   }
 
-  const { eventId } = await params;
+  const { eventId } = await context!.params!;
   const success = await deleteEvent(session!.user.id, eventId);
 
   if (!success) {
@@ -89,4 +96,4 @@ export async function DELETE(
   }
 
   return NextResponse.json({ success: true });
-}
+});

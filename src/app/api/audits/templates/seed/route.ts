@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 /**
  * POST /api/audits/templates/seed
  * Seed NQS-aligned audit templates for OSHC services.
@@ -245,10 +244,7 @@ const SEED_TEMPLATES: SeedTemplate[] = [
   },
 ];
 
-export async function POST() {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   let created = 0;
   let skipped = 0;
 
@@ -295,4 +291,4 @@ export async function POST() {
     },
     { status: 201 }
   );
-}
+});

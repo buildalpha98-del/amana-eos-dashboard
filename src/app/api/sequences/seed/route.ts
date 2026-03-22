@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 interface SeedStep {
   name: string;
   delayHours: number;
@@ -129,10 +128,7 @@ const SEED_SEQUENCES: SeedSequence[] = [
 ];
 
 // POST /api/sequences/seed — admin-only seed of default sequences
-export async function POST() {
-  const { error } = await requireAuth(["owner", "admin"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   const created: string[] = [];
   const skipped: string[] = [];
 
@@ -171,4 +167,4 @@ export async function POST() {
     skipped,
     message: `Created ${created.length}, skipped ${skipped.length} (already exist)`,
   });
-}
+}, { roles: ["owner", "admin"] });

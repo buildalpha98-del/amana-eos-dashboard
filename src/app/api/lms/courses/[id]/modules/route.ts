@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const createModuleSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -19,14 +18,8 @@ const reorderSchema = z.object({
 });
 
 // POST /api/lms/courses/[id]/modules — add a module
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id: courseId } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id: courseId } = await context!.params!;
   const body = await req.json();
 
   // Handle reorder
@@ -83,4 +76,4 @@ export async function POST(
   });
 
   return NextResponse.json(module, { status: 201 });
-}
+}, { roles: ["owner", "head_office", "admin"] });

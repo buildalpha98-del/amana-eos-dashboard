@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
 
 export interface CentreHealthItem {
   id: string;
@@ -111,11 +112,8 @@ export function useDashboardData(period?: string) {
   const params = period ? `?period=${encodeURIComponent(period)}` : "";
   return useQuery<DashboardResponse>({
     queryKey: ["dashboard-command-centre", period],
-    queryFn: async () => {
-      const res = await fetch(`/api/dashboard${params}`);
-      if (!res.ok) throw new Error("Failed to fetch dashboard data");
-      return res.json();
-    },
+    queryFn: () => fetchApi<DashboardResponse>(`/api/dashboard${params}`),
+    retry: 2,
     staleTime: 5 * 60_000,
     refetchInterval: 5 * 60_000,
     gcTime: 10 * 60_000,
@@ -133,11 +131,8 @@ function useDashboardSlice<T>(
   const params = period ? `?period=${encodeURIComponent(period)}` : "";
   return useQuery<DashboardResponse, Error, T>({
     queryKey: ["dashboard-command-centre", period],
-    queryFn: async () => {
-      const res = await fetch(`/api/dashboard${params}`);
-      if (!res.ok) throw new Error("Failed to fetch dashboard data");
-      return res.json();
-    },
+    queryFn: () => fetchApi<DashboardResponse>(`/api/dashboard${params}`),
+    retry: 2,
     staleTime: 5 * 60_000,
     refetchInterval: 5 * 60_000,
     gcTime: 10 * 60_000,

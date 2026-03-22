@@ -8,6 +8,8 @@ import {
   sendTransactionalEmail,
   sendCampaignEmail,
 } from "@/lib/brevo";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const emailSendSchema = z.object({
   serviceCode: z.string().min(1, "serviceCode is required"),
@@ -25,9 +27,9 @@ const emailSendSchema = z.object({
  * Send newsletters/emails to parent contact lists via Brevo.
  * Scope required: email:write
  */
-export async function POST(req: NextRequest) {
+export const POST = withApiHandler(async (req) => {
   // 1. Authenticate
-  const authError = authenticateCowork(req);
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -203,7 +205,7 @@ export async function POST(req: NextRequest) {
       status,
     });
   } catch (err) {
-    console.error("[Cowork Email Send]", err);
+    logger.error("Cowork Email Send", { err });
     return NextResponse.json(
       {
         success: false,
@@ -212,4 +214,4 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
-}
+});

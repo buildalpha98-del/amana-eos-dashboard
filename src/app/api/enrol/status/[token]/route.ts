@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { parseJsonField, primaryParentSchema } from "@/lib/schemas/json-fields";
+import { withApiHandler } from "@/lib/api-handler";
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
-) {
-  const { token } = await params;
+export const GET = withApiHandler(async (_req, context) => {
+  const { token } = await context!.params!;
 
   const submission = await prisma.enrolmentSubmission.findUnique({
     where: { token },
@@ -23,7 +22,7 @@ export async function GET(
   }
 
   const children = submission.children as { firstName: string; surname: string }[];
-  const parent = submission.primaryParent as { firstName: string; surname: string };
+  const parent = parseJsonField(submission.primaryParent, primaryParentSchema, { firstName: "", surname: "" });
 
   return NextResponse.json({
     status: submission.status,
@@ -32,4 +31,4 @@ export async function GET(
     createdAt: submission.createdAt.toISOString(),
     processedAt: submission.processedAt?.toISOString() || null,
   });
-}
+});

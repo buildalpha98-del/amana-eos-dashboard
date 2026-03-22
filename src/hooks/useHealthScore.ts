@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -52,11 +54,8 @@ export interface HealthScoreDetail {
 export function useHealthScore(serviceId: string | null) {
   return useQuery<HealthScoreDetail>({
     queryKey: ["health-score", serviceId],
-    queryFn: async () => {
-      const res = await fetch(`/api/health-scores/${serviceId}`);
-      if (!res.ok) throw new Error("Failed to fetch health score");
-      return res.json();
-    },
+    queryFn: () => fetchApi<HealthScoreDetail>(`/api/health-scores/${serviceId}`),
+    retry: 2,
     enabled: !!serviceId,
   });
 }
@@ -66,21 +65,15 @@ export function useHealthScore(serviceId: string | null) {
 export function useComputeHealthScores() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/health-scores/compute", {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to compute health scores");
-      }
-      return res.json();
-    },
+    mutationFn: () => mutateApi("/api/health-scores/compute", { method: "POST" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["health-score"] });
       queryClient.invalidateQueries({ queryKey: ["performance"] });
       queryClient.invalidateQueries({ queryKey: ["performance-history"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-command-centre"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

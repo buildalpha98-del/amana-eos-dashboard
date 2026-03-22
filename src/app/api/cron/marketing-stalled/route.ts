@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { prisma } from "@/lib/prisma";
 import { getResend, sendEmail } from "@/lib/email";
+import { withApiHandler } from "@/lib/api-handler";
 
 const BRAND_COLOR = "#004E64";
 const DASHBOARD_URL =
@@ -106,7 +107,7 @@ function buildAlertHtml(groups: CentreGroup[]): string {
   return wrapLayout(body);
 }
 
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
@@ -251,4 +252,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

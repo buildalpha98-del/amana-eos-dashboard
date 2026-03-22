@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
 
 // GET /api/marketing/photo-compliance — last 7 days of photo compliance per centre
-export async function GET() {
-  const { error } = await requireAuth(["owner", "head_office", "admin", "marketing"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   // Build last 7 dates (today minus 1..7, since today isn't complete yet)
   const dates: Date[] = [];
   const now = new Date();
@@ -100,4 +97,4 @@ export async function GET() {
     services: serviceResults,
     overallRate: totalChecks > 0 ? Math.round((totalConfirmed / totalChecks) * 100) / 100 : 0,
   });
-}
+}, { roles: ["owner", "head_office", "admin", "marketing"] });

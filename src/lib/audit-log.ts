@@ -8,6 +8,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
+import { logger } from "@/lib/logger";
 
 export interface AuditEvent {
   action: string;
@@ -45,6 +46,6 @@ export function logAuditEvent(event: AuditEvent, req?: NextRequest): void {
       },
     })
     .catch((err) => {
-      console.error("[AuditLog] Failed to write audit event:", err);
+      logger.error("Failed to write audit event", { err });
     });
 }

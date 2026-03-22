@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope } from "@/lib/service-scope";
+import { withApiHandler } from "@/lib/api-handler";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 const feedbackSchema = z.object({
   serviceId: z.string().min(1),
@@ -27,8 +29,7 @@ function hashIp(ip: string): string {
 }
 
 // POST /api/feedback/quick — public, rate-limited
-export async function POST(req: NextRequest) {
-  try {
+export const POST = withApiHandler(async (req) => {
     const body = await req.json();
     const data = feedbackSchema.parse(body);
 
@@ -88,25 +89,15 @@ export async function POST(req: NextRequest) {
           },
         });
       } catch (e) {
-        console.error("[QuickFeedback] Failed to create alert:", e);
+        logger.error("QuickFeedback: Failed to create alert", { e });
       }
     }
 
     return NextResponse.json({ id: feedback.id, message: "Feedback submitted" }, { status: 201 });
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: err.issues[0].message }, { status: 400 });
-    }
-    console.error("[QuickFeedback POST]", err);
-    return NextResponse.json({ error: "Failed to submit feedback" }, { status: 500 });
-  }
-}
+  });
 
 // GET /api/feedback/quick — auth required, returns aggregated feedback
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const weeks = parseInt(searchParams.get("weeks") || "8");
@@ -117,7 +108,7 @@ export async function GET(req: NextRequest) {
   weeksAgo.setDate(weeksAgo.getDate() - weeks * 7);
   const weekStartCutoff = getWeekStart(weeksAgo);
 
-  const where: any = {
+  const where: Record<string, unknown> = {
     createdAt: { gte: weekStartCutoff },
   };
 
@@ -185,7 +176,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ services });
   } catch (err) {
-    console.error("[QuickFeedback GET]", err);
+    logger.error("QuickFeedback GET", { err });
     return NextResponse.json({ error: "Failed to fetch feedback" }, { status: 500 });
   }
-}
+});

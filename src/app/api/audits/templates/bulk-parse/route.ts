@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { parseAuditDocumentHybrid } from "@/lib/audit-parser";
 import { matchTemplates } from "@/lib/audit-matcher";
+import { withApiAuth } from "@/lib/server-auth";
+import { validateFileContent } from "@/lib/file-validation";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10 MB per file
 
@@ -10,10 +11,7 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10 MB per file
  * POST /api/audits/templates/bulk-parse — parse multiple .docx files
  * and match each to existing templates.
  */
-export async function POST(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const POST = withApiAuth(async (req, session) => {
   const formData = await req.formData();
   const files = formData.getAll("files") as File[];
 
@@ -41,8 +39,19 @@ export async function POST(req: NextRequest) {
         };
       }
 
+      // Validate file content matches declared MIME type
+      const arrayBuf = await file.arrayBuffer();
+      if (!validateFileContent(arrayBuf, file.type)) {
+        return {
+          filename: file.name,
+          error: "File content does not match declared type",
+          parsed: null,
+          match: matches[idx],
+        };
+      }
+
       try {
-        const buffer = Buffer.from(await file.arrayBuffer());
+        const buffer = Buffer.from(arrayBuf);
         const parsed = await parseAuditDocumentHybrid(buffer);
 
         return {
@@ -63,4 +72,4 @@ export async function POST(req: NextRequest) {
   );
 
   return NextResponse.json({ results });
-}
+}, { roles: ["owner", "head_office", "admin"] });

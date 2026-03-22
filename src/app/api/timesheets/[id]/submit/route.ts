@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
+import { withApiAuth } from "@/lib/server-auth";
 
 // POST /api/timesheets/[id]/submit — submit timesheet for approval
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error || !session) return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const timesheet = await prisma.timesheet.findUnique({ where: { id } });
   if (!timesheet || timesheet.deleted) {
@@ -44,7 +38,7 @@ export async function POST(
     data: {
       status: "submitted",
       submittedAt: new Date(),
-      submittedById: session!.user.id,
+      submittedById: session.user.id,
     },
     include: {
       service: { select: { id: true, name: true, code: true } },
@@ -54,7 +48,7 @@ export async function POST(
 
   await prisma.activityLog.create({
     data: {
-      userId: session!.user.id,
+      userId: session.user.id,
       action: "submit_timesheet",
       entityType: "Timesheet",
       entityId: id,
@@ -63,4 +57,4 @@ export async function POST(
   });
 
   return NextResponse.json(updated);
-}
+});

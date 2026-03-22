@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-  const { id } = await params;
+const patchSchema = z.object({
+  status: z.string().optional(),
+  serviceId: z.string().optional(),
+  schoolName: z.string().optional(),
+  yearLevel: z.string().optional(),
+});
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const child = await prisma.child.findUnique({
     where: { id },
@@ -37,22 +39,22 @@ export async function GET(
   }
 
   return NextResponse.json(child);
-}
+});
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const body = await req.json();
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
 
-  const allowedFields = ["status", "serviceId", "schoolName", "yearLevel"];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateData: Record<string, any> = {};
-  for (const key of allowedFields) {
-    if (key in body) updateData[key] = body[key];
+  const updateData: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(parsed.data)) {
+    if (value !== undefined) updateData[key] = value;
   }
 
   const updated = await prisma.child.update({
@@ -61,4 +63,4 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
-}
+});

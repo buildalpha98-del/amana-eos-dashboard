@@ -1,4 +1,5 @@
 import type jsPDF from "jspdf";
+import { parseJsonField, primaryParentSchema } from "@/lib/schemas/json-fields";
 
 interface EnrolmentSubmission {
   id: string;
@@ -152,7 +153,7 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
   }
 
   // ── Primary Parent ──
-  const pp = submission.primaryParent as Record<string, unknown>;
+  const pp = parseJsonField(submission.primaryParent, primaryParentSchema, { firstName: "", surname: "" }) as Record<string, unknown>;
   heading("Primary Parent / Guardian");
   row("Name", `${pp.firstName} ${pp.surname}`);
   row("DOB", pp.dob as string);

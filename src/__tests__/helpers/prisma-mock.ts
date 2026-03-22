@@ -15,10 +15,21 @@ import { vi } from "vitest";
 function createPrismaMock() {
   const cache: Record<string, Record<string, ReturnType<typeof vi.fn>>> = {};
 
-  return new Proxy(
-    {} as Record<string, unknown>,
+  // Support prisma.$transaction([...]) — resolves all promises in the array
+  const $transaction = vi.fn(async (arg: unknown) => {
+    if (Array.isArray(arg)) return Promise.all(arg);
+    // Interactive transaction: pass a mock client (the proxy itself)
+    if (typeof arg === "function") return arg(proxy);
+    return arg;
+  });
+
+  const proxy = new Proxy(
+    { $transaction } as Record<string, unknown>,
     {
-      get(_target, model: string) {
+      get(target, model: string) {
+        // Return $transaction directly for top-level callable methods
+        if (model === "$transaction") return target.$transaction;
+
         if (!cache[model]) {
           cache[model] = new Proxy(
             {} as Record<string, ReturnType<typeof vi.fn>>,
@@ -36,6 +47,8 @@ function createPrismaMock() {
       },
     },
   );
+
+  return proxy;
 }
 
 export const prismaMock = createPrismaMock() as any;

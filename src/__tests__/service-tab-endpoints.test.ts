@@ -30,14 +30,19 @@ vi.mock("@/app/api/_lib/auth", () => ({
   authenticateCowork: vi.fn(() => null), // auth passes by default
 }));
 
-vi.mock("@/lib/server-auth", () => ({
-  requireAuth: vi.fn(() =>
-    Promise.resolve({
-      session: { user: { id: "user-123", name: "Test", role: "owner" } },
-      error: null,
-    })
-  ),
-}));
+vi.mock("@/lib/server-auth", () => {
+  const mockSession = { user: { id: "user-123", name: "Test", role: "owner" } };
+  return {
+    requireAuth: vi.fn(() =>
+      Promise.resolve({ session: mockSession, error: null })
+    ),
+    withApiAuth: vi.fn((handler: Function) => {
+      return async (req: any, context?: any) => {
+        return handler(req, mockSession, context);
+      };
+    }),
+  };
+});
 
 import { prisma } from "@/lib/prisma";
 

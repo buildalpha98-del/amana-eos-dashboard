@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { withApiHandler } from "@/lib/api-handler";
 
 /**
  * GET /api/services/[id]/public-name
@@ -8,11 +9,8 @@ import { prisma } from "@/lib/prisma";
  * Used by public survey pages that need to display the centre name
  * without requiring authentication.
  */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
+export const GET = withApiHandler(async (_req, context) => {
+  const { id } = await context!.params!;
 
   const service = await prisma.service.findUnique({
     where: { id },
@@ -24,4 +22,4 @@ export async function GET(
   }
 
   return NextResponse.json({ name: service.name });
-}
+});

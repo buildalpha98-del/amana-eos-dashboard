@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
+import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 
 const updateIssueSchema = z.object({
   title: z.string().min(1).optional(),
@@ -15,14 +16,8 @@ const updateIssueSchema = z.object({
 });
 
 // GET /api/issues/[id]
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const issue = await prisma.issue.findUnique({
     where: { id, deleted: false },
@@ -45,18 +40,12 @@ export async function GET(
   }
 
   return NextResponse.json(issue);
-}
+});
 
 // PATCH /api/issues/[id]
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
-  const body = await req.json();
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
+  const body = await parseJsonBody(req);
   const parsed = updateIssueSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -129,17 +118,11 @@ export async function PATCH(
   }
 
   return NextResponse.json(issue);
-}
+});
 
 // DELETE /api/issues/[id] — soft delete
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const issue = await prisma.issue.update({
     where: { id },
@@ -156,4 +139,4 @@ export async function DELETE(
   });
 
   return NextResponse.json({ success: true });
-}
+});

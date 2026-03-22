@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // GET /api/sequences/enrolments — list sequence enrolments with filters
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") || undefined;
   const status = searchParams.get("status") || undefined;
@@ -58,4 +54,4 @@ export async function GET(req: NextRequest) {
   ]);
 
   return NextResponse.json({ enrolments, total });
-}
+});

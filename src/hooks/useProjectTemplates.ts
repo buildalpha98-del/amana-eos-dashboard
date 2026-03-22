@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface TemplateTask {
   id: string;
@@ -26,11 +28,8 @@ export interface ProjectTemplate {
 export function useProjectTemplates() {
   return useQuery<ProjectTemplate[]>({
     queryKey: ["project-templates"],
-    queryFn: async () => {
-      const res = await fetch("/api/project-templates");
-      if (!res.ok) throw new Error("Failed to fetch templates");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ProjectTemplate[]>("/api/project-templates"),
+    retry: 2,
   });
 }
 
@@ -49,19 +48,13 @@ export function useCreateProjectTemplate() {
         defaultDays?: number;
       }[];
     }) => {
-      const res = await fetch("/api/project-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create template");
-      }
-      return res.json();
+      return mutateApi("/api/project-templates", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -70,12 +63,13 @@ export function useDeleteProjectTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/project-templates/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete template");
-      return res.json();
+      return mutateApi(`/api/project-templates/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

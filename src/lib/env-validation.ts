@@ -4,6 +4,8 @@
  * Import this in instrumentation.ts so it runs once on server start.
  */
 
+import { logger } from "@/lib/logger";
+
 const REQUIRED_SERVER_VARS = [
   "DATABASE_URL",
   "NEXTAUTH_SECRET",
@@ -48,10 +50,10 @@ export function validateEnv() {
   for (const key of SENSITIVE_SERVER_VARS) {
     const publicKey = `NEXT_PUBLIC_${key}`;
     if (process.env[publicKey]) {
-      console.warn(
-        `[env] WARNING: ${publicKey} is set — this exposes a sensitive secret to the client bundle. ` +
-          `Remove the NEXT_PUBLIC_ prefix and use the server-only ${key} instead.`,
-      );
+      logger.warn("Sensitive env var exposed as NEXT_PUBLIC_", {
+        publicKey,
+        hint: `Remove the NEXT_PUBLIC_ prefix and use the server-only ${key} instead`,
+      });
     }
   }
 }

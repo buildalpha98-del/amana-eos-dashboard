@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const updateCertSchema = z.object({
   type: z.enum(["wwcc", "first_aid", "anaphylaxis", "asthma", "cpr", "police_check", "annual_review", "other"]).optional(),
   label: z.string().nullable().optional(),
@@ -13,14 +12,8 @@ const updateCertSchema = z.object({
   acknowledged: z.boolean().optional(),
 });
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const body = await req.json();
   const parsed = updateCertSchema.safeParse(body);
 
@@ -42,16 +35,10 @@ export async function PATCH(
   });
 
   return NextResponse.json(cert);
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const { id } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   await prisma.complianceCertificate.delete({ where: { id } });
   return NextResponse.json({ success: true });
-}
+}, { roles: ["owner", "head_office", "admin"] });

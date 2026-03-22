@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { prisma } from "@/lib/prisma";
 import { getResend, sendEmail } from "@/lib/email";
+import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fields";
+import { withApiHandler } from "@/lib/api-handler";
 
 // ── Brand constants ─────────────────────────────────────────
 const BRAND_COLOR = "#004E64";
@@ -155,7 +157,7 @@ function buildDigestHtml(data: DigestData): string {
 
 // ── Cron handler ────────────────────────────────────────────
 
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
@@ -173,191 +175,179 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  try {
-    const now = new Date();
-    const fourteenDaysFromNow = new Date(now);
-    fourteenDaysFromNow.setDate(fourteenDaysFromNow.getDate() + 14);
+  const now = new Date();
+  const fourteenDaysFromNow = new Date(now);
+  fourteenDaysFromNow.setDate(fourteenDaysFromNow.getDate() + 14);
 
-    // ── 1. Fetch eligible recipients ────────────────────────
-    const recipients = await prisma.user.findMany({
-      where: {
-        active: true,
-        role: { in: ["owner", "head_office", "admin", "member", "coordinator"] },
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        serviceId: true,
-        notificationPrefs: true,
-      },
-    });
+  // ── 1. Fetch eligible recipients ────────────────────────
+  const recipients = await prisma.user.findMany({
+    where: {
+      active: true,
+      role: { in: ["owner", "head_office", "admin", "member", "coordinator"] },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      serviceId: true,
+      notificationPrefs: true,
+    },
+  });
 
-    let emailsSent = 0;
-    let emailsSkipped = 0;
-    const errors: string[] = [];
+  let emailsSent = 0;
+  let emailsSkipped = 0;
+  const errors: string[] = [];
 
-    for (const recipient of recipients) {
-      // Check notification preferences — default to true if not set
-      const prefs = (recipient.notificationPrefs as Record<string, unknown>) ?? {};
-      if (prefs.weeklyDigest === false) {
-        emailsSkipped++;
-        continue;
-      }
-
-      try {
-        // ── 2. Gather metrics per user ────────────────────────
-
-        // Overdue to-dos assigned to this user
-        const overdueTodos = await prisma.todo.count({
-          where: {
-            deleted: false,
-            status: "pending",
-            dueDate: { lt: now },
-            OR: [
-              { assigneeId: recipient.id },
-              { assignees: { some: { userId: recipient.id } } },
-            ],
-          },
-        });
-
-        // Rock status summary — rocks owned by this user
-        const rocks = await prisma.rock.groupBy({
-          by: ["status"],
-          where: {
-            deleted: false,
-            ownerId: recipient.id,
-          },
-          _count: { id: true },
-        });
-
-        const rockCounts = { on_track: 0, off_track: 0, complete: 0 };
-        for (const r of rocks) {
-          if (r.status in rockCounts) {
-            rockCounts[r.status as keyof typeof rockCounts] = r._count.id;
-          }
-        }
-
-        // Open issues — scoped to user's service if they have one
-        const issueWhere: Record<string, unknown> = {
-          deleted: false,
-          status: { notIn: ["closed", "solved"] },
-        };
-        if (recipient.serviceId) {
-          issueWhere.serviceId = recipient.serviceId;
-        }
-        const openIssues = await prisma.issue.count({ where: issueWhere });
-
-        // Pending leave — only for coordinator/admin/head_office/owner
-        let pendingLeave = 0;
-        const leaveRoles = ["coordinator", "admin", "head_office", "owner"];
-        if (leaveRoles.includes(recipient.role)) {
-          const leaveWhere: Record<string, unknown> = {
-            status: "leave_pending",
-          };
-          if (recipient.serviceId) {
-            leaveWhere.serviceId = recipient.serviceId;
-          }
-          pendingLeave = await prisma.leaveRequest.count({ where: leaveWhere });
-        }
-
-        // Compliance alerts — certificates expiring within 14 days
-        let expiringCertificates = 0;
-        try {
-          const certWhere: Record<string, unknown> = {
-            expiryDate: { gt: now, lte: fourteenDaysFromNow },
-          };
-          if (recipient.serviceId) {
-            certWhere.serviceId = recipient.serviceId;
-          }
-          expiringCertificates = await prisma.complianceCertificate.count({
-            where: certWhere,
-          });
-        } catch {
-          // Certificate model may differ — skip gracefully
-        }
-
-        // ── 3. Build action items ─────────────────────────────
-        const actionItems: string[] = [];
-
-        if (overdueTodos > 0) {
-          actionItems.push(
-            `${overdueTodos} overdue to-do${overdueTodos !== 1 ? "s" : ""} need attention`,
-          );
-        }
-        if (rockCounts.off_track > 0) {
-          actionItems.push(
-            `${rockCounts.off_track} rock${rockCounts.off_track !== 1 ? "s" : ""} off track`,
-          );
-        }
-        if (pendingLeave > 0) {
-          actionItems.push(
-            `${pendingLeave} leave request${pendingLeave !== 1 ? "s" : ""} pending approval`,
-          );
-        }
-        if (expiringCertificates > 0) {
-          actionItems.push(
-            `${expiringCertificates} certificate${expiringCertificates !== 1 ? "s" : ""} expiring in the next 14 days`,
-          );
-        }
-        if (openIssues > 0) {
-          actionItems.push(
-            `${openIssues} open issue${openIssues !== 1 ? "s" : ""} to resolve`,
-          );
-        }
-
-        // Cap at 5 action items
-        const topActions = actionItems.slice(0, 5);
-
-        // ── 4. Send email ─────────────────────────────────────
-        const digestData: DigestData = {
-          userName: recipient.name.split(" ")[0],
-          overdueTodos,
-          rocksOnTrack: rockCounts.on_track,
-          rocksOffTrack: rockCounts.off_track,
-          rocksComplete: rockCounts.complete,
-          openIssues,
-          pendingLeave,
-          expiringCertificates,
-          actionItems: topActions,
-        };
-
-        const html = buildDigestHtml(digestData);
-
-        await sendEmail({
-          to: recipient.email,
-          subject: "Your Weekly EOS Dashboard Digest",
-          html,
-        });
-
-        emailsSent++;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        errors.push(`${recipient.email}: ${msg}`);
-      }
+  for (const recipient of recipients) {
+    // Check notification preferences — default to true if not set
+    const prefs = parseJsonField(recipient.notificationPrefs, notificationPrefsSchema, {});
+    if (prefs.weeklyDigest === false) {
+      emailsSkipped++;
+      continue;
     }
 
-    const result = {
-      message: "Weekly digest complete",
-      emailsSent,
-      emailsSkipped,
-      totalRecipients: recipients.length,
-      errors: errors.length > 0 ? errors : undefined,
-    };
+    try {
+      // ── 2. Gather metrics per user ────────────────────────
 
-    await guard.complete(result);
+      // Overdue to-dos assigned to this user
+      const overdueTodos = await prisma.todo.count({
+        where: {
+          deleted: false,
+          status: "pending",
+          dueDate: { lt: now },
+          OR: [
+            { assigneeId: recipient.id },
+            { assignees: { some: { userId: recipient.id } } },
+          ],
+        },
+      });
 
-    return NextResponse.json(result);
-  } catch (err) {
-    await guard.fail(err);
-    console.error("[Cron: weekly-digest]", err);
-    return NextResponse.json(
-      {
-        error: "Weekly digest cron failed",
-        message: err instanceof Error ? err.message : String(err),
-      },
-      { status: 500 },
-    );
+      // Rock status summary — rocks owned by this user
+      const rocks = await prisma.rock.groupBy({
+        by: ["status"],
+        where: {
+          deleted: false,
+          ownerId: recipient.id,
+        },
+        _count: { id: true },
+      });
+
+      const rockCounts = { on_track: 0, off_track: 0, complete: 0 };
+      for (const r of rocks) {
+        if (r.status in rockCounts) {
+          rockCounts[r.status as keyof typeof rockCounts] = r._count.id;
+        }
+      }
+
+      // Open issues — scoped to user's service if they have one
+      const issueWhere: Record<string, unknown> = {
+        deleted: false,
+        status: { notIn: ["closed", "solved"] },
+      };
+      if (recipient.serviceId) {
+        issueWhere.serviceId = recipient.serviceId;
+      }
+      const openIssues = await prisma.issue.count({ where: issueWhere });
+
+      // Pending leave — only for coordinator/admin/head_office/owner
+      let pendingLeave = 0;
+      const leaveRoles = ["coordinator", "admin", "head_office", "owner"];
+      if (leaveRoles.includes(recipient.role)) {
+        const leaveWhere: Record<string, unknown> = {
+          status: "leave_pending",
+        };
+        if (recipient.serviceId) {
+          leaveWhere.serviceId = recipient.serviceId;
+        }
+        pendingLeave = await prisma.leaveRequest.count({ where: leaveWhere });
+      }
+
+      // Compliance alerts — certificates expiring within 14 days
+      let expiringCertificates = 0;
+      try {
+        const certWhere: Record<string, unknown> = {
+          expiryDate: { gt: now, lte: fourteenDaysFromNow },
+        };
+        if (recipient.serviceId) {
+          certWhere.serviceId = recipient.serviceId;
+        }
+        expiringCertificates = await prisma.complianceCertificate.count({
+          where: certWhere,
+        });
+      } catch {
+        // Certificate model may differ — skip gracefully
+      }
+
+      // ── 3. Build action items ─────────────────────────────
+      const actionItems: string[] = [];
+
+      if (overdueTodos > 0) {
+        actionItems.push(
+          `${overdueTodos} overdue to-do${overdueTodos !== 1 ? "s" : ""} need attention`,
+        );
+      }
+      if (rockCounts.off_track > 0) {
+        actionItems.push(
+          `${rockCounts.off_track} rock${rockCounts.off_track !== 1 ? "s" : ""} off track`,
+        );
+      }
+      if (pendingLeave > 0) {
+        actionItems.push(
+          `${pendingLeave} leave request${pendingLeave !== 1 ? "s" : ""} pending approval`,
+        );
+      }
+      if (expiringCertificates > 0) {
+        actionItems.push(
+          `${expiringCertificates} certificate${expiringCertificates !== 1 ? "s" : ""} expiring in the next 14 days`,
+        );
+      }
+      if (openIssues > 0) {
+        actionItems.push(
+          `${openIssues} open issue${openIssues !== 1 ? "s" : ""} to resolve`,
+        );
+      }
+
+      // Cap at 5 action items
+      const topActions = actionItems.slice(0, 5);
+
+      // ── 4. Send email ─────────────────────────────────────
+      const digestData: DigestData = {
+        userName: recipient.name.split(" ")[0],
+        overdueTodos,
+        rocksOnTrack: rockCounts.on_track,
+        rocksOffTrack: rockCounts.off_track,
+        rocksComplete: rockCounts.complete,
+        openIssues,
+        pendingLeave,
+        expiringCertificates,
+        actionItems: topActions,
+      };
+
+      const html = buildDigestHtml(digestData);
+
+      await sendEmail({
+        to: recipient.email,
+        subject: "Your Weekly EOS Dashboard Digest",
+        html,
+      });
+
+      emailsSent++;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`${recipient.email}: ${msg}`);
+    }
   }
-}
+
+  const result = {
+    message: "Weekly digest complete",
+    emailsSent,
+    emailsSkipped,
+    totalRecipients: recipients.length,
+    errors: errors.length > 0 ? errors : undefined,
+  };
+
+  await guard.complete(result);
+
+  return NextResponse.json(result);
+});

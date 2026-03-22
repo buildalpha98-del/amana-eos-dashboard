@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { authenticateCowork } from "@/app/api/_lib/auth";
+import { authenticateCowork, setVersionHeaders } from "@/app/api/_lib/auth";
 import { resolveServiceByCode } from "../../_lib/resolve-service";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const AUDIENCES = ["all", "owners_admins", "managers", "custom"] as const;
 const PRIORITIES = ["normal", "important", "urgent"] as const;
@@ -18,15 +20,11 @@ const apiAnnouncementSchema = z.object({
 });
 
 // POST /api/cowork/v2/announcements — Create announcement in the real Announcement model
-export async function POST(req: NextRequest) {
-  // 1. Authenticate
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  // 2. Rate limit
-
   try {
-    // 3. Validate body
     const body = await req.json();
     const parsed = apiAnnouncementSchema.safeParse(body);
     if (!parsed.success) {
@@ -45,7 +43,7 @@ export async function POST(req: NextRequest) {
       const service = await resolveServiceByCode(serviceCode);
       if (!service) {
         return NextResponse.json(
-          { error: "Not Found", message: `Service with code "${serviceCode}" not found` },
+          { error: `Service with code "${serviceCode}" not found` },
           { status: 404 },
         );
       }
@@ -61,7 +59,7 @@ export async function POST(req: NextRequest) {
         priority,
         pinned,
         serviceId,
-        authorId: "cowork",
+        authorId: null, // system-generated, no user FK
         publishedAt: publishedAt ? new Date(publishedAt) : new Date(),
       },
       include: {
@@ -88,9 +86,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(announcement, { status: 201 });
+    return setVersionHeaders(NextResponse.json(announcement, { status: 201 }), 2);
   } catch (err) {
-    console.error("[Cowork V2 Announcements POST]", err);
+    logger.error("Cowork V2 Announcements POST", { err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-}
+});

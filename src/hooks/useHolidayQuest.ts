@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -45,12 +47,9 @@ export function useHolidayQuestDays(
 
   return useQuery<HolidayQuestDayData[]>({
     queryKey: ["holiday-quest", serviceId, from, to, status],
-    queryFn: async () => {
-      const res = await fetch(`/api/holiday-quest?${query}`);
-      if (!res.ok) throw new Error("Failed to fetch Holiday Quest days");
-      return res.json();
-    },
+    queryFn: () => fetchApi<HolidayQuestDayData[]>(`/api/holiday-quest?${query}`),
     enabled: !!serviceId,
+    retry: 2,
   });
 }
 
@@ -74,16 +73,13 @@ export function useCreateHolidayQuestDays() {
         maxCapacity?: number;
       }>;
     }) => {
-      const res = await fetch("/api/holiday-quest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to create Holiday Quest days");
-      return res.json();
+      return mutateApi("/api/holiday-quest", { method: "POST", body: data });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["holiday-quest"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -92,16 +88,13 @@ export function useUpdateHolidayQuestDay() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; [key: string]: unknown }) => {
-      const res = await fetch(`/api/holiday-quest/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to update Holiday Quest day");
-      return res.json();
+      return mutateApi(`/api/holiday-quest/${id}`, { method: "PATCH", body: data });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["holiday-quest"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -110,12 +103,13 @@ export function useDeleteHolidayQuestDay() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/holiday-quest/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete Holiday Quest day");
-      return res.json();
+      return mutateApi(`/api/holiday-quest/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["holiday-quest"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -123,13 +117,13 @@ export function useDeleteHolidayQuestDay() {
 export function useGenerateHolidayQuestPromo() {
   return useMutation<HolidayQuestPromoResult, Error, { serviceId: string; from: string; to: string }>({
     mutationFn: async (data) => {
-      const res = await fetch("/api/communication/holiday-quest/promo", {
+      return mutateApi<HolidayQuestPromoResult>("/api/communication/holiday-quest/promo", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Failed to generate promo content");
-      return res.json();
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

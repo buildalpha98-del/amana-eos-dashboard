@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import path from "path";
 import { writeFile, mkdir } from "fs/promises";
+import { withApiAuth } from "@/lib/server-auth";
+import { validateFileContent } from "@/lib/file-validation";
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -14,14 +15,8 @@ const ALLOWED_TYPES = [
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 // POST /api/services/[id]/menus/upload — upload menu file
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
@@ -49,8 +44,16 @@ export async function POST(
     );
   }
 
-  // Save file
+  // Validate file content matches declared MIME type
   const bytes = await file.arrayBuffer();
+  if (!validateFileContent(bytes, file.type)) {
+    return NextResponse.json(
+      { error: "File content does not match declared type" },
+      { status: 400 },
+    );
+  }
+
+  // Save file
   const buffer = Buffer.from(bytes);
 
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -102,4 +105,4 @@ export async function POST(
   });
 
   return NextResponse.json(menuWeek);
-}
+});

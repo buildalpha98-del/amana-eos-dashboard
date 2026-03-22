@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
 
+const createAdjustmentSchema = z.object({
+  periodMonth: z.string().min(1),
+  category: z.enum(["personal_expense", "one_off_cost", "non_operating", "system_migration", "founder_above_market", "other"]),
+  description: z.string().min(1),
+  amount: z.union([z.number(), z.string().transform(Number)]),
+  isRecurring: z.boolean().optional().default(false),
+  notes: z.string().optional(),
+});
 /**
  * GET /api/financials/adjustments
  * List EBITDA adjustments by period or date range
@@ -12,10 +22,7 @@ import { requireAuth } from "@/lib/server-auth";
  *   - to: "2026-03" (range end)
  *   - category: filter by category
  */
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const periodMonth = searchParams.get("periodMonth");
   const from = searchParams.get("from");
@@ -58,52 +65,31 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("[Adjustments GET]", err);
+    logger.error("Adjustments GET", { err });
     return NextResponse.json({ error: "Failed to fetch adjustments" }, { status: 500 });
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 /**
  * POST /api/financials/adjustments
  * Create a new EBITDA adjustment
  */
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  try {
+export const POST = withApiAuth(async (req, session) => {
+try {
     const body = await req.json();
-    const { periodMonth, category, description, amount, isRecurring, notes } = body;
-
-    if (!periodMonth || !category || !description || amount === undefined) {
-      return NextResponse.json(
-        { error: "periodMonth, category, description, and amount are required" },
-        { status: 400 },
-      );
+    const parsed = createAdjustmentSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
     }
-
-    const validCategories = [
-      "personal_expense",
-      "one_off_cost",
-      "non_operating",
-      "system_migration",
-      "founder_above_market",
-      "other",
-    ];
-    if (!validCategories.includes(category)) {
-      return NextResponse.json(
-        { error: `Invalid category. Must be one of: ${validCategories.join(", ")}` },
-        { status: 400 },
-      );
-    }
+    const { periodMonth, category, description, amount, isRecurring, notes } = parsed.data;
 
     const adjustment = await prisma.eBITDAAdjustment.create({
       data: {
         periodMonth,
         category,
         description,
-        amount: parseFloat(amount),
-        isRecurring: isRecurring || false,
+        amount: typeof amount === "number" ? amount : parseFloat(String(amount)),
+        isRecurring,
         notes,
         createdById: session!.user.id,
       },
@@ -114,19 +100,16 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(adjustment, { status: 201 });
   } catch (err) {
-    console.error("[Adjustments POST]", err);
+    logger.error("Adjustments POST", { err });
     return NextResponse.json({ error: "Failed to create adjustment" }, { status: 500 });
   }
-}
+}, { roles: ["owner", "head_office", "admin"] });
 
 /**
  * DELETE /api/financials/adjustments
  * Delete an adjustment by ID (passed as query param)
  */
-export async function DELETE(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office"]);
-  if (error) return error;
-
+export const DELETE = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) {
@@ -137,7 +120,7 @@ export async function DELETE(req: NextRequest) {
     await prisma.eBITDAAdjustment.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[Adjustments DELETE]", err);
+    logger.error("Adjustments DELETE", { err });
     return NextResponse.json({ error: "Failed to delete adjustment" }, { status: 500 });
   }
-}
+}, { roles: ["owner", "head_office"] });

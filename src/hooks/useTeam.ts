@@ -1,5 +1,6 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
 
 export interface TeamMemberRock {
   id: string;
@@ -27,11 +28,8 @@ export interface TeamMember {
 export function useTeam() {
   return useQuery<TeamMember[]>({
     queryKey: ["team"],
-    queryFn: async () => {
-      const res = await fetch("/api/team");
-      if (!res.ok) throw new Error("Failed to fetch team");
-      return res.json();
-    },
+    queryFn: () => fetchApi<TeamMember[]>("/api/team"),
     staleTime: 5 * 60_000, // Reference data: 5 min stale time
+    retry: 2,
   });
 }

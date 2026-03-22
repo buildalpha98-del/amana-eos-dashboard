@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 // GET /api/timesheets/summary — aggregate hours by staff member
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
+export const GET = withApiAuth(async (req, session) => {
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const startDate = searchParams.get("startDate");
@@ -97,4 +93,4 @@ export async function GET(req: NextRequest) {
   }));
 
   return NextResponse.json(summary);
-}
+}, { roles: ["owner", "head_office", "admin"] });

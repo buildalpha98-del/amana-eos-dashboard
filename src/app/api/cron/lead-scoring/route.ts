@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { getAI } from "@/lib/ai";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 const MAX_LEADS_PER_RUN = 20;
 const STALE_DAYS = 7;
@@ -14,7 +16,7 @@ const STALE_DAYS = 7;
  * Daily cron — scores leads in active pipeline stages that haven't been
  * scored in 7+ days (or never scored). Processes up to 20 per run.
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
@@ -125,7 +127,7 @@ Scoring criteria:
         const parsed = parseScoreResponse(block.text);
 
         if (!parsed) {
-          console.error(`Failed to parse score for lead ${lead.id}`);
+          logger.error("Failed to parse score for lead", { leadId: lead.id });
           failed++;
           continue;
         }
@@ -159,7 +161,7 @@ Scoring criteria:
 
         scored++;
       } catch (err) {
-        console.error(`Failed to score lead ${lead.id}:`, err);
+        logger.error("Failed to score lead", { leadId: lead.id, err });
         failed++;
       }
     }
@@ -174,13 +176,13 @@ Scoring criteria:
     });
   } catch (err) {
     await guard.fail(err);
-    console.error("Lead scoring cron failed:", err);
+    logger.error("Lead scoring cron failed", { err });
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Cron failed" },
       { status: 500 },
     );
   }
-}
+});
 
 // ---------------------------------------------------------------------------
 // Helpers

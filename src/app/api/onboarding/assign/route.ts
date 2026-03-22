@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const assignSchema = z.object({
   userId: z.string().min(1),
   packId: z.string().min(1),
@@ -17,11 +16,8 @@ const progressSchema = z.object({
 });
 
 // GET /api/onboarding/assign — list assignments (optionally filtered by userId)
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { searchParams } = new URL(req.url);
+export const GET = withApiAuth(async (req, session) => {
+const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
 
   // Staff can only see their own assignments
@@ -55,14 +51,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(assignments);
-}
+});
 
 // POST /api/onboarding/assign — assign a pack to a user OR update task progress
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
 
   // Check if this is a progress update
   if (body.onboardingId && body.taskId !== undefined) {
@@ -207,4 +200,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(assignment, { status: 201 });
-}
+});

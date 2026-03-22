@@ -23,6 +23,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
 type CronPeriod = "daily" | "weekly" | "monthly";
 
@@ -162,16 +163,13 @@ export async function acquireCronLock(
  */
 export function verifyCronSecret(
   req: Request,
-): { error: Response } | null {
+): { error: NextResponse } | null {
   const authHeader = (req.headers as Headers).get("authorization");
   const cronSecret = process.env.CRON_SECRET;
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return {
-      error: new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      }),
+      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
     };
   }
 

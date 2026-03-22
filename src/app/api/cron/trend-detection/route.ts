@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { prisma } from "@/lib/prisma";
+import { withApiHandler } from "@/lib/api-handler";
 
 /**
  * Weekly cron — analyses financial + attendance trends across all services.
  * Schedule: Every Monday at 6:30 AM UTC
  */
-export async function GET(req: NextRequest) {
+export const GET = withApiHandler(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
@@ -215,7 +216,7 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 // --- Helpers ---
 

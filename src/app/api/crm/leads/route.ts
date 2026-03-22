@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { hasFeature } from "@/lib/role-permissions";
 import { parsePagination } from "@/lib/pagination";
 import type { Role, PipelineStage, LeadSource } from "@prisma/client";
+import { withApiAuth } from "@/lib/server-auth";
 
 const PIPELINE_STAGES: PipelineStage[] = [
   "new_lead", "reviewing", "contact_made", "follow_up_1", "follow_up_2",
@@ -33,11 +33,8 @@ const createLeadSchema = z.object({
 });
 
 // GET /api/crm/leads
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  if (!hasFeature(session!.user.role as Role, "crm.view")) {
+export const GET = withApiAuth(async (req, session) => {
+if (!hasFeature(session!.user.role as Role, "crm.view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -89,14 +86,11 @@ export async function GET(req: NextRequest) {
   // Backward-compatible: no pagination params → return flat array
   const leads = await prisma.lead.findMany({ where, include, orderBy });
   return NextResponse.json(leads);
-}
+});
 
 // POST /api/crm/leads
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  if (!hasFeature(session!.user.role as Role, "crm.create")) {
+export const POST = withApiAuth(async (req, session) => {
+if (!hasFeature(session!.user.role as Role, "crm.create")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -146,4 +140,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(lead, { status: 201 });
-}
+});

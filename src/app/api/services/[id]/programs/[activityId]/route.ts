@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 
@@ -19,14 +19,8 @@ const updateSchema = z.object({
 });
 
 // PATCH /api/services/[id]/programs/[activityId]
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string; activityId: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id, activityId } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id, activityId } = await context!.params!;
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
 
@@ -72,17 +66,11 @@ export async function PATCH(
   });
 
   return NextResponse.json(activity);
-}
+});
 
 // DELETE /api/services/[id]/programs/[activityId]
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string; activityId: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { id, activityId } = await params;
+export const DELETE = withApiAuth(async (req, session, context) => {
+const { id, activityId } = await context!.params!;
 
   const existing = await prisma.programActivity.findFirst({
     where: { id: activityId, serviceId: id },
@@ -106,4 +94,4 @@ export async function DELETE(
   await prisma.programActivity.delete({ where: { id: activityId } });
 
   return NextResponse.json({ success: true });
-}
+});

@@ -20,6 +20,8 @@ import { GET, POST } from "@/app/api/rocks/route";
 describe("GET /api/rocks", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // withApiAuth checks user is active in DB
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
   });
 
   it("returns 401 when not authenticated", async () => {
@@ -78,6 +80,7 @@ describe("GET /api/rocks", () => {
 describe("POST /api/rocks", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
   });
 
   it("returns 401 when not authenticated", async () => {

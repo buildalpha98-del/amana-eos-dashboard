@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import type { GoalStatus } from "@prisma/client";
 
 export interface GoalRock {
@@ -39,11 +41,8 @@ export interface VTOData {
 export function useVTO() {
   return useQuery<VTOData>({
     queryKey: ["vto"],
-    queryFn: async () => {
-      const res = await fetch("/api/vto");
-      if (!res.ok) throw new Error("Failed to fetch V/TO");
-      return res.json();
-    },
+    queryFn: () => fetchApi<VTOData>("/api/vto"),
+    retry: 2,
   });
 }
 
@@ -61,19 +60,13 @@ export function useUpdateVTO() {
         sectionLabels: Record<string, string>;
       }>
     ) => {
-      const res = await fetch("/api/vto", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update V/TO");
-      }
-      return res.json();
+      return mutateApi("/api/vto", { method: "PATCH", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vto"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -87,19 +80,13 @@ export function useCreateGoal() {
       targetDate?: string;
       vtoId: string;
     }) => {
-      const res = await fetch("/api/goals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create goal");
-      }
-      return res.json();
+      return mutateApi("/api/goals", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vto"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -117,19 +104,13 @@ export function useUpdateGoal() {
       status?: GoalStatus;
       targetDate?: string | null;
     }) => {
-      const res = await fetch(`/api/goals/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update goal");
-      }
-      return res.json();
+      return mutateApi(`/api/goals/${id}`, { method: "PATCH", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vto"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -138,12 +119,13 @@ export function useDeleteGoal() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/goals/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete goal");
-      return res.json();
+      return mutateApi(`/api/goals/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vto"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

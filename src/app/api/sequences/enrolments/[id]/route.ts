@@ -1,25 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
+import { withApiAuth } from "@/lib/server-auth";
+import { z } from "zod";
+
+const postSchema = z.object({
+  action: z.enum(["pause", "resume", "cancel"]),
+});
 
 // POST /api/sequences/enrolments/:id — action-based (pause/resume/cancel)
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
-  const { id } = await params;
+export const POST = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
   const body = await req.json();
-  const { action } = body as { action: "pause" | "resume" | "cancel" };
-
-  if (!["pause", "resume", "cancel"].includes(action)) {
+  const parsed = postSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "action must be pause, resume, or cancel" },
+      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
       { status: 400 },
     );
   }
+  const { action } = parsed.data;
 
   const enrolment = await prisma.sequenceEnrolment.findUnique({
     where: { id },
@@ -120,4 +119,4 @@ export async function POST(
   ]);
 
   return NextResponse.json({ success: true, status: "cancelled" });
-}
+});

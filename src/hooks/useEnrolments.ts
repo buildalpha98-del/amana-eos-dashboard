@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
 export interface EnrolmentSubmission {
   id: string;
@@ -62,23 +63,17 @@ export function useEnrolments(status?: string) {
 
   return useQuery<EnrolmentsResponse>({
     queryKey: ["enrolments", status || "all"],
-    queryFn: async () => {
-      const res = await fetch(`/api/enrolments?${params}`);
-      if (!res.ok) throw new Error("Failed to load enrolments");
-      return res.json();
-    },
+    queryFn: () => fetchApi<EnrolmentsResponse>(`/api/enrolments?${params}`),
+    retry: 2,
   });
 }
 
 export function useEnrolment(id: string | null) {
   return useQuery<EnrolmentSubmission>({
     queryKey: ["enrolment", id],
-    queryFn: async () => {
-      const res = await fetch(`/api/enrolments/${id}`);
-      if (!res.ok) throw new Error("Failed to load enrolment");
-      return res.json();
-    },
+    queryFn: () => fetchApi<EnrolmentSubmission>(`/api/enrolments/${id}`),
     enabled: Boolean(id),
+    retry: 2,
   });
 }
 
@@ -87,18 +82,18 @@ export function useUpdateEnrolment() {
 
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string; status?: string; notes?: string }) => {
-      const res = await fetch(`/api/enrolments/${id}`, {
+      return mutateApi<EnrolmentSubmission>(`/api/enrolments/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) throw new Error("Update failed");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["enrolments"] });
       queryClient.invalidateQueries({ queryKey: ["enrolment"] });
       toast({ description: "Enrolment updated" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

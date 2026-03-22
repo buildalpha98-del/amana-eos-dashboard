@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getServiceScope } from "@/lib/service-scope";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
 
 // GET /api/exit-survey/summary — aggregated exit data per service
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { searchParams } = new URL(req.url);
+export const GET = withApiAuth(async (req, session) => {
+const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
   const months = parseInt(searchParams.get("months") || "6");
 
@@ -16,7 +14,7 @@ export async function GET(req: NextRequest) {
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - months);
 
-  const where: any = {
+  const where: Record<string, unknown> = {
     completedAt: { not: null },
     createdAt: { gte: cutoff },
   };
@@ -75,7 +73,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Churn metrics
-    const churnWhere: any = {
+    const churnWhere: Record<string, unknown> = {
       status: "withdrawn",
       withdrawalDate: { gte: cutoff },
     };
@@ -84,7 +82,7 @@ export async function GET(req: NextRequest) {
 
     const withdrawnCount = await prisma.centreContact.count({ where: churnWhere });
 
-    const activeWhere: any = { status: "active" };
+    const activeWhere: Record<string, unknown> = { status: "active" };
     if (serviceId) activeWhere.serviceId = serviceId;
     else if (serviceScope) activeWhere.serviceId = serviceScope;
 
@@ -103,7 +101,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("[ExitSurvey Summary]", err);
+    logger.error("ExitSurvey Summary", { err });
     return NextResponse.json({ error: "Failed to fetch summary" }, { status: 500 });
   }
-}
+});

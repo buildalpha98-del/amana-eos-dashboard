@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const patchEnrolmentSchema = z.object({
   status: z.enum(["submitted", "under_review", "processed", "rejected", "archived"], {
     error: "Invalid status. Must be one of: submitted, under_review, processed, rejected, archived",
@@ -11,13 +10,8 @@ const patchEnrolmentSchema = z.object({
   pdfUrl: z.string().url("pdfUrl must be a valid URL").optional().nullable(),
 }).strict();
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { error } = await requireAuth();
-  if (error) return error;
-  const { id } = await params;
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
 
   const submission = await prisma.enrolmentSubmission.findUnique({
     where: { id },
@@ -28,15 +22,10 @@ export async function GET(
   }
 
   return NextResponse.json(submission);
-}
+});
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-  const { id } = await params;
+export const PATCH = withApiAuth(async (req, session, context) => {
+const { id } = await context!.params!;
   const body = await req.json();
 
   const parsed = patchEnrolmentSchema.safeParse(body);
@@ -71,4 +60,4 @@ export async function PATCH(
   }
 
   return NextResponse.json(updated);
-}
+});

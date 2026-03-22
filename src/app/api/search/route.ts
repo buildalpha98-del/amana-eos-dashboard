@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
-export async function GET(req: NextRequest) {
-  const { error } = await requireAuth();
-  if (error) return error;
-
+import { withApiAuth } from "@/lib/server-auth";
+export const GET = withApiAuth(async (req, session) => {
   const q = new URL(req.url).searchParams.get("q")?.trim();
   if (!q || q.length < 2) {
     return NextResponse.json([]);
@@ -91,4 +87,4 @@ export async function GET(req: NextRequest) {
   ];
 
   return NextResponse.json(results);
-}
+});

@@ -1,18 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { getStateScope } from "@/lib/service-scope";
 import { getCentreScope, applyCentreFilter } from "@/lib/centre-scope";
+import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { z } from "zod";
+
+const postSchema = z.object({
+  serviceId: z.string().min(1),
+  incidentDate: z.string().min(1),
+  childName: z.string().optional(),
+  incidentType: z.string().min(1),
+  severity: z.string().min(1),
+  location: z.string().optional(),
+  timeOfDay: z.string().optional(),
+  description: z.string().min(1),
+  actionTaken: z.string().optional(),
+  parentNotified: z.boolean().optional(),
+  reportableToAuthority: z.boolean().optional(),
+  followUpRequired: z.boolean().optional(),
+});
 
 /**
  * GET /api/incidents
  * List incidents with filters + optional summary mode
  */
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { serviceIds } = await getCentreScope(session);
+export const GET = withApiAuth(async (req, session) => {
+const { serviceIds } = await getCentreScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const serviceId = searchParams.get("serviceId");
@@ -79,32 +93,29 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ incidents: records, count: records.length });
   } catch (err) {
-    console.error("[Incidents GET]", err);
+    logger.error("Incidents GET", { err });
     return NextResponse.json({ error: "Failed to fetch incidents" }, { status: 500 });
   }
-}
+});
 
 /**
  * POST /api/incidents — Manual entry
  */
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin", "member"]);
-  if (error) return error;
-
-  try {
+export const POST = withApiAuth(async (req, session) => {
+try {
     const body = await req.json();
+    const parsed = postSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
     const {
       serviceId, incidentDate, childName, incidentType, severity,
       location, timeOfDay, description, actionTaken,
       parentNotified, reportableToAuthority, followUpRequired,
-    } = body;
-
-    if (!serviceId || !incidentDate || !incidentType || !severity || !description) {
-      return NextResponse.json(
-        { error: "serviceId, incidentDate, incidentType, severity, and description are required" },
-        { status: 400 },
-      );
-    }
+    } = parsed.data;
 
     const record = await prisma.incidentRecord.create({
       data: {
@@ -129,7 +140,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(record, { status: 201 });
   } catch (err) {
-    console.error("[Incidents POST]", err);
+    logger.error("Incidents POST", { err });
     return NextResponse.json({ error: "Failed to create incident" }, { status: 500 });
   }
-}
+}, { roles: ["owner", "head_office", "admin", "member"] });

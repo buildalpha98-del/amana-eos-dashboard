@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
-
+import { withApiAuth } from "@/lib/server-auth";
 const pulseUpsertSchema = z.object({
   weekOf: z.string().min(1, "weekOf is required"),
   wins: z.string().optional(),
@@ -14,11 +13,8 @@ const pulseUpsertSchema = z.object({
 });
 
 // GET /api/communication/pulse — List weekly pulses
-export async function GET(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const { searchParams } = new URL(req.url);
+export const GET = withApiAuth(async (req, session) => {
+const { searchParams } = new URL(req.url);
   const weekOf = searchParams.get("weekOf");
   const userId = searchParams.get("userId");
 
@@ -49,14 +45,11 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(pulses);
-}
+});
 
 // POST /api/communication/pulse — Create or update weekly pulse (upsert)
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth();
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = pulseUpsertSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -111,4 +104,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json(pulse);
-}
+});

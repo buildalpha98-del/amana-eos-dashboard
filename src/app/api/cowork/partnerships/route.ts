@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { z } from "zod";
+import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -32,8 +34,8 @@ const postSchema = z.object({
  * Upsert a partnership record by serviceCode.
  * Returns: { success, partnership, created }
  */
-export async function POST(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const POST = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -118,13 +120,13 @@ export async function POST(req: NextRequest) {
       { status: existing ? 200 : 201 }
     );
   } catch (error) {
-    console.error("[POST /api/cowork/partnerships]", error);
+    logger.error("POST /api/cowork/partnerships", { error });
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }
-}
+});
 
 // ---------------------------------------------------------------------------
 // GET /api/cowork/partnerships
@@ -135,8 +137,8 @@ export async function POST(req: NextRequest) {
  * Query params: serviceCode, status, minScore, maxScore
  * Returns: { success, partnerships, count }
  */
-export async function GET(req: NextRequest) {
-  const authError = authenticateCowork(req);
+export const GET = withApiHandler(async (req) => {
+  const authError = await authenticateCowork(req);
   if (authError) return authError;
 
   try {
@@ -167,10 +169,10 @@ export async function GET(req: NextRequest) {
       count: partnerships.length,
     });
   } catch (error) {
-    console.error("[GET /api/cowork/partnerships]", error);
+    logger.error("GET /api/cowork/partnerships", { error });
     return NextResponse.json(
       { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }
-}
+});

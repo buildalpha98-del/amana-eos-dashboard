@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { withApiAuth } from "@/lib/server-auth";
 
 const bulkTodoSchema = z.object({
   todos: z.array(
@@ -16,11 +16,8 @@ const bulkTodoSchema = z.object({
   ).min(1).max(50),
 });
 
-export async function POST(req: NextRequest) {
-  const { session, error } = await requireAuth(["owner", "head_office", "admin"]);
-  if (error) return error;
-
-  const body = await req.json();
+export const POST = withApiAuth(async (req, session) => {
+const body = await req.json();
   const parsed = bulkTodoSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -94,4 +91,4 @@ export async function POST(req: NextRequest) {
     created: created.length,
     todos: created.map((t) => ({ id: t.id, title: t.title })),
   });
-}
+}, { roles: ["owner", "head_office", "admin"] });

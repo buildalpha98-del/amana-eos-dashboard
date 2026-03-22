@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface ComplianceCertData {
   id: string;
@@ -28,11 +30,8 @@ export function useComplianceCerts(filters?: { serviceId?: string; upcoming?: st
 
   return useQuery<ComplianceCertData[]>({
     queryKey: ["compliance", filters],
-    queryFn: async () => {
-      const res = await fetch(`/api/compliance${query ? `?${query}` : ""}`);
-      if (!res.ok) throw new Error("Failed to fetch compliance data");
-      return res.json();
-    },
+    queryFn: () => fetchApi<ComplianceCertData[]>(`/api/compliance${query ? `?${query}` : ""}`),
+    retry: 2,
   });
 }
 
@@ -51,19 +50,13 @@ export function useCreateCert() {
       fileUrl?: string | null;
       fileName?: string | null;
     }) => {
-      const res = await fetch("/api/compliance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create certificate");
-      }
-      return res.json();
+      return mutateApi("/api/compliance", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["compliance"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -72,16 +65,13 @@ export function useUpdateCert() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...data }: { id: string } & Record<string, unknown>) => {
-      const res = await fetch(`/api/compliance/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to update certificate");
-      return res.json();
+      return mutateApi(`/api/compliance/${id}`, { method: "PATCH", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["compliance"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -90,12 +80,13 @@ export function useDeleteCert() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/compliance/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete certificate");
-      return res.json();
+      return mutateApi(`/api/compliance/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["compliance"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

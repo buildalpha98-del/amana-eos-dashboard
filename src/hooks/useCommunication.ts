@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ANNOUNCEMENTS
@@ -11,10 +13,9 @@ export function useAnnouncements(audience?: string) {
     queryKey: ["announcements", audience],
     queryFn: async () => {
       const params = audience ? `?audience=${audience}` : "";
-      const res = await fetch(`/api/communication/announcements${params}`);
-      if (!res.ok) throw new Error("Failed to fetch announcements");
-      return res.json();
+      return fetchApi<any>(`/api/communication/announcements${params}`);
     },
+    retry: 2,
   });
 }
 
@@ -22,11 +23,10 @@ export function useAnnouncement(id: string) {
   return useQuery({
     queryKey: ["announcement", id],
     queryFn: async () => {
-      const res = await fetch(`/api/communication/announcements/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch announcement");
-      return res.json();
+      return fetchApi<any>(`/api/communication/announcements/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -42,19 +42,16 @@ export function useCreateAnnouncement() {
       serviceId?: string | null;
       publishedAt?: string | null;
     }) => {
-      const res = await fetch("/api/communication/announcements", {
+      return mutateApi("/api/communication/announcements", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create announcement");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -76,20 +73,17 @@ export function useUpdateAnnouncement() {
       publishedAt?: string | null;
       expiresAt?: string | null;
     }) => {
-      const res = await fetch(`/api/communication/announcements/${id}`, {
+      return mutateApi(`/api/communication/announcements/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update announcement");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
       queryClient.invalidateQueries({ queryKey: ["announcement"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -98,14 +92,15 @@ export function useDeleteAnnouncement() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/communication/announcements/${id}`, {
+      return mutateApi(`/api/communication/announcements/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete announcement");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -114,18 +109,16 @@ export function useMarkAnnouncementRead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/communication/announcements/${id}/read`, {
+      return mutateApi(`/api/communication/announcements/${id}/read`, {
         method: "POST",
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to mark announcement as read");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["announcements"] });
       queryClient.invalidateQueries({ queryKey: ["announcement"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -138,10 +131,9 @@ export function useCascadeMessages() {
   return useQuery({
     queryKey: ["cascade-messages"],
     queryFn: async () => {
-      const res = await fetch("/api/communication/cascade");
-      if (!res.ok) throw new Error("Failed to fetch cascade messages");
-      return res.json();
+      return fetchApi<any>("/api/communication/cascade");
     },
+    retry: 2,
   });
 }
 
@@ -149,11 +141,10 @@ export function useCascadeMessage(id: string) {
   return useQuery({
     queryKey: ["cascade-message", id],
     queryFn: async () => {
-      const res = await fetch(`/api/communication/cascade/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch cascade message");
-      return res.json();
+      return fetchApi<any>(`/api/communication/cascade/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -164,19 +155,16 @@ export function usePublishCascade() {
       meetingId: string;
       message: string;
     }) => {
-      const res = await fetch("/api/communication/cascade", {
+      return mutateApi("/api/communication/cascade", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to publish cascade message");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cascade-messages"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -191,20 +179,17 @@ export function useUpdateCascade() {
       id: string;
       message?: string;
     }) => {
-      const res = await fetch(`/api/communication/cascade/${id}`, {
+      return mutateApi(`/api/communication/cascade/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update cascade message");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cascade-messages"] });
       queryClient.invalidateQueries({ queryKey: ["cascade-message"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -213,14 +198,15 @@ export function useDeleteCascade() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/communication/cascade/${id}`, {
+      return mutateApi(`/api/communication/cascade/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete cascade message");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cascade-messages"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -229,19 +215,17 @@ export function useAcknowledgeCascade() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(
+      return mutateApi(
         `/api/communication/cascade/${id}/acknowledge`,
         { method: "POST" }
       );
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to acknowledge cascade message");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cascade-messages"] });
       queryClient.invalidateQueries({ queryKey: ["cascade-message"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -258,12 +242,11 @@ export function usePulses(weekOf?: string, userId?: string) {
       if (weekOf) params.set("weekOf", weekOf);
       if (userId) params.set("userId", userId);
       const qs = params.toString();
-      const res = await fetch(
+      return fetchApi<any>(
         `/api/communication/pulse${qs ? `?${qs}` : ""}`
       );
-      if (!res.ok) throw new Error("Failed to fetch pulses");
-      return res.json();
     },
+    retry: 2,
   });
 }
 
@@ -271,11 +254,10 @@ export function usePulse(id: string) {
   return useQuery({
     queryKey: ["pulse", id],
     queryFn: async () => {
-      const res = await fetch(`/api/communication/pulse/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch pulse");
-      return res.json();
+      return fetchApi<any>(`/api/communication/pulse/${id}`);
     },
     enabled: !!id,
+    retry: 2,
   });
 }
 
@@ -291,20 +273,17 @@ export function useSubmitPulse() {
       notes?: string;
       submitted?: boolean;
     }) => {
-      const res = await fetch("/api/communication/pulse", {
+      return mutateApi("/api/communication/pulse", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to submit pulse");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pulses"] });
       queryClient.invalidateQueries({ queryKey: ["pulse-summary"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -324,21 +303,18 @@ export function useUpdatePulse() {
       notes?: string;
       submittedAt?: string | null;
     }) => {
-      const res = await fetch(`/api/communication/pulse/${id}`, {
+      return mutateApi(`/api/communication/pulse/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: data,
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update pulse");
-      }
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pulses"] });
       queryClient.invalidateQueries({ queryKey: ["pulse"] });
       queryClient.invalidateQueries({ queryKey: ["pulse-summary"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -347,15 +323,16 @@ export function useDeletePulse() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/communication/pulse/${id}`, {
+      return mutateApi(`/api/communication/pulse/${id}`, {
         method: "DELETE",
       });
-      if (!res.ok) throw new Error("Failed to delete pulse");
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pulses"] });
       queryClient.invalidateQueries({ queryKey: ["pulse-summary"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }
@@ -364,12 +341,11 @@ export function usePulseSummary(weekOf: string) {
   return useQuery({
     queryKey: ["pulse-summary", weekOf],
     queryFn: async () => {
-      const res = await fetch(
+      return fetchApi<any>(
         `/api/communication/pulse/summary?weekOf=${weekOf}`
       );
-      if (!res.ok) throw new Error("Failed to fetch pulse summary");
-      return res.json();
     },
     enabled: !!weekOf,
+    retry: 2,
   });
 }

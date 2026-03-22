@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logger } from "@/lib/logger";
 
 /**
  * Central environment variable validation.
@@ -68,7 +69,7 @@ function validateEnv(): Env {
     if (isRuntime) {
       throw new Error(`[ENV] Fatal: missing required env vars: ${missing}`);
     }
-    console.error(`[ENV] WARNING: missing required env vars: ${missing}`);
+    logger.error("Missing required env vars", { missing });
   }
 
   // Warn about missing feature vars (non-fatal)
@@ -76,7 +77,7 @@ function validateEnv(): Env {
   for (const issue of result.error.issues) {
     const key = String(issue.path[0]);
     if (!requiredKeys.includes(key)) {
-      console.warn(`[ENV] Missing optional var: ${key}`);
+      logger.warn("Missing optional env var", { key });
     }
   }
 
