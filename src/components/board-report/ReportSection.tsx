@@ -48,16 +48,16 @@ export function ReportSection({
   }, [localValue, narrative, onNarrativeChange]);
 
   return (
-    <div className="report-section bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="report-section bg-card rounded-xl border border-border overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-border/50">
         <div
           className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ backgroundColor: `${iconColor}15`, color: iconColor }}
         >
           <Icon className="w-4.5 h-4.5" />
         </div>
-        <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
 
       {/* Data content */}
@@ -66,7 +66,7 @@ export function ReportSection({
       {/* Editable narrative */}
       <div className="px-5 pb-4">
         <div className="flex items-center justify-between mb-1.5">
-          <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+          <label className="text-xs font-medium text-muted uppercase tracking-wider">
             Narrative
           </label>
           {onAiGenerate && (
@@ -96,9 +96,9 @@ export function ReportSection({
           onChange={(e) => setLocalValue(e.target.value)}
           onBlur={handleBlur}
           rows={2}
-          className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 leading-relaxed
+          className="w-full resize-none rounded-lg border border-border px-3 py-2 text-sm text-foreground/80 leading-relaxed
                      focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40
-                     placeholder:text-gray-400"
+                     placeholder:text-muted"
           placeholder="Add commentary..."
         />
       </div>

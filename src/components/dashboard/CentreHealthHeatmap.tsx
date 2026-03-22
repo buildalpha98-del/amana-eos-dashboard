@@ -19,7 +19,7 @@ const statusColors = {
 const trendIcons = {
   improving: <ArrowUp className="w-4 h-4 text-emerald-500" />,
   declining: <ArrowDown className="w-4 h-4 text-red-500" />,
-  stable: <Minus className="w-4 h-4 text-gray-400" />,
+  stable: <Minus className="w-4 h-4 text-muted" />,
 };
 
 const trendLabels = {
@@ -44,19 +44,19 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
   }, [centres]);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+    <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+          <h3 className="text-base sm:text-lg font-semibold text-foreground">
             Centre Health Overview
           </h3>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+          <p className="text-xs sm:text-sm text-muted mt-0.5">
             Composite score based on occupancy, compliance, NPS &amp; margin
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
           {networkAvgScore !== undefined && (
-            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+            <span className="inline-flex items-center rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-foreground/80">
               Avg: {networkAvgScore}
             </span>
           )}
@@ -76,7 +76,7 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
       </div>
 
       {centres.length === 0 ? (
-        <div className="text-center py-8 text-gray-400 text-sm">
+        <div className="text-center py-8 text-muted text-sm">
           No active centres found.
         </div>
       ) : (
@@ -101,7 +101,7 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
                   ? "text-emerald-600"
                   : delta < 0
                     ? "text-red-600"
-                    : "text-gray-400"
+                    : "text-muted"
                 : "";
 
             return (
@@ -117,11 +117,11 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
 
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
-                  <span className="text-xs font-bold text-gray-500 truncate">
+                  <span className="text-xs font-bold text-muted truncate">
                     {centre.code}
                   </span>
                 </div>
-                <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
+                <p className="text-sm font-semibold text-foreground truncate leading-tight">
                   {centre.name}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1">
@@ -137,7 +137,7 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
                         </span>
                       )}
                     </div>
-                    <span className="text-[9px] text-gray-400 leading-tight">
+                    <span className="text-[9px] text-muted leading-tight">
                       {deltaStr !== undefined ? "vs avg" : trendLabels[trend]}
                     </span>
                   </div>
@@ -150,12 +150,12 @@ export function CentreHealthHeatmap({ centres, networkAvgScore }: CentreHealthHe
                     { key: "satisfaction", color: "bg-amber-400" },
                     { key: "teamCulture", color: "bg-rose-400" },
                   ].map(({ key, color }) => (
-                    <div key={key} className="h-1.5 rounded-full flex-1 bg-gray-200 overflow-hidden">
+                    <div key={key} className="h-1.5 rounded-full flex-1 bg-border overflow-hidden">
                       <div className={`h-full ${color} rounded-full`} style={{ width: `${centre.pillars?.[key as keyof typeof centre.pillars] ?? 0}%` }} />
                     </div>
                   ))}
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] text-gray-500">
+                <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px] text-muted">
                   <span>Occ {centre.metrics.occupancy}%</span>
                   <span>Comp {centre.metrics.compliance}%</span>
                   <span>NPS {centre.metrics.nps}</span>

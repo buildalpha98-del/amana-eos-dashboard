@@ -50,7 +50,7 @@ export function TicketPriorityChart({ data }: TicketPriorityChartProps) {
   if (chartData.length === 0) {
     return (
       <ChartCard title="Priority Distribution" subtitle="Tickets by priority level">
-        <div className="flex items-center justify-center h-[280px] text-sm text-gray-400">
+        <div className="flex items-center justify-center h-[280px] text-sm text-muted">
           No data available
         </div>
       </ChartCard>
@@ -86,7 +86,7 @@ export function TicketPriorityChart({ data }: TicketPriorityChartProps) {
           />
           <Legend
             formatter={(value: string) => (
-              <span className="text-sm text-gray-600">{value}</span>
+              <span className="text-sm text-muted">{value}</span>
             )}
           />
         </PieChart>

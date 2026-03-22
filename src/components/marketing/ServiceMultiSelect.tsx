@@ -66,7 +66,7 @@ export function ServiceMultiSelect({
   return (
     <div ref={containerRef} className="relative">
       {label && (
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1 block text-sm font-medium text-foreground/80">
           {label}
         </label>
       )}
@@ -76,13 +76,13 @@ export function ServiceMultiSelect({
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
-          "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-left flex items-center justify-between gap-2",
+          "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-left flex items-center justify-between gap-2",
           "focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         )}
       >
         <div className="flex flex-wrap gap-1 min-h-[20px] flex-1">
           {selectedServices.length === 0 ? (
-            <span className="text-gray-500 italic">All Centres</span>
+            <span className="text-muted italic">All Centres</span>
           ) : (
             selectedServices.map((s) => (
               <span
@@ -96,7 +96,7 @@ export function ServiceMultiSelect({
                     e.stopPropagation();
                     toggleId(s.id);
                   }}
-                  className="hover:text-red-500"
+                  className="hover:text-danger"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -112,7 +112,7 @@ export function ServiceMultiSelect({
           )}
           <ChevronDown
             className={cn(
-              "h-4 w-4 text-gray-400 transition-transform",
+              "h-4 w-4 text-muted transition-transform",
               open && "rotate-180"
             )}
           />
@@ -121,21 +121,21 @@ export function ServiceMultiSelect({
 
       {/* Dropdown Panel */}
       {open && (
-        <div className="absolute z-30 mt-1 w-full rounded-xl border border-gray-200 bg-white shadow-lg">
+        <div className="absolute z-30 mt-1 w-full rounded-xl border border-border bg-card shadow-lg">
           {/* Search */}
-          <div className="relative border-b border-gray-100 p-2">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <div className="relative border-b border-border/50 p-2">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search centres..."
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-lg border border-border bg-surface/50 pl-9 pr-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
 
           {/* Select All / Clear */}
-          <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2">
+          <div className="flex items-center gap-2 border-b border-border/50 px-3 py-2">
             <button
               type="button"
               onClick={selectAll}
@@ -143,11 +143,11 @@ export function ServiceMultiSelect({
             >
               Select All
             </button>
-            <span className="text-gray-300">|</span>
+            <span className="text-muted/50">|</span>
             <button
               type="button"
               onClick={clearAll}
-              className="text-xs font-medium text-gray-500 hover:underline"
+              className="text-xs font-medium text-muted hover:underline"
             >
               Clear
             </button>
@@ -156,28 +156,28 @@ export function ServiceMultiSelect({
           {/* Checkbox List */}
           <div className="max-h-52 overflow-y-auto p-1">
             {isLoading ? (
-              <p className="px-3 py-4 text-center text-sm text-gray-500">
+              <p className="px-3 py-4 text-center text-sm text-muted">
                 Loading...
               </p>
             ) : filtered.length === 0 ? (
-              <p className="px-3 py-4 text-center text-sm text-gray-500">
+              <p className="px-3 py-4 text-center text-sm text-muted">
                 No centres found
               </p>
             ) : (
               filtered.map((s) => (
                 <label
                   key={s.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-gray-50"
+                  className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-surface"
                 >
                   <input
                     type="checkbox"
                     checked={selectedIds.includes(s.id)}
                     onChange={() => toggleId(s.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                    className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
                   />
-                  <span className="text-sm text-gray-700">
+                  <span className="text-sm text-foreground/80">
                     {s.name}{" "}
-                    <span className="text-gray-400">({s.code})</span>
+                    <span className="text-muted">({s.code})</span>
                   </span>
                 </label>
               ))

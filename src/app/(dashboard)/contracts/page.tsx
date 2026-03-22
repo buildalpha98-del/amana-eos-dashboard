@@ -68,8 +68,8 @@ const STATUS_CONFIG: Record<
 > = {
   contract_draft: {
     label: "Draft",
-    bg: "bg-gray-100",
-    text: "text-gray-700",
+    bg: "bg-surface",
+    text: "text-foreground/80",
     dot: "bg-gray-400",
   },
   active: {
@@ -251,33 +251,33 @@ function ContractFormModal({
   };
 
   const inputCls =
-    "w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent";
+    "w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent";
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface transition-colors"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-muted" />
           </button>
         </div>
 
         <div className="space-y-4">
           {/* Staff Member */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Staff Member *
             </label>
             <select
               value={form.userId}
               onChange={(e) => setForm({ ...form, userId: e.target.value })}
               disabled={disableUserSelect}
-              className={cn(inputCls, disableUserSelect && "bg-gray-50 cursor-not-allowed")}
+              className={cn(inputCls, disableUserSelect && "bg-surface/50 cursor-not-allowed")}
             >
               <option value="">Select staff member...</option>
               {users.map((u) => (
@@ -290,7 +290,7 @@ function ContractFormModal({
 
           {/* Contract Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Contract Type *
             </label>
             <select
@@ -308,7 +308,7 @@ function ContractFormModal({
 
           {/* Award Level */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Award Level
             </label>
             <select
@@ -328,7 +328,7 @@ function ContractFormModal({
           {/* Custom Award Level */}
           {form.awardLevel === "custom" && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Custom Award Level
               </label>
               <input
@@ -344,7 +344,7 @@ function ContractFormModal({
           {/* Pay Rate + Hours */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Pay Rate (AUD/hr) *
               </label>
               <input
@@ -358,10 +358,10 @@ function ContractFormModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Hours / Week{" "}
                 {form.contractType === "ct_casual" && (
-                  <span className="text-gray-400 font-normal">(optional)</span>
+                  <span className="text-muted font-normal">(optional)</span>
                 )}
               </label>
               <input
@@ -380,7 +380,7 @@ function ContractFormModal({
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Start Date *
               </label>
               <input
@@ -391,9 +391,9 @@ function ContractFormModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 End Date{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                <span className="text-muted font-normal">(optional)</span>
               </label>
               <input
                 type="date"
@@ -406,7 +406,7 @@ function ContractFormModal({
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Notes
             </label>
             <textarea
@@ -420,10 +420,10 @@ function ContractFormModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-border/50">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface rounded-lg transition-colors"
           >
             Cancel
           </button>
@@ -459,28 +459,28 @@ function TerminateDialog({
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
             <Ban className="w-5 h-5 text-red-600" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Terminate Contract</h3>
-            <p className="text-sm text-gray-500">This action cannot be undone</p>
+            <h3 className="text-lg font-semibold text-foreground">Terminate Contract</h3>
+            <p className="text-sm text-muted">This action cannot be undone</p>
           </div>
         </div>
-        <p className="text-sm text-gray-600 mb-2">
+        <p className="text-sm text-muted mb-2">
           Are you sure you want to terminate the{" "}
           <strong>{CONTRACT_TYPE_LABELS[contract.contractType]}</strong> contract for{" "}
           <strong>{contract.user?.name}</strong>?
         </p>
-        <p className="text-xs text-gray-400 mb-6">
+        <p className="text-xs text-muted mb-6">
           The contract status will be set to &quot;Terminated&quot; and can no longer be modified.
         </p>
         <div className="flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface rounded-lg transition-colors"
           >
             Cancel
           </button>
@@ -550,68 +550,68 @@ function ContractDetail({
   const canTerminate = contract.status === "active" || contract.status === "contract_draft";
 
   return (
-    <div className="bg-gray-50 border-t border-gray-100 px-5 py-4 space-y-4">
+    <div className="bg-surface/50 border-t border-border/50 px-5 py-4 space-y-4">
       {/* Contract Info Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-0.5">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-0.5">
             Contract Type
           </p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-foreground">
             {CONTRACT_TYPE_LABELS[contract.contractType] || contract.contractType}
           </p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-0.5">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-0.5">
             Award Level
           </p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-foreground">
             {getAwardLabel(contract.awardLevel, contract.awardLevelCustom)}
           </p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-0.5">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-0.5">
             Pay Rate
           </p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-foreground">
             {formatCurrency(contract.payRate)}/hr
           </p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-0.5">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-0.5">
             Hours / Week
           </p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-foreground">
             {contract.hoursPerWeek ? `${contract.hoursPerWeek}h` : "Variable"}
           </p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-0.5">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-0.5">
             Start Date
           </p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-foreground">
             {formatDate(contract.startDate)}
           </p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-0.5">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-0.5">
             End Date
           </p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-foreground">
             {contract.endDate ? formatDate(contract.endDate) : "Ongoing"}
           </p>
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-0.5">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-0.5">
             Acknowledgement
           </p>
           <AcknowledgeBadge acknowledged={contract.acknowledgedByStaff} />
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-0.5">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-0.5">
             Created
           </p>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-foreground">
             {formatDate(contract.createdAt)}
           </p>
         </div>
@@ -620,10 +620,10 @@ function ContractDetail({
       {/* Notes */}
       {contract.notes && (
         <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-1">
             Notes
           </p>
-          <p className="text-sm text-gray-600 bg-white rounded-lg border border-gray-200 p-3">
+          <p className="text-sm text-muted bg-card rounded-lg border border-border p-3">
             {contract.notes}
           </p>
         </div>
@@ -632,11 +632,11 @@ function ContractDetail({
       {/* Version History */}
       {versionHistory.length > 1 && (
         <div>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
             Version History
           </p>
           <div className="relative pl-4">
-            <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-200" />
+            <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-border" />
             {versionHistory.map((v, idx) => (
               <div key={v.id} className="relative flex items-start gap-3 pb-3 last:pb-0">
                 <div
@@ -650,7 +650,7 @@ function ContractDetail({
                       ? "bg-amber-400 border-amber-400"
                       : v.status === "terminated"
                       ? "bg-red-400 border-red-400"
-                      : "bg-gray-300 border-gray-300"
+                      : "bg-gray-300 border-border"
                   )}
                 />
                 <div className="min-w-0 flex-1">
@@ -658,7 +658,7 @@ function ContractDetail({
                     <span
                       className={cn(
                         "text-sm font-medium",
-                        v.id === contract.id ? "text-brand" : "text-gray-700"
+                        v.id === contract.id ? "text-brand" : "text-foreground/80"
                       )}
                     >
                       {CONTRACT_TYPE_LABELS[v.contractType]} &mdash;{" "}
@@ -669,7 +669,7 @@ function ContractDetail({
                       <span className="text-xs text-brand font-medium">(current)</span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-muted mt-0.5">
                     {formatDate(v.startDate)}
                     {v.endDate ? ` - ${formatDate(v.endDate)}` : " - Ongoing"}
                   </p>
@@ -682,7 +682,7 @@ function ContractDetail({
 
       {/* Action Buttons */}
       {(canSupersede || canTerminate) && (
-        <div className="flex items-center gap-3 pt-2 border-t border-gray-200">
+        <div className="flex items-center gap-3 pt-2 border-t border-border">
           {canSupersede && (
             <button
               onClick={() => setShowSupersede(true)}
@@ -860,8 +860,8 @@ export default function ContractsPage() {
         <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
           <Shield className="w-8 h-8 text-red-400" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">Access Restricted</h3>
-        <p className="text-sm text-gray-500 max-w-sm">
+        <h3 className="text-lg font-semibold text-foreground mb-1">Access Restricted</h3>
+        <p className="text-sm text-muted max-w-sm">
           Contract management is restricted to owners and administrators.
         </p>
       </div>
@@ -872,7 +872,7 @@ export default function ContractsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -890,15 +890,15 @@ export default function ContractsPage() {
   }
 
   const inputCls =
-    "px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent";
+    "px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent";
 
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Contracts</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Contracts</h2>
+          <p className="text-sm text-muted mt-1 line-clamp-2">
             Manage employment contracts, versions and staff acknowledgements
           </p>
         </div>
@@ -914,7 +914,7 @@ export default function ContractsPage() {
       {/* Filter Bar */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             type="text"
             value={search}
@@ -962,16 +962,16 @@ export default function ContractsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-2 mb-1">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-medium text-muted uppercase tracking-wider">
               Active Contracts
             </p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+          <p className="text-2xl font-bold text-foreground">{stats.active}</p>
         </div>
-        <div className="bg-white rounded-xl border border-amber-200 p-4">
+        <div className="bg-card rounded-xl border border-amber-200 p-4">
           <div className="flex items-center gap-2 mb-1">
             <Clock className="w-4 h-4 text-amber-500" />
             <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">
@@ -980,7 +980,7 @@ export default function ContractsPage() {
           </div>
           <p className="text-2xl font-bold text-amber-600">{stats.pendingAck}</p>
         </div>
-        <div className="bg-white rounded-xl border border-red-200 p-4">
+        <div className="bg-card rounded-xl border border-red-200 p-4">
           <div className="flex items-center gap-2 mb-1">
             <AlertTriangle className="w-4 h-4 text-red-500" />
             <p className="text-xs font-medium text-red-600 uppercase tracking-wider">
@@ -989,14 +989,14 @@ export default function ContractsPage() {
           </div>
           <p className="text-2xl font-bold text-red-600">{stats.expiringSoon}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-2 mb-1">
             <Users className="w-4 h-4 text-brand" />
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-medium text-muted uppercase tracking-wider">
               Total Staff
             </p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalStaff}</p>
+          <p className="text-2xl font-bold text-foreground">{stats.totalStaff}</p>
         </div>
       </div>
 
@@ -1017,9 +1017,9 @@ export default function ContractsPage() {
           }
         />
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           {/* Table Header */}
-          <div className="hidden sm:grid sm:grid-cols-[1fr_120px_140px_100px_90px_100px_110px] gap-3 px-5 py-3 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="hidden sm:grid sm:grid-cols-[1fr_120px_140px_100px_90px_100px_110px] gap-3 px-5 py-3 bg-surface/50 border-b border-border text-xs font-semibold text-muted uppercase tracking-wider">
             <span>Staff</span>
             <span>Type</span>
             <span>Award Level</span>
@@ -1030,7 +1030,7 @@ export default function ContractsPage() {
           </div>
 
           {/* Rows */}
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-border/50">
             {filteredContracts.map((contract) => {
               const isExpanded = expandedId === contract.id;
               const isExpiring =
@@ -1045,8 +1045,8 @@ export default function ContractsPage() {
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : contract.id)}
                     className={cn(
-                      "w-full text-left px-5 py-3.5 hover:bg-gray-50/80 transition-colors",
-                      isExpanded && "bg-gray-50/50",
+                      "w-full text-left px-5 py-3.5 hover:bg-surface/80 transition-colors",
+                      isExpanded && "bg-surface/30",
                       isExpiring && "border-l-2 border-l-amber-400"
                     )}
                   >
@@ -1055,17 +1055,17 @@ export default function ContractsPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {isExpanded ? (
-                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                            <ChevronDown className="w-4 h-4 text-muted" />
                           ) : (
-                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                            <ChevronRight className="w-4 h-4 text-muted" />
                           )}
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm font-medium text-foreground">
                             {contract.user?.name || "Unknown"}
                           </span>
                         </div>
                         <StatusBadge status={contract.status} />
                       </div>
-                      <div className="flex items-center gap-3 pl-6 text-xs text-gray-500">
+                      <div className="flex items-center gap-3 pl-6 text-xs text-muted">
                         <span>{CONTRACT_TYPE_LABELS[contract.contractType]}</span>
                         <span>{formatCurrency(contract.payRate)}/hr</span>
                         <AcknowledgeBadge acknowledged={contract.acknowledgedByStaff} />
@@ -1076,15 +1076,15 @@ export default function ContractsPage() {
                     <div className="hidden sm:grid sm:grid-cols-[1fr_120px_140px_100px_90px_100px_110px] gap-3 items-center">
                       <div className="flex items-center gap-2 min-w-0">
                         {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <ChevronDown className="w-4 h-4 text-muted flex-shrink-0" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <ChevronRight className="w-4 h-4 text-muted flex-shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {contract.user?.name || "Unknown"}
                           </p>
-                          <p className="text-xs text-gray-400 truncate">
+                          <p className="text-xs text-muted truncate">
                             {contract.user?.email}
                           </p>
                         </div>
@@ -1092,16 +1092,16 @@ export default function ContractsPage() {
                           <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                         )}
                       </div>
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-foreground/80">
                         {CONTRACT_TYPE_LABELS[contract.contractType]}
                       </span>
-                      <span className="text-sm text-gray-700 truncate">
+                      <span className="text-sm text-foreground/80 truncate">
                         {getAwardLabel(contract.awardLevel, contract.awardLevelCustom)}
                       </span>
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-foreground">
                         {formatCurrency(contract.payRate)}
                       </span>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-muted">
                         {contract.hoursPerWeek ? `${contract.hoursPerWeek}h` : "Var."}
                       </span>
                       <StatusBadge status={contract.status} />

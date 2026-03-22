@@ -42,13 +42,13 @@ export default function EmailPreview({ html }: Props) {
       </div>
 
       {/* Preview */}
-      <div className="flex justify-center rounded-lg border border-border bg-gray-50 p-4">
+      <div className="flex justify-center rounded-lg border border-border bg-surface/50 p-4">
         {html ? (
           <iframe
             srcDoc={html}
             sandbox="allow-same-origin"
             style={{ width: `${width}px`, minHeight: "400px", border: "none" }}
-            className="rounded bg-white"
+            className="rounded bg-card"
             title="Email preview"
           />
         ) : (

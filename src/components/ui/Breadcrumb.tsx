@@ -13,7 +13,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
         return (
           <span key={index} className="flex items-center gap-1.5">
             {index > 0 && (
-              <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+              <ChevronRight className="w-3.5 h-3.5 text-muted" />
             )}
             {item.href && !isLast ? (
               <Link

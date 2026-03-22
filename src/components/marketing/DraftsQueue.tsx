@@ -48,7 +48,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   high: "bg-red-100 text-red-700",
   urgent: "bg-red-100 text-red-700",
   medium: "bg-amber-100 text-amber-700",
-  low: "bg-gray-100 text-gray-600",
+  low: "bg-surface text-muted",
 };
 
 interface CentreGroup {
@@ -196,7 +196,7 @@ export function DraftsQueue({
     <div className="space-y-4">
       {/* Counter */}
       <div className="flex items-center gap-3">
-        <h3 className="text-lg font-semibold text-gray-900">Drafts Queue</h3>
+        <h3 className="text-lg font-semibold text-foreground">Drafts Queue</h3>
         <span className="bg-red-100 text-red-700 text-xs font-medium px-2.5 py-0.5 rounded-full">
           {items.length} pending
         </span>
@@ -211,12 +211,12 @@ export function DraftsQueue({
             className={`px-3 py-2 text-xs font-medium border-b-2 -mb-px ${
               filter === tab
                 ? "border-brand text-brand"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                : "border-transparent text-muted hover:text-foreground"
             }`}
           >
             {tab === "all" ? "All" : TYPE_LABELS[tab]}
             {tabCounts[tab] > 0 && (
-              <span className="ml-1.5 bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full text-[10px]">
+              <span className="ml-1.5 bg-surface text-muted px-1.5 py-0.5 rounded-full text-[10px]">
                 {tabCounts[tab]}
               </span>
             )}
@@ -226,7 +226,7 @@ export function DraftsQueue({
 
       {/* Items — grouped by centre when multiple centres present */}
       {filtered.length === 0 ? (
-        <div className="text-center py-8 text-gray-400 text-sm">
+        <div className="text-center py-8 text-muted text-sm">
           No pending items
         </div>
       ) : hasMultipleCentres ? (
@@ -235,22 +235,22 @@ export function DraftsQueue({
             const key = group.serviceId || "__unassigned__";
             const isCollapsed = collapsedGroups.has(key);
             return (
-              <div key={key} className="rounded-lg border border-gray-200 overflow-hidden">
+              <div key={key} className="rounded-lg border border-border overflow-hidden">
                 {/* Group header */}
                 <button
                   onClick={() => toggleGroup(key)}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                  className="w-full flex items-center gap-2 px-4 py-2.5 bg-surface/50 hover:bg-surface transition-colors text-left"
                 >
                   {isCollapsed ? (
-                    <ChevronRight className="h-4 w-4 text-gray-400" />
+                    <ChevronRight className="h-4 w-4 text-muted" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                    <ChevronDown className="h-4 w-4 text-muted" />
                   )}
-                  <Building2 className="h-3.5 w-3.5 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700 flex-1 truncate">
+                  <Building2 className="h-3.5 w-3.5 text-muted" />
+                  <span className="text-sm font-medium text-foreground/80 flex-1 truncate">
                     {group.serviceName}
                   </span>
-                  <span className="text-xs text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full">
+                  <span className="text-xs text-muted bg-card border border-border px-2 py-0.5 rounded-full">
                     {group.items.length}
                   </span>
                   {group.overdueCount > 0 && (
@@ -261,7 +261,7 @@ export function DraftsQueue({
                 </button>
                 {/* Group items */}
                 {!isCollapsed && (
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-border/50">
                     {group.items.map((item) => (
                       <DraftItemCard
                         key={`${item.itemType}-${item.id}`}
@@ -325,36 +325,36 @@ function DraftItemCard({
           ? "border-red-200 bg-red-50"
           : isDueToday
           ? "border-amber-200 bg-amber-50"
-          : "border-gray-200 bg-white"
+          : "border-border bg-card"
       }`}
     >
       {/* Icon */}
       <div className="flex-shrink-0">
-        <Icon className={`h-4 w-4 ${isOverdue ? "text-red-500" : "text-gray-400"}`} />
+        <Icon className={`h-4 w-4 ${isOverdue ? "text-red-500" : "text-muted"}`} />
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
+        <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
         <div className="flex items-center gap-2 mt-0.5">
           {!hideCentre && item.serviceName && (
-            <span className="text-[10px] text-gray-500">{item.serviceName}</span>
+            <span className="text-[10px] text-muted">{item.serviceName}</span>
           )}
           {dueDate && (
-            <span className={`text-[10px] ${isOverdue ? "text-red-600 font-medium" : "text-gray-400"}`}>
+            <span className={`text-[10px] ${isOverdue ? "text-red-600 font-medium" : "text-muted"}`}>
               {isOverdue ? "Overdue" : isDueToday ? "Due today" : dueDate.toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
             </span>
           )}
           {item.priority && (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded capitalize ${PRIORITY_COLORS[item.priority] || "bg-gray-100 text-gray-600"}`}>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded capitalize ${PRIORITY_COLORS[item.priority] || "bg-surface text-muted"}`}>
               {item.priority}
             </span>
           )}
           {item.platform && (
-            <span className="text-[10px] text-gray-400 capitalize">{item.platform}</span>
+            <span className="text-[10px] text-muted capitalize">{item.platform}</span>
           )}
           {item.channel && (
-            <span className="text-[10px] text-gray-400 capitalize">{item.channel}</span>
+            <span className="text-[10px] text-muted capitalize">{item.channel}</span>
           )}
         </div>
       </div>
@@ -364,10 +364,10 @@ function DraftItemCard({
         {onView && (
           <button
             onClick={onView}
-            className="p-1.5 rounded hover:bg-gray-100"
+            className="p-1.5 rounded hover:bg-surface"
             title="View"
           >
-            <Eye className="h-3.5 w-3.5 text-gray-400" />
+            <Eye className="h-3.5 w-3.5 text-muted" />
           </button>
         )}
         {(item.itemType === "post" || item.itemType === "touchpoint" || item.itemType === "school_comm") && (

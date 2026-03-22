@@ -190,8 +190,8 @@ function MeetingListView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">L10 Meetings <HelpTooltip id="l10-heading" content="The Level 10 Meeting is a weekly 90-minute meeting that keeps your team aligned. Follow the agenda: Segue, Scorecard, Rock Review, To-Do Review, IDS, Conclude." /></h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-xl font-semibold text-foreground">L10 Meetings <HelpTooltip id="l10-heading" content="The Level 10 Meeting is a weekly 90-minute meeting that keeps your team aligned. Follow the agenda: Segue, Scorecard, Rock Review, To-Do Review, IDS, Conclude." /></h2>
+          <p className="text-sm text-muted">
             Run your weekly Level 10 leadership meetings
           </p>
         </div>
@@ -247,7 +247,7 @@ function MeetingListView({
             <p className="text-sm font-semibold text-brand">
               Meeting In Progress
             </p>
-            <p className="text-xs text-gray-600 truncate">
+            <p className="text-xs text-muted truncate">
               {activeMeeting.title} &mdash; Section{" "}
               {activeMeeting.currentSection + 1} of 7:{" "}
               {L10_SECTIONS[activeMeeting.currentSection]?.label}
@@ -263,38 +263,38 @@ function MeetingListView({
       {/* Stats Cards */}
       {stats.total > 0 && (
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Meetings Completed</div>
+          <div className="bg-card rounded-xl border border-border p-4 text-center">
+            <div className="text-2xl font-bold text-foreground">{stats.total}</div>
+            <div className="text-xs text-muted mt-0.5">Meetings Completed</div>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+          <div className="bg-card rounded-xl border border-border p-4 text-center">
             <div className="flex items-center justify-center gap-1">
               <Star className="w-5 h-5 text-accent fill-accent" />
-              <span className="text-2xl font-bold text-gray-900">
+              <span className="text-2xl font-bold text-foreground">
                 {stats.avgRating ?? "—"}
               </span>
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">Avg Rating</div>
+            <div className="text-xs text-muted mt-0.5">Avg Rating</div>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+          <div className="bg-card rounded-xl border border-border p-4 text-center">
             <div className="text-2xl font-bold text-brand">{stats.streak}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Week Streak</div>
+            <div className="text-xs text-muted mt-0.5">Week Streak</div>
           </div>
         </div>
       )}
 
       {/* Past Meetings */}
       {meetings.length > 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           {/* History header with search + filter */}
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 space-y-3">
+          <div className="px-4 py-3 border-b border-border/50 bg-surface/30 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <History className="w-4 h-4 text-gray-500" />
-                <h3 className="text-sm font-medium text-gray-700">
+                <History className="w-4 h-4 text-muted" />
+                <h3 className="text-sm font-medium text-foreground/80">
                   Meeting History
                 </h3>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted">
                   ({pastMeetings.length})
                 </span>
               </div>
@@ -303,7 +303,7 @@ function MeetingListView({
             <div className="flex flex-col sm:flex-row gap-2">
               {/* Search */}
               <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -313,11 +313,11 @@ function MeetingListView({
                   }}
                   placeholder="Search meetings..."
                   aria-label="Search meetings"
-                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
               </div>
               {/* Status filter */}
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+              <div className="flex items-center gap-1 bg-surface rounded-lg p-0.5">
                 {(["all", "completed", "cancelled"] as const).map((f) => (
                   <button
                     key={f}
@@ -328,8 +328,8 @@ function MeetingListView({
                     className={cn(
                       "px-3 py-1 text-xs font-medium rounded-md transition-colors",
                       statusFilter === f
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted hover:text-foreground"
                     )}
                   >
                     {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -341,12 +341,12 @@ function MeetingListView({
 
           {/* List */}
           {visibleMeetings.length > 0 ? (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border/50">
               {visibleMeetings.map((meeting) => (
                 <button
                   key={meeting.id}
                   onClick={() => onSelect(meeting)}
-                  className="w-full px-4 py-3 flex items-center gap-4 text-left hover:bg-gray-50 transition-colors"
+                  className="w-full px-4 py-3 flex items-center gap-4 text-left hover:bg-surface transition-colors"
                 >
                   <div
                     className={cn(
@@ -355,7 +355,7 @@ function MeetingListView({
                         ? "bg-emerald-50"
                         : meeting.status === "in_progress"
                         ? "bg-brand/10"
-                        : "bg-gray-100"
+                        : "bg-surface"
                     )}
                   >
                     {meeting.status === "completed" ? (
@@ -365,14 +365,14 @@ function MeetingListView({
                     ) : meeting.status === "cancelled" ? (
                       <XCircle className="w-4 h-4 text-red-400" />
                     ) : (
-                      <Calendar className="w-4 h-4 text-gray-400" />
+                      <Calendar className="w-4 h-4 text-muted" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {meeting.title}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted">
                       {formatDateAU(meeting.date)} &middot;{" "}
                       {meeting.createdBy?.name ?? "Unknown"}
                       {meeting.completedAt && (
@@ -399,7 +399,7 @@ function MeetingListView({
                             ? "text-accent fill-accent"
                             : meeting.rating >= 5
                             ? "text-amber-400 fill-amber-400"
-                            : "text-gray-300 fill-gray-300"
+                            : "text-muted/50 fill-gray-300"
                         )}
                       />
                       <span
@@ -409,7 +409,7 @@ function MeetingListView({
                             ? "text-brand"
                             : meeting.rating >= 5
                             ? "text-amber-600"
-                            : "text-gray-400"
+                            : "text-muted"
                         )}
                       >
                         {meeting.rating}
@@ -425,7 +425,7 @@ function MeetingListView({
                         ? "bg-brand/10 text-brand"
                         : meeting.status === "cancelled"
                         ? "bg-red-50 text-red-600"
-                        : "bg-gray-100 text-gray-600"
+                        : "bg-surface text-muted"
                     )}
                   >
                     {meeting.status === "in_progress"
@@ -433,19 +433,19 @@ function MeetingListView({
                       : meeting.status.charAt(0).toUpperCase() +
                         meeting.status.slice(1)}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-300" />
+                  <ChevronRight className="w-4 h-4 text-muted/50" />
                 </button>
               ))}
             </div>
           ) : (
-            <div className="py-8 text-center text-sm text-gray-400">
+            <div className="py-8 text-center text-sm text-muted">
               No meetings match your filters
             </div>
           )}
 
           {/* Load more */}
           {hasMore && (
-            <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/30 text-center">
+            <div className="px-4 py-3 border-t border-border/50 bg-surface/30 text-center">
               <button
                 onClick={() => setVisibleCount((c) => c + 10)}
                 className="text-sm text-brand font-medium hover:underline"
@@ -456,14 +456,14 @@ function MeetingListView({
           )}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
+        <div className="flex flex-col items-center justify-center py-24 text-center bg-card rounded-xl border border-border">
           <div className="w-16 h-16 rounded-2xl bg-brand/10 flex items-center justify-center mb-4">
             <Presentation className="w-8 h-8 text-brand" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             No meetings yet
           </h3>
-          <p className="text-gray-500 mt-2 max-w-md">
+          <p className="text-muted mt-2 max-w-md">
             L10 Meetings bring together your Scorecard, Rocks, To-Dos, and Issues
             into a structured 90-minute agenda. Start your first one now.
           </p>
@@ -506,7 +506,7 @@ function SegueSection({
         value={notes}
         onChange={(e) => onUpdate(e.target.value)}
         placeholder="Capture good news shared by team members..."
-        className="w-full h-40 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+        className="w-full h-40 p-3 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
       />
     </div>
   );
@@ -528,7 +528,7 @@ function ScorecardSection({
 
   if (!scorecard) {
     return (
-      <div className="text-center py-12 text-gray-400 text-sm">
+      <div className="text-center py-12 text-muted text-sm">
         No scorecard data available
       </div>
     );
@@ -560,19 +560,19 @@ function ScorecardSection({
           <div className="flex items-center gap-4 mb-2">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span className="text-xs text-gray-600">
+              <span className="text-xs text-muted">
                 {onTrackCount} on track
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-              <span className="text-xs text-gray-600">
+              <span className="text-xs text-muted">
                 {offTrackCount} off track
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-              <span className="text-xs text-gray-600">
+              <span className="text-xs text-muted">
                 {noDataCount} no data
               </span>
             </div>
@@ -580,8 +580,8 @@ function ScorecardSection({
         );
       })()}
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="grid grid-cols-[1fr,120px,80px,80px,60px,60px] gap-px bg-gray-100 text-xs font-medium text-gray-600 px-4 py-2">
+      <div className="bg-card rounded-lg border border-border overflow-hidden">
+        <div className="grid grid-cols-[1fr,120px,80px,80px,60px,60px] gap-px bg-surface text-xs font-medium text-muted px-4 py-2">
           <span>Measurable</span>
           <span className="text-center">Owner</span>
           <span className="text-center">Goal</span>
@@ -589,7 +589,7 @@ function ScorecardSection({
           <span className="text-center">Status</span>
           <span className="text-center">Action</span>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-border/50">
           {scorecard.measurables.map((m: MeasurableData, idx: number) => {
             const latestEntry = m.entries[0];
             const isOnTrack = latestEntry?.onTrack;
@@ -602,17 +602,17 @@ function ScorecardSection({
                   !isOnTrack && latestEntry
                     ? "bg-red-50/50"
                     : idx % 2 === 1
-                      ? "bg-gray-50/50"
+                      ? "bg-surface/30"
                       : ""
                 )}
               >
-                <span className="text-sm text-gray-900 truncate">
+                <span className="text-sm text-foreground truncate">
                   {m.title}
                 </span>
-                <span className="text-xs text-gray-500 text-center truncate">
+                <span className="text-xs text-muted text-center truncate">
                   {(m.owner?.name ?? "Unassigned").split(" ")[0]}
                 </span>
-                <span className="text-xs text-gray-600 text-center font-mono">
+                <span className="text-xs text-muted text-center font-mono">
                   {m.goalDirection === "above"
                     ? ">="
                     : m.goalDirection === "below"
@@ -674,7 +674,7 @@ function ScorecardSection({
                           ? "hover:bg-brand/10 cursor-pointer"
                           : "",
                         !latestEntry
-                          ? "text-gray-300"
+                          ? "text-muted/50"
                           : isOnTrack
                             ? "text-emerald-600"
                             : "text-red-600"
@@ -688,7 +688,7 @@ function ScorecardSection({
                 </div>
                 <div className="flex justify-center">
                   {!latestEntry ? (
-                    <span className="text-gray-300 text-xs">--</span>
+                    <span className="text-muted/50 text-xs">--</span>
                   ) : isOnTrack ? (
                     <TrendingUp className="w-4 h-4 text-emerald-500" />
                   ) : (
@@ -704,7 +704,7 @@ function ScorecardSection({
                       → IDS
                     </button>
                   ) : (
-                    <span className="text-gray-200 text-xs">—</span>
+                    <span className="text-muted/50 text-xs">—</span>
                   )}
                 </div>
               </div>
@@ -714,7 +714,7 @@ function ScorecardSection({
       </div>
 
       {scorecard.measurables.length === 0 && (
-        <p className="text-center text-sm text-gray-400 py-8">
+        <p className="text-center text-sm text-muted py-8">
           No measurables configured. Add them in the Scorecard section.
         </p>
       )}
@@ -725,7 +725,7 @@ function ScorecardSection({
 function RockReviewSection({ rocks }: { rocks: RockData[] | undefined }) {
   if (!rocks || rocks.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400 text-sm">
+      <div className="text-center py-12 text-muted text-sm">
         No rocks for this quarter. Add them in the Rocks section.
       </div>
     );
@@ -748,11 +748,11 @@ function RockReviewSection({ rocks }: { rocks: RockData[] | undefined }) {
 
       {/* Summary */}
       <div className="flex items-center gap-3 px-1">
-        <span className="text-sm text-gray-500">
-          <span className="font-semibold text-gray-900">{onTrack}</span> /{" "}
+        <span className="text-sm text-muted">
+          <span className="font-semibold text-foreground">{onTrack}</span> /{" "}
           {total} on track
         </span>
-        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="flex-1 h-2 bg-border rounded-full overflow-hidden">
           <div
             className="h-full bg-emerald-500 rounded-full transition-all"
             style={{ width: `${total > 0 ? (onTrack / total) * 100 : 0}%` }}
@@ -777,10 +777,10 @@ function RockReviewSection({ rocks }: { rocks: RockData[] | undefined }) {
               <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p className="text-sm font-medium text-foreground truncate">
                 {rock.title}
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted">
                 {rock.owner?.name ?? "Unassigned"} &middot; {rock.percentComplete}% complete
               </p>
             </div>
@@ -793,7 +793,7 @@ function RockReviewSection({ rocks }: { rocks: RockData[] | undefined }) {
                   ? "bg-green-100 text-green-700"
                   : rock.status === "off_track"
                   ? "bg-red-100 text-red-700"
-                  : "bg-gray-100 text-gray-600"
+                  : "bg-surface text-muted"
               )}
             >
               {rock.status.replace("_", " ")}
@@ -827,7 +827,7 @@ function HeadlinesSection({
         value={headlines}
         onChange={(e) => onUpdate(e.target.value)}
         placeholder="Capture headlines here...&#10;&#10;Example:&#10;- Customer: New enrolment at Greenfield centre (+12 places)&#10;- Employee: Sarah passed her cert III &#10;- Customer: Complaint from parent at Eastside re pickup times (IDS)"
-        className="w-full h-48 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+        className="w-full h-48 p-3 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
       />
     </div>
   );
@@ -842,7 +842,7 @@ function TodoReviewSection({
 }) {
   if (!todos || todos.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400 text-sm">
+      <div className="text-center py-12 text-muted text-sm">
         No to-dos for this week.
       </div>
     );
@@ -864,11 +864,11 @@ function TodoReviewSection({
 
       {/* Completion Rate */}
       <div className="flex items-center gap-3 px-1">
-        <span className="text-sm text-gray-500">
-          <span className="font-semibold text-gray-900">{done}</span> /{" "}
+        <span className="text-sm text-muted">
+          <span className="font-semibold text-foreground">{done}</span> /{" "}
           {todos.length} completed
         </span>
-        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className="flex-1 h-2 bg-border rounded-full overflow-hidden">
           <div
             className={cn(
               "h-full rounded-full transition-all",
@@ -904,7 +904,7 @@ function TodoReviewSection({
         {todos.map((todo) => (
           <div
             key={todo.id}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface"
           >
             <button
               onClick={() =>
@@ -914,7 +914,7 @@ function TodoReviewSection({
                 "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
                 todo.status === "complete"
                   ? "bg-brand border-brand"
-                  : "border-gray-300 hover:border-brand"
+                  : "border-border hover:border-brand"
               )}
             >
               {todo.status === "complete" && (
@@ -926,14 +926,14 @@ function TodoReviewSection({
                 className={cn(
                   "text-sm truncate",
                   todo.status === "complete"
-                    ? "text-gray-400 line-through"
-                    : "text-gray-900"
+                    ? "text-muted line-through"
+                    : "text-foreground"
                 )}
               >
                 {todo.title}
               </p>
             </div>
-            <span className="text-xs text-gray-400 flex-shrink-0">
+            <span className="text-xs text-muted flex-shrink-0">
               {(todo.assignee?.name ?? "Unassigned").split(" ")[0]}
             </span>
           </div>
@@ -998,7 +998,7 @@ function IDSSection({
             value={newIssueTitle}
             onChange={(e) => setNewIssueTitle(e.target.value)}
             placeholder="Describe the issue..."
-            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             onKeyDown={(e) => {
               if (e.key === "Enter" && newIssueTitle.trim()) {
                 onCreateIssue(newIssueTitle.trim(), newIssuePriority);
@@ -1012,7 +1012,7 @@ function IDSSection({
           <select
             value={newIssuePriority}
             onChange={(e) => setNewIssuePriority(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+            className="w-full px-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="critical">Critical</option>
             <option value="high">High</option>
@@ -1036,7 +1036,7 @@ function IDSSection({
             </button>
             <button
               onClick={() => { setShowCreateIssue(false); setNewIssueTitle(""); setNewIssuePriority("medium"); }}
-              className="text-xs px-3 py-1 text-gray-500"
+              className="text-xs px-3 py-1 text-muted"
             >
               Cancel
             </button>
@@ -1045,7 +1045,7 @@ function IDSSection({
       ) : (
         <button
           onClick={() => setShowCreateIssue(true)}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-brand hover:text-brand transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 border-2 border-dashed border-border rounded-lg text-sm text-muted hover:border-brand hover:text-brand transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Issue
@@ -1053,7 +1053,7 @@ function IDSSection({
       )}
 
       {sortedIssues.length === 0 && !showCreateIssue && (
-        <div className="text-center py-8 text-gray-400 text-sm">
+        <div className="text-center py-8 text-muted text-sm">
           No open issues. Great work!
         </div>
       )}
@@ -1066,7 +1066,7 @@ function IDSSection({
               "border rounded-lg transition-all",
               selectedIssue === issue.id
                 ? "border-brand bg-brand/5 shadow-sm"
-                : "border-gray-200 bg-white"
+                : "border-border bg-card"
             )}
           >
             <button
@@ -1090,10 +1090,10 @@ function IDSSection({
                 )}
               />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-foreground truncate">
                   {issue.title}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted">
                   Raised by {issue.raisedBy?.name ?? "Unknown"}
                   {issue.owner ? ` \u00B7 Owner: ${issue.owner?.name ?? "Unassigned"}` : ""}
                 </p>
@@ -1117,7 +1117,7 @@ function IDSSection({
             </button>
 
             {selectedIssue === issue.id && (
-              <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
+              <div className="px-4 pb-4 border-t border-border/50 pt-3 space-y-3">
                 <textarea
                   defaultValue={issue.description || ""}
                   onBlur={(e) => {
@@ -1127,14 +1127,14 @@ function IDSSection({
                     }
                   }}
                   placeholder="Add notes or description..."
-                  className="w-full text-sm text-gray-600 border border-gray-200 rounded-md p-2 resize-none h-20 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand bg-gray-50"
+                  className="w-full text-sm text-muted border border-border rounded-md p-2 resize-none h-20 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand bg-surface/50"
                 />
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Priority:</span>
+                  <span className="text-xs text-muted">Priority:</span>
                   <select
                     value={issue.priority}
                     onChange={(e) => onUpdatePriority(issue.id, e.target.value)}
-                    className="text-xs px-2 py-1 border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-brand"
+                    className="text-xs px-2 py-1 border border-border rounded-md bg-card focus:outline-none focus:ring-1 focus:ring-brand"
                   >
                     <option value="critical">Critical</option>
                     <option value="high">High</option>
@@ -1143,7 +1143,7 @@ function IDSSection({
                   </select>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Move to:</span>
+                  <span className="text-xs text-muted">Move to:</span>
                   {issue.status !== "in_discussion" && (
                     <button
                       onClick={() =>
@@ -1173,7 +1173,7 @@ function IDSSection({
                       value={newTodoTitle}
                       onChange={(e) => setNewTodoTitle(e.target.value)}
                       placeholder="To-do title..."
-                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-2.5 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && newTodoTitle.trim() && newTodoAssignees.length > 0) {
                           onCreateTodo({ title: newTodoTitle.trim(), description: newTodoDescription.trim() || undefined, assigneeIds: newTodoAssignees, issueId: issue.id });
@@ -1189,12 +1189,12 @@ function IDSSection({
                       value={newTodoDescription}
                       onChange={(e) => setNewTodoDescription(e.target.value)}
                       placeholder="Description (optional)..."
-                      className="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 h-16 resize-none"
+                      className="w-full px-2.5 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 h-16 resize-none"
                     />
                     {/* Multi-select assignees */}
                     <div>
-                      <p className="text-[10px] font-medium text-gray-500 mb-1">Assign to ({newTodoAssignees.length} selected)</p>
-                      <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md divide-y divide-gray-100">
+                      <p className="text-[10px] font-medium text-muted mb-1">Assign to ({newTodoAssignees.length} selected)</p>
+                      <div className="max-h-32 overflow-y-auto border border-border rounded-md divide-y divide-border/50">
                         {users?.map((u) => {
                           const isSelected = newTodoAssignees.includes(u.id);
                           return (
@@ -1208,12 +1208,12 @@ function IDSSection({
                               }}
                               className={cn(
                                 "w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-left transition-colors",
-                                isSelected ? "bg-emerald-50 text-emerald-700" : "hover:bg-gray-50 text-gray-700"
+                                isSelected ? "bg-emerald-50 text-emerald-700" : "hover:bg-surface text-foreground/80"
                               )}
                             >
                               <div className={cn(
                                 "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0",
-                                isSelected ? "bg-emerald-600 border-emerald-600" : "border-gray-300"
+                                isSelected ? "bg-emerald-600 border-emerald-600" : "border-border"
                               )}>
                                 {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
                               </div>
@@ -1241,7 +1241,7 @@ function IDSSection({
                       </button>
                       <button
                         onClick={() => { setShowCreateTodo(null); setNewTodoTitle(""); setNewTodoDescription(""); setNewTodoAssignees([]); }}
-                        className="text-xs px-3 py-1 text-gray-500"
+                        className="text-xs px-3 py-1 text-muted"
                       >
                         Cancel
                       </button>
@@ -1311,36 +1311,36 @@ function ConcludeSection({
 
       {/* Notes */}
       <div>
-        <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+        <label className="text-sm font-medium text-foreground/80 mb-1.5 block">
           Recap Notes
         </label>
         <textarea
           value={notes}
           onChange={(e) => onUpdate(e.target.value)}
           placeholder="Summary of action items, decisions made, and key takeaways..."
-          className="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="w-full h-32 p-3 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         />
       </div>
 
       {/* Cascade Messages */}
       <div>
-        <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+        <label className="text-sm font-medium text-foreground/80 mb-1.5 block">
           Cascade Messages
         </label>
-        <p className="text-xs text-gray-500 mb-2">
+        <p className="text-xs text-muted mb-2">
           Key messages to share with the broader team after this meeting.
         </p>
         <textarea
           value={cascadeMessages}
           onChange={(e) => onUpdateCascade(e.target.value)}
           placeholder="Messages to cascade to the team...&#10;&#10;Example:&#10;- New enrolment policy starts next Monday&#10;- Holiday program bookings open this Friday&#10;- Staff training day confirmed for March 15"
-          className="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="w-full h-32 p-3 border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         />
       </div>
 
       {/* Rating — Per-attendee or single */}
       <div>
-        <label className="text-sm font-medium text-gray-700 mb-3 block">
+        <label className="text-sm font-medium text-foreground/80 mb-3 block">
           Rate This Meeting
         </label>
 
@@ -1351,8 +1351,8 @@ function ConcludeSection({
               <div className="flex items-center gap-2 p-3 bg-brand/5 border border-brand/20 rounded-lg">
                 <Star className="w-5 h-5 text-accent fill-accent" />
                 <span className="text-lg font-bold text-brand">{avgRating}</span>
-                <span className="text-xs text-gray-500">/10 average</span>
-                <span className="text-xs text-gray-400 ml-auto">
+                <span className="text-xs text-muted">/10 average</span>
+                <span className="text-xs text-muted ml-auto">
                   {Object.values(attendeeRatings || {}).filter((v) => v > 0).length}/{presentAttendees.length} rated
                 </span>
               </div>
@@ -1363,9 +1363,9 @@ function ConcludeSection({
               {presentAttendees.map((attendee) => {
                 const userRating = attendeeRatings?.[attendee.userId] || 0;
                 return (
-                  <div key={attendee.userId} className="border border-gray-200 rounded-lg p-3">
+                  <div key={attendee.userId} className="border border-border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-foreground">
                         {attendee.user.name}
                       </span>
                       {userRating > 0 && (
@@ -1392,7 +1392,7 @@ function ConcludeSection({
                               ? "border-accent bg-accent text-brand scale-105 shadow-sm"
                               : n <= userRating
                               ? "border-accent/50 bg-accent/20 text-brand"
-                              : "border-gray-200 bg-white text-gray-400 hover:border-accent/50 hover:text-gray-600"
+                              : "border-border bg-card text-muted hover:border-accent/50 hover:text-foreground"
                           )}
                         >
                           {n}
@@ -1417,7 +1417,7 @@ function ConcludeSection({
                       ? "border-accent bg-accent text-brand scale-110 shadow-md"
                       : n <= (rating || 0)
                       ? "border-accent/50 bg-accent/20 text-brand"
-                      : "border-gray-200 bg-white text-gray-400 hover:border-accent/50 hover:text-gray-600"
+                      : "border-border bg-card text-muted hover:border-accent/50 hover:text-foreground"
                   )}
                 >
                   {n}
@@ -1425,7 +1425,7 @@ function ConcludeSection({
               ))}
             </div>
             {rating && (
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-muted mt-2">
                 {rating >= 8
                   ? "Great meeting! Keep it up."
                   : rating >= 5
@@ -1467,8 +1467,8 @@ function MeetingOutcomesPanel({
     : [];
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 bg-emerald-50/50">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="px-4 py-3 border-b border-border/50 bg-emerald-50/50">
         <h3 className="text-xs font-semibold text-emerald-800 uppercase tracking-wider">
           Meeting Outcomes
         </h3>
@@ -1476,29 +1476,29 @@ function MeetingOutcomesPanel({
       <div className="p-4 space-y-4">
         {/* Key Metrics */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="text-center p-2 bg-gray-50 rounded-lg">
-            <p className="text-lg font-bold text-gray-900">{todosDone}/{todosTotal}</p>
-            <p className="text-[10px] text-gray-500 uppercase">To-Dos Done</p>
+          <div className="text-center p-2 bg-surface/50 rounded-lg">
+            <p className="text-lg font-bold text-foreground">{todosDone}/{todosTotal}</p>
+            <p className="text-[10px] text-muted uppercase">To-Dos Done</p>
           </div>
-          <div className="text-center p-2 bg-gray-50 rounded-lg">
-            <p className="text-lg font-bold text-gray-900">{rocksOnTrack}/{rocksTotal}</p>
-            <p className="text-[10px] text-gray-500 uppercase">Rocks On Track</p>
+          <div className="text-center p-2 bg-surface/50 rounded-lg">
+            <p className="text-lg font-bold text-foreground">{rocksOnTrack}/{rocksTotal}</p>
+            <p className="text-[10px] text-muted uppercase">Rocks On Track</p>
           </div>
-          <div className="text-center p-2 bg-gray-50 rounded-lg">
-            <p className="text-lg font-bold text-gray-900">{solvedIssues}</p>
-            <p className="text-[10px] text-gray-500 uppercase">Issues Solved</p>
+          <div className="text-center p-2 bg-surface/50 rounded-lg">
+            <p className="text-lg font-bold text-foreground">{solvedIssues}</p>
+            <p className="text-[10px] text-muted uppercase">Issues Solved</p>
           </div>
-          <div className="text-center p-2 bg-gray-50 rounded-lg">
-            <p className="text-lg font-bold text-accent">{meeting.rating ?? "—"}<span className="text-xs text-gray-400">/10</span></p>
-            <p className="text-[10px] text-gray-500 uppercase">Rating</p>
+          <div className="text-center p-2 bg-surface/50 rounded-lg">
+            <p className="text-lg font-bold text-accent">{meeting.rating ?? "—"}<span className="text-xs text-muted">/10</span></p>
+            <p className="text-[10px] text-muted uppercase">Rating</p>
           </div>
         </div>
 
         {/* Conclude Notes */}
         {meeting.concludeNotes && (
           <div>
-            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Recap</p>
-            <p className="text-xs text-gray-600 whitespace-pre-wrap">{meeting.concludeNotes}</p>
+            <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-1">Recap</p>
+            <p className="text-xs text-muted whitespace-pre-wrap">{meeting.concludeNotes}</p>
           </div>
         )}
 
@@ -1512,7 +1512,7 @@ function MeetingOutcomesPanel({
               {cascadeLines.map((line, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <ArrowRight className="w-3 h-3 text-brand mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-gray-700">{line.replace(/^[-•*]\s*/, "")}</p>
+                  <p className="text-xs text-foreground/80">{line.replace(/^[-•*]\s*/, "")}</p>
                 </div>
               ))}
             </div>
@@ -1797,15 +1797,15 @@ function ActiveMeetingView({
             saveProgress();
             onBack();
           }}
-          className="p-2 rounded-lg border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors"
+          className="p-2 rounded-lg border border-border text-muted hover:text-foreground hover:border-border transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
         <div className="flex-1 min-w-0">
-          <h2 className="text-xl font-semibold text-gray-900 truncate">
+          <h2 className="text-xl font-semibold text-foreground truncate">
             {meeting.title}
           </h2>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted">
             {formatDateAU(meeting.date)}{" "}
             {scopedServiceNames.length > 0 && (
               <>
@@ -1837,7 +1837,7 @@ function ActiveMeetingView({
               "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
               currentSection === 6
                 ? "bg-brand text-white hover:bg-brand-hover shadow-sm"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-surface text-muted cursor-not-allowed"
             )}
           >
             <CheckCircle2 className="w-4 h-4" />
@@ -1870,7 +1870,7 @@ function ActiveMeetingView({
                       ? "bg-brand"
                       : isPast
                       ? "bg-brand/40"
-                      : "bg-gray-200"
+                      : "bg-border"
                   )}
                 />
                 <div
@@ -1880,7 +1880,7 @@ function ActiveMeetingView({
                       ? "text-brand"
                       : isPast
                       ? "text-brand/50"
-                      : "text-gray-400"
+                      : "text-muted"
                   )}
                 >
                   <Icon className="w-3 h-3" />
@@ -1902,22 +1902,22 @@ function ActiveMeetingView({
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr,280px] gap-6">
         {/* Main Content */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           {/* Section Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-surface/30">
             <div className="flex items-center gap-3">
               <div
                 className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center bg-white border border-gray-200"
+                  "w-8 h-8 rounded-lg flex items-center justify-center bg-card border border-border"
                 )}
               >
                 <SectionIcon className={cn("w-4 h-4", section.color)} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-foreground">
                   {currentSection + 1}. {section.label}
                 </h3>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted">
                   {section.duration} min allocated
                 </p>
               </div>
@@ -1933,7 +1933,7 @@ function ActiveMeetingView({
                       ? "text-red-500 animate-pulse"
                       : timer.totalSeconds <= 60
                       ? "text-amber-500"
-                      : "text-gray-700"
+                      : "text-foreground/80"
                   )}
                 >
                   {String(timer.minutes).padStart(2, "0")}:
@@ -2011,21 +2011,21 @@ function ActiveMeetingView({
 
           {/* Navigation Footer */}
           {!isCompleted && (
-            <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50/30">
+            <div className="flex items-center justify-between px-6 py-3 border-t border-border/50 bg-surface/30">
               <button
                 onClick={goPrev}
                 disabled={currentSection === 0}
                 className={cn(
                   "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
                   currentSection === 0
-                    ? "text-gray-300 cursor-not-allowed"
-                    : "text-gray-600 hover:bg-gray-100"
+                    ? "text-muted/50 cursor-not-allowed"
+                    : "text-muted hover:bg-surface"
                 )}
               >
                 <ChevronLeft className="w-4 h-4" />
                 Previous
               </button>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted">
                 {currentSection + 1} / {L10_SECTIONS.length}
               </span>
               {currentSection < L10_SECTIONS.length - 1 ? (
@@ -2052,9 +2052,9 @@ function ActiveMeetingView({
         {/* Sidebar — Agenda Overview */}
         <div className="space-y-4">
           {/* Agenda Card */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
-              <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/50 bg-surface/30">
+              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">
                 Agenda
               </h3>
             </div>
@@ -2074,7 +2074,7 @@ function ActiveMeetingView({
                         ? "bg-brand/5"
                         : isCompleted
                         ? ""
-                        : "hover:bg-gray-50"
+                        : "hover:bg-surface"
                     )}
                   >
                     <div
@@ -2084,7 +2084,7 @@ function ActiveMeetingView({
                           ? "bg-brand text-white"
                           : isPast
                           ? "bg-brand/20 text-brand"
-                          : "bg-gray-100 text-gray-400"
+                          : "bg-surface text-muted"
                       )}
                     >
                       {isPast ? (
@@ -2100,8 +2100,8 @@ function ActiveMeetingView({
                           isActive
                             ? "text-brand"
                             : isPast
-                            ? "text-gray-400"
-                            : "text-gray-700"
+                            ? "text-muted"
+                            : "text-foreground/80"
                         )}
                       >
                         {s.label}
@@ -2110,7 +2110,7 @@ function ActiveMeetingView({
                     <span
                       className={cn(
                         "text-[10px] font-medium",
-                        isActive ? "text-brand" : "text-gray-400"
+                        isActive ? "text-brand" : "text-muted"
                       )}
                     >
                       {s.duration}m
@@ -2119,10 +2119,10 @@ function ActiveMeetingView({
                 );
               })}
             </div>
-            <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50/30">
+            <div className="px-4 py-2.5 border-t border-border/50 bg-surface/30">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Total</span>
-                <span className="text-xs font-semibold text-gray-700">
+                <span className="text-xs text-muted">Total</span>
+                <span className="text-xs font-semibold text-foreground/80">
                   {L10_SECTIONS.reduce((sum, s) => sum + s.duration, 0)} min
                 </span>
               </div>
@@ -2131,12 +2131,12 @@ function ActiveMeetingView({
 
           {/* Attendees Panel */}
           {meeting.attendees && meeting.attendees.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="px-4 py-3 border-b border-border/50 bg-surface/30 flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">
                   Attendees
                 </h3>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted">
                   {meeting.attendees.filter((a) => a.status === "present").length}/{meeting.attendees.length} present
                 </span>
               </div>
@@ -2153,7 +2153,7 @@ function ActiveMeetingView({
                     )}
                     <span className={cn(
                       "text-sm flex-1 min-w-0 truncate",
-                      attendee.status === "present" ? "text-gray-700" : "text-gray-400 line-through"
+                      attendee.status === "present" ? "text-foreground/80" : "text-muted line-through"
                     )}>
                       {attendee.user.name}
                     </span>
@@ -2200,14 +2200,14 @@ function ActiveMeetingView({
               issues={allIDSIssues}
             />
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-              <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+            <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+              <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">
                 Quick Stats
               </h3>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Rocks on track</span>
-                  <span className="text-xs font-semibold text-gray-700">
+                  <span className="text-xs text-muted">Rocks on track</span>
+                  <span className="text-xs font-semibold text-foreground/80">
                     {rocks
                       ? `${
                           rocks.filter(
@@ -2220,8 +2220,8 @@ function ActiveMeetingView({
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">To-dos done</span>
-                  <span className="text-xs font-semibold text-gray-700">
+                  <span className="text-xs text-muted">To-dos done</span>
+                  <span className="text-xs font-semibold text-foreground/80">
                     {todos
                       ? `${
                           todos.filter((t) => t.status === "complete").length
@@ -2230,14 +2230,14 @@ function ActiveMeetingView({
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Open issues</span>
-                  <span className="text-xs font-semibold text-gray-700">
+                  <span className="text-xs text-muted">Open issues</span>
+                  <span className="text-xs font-semibold text-foreground/80">
                     {allIDSIssues.length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Scorecard items</span>
-                  <span className="text-xs font-semibold text-gray-700">
+                  <span className="text-xs text-muted">Scorecard items</span>
+                  <span className="text-xs font-semibold text-foreground/80">
                     {filteredScorecard ? filteredScorecard.measurables.length : "--"}
                   </span>
                 </div>
@@ -2358,13 +2358,13 @@ function StartMeetingDialog({
         onClick={onCancel}
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="bg-card rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+          <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
             <div>
-              <h3 className="text-base font-semibold text-gray-900">
+              <h3 className="text-base font-semibold text-foreground">
                 Start L10 Meeting
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-muted mt-0.5">
                 {step === "services"
                   ? "Select which services to include in this meeting"
                   : "Select attendees for this meeting"}
@@ -2372,7 +2372,7 @@ function StartMeetingDialog({
             </div>
             <button
               onClick={onCancel}
-              className="p-1 text-gray-400 hover:text-gray-600"
+              className="p-1 text-muted hover:text-foreground"
             >
               <X className="w-4 h-4" />
             </button>
@@ -2391,14 +2391,14 @@ function StartMeetingDialog({
                   </button>
                   <button
                     onClick={selectAll}
-                    className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+                    className="text-xs px-3 py-1.5 text-muted hover:text-foreground transition-colors"
                   >
                     Select All
                   </button>
                   {selectedServiceIds.length > 0 && (
                     <button
                       onClick={clearAll}
-                      className="text-xs px-3 py-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-xs px-3 py-1.5 text-muted hover:text-foreground transition-colors"
                     >
                       Clear
                     </button>
@@ -2417,7 +2417,7 @@ function StartMeetingDialog({
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left",
                           selected
                             ? "border-brand bg-brand/5"
-                            : "border-gray-200 hover:border-gray-300"
+                            : "border-border hover:border-border"
                         )}
                       >
                         <div
@@ -2425,7 +2425,7 @@ function StartMeetingDialog({
                             "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
                             selected
                               ? "bg-brand border-brand"
-                              : "border-gray-300"
+                              : "border-border"
                           )}
                         >
                           {selected && (
@@ -2433,28 +2433,28 @@ function StartMeetingDialog({
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {service.name}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted">
                             {service.code}
                             {service.state ? ` · ${service.state}` : ""}
                           </p>
                         </div>
-                        <Building2 className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                        <Building2 className="w-4 h-4 text-muted/50 flex-shrink-0" />
                       </button>
                     );
                   })}
                   {(!services || services.length === 0) && (
-                    <p className="text-center text-sm text-gray-400 py-4">
+                    <p className="text-center text-sm text-muted py-4">
                       No active services found
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                <span className="text-xs text-gray-500">
+              <div className="px-6 py-4 border-t border-border/50 bg-surface/30 flex items-center justify-between">
+                <span className="text-xs text-muted">
                   {selectedServiceIds.length > 0
                     ? `${selectedServiceIds.length} service${selectedServiceIds.length > 1 ? "s" : ""} selected`
                     : "Company-wide (no service filter)"}
@@ -2462,7 +2462,7 @@ function StartMeetingDialog({
                 <div className="flex gap-2">
                   <button
                     onClick={onCancel}
-                    className="text-xs px-4 py-2 text-gray-500 hover:text-gray-700"
+                    className="text-xs px-4 py-2 text-muted hover:text-foreground"
                   >
                     Cancel
                   </button>
@@ -2481,7 +2481,7 @@ function StartMeetingDialog({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setStep("services")}
-                    className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+                    className="text-xs px-3 py-1.5 text-muted hover:text-foreground transition-colors"
                   >
                     ← Back to Services
                   </button>
@@ -2489,14 +2489,14 @@ function StartMeetingDialog({
                     onClick={() => {
                       if (filteredUsers) setSelectedUserIds(filteredUsers.map((u) => u.id));
                     }}
-                    className="text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+                    className="text-xs px-3 py-1.5 text-muted hover:text-foreground transition-colors"
                   >
                     Select All
                   </button>
                   {selectedUserIds.length > 0 && (
                     <button
                       onClick={() => setSelectedUserIds([])}
-                      className="text-xs px-3 py-1.5 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-xs px-3 py-1.5 text-muted hover:text-foreground transition-colors"
                     >
                       Clear
                     </button>
@@ -2505,13 +2505,13 @@ function StartMeetingDialog({
 
                 {/* Search Users */}
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
                   <input
                     type="text"
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
                     placeholder="Search users..."
-                    className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
                 </div>
 
@@ -2527,7 +2527,7 @@ function StartMeetingDialog({
                           "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all text-left",
                           selected
                             ? "border-brand bg-brand/5"
-                            : "border-gray-200 hover:border-gray-300"
+                            : "border-border hover:border-border"
                         )}
                       >
                         <div
@@ -2535,7 +2535,7 @@ function StartMeetingDialog({
                             "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
                             selected
                               ? "bg-brand border-brand"
-                              : "border-gray-300"
+                              : "border-border"
                           )}
                         >
                           {selected && (
@@ -2543,27 +2543,27 @@ function StartMeetingDialog({
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {user.name}
                           </p>
-                          <p className="text-xs text-gray-500 truncate">
+                          <p className="text-xs text-muted truncate">
                             {user.email}
                           </p>
                         </div>
-                        <Users className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                        <Users className="w-4 h-4 text-muted/50 flex-shrink-0" />
                       </button>
                     );
                   })}
                   {filteredUsers.length === 0 && (
-                    <p className="text-center text-sm text-gray-400 py-4">
+                    <p className="text-center text-sm text-muted py-4">
                       No users found
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                <span className="text-xs text-gray-500">
+              <div className="px-6 py-4 border-t border-border/50 bg-surface/30 flex items-center justify-between">
+                <span className="text-xs text-muted">
                   {selectedUserIds.length > 0
                     ? `${selectedUserIds.length} attendee${selectedUserIds.length > 1 ? "s" : ""} selected`
                     : "No attendees selected (skip to start)"}
@@ -2571,7 +2571,7 @@ function StartMeetingDialog({
                 <div className="flex gap-2">
                   <button
                     onClick={onCancel}
-                    className="text-xs px-4 py-2 text-gray-500 hover:text-gray-700"
+                    className="text-xs px-4 py-2 text-muted hover:text-foreground"
                   >
                     Cancel
                   </button>

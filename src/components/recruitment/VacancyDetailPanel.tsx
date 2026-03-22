@@ -23,13 +23,13 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 const STAGE_STYLES: Record<string, string> = {
-  applied: "bg-gray-100 text-gray-700",
+  applied: "bg-surface text-foreground/80",
   screened: "bg-blue-100 text-blue-700",
   interviewed: "bg-amber-100 text-amber-700",
   offered: "bg-purple-100 text-purple-700",
   accepted: "bg-emerald-100 text-emerald-700",
   rejected: "bg-red-100 text-red-700",
-  withdrawn: "bg-gray-100 text-gray-500",
+  withdrawn: "bg-surface text-muted",
 };
 
 interface VacancyDetailPanelProps {
@@ -128,9 +128,9 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40">
-        <div className="bg-white rounded-t-xl sm:rounded-xl w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+        <div className="bg-card rounded-t-xl sm:rounded-xl w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto p-6">
           <div className="flex items-center justify-center py-12">
-            <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-border border-t-blue-600 rounded-full animate-spin" />
           </div>
         </div>
       </div>
@@ -141,18 +141,18 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40">
-      <div className="bg-white rounded-t-xl sm:rounded-xl w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-t-xl sm:rounded-xl w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between px-6 py-4 border-b sticky top-0 bg-card z-10">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               {ROLE_LABELS[vacancy.role] || vacancy.role}
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted">
               {vacancy.service?.name} &middot; {vacancy.employmentType.replace("_", " ")}
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-muted hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -160,7 +160,7 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
         <div className="p-6 space-y-6">
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <label className="block text-sm font-medium text-foreground/80 mb-2">Status</label>
             <div className="flex flex-wrap gap-2">
               {["open", "interviewing", "offered", "filled", "cancelled"].map((s) => (
                 <button
@@ -169,7 +169,7 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                   className={`px-3 py-1.5 text-xs rounded-full font-medium capitalize transition-colors ${
                     vacancy.status === s
                       ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      : "bg-surface text-muted hover:bg-border"
                   }`}
                 >
                   {s}
@@ -181,28 +181,28 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
           {/* Details */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-gray-500">Qualification</span>
-              <p className="font-medium text-gray-900 capitalize">
+              <span className="text-muted">Qualification</span>
+              <p className="font-medium text-foreground capitalize">
                 {vacancy.qualificationRequired?.replace("_", " ") || "None"}
               </p>
             </div>
             <div>
-              <span className="text-gray-500">Assigned To</span>
-              <p className="font-medium text-gray-900">
+              <span className="text-muted">Assigned To</span>
+              <p className="font-medium text-foreground">
                 {vacancy.assignedTo?.name || "Unassigned"}
               </p>
             </div>
             <div>
-              <span className="text-gray-500">Target Fill Date</span>
-              <p className="font-medium text-gray-900">
+              <span className="text-muted">Target Fill Date</span>
+              <p className="font-medium text-foreground">
                 {vacancy.targetFillDate
                   ? new Date(vacancy.targetFillDate).toLocaleDateString("en-AU")
                   : "—"}
               </p>
             </div>
             <div>
-              <span className="text-gray-500">Created</span>
-              <p className="font-medium text-gray-900">
+              <span className="text-muted">Created</span>
+              <p className="font-medium text-foreground">
                 {new Date(vacancy.createdAt).toLocaleDateString("en-AU")}
               </p>
             </div>
@@ -210,15 +210,15 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
 
           {vacancy.notes && (
             <div>
-              <span className="text-sm text-gray-500">Notes</span>
-              <p className="text-sm text-gray-700 mt-1">{vacancy.notes}</p>
+              <span className="text-sm text-muted">Notes</span>
+              <p className="text-sm text-foreground/80 mt-1">{vacancy.notes}</p>
             </div>
           )}
 
           {/* Candidates */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-gray-900">
+              <h4 className="text-sm font-semibold text-foreground">
                 Candidates ({vacancy.candidates?.length || 0})
               </h4>
               <div className="flex items-center gap-2">
@@ -254,20 +254,20 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
 
             {/* Add Candidate Form */}
             {showAddCandidate && (
-              <form onSubmit={handleAddCandidate} className="bg-gray-50 rounded-lg p-4 mb-4 space-y-3">
+              <form onSubmit={handleAddCandidate} className="bg-surface/50 rounded-lg p-4 mb-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     type="text"
                     placeholder="Name *"
                     value={candidateForm.name}
                     onChange={(e) => setCandidateForm({ ...candidateForm, name: e.target.value })}
-                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                    className="px-3 py-2 text-sm border border-border rounded-lg"
                     required
                   />
                   <select
                     value={candidateForm.source}
                     onChange={(e) => setCandidateForm({ ...candidateForm, source: e.target.value })}
-                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                    className="px-3 py-2 text-sm border border-border rounded-lg"
                   >
                     <option value="indeed">Indeed</option>
                     <option value="seek">Seek</option>
@@ -284,25 +284,25 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                     placeholder="Email"
                     value={candidateForm.email}
                     onChange={(e) => setCandidateForm({ ...candidateForm, email: e.target.value })}
-                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                    className="px-3 py-2 text-sm border border-border rounded-lg"
                   />
                   <input
                     type="tel"
                     placeholder="Phone"
                     value={candidateForm.phone}
                     onChange={(e) => setCandidateForm({ ...candidateForm, phone: e.target.value })}
-                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                    className="px-3 py-2 text-sm border border-border rounded-lg"
                   />
                 </div>
                 {/* Resume Upload */}
                 <div className="col-span-2">
-                  <label className="block text-xs text-gray-500 mb-1">Resume / CV</label>
+                  <label className="block text-xs text-muted mb-1">Resume / CV</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="file"
                       accept=".pdf,.doc,.docx,.txt"
                       onChange={handleFileUpload}
-                      className="text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+                      className="text-xs text-muted file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-surface file:text-foreground/80 hover:file:bg-border"
                     />
                     {uploading && <span className="text-xs text-blue-600">Uploading...</span>}
                     {candidateForm.resumeFileUrl && <span className="text-xs text-emerald-600">Uploaded</span>}
@@ -314,14 +314,14 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                   placeholder="Or paste resume text here..."
                   value={candidateForm.resumeText}
                   onChange={(e) => setCandidateForm({ ...candidateForm, resumeText: e.target.value })}
-                  className="col-span-2 px-3 py-2 text-sm border border-gray-300 rounded-lg h-20 resize-none"
+                  className="col-span-2 px-3 py-2 text-sm border border-border rounded-lg h-20 resize-none"
                 />
 
                 <div className="col-span-2 flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setShowAddCandidate(false)}
-                    className="px-3 py-1.5 text-xs text-gray-600"
+                    className="px-3 py-1.5 text-xs text-muted"
                   >
                     Cancel
                   </button>
@@ -354,7 +354,7 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
             {/* Candidate List */}
             <div className="space-y-2">
               {vacancy.candidates?.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">No candidates yet</p>
+                <p className="text-sm text-muted text-center py-4">No candidates yet</p>
               )}
               {vacancy.candidates?.map((c: {
                 id: string;
@@ -364,17 +364,17 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                 stage: string;
                 appliedAt: string;
               }) => (
-                <div key={c.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
+                <div key={c.id} className="flex items-center justify-between bg-surface/50 rounded-lg px-4 py-3">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{c.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm font-medium text-foreground">{c.name}</p>
+                    <p className="text-xs text-muted">
                       {c.source} &middot; Applied {new Date(c.appliedAt).toLocaleDateString("en-AU")}
                     </p>
                   </div>
                   <select
                     value={c.stage}
                     onChange={(e) => handleStageChange(c.id, e.target.value)}
-                    className={`text-xs rounded-full px-3 py-1 font-medium border-0 ${STAGE_STYLES[c.stage] || "bg-gray-100 text-gray-700"}`}
+                    className={`text-xs rounded-full px-3 py-1 font-medium border-0 ${STAGE_STYLES[c.stage] || "bg-surface text-foreground/80"}`}
                   >
                     {Object.entries(STAGE_LABELS).map(([value, label]) => (
                       <option key={value} value={value}>{label}</option>

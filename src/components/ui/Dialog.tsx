@@ -48,7 +48,7 @@ function DialogContent({
   return (
     <DialogPrimitive.Content
       className={cn(
-        "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full rounded-xl bg-white p-6 shadow-2xl",
+        "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full rounded-xl bg-card p-6 shadow-2xl",
         "data-[state=open]:animate-in data-[state=open]:fade-in data-[state=open]:zoom-in-95",
         "data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95",
         sizeClasses[size],
@@ -56,7 +56,7 @@ function DialogContent({
       )}
     >
       {showClose && (
-        <DialogPrimitive.Close aria-label="Close dialog" className="absolute top-4 right-4 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+        <DialogPrimitive.Close aria-label="Close dialog" className="absolute top-4 right-4 p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface transition-colors">
           <X className="w-4 h-4" />
         </DialogPrimitive.Close>
       )}

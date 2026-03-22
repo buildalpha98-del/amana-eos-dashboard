@@ -155,7 +155,7 @@ export function CoverageTab({ onSelectService }: CoverageTabProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20 text-gray-500">
+      <div className="flex items-center justify-center py-20 text-muted">
         <Loader2 className="h-5 w-5 animate-spin mr-2" />
         Loading coverage data...
       </div>
@@ -164,10 +164,10 @@ export function CoverageTab({ onSelectService }: CoverageTabProps) {
 
   if (!coverage || coverage.services.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border bg-white py-16">
-        <Building2 className="mb-3 h-10 w-10 text-gray-300" />
-        <p className="text-lg font-medium text-gray-700">No services found</p>
-        <p className="mt-1 text-sm text-gray-500">
+      <div className="flex flex-col items-center justify-center rounded-xl border bg-card py-16">
+        <Building2 className="mb-3 h-10 w-10 text-muted/50" />
+        <p className="text-lg font-medium text-foreground/80">No services found</p>
+        <p className="mt-1 text-sm text-muted">
           Add services to track marketing coverage across centres.
         </p>
       </div>
@@ -179,76 +179,76 @@ export function CoverageTab({ onSelectService }: CoverageTabProps) {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Centres */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100">
-              <Building2 className="w-5 h-5 text-gray-600" />
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-surface">
+              <Building2 className="w-5 h-5 text-muted" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-foreground">
                 {coverage.totalCentres}
               </p>
-              <p className="text-sm text-gray-500">Total Centres</p>
+              <p className="text-sm text-muted">Total Centres</p>
             </div>
           </div>
         </div>
 
         {/* Active */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-foreground">
                 {coverage.activeCentres}
               </p>
-              <p className="text-sm text-gray-500">Active</p>
+              <p className="text-sm text-muted">Active</p>
             </div>
           </div>
         </div>
 
         {/* Moderate */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-100">
               <AlertTriangle className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-foreground">
                 {coverage.moderateCentres}
               </p>
-              <p className="text-sm text-gray-500">Moderate</p>
+              <p className="text-sm text-muted">Moderate</p>
             </div>
           </div>
         </div>
 
         {/* Neglected */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100">
               <XCircle className="w-5 h-5 text-red-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-foreground">
                 {coverage.neglectedCentres}
               </p>
-              <p className="text-sm text-gray-500">Neglected</p>
+              <p className="text-sm text-muted">Neglected</p>
             </div>
           </div>
         </div>
 
         {/* Global Posts */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-4">
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100">
               <Globe className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-foreground">
                 {coverage.globalPosts}
               </p>
-              <p className="text-sm text-gray-500">Global Posts</p>
+              <p className="text-sm text-muted">Global Posts</p>
             </div>
           </div>
         </div>
@@ -256,92 +256,92 @@ export function CoverageTab({ onSelectService }: CoverageTabProps) {
 
       {/* Daily Photo Compliance (Last 7 Days) */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+        <h3 className="text-sm font-semibold text-foreground/80 mb-3">
           Daily Photo Compliance (Last 7 Days)
         </h3>
         <PhotoComplianceWidget />
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase tracking-wider text-muted">
                 <th
-                  className="px-4 py-3 cursor-pointer select-none hover:text-gray-700"
+                  className="px-4 py-3 cursor-pointer select-none hover:text-foreground"
                   onClick={() => toggleSort("name")}
                 >
                   Centre Name <SortIcon col="name" />
                 </th>
                 <th
-                  className="px-4 py-3 cursor-pointer select-none hover:text-gray-700"
+                  className="px-4 py-3 cursor-pointer select-none hover:text-foreground"
                   onClick={() => toggleSort("code")}
                 >
                   Code <SortIcon col="code" />
                 </th>
                 <th
-                  className="px-4 py-3 cursor-pointer select-none hover:text-gray-700"
+                  className="px-4 py-3 cursor-pointer select-none hover:text-foreground"
                   onClick={() => toggleSort("state")}
                 >
                   State <SortIcon col="state" />
                 </th>
                 <th
-                  className="px-4 py-3 cursor-pointer select-none hover:text-gray-700"
+                  className="px-4 py-3 cursor-pointer select-none hover:text-foreground"
                   onClick={() => toggleSort("postsThisMonth")}
                 >
                   Posts This Month <SortIcon col="postsThisMonth" />
                 </th>
                 <th
-                  className="px-4 py-3 cursor-pointer select-none hover:text-gray-700"
+                  className="px-4 py-3 cursor-pointer select-none hover:text-foreground"
                   onClick={() => toggleSort("postsLastMonth")}
                 >
                   Last Month <SortIcon col="postsLastMonth" />
                 </th>
                 <th
-                  className="px-4 py-3 cursor-pointer select-none hover:text-gray-700"
+                  className="px-4 py-3 cursor-pointer select-none hover:text-foreground"
                   onClick={() => toggleSort("activeCampaigns")}
                 >
                   Active Campaigns <SortIcon col="activeCampaigns" />
                 </th>
                 <th
-                  className="px-4 py-3 cursor-pointer select-none hover:text-gray-700"
+                  className="px-4 py-3 cursor-pointer select-none hover:text-foreground"
                   onClick={() => toggleSort("lastPostDate")}
                 >
                   Last Post <SortIcon col="lastPostDate" />
                 </th>
                 <th
-                  className="px-4 py-3 cursor-pointer select-none hover:text-gray-700"
+                  className="px-4 py-3 cursor-pointer select-none hover:text-foreground"
                   onClick={() => toggleSort("status")}
                 >
                   Status <SortIcon col="status" />
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border/50">
               {sorted.map((svc) => (
                 <tr
                   key={svc.id}
                   onClick={() => onSelectService(svc.id)}
-                  className="cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="cursor-pointer hover:bg-surface transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-gray-900">
+                  <td className="px-4 py-3 font-medium text-foreground">
                     {svc.name}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{svc.code}</td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3 text-muted">{svc.code}</td>
+                  <td className="px-4 py-3 text-muted">
                     {svc.state ?? "\u2014"}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3 text-muted">
                     {svc.postsThisMonth}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3 text-muted">
                     {svc.postsLastMonth}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3 text-muted">
                     {svc.activeCampaigns}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3 text-muted">
                     {formatDate(svc.lastPostDate)}
                   </td>
                   <td className="px-4 py-3">

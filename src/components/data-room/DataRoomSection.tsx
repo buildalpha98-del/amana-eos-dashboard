@@ -24,7 +24,7 @@ export function DataRoomSection({ section, config, expanded, onToggle }: Props) 
 
   return (
     <div
-      className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-shadow hover:shadow-sm"
+      className="bg-card rounded-xl border border-border overflow-hidden transition-shadow hover:shadow-sm"
       style={{ borderLeftWidth: "4px", borderLeftColor: config.iconColor }}
     >
       {/* Header — always visible */}
@@ -43,9 +43,9 @@ export function DataRoomSection({ section, config, expanded, onToggle }: Props) 
         {/* Label + progress */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1.5">
-            <h3 className="text-sm font-semibold text-gray-800 truncate">{section.label}</h3>
+            <h3 className="text-sm font-semibold text-foreground truncate">{section.label}</h3>
             <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted">
                 {section.presentCount}/{section.totalRequired}
               </span>
               <span
@@ -57,7 +57,7 @@ export function DataRoomSection({ section, config, expanded, onToggle }: Props) 
             </div>
           </div>
           {/* Progress bar */}
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-surface rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{ width: `${section.completeness}%`, backgroundColor: barColor }}
@@ -67,7 +67,7 @@ export function DataRoomSection({ section, config, expanded, onToggle }: Props) 
 
         {/* Chevron */}
         <ChevronDown
-          className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ${
+          className={`w-4 h-4 text-muted flex-shrink-0 transition-transform duration-200 ${
             expanded ? "rotate-180" : ""
           }`}
         />
@@ -79,19 +79,19 @@ export function DataRoomSection({ section, config, expanded, onToggle }: Props) 
           expanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="border-t border-gray-100">
+        <div className="border-t border-border/50">
           {section.items.map((item) => (
             <DocumentRow key={item.key} item={item} />
           ))}
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2.5 bg-gray-50 flex items-center justify-between">
-          <span className="text-xs text-gray-400">
+        <div className="px-4 py-2.5 bg-surface/50 flex items-center justify-between">
+          <span className="text-xs text-muted">
             {section.documentCount} total record{section.documentCount !== 1 ? "s" : ""} found
           </span>
           {section.lastUpdated && (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-muted">
               Last updated{" "}
               {new Date(section.lastUpdated).toLocaleDateString("en-AU", {
                 day: "numeric",

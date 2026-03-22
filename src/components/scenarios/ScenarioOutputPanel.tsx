@@ -107,19 +107,19 @@ export function ScenarioOutputPanel({ outputs }: Props) {
       </div>
 
       {/* Per Centre Summary */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-800 mb-3">Per Centre (Annual)</h3>
+      <div className="bg-card rounded-xl border border-border p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Per Centre (Annual)</h3>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-xs text-gray-500">Revenue</p>
-            <p className="text-sm font-bold text-gray-900">{formatAUD(outputs.annualRevenuePerCentre)}</p>
+            <p className="text-xs text-muted">Revenue</p>
+            <p className="text-sm font-bold text-foreground">{formatAUD(outputs.annualRevenuePerCentre)}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Costs</p>
-            <p className="text-sm font-bold text-gray-900">{formatAUD(outputs.annualCostPerCentre)}</p>
+            <p className="text-xs text-muted">Costs</p>
+            <p className="text-sm font-bold text-foreground">{formatAUD(outputs.annualCostPerCentre)}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">Profit</p>
+            <p className="text-xs text-muted">Profit</p>
             <p className={`text-sm font-bold ${outputs.annualProfitPerCentre >= 0 ? "text-emerald-600" : "text-red-600"}`}>
               {formatAUD(outputs.annualProfitPerCentre)}
             </p>

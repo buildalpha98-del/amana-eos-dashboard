@@ -75,7 +75,7 @@ const typeBadgeColors: Record<string, string> = {
   geccko: "bg-emerald-100 text-emerald-700",
   food_safety: "bg-amber-100 text-amber-700",
   food_handler: "bg-yellow-100 text-yellow-700",
-  other: "bg-gray-100 text-gray-700",
+  other: "bg-surface text-foreground/80",
 };
 
 const certTypes = [
@@ -240,7 +240,7 @@ function StaffComplianceView() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -269,8 +269,8 @@ function StaffComplianceView() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">My Compliance Documents</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">My Compliance Documents</h2>
+          <p className="text-sm text-muted mt-1 line-clamp-2">
             Upload and manage your required compliance certificates
           </p>
         </div>
@@ -287,14 +287,14 @@ function StaffComplianceView() {
             <div
               key={type}
               className={cn(
-                "bg-white rounded-xl border p-5 transition-all",
+                "bg-card rounded-xl border p-5 transition-all",
                 cert
                   ? status === "expired" || status === "critical"
                     ? "border-red-200"
                     : status === "warning"
                     ? "border-amber-200"
                     : "border-emerald-200"
-                  : "border-gray-200 border-dashed"
+                  : "border-border border-dashed"
               )}
             >
               <div className="flex items-start justify-between mb-3">
@@ -325,15 +325,15 @@ function StaffComplianceView() {
                   )}
                 </div>
                 {!cert && (
-                  <span className="text-xs text-gray-400 font-medium">Missing</span>
+                  <span className="text-xs text-muted font-medium">Missing</span>
                 )}
               </div>
 
               {cert ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500">Expires</span>
-                    <span className="font-medium text-gray-700">
+                    <span className="text-muted">Expires</span>
+                    <span className="font-medium text-foreground/80">
                       {formatDate(cert.expiryDate)}
                     </span>
                   </div>
@@ -360,7 +360,7 @@ function StaffComplianceView() {
                 </div>
               ) : (
                 <div className="text-center py-3">
-                  <p className="text-sm text-gray-400 mb-3">
+                  <p className="text-sm text-muted mb-3">
                     No document uploaded yet
                   </p>
                   <button
@@ -411,14 +411,14 @@ export default function CompliancePage() {
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Page header */}
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Compliance</h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground">Compliance</h2>
+        <p className="text-sm text-muted mt-1">
           Staff certificates, NQS audits, qualification ratios & compliance tracking
         </p>
       </div>
 
       {/* Tab bar */}
-      <div className="border-b border-gray-200 -mb-px overflow-x-auto">
+      <div className="border-b border-border -mb-px overflow-x-auto">
         <nav className="flex gap-1" aria-label="Compliance tabs">
           {complianceTabs.map((tab) => {
             const Icon = tab.icon;
@@ -431,7 +431,7 @@ export default function CompliancePage() {
                   "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
                   isActive
                     ? "border-brand text-brand"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent text-muted hover:text-foreground hover:border-border"
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -633,7 +633,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
         />
         <button
           onClick={() => setShowImportCerts(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
         >
           <FileSpreadsheet className="w-4 h-4" />
           Import Certificates
@@ -651,25 +651,25 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
       <>
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+            <div className="bg-card rounded-xl border border-border p-4">
+              <p className="text-xs font-medium text-muted uppercase tracking-wider mb-1">
                 Total Certs
               </p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              <p className="text-2xl font-bold text-foreground">{stats.total}</p>
             </div>
-            <div className="bg-white rounded-xl border border-amber-200 p-4">
+            <div className="bg-card rounded-xl border border-amber-200 p-4">
               <p className="text-xs font-medium text-amber-600 uppercase tracking-wider mb-1">
                 Expiring Soon
               </p>
               <p className="text-2xl font-bold text-amber-600">{stats.expiringSoon}</p>
             </div>
-            <div className="bg-white rounded-xl border border-red-200 p-4">
+            <div className="bg-card rounded-xl border border-red-200 p-4">
               <p className="text-xs font-medium text-red-600 uppercase tracking-wider mb-1">
                 Expired
               </p>
               <p className="text-2xl font-bold text-red-600">{stats.expired}</p>
             </div>
-            <div className="bg-white rounded-xl border border-emerald-200 p-4">
+            <div className="bg-card rounded-xl border border-emerald-200 p-4">
               <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider mb-1">
                 Valid
               </p>
@@ -682,7 +682,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
             <select
               value={serviceFilter}
               onChange={(e) => { setServiceFilter(e.target.value); setCertPage(1); }}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All Centres</option>
               {services.map((s) => (
@@ -694,7 +694,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
             <select
               value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setCertPage(1); }}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All Types</option>
               {certTypes.map((t) => (
@@ -720,17 +720,17 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
           {/* Content */}
           {isLoading ? (
             <div className="flex items-center justify-center py-24">
-              <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
+              <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
             </div>
           ) : grouped.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
+            <div className="flex flex-col items-center justify-center py-24 text-center bg-card rounded-xl border border-border">
               <div className="w-16 h-16 rounded-2xl bg-brand/10 flex items-center justify-center mb-4">
                 <ShieldCheck className="w-8 h-8 text-brand" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              <h3 className="text-lg font-semibold text-foreground mb-1">
                 No certificates found
               </h3>
-              <p className="text-sm text-gray-500 max-w-sm mb-4">
+              <p className="text-sm text-muted max-w-sm mb-4">
                 Add staff compliance certificates to track expiry dates and upcoming
                 renewals.
               </p>
@@ -746,7 +746,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
             <div className="space-y-8">
               {selectedIds.size > 0 && (
                 <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-brand/5 border border-brand/20 rounded-xl">
-                  <span className="text-sm font-medium text-gray-700">{selectedIds.size} selected</span>
+                  <span className="text-sm font-medium text-foreground/80">{selectedIds.size} selected</span>
                   <button
                     onClick={async () => {
                       const promises = Array.from(selectedIds).map(id => updateCert.mutateAsync({ id, acknowledged: true }));
@@ -760,7 +760,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                   </button>
                   <button
                     onClick={() => setSelectedIds(new Set())}
-                    className="text-sm text-gray-500 hover:underline ml-auto"
+                    className="text-sm text-muted hover:underline ml-auto"
                   >
                     Clear selection
                   </button>
@@ -768,7 +768,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
               )}
               {grouped.map(([month, items]) => (
                 <div key={month}>
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                  <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3">
                     {monthLabel(month)}
                   </h3>
                   <div className="space-y-2">
@@ -779,12 +779,12 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                         <div
                           key={cert.id}
                           className={cn(
-                            "bg-white rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3",
+                            "bg-card rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3",
                             status === "expired" || status === "critical"
                               ? "border-red-200"
                               : status === "warning"
                               ? "border-amber-200"
-                              : "border-gray-200"
+                              : "border-border"
                           )}
                         >
                           {/* Checkbox + Status dot + type badge */}
@@ -798,7 +798,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                                 else next.delete(cert.id);
                                 setSelectedIds(next);
                               }}
-                              className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand flex-shrink-0"
+                              className="w-4 h-4 rounded border-border text-brand focus:ring-brand flex-shrink-0"
                             />
                             <div
                               className={cn(
@@ -809,19 +809,19 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                             <span
                               className={cn(
                                 "text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0",
-                                typeBadgeColors[cert.type] || "bg-gray-100 text-gray-700"
+                                typeBadgeColors[cert.type] || "bg-surface text-foreground/80"
                               )}
                             >
                               {typeLabels[cert.type] || cert.type}
                             </span>
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-gray-900 truncate">
+                              <p className="text-sm font-medium text-foreground truncate">
                                 {cert.user?.name || cert.label || "Unnamed"}
                               </p>
                               <div className="flex items-center gap-2">
-                                <p className="text-xs text-gray-500 truncate">
+                                <p className="text-xs text-muted truncate">
                                   {cert.service.name}{" "}
-                                  <span className="text-gray-400">({cert.service.code})</span>
+                                  <span className="text-muted">({cert.service.code})</span>
                                 </p>
                                 {cert.fileUrl && (
                                   <a
@@ -841,8 +841,8 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                           {/* Expiry info */}
                           <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
                             <div className="text-right">
-                              <p className="text-xs text-gray-400">Expires</p>
-                              <p className="text-sm font-medium text-gray-700">
+                              <p className="text-xs text-muted">Expires</p>
+                              <p className="text-sm font-medium text-foreground/80">
                                 {formatDate(cert.expiryDate)}
                               </p>
                             </div>
@@ -873,7 +873,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                                       onSuccess: () => toast({ title: "Certificate acknowledged", description: "The certificate has been acknowledged.", variant: "default" }),
                                     })
                                   }
-                                  className="p-1.5 text-gray-400 hover:text-amber-600 transition-colors"
+                                  className="p-1.5 text-muted hover:text-amber-600 transition-colors"
                                   title="Acknowledge"
                                 >
                                   <Eye className="w-4 h-4" />
@@ -883,7 +883,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                             {/* Delete */}
                             <button
                               onClick={() => setDeleteCertId(cert.id)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                              className="p-1.5 text-muted hover:text-red-600 transition-colors"
                               title="Delete"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -921,22 +921,22 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
       {/* Create Modal */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-border/50">
+              <h3 className="text-lg font-semibold text-foreground">
                 Add Certificate
               </h3>
               <button
                 onClick={() => setShowCreate(false)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-surface transition-colors"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-5 h-5 text-muted" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               {/* Service */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Centre / Service *
                 </label>
                 <select
@@ -944,7 +944,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                   onChange={(e) =>
                     setForm({ ...form, serviceId: e.target.value })
                   }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 >
                   <option value="">Select centre...</option>
                   {services.map((s) => (
@@ -957,7 +957,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
 
               {/* User (optional) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Staff Member (optional)
                 </label>
                 <select
@@ -965,7 +965,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                   onChange={(e) =>
                     setForm({ ...form, userId: e.target.value })
                   }
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 >
                   <option value="">No specific staff member</option>
                   {users.map((u) => (
@@ -978,13 +978,13 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
 
               {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Certificate Type *
                 </label>
                 <select
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 >
                   {certTypes.map((t) => (
                     <option key={t} value={t}>
@@ -996,7 +996,7 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
 
               {/* Label */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Label (optional)
                 </label>
                 <input
@@ -1004,14 +1004,14 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                   value={form.label}
                   onChange={(e) => setForm({ ...form, label: e.target.value })}
                   placeholder="e.g. WWCC renewal for John"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
               </div>
 
               {/* Dates */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground/80 mb-1">
                     Issue Date *
                   </label>
                   <input
@@ -1020,11 +1020,11 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                     onChange={(e) =>
                       setForm({ ...form, issueDate: e.target.value })
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground/80 mb-1">
                     Expiry Date *
                   </label>
                   <input
@@ -1033,27 +1033,27 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                     onChange={(e) =>
                       setForm({ ...form, expiryDate: e.target.value })
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
                 </div>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Notes (optional)
                 </label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   rows={2}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
                 />
               </div>
 
               {/* Alert Days */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Alert Days Before Expiry
                 </label>
                 <input
@@ -1064,15 +1064,15 @@ function AdminComplianceView({ serviceFilter, setServiceFilter, typeFilter, setT
                   }
                   min={1}
                   max={365}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100">
+            <div className="flex items-center justify-end gap-3 p-5 border-t border-border/50">
               <button
                 onClick={() => setShowCreate(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface rounded-lg transition-colors"
               >
                 Cancel
               </button>

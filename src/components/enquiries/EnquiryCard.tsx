@@ -36,25 +36,25 @@ export function EnquiryCard({ enquiry, onClick }: EnquiryCardProps) {
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-lg border p-3 cursor-pointer hover:shadow-md transition-shadow ${
-        isStuck ? "border-red-400 border-l-4" : "border-gray-200"
+      className={`bg-card rounded-lg border p-3 cursor-pointer hover:shadow-md transition-shadow ${
+        isStuck ? "border-red-400 border-l-4" : "border-border"
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-sm font-semibold text-gray-900 truncate">
+        <p className="text-sm font-semibold text-foreground truncate">
           {enquiry.parentName}
         </p>
-        <ChannelIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+        <ChannelIcon className="h-3.5 w-3.5 text-muted flex-shrink-0" />
       </div>
 
       {enquiry.childName && (
-        <p className="text-xs text-gray-500 mb-1 truncate">
+        <p className="text-xs text-muted mb-1 truncate">
           Child: {enquiry.childName}
         </p>
       )}
 
       <div className="flex items-center gap-1.5 mb-2">
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 truncate">
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface text-muted truncate">
           {enquiry.service?.name?.replace("Amana OSHC ", "") || "Unknown"}
         </span>
       </div>
@@ -64,7 +64,7 @@ export function EnquiryCard({ enquiry, onClick }: EnquiryCardProps) {
           {enquiry.parentDriver && (
             <span
               className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                DRIVER_COLOURS[enquiry.parentDriver] || "bg-gray-100 text-gray-600"
+                DRIVER_COLOURS[enquiry.parentDriver] || "bg-surface text-muted"
               }`}
             >
               {enquiry.parentDriver.replace("_", " ")}
@@ -73,7 +73,7 @@ export function EnquiryCard({ enquiry, onClick }: EnquiryCardProps) {
         </div>
         <span
           className={`text-[10px] font-medium ${
-            isStuck ? "text-red-600" : "text-gray-400"
+            isStuck ? "text-red-600" : "text-muted"
           }`}
         >
           {daysInStage}d
@@ -81,7 +81,7 @@ export function EnquiryCard({ enquiry, onClick }: EnquiryCardProps) {
       </div>
 
       {enquiry.nextActionDue && (
-        <p className="text-[10px] text-gray-400 mt-1">
+        <p className="text-[10px] text-muted mt-1">
           Due:{" "}
           {new Date(enquiry.nextActionDue).toLocaleDateString("en-AU", {
             day: "numeric",

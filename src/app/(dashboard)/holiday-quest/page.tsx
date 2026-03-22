@@ -115,7 +115,7 @@ function toISODate(d: Date) {
 }
 
 const statusColors: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-600",
+  draft: "bg-surface text-muted",
   published: "bg-green-100 text-green-700",
   full: "bg-amber-100 text-amber-700",
 };
@@ -333,17 +333,17 @@ export default function HolidayQuestPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Palmtree className="h-6 w-6 text-teal-600" />
             Holiday Quest
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted mt-1">
             Plan vacation care programmes, generate promo content, and track bookings
           </p>
         </div>
         <div className="flex items-center gap-3">
           <select
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm"
             value={selectedServiceId || ""}
             onChange={(e) => setSelectedServiceId(e.target.value || null)}
           >
@@ -372,7 +372,7 @@ export default function HolidayQuestPage() {
               />
               <button
                 onClick={() => setShowTemplateModal(true)}
-                className="flex items-center gap-1.5 rounded-lg bg-white border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-1.5 rounded-lg bg-card border border-border px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-surface"
               >
                 <Sparkles className="h-4 w-4" />
                 Template
@@ -405,23 +405,23 @@ export default function HolidayQuestPage() {
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => setWeekOffset((w) => w - 1)}
-          className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+          className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-surface"
         >
           <ChevronLeft className="h-4 w-4" /> Prev
         </button>
-        <div className="text-sm font-medium text-gray-700">
+        <div className="text-sm font-medium text-foreground/80">
           {fmtDate(weekDates[0])} — {fmtDate(weekDates[4])}
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setWeekOffset(0)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-surface"
           >
             Today
           </button>
           <button
             onClick={() => setWeekOffset((w) => w + 1)}
-            className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
+            className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-2 text-sm hover:bg-surface"
           >
             Next <ChevronRight className="h-4 w-4" />
           </button>
@@ -430,9 +430,9 @@ export default function HolidayQuestPage() {
 
       {/* Week Grid */}
       {!selectedServiceId ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-12 text-center">
-          <Palmtree className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-3 text-sm text-gray-500">Select a centre to view Holiday Quest plans</p>
+        <div className="rounded-xl border border-dashed border-border bg-surface/50 p-12 text-center">
+          <Palmtree className="mx-auto h-12 w-12 text-muted/50" />
+          <p className="mt-3 text-sm text-muted">Select a centre to view Holiday Quest plans</p>
         </div>
       ) : error ? (
         <ErrorState
@@ -443,7 +443,7 @@ export default function HolidayQuestPage() {
       ) : isLoading ? (
         <div className="grid grid-cols-5 gap-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-48 animate-pulse rounded-xl bg-gray-100" />
+            <div key={i} className="h-48 animate-pulse rounded-xl bg-surface" />
           ))}
         </div>
       ) : (
@@ -455,13 +455,13 @@ export default function HolidayQuestPage() {
             const isNewForm = showNewDayForm === dateStr;
 
             return (
-              <div key={dateStr} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+              <div key={dateStr} className="rounded-xl border border-border bg-card overflow-hidden">
                 {/* Day header */}
-                <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
-                  <p className="text-xs font-semibold text-gray-500 uppercase">
+                <div className="bg-surface/50 px-3 py-2 border-b border-border">
+                  <p className="text-xs font-semibold text-muted uppercase">
                     {date.toLocaleDateString("en-AU", { weekday: "short" })}
                   </p>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-foreground">
                     {date.toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                   </p>
                 </div>
@@ -469,26 +469,26 @@ export default function HolidayQuestPage() {
                 {day ? (
                   /* Filled day card */
                   <div
-                    className={`p-3 cursor-pointer hover:bg-gray-50 transition-colors ${isEditing ? "ring-2 ring-teal-500 ring-inset" : ""}`}
+                    className={`p-3 cursor-pointer hover:bg-surface transition-colors ${isEditing ? "ring-2 ring-teal-500 ring-inset" : ""}`}
                     onClick={() => !isEditing && isAdmin && setEditingDay({ ...day })}
                   >
                     <div className="flex items-start justify-between gap-1 mb-2">
-                      <p className="text-sm font-semibold text-gray-900 leading-tight">{day.theme}</p>
+                      <p className="text-sm font-semibold text-foreground leading-tight">{day.theme}</p>
                       {day.isExcursion && (
                         <MapPin className="h-3.5 w-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mb-1">
-                      <span className="font-medium text-gray-600">AM:</span> {day.morningActivity.slice(0, 60)}{day.morningActivity.length > 60 ? "..." : ""}
+                    <p className="text-xs text-muted mb-1">
+                      <span className="font-medium text-muted">AM:</span> {day.morningActivity.slice(0, 60)}{day.morningActivity.length > 60 ? "..." : ""}
                     </p>
-                    <p className="text-xs text-gray-500 mb-2">
-                      <span className="font-medium text-gray-600">PM:</span> {day.afternoonActivity.slice(0, 60)}{day.afternoonActivity.length > 60 ? "..." : ""}
+                    <p className="text-xs text-muted mb-2">
+                      <span className="font-medium text-muted">PM:</span> {day.afternoonActivity.slice(0, 60)}{day.afternoonActivity.length > 60 ? "..." : ""}
                     </p>
                     <div className="flex items-center justify-between">
                       <span className={`inline-block text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${statusColors[day.status] || statusColors.draft}`}>
                         {day.status}
                       </span>
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-[10px] text-muted">
                         {day.currentBookings}/{day.maxCapacity}
                       </span>
                     </div>
@@ -498,25 +498,25 @@ export default function HolidayQuestPage() {
                   <div className="p-3 space-y-2">
                     <input
                       placeholder="Theme"
-                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs"
+                      className="w-full rounded border border-border px-2 py-1.5 text-xs"
                       value={newDay.theme}
                       onChange={(e) => setNewDay({ ...newDay, theme: e.target.value })}
                     />
                     <textarea
                       placeholder="Morning activity"
-                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs resize-none"
+                      className="w-full rounded border border-border px-2 py-1.5 text-xs resize-none"
                       rows={2}
                       value={newDay.morningActivity}
                       onChange={(e) => setNewDay({ ...newDay, morningActivity: e.target.value })}
                     />
                     <textarea
                       placeholder="Afternoon activity"
-                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs resize-none"
+                      className="w-full rounded border border-border px-2 py-1.5 text-xs resize-none"
                       rows={2}
                       value={newDay.afternoonActivity}
                       onChange={(e) => setNewDay({ ...newDay, afternoonActivity: e.target.value })}
                     />
-                    <label className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <label className="flex items-center gap-1.5 text-xs text-muted">
                       <input
                         type="checkbox"
                         checked={newDay.isExcursion}
@@ -527,7 +527,7 @@ export default function HolidayQuestPage() {
                     {newDay.isExcursion && (
                       <input
                         placeholder="Venue"
-                        className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs"
+                        className="w-full rounded border border-border px-2 py-1.5 text-xs"
                         value={newDay.excursionVenue}
                         onChange={(e) => setNewDay({ ...newDay, excursionVenue: e.target.value })}
                       />
@@ -542,7 +542,7 @@ export default function HolidayQuestPage() {
                       </button>
                       <button
                         onClick={() => { setShowNewDayForm(null); resetNewDay(); }}
-                        className="rounded border border-gray-300 px-2 py-1.5 text-xs hover:bg-gray-50"
+                        className="rounded border border-border px-2 py-1.5 text-xs hover:bg-surface"
                       >
                         Cancel
                       </button>
@@ -554,13 +554,13 @@ export default function HolidayQuestPage() {
                     {isAdmin ? (
                       <button
                         onClick={() => { setShowNewDayForm(dateStr); resetNewDay(); }}
-                        className="flex flex-col items-center gap-1.5 text-gray-400 hover:text-teal-600 transition-colors"
+                        className="flex flex-col items-center gap-1.5 text-muted hover:text-teal-600 transition-colors"
                       >
                         <Plus className="h-6 w-6" />
                         <span className="text-xs">Add Day</span>
                       </button>
                     ) : (
-                      <p className="text-xs text-gray-400">No plan</p>
+                      <p className="text-xs text-muted">No plan</p>
                     )}
                   </div>
                 )}
@@ -574,42 +574,42 @@ export default function HolidayQuestPage() {
       {editingDay && (
         <div className="fixed inset-0 z-50 flex items-start justify-end">
           <div className="absolute inset-0 bg-black/20" onClick={() => setEditingDay(null)} />
-          <div className="relative h-full w-full max-w-md overflow-y-auto bg-white shadow-xl border-l border-gray-200">
-            <div className="sticky top-0 z-10 flex items-center justify-between bg-white border-b border-gray-200 px-5 py-4">
-              <h2 className="text-lg font-semibold text-gray-900">Edit Day</h2>
-              <button onClick={() => setEditingDay(null)} className="rounded-lg p-1 hover:bg-gray-100">
-                <X className="h-5 w-5 text-gray-500" />
+          <div className="relative h-full w-full max-w-md overflow-y-auto bg-card shadow-xl border-l border-border">
+            <div className="sticky top-0 z-10 flex items-center justify-between bg-card border-b border-border px-5 py-4">
+              <h2 className="text-lg font-semibold text-foreground">Edit Day</h2>
+              <button onClick={() => setEditingDay(null)} className="rounded-lg p-1 hover:bg-surface">
+                <X className="h-5 w-5 text-muted" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Theme</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Theme</label>
                 <input
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                   value={editingDay.theme}
                   onChange={(e) => setEditingDay({ ...editingDay, theme: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Morning Activity</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Morning Activity</label>
                 <textarea
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm resize-none"
                   rows={3}
                   value={editingDay.morningActivity}
                   onChange={(e) => setEditingDay({ ...editingDay, morningActivity: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Afternoon Activity</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Afternoon Activity</label>
                 <textarea
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm resize-none"
                   rows={3}
                   value={editingDay.afternoonActivity}
                   onChange={(e) => setEditingDay({ ...editingDay, afternoonActivity: e.target.value })}
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 text-sm text-foreground/80">
                   <input
                     type="checkbox"
                     checked={editingDay.isExcursion}
@@ -622,18 +622,18 @@ export default function HolidayQuestPage() {
               {editingDay.isExcursion && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Excursion Venue</label>
+                    <label className="block text-sm font-medium text-foreground/80 mb-1">Excursion Venue</label>
                     <input
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                       value={editingDay.excursionVenue || ""}
                       onChange={(e) => setEditingDay({ ...editingDay, excursionVenue: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Excursion Cost ($)</label>
+                    <label className="block text-sm font-medium text-foreground/80 mb-1">Excursion Cost ($)</label>
                     <input
                       type="number"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                       value={editingDay.excursionCost ?? ""}
                       onChange={(e) => setEditingDay({ ...editingDay, excursionCost: e.target.value ? parseFloat(e.target.value) : null })}
                     />
@@ -668,18 +668,18 @@ export default function HolidayQuestPage() {
                 </>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Materials Needed</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Materials Needed</label>
                 <textarea
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm resize-none"
                   rows={2}
                   value={editingDay.materialsNeeded || ""}
                   onChange={(e) => setEditingDay({ ...editingDay, materialsNeeded: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dietary Notes</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Dietary Notes</label>
                 <textarea
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm resize-none"
                   rows={2}
                   value={editingDay.dietaryNotes || ""}
                   onChange={(e) => setEditingDay({ ...editingDay, dietaryNotes: e.target.value })}
@@ -687,18 +687,18 @@ export default function HolidayQuestPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Max Capacity</label>
+                  <label className="block text-sm font-medium text-foreground/80 mb-1">Max Capacity</label>
                   <input
                     type="number"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                     value={editingDay.maxCapacity}
                     onChange={(e) => setEditingDay({ ...editingDay, maxCapacity: parseInt(e.target.value) || 40 })}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <label className="block text-sm font-medium text-foreground/80 mb-1">Status</label>
                   <select
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                     value={editingDay.status}
                     onChange={(e) => setEditingDay({ ...editingDay, status: e.target.value })}
                   >
@@ -733,22 +733,22 @@ export default function HolidayQuestPage() {
       {showTemplateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/30" onClick={() => setShowTemplateModal(false)} />
-          <div className="relative w-full max-w-lg rounded-xl bg-white shadow-xl overflow-hidden">
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <div className="relative w-full max-w-lg rounded-xl bg-card shadow-xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-teal-600" />
                 Generate from Template
               </h2>
-              <button onClick={() => setShowTemplateModal(false)} className="rounded-lg p-1 hover:bg-gray-100">
-                <X className="h-5 w-5 text-gray-500" />
+              <button onClick={() => setShowTemplateModal(false)} className="rounded-lg p-1 hover:bg-surface">
+                <X className="h-5 w-5 text-muted" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Week starting (Monday)</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Week starting (Monday)</label>
                 <input
                   type="date"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                   value={templateStartDate}
                   onChange={(e) => setTemplateStartDate(e.target.value)}
                 />
@@ -759,10 +759,10 @@ export default function HolidayQuestPage() {
                     key={t.name}
                     onClick={() => handleApplyTemplate(idx)}
                     disabled={createDays.isPending || !templateStartDate}
-                    className="w-full rounded-lg border border-gray-200 p-3 text-left hover:border-teal-400 hover:bg-teal-50 transition-colors disabled:opacity-50"
+                    className="w-full rounded-lg border border-border p-3 text-left hover:border-teal-400 hover:bg-teal-50 transition-colors disabled:opacity-50"
                   >
-                    <p className="text-sm font-semibold text-gray-900">{t.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                    <p className="text-xs text-muted mt-0.5">
                       {t.days.map((d) => d.theme).join(" \u2022 ")}
                     </p>
                   </button>
@@ -777,14 +777,14 @@ export default function HolidayQuestPage() {
       {showPromoModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/30" onClick={() => setShowPromoModal(false)} />
-          <div className="relative w-full max-w-2xl max-h-[85vh] rounded-xl bg-white shadow-xl overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 flex-shrink-0">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <div className="relative w-full max-w-2xl max-h-[85vh] rounded-xl bg-card shadow-xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4 flex-shrink-0">
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Megaphone className="h-5 w-5 text-teal-600" />
                 Generate Promotional Content
               </h2>
-              <button onClick={() => setShowPromoModal(false)} className="rounded-lg p-1 hover:bg-gray-100">
-                <X className="h-5 w-5 text-gray-500" />
+              <button onClick={() => setShowPromoModal(false)} className="rounded-lg p-1 hover:bg-surface">
+                <X className="h-5 w-5 text-muted" />
               </button>
             </div>
             <div className="p-5 flex-1 overflow-y-auto space-y-4">
@@ -792,19 +792,19 @@ export default function HolidayQuestPage() {
               {!generatePromo.data && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                    <label className="block text-sm font-medium text-foreground/80 mb-1">From</label>
                     <input
                       type="date"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                       value={promoFrom}
                       onChange={(e) => setPromoFrom(e.target.value)}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                    <label className="block text-sm font-medium text-foreground/80 mb-1">To</label>
                     <input
                       type="date"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-sm"
                       value={promoTo}
                       onChange={(e) => setPromoTo(e.target.value)}
                     />
@@ -826,16 +826,16 @@ export default function HolidayQuestPage() {
               {generatePromo.data && (
                 <>
                   {/* Tabs */}
-                  <div className="flex border-b border-gray-200">
+                  <div className="flex border-b border-border">
                     <button
                       onClick={() => setPromoTab("email")}
-                      className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${promoTab === "email" ? "border-teal-600 text-teal-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                      className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${promoTab === "email" ? "border-teal-600 text-teal-600" : "border-transparent text-muted hover:text-foreground"}`}
                     >
                       <Mail className="h-4 w-4" /> Email
                     </button>
                     <button
                       onClick={() => setPromoTab("social")}
-                      className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${promoTab === "social" ? "border-teal-600 text-teal-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                      className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${promoTab === "social" ? "border-teal-600 text-teal-600" : "border-transparent text-muted hover:text-foreground"}`}
                     >
                       <MessageSquare className="h-4 w-4" /> Social Posts
                     </button>
@@ -843,11 +843,11 @@ export default function HolidayQuestPage() {
 
                   {promoTab === "email" && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-2">
+                      <p className="text-xs text-muted mb-2">
                         Subject: <strong>{generatePromo.data.email.subject}</strong>
                       </p>
                       <div
-                        className="rounded-lg border border-gray-200 overflow-hidden"
+                        className="rounded-lg border border-border overflow-hidden"
                         dangerouslySetInnerHTML={{ __html: generatePromo.data.email.html }}
                       />
                     </div>
@@ -856,14 +856,14 @@ export default function HolidayQuestPage() {
                   {promoTab === "social" && (
                     <div className="space-y-3">
                       {generatePromo.data.socialPosts.map((post, idx) => (
-                        <div key={idx} className="rounded-lg border border-gray-200 p-3">
+                        <div key={idx} className="rounded-lg border border-border p-3">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium text-gray-500">
+                            <span className="text-xs font-medium text-muted">
                               {fmtDate(post.date)}
                             </span>
                             <button
                               onClick={() => copyCaption(post.caption, idx)}
-                              className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
+                              className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted hover:bg-surface"
                             >
                               {copiedIdx === idx ? (
                                 <><Check className="h-3 w-3 text-green-600" /> Copied</>
@@ -872,7 +872,7 @@ export default function HolidayQuestPage() {
                               )}
                             </button>
                           </div>
-                          <p className="text-sm text-gray-700 whitespace-pre-line">{post.caption}</p>
+                          <p className="text-sm text-foreground/80 whitespace-pre-line">{post.caption}</p>
                         </div>
                       ))}
                     </div>
@@ -880,7 +880,7 @@ export default function HolidayQuestPage() {
 
                   <button
                     onClick={() => { generatePromo.reset(); setPromoFrom(""); setPromoTo(""); }}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full rounded-lg border border-border px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
                     Generate for Different Period
                   </button>

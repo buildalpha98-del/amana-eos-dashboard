@@ -103,7 +103,7 @@ export function SignaturePad({ value, onChange }: SignaturePadProps) {
 
   return (
     <div>
-      <div className="relative border-2 border-dashed border-gray-300 rounded-xl bg-white overflow-hidden">
+      <div className="relative border-2 border-dashed border-border rounded-xl bg-card overflow-hidden">
         <canvas
           ref={canvasRef}
           className="w-full h-32 cursor-crosshair touch-none"
@@ -117,14 +117,14 @@ export function SignaturePad({ value, onChange }: SignaturePadProps) {
         />
         {!hasDrawn && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-sm text-gray-400">Sign here</p>
+            <p className="text-sm text-muted">Sign here</p>
           </div>
         )}
       </div>
       <button
         type="button"
         onClick={clear}
-        className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-brand mt-2"
+        className="flex items-center gap-1.5 text-xs text-muted hover:text-brand mt-2"
       >
         <RotateCcw className="h-3 w-3" /> Clear signature
       </button>

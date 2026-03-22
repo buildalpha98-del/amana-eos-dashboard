@@ -136,11 +136,11 @@ export function ImportCalendarModal({
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="w-full max-w-4xl rounded-xl bg-white shadow-xl max-h-[90vh] flex flex-col"
+          className="w-full max-w-4xl rounded-xl bg-card shadow-xl max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 shrink-0">
+          <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
             <div className="flex items-center gap-3">
               {step === "preview" && (
                 <button
@@ -150,13 +150,13 @@ export function ImportCalendarModal({
                     setPreviewData(null);
                     setError("");
                   }}
-                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                  className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-foreground transition-colors"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
               )}
               <FileSpreadsheet className="h-5 w-5 text-brand" />
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 {step === "upload" && "Import Content Calendar"}
                 {step === "preview" && "Preview Import"}
                 {step === "success" && "Import Complete"}
@@ -164,7 +164,7 @@ export function ImportCalendarModal({
             </div>
             <button
               onClick={handleClose}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -190,23 +190,23 @@ export function ImportCalendarModal({
                   className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition-colors ${
                     dragActive
                       ? "border-brand bg-brand/5"
-                      : "border-gray-300 hover:border-brand hover:bg-gray-50"
+                      : "border-border hover:border-brand hover:bg-surface"
                   }`}
                 >
                   {previewMutation.isPending ? (
                     <>
                       <Loader2 className="h-10 w-10 text-brand animate-spin mb-3" />
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-foreground/80">
                         Parsing file...
                       </p>
                     </>
                   ) : (
                     <>
-                      <Upload className="h-10 w-10 text-gray-400 mb-3" />
-                      <p className="text-sm font-medium text-gray-700">
+                      <Upload className="h-10 w-10 text-muted mb-3" />
+                      <p className="text-sm font-medium text-foreground/80">
                         Drag & drop your content calendar here
                       </p>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-muted">
                         or click to browse. Supports CSV, XLSX, XLS files
                       </p>
                     </>
@@ -221,11 +221,11 @@ export function ImportCalendarModal({
                 </div>
 
                 {/* Expected Columns */}
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                <div className="rounded-xl border border-border bg-surface/50 p-4">
+                  <h3 className="text-sm font-medium text-foreground/80 mb-2">
                     Expected Columns
                   </h3>
-                  <p className="text-xs text-gray-500 mb-3">
+                  <p className="text-xs text-muted mb-3">
                     Your file should include these columns (flexible naming
                     supported):
                   </p>
@@ -247,13 +247,13 @@ export function ImportCalendarModal({
                           }`}
                         />
                         <div>
-                          <span className="text-xs font-medium text-gray-700">
+                          <span className="text-xs font-medium text-foreground/80">
                             {col.name}
                             {col.required && (
                               <span className="text-red-500 ml-0.5">*</span>
                             )}
                           </span>
-                          <p className="text-xs text-gray-400">{col.desc}</p>
+                          <p className="text-xs text-muted">{col.desc}</p>
                         </div>
                       </div>
                     ))}
@@ -266,28 +266,28 @@ export function ImportCalendarModal({
             {step === "preview" && previewData && (
               <div className="space-y-4">
                 {/* Summary bar */}
-                <div className="flex flex-wrap items-center gap-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-surface/50 px-4 py-3">
                   <div className="text-sm">
-                    <span className="font-medium text-gray-700">File:</span>{" "}
-                    <span className="text-gray-600">
+                    <span className="font-medium text-foreground/80">File:</span>{" "}
+                    <span className="text-muted">
                       {selectedFile?.name}
                     </span>
                   </div>
-                  <div className="h-4 w-px bg-gray-300" />
+                  <div className="h-4 w-px bg-border" />
                   <div className="text-sm">
                     <span className="font-semibold text-brand">
                       {previewData.summary.validPosts}
                     </span>{" "}
-                    <span className="text-gray-600">posts ready</span>
+                    <span className="text-muted">posts ready</span>
                   </div>
                   {previewData.summary.campaigns.length > 0 && (
                     <>
-                      <div className="h-4 w-px bg-gray-300" />
+                      <div className="h-4 w-px bg-border" />
                       <div className="text-sm">
                         <span className="font-semibold text-brand">
                           {previewData.summary.campaigns.length}
                         </span>{" "}
-                        <span className="text-gray-600">
+                        <span className="text-muted">
                           campaign{previewData.summary.campaigns.length !== 1 ? "s" : ""}
                         </span>
                       </div>
@@ -295,12 +295,12 @@ export function ImportCalendarModal({
                   )}
                   {previewData.summary.errorCount > 0 && (
                     <>
-                      <div className="h-4 w-px bg-gray-300" />
+                      <div className="h-4 w-px bg-border" />
                       <div className="text-sm">
                         <span className="font-semibold text-amber-600">
                           {previewData.summary.errorCount}
                         </span>{" "}
-                        <span className="text-gray-600">
+                        <span className="text-muted">
                           row{previewData.summary.errorCount !== 1 ? "s" : ""}{" "}
                           skipped
                         </span>
@@ -331,7 +331,7 @@ export function ImportCalendarModal({
                 {/* Campaign summary chips */}
                 {previewData.summary.campaigns.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    <span className="text-xs font-medium text-gray-500 self-center">
+                    <span className="text-xs font-medium text-muted self-center">
                       Campaigns:
                     </span>
                     {previewData.summary.campaigns.map((name) => (
@@ -347,11 +347,11 @@ export function ImportCalendarModal({
 
                 {/* Data table */}
                 {previewData.posts.length > 0 && (
-                  <div className="rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="rounded-xl border border-border overflow-hidden">
                     <div className="overflow-x-auto max-h-[360px] overflow-y-auto">
                       <table className="w-full text-sm">
                         <thead className="sticky top-0 z-10">
-                          <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                          <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase tracking-wider text-muted">
                             <th className="px-3 py-2.5 w-8">#</th>
                             <th className="px-3 py-2.5">Title</th>
                             <th className="px-3 py-2.5">Platform</th>
@@ -363,22 +363,22 @@ export function ImportCalendarModal({
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 bg-white">
+                        <tbody className="divide-y divide-border/50 bg-card">
                           {previewData.posts.map((post, idx) => (
                             <tr
                               key={idx}
-                              className="hover:bg-gray-50 transition-colors"
+                              className="hover:bg-surface transition-colors"
                             >
-                              <td className="px-3 py-2.5 text-gray-400 text-xs">
+                              <td className="px-3 py-2.5 text-muted text-xs">
                                 {post.rowIndex}
                               </td>
-                              <td className="px-3 py-2.5 font-medium text-gray-900 max-w-[180px] truncate">
+                              <td className="px-3 py-2.5 font-medium text-foreground max-w-[180px] truncate">
                                 {post.title}
                               </td>
                               <td className="px-3 py-2.5">
                                 <PlatformBadge platform={post.platform} />
                               </td>
-                              <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">
+                              <td className="px-3 py-2.5 text-muted whitespace-nowrap">
                                 {formatDate(post.scheduledDate)}
                               </td>
                               <td className="px-3 py-2.5">
@@ -387,10 +387,10 @@ export function ImportCalendarModal({
                                   type="post"
                                 />
                               </td>
-                              <td className="px-3 py-2.5 text-gray-600">
+                              <td className="px-3 py-2.5 text-muted">
                                 {post.campaign ?? "\u2014"}
                               </td>
-                              <td className="px-3 py-2.5 text-gray-500 max-w-[240px] truncate">
+                              <td className="px-3 py-2.5 text-muted max-w-[240px] truncate">
                                 {post.content
                                   ? post.content.substring(0, 80) +
                                     (post.content.length > 80 ? "..." : "")
@@ -412,10 +412,10 @@ export function ImportCalendarModal({
                 <div className="rounded-full bg-emerald-100 p-4">
                   <CheckCircle2 className="h-10 w-10 text-emerald-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-foreground">
                   Import Successful
                 </h3>
-                <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-600">
+                <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-brand">
                       {importResult.summary.postsCreated}
@@ -425,7 +425,7 @@ export function ImportCalendarModal({
                       created
                     </div>
                   </div>
-                  <div className="h-10 w-px bg-gray-200" />
+                  <div className="h-10 w-px bg-border" />
                   <div className="text-center">
                     <div className="text-2xl font-bold text-brand">
                       {importResult.summary.campaignsMatched}
@@ -440,7 +440,7 @@ export function ImportCalendarModal({
                   </div>
                   {importResult.summary.errors > 0 && (
                     <>
-                      <div className="h-10 w-px bg-gray-200" />
+                      <div className="h-10 w-px bg-border" />
                       <div className="text-center">
                         <div className="text-2xl font-bold text-amber-600">
                           {importResult.summary.errors}
@@ -472,12 +472,12 @@ export function ImportCalendarModal({
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4 shrink-0">
+          <div className="flex justify-end gap-3 border-t border-border px-6 py-4 shrink-0">
             {step === "upload" && (
               <button
                 type="button"
                 onClick={handleClose}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface transition-colors"
               >
                 Cancel
               </button>
@@ -493,7 +493,7 @@ export function ImportCalendarModal({
                     setPreviewData(null);
                     setError("");
                   }}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface transition-colors"
                 >
                   Choose Different File
                 </button>

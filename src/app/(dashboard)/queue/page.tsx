@@ -126,30 +126,30 @@ function ReportCard({
   isPending: boolean;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:border-brand/30 transition-colors">
+    <div className="bg-card rounded-xl border border-border p-4 hover:border-brand/30 transition-colors">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
             <SeatPill seat={report.seat} />
-            <span className="text-xs text-gray-400 capitalize">
+            <span className="text-xs text-muted capitalize">
               {report.reportType.replace(/-/g, " ")}
             </span>
           </div>
-          <h3 className="text-sm font-medium text-gray-900 truncate">
+          <h3 className="text-sm font-medium text-foreground truncate">
             {report.title}
           </h3>
           <div className="flex items-center gap-3 mt-1.5">
-            <span className="text-xs text-gray-400 flex items-center gap-1">
+            <span className="text-xs text-muted flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {timeAgo(report.createdAt)}
             </span>
             {report.service && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted">
                 {report.service.name}
               </span>
             )}
             {report.assignedTo && (
-              <span className="text-xs text-gray-500 font-medium">
+              <span className="text-xs text-muted font-medium">
                 → {report.assignedTo.name}
               </span>
             )}
@@ -159,7 +159,7 @@ function ReportCard({
       <div className="flex items-center gap-2 mt-3">
         <button
           onClick={onView}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-surface rounded-lg hover:bg-border transition-colors"
         >
           <Eye className="w-3.5 h-3.5" />
           View Report
@@ -189,7 +189,7 @@ function TodoCard({
   isPending: boolean;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:border-brand/30 transition-colors">
+    <div className="bg-card rounded-xl border border-border p-4 hover:border-brand/30 transition-colors">
       <div className="flex items-start gap-3">
         <button
           onClick={onComplete}
@@ -198,25 +198,25 @@ function TodoCard({
             "mt-0.5 w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors",
             isPending
               ? "border-brand bg-brand/10"
-              : "border-gray-300 hover:border-brand"
+              : "border-border hover:border-brand"
           )}
         >
           {isPending && <CheckCircle2 className="w-3 h-3 text-brand" />}
         </button>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-gray-900">{todo.title}</h3>
+          <h3 className="text-sm font-medium text-foreground">{todo.title}</h3>
           {todo.description && (
-            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+            <p className="text-xs text-muted mt-0.5 line-clamp-2">
               {todo.description}
             </p>
           )}
           <div className="flex items-center gap-3 mt-1.5">
-            <span className="text-xs text-gray-400 capitalize">
+            <span className="text-xs text-muted capitalize">
               {todo.category.replace(/-/g, " ")}
             </span>
-            <span className="text-xs text-gray-400">{todo.centreId}</span>
+            <span className="text-xs text-muted">{todo.centreId}</span>
             {todo.dueTime && (
-              <span className="text-xs text-gray-500">Due: {todo.dueTime}</span>
+              <span className="text-xs text-muted">Due: {todo.dueTime}</span>
             )}
           </div>
         </div>
@@ -280,7 +280,7 @@ export default function QueuePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
             {queueView === "all" ? (
               <Users className="w-5 h-5 text-brand" />
             ) : (
@@ -288,7 +288,7 @@ export default function QueuePage() {
             )}
             {queueView === "all" ? "All Queues" : "My Queue"}
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-sm text-muted mt-0.5">
             {queueView === "all"
               ? "All reports and tasks across the team"
               : "Reports and tasks assigned to you from automation"}
@@ -296,14 +296,14 @@ export default function QueuePage() {
         </div>
         <div className="flex items-center gap-2">
           {isAdmin && (
-            <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+            <div className="inline-flex items-center rounded-lg border border-border bg-surface/50 p-0.5">
               <button
                 onClick={() => setQueueView("mine")}
                 className={cn(
                   "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                   queueView === "mine"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted hover:text-foreground"
                 )}
               >
                 <Inbox className="w-3.5 h-3.5" />
@@ -314,8 +314,8 @@ export default function QueuePage() {
                 className={cn(
                   "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                   queueView === "all"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted hover:text-foreground"
                 )}
               >
                 <Users className="w-3.5 h-3.5" />
@@ -349,7 +349,7 @@ export default function QueuePage() {
               "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors",
               showFilters
                 ? "bg-brand/5 border-brand/20 text-brand"
-                : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                : "bg-card border-border text-foreground/80 hover:bg-surface"
             )}
           >
             <Filter className="w-4 h-4" />
@@ -366,15 +366,15 @@ export default function QueuePage() {
 
       {/* Filters */}
       {showFilters && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap gap-4">
+        <div className="bg-card rounded-xl border border-border p-4 flex flex-wrap gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
+            <label className="block text-xs font-medium text-muted mb-1">
               Seat
             </label>
             <select
               value={seatFilter}
               onChange={(e) => setSeatFilter(e.target.value)}
-              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white"
+              className="px-3 py-1.5 border border-border rounded-lg text-sm text-foreground/80 bg-card"
             >
               <option value="">All Seats</option>
               {SEATS.map((s) => (
@@ -385,13 +385,13 @@ export default function QueuePage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
+            <label className="block text-xs font-medium text-muted mb-1">
               Status
             </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white"
+              className="px-3 py-1.5 border border-border rounded-lg text-sm text-foreground/80 bg-card"
             >
               <option value="">Pending</option>
               <option value="reviewed">Reviewed</option>
@@ -404,7 +404,7 @@ export default function QueuePage() {
                 setSeatFilter("");
                 setStatusFilter("");
               }}
-              className="self-end px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700"
+              className="self-end px-3 py-1.5 text-xs text-muted hover:text-foreground"
             >
               Clear filters
             </button>
@@ -431,12 +431,12 @@ export default function QueuePage() {
       {/* Stats bar */}
       {!isLoading && (
         <div className="flex flex-wrap gap-4">
-          <span className="text-sm text-gray-600">
-            <span className="font-semibold text-gray-900">{reportCount}</span>{" "}
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-foreground">{reportCount}</span>{" "}
             report{reportCount !== 1 ? "s" : ""} to review
           </span>
-          <span className="text-sm text-gray-600">
-            <span className="font-semibold text-gray-900">{todoCount}</span>{" "}
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-foreground">{todoCount}</span>{" "}
             task{todoCount !== 1 ? "s" : ""} to action
           </span>
         </div>
@@ -467,7 +467,7 @@ export default function QueuePage() {
                 <h2 className="text-sm font-semibold text-[#004E64] mb-3 flex items-center gap-2">
                   <User className="h-4 w-4" />
                   {name}{" "}
-                  <span className="text-gray-400 font-normal">
+                  <span className="text-muted font-normal">
                     ({groupReports.length})
                   </span>
                 </h2>
@@ -489,7 +489,7 @@ export default function QueuePage() {
               {/* My Queue — flat list */}
               {reports.length > 0 && (
                 <section>
-                  <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
                     <FileText className="w-4 h-4" />
                     Reports to Review ({reportCount})
                   </h2>
@@ -512,7 +512,7 @@ export default function QueuePage() {
           {/* Todos Section */}
           {todos.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4" />
                 Tasks to Action ({todoCount})
               </h2>

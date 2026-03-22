@@ -205,23 +205,23 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
         if (e.target === e.currentTarget) handleClose();
       }}
     >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
               <FileSpreadsheet className="w-4 h-4 text-brand" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-gray-900">Import from OWNA</h3>
-              <p className="text-xs text-gray-500">
+              <h3 className="text-base font-semibold text-foreground">Import from OWNA</h3>
+              <p className="text-xs text-muted">
                 Upload an Excel or CSV export from OWNA
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -234,7 +234,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
             <div className="space-y-4">
               {/* Period Type */}
               <div>
-                <label className="text-xs font-medium text-gray-500 block mb-1.5">
+                <label className="text-xs font-medium text-muted block mb-1.5">
                   Period Type
                 </label>
                 <div className="flex gap-2">
@@ -246,7 +246,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                         "px-4 py-2 text-sm font-medium rounded-lg border transition-colors",
                         periodType === pt
                           ? "border-brand bg-brand/5 text-brand"
-                          : "border-gray-200 text-gray-600 hover:border-gray-300"
+                          : "border-border text-muted hover:border-border"
                       )}
                     >
                       {pt.charAt(0).toUpperCase() + pt.slice(1)}
@@ -268,7 +268,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                   "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all",
                   dragOver
                     ? "border-brand bg-brand/5"
-                    : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                    : "border-border hover:border-gray-400 hover:bg-surface"
                 )}
               >
                 <input
@@ -284,15 +284,15 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                 {loading ? (
                   <div className="flex flex-col items-center gap-3">
                     <Loader2 className="w-10 h-10 text-brand animate-spin" />
-                    <p className="text-sm text-gray-600">Parsing file...</p>
+                    <p className="text-sm text-muted">Parsing file...</p>
                   </div>
                 ) : (
                   <>
-                    <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-                    <p className="text-sm font-medium text-gray-700">
+                    <Upload className="w-10 h-10 text-muted mx-auto mb-3" />
+                    <p className="text-sm font-medium text-foreground/80">
                       Drop your OWNA export file here
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-muted mt-1">
                       Supports .xlsx, .xls, and .csv files
                     </p>
                     {file && (
@@ -313,8 +313,8 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
               )}
 
               {/* Expected format help */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+              <div className="bg-surface/50 rounded-lg p-4">
+                <h4 className="text-xs font-semibold text-foreground/80 uppercase tracking-wider mb-2">
                   Expected Columns
                 </h4>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-1">
@@ -332,13 +332,13 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                     "Period Start",
                     "Period End",
                   ].map((col) => (
-                    <p key={col} className="text-xs text-gray-500 flex items-center gap-1.5">
+                    <p key={col} className="text-xs text-muted flex items-center gap-1.5">
                       <span className="w-1 h-1 rounded-full bg-gray-400" />
                       {col}
                     </p>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="text-xs text-muted mt-2">
                   Column names are matched flexibly. Most OWNA export formats are supported.
                 </p>
               </div>
@@ -349,13 +349,13 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
           {step === "preview" && preview && (
             <div className="space-y-4">
               {/* File info */}
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3 p-3 bg-surface/50 rounded-lg">
                 <FileSpreadsheet className="w-5 h-5 text-brand" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {preview.fileName}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted">
                     Sheet: {preview.sheetName} &middot; {preview.totalRows} rows found &middot;{" "}
                     {preview.parsedRows} data rows parsed
                   </p>
@@ -400,24 +400,24 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
               </button>
 
               {showColumnMapping && (
-                <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+                <div className="bg-surface/50 rounded-lg p-3 space-y-1.5">
                   {preview.columnMapping.map((cm) => (
                     <div
                       key={cm.original}
                       className="flex items-center gap-2 text-xs"
                     >
-                      <span className="text-gray-500 font-mono truncate flex-1">
+                      <span className="text-muted font-mono truncate flex-1">
                         {cm.original}
                       </span>
-                      <ArrowRight className="w-3 h-3 text-gray-400 shrink-0" />
+                      <ArrowRight className="w-3 h-3 text-muted shrink-0" />
                       <span className="text-brand font-medium truncate flex-1">
                         {FIELD_LABELS[cm.mapped] || cm.mapped}
                       </span>
                     </div>
                   ))}
                   {preview.unmappedColumns.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-gray-200">
-                      <p className="text-xs text-gray-400 mb-1">
+                    <div className="mt-2 pt-2 border-t border-border">
+                      <p className="text-xs text-muted mb-1">
                         Ignored columns: {preview.unmappedColumns.join(", ")}
                       </p>
                     </div>
@@ -426,32 +426,32 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
               )}
 
               {/* Data preview table */}
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
-                  <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+              <div className="border border-border rounded-lg overflow-hidden">
+                <div className="px-4 py-2.5 bg-surface/50 border-b border-border">
+                  <h4 className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
                     Data Preview
                   </h4>
                 </div>
                 <div className="overflow-x-auto max-h-64 overflow-y-auto">
                   <table className="w-full text-xs">
-                    <thead className="sticky top-0 bg-white">
-                      <tr className="border-b border-gray-100">
-                        <th className="px-3 py-2 text-left text-gray-500 font-medium">
+                    <thead className="sticky top-0 bg-card">
+                      <tr className="border-b border-border/50">
+                        <th className="px-3 py-2 text-left text-muted font-medium">
                           Status
                         </th>
-                        <th className="px-3 py-2 text-left text-gray-500 font-medium">
+                        <th className="px-3 py-2 text-left text-muted font-medium">
                           Centre (File)
                         </th>
-                        <th className="px-3 py-2 text-left text-gray-500 font-medium">
+                        <th className="px-3 py-2 text-left text-muted font-medium">
                           Matched To
                         </th>
-                        <th className="px-3 py-2 text-right text-gray-500 font-medium">
+                        <th className="px-3 py-2 text-right text-muted font-medium">
                           Revenue
                         </th>
-                        <th className="px-3 py-2 text-right text-gray-500 font-medium">
+                        <th className="px-3 py-2 text-right text-muted font-medium">
                           Costs
                         </th>
-                        <th className="px-3 py-2 text-right text-gray-500 font-medium">
+                        <th className="px-3 py-2 text-right text-muted font-medium">
                           Profit
                         </th>
                       </tr>
@@ -488,14 +488,14 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                                 <AlertTriangle className="w-4 h-4 text-amber-500" />
                               )}
                             </td>
-                            <td className="px-3 py-2 font-medium text-gray-900">
+                            <td className="px-3 py-2 font-medium text-foreground">
                               {row.centreName}
                             </td>
-                            <td className="px-3 py-2 text-gray-600">
+                            <td className="px-3 py-2 text-muted">
                               {row.matchedService ? (
                                 <span>
                                   {row.matchedService.name}{" "}
-                                  <span className="text-gray-400">
+                                  <span className="text-muted">
                                     ({row.matchedService.code})
                                   </span>
                                 </span>
@@ -505,10 +505,10 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                                 </span>
                               )}
                             </td>
-                            <td className="px-3 py-2 text-right text-gray-600">
+                            <td className="px-3 py-2 text-right text-muted">
                               {formatCurrency(totalRev)}
                             </td>
-                            <td className="px-3 py-2 text-right text-gray-600">
+                            <td className="px-3 py-2 text-right text-muted">
                               {formatCurrency(totalCost)}
                             </td>
                             <td
@@ -557,10 +557,10 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
           {step === "importing" && (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <Loader2 className="w-10 h-10 text-brand animate-spin" />
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted">
                 Importing financial data...
               </p>
-              <p className="text-xs text-gray-400">This may take a moment.</p>
+              <p className="text-xs text-muted">This may take a moment.</p>
             </div>
           )}
 
@@ -582,31 +582,31 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
 
               {/* Results summary */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-center p-3 bg-surface/50 rounded-lg">
                   <p className="text-2xl font-bold text-emerald-600">
                     {result.imported}
                   </p>
-                  <p className="text-xs text-gray-500">Imported</p>
+                  <p className="text-xs text-muted">Imported</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-center p-3 bg-surface/50 rounded-lg">
                   <p className="text-2xl font-bold text-amber-600">
                     {result.unmatched}
                   </p>
-                  <p className="text-xs text-gray-500">Unmatched</p>
+                  <p className="text-xs text-muted">Unmatched</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <div className="text-center p-3 bg-surface/50 rounded-lg">
                   <p className="text-2xl font-bold text-red-600">
                     {result.errors}
                   </p>
-                  <p className="text-xs text-gray-500">Errors</p>
+                  <p className="text-xs text-muted">Errors</p>
                 </div>
               </div>
 
               {/* Imported details */}
               {result.results.length > 0 && (
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
-                    <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <div className="px-4 py-2.5 bg-surface/50 border-b border-border">
+                    <h4 className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
                       Imported Records
                     </h4>
                   </div>
@@ -616,7 +616,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
                         key={i}
                         className="px-4 py-2 flex items-center justify-between"
                       >
-                        <span className="text-sm text-gray-900">{r.centre}</span>
+                        <span className="text-sm text-foreground">{r.centre}</span>
                         <span
                           className={cn(
                             "text-xs px-2 py-0.5 rounded-full font-medium",
@@ -674,13 +674,13 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between shrink-0">
+        <div className="px-6 py-4 border-t border-border flex items-center justify-between shrink-0">
           {step === "upload" && (
             <>
               <div />
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
+                className="px-4 py-2 text-sm text-muted hover:text-foreground"
               >
                 Cancel
               </button>
@@ -691,14 +691,14 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
             <>
               <button
                 onClick={reset}
-                className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
+                className="px-4 py-2 text-sm text-muted hover:text-foreground"
               >
                 Back
               </button>
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleClose}
-                  className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
+                  className="px-4 py-2 text-sm text-muted hover:text-foreground"
                 >
                   Cancel
                 </button>
@@ -721,7 +721,7 @@ export function ImportOWNAModal({ open, onClose }: { open: boolean; onClose: () 
           {step === "importing" && (
             <>
               <div />
-              <p className="text-xs text-gray-400">Please wait...</p>
+              <p className="text-xs text-muted">Please wait...</p>
             </>
           )}
 

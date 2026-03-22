@@ -196,13 +196,13 @@ export function AddMeasurableModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               {isEditMode ? "Edit Measurable" : "Add Measurable"}
             </h3>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-muted mt-0.5">
               {isEditMode
                 ? "Update this metric on your scorecard"
                 : "Add a new weekly metric to your scorecard"}
@@ -210,7 +210,7 @@ export function AddMeasurableModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+            className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -224,7 +224,7 @@ export function AddMeasurableModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Metric Name
             </label>
             <input
@@ -232,34 +232,34 @@ export function AddMeasurableModal({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="e.g., Weekly enrolments"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Description{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
+              <span className="text-muted font-normal">(optional)</span>
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="Brief description"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Owner
             </label>
             <select
               required
               value={ownerId}
               onChange={(e) => setOwnerId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Select person...</option>
               {users?.map((u) => (
@@ -271,14 +271,14 @@ export function AddMeasurableModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Centre{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
+              <span className="text-muted font-normal">(optional)</span>
             </label>
             <select
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All centres (global)</option>
               {services?.map((s) => (
@@ -291,7 +291,7 @@ export function AddMeasurableModal({
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Goal
               </label>
               <input
@@ -300,12 +300,12 @@ export function AddMeasurableModal({
                 step="any"
                 value={goalValue}
                 onChange={(e) => setGoalValue(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="100"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Direction
               </label>
               <select
@@ -313,7 +313,7 @@ export function AddMeasurableModal({
                 onChange={(e) =>
                   setGoalDirection(e.target.value as "above" | "below" | "exact")
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="above">{"\u2265"} Above</option>
                 <option value="below">{"\u2264"} Below</option>
@@ -321,13 +321,13 @@ export function AddMeasurableModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Unit
               </label>
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">None</option>
                 <option value="$">$ Dollar</option>
@@ -342,7 +342,7 @@ export function AddMeasurableModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface transition-colors"
             >
               Cancel
             </button>

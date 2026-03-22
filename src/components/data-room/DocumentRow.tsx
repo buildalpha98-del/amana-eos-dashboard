@@ -22,7 +22,7 @@ export function DocumentRow({ item }: { item: DataRoomItem }) {
   const Icon = cfg.icon;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-50 last:border-0 hover:bg-surface/50 transition-colors">
       {/* Status icon */}
       <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${cfg.bg}`}>
         <Icon className={`w-4 h-4 ${cfg.color}`} />
@@ -30,7 +30,7 @@ export function DocumentRow({ item }: { item: DataRoomItem }) {
 
       {/* Label */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800 truncate">{item.label}</p>
+        <p className="text-sm font-medium text-foreground truncate">{item.label}</p>
       </div>
 
       {/* Count badge */}
@@ -47,7 +47,7 @@ export function DocumentRow({ item }: { item: DataRoomItem }) {
       </span>
 
       {/* Last updated */}
-      <span className="flex-shrink-0 text-xs text-gray-400 w-24 text-right hidden sm:block">
+      <span className="flex-shrink-0 text-xs text-muted w-24 text-right hidden sm:block">
         {item.lastUpdated ? formatDate(item.lastUpdated) : "—"}
       </span>
     </div>

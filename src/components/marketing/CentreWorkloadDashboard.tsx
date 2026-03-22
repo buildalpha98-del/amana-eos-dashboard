@@ -89,7 +89,7 @@ export function CentreWorkloadDashboard({
   }, [centres, stateFilter]);
 
   function SortIcon({ col }: { col: SortKey }) {
-    if (sortKey !== col) return <ArrowUpDown className="h-3 w-3 text-gray-300" />;
+    if (sortKey !== col) return <ArrowUpDown className="h-3 w-3 text-muted/50" />;
     return sortDir === "asc" ? (
       <ArrowUp className="h-3 w-3 text-brand" />
     ) : (
@@ -110,10 +110,10 @@ export function CentreWorkloadDashboard({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             Centre Workload
           </h3>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-muted">
             {sorted.length} centre{sorted.length !== 1 ? "s" : ""}
           </span>
         </div>
@@ -124,7 +124,7 @@ export function CentreWorkloadDashboard({
               className={`px-2 py-1 text-xs font-medium rounded-full border transition-colors ${
                 !stateFilter
                   ? "bg-brand text-white border-brand"
-                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+                  : "bg-card text-muted border-border hover:bg-surface"
               }`}
             >
               All
@@ -136,7 +136,7 @@ export function CentreWorkloadDashboard({
                 className={`px-2 py-1 text-xs font-medium rounded-full border transition-colors ${
                   stateFilter === st
                     ? "bg-brand text-white border-brand"
-                    : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+                    : "bg-card text-muted border-border hover:bg-surface"
                 }`}
               >
                 {st}
@@ -156,11 +156,11 @@ export function CentreWorkloadDashboard({
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <div className="rounded-xl border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+              <tr className="bg-surface/50 text-muted text-xs uppercase tracking-wider">
                 <th className="px-4 py-3 text-left">
                   <button className="flex items-center gap-1" onClick={() => toggleSort("name")}>
                     Centre <SortIcon col="name" />
@@ -193,30 +193,30 @@ export function CentreWorkloadDashboard({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border/50">
               {sorted.map((c) => (
                 <tr
                   key={c.id}
-                  className={`hover:bg-gray-50 transition-colors ${
+                  className={`hover:bg-surface transition-colors ${
                     onCentreClick ? "cursor-pointer" : ""
                   } ${c.overdueTasks > 0 ? "bg-red-50/40" : ""}`}
                   onClick={() => onCentreClick?.(c.id)}
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <Building2 className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                      <Building2 className="h-3.5 w-3.5 text-muted shrink-0" />
                       <div>
-                        <span className="font-medium text-gray-900">{c.name}</span>
-                        <span className="text-gray-400 text-xs ml-1.5">({c.code})</span>
+                        <span className="font-medium text-foreground">{c.name}</span>
+                        <span className="text-muted text-xs ml-1.5">({c.code})</span>
                         {c.state && (
-                          <span className="text-gray-400 text-[10px] ml-1.5 uppercase">
+                          <span className="text-muted text-[10px] ml-1.5 uppercase">
                             {c.state}
                           </span>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-center text-gray-700">
+                  <td className="px-4 py-3 text-center text-foreground/80">
                     {c.publishedThisMonth}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -225,17 +225,17 @@ export function CentreWorkloadDashboard({
                   <td className="px-4 py-3 text-center">
                     <CountBadge value={c.overdueTasks} warn={c.overdueTasks > 0} />
                   </td>
-                  <td className="px-4 py-3 text-center text-gray-700">
+                  <td className="px-4 py-3 text-center text-foreground/80">
                     {c.openTasks}
                   </td>
-                  <td className="px-4 py-3 text-center text-gray-700">
+                  <td className="px-4 py-3 text-center text-foreground/80">
                     {c.drafts}
                   </td>
                 </tr>
               ))}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-gray-400 text-sm">
+                  <td colSpan={6} className="text-center py-8 text-muted text-sm">
                     No centres found
                   </td>
                 </tr>
@@ -260,17 +260,17 @@ function SummaryCard({
   return (
     <div
       className={`rounded-xl border px-4 py-3 ${
-        warn ? "border-red-200 bg-red-50" : "border-gray-200 bg-white"
+        warn ? "border-red-200 bg-red-50" : "border-border bg-card"
       }`}
     >
-      <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">
+      <p className="text-[10px] uppercase tracking-wider text-muted mb-1">
         {label}
       </p>
       <div className="flex items-center gap-1.5">
         {warn && <AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
         <span
           className={`text-xl font-bold ${
-            warn ? "text-red-600" : "text-gray-900"
+            warn ? "text-red-600" : "text-foreground"
           }`}
         >
           {value}
@@ -282,11 +282,11 @@ function SummaryCard({
 
 function CountBadge({ value, warn }: { value: number; warn?: boolean }) {
   if (value === 0)
-    return <span className="text-gray-300">0</span>;
+    return <span className="text-muted/50">0</span>;
   return (
     <span
       className={`inline-flex items-center justify-center min-w-[20px] px-1.5 py-0.5 text-xs font-medium rounded-full ${
-        warn ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"
+        warn ? "bg-red-100 text-red-700" : "bg-surface text-foreground/80"
       }`}
     >
       {value}

@@ -82,7 +82,7 @@ const leaveTypeBadgeColors: Record<string, string> = {
   annual: "bg-blue-100 text-blue-700",
   sick: "bg-red-100 text-red-700",
   personal: "bg-purple-100 text-purple-700",
-  unpaid: "bg-gray-100 text-gray-700",
+  unpaid: "bg-surface text-foreground/80",
   long_service: "bg-teal-100 text-teal-700",
   parental: "bg-pink-100 text-pink-700",
   compassionate: "bg-amber-100 text-amber-700",
@@ -136,13 +136,13 @@ function statusBadge(status: string) {
     case "leave_cancelled":
       return {
         label: "Cancelled",
-        className: "bg-gray-100 text-gray-500",
+        className: "bg-surface text-muted",
         icon: Ban,
       };
     default:
       return {
         label: status,
-        className: "bg-gray-100 text-gray-600",
+        className: "bg-surface text-muted",
         icon: AlertCircle,
       };
   }
@@ -191,7 +191,7 @@ function LeaveTypeBadge({ type }: { type: string }) {
     <span
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-        leaveTypeBadgeColors[type] || "bg-gray-100 text-gray-700"
+        leaveTypeBadgeColors[type] || "bg-surface text-foreground/80"
       )}
     >
       {leaveTypeLabels[type] || type}
@@ -258,8 +258,8 @@ function BalanceCards({ balances }: { balances: LeaveBalanceData[] }) {
       key: "other",
       label: "Other Leave",
       icon: MoreHorizontal,
-      color: "text-gray-600",
-      bg: "bg-gray-50",
+      color: "text-muted",
+      bg: "bg-surface/50",
     },
   ];
 
@@ -271,7 +271,7 @@ function BalanceCards({ balances }: { balances: LeaveBalanceData[] }) {
         return (
           <div
             key={card.key}
-            className="bg-white rounded-xl border border-gray-200 p-4"
+            className="bg-card rounded-xl border border-border p-4"
           >
             <div className="flex items-center gap-3 mb-3">
               <div
@@ -283,34 +283,34 @@ function BalanceCards({ balances }: { balances: LeaveBalanceData[] }) {
                 <Icon className={cn("w-5 h-5", card.color)} />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-sm font-medium text-foreground/80">
                   {card.label}
                 </p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-foreground">
                   {data.balance.toFixed(1)}
-                  <span className="text-sm font-normal text-gray-400 ml-1">
+                  <span className="text-sm font-normal text-muted ml-1">
                     days
                   </span>
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3 text-xs text-gray-500">
+            <div className="flex items-center gap-3 text-xs text-muted">
               <span>
                 Accrued:{" "}
-                <span className="font-medium text-gray-700">
+                <span className="font-medium text-foreground/80">
                   {data.accrued.toFixed(1)}
                 </span>
               </span>
-              <span className="text-gray-300">|</span>
+              <span className="text-muted/50">|</span>
               <span>
                 Taken:{" "}
-                <span className="font-medium text-gray-700">
+                <span className="font-medium text-foreground/80">
                   {data.taken.toFixed(1)}
                 </span>
               </span>
               {data.pending > 0 && (
                 <>
-                  <span className="text-gray-300">|</span>
+                  <span className="text-muted/50">|</span>
                   <span>
                     Pending:{" "}
                     <span className="font-medium text-amber-600">
@@ -376,14 +376,14 @@ function RequestLeaveModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             Request Leave
           </h3>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            className="p-1 text-muted hover:text-foreground rounded"
           >
             <X className="w-5 h-5" />
           </button>
@@ -392,13 +392,13 @@ function RequestLeaveModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Leave Type */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Leave Type
             </label>
             <select
               value={leaveType}
               onChange={(e) => setLeaveType(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               {leaveTypeOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -411,19 +411,19 @@ function RequestLeaveModal({
           {/* Date Range */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Start Date
               </label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 End Date
               </label>
               <input
@@ -431,7 +431,7 @@ function RequestLeaveModal({
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 min={startDate || undefined}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 required
               />
             </div>
@@ -443,23 +443,23 @@ function RequestLeaveModal({
               type="checkbox"
               checked={isHalfDay}
               onChange={(e) => setIsHalfDay(e.target.checked)}
-              className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+              className="w-4 h-4 text-brand border-border rounded focus:ring-brand"
             />
-            <span className="text-sm text-gray-700">Half day only</span>
+            <span className="text-sm text-foreground/80">Half day only</span>
           </label>
 
           {/* Reason */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Reason{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
+              <span className="text-muted font-normal">(optional)</span>
             </label>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={3}
               placeholder="Brief reason for leave..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
             />
           </div>
 
@@ -478,7 +478,7 @@ function RequestLeaveModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium border border-border text-foreground/80 rounded-lg hover:bg-surface transition-colors"
             >
               Cancel
             </button>
@@ -521,7 +521,7 @@ function MyRequestsTab({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -541,7 +541,7 @@ function MyRequestsTab({
       {myRequests.map((req) => (
         <div
           key={req.id}
-          className="bg-white rounded-xl border border-gray-200 p-4"
+          className="bg-card rounded-xl border border-border p-4"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-start gap-3 min-w-0">
@@ -550,31 +550,31 @@ function MyRequestsTab({
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium text-foreground">
                     {formatDate(req.startDate)}
                     {req.startDate !== req.endDate &&
                       ` — ${formatDate(req.endDate)}`}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-muted">
                     {req.isHalfDay
                       ? "0.5 day"
                       : `${req.totalDays} day${req.totalDays !== 1 ? "s" : ""}`}
                   </span>
                 </div>
                 {req.reason && (
-                  <p className="text-xs text-gray-500 mt-1 truncate max-w-md">
+                  <p className="text-xs text-muted mt-1 truncate max-w-md">
                     {req.reason}
                   </p>
                 )}
                 {req.reviewNotes && (
                   <div className="flex items-start gap-1.5 mt-2">
-                    <MessageSquare className="w-3 h-3 text-gray-400 mt-0.5 shrink-0" />
-                    <p className="text-xs text-gray-500 italic">
+                    <MessageSquare className="w-3 h-3 text-muted mt-0.5 shrink-0" />
+                    <p className="text-xs text-muted italic">
                       {req.reviewedBy?.name}: {req.reviewNotes}
                     </p>
                   </div>
                 )}
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-muted mt-1">
                   Submitted {formatDate(req.createdAt)}
                 </p>
               </div>
@@ -663,7 +663,7 @@ function ApprovalsTab({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -691,8 +691,8 @@ function ApprovalsTab({
           <div
             key={req.id}
             className={cn(
-              "bg-white rounded-xl border p-4",
-              isPending ? "border-amber-200" : "border-gray-200"
+              "bg-card rounded-xl border p-4",
+              isPending ? "border-amber-200" : "border-border"
             )}
           >
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -709,41 +709,41 @@ function ApprovalsTab({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-foreground">
                       {req.user.name}
                     </span>
                     <LeaveTypeBadge type={req.leaveType} />
                     <StatusBadge status={req.status} />
                   </div>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-muted">
                       {formatDate(req.startDate)}
                       {req.startDate !== req.endDate &&
                         ` — ${formatDate(req.endDate)}`}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted">
                       {req.isHalfDay
                         ? "0.5 day"
                         : `${req.totalDays} day${req.totalDays !== 1 ? "s" : ""}`}
                     </span>
                   </div>
                   {req.reason && (
-                    <p className="text-xs text-gray-500 mt-1">{req.reason}</p>
+                    <p className="text-xs text-muted mt-1">{req.reason}</p>
                   )}
                   {req.service && (
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-muted mt-1">
                       Centre: {req.service.name}
                     </p>
                   )}
                   {req.reviewNotes && !isPending && (
                     <div className="flex items-start gap-1.5 mt-2">
-                      <MessageSquare className="w-3 h-3 text-gray-400 mt-0.5 shrink-0" />
-                      <p className="text-xs text-gray-500 italic">
+                      <MessageSquare className="w-3 h-3 text-muted mt-0.5 shrink-0" />
+                      <p className="text-xs text-muted italic">
                         {req.reviewedBy?.name}: {req.reviewNotes}
                       </p>
                     </div>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted mt-1">
                     Submitted {formatDate(req.createdAt)}
                   </p>
                 </div>
@@ -762,7 +762,7 @@ function ApprovalsTab({
                         [req.id]: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-1.5 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
                   <div className="flex items-center gap-2">
                     <button
@@ -918,16 +918,16 @@ function TeamCalendarTab({
         <div className="flex items-center gap-2">
           <button
             onClick={goToPrevMonth}
-            className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+            className="p-2 rounded-lg border border-border text-muted hover:bg-surface transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-sm font-semibold text-gray-900 min-w-[160px] text-center">
+          <span className="text-sm font-semibold text-foreground min-w-[160px] text-center">
             {monthLabel}
           </span>
           <button
             onClick={goToNextMonth}
-            className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+            className="p-2 rounded-lg border border-border text-muted hover:bg-surface transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -936,7 +936,7 @@ function TeamCalendarTab({
         <select
           value={selectedService}
           onChange={(e) => setSelectedService(e.target.value)}
-          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         >
           <option value="">All Centres</option>
           {services.map((s) => (
@@ -949,16 +949,16 @@ function TeamCalendarTab({
 
       {isLoading ? (
         <div className="flex items-center justify-center py-24">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           {/* Day Headers */}
-          <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
+          <div className="grid grid-cols-7 bg-surface/50 border-b border-border">
             {dayNames.map((d) => (
               <div
                 key={d}
-                className="px-1 py-2 text-center text-xs font-medium text-gray-500"
+                className="px-1 py-2 text-center text-xs font-medium text-muted"
               >
                 {d}
               </div>
@@ -971,7 +971,7 @@ function TeamCalendarTab({
             {Array.from({ length: startDayOfWeek }).map((_, i) => (
               <div
                 key={`empty-${i}`}
-                className="min-h-[80px] sm:min-h-[100px] border-b border-r border-gray-100 bg-gray-50/50"
+                className="min-h-[80px] sm:min-h-[100px] border-b border-r border-border/50 bg-surface/30"
               />
             ))}
 
@@ -988,8 +988,8 @@ function TeamCalendarTab({
                 <div
                   key={day}
                   className={cn(
-                    "min-h-[80px] sm:min-h-[100px] border-b border-r border-gray-100 p-1",
-                    isWeekend && "bg-gray-50/50",
+                    "min-h-[80px] sm:min-h-[100px] border-b border-r border-border/50 p-1",
+                    isWeekend && "bg-surface/30",
                     isToday && "bg-brand/5"
                   )}
                 >
@@ -998,7 +998,7 @@ function TeamCalendarTab({
                       "inline-flex items-center justify-center w-6 h-6 text-xs font-medium rounded-full mb-0.5",
                       isToday
                         ? "bg-brand text-white"
-                        : "text-gray-600"
+                        : "text-muted"
                     )}
                   >
                     {day}
@@ -1019,7 +1019,7 @@ function TeamCalendarTab({
                       </div>
                     ))}
                     {entries.length > 3 && (
-                      <span className="text-[10px] text-gray-400 px-1">
+                      <span className="text-[10px] text-muted px-1">
                         +{entries.length - 3} more
                       </span>
                     )}
@@ -1030,14 +1030,14 @@ function TeamCalendarTab({
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 px-4 py-3 bg-gray-50 border-t border-gray-200">
+          <div className="flex items-center gap-4 px-4 py-3 bg-surface/50 border-t border-border">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded bg-emerald-100 border border-emerald-200" />
-              <span className="text-xs text-gray-500">Approved</span>
+              <span className="text-xs text-muted">Approved</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded bg-amber-100 border border-amber-200" />
-              <span className="text-xs text-gray-500">Pending</span>
+              <span className="text-xs text-muted">Pending</span>
             </div>
           </div>
         </div>
@@ -1135,10 +1135,10 @@ export default function LeavePage() {
     return (
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
             Leave Management
           </h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <p className="text-sm text-muted mt-1 line-clamp-2">
             {isAdmin
               ? "Review, approve, and track team leave across all centres"
               : "View your leave balances and submit leave requests"}
@@ -1158,10 +1158,10 @@ export default function LeavePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
             Leave Management
           </h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <p className="text-sm text-muted mt-1 line-clamp-2">
             {isAdmin
               ? "Review, approve, and track team leave across all centres"
               : "View your leave balances and submit leave requests"}
@@ -1206,16 +1206,16 @@ export default function LeavePage() {
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse"
+              className="bg-card rounded-xl border border-border p-4 animate-pulse"
             >
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-gray-100" />
+                <div className="w-10 h-10 rounded-lg bg-surface" />
                 <div>
-                  <div className="h-3 w-20 bg-gray-100 rounded mb-2" />
-                  <div className="h-6 w-16 bg-gray-100 rounded" />
+                  <div className="h-3 w-20 bg-surface rounded mb-2" />
+                  <div className="h-6 w-16 bg-surface rounded" />
                 </div>
               </div>
-              <div className="h-3 w-32 bg-gray-100 rounded" />
+              <div className="h-3 w-32 bg-surface rounded" />
             </div>
           ))}
         </div>
@@ -1229,7 +1229,7 @@ export default function LeavePage() {
 
       {/* Tab Navigation */}
       <div className="flex items-center gap-1 mb-4 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-surface rounded-lg p-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -1239,8 +1239,8 @@ export default function LeavePage() {
                 className={cn(
                   "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                   activeTab === tab.key
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted hover:text-foreground"
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -1263,7 +1263,7 @@ export default function LeavePage() {
               "ml-2 p-2 rounded-lg border transition-colors",
               showFilters || hasActiveFilters
                 ? "bg-brand text-white border-brand"
-                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                : "bg-card text-muted border-border hover:bg-surface"
             )}
           >
             <Filter className="w-4 h-4" />
@@ -1273,11 +1273,11 @@ export default function LeavePage() {
 
       {/* Filters Bar (admin/approvals) */}
       {isAdmin && activeTab === "approvals" && showFilters && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
+        <div className="mb-4 flex flex-wrap items-center gap-3 p-3 bg-card rounded-lg border border-border">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Statuses</option>
             <option value="leave_pending">Pending</option>
@@ -1289,7 +1289,7 @@ export default function LeavePage() {
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Centres</option>
             {services.map((s) => (
@@ -1302,7 +1302,7 @@ export default function LeavePage() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Types</option>
             {leaveTypeOptions.map((opt) => (
@@ -1330,8 +1330,8 @@ export default function LeavePage() {
       {/* Stats Bar */}
       {requests && requests.length > 0 && activeTab !== "calendar" && (
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 px-1">
-          <span className="text-sm text-gray-500">
-            <span className="font-semibold text-gray-900">{stats.total}</span>{" "}
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-foreground">{stats.total}</span>{" "}
             requests
           </span>
           {stats.pending > 0 && (

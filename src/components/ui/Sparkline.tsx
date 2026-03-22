@@ -20,7 +20,7 @@ export function Sparkline({
   color?: string;
 }) {
   const nums = values.filter((v): v is number => v !== null);
-  if (nums.length < 2) return <span className="text-gray-300 text-[10px]">—</span>;
+  if (nums.length < 2) return <span className="text-muted/50 text-[10px]">—</span>;
 
   const allNums = goalValue !== undefined ? [...nums, goalValue] : nums;
   const min = Math.min(...allNums);

@@ -138,13 +138,13 @@ export function TimelineView({
   const totalW = 28 * COL_W;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
       <div className="overflow-x-auto">
         <div style={{ minWidth: totalW }}>
           {/* ── Date header ──────────────────────────────────── */}
-          <div className="flex border-b border-gray-200 sticky top-0 bg-white z-10">
+          <div className="flex border-b border-border sticky top-0 bg-card z-10">
             {/* Label column */}
-            <div className="w-24 flex-shrink-0 border-r border-gray-200" />
+            <div className="w-24 flex-shrink-0 border-r border-border" />
             {/* Day columns */}
             {days.map((d) => {
               const key = toDateKey(d);
@@ -152,17 +152,17 @@ export function TimelineView({
               return (
                 <div
                   key={key}
-                  className={`flex-shrink-0 text-center py-2 text-xs font-medium border-r border-gray-100 ${
+                  className={`flex-shrink-0 text-center py-2 text-xs font-medium border-r border-border/50 ${
                     isToday
                       ? "bg-brand/5 border-l-2 border-l-brand"
                       : ""
                   }`}
                   style={{ width: COL_W }}
                 >
-                  <div className={isToday ? "text-brand font-bold" : "text-gray-900"}>
+                  <div className={isToday ? "text-brand font-bold" : "text-foreground"}>
                     {d.getDate()}
                   </div>
-                  <div className={isToday ? "text-brand" : "text-gray-400"}>
+                  <div className={isToday ? "text-brand" : "text-muted"}>
                     {DAY_NAMES[d.getDay()]}
                   </div>
                 </div>
@@ -171,10 +171,10 @@ export function TimelineView({
           </div>
 
           {/* ── Campaigns section ────────────────────────────── */}
-          <div className="border-b border-gray-200">
+          <div className="border-b border-border">
             {/* Section label */}
             <div className="flex">
-              <div className="w-24 flex-shrink-0 border-r border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+              <div className="w-24 flex-shrink-0 border-r border-border px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wider bg-surface/50">
                 Campaigns
               </div>
               <div className="flex flex-1">
@@ -184,7 +184,7 @@ export function TimelineView({
                   return (
                     <div
                       key={key}
-                      className={`flex-shrink-0 border-r border-gray-100 ${
+                      className={`flex-shrink-0 border-r border-border/50 ${
                         isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                       }`}
                       style={{ width: COL_W }}
@@ -197,8 +197,8 @@ export function TimelineView({
             {/* Campaign bars */}
             {campaignRows.length === 0 && (
               <div className="flex">
-                <div className="w-24 flex-shrink-0 border-r border-gray-200" />
-                <div className="py-3 px-4 text-xs text-gray-400 italic">
+                <div className="w-24 flex-shrink-0 border-r border-border" />
+                <div className="py-3 px-4 text-xs text-muted italic">
                   No campaigns in this range
                 </div>
               </div>
@@ -207,11 +207,11 @@ export function TimelineView({
               const { start, end } = campaignSpan(campaign);
               const span = end - start + 1;
               const colors =
-                CAMPAIGN_COLORS[campaign.type] || "bg-gray-200 text-gray-800";
+                CAMPAIGN_COLORS[campaign.type] || "bg-border text-foreground";
 
               return (
                 <div key={campaign.id} className="flex relative" style={{ height: 32 }}>
-                  <div className="w-24 flex-shrink-0 border-r border-gray-200" />
+                  <div className="w-24 flex-shrink-0 border-r border-border" />
                   {/* Today highlight columns behind the bar */}
                   <div className="flex absolute left-24 top-0 bottom-0" style={{ width: totalW }}>
                     {days.map((d) => {
@@ -220,7 +220,7 @@ export function TimelineView({
                       return (
                         <div
                           key={key}
-                          className={`flex-shrink-0 border-r border-gray-100 ${
+                          className={`flex-shrink-0 border-r border-border/50 ${
                             isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                           }`}
                           style={{ width: COL_W }}
@@ -248,10 +248,10 @@ export function TimelineView({
           </div>
 
           {/* ── Posts section ─────────────────────────────────── */}
-          <div className="border-b border-gray-200">
+          <div className="border-b border-border">
             {/* Section label row */}
             <div className="flex">
-              <div className="w-24 flex-shrink-0 border-r border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+              <div className="w-24 flex-shrink-0 border-r border-border px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wider bg-surface/50">
                 Posts
               </div>
               <div className="flex flex-1">
@@ -261,7 +261,7 @@ export function TimelineView({
                   return (
                     <div
                       key={key}
-                      className={`flex-shrink-0 border-r border-gray-100 ${
+                      className={`flex-shrink-0 border-r border-border/50 ${
                         isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                       }`}
                       style={{ width: COL_W }}
@@ -273,7 +273,7 @@ export function TimelineView({
 
             {/* Post dots */}
             <div className="flex" style={{ minHeight: 40 }}>
-              <div className="w-24 flex-shrink-0 border-r border-gray-200" />
+              <div className="w-24 flex-shrink-0 border-r border-border" />
               {days.map((d) => {
                 const key = toDateKey(d);
                 const isToday = key === todayKey;
@@ -281,7 +281,7 @@ export function TimelineView({
                 return (
                   <div
                     key={key}
-                    className={`flex-shrink-0 border-r border-gray-100 flex flex-wrap items-start justify-center gap-1 py-2 px-0.5 ${
+                    className={`flex-shrink-0 border-r border-border/50 flex flex-wrap items-start justify-center gap-1 py-2 px-0.5 ${
                       isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                     }`}
                     style={{ width: COL_W }}
@@ -306,7 +306,7 @@ export function TimelineView({
           <div>
             {/* Section label row */}
             <div className="flex">
-              <div className="w-24 flex-shrink-0 border-r border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+              <div className="w-24 flex-shrink-0 border-r border-border px-3 py-2 text-xs font-semibold text-muted uppercase tracking-wider bg-surface/50">
                 Tasks
               </div>
               <div className="flex flex-1">
@@ -316,7 +316,7 @@ export function TimelineView({
                   return (
                     <div
                       key={key}
-                      className={`flex-shrink-0 border-r border-gray-100 ${
+                      className={`flex-shrink-0 border-r border-border/50 ${
                         isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                       }`}
                       style={{ width: COL_W }}
@@ -328,7 +328,7 @@ export function TimelineView({
 
             {/* Task diamonds */}
             <div className="flex" style={{ minHeight: 40 }}>
-              <div className="w-24 flex-shrink-0 border-r border-gray-200" />
+              <div className="w-24 flex-shrink-0 border-r border-border" />
               {days.map((d) => {
                 const key = toDateKey(d);
                 const isToday = key === todayKey;
@@ -336,7 +336,7 @@ export function TimelineView({
                 return (
                   <div
                     key={key}
-                    className={`flex-shrink-0 border-r border-gray-100 flex flex-wrap items-start justify-center gap-1 py-2 px-0.5 ${
+                    className={`flex-shrink-0 border-r border-border/50 flex flex-wrap items-start justify-center gap-1 py-2 px-0.5 ${
                       isToday ? "border-l-2 border-l-brand bg-brand/5" : ""
                     }`}
                     style={{ width: COL_W }}

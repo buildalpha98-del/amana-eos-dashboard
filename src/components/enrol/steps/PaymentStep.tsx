@@ -27,7 +27,7 @@ function Input({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-foreground/80 mb-1">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -37,7 +37,7 @@ function Input({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
-        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
+        className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
       />
     </div>
   );
@@ -56,15 +56,15 @@ export function PaymentStep({ data, updateData }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Payment Details</h3>
-        <p className="text-sm text-gray-500 mb-6">
+        <h3 className="text-lg font-semibold text-foreground mb-2">Payment Details</h3>
+        <p className="text-sm text-muted mb-6">
           Your payment details are collected securely and will only be used for processing your
           child care fees.
         </p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">Payment Method</label>
+        <label className="block text-sm font-medium text-foreground/80 mb-3">Payment Method</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             type="button"
@@ -72,13 +72,13 @@ export function PaymentStep({ data, updateData }: Props) {
             className={`flex items-center gap-3 p-4 rounded-xl border transition-colors ${
               payment.method === "credit_card"
                 ? "bg-brand/5 border-brand"
-                : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                : "bg-surface/50 border-border hover:bg-surface"
             }`}
           >
-            <CreditCard className={`h-5 w-5 ${payment.method === "credit_card" ? "text-brand" : "text-gray-400"}`} />
+            <CreditCard className={`h-5 w-5 ${payment.method === "credit_card" ? "text-brand" : "text-muted"}`} />
             <div className="text-left">
-              <p className="text-sm font-medium text-gray-800">Credit / Debit Card</p>
-              <p className="text-xs text-gray-500">Visa, Mastercard, Amex</p>
+              <p className="text-sm font-medium text-foreground">Credit / Debit Card</p>
+              <p className="text-xs text-muted">Visa, Mastercard, Amex</p>
             </div>
           </button>
           <button
@@ -87,20 +87,20 @@ export function PaymentStep({ data, updateData }: Props) {
             className={`flex items-center gap-3 p-4 rounded-xl border transition-colors ${
               payment.method === "bank_account"
                 ? "bg-brand/5 border-brand"
-                : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                : "bg-surface/50 border-border hover:bg-surface"
             }`}
           >
-            <Building2 className={`h-5 w-5 ${payment.method === "bank_account" ? "text-brand" : "text-gray-400"}`} />
+            <Building2 className={`h-5 w-5 ${payment.method === "bank_account" ? "text-brand" : "text-muted"}`} />
             <div className="text-left">
-              <p className="text-sm font-medium text-gray-800">Bank Account</p>
-              <p className="text-xs text-gray-500">Direct debit</p>
+              <p className="text-sm font-medium text-foreground">Bank Account</p>
+              <p className="text-xs text-muted">Direct debit</p>
             </div>
           </button>
         </div>
       </div>
 
       {payment.method === "credit_card" && (
-        <div className="space-y-4 bg-gray-50 rounded-xl p-5 border border-gray-100">
+        <div className="space-y-4 bg-surface/50 rounded-xl p-5 border border-border/50">
           <Input
             label="Name on Card"
             value={payment.cardName}
@@ -117,13 +117,13 @@ export function PaymentStep({ data, updateData }: Props) {
           />
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Month <span className="text-red-500">*</span>
               </label>
               <select
                 value={payment.cardExpiryMonth}
                 onChange={(e) => update("cardExpiryMonth", e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-white"
+                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
               >
                 <option value="">MM</option>
                 {MONTHS.map((m) => (
@@ -132,13 +132,13 @@ export function PaymentStep({ data, updateData }: Props) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Year <span className="text-red-500">*</span>
               </label>
               <select
                 value={payment.cardExpiryYear}
                 onChange={(e) => update("cardExpiryYear", e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-white"
+                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
               >
                 <option value="">YYYY</option>
                 {YEARS.map((y) => (
@@ -159,7 +159,7 @@ export function PaymentStep({ data, updateData }: Props) {
       )}
 
       {payment.method === "bank_account" && (
-        <div className="space-y-4 bg-gray-50 rounded-xl p-5 border border-gray-100">
+        <div className="space-y-4 bg-surface/50 rounded-xl p-5 border border-border/50">
           <Input
             label="Account Name"
             value={payment.bankAccountName}
@@ -196,18 +196,18 @@ export function PaymentStep({ data, updateData }: Props) {
             </ul>
           </div>
 
-          <label className="flex items-start gap-3 p-4 rounded-xl border bg-gray-50 border-gray-200 cursor-pointer">
+          <label className="flex items-start gap-3 p-4 rounded-xl border bg-surface/50 border-border cursor-pointer">
             <input
               type="checkbox"
               checked={data.debitAgreement}
               onChange={(e) => updateData({ debitAgreement: e.target.checked })}
-              className="mt-1 h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+              className="mt-1 h-4 w-4 rounded border-border text-brand focus:ring-brand"
             />
             <div>
-              <p className="text-sm font-medium text-gray-800">
+              <p className="text-sm font-medium text-foreground">
                 Direct Debit Service Agreement
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-muted mt-0.5">
                 I authorise Amana OSHC to debit my account for child care fees as per the
                 fee schedule.
               </p>

@@ -134,8 +134,8 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
           className="fixed inset-0 z-40 bg-black/30"
           onClick={onClose}
         />
-        <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg items-center justify-center bg-white shadow-xl">
-          <p className="text-gray-500">Loading task...</p>
+        <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg items-center justify-center bg-card shadow-xl">
+          <p className="text-muted">Loading task...</p>
         </div>
       </>
     );
@@ -148,8 +148,8 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
           className="fixed inset-0 z-40 bg-black/30"
           onClick={onClose}
         />
-        <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg items-center justify-center bg-white shadow-xl">
-          <p className="text-gray-500">Task not found</p>
+        <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg items-center justify-center bg-card shadow-xl">
+          <p className="text-muted">Task not found</p>
         </div>
       </>
     );
@@ -164,15 +164,15 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto bg-white shadow-xl">
+      <div className="fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto bg-card shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex-1 mr-4">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={() => autoSave("title", title)}
-              className="text-lg font-semibold text-gray-900 bg-transparent border-none outline-none focus:ring-0 w-full"
+              className="text-lg font-semibold text-foreground bg-transparent border-none outline-none focus:ring-0 w-full"
             />
             {/* Priority Badge */}
             <div className="mt-1.5">
@@ -203,7 +203,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
             </button>
             <button
               onClick={onClose}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -211,7 +211,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
         </div>
 
         {/* Status Buttons */}
-        <div className="flex gap-1 border-b border-gray-200 px-6 py-3 overflow-x-auto">
+        <div className="flex gap-1 border-b border-border px-6 py-3 overflow-x-auto">
           {STATUSES.map((s) => (
             <button
               key={s.value}
@@ -219,7 +219,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               className={`rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                 status === s.value
                   ? "bg-brand text-white"
-                  : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                  : "border border-border text-muted hover:bg-surface"
               }`}
             >
               {s.label}
@@ -231,7 +231,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
         <div className="space-y-4 px-6 py-4">
           {/* Description */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               Description
             </label>
             <textarea
@@ -240,18 +240,18 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               onBlur={() => autoSave("description", description || null)}
               rows={4}
               placeholder="Add a description..."
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
             />
           </div>
 
           {/* Subtasks / Checklist */}
           <div>
-            <label className="mb-2 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-2 block text-xs font-medium text-muted uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
                 <CheckSquare className="h-3 w-3" />
                 Subtasks
                 {subtasks.length > 0 && (
-                  <span className="text-gray-400 normal-case tracking-normal">
+                  <span className="text-muted normal-case tracking-normal">
                     ({subtasks.filter((s) => s.done).length}/{subtasks.length})
                   </span>
                 )}
@@ -260,7 +260,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
 
             {/* Progress bar */}
             {subtasks.length > 0 && (
-              <div className="w-full bg-gray-100 rounded-full h-1.5 mb-2">
+              <div className="w-full bg-surface rounded-full h-1.5 mb-2">
                 <div
                   className="bg-brand h-1.5 rounded-full transition-all"
                   style={{
@@ -277,11 +277,11 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
               {subtasks.map((st, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2 group rounded-lg px-2 py-1.5 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2 group rounded-lg px-2 py-1.5 hover:bg-surface transition-colors"
                 >
                   <button
                     onClick={() => toggleSubtask(i)}
-                    className="shrink-0 text-gray-400 hover:text-brand transition-colors"
+                    className="shrink-0 text-muted hover:text-brand transition-colors"
                   >
                     {st.done ? (
                       <CheckSquare className="h-4 w-4 text-brand" />
@@ -292,8 +292,8 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                   <span
                     className={`flex-1 text-sm ${
                       st.done
-                        ? "text-gray-400 line-through"
-                        : "text-gray-800"
+                        ? "text-muted line-through"
+                        : "text-foreground"
                     }`}
                   >
                     {st.text}
@@ -321,7 +321,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                   }
                 }}
                 placeholder="Add a subtask..."
-                className="flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="flex-1 rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               />
               <button
                 onClick={addSubtask}
@@ -335,7 +335,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
 
           {/* Priority */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               Priority
             </label>
             <select
@@ -345,7 +345,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 setPriority(val);
                 updateTask.mutate({ id: taskId, priority: val });
               }}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             >
               {PRIORITIES.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -357,7 +357,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
 
           {/* Due Date */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
                 <Calendar className="h-3 w-3" />
                 Due Date
@@ -388,14 +388,14 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                   ? "border-red-300 bg-red-50"
                   : isToday
                   ? "border-amber-300 bg-amber-50"
-                  : "border-gray-300"
+                  : "border-border"
               }`}
             />
           </div>
 
           {/* Assignee */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
                 <User className="h-3 w-3" />
                 Assignee
@@ -407,7 +407,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 setAssigneeId(e.target.value);
                 autoSave("assigneeId", e.target.value || null);
               }}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             >
               <option value="">Unassigned</option>
               {users.map((user) => (
@@ -420,7 +420,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
 
           {/* Campaign */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
                 <FolderOpen className="h-3 w-3" />
                 Campaign
@@ -432,7 +432,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                 setCampaignId(e.target.value);
                 autoSave("campaignId", e.target.value || null);
               }}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             >
               <option value="">None</option>
               {(campaigns ?? []).map((c) => (
@@ -446,14 +446,14 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
           {/* Linked Post */}
           {task.post && (
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
                 <span className="flex items-center gap-1.5">
                   <FileText className="h-3 w-3" />
                   Linked Post
                 </span>
               </label>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                <span className="text-sm font-medium text-gray-700">
+              <div className="rounded-lg border border-border bg-surface/50 px-3 py-2">
+                <span className="text-sm font-medium text-foreground/80">
                   {task.post.title}
                 </span>
               </div>
@@ -463,10 +463,10 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
           {/* Linked Service */}
           {task.service && (
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
                 Centre
               </label>
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+              <div className="rounded-lg border border-border bg-surface/50 px-3 py-2">
                 <span className="inline-flex items-center rounded-md bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
                   {task.service.name} ({task.service.code})
                 </span>
@@ -476,11 +476,11 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
         </div>
 
         {/* Metadata */}
-        <div className="border-t border-gray-200 px-6 py-4">
-          <div className="grid grid-cols-2 gap-3 text-xs text-gray-400">
+        <div className="border-t border-border px-6 py-4">
+          <div className="grid grid-cols-2 gap-3 text-xs text-muted">
             <div>
               <span className="block uppercase tracking-wider">Created</span>
-              <span className="text-gray-600">
+              <span className="text-muted">
                 {new Date(task.createdAt).toLocaleDateString("en-AU", {
                   day: "numeric",
                   month: "short",
@@ -490,7 +490,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
             </div>
             <div>
               <span className="block uppercase tracking-wider">Updated</span>
-              <span className="text-gray-600">
+              <span className="text-muted">
                 {new Date(task.updatedAt).toLocaleDateString("en-AU", {
                   day: "numeric",
                   month: "short",

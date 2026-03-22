@@ -36,9 +36,9 @@ const statusConfig = {
     label: "Optimal",
   },
   no_data: {
-    bg: "bg-gray-50",
-    border: "border-gray-200",
-    text: "text-gray-500",
+    bg: "bg-surface/50",
+    border: "border-border",
+    text: "text-muted",
     dot: "bg-gray-400",
     icon: Users,
     label: "No Data",
@@ -50,15 +50,15 @@ export function StaffingAlerts() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-card rounded-xl border border-border p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Users className="w-4 h-4 text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-900">
+          <Users className="w-4 h-4 text-muted" />
+          <h3 className="text-sm font-semibold text-foreground">
             Staffing Alerts
           </h3>
         </div>
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-5 h-5 text-gray-300 animate-spin" />
+          <Loader2 className="w-5 h-5 text-muted/50 animate-spin" />
         </div>
       </div>
     );
@@ -76,12 +76,12 @@ export function StaffingAlerts() {
   const hasAlerts = alerts.length > 0;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-900">
+          <Users className="w-4 h-4 text-muted" />
+          <h3 className="text-sm font-semibold text-foreground">
             Staffing — Tomorrow
           </h3>
         </div>
@@ -122,7 +122,7 @@ export function StaffingAlerts() {
       {/* Service list */}
       <div className="space-y-1">
         {summary.services.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-4">
+          <p className="text-xs text-muted text-center py-4">
             No OWNA data synced yet. Map services in Settings to enable staffing
             analysis.
           </p>
@@ -147,7 +147,7 @@ export function StaffingAlerts() {
                   <p className={`text-sm font-medium ${config.text} truncate`}>
                     {svc.serviceName}
                   </p>
-                  <p className="text-[10px] text-gray-500">
+                  <p className="text-[10px] text-muted">
                     {svc.sessions
                       .filter((s) => s.variance !== 0)
                       .map(

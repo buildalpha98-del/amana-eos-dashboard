@@ -37,9 +37,9 @@ export class WidgetErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col items-center justify-center text-center min-h-[120px]">
-          <AlertCircle className="w-6 h-6 text-gray-400 mb-2" />
-          <p className="text-sm font-medium text-gray-600">
+        <div className="bg-card rounded-xl border border-border p-6 flex flex-col items-center justify-center text-center min-h-[120px]">
+          <AlertCircle className="w-6 h-6 text-muted mb-2" />
+          <p className="text-sm font-medium text-muted">
             {this.props.widgetName || "Widget"} failed to load
           </p>
           <button

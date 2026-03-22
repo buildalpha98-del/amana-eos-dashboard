@@ -77,18 +77,18 @@ export function FeedbackWidget() {
         <div
           className={cn(
             "fixed bottom-6 right-6 z-50 w-80 sm:w-96",
-            "rounded-xl border border-gray-200 bg-white shadow-2xl",
+            "rounded-xl border border-border bg-card shadow-2xl",
             "bottom-20 sm:bottom-6",
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <h3 className="text-sm font-semibold text-gray-900">
+          <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
+            <h3 className="text-sm font-semibold text-foreground">
               Send Feedback
             </h3>
             <button
               onClick={() => setOpen(false)}
-              className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="rounded-md p-1 text-muted hover:bg-surface hover:text-foreground transition-colors"
               aria-label="Close feedback form"
             >
               <X className="h-4 w-4" />
@@ -101,7 +101,7 @@ export function FeedbackWidget() {
             <div>
               <label
                 htmlFor="fb-category"
-                className="block text-xs font-medium text-gray-600 mb-1"
+                className="block text-xs font-medium text-muted mb-1"
               >
                 Category
               </label>
@@ -109,7 +109,7 @@ export function FeedbackWidget() {
                 id="fb-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="w-full rounded-lg border border-border bg-surface/50 px-3 py-2 text-sm text-foreground focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -123,7 +123,7 @@ export function FeedbackWidget() {
             <div>
               <label
                 htmlFor="fb-message"
-                className="block text-xs font-medium text-gray-600 mb-1"
+                className="block text-xs font-medium text-muted mb-1"
               >
                 Message
               </label>
@@ -133,12 +133,12 @@ export function FeedbackWidget() {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Tell us what's on your mind..."
                 rows={4}
-                className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="w-full resize-none rounded-lg border border-border bg-surface/50 px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               />
             </div>
 
             {/* Page badge */}
-            <p className="text-[11px] text-gray-400 truncate">
+            <p className="text-[11px] text-muted truncate">
               Page: {pathname}
             </p>
 

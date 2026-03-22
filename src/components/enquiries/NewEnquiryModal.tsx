@@ -104,42 +104,42 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto mx-4">
+      <div className="relative bg-card rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto mx-4">
         <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">New Enquiry</h3>
+          <h3 className="text-lg font-semibold text-foreground">New Enquiry</h3>
           <button
             onClick={onClose}
-            className="p-1 rounded hover:bg-gray-100"
+            className="p-1 rounded hover:bg-surface"
           >
-            <X className="h-5 w-5 text-gray-500" />
+            <X className="h-5 w-5 text-muted" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Parent Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Parent Name *
             </label>
             <input
               required
               value={form.parentName}
               onChange={(e) => setForm({ ...form, parentName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               placeholder="Full name"
             />
           </div>
 
           {/* Service */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Centre *
             </label>
             <select
               required
               value={form.serviceId}
               onChange={(e) => setForm({ ...form, serviceId: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Select centre...</option>
               {services.map((s: any) => (
@@ -152,13 +152,13 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
 
           {/* Channel */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Channel *
             </label>
             <select
               value={form.channel}
               onChange={(e) => setForm({ ...form, channel: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
             >
               {CHANNELS.map((c) => (
                 <option key={c.value} value={c.value}>
@@ -171,7 +171,7 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
           {/* Contact details */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Email
               </label>
               <input
@@ -180,11 +180,11 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
                 onChange={(e) =>
                   setForm({ ...form, parentEmail: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Phone
               </label>
               <input
@@ -192,7 +192,7 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
                 onChange={(e) =>
                   setForm({ ...form, parentPhone: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
@@ -200,7 +200,7 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
           {/* Children */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-foreground/80">
                 Children
               </label>
               <button
@@ -218,7 +218,7 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
                   <input
                     value={child.name}
                     onChange={(e) => updateChild(i, "name", e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-1 px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                     placeholder={`Child ${i + 1} name`}
                   />
                   <input
@@ -227,14 +227,14 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
                     max="16"
                     value={child.age}
                     onChange={(e) => updateChild(i, "age", e.target.value)}
-                    className="w-20 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                    className="w-20 px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Age"
                   />
                   {children.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeChild(i)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-50"
+                      className="p-1.5 text-muted hover:text-danger rounded hover:bg-red-50"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -246,7 +246,7 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
 
           {/* Driver */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Parent Driver
             </label>
             <select
@@ -254,7 +254,7 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
               onChange={(e) =>
                 setForm({ ...form, parentDriver: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Not specified</option>
               {DRIVERS.map((d) => (
@@ -267,14 +267,14 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Notes
             </label>
             <textarea
               rows={3}
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               placeholder="Any additional notes..."
             />
           </div>
@@ -283,7 +283,7 @@ export function NewEnquiryModal({ onClose, onCreated }: NewEnquiryModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              className="px-4 py-2 text-sm text-foreground/80 bg-surface rounded-md hover:bg-border"
             >
               Cancel
             </button>

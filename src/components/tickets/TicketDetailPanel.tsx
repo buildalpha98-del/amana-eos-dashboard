@@ -46,14 +46,14 @@ const statusSteps: { key: TicketStatus; label: string; color: string; activeColo
   { key: "open", label: "Open", color: "bg-amber-100 text-amber-700", activeColor: "bg-amber-500 text-white" },
   { key: "pending_parent", label: "Pending", color: "bg-purple-100 text-purple-700", activeColor: "bg-purple-500 text-white" },
   { key: "resolved", label: "Resolved", color: "bg-emerald-100 text-emerald-700", activeColor: "bg-emerald-500 text-white" },
-  { key: "closed", label: "Closed", color: "bg-gray-100 text-gray-600", activeColor: "bg-gray-500 text-white" },
+  { key: "closed", label: "Closed", color: "bg-surface text-muted", activeColor: "bg-gray-500 text-white" },
 ];
 
 const priorityOptions: { key: TicketPriority; label: string; color: string }[] = [
   { key: "urgent", label: "Urgent", color: "bg-red-100 text-red-700" },
   { key: "high", label: "High", color: "bg-orange-100 text-orange-700" },
   { key: "normal", label: "Normal", color: "bg-blue-100 text-blue-700" },
-  { key: "low", label: "Low", color: "bg-gray-100 text-gray-600" },
+  { key: "low", label: "Low", color: "bg-surface text-muted" },
 ];
 
 function formatTime(dateString: string): string {
@@ -76,9 +76,9 @@ function DeliveryIcon({ status }: { status: string }) {
     case "read":
       return <CheckCheck className="w-3 h-3 text-blue-500" />;
     case "delivered":
-      return <CheckCheck className="w-3 h-3 text-gray-400" />;
+      return <CheckCheck className="w-3 h-3 text-muted" />;
     case "sent":
-      return <Check className="w-3 h-3 text-gray-400" />;
+      return <Check className="w-3 h-3 text-muted" />;
     case "failed":
       return <AlertCircle className="w-3 h-3 text-red-500" />;
     default:
@@ -187,10 +187,10 @@ export function TicketDetailPanel({
     return (
       <>
         <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-        <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl border-l border-gray-200 z-50 flex items-center justify-center">
+        <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-card shadow-2xl border-l border-border z-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-8 h-8 border-4 border-gray-200 border-t-brand rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm text-gray-500">Loading ticket...</p>
+            <div className="w-8 h-8 border-4 border-border border-t-brand rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-muted">Loading ticket...</p>
           </div>
         </div>
       </>
@@ -218,12 +218,12 @@ export function TicketDetailPanel({
       <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
 
       {/* Panel */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl border-l border-gray-200 z-50 flex flex-col overflow-hidden">
+      <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-card shadow-2xl border-l border-border z-50 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card shrink-0">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-gray-400">#{ticket.ticketNumber}</span>
+              <span className="text-xs font-mono text-muted">#{ticket.ticketNumber}</span>
               <span className={cn(
                 "text-xs font-medium px-2 py-0.5 rounded-full",
                 statusSteps.find(s => s.key === ticket.status)?.color
@@ -231,27 +231,27 @@ export function TicketDetailPanel({
                 {statusSteps.find(s => s.key === ticket.status)?.label}
               </span>
             </div>
-            <h3 className="text-base font-semibold text-gray-900 truncate mt-0.5">
+            <h3 className="text-base font-semibold text-foreground truncate mt-0.5">
               {ticket.subject || `Conversation with ${contactName}`}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 ml-3"
+            className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface ml-3"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Toggle */}
-        <div className="flex border-b border-gray-200 px-6 shrink-0">
+        <div className="flex border-b border-border px-6 shrink-0">
           <button
             onClick={() => setActiveTab("chat")}
             className={cn(
               "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
               activeTab === "chat"
                 ? "border-brand text-brand"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                : "border-transparent text-muted hover:text-foreground"
             )}
           >
             <MessageSquare className="w-4 h-4 inline mr-1.5" />
@@ -263,7 +263,7 @@ export function TicketDetailPanel({
               "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors",
               activeTab === "details"
                 ? "border-brand text-brand"
-                : "border-transparent text-gray-500 hover:text-gray-700"
+                : "border-transparent text-muted hover:text-foreground"
             )}
           >
             <FileText className="w-4 h-4 inline mr-1.5" />
@@ -274,12 +274,12 @@ export function TicketDetailPanel({
         {activeTab === "chat" ? (
           <div className="flex flex-col flex-1 min-h-0">
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 bg-gray-50/50 space-y-1">
+            <div className="flex-1 overflow-y-auto px-6 py-4 bg-surface/30 space-y-1">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <MessageSquare className="w-12 h-12 text-gray-300 mb-3" />
-                  <p className="text-gray-500">No messages yet</p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <MessageSquare className="w-12 h-12 text-muted/50 mb-3" />
+                  <p className="text-muted">No messages yet</p>
+                  <p className="text-xs text-muted mt-1">
                     Messages from WhatsApp will appear here
                   </p>
                 </div>
@@ -287,7 +287,7 @@ export function TicketDetailPanel({
                 messagesByDate.map((group) => (
                   <div key={group.date}>
                     <div className="flex items-center justify-center my-4">
-                      <span className="text-xs text-gray-400 bg-white px-3 py-1 rounded-full border border-gray-200">
+                      <span className="text-xs text-muted bg-card px-3 py-1 rounded-full border border-border">
                         {group.date}
                       </span>
                     </div>
@@ -304,7 +304,7 @@ export function TicketDetailPanel({
                             "max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm",
                             msg.direction === "outbound"
                               ? "bg-brand text-white rounded-br-md"
-                              : "bg-white text-gray-900 border border-gray-200 rounded-bl-md"
+                              : "bg-card text-foreground border border-border rounded-bl-md"
                           )}
                         >
                           {msg.direction === "outbound" && msg.senderName && (
@@ -313,13 +313,13 @@ export function TicketDetailPanel({
                             </p>
                           )}
                           {msg.direction === "inbound" && (
-                            <p className="text-xs text-gray-400 font-medium mb-1">
+                            <p className="text-xs text-muted font-medium mb-1">
                               {msg.senderName || contactName}
                             </p>
                           )}
                           <p className={cn(
                             "text-sm whitespace-pre-wrap break-words",
-                            msg.direction === "outbound" ? "text-white" : "text-gray-800"
+                            msg.direction === "outbound" ? "text-white" : "text-foreground"
                           )}>
                             {msg.body}
                           </p>
@@ -329,7 +329,7 @@ export function TicketDetailPanel({
                           )}>
                             <span className={cn(
                               "text-[10px]",
-                              msg.direction === "outbound" ? "text-white/50" : "text-gray-400"
+                              msg.direction === "outbound" ? "text-white/50" : "text-muted"
                             )}>
                               {formatTime(msg.createdAt)}
                             </span>
@@ -361,10 +361,10 @@ export function TicketDetailPanel({
             )}
 
             {/* Reply Input */}
-            <div className="border-t border-gray-200 p-4 bg-white shrink-0">
+            <div className="border-t border-border p-4 bg-card shrink-0">
               {/* Template Picker */}
               {showTemplates && templates.length > 0 && (
-                <div className="mb-3 max-h-40 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-sm">
+                <div className="mb-3 max-h-40 overflow-y-auto border border-border rounded-lg bg-card shadow-sm">
                   {templates.map((t) => (
                     <button
                       key={t.id}
@@ -372,10 +372,10 @@ export function TicketDetailPanel({
                         setReplyText(t.body);
                         setShowTemplates(false);
                       }}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                      className="w-full text-left px-3 py-2 hover:bg-surface border-b border-border/50 last:border-0"
                     >
-                      <p className="text-xs font-medium text-gray-900">{t.title}</p>
-                      <p className="text-xs text-gray-500 truncate">{t.body}</p>
+                      <p className="text-xs font-medium text-foreground">{t.title}</p>
+                      <p className="text-xs text-muted truncate">{t.body}</p>
                     </button>
                   ))}
                 </div>
@@ -385,7 +385,7 @@ export function TicketDetailPanel({
                 <button
                   type="button"
                   onClick={() => setShowTemplates(!showTemplates)}
-                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+                  className="p-2 text-muted hover:text-foreground rounded-lg hover:bg-surface transition-colors flex-shrink-0"
                   title="Quick replies"
                 >
                   <ChevronDown className={cn("w-5 h-5 transition-transform", showTemplates && "rotate-180")} />
@@ -411,7 +411,7 @@ export function TicketDetailPanel({
                   placeholder={isWindowOpen ? "Type a reply..." : "24h window expired"}
                   disabled={!isWindowOpen}
                   rows={1}
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-400"
+                  className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-surface/50 disabled:text-muted"
                 />
                 <button
                   onClick={handleSendReply}
@@ -428,7 +428,7 @@ export function TicketDetailPanel({
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
             {/* Status Stepper */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                 Status
               </label>
               <div className="flex gap-1">
@@ -451,7 +451,7 @@ export function TicketDetailPanel({
 
             {/* Priority */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                 Priority
               </label>
               <div className="flex gap-1">
@@ -476,7 +476,7 @@ export function TicketDetailPanel({
 
             {/* Assigned To */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                 Assigned To
               </label>
               <select
@@ -487,7 +487,7 @@ export function TicketDetailPanel({
                     assignedToId: e.target.value || undefined,
                   })
                 }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Unassigned</option>
                 {users.map((u) => (
@@ -500,7 +500,7 @@ export function TicketDetailPanel({
 
             {/* Service / Centre */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                 Centre
               </label>
               <select
@@ -511,7 +511,7 @@ export function TicketDetailPanel({
                     serviceId: e.target.value || undefined,
                   })
                 }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Not specified</option>
                 {services.map((s) => (
@@ -524,30 +524,30 @@ export function TicketDetailPanel({
 
             {/* Contact Info */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                 Contact Info
               </label>
-              <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-2">
+              <div className="bg-surface/50 rounded-lg border border-border p-4 space-y-2">
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-900">{contactName}</span>
+                  <User className="w-4 h-4 text-muted" />
+                  <span className="text-sm text-foreground">{contactName}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-600">{ticket.contact.phoneNumber}</span>
+                  <Phone className="w-4 h-4 text-muted" />
+                  <span className="text-sm text-muted">{ticket.contact.phoneNumber}</span>
                 </div>
                 {ticket.contact.childName && (
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">
+                    <User className="w-4 h-4 text-muted" />
+                    <span className="text-sm text-muted">
                       Child: {ticket.contact.childName}
                     </span>
                   </div>
                 )}
                 {ticket.service && (
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{ticket.service.name}</span>
+                    <MessageSquare className="w-4 h-4 text-muted" />
+                    <span className="text-sm text-muted">{ticket.service.name}</span>
                   </div>
                 )}
               </div>
@@ -555,44 +555,44 @@ export function TicketDetailPanel({
 
             {/* Linked Emails */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                 Linked Emails
               </label>
               {ticketEmails.length > 0 ? (
                 <div className="space-y-2">
                   {ticketEmails.map((email) => (
-                    <div key={email.id} className="bg-gray-50 rounded-lg border border-gray-200 p-3">
-                      <p className="text-sm font-medium text-gray-900 truncate">{email.subject}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">From: {email.from}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(email.receivedAt)}</p>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{email.bodyPreview}</p>
+                    <div key={email.id} className="bg-surface/50 rounded-lg border border-border p-3">
+                      <p className="text-sm font-medium text-foreground truncate">{email.subject}</p>
+                      <p className="text-xs text-muted mt-0.5">From: {email.from}</p>
+                      <p className="text-xs text-muted mt-0.5">{formatDate(email.receivedAt)}</p>
+                      <p className="text-xs text-muted mt-1 line-clamp-2">{email.bodyPreview}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400">No emails linked to this ticket</p>
+                <p className="text-xs text-muted">No emails linked to this ticket</p>
               )}
             </div>
 
             {/* Timestamps */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                 Timeline
               </label>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Created</span>
-                  <span className="text-gray-900">{formatDate(ticket.createdAt)} {formatTime(ticket.createdAt)}</span>
+                  <span className="text-muted">Created</span>
+                  <span className="text-foreground">{formatDate(ticket.createdAt)} {formatTime(ticket.createdAt)}</span>
                 </div>
                 {ticket.firstResponseAt && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">First Response</span>
-                    <span className="text-gray-900">{formatDate(ticket.firstResponseAt)} {formatTime(ticket.firstResponseAt)}</span>
+                    <span className="text-muted">First Response</span>
+                    <span className="text-foreground">{formatDate(ticket.firstResponseAt)} {formatTime(ticket.firstResponseAt)}</span>
                   </div>
                 )}
                 {ticket.resolvedAt && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Resolved</span>
+                    <span className="text-muted">Resolved</span>
                     <span className="text-emerald-600">{formatDate(ticket.resolvedAt)} {formatTime(ticket.resolvedAt)}</span>
                   </div>
                 )}
@@ -600,7 +600,7 @@ export function TicketDetailPanel({
             </div>
 
             {/* Delete */}
-            <div className="pt-4 border-t border-gray-200">
+            <div className="pt-4 border-t border-border">
               <button
                 onClick={() => setConfirmDelete(true)}
                 className="flex items-center gap-2 text-sm text-red-600 hover:text-red-700"

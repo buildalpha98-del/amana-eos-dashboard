@@ -30,19 +30,19 @@ export function TemplatePicker({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               Launch from Template
             </h3>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-muted mt-0.5">
               Choose a template to start your project
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+            className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -54,8 +54,8 @@ export function TemplatePicker({
           </div>
         ) : sorted.length === 0 ? (
           <div className="text-center py-12">
-            <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">
+            <FileText className="w-10 h-10 text-muted/50 mx-auto mb-3" />
+            <p className="text-sm text-muted">
               No templates available. Create a template first.
             </p>
           </div>
@@ -75,7 +75,7 @@ export function TemplatePicker({
                   className={`w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all group ${
                     isFeatured
                       ? "border-brand/30 bg-brand/[0.02] hover:border-brand hover:bg-brand/5"
-                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      : "border-border hover:border-border hover:bg-surface"
                   }`}
                 >
                   {isFeatured ? (
@@ -83,13 +83,13 @@ export function TemplatePicker({
                       <Rocket className="w-5 h-5 text-brand" />
                     </div>
                   ) : (
-                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                      <FileText className="w-5 h-5 text-gray-400" />
+                    <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-5 h-5 text-muted" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-foreground">
                         {t.name}
                       </p>
                       {isFeatured && (
@@ -99,33 +99,33 @@ export function TemplatePicker({
                       )}
                     </div>
                     {t.description && (
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                      <p className="text-xs text-muted mt-0.5 line-clamp-2">
                         {t.description}
                       </p>
                     )}
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[10px] font-medium text-gray-400">
+                      <span className="text-[10px] font-medium text-muted">
                         {t.tasks.length} tasks
                       </span>
                       {maxDays > 0 && (
                         <>
-                          <span className="text-gray-300">|</span>
-                          <span className="text-[10px] font-medium text-gray-400">
+                          <span className="text-muted/50">|</span>
+                          <span className="text-[10px] font-medium text-muted">
                             {maxDays} days
                           </span>
                         </>
                       )}
                       {categories.length > 0 && (
                         <>
-                          <span className="text-gray-300">|</span>
-                          <span className="text-[10px] font-medium text-gray-400">
+                          <span className="text-muted/50">|</span>
+                          <span className="text-[10px] font-medium text-muted">
                             {categories.length} phases
                           </span>
                         </>
                       )}
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 mt-1 flex-shrink-0 transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-muted/50 group-hover:text-muted mt-1 flex-shrink-0 transition-colors" />
                 </button>
               );
             })}

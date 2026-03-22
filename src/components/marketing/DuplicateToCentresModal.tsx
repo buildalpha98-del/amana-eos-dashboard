@@ -36,17 +36,17 @@ export function DuplicateToCentresModal({
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="w-full max-w-md rounded-xl bg-white shadow-xl"
+          className="w-full max-w-md rounded-xl bg-card shadow-xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">
+          <div className="flex items-center justify-between border-b border-border px-6 py-4">
+            <h2 className="text-lg font-semibold text-foreground">
               Duplicate to Centres
             </h2>
             <button
               onClick={onClose}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -54,9 +54,9 @@ export function DuplicateToCentresModal({
 
           {/* Body */}
           <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted">
               Duplicate{" "}
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-foreground">
                 {postIds.length}
               </span>{" "}
               post{postIds.length === 1 ? "" : "s"} to selected centres.
@@ -69,11 +69,11 @@ export function DuplicateToCentresModal({
             />
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-4">
+            <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface transition-colors"
               >
                 Cancel
               </button>

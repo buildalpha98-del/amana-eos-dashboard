@@ -31,7 +31,7 @@ interface RowData {
 }
 
 const STATUS_OPTIONS = [
-  { value: "pending", label: "Pending", color: "bg-gray-100 text-gray-600" },
+  { value: "pending", label: "Pending", color: "bg-surface text-muted" },
   { value: "confirmed", label: "Confirmed", color: "bg-blue-100 text-blue-700" },
   { value: "completed", label: "Completed", color: "bg-emerald-100 text-emerald-700" },
 ];
@@ -152,7 +152,7 @@ export function ActivationAssignmentGrid({
 
   if (loadingAssignments && !services.length) {
     return (
-      <p className="text-sm text-gray-400 py-2">
+      <p className="text-sm text-muted py-2">
         Loading centre assignments...
       </p>
     );
@@ -160,50 +160,50 @@ export function ActivationAssignmentGrid({
 
   if (!services.length) {
     return (
-      <p className="text-sm text-gray-400 py-2">No centres available.</p>
+      <p className="text-sm text-muted py-2">No centres available.</p>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 text-left">
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">
+            <tr className="bg-surface/50 text-left">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-muted">
                 Centre
               </th>
-              <th className="px-3 py-2 text-center text-xs font-medium uppercase tracking-wider text-gray-500 w-16">
+              <th className="px-3 py-2 text-center text-xs font-medium uppercase tracking-wider text-muted w-16">
                 Assigned
               </th>
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-muted">
                 Coordinator
               </th>
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-gray-500 w-24">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-muted w-24">
                 Budget
               </th>
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-gray-500 w-28">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-muted w-28">
                 Status
               </th>
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-muted">
                 Notes
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border/50">
             {rows.map((row) => (
               <tr
                 key={row.serviceId}
                 className={
-                  row.assigned ? "bg-white" : "bg-gray-50/50 opacity-60"
+                  row.assigned ? "bg-card" : "bg-surface/30 opacity-60"
                 }
               >
                 {/* Centre */}
                 <td className="px-3 py-2 whitespace-nowrap">
-                  <span className="font-medium text-gray-800">
+                  <span className="font-medium text-foreground">
                     {row.serviceName}
                   </span>
-                  <span className="ml-1.5 text-xs text-gray-400">
+                  <span className="ml-1.5 text-xs text-muted">
                     ({row.serviceCode})
                   </span>
                 </td>
@@ -216,7 +216,7 @@ export function ActivationAssignmentGrid({
                     onChange={(e) =>
                       updateRow(row.serviceId, "assigned", e.target.checked)
                     }
-                    className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                    className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
                   />
                 </td>
 
@@ -232,7 +232,7 @@ export function ActivationAssignmentGrid({
                       )
                     }
                     disabled={!row.assigned}
-                    className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-xs focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full rounded border border-border bg-card px-2 py-1 text-xs focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-surface disabled:cursor-not-allowed"
                   >
                     <option value="">--</option>
                     {users.map((u) => (
@@ -246,7 +246,7 @@ export function ActivationAssignmentGrid({
                 {/* Budget */}
                 <td className="px-3 py-2">
                   <div className="relative">
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted">
                       $
                     </span>
                     <input
@@ -263,7 +263,7 @@ export function ActivationAssignmentGrid({
                       }
                       disabled={!row.assigned}
                       placeholder="0"
-                      className="w-full rounded border border-gray-200 bg-white pl-5 pr-2 py-1 text-xs focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      className="w-full rounded border border-border bg-card pl-5 pr-2 py-1 text-xs focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-surface disabled:cursor-not-allowed"
                     />
                   </div>
                 </td>
@@ -278,7 +278,7 @@ export function ActivationAssignmentGrid({
                     disabled={!row.assigned}
                     className={`w-full rounded-full px-2 py-1 text-[10px] font-medium border-0 focus:outline-none focus:ring-1 focus:ring-brand disabled:cursor-not-allowed ${
                       STATUS_OPTIONS.find((s) => s.value === row.status)
-                        ?.color ?? "bg-gray-100 text-gray-600"
+                        ?.color ?? "bg-surface text-muted"
                     }`}
                   >
                     {STATUS_OPTIONS.map((s) => (
@@ -303,7 +303,7 @@ export function ActivationAssignmentGrid({
                     }
                     disabled={!row.assigned}
                     placeholder="Notes..."
-                    className="w-full rounded border border-gray-200 bg-white px-2 py-1 text-xs focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full rounded border border-border bg-card px-2 py-1 text-xs focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-surface disabled:cursor-not-allowed"
                   />
                 </td>
               </tr>

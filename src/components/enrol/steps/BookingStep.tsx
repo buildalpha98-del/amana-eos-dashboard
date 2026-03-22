@@ -65,18 +65,18 @@ export function BookingStep({ data, updateData }: Props) {
     <div className="space-y-6">
       <ChildTabs children={data.children} activeIndex={activeChild} onChange={setActiveChild} />
 
-      <h3 className="text-lg font-semibold text-gray-800">
+      <h3 className="text-lg font-semibold text-foreground">
         Booking Preferences — {data.children[activeChild]?.firstName || `Child ${activeChild + 1}`}
       </h3>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-foreground/80 mb-1">
           Which centre/service?
         </label>
         <select
           value={prefs.serviceId}
           onChange={(e) => updatePrefs("serviceId", e.target.value)}
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-white"
+          className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
         >
           <option value="">Select a centre...</option>
           {services.map((s) => (
@@ -88,7 +88,7 @@ export function BookingStep({ data, updateData }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">Session Types</label>
+        <label className="block text-sm font-medium text-foreground/80 mb-3">Session Types</label>
         <div className="flex flex-wrap gap-2">
           {SESSION_TYPES.map((st) => (
             <button
@@ -98,7 +98,7 @@ export function BookingStep({ data, updateData }: Props) {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
                 prefs.sessionTypes.includes(st.value)
                   ? "bg-brand/10 border-brand text-brand"
-                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                  : "bg-surface/50 border-border text-muted hover:bg-surface"
               }`}
             >
               {st.label}
@@ -109,10 +109,10 @@ export function BookingStep({ data, updateData }: Props) {
 
       {prefs.sessionTypes.length > 0 && (
         <div className="space-y-4">
-          <label className="block text-sm font-medium text-gray-700">Days Required</label>
+          <label className="block text-sm font-medium text-foreground/80">Days Required</label>
           {prefs.sessionTypes.map((st) => (
             <div key={st}>
-              <p className="text-sm text-gray-500 mb-2 font-medium">
+              <p className="text-sm text-muted mb-2 font-medium">
                 {SESSION_TYPES.find((s) => s.value === st)?.label}
               </p>
               <div className="flex flex-wrap gap-2">
@@ -124,7 +124,7 @@ export function BookingStep({ data, updateData }: Props) {
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
                       (prefs.days[st] || []).includes(day)
                         ? "bg-brand/10 border-brand text-brand"
-                        : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                        : "bg-surface/50 border-border text-muted hover:bg-surface"
                     }`}
                   >
                     {day.charAt(0).toUpperCase() + day.slice(1, 3)}
@@ -137,7 +137,7 @@ export function BookingStep({ data, updateData }: Props) {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Booking Type</label>
+        <label className="block text-sm font-medium text-foreground/80 mb-2">Booking Type</label>
         <div className="flex gap-3">
           {(["permanent", "casual"] as const).map((type) => (
             <button
@@ -147,7 +147,7 @@ export function BookingStep({ data, updateData }: Props) {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
                 prefs.bookingType === type
                   ? "bg-brand/10 border-brand text-brand"
-                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                  : "bg-surface/50 border-border text-muted hover:bg-surface"
               }`}
             >
               {type === "permanent" ? "Permanent" : "Casual"}
@@ -157,17 +157,17 @@ export function BookingStep({ data, updateData }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Start Date</label>
+        <label className="block text-sm font-medium text-foreground/80 mb-1">Preferred Start Date</label>
         <input
           type="date"
           value={prefs.startDate}
           onChange={(e) => updatePrefs("startDate", e.target.value)}
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+          className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-foreground/80 mb-1">
           Specific Requirements
         </label>
         <textarea
@@ -175,7 +175,7 @@ export function BookingStep({ data, updateData }: Props) {
           onChange={(e) => updatePrefs("requirements", e.target.value)}
           rows={3}
           placeholder="Any special requirements or requests..."
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+          className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
         />
       </div>
     </div>

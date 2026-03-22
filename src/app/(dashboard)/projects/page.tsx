@@ -63,8 +63,8 @@ export default function ProjectsPage() {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
-          <p className="text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-2xl font-bold text-foreground">Projects</h2>
+          <p className="text-muted mt-1 line-clamp-2">
             Track project progress across your centres
           </p>
         </div>
@@ -82,8 +82,8 @@ export default function ProjectsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
-          <p className="text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-2xl font-bold text-foreground">Projects</h2>
+          <p className="text-muted mt-1 line-clamp-2">
             Track project progress across your centres
           </p>
         </div>
@@ -114,7 +114,7 @@ export default function ProjectsPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-surface rounded-lg p-1">
           {statusTabs.map((tab) => (
             <button
               key={tab.key}
@@ -122,8 +122,8 @@ export default function ProjectsPage() {
               className={cn(
                 "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                 statusFilter === tab.key
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted hover:text-foreground"
               )}
             >
               {tab.label}
@@ -131,14 +131,14 @@ export default function ProjectsPage() {
           ))}
         </div>
         <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search projects..."
             aria-label="Search projects"
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
         <div className="flex items-center gap-1 ml-auto">
@@ -147,8 +147,8 @@ export default function ProjectsPage() {
             className={cn(
               "p-2 rounded-md",
               view === "grid"
-                ? "bg-gray-200 text-gray-700"
-                : "text-gray-400 hover:text-gray-600"
+                ? "bg-border text-foreground/80"
+                : "text-muted hover:text-foreground"
             )}
           >
             <LayoutGrid className="w-4 h-4" />
@@ -158,8 +158,8 @@ export default function ProjectsPage() {
             className={cn(
               "p-2 rounded-md",
               view === "list"
-                ? "bg-gray-200 text-gray-700"
-                : "text-gray-400 hover:text-gray-600"
+                ? "bg-border text-foreground/80"
+                : "text-muted hover:text-foreground"
             )}
           >
             <List className="w-4 h-4" />
@@ -184,28 +184,28 @@ export default function ProjectsPage() {
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+          <div className="bg-card rounded-xl border border-border divide-y divide-border/50">
             {filtered.map((project) => {
               const status =
                 {
-                  not_started: { label: "Not Started", color: "text-gray-500 bg-gray-100" },
+                  not_started: { label: "Not Started", color: "text-muted bg-surface" },
                   in_progress: { label: "In Progress", color: "text-blue-700 bg-blue-100" },
                   complete: { label: "Complete", color: "text-emerald-700 bg-emerald-100" },
                   on_hold: { label: "On Hold", color: "text-amber-700 bg-amber-100" },
                   cancelled: { label: "Cancelled", color: "text-red-700 bg-red-100" },
-                }[project.status] || { label: project.status, color: "text-gray-500 bg-gray-100" };
+                }[project.status] || { label: project.status, color: "text-muted bg-surface" };
 
               return (
                 <button
                   key={project.id}
                   onClick={() => setSelectedProjectId(project.id)}
-                  className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors text-left"
+                  className="w-full flex items-center gap-4 px-5 py-4 hover:bg-surface transition-colors text-left"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
+                    <p className="text-sm font-semibold text-foreground truncate">
                       {project.name}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-muted mt-0.5">
                       {project.owner?.name ?? "Unassigned"}
                       {project.service && ` • ${project.service.name}`}
                     </p>
@@ -220,11 +220,11 @@ export default function ProjectsPage() {
                   </span>
                   <div className="w-24">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-[10px] text-muted">
                         {project.progress.percent}%
                       </span>
                     </div>
-                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-surface rounded-full overflow-hidden">
                       <div
                         className="h-full bg-brand rounded-full"
                         style={{ width: `${project.progress.percent}%` }}

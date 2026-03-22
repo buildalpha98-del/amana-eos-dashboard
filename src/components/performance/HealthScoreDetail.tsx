@@ -134,13 +134,13 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-2xl bg-white shadow-xl overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-card shadow-xl overflow-y-auto">
         {/* Loading State */}
         {isLoading && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-sm text-gray-500">Loading health score...</p>
+              <p className="text-sm text-muted">Loading health score...</p>
             </div>
           </div>
         )}
@@ -149,9 +149,9 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
         {error && (
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Centre Health Score</h2>
-              <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
-                <X className="w-5 h-5 text-gray-500" />
+              <h2 className="text-lg font-semibold text-foreground">Centre Health Score</h2>
+              <button onClick={onClose} className="p-1 hover:bg-surface rounded-lg transition-colors">
+                <X className="w-5 h-5 text-muted" />
               </button>
             </div>
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
@@ -167,7 +167,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
             {/* ── Header ────────────────────────────────────────── */}
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Centre Health Score</h2>
+                <h2 className="text-lg font-semibold text-foreground">Centre Health Score</h2>
                 <div className="flex items-center gap-3 mt-2">
                   <span className={`text-3xl md:text-4xl font-bold ${getScoreColor(data.current.overallScore)}`}>
                     {data.current.overallScore}
@@ -179,20 +179,20 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                       ) : data.current.trend === "declining" ? (
                         <ArrowDown className="w-4 h-4 text-red-500" />
                       ) : (
-                        <Minus className="w-4 h-4 text-gray-400" />
+                        <Minus className="w-4 h-4 text-muted" />
                       )}
-                      <span className="text-sm text-gray-500 capitalize">{data.current.trend}</span>
+                      <span className="text-sm text-muted capitalize">{data.current.trend}</span>
                     </div>
                     {data.networkComparison && (
-                      <span className="text-xs font-medium text-gray-400">
+                      <span className="text-xs font-medium text-muted">
                         #{data.networkComparison.rank} of {data.networkComparison.totalCentres}
                       </span>
                     )}
                   </div>
                 </div>
               </div>
-              <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
-                <X className="w-5 h-5 text-gray-500" />
+              <button onClick={onClose} className="p-1 hover:bg-surface rounded-lg transition-colors">
+                <X className="w-5 h-5 text-muted" />
               </button>
             </div>
 
@@ -201,12 +201,12 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
               {PILLAR_KEYS.map((key) => {
                 const score = data.current.pillars[key]?.score ?? 0;
                 return (
-                  <div key={key} className="bg-gray-50 rounded-lg p-3 text-center">
-                    <p className="text-xs font-medium text-gray-500 mb-1 truncate">
+                  <div key={key} className="bg-surface/50 rounded-lg p-3 text-center">
+                    <p className="text-xs font-medium text-muted mb-1 truncate">
                       {PILLAR_SHORT_LABELS[key]}
                     </p>
                     <p className={`text-xl font-bold ${getScoreColor(score)}`}>{score}</p>
-                    <div className="mt-2 w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="mt-2 w-full h-1.5 bg-border rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full ${getScoreBgColor(score)}`}
                         style={{ width: `${score}%` }}
@@ -219,7 +219,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
 
             {/* ── Sub-Metric Breakdown ──────────────────────────── */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3">Pillar Breakdown</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-3">Pillar Breakdown</h3>
               <div className="space-y-1">
                 {PILLAR_KEYS.map((key) => {
                   const pillar = data.current.pillars[key];
@@ -228,32 +228,32 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                   const score = pillar?.score ?? 0;
 
                   return (
-                    <div key={key} className="border border-gray-100 rounded-lg overflow-hidden">
+                    <div key={key} className="border border-border/50 rounded-lg overflow-hidden">
                       <button
                         onClick={() => togglePillar(key)}
-                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface transition-colors text-left"
                       >
                         <div className="flex items-center gap-2">
                           {isExpanded ? (
-                            <ChevronDown className="w-4 h-4 text-gray-400" />
+                            <ChevronDown className="w-4 h-4 text-muted" />
                           ) : (
-                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                            <ChevronRight className="w-4 h-4 text-muted" />
                           )}
-                          <span className="text-sm font-medium text-gray-900">
+                          <span className="text-sm font-medium text-foreground">
                             {PILLAR_LABELS[key] || key}
                           </span>
                         </div>
                         <span className={`text-sm font-bold ${getScoreColor(score)}`}>{score}</span>
                       </button>
                       {isExpanded && Object.keys(breakdown).length > 0 && (
-                        <div className="px-4 pb-3 border-t border-gray-100">
+                        <div className="px-4 pb-3 border-t border-border/50">
                           {Object.entries(breakdown).map(([metricKey, value]) => (
                             <div key={metricKey} className="flex items-center justify-between py-2">
-                              <span className="text-sm text-gray-600">
+                              <span className="text-sm text-muted">
                                 {METRIC_LABELS[metricKey] || metricKey}
                               </span>
                               <div className="flex items-center gap-2">
-                                <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div className="w-20 h-2 bg-border rounded-full overflow-hidden">
                                   <div
                                     className="h-full bg-brand rounded-full"
                                     style={{ width: `${value}%` }}
@@ -274,8 +274,8 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
             {/* ── Trend Chart ───────────────────────────────────── */}
             {chartData.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Score Trend</h3>
-                <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Score Trend</h3>
+                <div className="bg-surface/50 rounded-lg p-4">
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -316,25 +316,25 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
             {/* ── Network Comparison ────────────────────────────── */}
             {data.networkComparison?.pillarComparison && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Network Comparison</h3>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Network Comparison</h3>
+                <div className="bg-surface/50 rounded-lg p-4 space-y-3">
                   {/* Legend */}
                   <div className="flex flex-wrap items-center gap-4 mb-2">
                     <div className="flex items-center gap-1.5">
                       <div className="w-3 h-3 rounded-sm bg-brand" />
-                      <span className="text-xs text-gray-600">Centre</span>
+                      <span className="text-xs text-muted">Centre</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <div className="w-3 h-3 rounded-sm bg-gray-300" />
-                      <span className="text-xs text-gray-600">Network Avg</span>
+                      <span className="text-xs text-muted">Network Avg</span>
                     </div>
                   </div>
 
                   {Object.entries(data.networkComparison.pillarComparison).map(([key, vals]) => (
                     <div key={key}>
-                      <div className="text-xs text-gray-500 mb-1">{PILLAR_LABELS[key] || key}</div>
+                      <div className="text-xs text-muted mb-1">{PILLAR_LABELS[key] || key}</div>
                       <div className="flex gap-2 items-center">
-                        <div className="flex-1 h-3 bg-gray-100 rounded-full relative overflow-hidden">
+                        <div className="flex-1 h-3 bg-surface rounded-full relative overflow-hidden">
                           <div
                             className="absolute h-full bg-gray-300 rounded-full"
                             style={{ width: `${vals.networkAvg}%` }}
@@ -355,7 +355,7 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
             {/* ── Recommendations ───────────────────────────────── */}
             {data.recommendations && data.recommendations.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">
+                <h3 className="text-sm font-semibold text-foreground mb-3">
                   Recommendations ({data.recommendations.length})
                 </h3>
                 <div className="space-y-2">
@@ -378,15 +378,15 @@ export function HealthScoreDetail({ serviceId, onClose }: HealthScoreDetailProps
                                 {rec.pillarLabel || PILLAR_LABELS[rec.pillar] || rec.pillar}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-700">{rec.message}</p>
+                            <p className="text-sm text-foreground/80">{rec.message}</p>
                             <div className="flex items-center gap-2 mt-2">
-                              <div className="flex-1 h-1.5 bg-white/60 rounded-full overflow-hidden">
+                              <div className="flex-1 h-1.5 bg-card/60 rounded-full overflow-hidden">
                                 <div
                                   className="h-full bg-brand rounded-full"
                                   style={{ width: `${progress}%` }}
                                 />
                               </div>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-muted">
                                 {rec.currentValue} / {rec.targetValue}
                               </span>
                             </div>

@@ -27,7 +27,7 @@ function QueueRow({
   return (
     <tr
       onClick={onClick}
-      className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer transition-colors"
+      className="border-b border-border/50 last:border-0 hover:bg-surface cursor-pointer transition-colors"
     >
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
@@ -40,31 +40,31 @@ function QueueRow({
               .slice(0, 2)}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-foreground">
               {summary.user.name}
             </p>
-            <p className="text-xs text-gray-500 capitalize">
+            <p className="text-xs text-muted capitalize">
               {summary.user.role.replace(/_/g, " ")}
             </p>
           </div>
         </div>
       </td>
       <td className="py-3 px-4">
-        <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
-          <FileText className="w-3.5 h-3.5 text-gray-400" />
+        <span className="inline-flex items-center gap-1.5 text-sm text-foreground/80">
+          <FileText className="w-3.5 h-3.5 text-muted" />
           {summary.reports}
         </span>
       </td>
       <td className="py-3 px-4">
-        <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
-          <CheckCircle2 className="w-3.5 h-3.5 text-gray-400" />
+        <span className="inline-flex items-center gap-1.5 text-sm text-foreground/80">
+          <CheckCircle2 className="w-3.5 h-3.5 text-muted" />
           {summary.todos}
         </span>
       </td>
       <td className="py-3 px-4">
         <span className="inline-flex items-center gap-1.5">
           <span className={cn("w-2.5 h-2.5 rounded-full", status.color)} />
-          <span className="text-xs text-gray-500">{status.label}</span>
+          <span className="text-xs text-muted">{status.label}</span>
         </span>
       </td>
     </tr>
@@ -94,11 +94,11 @@ export default function AllQueuesPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           <Users className="w-5 h-5 text-brand" />
           All Queues
         </h1>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <p className="text-sm text-muted mt-0.5">
           Overview of pending reports and tasks across all team members
         </p>
       </div>
@@ -116,20 +116,20 @@ export default function AllQueuesPage() {
           description="All queues are clear. Nothing needs attention right now."
         />
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-visible">
+        <div className="bg-card rounded-xl border border-border overflow-visible">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-4">
+              <tr className="border-b border-border">
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-4">
                   User
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-4">
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-4">
                   Reports
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-4">
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-4">
                   Tasks
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-4">
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-4">
                   Load
                 </th>
               </tr>
@@ -143,38 +143,38 @@ export default function AllQueuesPage() {
                 />
               ))}
               {(unassigned.reports > 0 || unassigned.todos > 0) && (
-                <tr className="border-b border-gray-100 last:border-0 bg-gray-50/50">
+                <tr className="border-b border-border/50 last:border-0 bg-surface/30">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-500">
+                      <div className="w-8 h-8 rounded-full bg-border flex items-center justify-center text-xs font-medium text-muted">
                         ?
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-600">
+                        <p className="text-sm font-medium text-muted">
                           Unassigned
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-muted">
                           Needs routing
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="inline-flex items-center gap-1.5 text-sm text-gray-500">
-                      <FileText className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="inline-flex items-center gap-1.5 text-sm text-muted">
+                      <FileText className="w-3.5 h-3.5 text-muted" />
                       {unassigned.reports}
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="inline-flex items-center gap-1.5 text-sm text-gray-500">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="inline-flex items-center gap-1.5 text-sm text-muted">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-muted" />
                       {unassigned.todos}
                     </span>
                   </td>
                   <td className="py-3 px-4">
                     <span className="inline-flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-                      <span className="text-xs text-gray-400">—</span>
+                      <span className="text-xs text-muted">—</span>
                     </span>
                   </td>
                 </tr>

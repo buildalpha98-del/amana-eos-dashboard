@@ -109,7 +109,7 @@ export default function SeedPage() {
   if (sessionStatus === "loading") {
     return (
       <div className="max-w-4xl mx-auto py-12 flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-muted" />
       </div>
     );
   }
@@ -118,9 +118,9 @@ export default function SeedPage() {
     return (
       <div className="max-w-4xl mx-auto py-12">
         <div className="bg-card rounded-xl border border-border p-8 text-center">
-          <Shield className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Access Denied</h2>
-          <p className="text-sm text-gray-500">Only owners and admins can access this page.</p>
+          <Shield className="w-10 h-10 text-muted mx-auto mb-3" />
+          <h2 className="text-lg font-semibold text-foreground mb-1">Access Denied</h2>
+          <p className="text-sm text-muted">Only owners and admins can access this page.</p>
         </div>
       </div>
     );
@@ -194,7 +194,7 @@ export default function SeedPage() {
       <div>
         <button
           onClick={() => router.push("/settings")}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground mb-4 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Settings
@@ -203,11 +203,11 @@ export default function SeedPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Database className="w-5 h-5 text-brand" />
-              <h1 className="text-xl font-bold text-gray-900">
+              <h1 className="text-xl font-bold text-foreground">
                 Seed Template Data
               </h1>
             </div>
-            <p className="text-sm text-gray-500 max-w-lg">
+            <p className="text-sm text-muted max-w-lg">
               Populate the dashboard with default templates, policies, and
               guides. Safe to run multiple times — duplicates are skipped.
             </p>
@@ -245,14 +245,14 @@ export default function SeedPage() {
               className="bg-card rounded-xl border border-border p-6 flex flex-col gap-4"
             >
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-gray-100 text-gray-600 shrink-0">
+                <div className="p-2 rounded-lg bg-surface text-muted shrink-0">
                   {ep.icon}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-sm font-semibold text-gray-900">
+                  <h3 className="text-sm font-semibold text-foreground">
                     {ep.name}
                   </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-muted mt-0.5">
                     {ep.description}
                   </p>
                 </div>
@@ -262,7 +262,7 @@ export default function SeedPage() {
                 {/* Status indicator */}
                 <div className="text-xs">
                   {status === "idle" && (
-                    <span className="text-gray-400">Ready</span>
+                    <span className="text-muted">Ready</span>
                   )}
                   {status === "loading" && (
                     <span className="inline-flex items-center gap-1 text-blue-600">
@@ -288,7 +288,7 @@ export default function SeedPage() {
                 <button
                   onClick={() => runSeed(ep)}
                   disabled={isLoading || seedingAll}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border text-foreground/80 hover:bg-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

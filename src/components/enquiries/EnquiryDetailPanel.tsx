@@ -287,7 +287,7 @@ export function EnquiryDetailPanel({
 
   if (loading) {
     return (
-      <div className="fixed inset-y-0 right-0 w-96 bg-white shadow-xl z-50 flex items-center justify-center">
+      <div className="fixed inset-y-0 right-0 w-96 bg-card shadow-xl z-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     );
@@ -305,7 +305,7 @@ export function EnquiryDetailPanel({
   return (
     <>
       <div className="fixed inset-0 bg-black/30 z-40" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-xl z-50 overflow-y-auto">
+      <div className="fixed inset-y-0 right-0 w-full max-w-md bg-card shadow-xl z-50 overflow-y-auto">
         {/* Toast notification */}
         {toast && (
           <div className="absolute top-4 left-4 right-4 z-10 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 text-sm flex items-center gap-2 shadow-sm animate-in fade-in slide-in-from-top-2">
@@ -315,18 +315,18 @@ export function EnquiryDetailPanel({
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-card">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               {enquiry.parentName}
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted">
               {STAGE_LABELS[enquiry.stage] || enquiry.stage} &middot;{" "}
               {daysInStage} days
             </p>
           </div>
-          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100">
-            <X className="h-5 w-5 text-gray-500" />
+          <button onClick={onClose} className="p-1 rounded hover:bg-surface">
+            <X className="h-5 w-5 text-muted" />
           </button>
         </div>
 
@@ -334,7 +334,7 @@ export function EnquiryDetailPanel({
           {/* Contact details */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium text-gray-700">Contact Details</h4>
+              <h4 className="text-sm font-medium text-foreground/80">Contact Details</h4>
               {!editing && (
                 <button
                   onClick={startEditing}
@@ -347,42 +347,42 @@ export function EnquiryDetailPanel({
             </div>
 
             {editing ? (
-              <div className="bg-gray-50 rounded-lg p-3 space-y-3 text-sm">
+              <div className="bg-surface/50 rounded-lg p-3 space-y-3 text-sm">
                 {/* Parent Name */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Parent Name</label>
+                  <label className="block text-xs font-medium text-muted mb-1">Parent Name</label>
                   <input
                     type="text"
                     value={editForm.parentName}
                     onChange={(e) => setEditForm({ ...editForm, parentName: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                    className="w-full px-2.5 py-1.5 border border-border rounded-md text-sm focus:ring-brand focus:border-brand"
                   />
                 </div>
                 {/* Email */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                  <label className="block text-xs font-medium text-muted mb-1">Email</label>
                   <input
                     type="email"
                     value={editForm.parentEmail}
                     onChange={(e) => setEditForm({ ...editForm, parentEmail: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                    className="w-full px-2.5 py-1.5 border border-border rounded-md text-sm focus:ring-brand focus:border-brand"
                     placeholder="parent@email.com"
                   />
                 </div>
                 {/* Phone */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                  <label className="block text-xs font-medium text-muted mb-1">Phone</label>
                   <input
                     type="tel"
                     value={editForm.parentPhone}
                     onChange={(e) => setEditForm({ ...editForm, parentPhone: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                    className="w-full px-2.5 py-1.5 border border-border rounded-md text-sm focus:ring-brand focus:border-brand"
                     placeholder="04xx xxx xxx"
                   />
                 </div>
                 {/* Children */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Children</label>
+                  <label className="block text-xs font-medium text-muted mb-1">Children</label>
                   <div className="space-y-2">
                     {editForm.children.map((child, i) => (
                       <div key={i} className="flex items-center gap-2">
@@ -394,7 +394,7 @@ export function EnquiryDetailPanel({
                             updated[i] = { ...updated[i], name: e.target.value };
                             setEditForm({ ...editForm, children: updated });
                           }}
-                          className="flex-1 px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                          className="flex-1 px-2.5 py-1.5 border border-border rounded-md text-sm focus:ring-brand focus:border-brand"
                           placeholder="Child name"
                         />
                         <input
@@ -405,7 +405,7 @@ export function EnquiryDetailPanel({
                             updated[i] = { ...updated[i], age: e.target.value };
                             setEditForm({ ...editForm, children: updated });
                           }}
-                          className="w-16 px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                          className="w-16 px-2.5 py-1.5 border border-border rounded-md text-sm focus:ring-brand focus:border-brand"
                           placeholder="Age"
                           min={0}
                           max={18}
@@ -417,7 +417,7 @@ export function EnquiryDetailPanel({
                               const updated = editForm.children.filter((_, idx) => idx !== i);
                               setEditForm({ ...editForm, children: updated });
                             }}
-                            className="p-1 text-gray-400 hover:text-red-500"
+                            className="p-1 text-muted hover:text-danger"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
@@ -436,11 +436,11 @@ export function EnquiryDetailPanel({
                 </div>
                 {/* Channel */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Channel</label>
+                  <label className="block text-xs font-medium text-muted mb-1">Channel</label>
                   <select
                     value={editForm.channel}
                     onChange={(e) => setEditForm({ ...editForm, channel: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                    className="w-full px-2.5 py-1.5 border border-border rounded-md text-sm focus:ring-brand focus:border-brand"
                   >
                     <option value="phone">Phone</option>
                     <option value="email">Email</option>
@@ -452,11 +452,11 @@ export function EnquiryDetailPanel({
                 </div>
                 {/* Parent Driver */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Driver</label>
+                  <label className="block text-xs font-medium text-muted mb-1">Driver</label>
                   <select
                     value={editForm.parentDriver}
                     onChange={(e) => setEditForm({ ...editForm, parentDriver: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                    className="w-full px-2.5 py-1.5 border border-border rounded-md text-sm focus:ring-brand focus:border-brand"
                   >
                     <option value="">None</option>
                     <option value="homework">Homework</option>
@@ -469,12 +469,12 @@ export function EnquiryDetailPanel({
                 </div>
                 {/* Notes */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+                  <label className="block text-xs font-medium text-muted mb-1">Notes</label>
                   <textarea
                     rows={3}
                     value={editForm.notes}
                     onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-brand focus:border-brand"
+                    className="w-full px-2.5 py-1.5 border border-border rounded-md text-sm focus:ring-brand focus:border-brand"
                     placeholder="Additional notes..."
                   />
                 </div>
@@ -483,7 +483,7 @@ export function EnquiryDetailPanel({
                   <button
                     onClick={() => setEditing(false)}
                     disabled={saving}
-                    className="px-3 py-1.5 text-xs text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200"
+                    className="px-3 py-1.5 text-xs text-muted bg-surface rounded-md hover:bg-border"
                   >
                     Cancel
                   </button>
@@ -498,31 +498,31 @@ export function EnquiryDetailPanel({
                 </div>
               </div>
             ) : (
-              <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
+              <div className="bg-surface/50 rounded-lg p-3 space-y-1 text-sm">
                 {enquiry.parentEmail && (
-                  <p className="flex items-center gap-2 text-gray-600">
+                  <p className="flex items-center gap-2 text-muted">
                     <Mail className="h-3.5 w-3.5" /> {enquiry.parentEmail}
                   </p>
                 )}
                 {enquiry.parentPhone && (
-                  <p className="flex items-center gap-2 text-gray-600">
+                  <p className="flex items-center gap-2 text-muted">
                     <Phone className="h-3.5 w-3.5" /> {enquiry.parentPhone}
                   </p>
                 )}
                 {childDisplay && (
-                  <p className="text-gray-600">
+                  <p className="text-muted">
                     {(enquiry.childrenDetails as any[])?.length > 1
                       ? "Children"
                       : "Child"}
                     : {childDisplay}
                   </p>
                 )}
-                <p className="text-gray-600">
+                <p className="text-muted">
                   Centre: {enquiry.service?.name || "Unknown"}
                 </p>
-                <p className="text-gray-600">Channel: {enquiry.channel}</p>
+                <p className="text-muted">Channel: {enquiry.channel}</p>
                 {enquiry.parentDriver && (
-                  <p className="text-gray-600">
+                  <p className="text-muted">
                     Driver: {enquiry.parentDriver.replace("_", " ")}
                   </p>
                 )}
@@ -536,7 +536,7 @@ export function EnquiryDetailPanel({
               className={`text-xs px-2 py-1 rounded-full ${
                 enquiry.ccsEducated
                   ? "bg-green-100 text-green-700"
-                  : "bg-gray-100 text-gray-500"
+                  : "bg-surface text-muted"
               }`}
             >
               {enquiry.ccsEducated ? "CCS Educated" : "CCS Not Discussed"}
@@ -547,7 +547,7 @@ export function EnquiryDetailPanel({
                   ? "bg-green-100 text-green-700"
                   : enquiry.formStarted
                     ? "bg-amber-100 text-amber-700"
-                    : "bg-gray-100 text-gray-500"
+                    : "bg-surface text-muted"
               }`}
             >
               {enquiry.formCompleted
@@ -560,7 +560,7 @@ export function EnquiryDetailPanel({
 
           {/* Quick actions */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">
+            <h4 className="text-sm font-medium text-foreground/80 mb-2">
               Quick Actions
             </h4>
             <div className="grid grid-cols-2 gap-2">
@@ -579,7 +579,7 @@ export function EnquiryDetailPanel({
               <button
                 onClick={() => showActionConfirm("log_call")}
                 disabled={actionLoading === "log_call"}
-                className="flex items-center gap-2 px-3 py-2 text-xs bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-2 text-xs bg-surface/50 text-foreground/80 rounded-md hover:bg-surface disabled:opacity-50"
               >
                 {actionLoading === "log_call" ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -642,7 +642,7 @@ export function EnquiryDetailPanel({
                     navigator.clipboard.writeText(url);
                     setToast("Enrolment link copied to clipboard");
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium text-emerald-700 bg-white rounded-md border border-emerald-200 hover:bg-emerald-50 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium text-emerald-700 bg-card rounded-md border border-emerald-200 hover:bg-emerald-50 transition-colors"
                 >
                   <Copy className="h-3 w-3" />
                   Copy Link
@@ -651,7 +651,7 @@ export function EnquiryDetailPanel({
                   href={`/enrol/${enquiry.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium text-emerald-700 bg-white rounded-md border border-emerald-200 hover:bg-emerald-50 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium text-emerald-700 bg-card rounded-md border border-emerald-200 hover:bg-emerald-50 transition-colors"
                 >
                   <ExternalLink className="h-3 w-3" />
                   Preview
@@ -699,8 +699,8 @@ export function EnquiryDetailPanel({
           {/* Notes */}
           {enquiry.notes && (
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-1">Notes</h4>
-              <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
+              <h4 className="text-sm font-medium text-foreground/80 mb-1">Notes</h4>
+              <p className="text-sm text-muted bg-surface/50 rounded-lg p-3">
                 {enquiry.notes}
               </p>
             </div>
@@ -708,7 +708,7 @@ export function EnquiryDetailPanel({
 
           {/* Touchpoints timeline */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">
+            <h4 className="text-sm font-medium text-foreground/80 mb-2">
               Touchpoint Timeline
             </h4>
             {enquiry.touchpoints?.length > 0 ? (
@@ -716,13 +716,13 @@ export function EnquiryDetailPanel({
                 {enquiry.touchpoints.map((tp: any) => (
                   <div
                     key={tp.id}
-                    className="bg-gray-50 rounded-lg p-3 text-sm"
+                    className="bg-surface/50 rounded-lg p-3 text-sm"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-foreground/80">
                         {tp.type.replace(/_/g, " ")}
                       </span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-muted">
                         {new Date(tp.createdAt).toLocaleDateString("en-AU", {
                           day: "numeric",
                           month: "short",
@@ -731,7 +731,7 @@ export function EnquiryDetailPanel({
                         })}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 text-xs text-muted">
                       <span className="capitalize">{tp.channel}</span>
                       <span>&middot;</span>
                       <span
@@ -740,7 +740,7 @@ export function EnquiryDetailPanel({
                             ? "bg-green-100 text-green-700"
                             : tp.status === "pending_review"
                               ? "bg-amber-100 text-amber-700"
-                              : "bg-gray-100 text-gray-600"
+                              : "bg-surface text-muted"
                         }`}
                       >
                         {tp.status.replace("_", " ")}
@@ -752,7 +752,7 @@ export function EnquiryDetailPanel({
                       )}
                     </div>
                     {tp.content && (
-                      <p className="text-gray-600 mt-1 line-clamp-3">
+                      <p className="text-muted mt-1 line-clamp-3">
                         {tp.content}
                       </p>
                     )}
@@ -760,13 +760,13 @@ export function EnquiryDetailPanel({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-400">No touchpoints yet</p>
+              <p className="text-sm text-muted">No touchpoints yet</p>
             )}
           </div>
 
           {/* Email history */}
-          <div className="mt-6 border-t border-gray-200 pt-4">
-            <h4 className="mb-2 text-sm font-semibold text-gray-900">Emails</h4>
+          <div className="mt-6 border-t border-border pt-4">
+            <h4 className="mb-2 text-sm font-semibold text-foreground">Emails</h4>
             <EmailHistorySection enquiryId={enquiry.id} parentEmail={enquiry.parentEmail} parentName={enquiry.parentName} />
           </div>
 
@@ -774,7 +774,7 @@ export function EnquiryDetailPanel({
           <div className="border-t pt-4">
             <button
               onClick={() => setShowCCS(!showCCS)}
-              className="flex items-center justify-between w-full text-sm font-semibold text-gray-700 hover:text-gray-900"
+              className="flex items-center justify-between w-full text-sm font-semibold text-foreground/80 hover:text-foreground"
             >
               <span className="flex items-center gap-2">
                 <Calculator className="h-4 w-4" />
@@ -822,9 +822,9 @@ export function EnquiryDetailPanel({
             }
           />
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="bg-card rounded-lg shadow-xl w-full max-w-md">
               <div className="flex items-center justify-between p-4 border-b">
-                <h3 className="text-base font-semibold text-gray-900">
+                <h3 className="text-base font-semibold text-foreground">
                   {actionModal.title}
                 </h3>
                 <button
@@ -836,16 +836,16 @@ export function EnquiryDetailPanel({
                       channel: "",
                     })
                   }
-                  className="p-1 rounded hover:bg-gray-100"
+                  className="p-1 rounded hover:bg-surface"
                 >
-                  <X className="h-4 w-4 text-gray-500" />
+                  <X className="h-4 w-4 text-muted" />
                 </button>
               </div>
 
               <div className="p-4 space-y-3">
                 {actionModal.action === "log_call" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-foreground/80 mb-1">
                       Call Notes
                     </label>
                     <textarea
@@ -857,7 +857,7 @@ export function EnquiryDetailPanel({
                           content: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Summary of the phone call..."
                       autoFocus
                     />
@@ -868,7 +868,7 @@ export function EnquiryDetailPanel({
                   actionModal.action === "form_support") && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-foreground/80 mb-1">
                         Channel
                       </label>
                       <select
@@ -879,7 +879,7 @@ export function EnquiryDetailPanel({
                             channel: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="email">Email</option>
                         <option value="whatsapp">WhatsApp</option>
@@ -889,7 +889,7 @@ export function EnquiryDetailPanel({
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="block text-sm font-medium text-gray-700">
+                        <label className="block text-sm font-medium text-foreground/80">
                           Message Content
                         </label>
                         <AiButton
@@ -919,10 +919,10 @@ export function EnquiryDetailPanel({
                             content: e.target.value,
                           })
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-muted">
                       This message will be logged as a touchpoint. You can edit
                       it before confirming.
                     </p>
@@ -940,7 +940,7 @@ export function EnquiryDetailPanel({
                       channel: "",
                     })
                   }
-                  className="px-3 py-2 text-sm text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                  className="px-3 py-2 text-sm text-foreground/80 bg-surface rounded-md hover:bg-border"
                 >
                   Cancel
                 </button>

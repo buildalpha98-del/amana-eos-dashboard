@@ -149,11 +149,11 @@ export function WeeklyPulseTab() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => setWeekOffset((o) => o - 1)}
-          className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+          className="p-1.5 rounded-md hover:bg-surface transition-colors"
         >
-          <ChevronLeft className="h-5 w-5 text-gray-500" />
+          <ChevronLeft className="h-5 w-5 text-muted" />
         </button>
-        <div className="text-sm font-medium text-gray-700 min-w-[200px] text-center">
+        <div className="text-sm font-medium text-foreground/80 min-w-[200px] text-center">
           {formatWeekLabel(weekOf)}
           {weekOffset === 0 && (
             <span className="ml-2 text-xs text-brand font-semibold">(Current)</span>
@@ -164,7 +164,7 @@ export function WeeklyPulseTab() {
           disabled={weekOffset >= 0}
           className={cn(
             "p-1.5 rounded-md transition-colors",
-            weekOffset >= 0 ? "text-gray-300 cursor-not-allowed" : "hover:bg-gray-100 text-gray-500"
+            weekOffset >= 0 ? "text-muted/50 cursor-not-allowed" : "hover:bg-surface text-muted"
           )}
         >
           <ChevronRight className="h-5 w-5" />
@@ -190,7 +190,7 @@ export function WeeklyPulseTab() {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground/80 mb-1.5">
             What went well this week? <span className="text-red-500">*</span>
           </label>
           <textarea
@@ -198,12 +198,12 @@ export function WeeklyPulseTab() {
             onChange={(e) => setWins(e.target.value)}
             placeholder="Share your wins and achievements..."
             rows={3}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:ring-1 focus:ring-brand resize-none"
+            className="w-full rounded-lg border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand resize-none"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground/80 mb-1.5">
             Top priorities for next week? <span className="text-red-500">*</span>
           </label>
           <textarea
@@ -211,12 +211,12 @@ export function WeeklyPulseTab() {
             onChange={(e) => setPriorities(e.target.value)}
             placeholder="What are you focusing on next..."
             rows={3}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:ring-1 focus:ring-brand resize-none"
+            className="w-full rounded-lg border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand resize-none"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label className="block text-sm font-medium text-foreground/80 mb-1.5">
             Any blockers or challenges?
           </label>
           <textarea
@@ -224,12 +224,12 @@ export function WeeklyPulseTab() {
             onChange={(e) => setBlockers(e.target.value)}
             placeholder="Anything blocking your progress..."
             rows={2}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:ring-1 focus:ring-brand resize-none"
+            className="w-full rounded-lg border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand resize-none"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-foreground/80 mb-2">
             How are you feeling? <span className="text-red-500">*</span>
           </label>
           <div className="flex items-center gap-2">
@@ -244,12 +244,12 @@ export function WeeklyPulseTab() {
                     "flex flex-col items-center gap-1 rounded-lg border-2 px-3 py-2 transition-all",
                     mood === value
                       ? "border-brand bg-brand/5 scale-110"
-                      : "border-gray-200 hover:border-gray-300"
+                      : "border-border hover:border-border"
                   )}
                   title={m.label}
                 >
                   <span className="text-2xl">{m.emoji}</span>
-                  <span className="text-[10px] text-gray-500">{m.label}</span>
+                  <span className="text-[10px] text-muted">{m.label}</span>
                 </button>
               );
             })}
@@ -257,15 +257,15 @@ export function WeeklyPulseTab() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Anything else to share? <span className="text-gray-400 font-normal">(optional)</span>
+          <label className="block text-sm font-medium text-foreground/80 mb-1.5">
+            Anything else to share? <span className="text-muted font-normal">(optional)</span>
           </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Additional thoughts, shout-outs, or feedback..."
             rows={2}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:ring-1 focus:ring-brand resize-none"
+            className="w-full rounded-lg border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand resize-none"
           />
         </div>
 
@@ -274,7 +274,7 @@ export function WeeklyPulseTab() {
             type="button"
             onClick={handleSaveDraft}
             disabled={submitPulse.isPending}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
             Save Draft
@@ -317,25 +317,25 @@ export function WeeklyPulseTab() {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-blue-100 p-2">
                 <Users className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{submitted} / {totalUsers}</p>
-                <p className="text-xs text-gray-500">Responses submitted</p>
+                <p className="text-2xl font-bold text-foreground">{submitted} / {totalUsers}</p>
+                <p className="text-xs text-muted">Responses submitted</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-accent/20 p-2">
                 <BarChart3 className="h-5 w-5 text-brand" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-2xl font-bold text-foreground">
                   {avgMood > 0 ? (
                     <>
                       {getMoodEmoji(Math.round(avgMood))}{" "}
@@ -345,19 +345,19 @@ export function WeeklyPulseTab() {
                     "\u2014"
                   )}
                 </p>
-                <p className="text-xs text-gray-500">Average mood</p>
+                <p className="text-xs text-muted">Average mood</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <div className="rounded-lg border border-border bg-card p-4">
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-red-100 p-2">
                 <AlertTriangle className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{blockerCount}</p>
-                <p className="text-xs text-gray-500">Blockers flagged</p>
+                <p className="text-2xl font-bold text-foreground">{blockerCount}</p>
+                <p className="text-xs text-muted">Blockers flagged</p>
               </div>
             </div>
           </div>
@@ -366,10 +366,10 @@ export function WeeklyPulseTab() {
         {totalUsers > 0 && (
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-gray-600">Submission progress</span>
-              <span className="text-xs text-gray-500">{submitted} of {totalUsers}</span>
+              <span className="text-xs font-medium text-muted">Submission progress</span>
+              <span className="text-xs text-muted">{submitted} of {totalUsers}</span>
             </div>
-            <div className="h-2.5 w-full rounded-full bg-gray-200 overflow-hidden">
+            <div className="h-2.5 w-full rounded-full bg-border overflow-hidden">
               <div
                 className="h-full rounded-full bg-brand transition-all duration-500"
                 style={{ width: `${submissionRate}%` }}
@@ -379,7 +379,7 @@ export function WeeklyPulseTab() {
         )}
 
         {pulses.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-muted">
             <Users className="h-10 w-10 mx-auto mb-3 opacity-40" />
             <p className="text-sm">No pulses submitted for this week yet.</p>
           </div>
@@ -388,7 +388,7 @@ export function WeeklyPulseTab() {
             {pulses.map((pulse: any) => (
               <div
                 key={pulse.id}
-                className="rounded-lg border border-gray-200 bg-white p-4 hover:shadow-sm transition-shadow"
+                className="rounded-lg border border-border bg-card p-4 hover:shadow-sm transition-shadow"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3 min-w-0">
@@ -409,10 +409,10 @@ export function WeeklyPulseTab() {
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {pulse.user?.name ?? "Unknown"}
                       </p>
-                      <p className="text-xs text-gray-400 truncate">{pulse.user?.email}</p>
+                      <p className="text-xs text-muted truncate">{pulse.user?.email}</p>
                     </div>
                   </div>
                   <span className="text-xl flex-shrink-0" title={`Mood: ${pulse.mood}`}>
@@ -423,29 +423,29 @@ export function WeeklyPulseTab() {
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {pulse.wins && (
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-0.5">Wins</p>
-                      <p className="text-sm text-gray-700 line-clamp-2">{pulse.wins}</p>
+                      <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Wins</p>
+                      <p className="text-sm text-foreground/80 line-clamp-2">{pulse.wins}</p>
                     </div>
                   )}
                   {pulse.priorities && (
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-0.5">Priorities</p>
-                      <p className="text-sm text-gray-700 line-clamp-2">{pulse.priorities}</p>
+                      <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Priorities</p>
+                      <p className="text-sm text-foreground/80 line-clamp-2">{pulse.priorities}</p>
                     </div>
                   )}
                 </div>
 
                 {pulse.blockers && pulse.blockers.trim() && (
                   <div className="mt-2">
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-0.5">Blockers</p>
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Blockers</p>
                     <p className="text-sm text-red-700 bg-red-50 rounded px-2 py-1 line-clamp-2">{pulse.blockers}</p>
                   </div>
                 )}
 
                 {pulse.notes && (
                   <div className="mt-2">
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-0.5">Notes</p>
-                    <p className="text-sm text-gray-600 line-clamp-2">{pulse.notes}</p>
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-muted mb-0.5">Notes</p>
+                    <p className="text-sm text-muted line-clamp-2">{pulse.notes}</p>
                   </div>
                 )}
               </div>
@@ -461,12 +461,12 @@ export function WeeklyPulseTab() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+        <div className="inline-flex rounded-lg border border-border bg-surface/50 p-0.5">
           <button
             onClick={() => setView("my")}
             className={cn(
               "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
-              view === "my" ? "bg-brand text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+              view === "my" ? "bg-brand text-white shadow-sm" : "text-muted hover:text-foreground"
             )}
           >
             My Pulse
@@ -476,7 +476,7 @@ export function WeeklyPulseTab() {
               onClick={() => setView("team")}
               className={cn(
                 "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
-                view === "team" ? "bg-brand text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+                view === "team" ? "bg-brand text-white shadow-sm" : "text-muted hover:text-foreground"
               )}
             >
               Team Pulse
@@ -486,7 +486,7 @@ export function WeeklyPulseTab() {
         <WeekSelector />
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
+      <div className="rounded-xl border border-border bg-card p-6">
         {view === "my" ? <MyPulseView /> : <TeamPulseView />}
       </div>
     </div>

@@ -35,8 +35,8 @@ function RankBadge({ rank }: { rank: number }) {
   }
   if (rank === 2) {
     return (
-      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200/60">
-        <Medal className="w-4 h-4 text-gray-500" />
+      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-border/60">
+        <Medal className="w-4 h-4 text-muted" />
       </div>
     );
   }
@@ -49,7 +49,7 @@ function RankBadge({ rank }: { rank: number }) {
   }
   return (
     <div className="flex items-center justify-center w-8 h-8">
-      <span className="text-sm font-semibold text-gray-400">{rank}</span>
+      <span className="text-sm font-semibold text-muted">{rank}</span>
     </div>
   );
 }
@@ -65,14 +65,14 @@ function PillarMiniBar({
 }) {
   return (
     <div className="flex items-center gap-1.5" title={`${label}: ${value}`}>
-      <span className="text-[10px] text-gray-400 w-7 text-right">{label}</span>
-      <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
+      <span className="text-[10px] text-muted w-7 text-right">{label}</span>
+      <div className="w-16 h-2 bg-surface rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-300"
           style={{ width: `${value}%`, backgroundColor: color }}
         />
       </div>
-      <span className="text-[10px] font-medium text-gray-500 w-5">{value}</span>
+      <span className="text-[10px] font-medium text-muted w-5">{value}</span>
     </div>
   );
 }
@@ -96,8 +96,8 @@ function TrendArrow({ trend }: { trend: string }) {
   }
   return (
     <div className="flex items-center gap-1">
-      <Minus className="w-4 h-4 text-gray-400" />
-      <span className="text-xs text-gray-400 font-medium">Stable</span>
+      <Minus className="w-4 h-4 text-muted" />
+      <span className="text-xs text-muted font-medium">Stable</span>
     </div>
   );
 }
@@ -129,26 +129,26 @@ export function CentreLeaderboard({ centres, stateFilter }: CentreLeaderboardPro
   }, [centres, sortBy, stateFilter]);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
       {/* Header */}
-      <div className="px-4 md:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="px-4 md:px-6 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h3 className="text-base md:text-lg font-semibold text-gray-900">
+          <h3 className="text-base md:text-lg font-semibold text-foreground">
             Centre Leaderboard
           </h3>
           {stateFilter && (
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Filtered: {stateFilter} ({ranked.length} centres)
             </p>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-500">Rank by:</span>
+          <span className="text-sm text-muted">Rank by:</span>
           <div className="relative">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="appearance-none rounded-lg border border-gray-200 bg-white px-3 py-1.5 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/20"
+              className="appearance-none rounded-lg border border-border bg-card px-3 py-1.5 pr-8 text-sm text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand/20"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -156,18 +156,18 @@ export function CentreLeaderboard({ centres, stateFilter }: CentreLeaderboardPro
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
           </div>
         </div>
       </div>
 
       {/* Leaderboard List */}
       {ranked.length === 0 ? (
-        <div className="p-12 text-center text-gray-400">
+        <div className="p-12 text-center text-muted">
           No centres found{stateFilter ? ` in ${stateFilter}` : ""}.
         </div>
       ) : (
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-border/50">
           {ranked.map((centre, index) => {
             const rank = index + 1;
             const scoreColor =
@@ -181,8 +181,8 @@ export function CentreLeaderboard({ centres, stateFilter }: CentreLeaderboardPro
               <div
                 key={centre.id}
                 className={cn(
-                  "flex items-center gap-3 md:gap-4 px-4 md:px-6 py-3 hover:bg-gray-50/50 transition-colors",
-                  rank <= 3 && "bg-gray-50/30"
+                  "flex items-center gap-3 md:gap-4 px-4 md:px-6 py-3 hover:bg-surface/50 transition-colors",
+                  rank <= 3 && "bg-surface/30"
                 )}
               >
                 {/* Rank */}
@@ -191,16 +191,16 @@ export function CentreLeaderboard({ centres, stateFilter }: CentreLeaderboardPro
                 {/* Centre Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-gray-900 text-sm truncate">
+                    <p className="font-semibold text-foreground text-sm truncate">
                       {centre.name}
                     </p>
-                    <span className="text-xs text-gray-400 font-mono">
+                    <span className="text-xs text-muted font-mono">
                       {centre.code}
                     </span>
                   </div>
                   {/* State Badge */}
                   {centre.state && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 mt-0.5">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface text-muted mt-0.5">
                       {centre.state}
                     </span>
                   )}

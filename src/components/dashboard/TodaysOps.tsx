@@ -84,7 +84,7 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
   }) => (
     <button
       onClick={() => handleSort(field)}
-      className={`flex items-center gap-0.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider hover:text-gray-600 transition-colors ${className}`}
+      className={`flex items-center gap-0.5 text-[10px] font-semibold text-muted uppercase tracking-wider hover:text-foreground transition-colors ${className}`}
     >
       {label}
       {sortKey === field &&
@@ -101,12 +101,12 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
   const amberCount = centres.filter((c) => c.opsStatus === "amber").length;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-brand" />
-          <h3 className="text-sm font-semibold text-gray-900">
+          <h3 className="text-sm font-semibold text-foreground">
             Today&apos;s Operations
           </h3>
         </div>
@@ -136,7 +136,7 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50/50">
+            <tr className="bg-surface/30">
               <th className="text-left px-4 py-2">
                 <SortHeader label="Centre" field="name" />
               </th>
@@ -178,47 +178,47 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
               <th className="w-8" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border/50">
             {sorted.map((c) => (
               <tr
                 key={c.id}
-                className={`hover:bg-gray-50 transition-colors ${statusBg[c.opsStatus]}`}
+                className={`hover:bg-surface transition-colors ${statusBg[c.opsStatus]}`}
               >
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
                     {statusIcon[c.opsStatus]}
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {c.name}
                       </p>
-                      <p className="text-[10px] text-gray-400">{c.code}</p>
+                      <p className="text-[10px] text-muted">{c.code}</p>
                     </div>
                   </div>
                 </td>
                 <td className="text-center px-2 py-2.5">
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium text-foreground">
                     {c.bscAttended}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-muted">
                     /{c.bscEnrolled}
                   </span>
                 </td>
                 <td className="text-center px-2 py-2.5">
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium text-foreground">
                     {c.ascAttended}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-muted">
                     /{c.ascEnrolled}
                   </span>
                 </td>
                 <td className="text-center px-2 py-2.5">
-                  <span className="text-sm font-semibold text-gray-900">
+                  <span className="text-sm font-semibold text-foreground">
                     {c.educatorsRostered}
                   </span>
                 </td>
                 <td className="text-center px-2 py-2.5">
                   {c.educatorsRostered === 0 && c.bscAttended + c.ascAttended === 0 ? (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-muted bg-surface px-1.5 py-0.5 rounded-full">
                       N/A
                     </span>
                   ) : c.ratioOk ? (
@@ -239,13 +239,13 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
                       {c.incidentsToday}
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-300">—</span>
+                    <span className="text-xs text-muted/50">—</span>
                   )}
                 </td>
                 <td className="px-2 py-2.5">
                   <Link
                     href={`/services/${c.id}`}
-                    className="text-gray-400 hover:text-brand transition-colors"
+                    className="text-muted hover:text-brand transition-colors"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </Link>
@@ -257,8 +257,8 @@ export function TodaysOps({ centres }: { centres: TodaysOpsItem[] }) {
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-2 border-t border-gray-100 bg-gray-50/50">
-        <p className="text-[10px] text-gray-400">
+      <div className="px-4 py-2 border-t border-border/50 bg-surface/30">
+        <p className="text-[10px] text-muted">
           {centres.length} centre{centres.length !== 1 ? "s" : ""} &middot;
           Totals: BSC {centres.reduce((s, c) => s + c.bscAttended, 0)}/
           {centres.reduce((s, c) => s + c.bscEnrolled, 0)} &middot; ASC{" "}

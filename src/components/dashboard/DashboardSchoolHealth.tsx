@@ -43,12 +43,12 @@ export function DashboardSchoolHealth() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center gap-2 mb-4">
           <Handshake className="w-4 h-4 text-brand" />
-          <h3 className="text-sm font-semibold text-gray-700">School Relationship Health</h3>
+          <h3 className="text-sm font-semibold text-foreground/80">School Relationship Health</h3>
         </div>
-        <div className="flex items-center justify-center py-6 text-gray-400">
+        <div className="flex items-center justify-center py-6 text-muted">
           <Loader2 className="w-4 h-4 animate-spin mr-2" />
           <span className="text-sm">Loading...</span>
         </div>
@@ -72,12 +72,12 @@ export function DashboardSchoolHealth() {
         : "text-red-700 bg-red-50";
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
+    <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Handshake className="w-4 h-4 text-brand" />
-          <h3 className="text-sm font-semibold text-gray-700">School Relationship Health</h3>
+          <h3 className="text-sm font-semibold text-foreground/80">School Relationship Health</h3>
         </div>
         <Link
           href="/crm"
@@ -89,7 +89,7 @@ export function DashboardSchoolHealth() {
 
       {/* Summary strip */}
       <div className="flex flex-wrap gap-3 mb-4">
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 text-xs font-medium text-gray-600">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface/50 text-xs font-medium text-muted">
           Avg: <span className={cn("font-bold", avgScore >= 70 ? "text-emerald-600" : avgScore >= 40 ? "text-amber-600" : "text-red-600")}>{avgScore}</span>
         </div>
         {atRisk > 0 && (
@@ -97,7 +97,7 @@ export function DashboardSchoolHealth() {
             {atRisk} at risk
           </div>
         )}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 text-xs font-medium text-gray-600">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface/50 text-xs font-medium text-muted">
           {schools.length} schools
         </div>
       </div>
@@ -116,35 +116,35 @@ export function DashboardSchoolHealth() {
             <Link
               key={s.serviceId}
               href={`/services/${s.serviceId}`}
-              className="block border border-gray-100 rounded-lg p-3 hover:border-gray-300 hover:shadow-sm transition-all"
+              className="block border border-border/50 rounded-lg p-3 hover:border-border hover:shadow-sm transition-all"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{s.serviceName}</p>
-                  <p className="text-[10px] text-gray-400">{s.serviceCode}</p>
+                  <p className="text-sm font-semibold text-foreground truncate">{s.serviceName}</p>
+                  <p className="text-[10px] text-muted">{s.serviceCode}</p>
                 </div>
                 <span className={cn("px-2 py-0.5 rounded-full text-xs font-bold shrink-0 ml-2", scoreColor(s.healthScore))}>
                   {s.healthScore}
                 </span>
               </div>
-              <div className="space-y-1 text-[11px] text-gray-500">
+              <div className="space-y-1 text-[11px] text-muted">
                 <div className="flex justify-between">
                   <span>Last visit</span>
-                  <span className={cn("font-medium", daysSinceVisit && daysSinceVisit > 90 ? "text-red-600" : "text-gray-700")}>
+                  <span className={cn("font-medium", daysSinceVisit && daysSinceVisit > 90 ? "text-red-600" : "text-foreground/80")}>
                     {daysSinceVisit !== null ? `${daysSinceVisit}d ago` : "No visit"}
                   </span>
                 </div>
                 {contractDays !== null && (
                   <div className="flex justify-between">
                     <span>Contract</span>
-                    <span className={cn("font-medium", contractDays <= 90 ? "text-red-600" : contractDays <= 180 ? "text-amber-600" : "text-gray-700")}>
+                    <span className={cn("font-medium", contractDays <= 90 ? "text-red-600" : contractDays <= 180 ? "text-amber-600" : "text-foreground/80")}>
                       {contractDays <= 0 ? "Expired" : `${contractDays}d left`}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span><Tip abbr="BAK" /></span>
-                  <span className={cn("font-medium", s.buildAlphaKidsActive ? "text-emerald-600" : "text-gray-400")}>
+                  <span className={cn("font-medium", s.buildAlphaKidsActive ? "text-emerald-600" : "text-muted")}>
                     {s.buildAlphaKidsActive ? "Active" : "No"}
                   </span>
                 </div>

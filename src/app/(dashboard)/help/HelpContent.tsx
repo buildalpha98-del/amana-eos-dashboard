@@ -95,10 +95,10 @@ export function HelpContent() {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground">
           Help Centre
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-muted mt-1">
           Find answers to common questions
         </p>
       </div>
@@ -106,14 +106,14 @@ export function HelpContent() {
       {/* Search Bar */}
       <div className="mb-6">
         <div className="relative max-w-lg">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             type="text"
             placeholder="Search articles..."
             aria-label="Search help articles"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent bg-white"
+            className="w-full pl-9 pr-3 py-2.5 text-sm border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent bg-card"
           />
         </div>
       </div>
@@ -134,7 +134,7 @@ export function HelpContent() {
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap border",
                   activeCategory === cat.key
                     ? "bg-brand text-white border-brand"
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50",
+                    : "bg-card text-muted border-border hover:bg-surface",
                 )}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -151,9 +151,9 @@ export function HelpContent() {
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse"
+              className="bg-card rounded-xl border border-border p-4 animate-pulse"
             >
-              <div className="h-4 bg-gray-200 rounded w-2/3" />
+              <div className="h-4 bg-border rounded w-2/3" />
             </div>
           ))}
         </div>
@@ -165,7 +165,7 @@ export function HelpContent() {
           {Object.entries(groupedArticles).map(([catKey, catArticles]) => (
             <div key={catKey}>
               {!activeCategory && (
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                <h3 className="text-sm font-semibold text-muted uppercase tracking-wider mb-3">
                   {categoryLabel(catKey)}
                 </h3>
               )}
@@ -173,18 +173,18 @@ export function HelpContent() {
                 {catArticles.map((article) => (
                   <div
                     key={article.id}
-                    className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-shadow hover:shadow-sm"
+                    className="bg-card rounded-xl border border-border overflow-hidden transition-shadow hover:shadow-sm"
                   >
                     <button
                       onClick={() => toggleExpand(article.id)}
                       className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left"
                     >
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-foreground">
                         {article.title}
                       </span>
                       <ChevronDown
                         className={cn(
-                          "w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200",
+                          "w-4 h-4 text-muted flex-shrink-0 transition-transform duration-200",
                           expandedId === article.id && "rotate-180",
                         )}
                       />
@@ -198,9 +198,9 @@ export function HelpContent() {
                       )}
                     >
                       <div className="px-4 pb-4 pt-0">
-                        <div className="border-t border-gray-100 pt-3">
+                        <div className="border-t border-border/50 pt-3">
                           {article.videoUrl && (
-                            <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 mb-4">
+                            <div className="aspect-video rounded-lg overflow-hidden bg-surface mb-4">
                               <iframe
                                 src={article.videoUrl}
                                 className="w-full h-full"
@@ -209,7 +209,7 @@ export function HelpContent() {
                               />
                             </div>
                           )}
-                          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                          <p className="text-sm text-muted leading-relaxed whitespace-pre-line">
                             {article.body}
                           </p>
                         </div>
@@ -226,11 +226,11 @@ export function HelpContent() {
       {/* Empty State */}
       {!isLoading && articles.length === 0 && (
         <div className="text-center py-16">
-          <HelpCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-sm font-semibold text-gray-900 mb-1">
+          <HelpCircle className="w-12 h-12 text-muted/50 mx-auto mb-4" />
+          <h3 className="text-sm font-semibold text-foreground mb-1">
             {searchTerm ? "No articles found" : "No articles yet"}
           </h3>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-muted mb-4">
             {searchTerm
               ? "Try a different search term or browse by category."
               : "The knowledge base hasn't been set up yet."}
@@ -250,12 +250,12 @@ export function HelpContent() {
 
       {/* "Can't find what you need?" card */}
       {!isLoading && articles.length > 0 && (
-        <div className="mt-8 bg-gray-50 rounded-xl border border-gray-200 p-5 text-center">
+        <div className="mt-8 bg-surface/50 rounded-xl border border-border p-5 text-center">
           <MessageSquare className="w-8 h-8 text-brand mx-auto mb-2" />
-          <h3 className="text-sm font-semibold text-gray-900 mb-1">
+          <h3 className="text-sm font-semibold text-foreground mb-1">
             Can&apos;t find what you need?
           </h3>
-          <p className="text-sm text-gray-500 mb-3">
+          <p className="text-sm text-muted mb-3">
             Use the feedback button in the bottom-right corner to ask a question
             or report an issue.
           </p>

@@ -41,7 +41,7 @@ function FeedSection({
         >
           <Icon className="w-3 h-3" />
         </div>
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <span className="text-xs font-semibold text-muted uppercase tracking-wider">
           {title}
         </span>
         <span
@@ -68,7 +68,7 @@ function FeedItem({
   return (
     <Link
       href={href}
-      className="block rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors border-l-2 ml-1"
+      className="block rounded-lg px-3 py-2 hover:bg-surface transition-colors border-l-2 ml-1"
       style={{ borderColor }}
     >
       {children}
@@ -89,9 +89,9 @@ export function ActionItemsFeed({
     overdueRocks.length;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col">
+    <div className="bg-card rounded-xl border border-border p-6 flex flex-col">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Action Items</h3>
+        <h3 className="text-lg font-semibold text-foreground">Action Items</h3>
         {totalItems > 0 && (
           <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full">
             {totalItems} items
@@ -104,8 +104,8 @@ export function ActionItemsFeed({
           <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
             <CheckSquare className="w-6 h-6 text-emerald-500" />
           </div>
-          <p className="text-sm font-medium text-gray-700">All clear!</p>
-          <p className="text-xs text-gray-400 mt-1">No action items need attention</p>
+          <p className="text-sm font-medium text-foreground/80">All clear!</p>
+          <p className="text-xs text-muted mt-1">No action items need attention</p>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto max-h-[400px] space-y-4 pr-1">
@@ -119,8 +119,8 @@ export function ActionItemsFeed({
           >
             {overdueTodos.map((todo) => (
               <FeedItem key={todo.id} href="/todos" borderColor="#F59E0B">
-                <p className="text-sm text-gray-900 truncate">{todo.title}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">
+                <p className="text-sm text-foreground truncate">{todo.title}</p>
+                <p className="text-[11px] text-muted mt-0.5">
                   {todo.assigneeName} &middot; Due{" "}
                   {new Date(todo.dueDate).toLocaleDateString("en-AU", {
                     day: "numeric",
@@ -141,7 +141,7 @@ export function ActionItemsFeed({
           >
             {unassignedTickets.map((ticket) => (
               <FeedItem key={ticket.id} href="/tickets" borderColor="#3B82F6">
-                <p className="text-sm text-gray-900 truncate">
+                <p className="text-sm text-foreground truncate">
                   #{ticket.ticketNumber} — {ticket.subject}
                 </p>
               </FeedItem>
@@ -159,7 +159,7 @@ export function ActionItemsFeed({
             {idsIssues.map((issue) => (
               <FeedItem key={issue.id} href="/issues" borderColor="#EF4444">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm text-gray-900 truncate flex-1">
+                  <p className="text-sm text-foreground truncate flex-1">
                     {issue.title}
                   </p>
                   <span
@@ -186,8 +186,8 @@ export function ActionItemsFeed({
           >
             {overdueRocks.map((rock) => (
               <FeedItem key={rock.id} href="/rocks" borderColor="#F59E0B">
-                <p className="text-sm text-gray-900 truncate">{rock.title}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">
+                <p className="text-sm text-foreground truncate">{rock.title}</p>
+                <p className="text-[11px] text-muted mt-0.5">
                   {rock.ownerName} &middot; {rock.quarter}
                 </p>
               </FeedItem>

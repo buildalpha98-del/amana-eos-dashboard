@@ -52,7 +52,7 @@ export function StatCard({
     return (
       <div
         className={cn(
-          "bg-white rounded-xl border border-border shadow-[var(--shadow-warm)]",
+          "bg-card rounded-xl border border-border shadow-[var(--shadow-warm)]",
           "hover:shadow-[var(--shadow-warm-md)] hover:-translate-y-0.5 transition-all duration-300",
           "overflow-hidden relative",
           sizeClasses[size],
@@ -78,7 +78,7 @@ export function StatCard({
           {loading ? (
             <div className="h-7 w-16 bg-surface rounded animate-pulse mt-0.5" />
           ) : (
-            <p className={cn(valueClasses[size], valueColor || "text-gray-900", "leading-tight")}>{value}</p>
+            <p className={cn(valueClasses[size], valueColor || "text-foreground", "leading-tight")}>{value}</p>
           )}
         </div>
       </div>
@@ -89,7 +89,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "bg-white rounded-xl border border-border shadow-[var(--shadow-warm)]",
+        "bg-card rounded-xl border border-border shadow-[var(--shadow-warm)]",
         "hover:shadow-[var(--shadow-warm-md)] hover:-translate-y-0.5 transition-all duration-300",
         "overflow-hidden relative",
         sizeClasses[size]
@@ -104,7 +104,7 @@ export function StatCard({
           {loading ? (
             <div className="h-8 w-24 bg-surface rounded animate-pulse mt-1" />
           ) : (
-            <p className={cn(valueClasses[size], valueColor || "text-gray-900", "mt-1 truncate")}>{value}</p>
+            <p className={cn(valueClasses[size], valueColor || "text-foreground", "mt-1 truncate")}>{value}</p>
           )}
           {subtitle && (
             <div className="flex items-center gap-1 mt-1">
@@ -113,7 +113,7 @@ export function StatCard({
               <p
                 className={cn(
                   "text-sm",
-                  trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-600" : "text-gray-400"
+                  trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-600" : "text-muted"
                 )}
               >
                 {subtitle}

@@ -109,30 +109,30 @@ export function OccupancyHeatmap({ serviceId }: { serviceId?: string }) {
   return (
     <div className="space-y-6">
       {/* Network Counter */}
-      <div className="bg-white rounded-xl border p-6">
+      <div className="bg-card rounded-xl border p-6">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               Network Weekly Attendances
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted">
               All centres combined — target 2,000 per week
             </p>
           </div>
           <div className="text-right">
-            <span className="text-3xl font-bold text-gray-900">
+            <span className="text-3xl font-bold text-foreground">
               {data.network.totalCurrentWeekly.toLocaleString()}
             </span>
-            <span className="text-lg text-gray-400"> / 2,000</span>
+            <span className="text-lg text-muted"> / 2,000</span>
           </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-4">
+        <div className="w-full bg-border rounded-full h-4">
           <div
             className={`${netColour} h-4 rounded-full transition-all`}
             style={{ width: `${Math.min(netPct, 100)}%` }}
           />
         </div>
-        <p className="text-xs text-gray-500 mt-1 text-right">{netPct}%</p>
+        <p className="text-xs text-muted mt-1 text-right">{netPct}%</p>
       </div>
 
       {/* Controls */}
@@ -140,13 +140,13 @@ export function OccupancyHeatmap({ serviceId }: { serviceId?: string }) {
         <select
           value={stateFilter}
           onChange={(e) => setStateFilter(e.target.value)}
-          className="px-3 py-1.5 border border-gray-300 rounded-md text-sm"
+          className="px-3 py-1.5 border border-border rounded-md text-sm"
         >
           <option value="">All States</option>
           <option value="NSW">NSW</option>
           <option value="VIC">VIC</option>
         </select>
-        <div className="flex items-center gap-1 text-sm text-gray-600">
+        <div className="flex items-center gap-1 text-sm text-muted">
           <ArrowUpDown className="h-3.5 w-3.5" />
           Sort:
         </div>
@@ -157,7 +157,7 @@ export function OccupancyHeatmap({ serviceId }: { serviceId?: string }) {
             className={`px-3 py-1 text-xs rounded-full ${
               sortBy === key
                 ? "bg-brand/10 text-brand"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                : "bg-surface text-muted hover:bg-border"
             }`}
           >
             {key === "gap" ? "Biggest Gap" : key === "penetration" ? "Lowest Penetration" : "State"}
@@ -180,21 +180,21 @@ function CentreCard({ centre }: { centre: CentreOccupancy }) {
 
   return (
     <div
-      className={`bg-white rounded-lg border-2 ${statusStyle.border} p-4 space-y-3`}
+      className={`bg-card rounded-lg border-2 ${statusStyle.border} p-4 space-y-3`}
     >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="font-semibold text-gray-900 text-sm">
+          <h4 className="font-semibold text-foreground text-sm">
             {centre.serviceName}
           </h4>
           <div className="flex items-center gap-2 mt-0.5">
             {centre.state && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface text-muted font-medium">
                 {centre.state}
               </span>
             )}
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-muted">
               Pop: {centre.schoolPopulation.toLocaleString()}
             </span>
           </div>
@@ -213,14 +213,14 @@ function CentreCard({ centre }: { centre: CentreOccupancy }) {
       {/* ASC Row */}
       <div className="space-y-1">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-600 font-medium">ASC</span>
-          <span className="text-gray-500">
+          <span className="text-muted font-medium">ASC</span>
+          <span className="text-muted">
             {centre.currentASC} / {centre.ascTarget}
-            <span className="text-gray-400 ml-1">({centre.ascPenetration}%)</span>
+            <span className="text-muted ml-1">({centre.ascPenetration}%)</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex-1 bg-gray-200 rounded-full h-2">
+          <div className="flex-1 bg-border rounded-full h-2">
             <div
               className={`h-2 rounded-full ${STATUS_COLORS[centre.ascStatus].dot}`}
               style={{
@@ -244,14 +244,14 @@ function CentreCard({ centre }: { centre: CentreOccupancy }) {
       {/* BSC Row */}
       <div className="space-y-1">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-600 font-medium">BSC</span>
-          <span className="text-gray-500">
+          <span className="text-muted font-medium">BSC</span>
+          <span className="text-muted">
             {centre.currentBSC} / {centre.bscTarget}
-            <span className="text-gray-400 ml-1">({centre.bscPenetration}%)</span>
+            <span className="text-muted ml-1">({centre.bscPenetration}%)</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex-1 bg-gray-200 rounded-full h-2">
+          <div className="flex-1 bg-border rounded-full h-2">
             <div
               className={`h-2 rounded-full ${STATUS_COLORS[centre.bscStatus].dot}`}
               style={{
@@ -280,7 +280,7 @@ function CentreCard({ centre }: { centre: CentreOccupancy }) {
           </span>
         )}
         {centre.parentDriver && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface text-muted">
             {DRIVER_LABELS[centre.parentDriver] || centre.parentDriver}
           </span>
         )}
@@ -307,7 +307,7 @@ function TrendBadge({ value }: { value: number }) {
     );
   }
   return (
-    <span className="flex items-center gap-0.5 text-[10px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded-full">
+    <span className="flex items-center gap-0.5 text-[10px] text-muted bg-surface/50 px-1.5 py-0.5 rounded-full">
       <Minus className="h-3 w-3" />
       0%
     </span>

@@ -78,11 +78,11 @@ const leaveTypeConfig: Record<string, { color: string; bgColor: string; borderCo
   sick: { color: "text-amber-700", bgColor: "bg-amber-50", borderColor: "border-amber-200" },
   personal: { color: "text-purple-700", bgColor: "bg-purple-50", borderColor: "border-purple-200" },
   long_service: { color: "text-teal-700", bgColor: "bg-teal-50", borderColor: "border-teal-200" },
-  unpaid: { color: "text-gray-700", bgColor: "bg-gray-50", borderColor: "border-gray-200" },
+  unpaid: { color: "text-foreground/80", bgColor: "bg-surface/50", borderColor: "border-border" },
 };
 
 function getLeaveConfig(type: string) {
-  return leaveTypeConfig[type] || { color: "text-gray-700", bgColor: "bg-gray-50", borderColor: "border-gray-200" };
+  return leaveTypeConfig[type] || { color: "text-foreground/80", bgColor: "bg-surface/50", borderColor: "border-border" };
 }
 
 function formatLeaveType(type: string): string {
@@ -121,7 +121,7 @@ function formatEmploymentType(type: string | null | undefined): string {
 
 function SkeletonBlock({ className }: { className?: string }) {
   return (
-    <div className={cn("animate-pulse rounded-lg bg-gray-200", className)} />
+    <div className={cn("animate-pulse rounded-lg bg-border", className)} />
   );
 }
 
@@ -135,7 +135,7 @@ function LoadingSkeleton() {
       </div>
 
       {/* Profile card skeleton */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-start gap-4">
           <SkeletonBlock className="w-16 h-16 rounded-full" />
           <div className="flex-1 space-y-2">
@@ -149,7 +149,7 @@ function LoadingSkeleton() {
       {/* Leave balances skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4">
+          <div key={i} className="bg-card rounded-xl border border-border p-4">
             <SkeletonBlock className="h-4 w-24 mb-2" />
             <SkeletonBlock className="h-8 w-16 mb-1" />
             <SkeletonBlock className="h-3 w-32" />
@@ -158,7 +158,7 @@ function LoadingSkeleton() {
       </div>
 
       {/* Contract skeleton */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <SkeletonBlock className="h-5 w-36 mb-4" />
         <div className="grid grid-cols-2 gap-4">
           <SkeletonBlock className="h-4 w-28" />
@@ -169,7 +169,7 @@ function LoadingSkeleton() {
       </div>
 
       {/* Compliance skeleton */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <SkeletonBlock className="h-5 w-48 mb-4" />
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -198,17 +198,17 @@ function PolicyAckModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-card rounded-2xl shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between p-5 border-b border-border/50">
+          <h3 className="text-lg font-semibold text-foreground">
             Acknowledge Policy
           </h3>
           <button
             onClick={onCancel}
             disabled={isPending}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface transition-colors"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-muted" />
           </button>
         </div>
         <div className="p-5 space-y-4">
@@ -218,22 +218,22 @@ function PolicyAckModal({
               <p className="text-sm font-semibold text-blue-900">{policyTitle}</p>
             </div>
           </div>
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm text-muted leading-relaxed">
             By clicking confirm below, you acknowledge that you have read and
             understood this policy and agree to abide by its terms.
           </p>
           <label className="flex items-start gap-3 cursor-pointer">
             <input type="checkbox" className="mt-0.5 w-4 h-4 accent-brand" id="policy-ack-checkbox" />
-            <span className="text-sm text-gray-700 select-none">
+            <span className="text-sm text-foreground/80 select-none">
               I have read and understood this policy
             </span>
           </label>
         </div>
-        <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100">
+        <div className="flex items-center justify-end gap-3 p-5 border-t border-border/50">
           <button
             onClick={onCancel}
             disabled={isPending}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface rounded-lg transition-colors"
           >
             Cancel
           </button>
@@ -331,9 +331,9 @@ function PulseSurveySection() {
   const allRated = PULSE_QUESTIONS.every((q) => ratings[q.key]);
 
   return (
-    <div className="bg-white rounded-xl border border-blue-200 p-6">
+    <div className="bg-card rounded-xl border border-blue-200 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-blue-600" />
           Pulse Survey — {monthName}
         </h3>
@@ -342,14 +342,14 @@ function PulseSurveySection() {
         </span>
       </div>
 
-      <p className="text-sm text-gray-500 mb-5">
+      <p className="text-sm text-muted mb-5">
         Rate each statement from 1 (strongly disagree) to 5 (strongly agree).
       </p>
 
       <div className="space-y-4">
         {PULSE_QUESTIONS.map((q) => (
           <div key={q.key}>
-            <p className="text-sm font-medium text-gray-700 mb-2">{q.label}</p>
+            <p className="text-sm font-medium text-foreground/80 mb-2">{q.label}</p>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((val) => (
                 <button
@@ -360,7 +360,7 @@ function PulseSurveySection() {
                     "w-10 h-10 rounded-lg text-sm font-semibold transition-all flex items-center justify-center",
                     ratings[q.key] === val
                       ? "bg-blue-600 text-white shadow-sm"
-                      : "bg-gray-100 text-gray-500 hover:bg-gray-200",
+                      : "bg-surface text-muted hover:bg-border",
                   )}
                 >
                   {val}
@@ -385,15 +385,15 @@ function PulseSurveySection() {
         ))}
 
         <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">
-            Any additional feedback? <span className="text-gray-400 font-normal">(optional)</span>
+          <p className="text-sm font-medium text-foreground/80 mb-2">
+            Any additional feedback? <span className="text-muted font-normal">(optional)</span>
           </p>
           <textarea
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             placeholder="Share any thoughts, suggestions, or concerns..."
             rows={3}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 resize-none"
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 resize-none"
           />
         </div>
 
@@ -497,10 +497,10 @@ export default function MyPortalPage() {
         <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mb-4">
           <AlertTriangle className="w-8 h-8 text-red-500" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+        <h3 className="text-lg font-semibold text-foreground mb-1">
           Unable to load your portal
         </h3>
-        <p className="text-sm text-gray-500 max-w-sm">
+        <p className="text-sm text-muted max-w-sm">
           Something went wrong while loading your data. Please try refreshing the page.
         </p>
       </div>
@@ -516,7 +516,7 @@ export default function MyPortalPage() {
       {/* 1. WELCOME HEADER                                            */}
       {/* ============================================================ */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
           Welcome back, {firstName}
         </h1>
         <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -525,13 +525,13 @@ export default function MyPortalPage() {
             {profile.role}
           </span>
           {profile.service && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-surface text-muted">
               <Building2 className="w-3.5 h-3.5" />
               {profile.service.name}
             </span>
           )}
           {profile.startDate && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-surface text-muted">
               <Calendar className="w-3.5 h-3.5" />
               Started {formatDate(profile.startDate)}
             </span>
@@ -578,7 +578,7 @@ export default function MyPortalPage() {
       {/* ============================================================ */}
       {/* 3. PROFILE SUMMARY CARD                                      */}
       {/* ============================================================ */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex flex-col sm:flex-row gap-5">
           {/* Left: Avatar + core info */}
           <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -586,25 +586,25 @@ export default function MyPortalPage() {
               {getInitials(profile.name)}
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold text-gray-900 truncate">
+              <h2 className="text-lg font-semibold text-foreground truncate">
                 {profile.name}
               </h2>
               <div className="space-y-1 mt-1">
-                <p className="flex items-center gap-2 text-sm text-gray-500">
+                <p className="flex items-center gap-2 text-sm text-muted">
                   <Mail className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="truncate">{profile.email}</span>
                 </p>
                 {profile.phone && (
-                  <p className="flex items-center gap-2 text-sm text-gray-500">
+                  <p className="flex items-center gap-2 text-sm text-muted">
                     <Phone className="w-3.5 h-3.5 flex-shrink-0" />
                     {profile.phone}
                   </p>
                 )}
-                <p className="flex items-center gap-2 text-sm text-gray-500 capitalize">
+                <p className="flex items-center gap-2 text-sm text-muted capitalize">
                   <Briefcase className="w-3.5 h-3.5 flex-shrink-0" />
                   {profile.role}
                   {profile.service && (
-                    <span className="text-gray-400">
+                    <span className="text-muted">
                       &middot; {profile.service.name}
                     </span>
                   )}
@@ -614,27 +614,27 @@ export default function MyPortalPage() {
           </div>
 
           {/* Right: Key details */}
-          <div className="sm:border-l sm:border-gray-100 sm:pl-5 flex-shrink-0 space-y-2">
+          <div className="sm:border-l sm:border-border/50 sm:pl-5 flex-shrink-0 space-y-2">
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-400 w-28">Employment</span>
-              <span className="font-medium text-gray-700">
+              <span className="text-muted w-28">Employment</span>
+              <span className="font-medium text-foreground/80">
                 {formatEmploymentType(profile.employmentType)}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-400 w-28">Start Date</span>
-              <span className="font-medium text-gray-700">
+              <span className="text-muted w-28">Start Date</span>
+              <span className="font-medium text-foreground/80">
                 {formatDate(profile.startDate)}
               </span>
             </div>
             {profile.visaStatus && (
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-400 w-28">Visa Status</span>
-                <span className="font-medium text-gray-700 capitalize">
+                <span className="text-muted w-28">Visa Status</span>
+                <span className="font-medium text-foreground/80 capitalize">
                   {profile.visaStatus}
                 </span>
                 {profile.visaExpiry && (
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-muted">
                     (exp. {formatDate(profile.visaExpiry)})
                   </span>
                 )}
@@ -657,7 +657,7 @@ export default function MyPortalPage() {
       {leaveBalances.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Plane className="w-5 h-5 text-brand" />
               Leave Balances
             </h3>
@@ -676,7 +676,7 @@ export default function MyPortalPage() {
                 <div
                   key={lb.leaveType}
                   className={cn(
-                    "bg-white rounded-xl border p-4",
+                    "bg-card rounded-xl border p-4",
                     config.borderColor
                   )}
                 >
@@ -685,9 +685,9 @@ export default function MyPortalPage() {
                   </p>
                   <p className={cn("text-3xl font-bold", config.color)}>
                     {lb.balance}
-                    <span className="text-sm font-normal ml-1 text-gray-400">days</span>
+                    <span className="text-sm font-normal ml-1 text-muted">days</span>
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-muted mt-1">
                     accrued: {lb.accrued} &middot; taken: {lb.taken}
                     {lb.pending > 0 && (
                       <span className="text-amber-500"> &middot; pending: {lb.pending}</span>
@@ -704,9 +704,9 @@ export default function MyPortalPage() {
       {/* 5. ACTIVE CONTRACT                                           */}
       {/* ============================================================ */}
       {activeContract && (
-        <div id="section-contract" className="bg-white rounded-xl border border-gray-200 p-6">
+        <div id="section-contract" className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <FileText className="w-5 h-5 text-brand" />
               Active Contract
             </h3>
@@ -725,8 +725,8 @@ export default function MyPortalPage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Contract Type</p>
-              <p className="text-sm font-semibold text-gray-800">
+              <p className="text-xs text-muted mb-0.5">Contract Type</p>
+              <p className="text-sm font-semibold text-foreground">
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold rounded-full bg-brand/10 text-brand">
                   {formatContractType(activeContract.contractType)}
                 </span>
@@ -734,29 +734,29 @@ export default function MyPortalPage() {
             </div>
             {activeContract.awardLevel && (
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">Award Level</p>
-                <p className="text-sm font-medium text-gray-700">{activeContract.awardLevel}</p>
+                <p className="text-xs text-muted mb-0.5">Award Level</p>
+                <p className="text-sm font-medium text-foreground/80">{activeContract.awardLevel}</p>
               </div>
             )}
             <div>
-              <p className="text-xs text-gray-400 mb-0.5">Pay Rate</p>
-              <p className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                <DollarSign className="w-3.5 h-3.5 text-gray-400" />
+              <p className="text-xs text-muted mb-0.5">Pay Rate</p>
+              <p className="text-sm font-medium text-foreground/80 flex items-center gap-1">
+                <DollarSign className="w-3.5 h-3.5 text-muted" />
                 {activeContract.payRate.toFixed(2)}/hr
               </p>
             </div>
             {activeContract.hoursPerWeek !== null && (
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">Hours/Week</p>
-                <p className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-gray-400" />
+                <p className="text-xs text-muted mb-0.5">Hours/Week</p>
+                <p className="text-sm font-medium text-foreground/80 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-muted" />
                   {activeContract.hoursPerWeek}h
                 </p>
               </div>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted mb-4">
             <span className="flex items-center gap-1.5">
               <CalendarDays className="w-3.5 h-3.5" />
               Start: {formatDate(activeContract.startDate)}
@@ -790,9 +790,9 @@ export default function MyPortalPage() {
       {/* 6. ONBOARDING PROGRESS                                       */}
       {/* ============================================================ */}
       {onboardingProgress.active && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-brand" />
               Onboarding Progress
             </h3>
@@ -801,21 +801,21 @@ export default function MyPortalPage() {
                 "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full",
                 onboardingProgress.status === "in_progress"
                   ? "bg-blue-50 text-blue-700 border border-blue-200"
-                  : "bg-gray-100 text-gray-600 border border-gray-200"
+                  : "bg-surface text-muted border border-border"
               )}
             >
               {onboardingProgress.status === "in_progress" ? "In Progress" : "Not Started"}
             </span>
           </div>
 
-          <p className="text-sm text-gray-600 mb-3">
-            <span className="font-medium text-gray-800">{onboardingProgress.packName}</span>
+          <p className="text-sm text-muted mb-3">
+            <span className="font-medium text-foreground">{onboardingProgress.packName}</span>
           </p>
 
           {/* Progress bar */}
           {onboardingProgress.totalTasks !== undefined && onboardingProgress.totalTasks > 0 && (
             <>
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+              <div className="flex items-center justify-between text-xs text-muted mb-1.5">
                 <span>
                   {onboardingProgress.completedTasks} / {onboardingProgress.totalTasks} tasks complete
                 </span>
@@ -823,7 +823,7 @@ export default function MyPortalPage() {
                   {Math.round(((onboardingProgress.completedTasks || 0) / onboardingProgress.totalTasks) * 100)}%
                 </span>
               </div>
-              <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="w-full h-2.5 bg-surface rounded-full overflow-hidden">
                 <div
                   className="h-full bg-brand rounded-full transition-all duration-500"
                   style={{
@@ -848,9 +848,9 @@ export default function MyPortalPage() {
       {/* 7. TRAINING / LMS                                            */}
       {/* ============================================================ */}
       {lmsEnrollments.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-brand" />
               Training &amp; Courses
             </h3>
@@ -872,26 +872,26 @@ export default function MyPortalPage() {
                   ? { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", label: "In Progress" }
                   : enrollment.status === "expired"
                   ? { bg: "bg-red-50", text: "text-red-700", border: "border-red-200", label: "Expired" }
-                  : { bg: "bg-gray-100", text: "text-gray-600", border: "border-gray-200", label: "Not Started" };
+                  : { bg: "bg-surface", text: "text-muted", border: "border-border", label: "Not Started" };
 
               return (
                 <Link
                   href="/onboarding"
                   key={enrollment.id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-brand/30 hover:bg-brand/5 transition-colors cursor-pointer"
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-brand/30 hover:bg-brand/5 transition-colors cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {enrollment.courseName}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-muted mt-0.5">
                       {enrollment.completedModules} / {enrollment.totalModules} modules
                     </p>
                   </div>
 
                   {/* Progress bar */}
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="w-24 h-2 bg-surface rounded-full overflow-hidden">
                       <div
                         className={cn(
                           "h-full rounded-full transition-all",
@@ -900,7 +900,7 @@ export default function MyPortalPage() {
                         style={{ width: `${enrollment.progress}%` }}
                       />
                     </div>
-                    <span className="text-xs font-medium text-gray-500 w-8 text-right">
+                    <span className="text-xs font-medium text-muted w-8 text-right">
                       {enrollment.progress}%
                     </span>
                   </div>
@@ -926,9 +926,9 @@ export default function MyPortalPage() {
       {/* 8. COMPLIANCE CERTIFICATES                                   */}
       {/* ============================================================ */}
       {complianceCerts.length > 0 && certStats && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-brand" />
               Compliance Certificates
             </h3>
@@ -966,7 +966,7 @@ export default function MyPortalPage() {
                       ? "border-red-200 bg-red-50/50"
                       : isExpiring
                       ? "border-amber-200 bg-amber-50/50"
-                      : "border-gray-100"
+                      : "border-border/50"
                   )}
                 >
                   <div
@@ -976,17 +976,17 @@ export default function MyPortalPage() {
                     )}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800">
+                    <p className="text-sm font-medium text-foreground">
                       {certTypeLabels[cert.type] || cert.type}
                       {cert.label && (
-                        <span className="text-gray-400 font-normal ml-1.5">
+                        <span className="text-muted font-normal ml-1.5">
                           &middot; {cert.label}
                         </span>
                       )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted">
                       {isExpired ? "Expired" : "Expires"} {formatDate(cert.expiryDate)}
                     </span>
                     <span
@@ -1028,9 +1028,9 @@ export default function MyPortalPage() {
       {/* 9. PENDING POLICIES                                          */}
       {/* ============================================================ */}
       {pendingPolicies.length > 0 && (
-        <div id="section-policies" className="bg-white rounded-xl border border-gray-200 p-6">
+        <div id="section-policies" className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Shield className="w-5 h-5 text-amber-500" />
               Pending Policies
             </h3>
@@ -1046,18 +1046,18 @@ export default function MyPortalPage() {
                 className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-amber-100 bg-amber-50/30"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {policy.title}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {policy.category && (
-                      <span className="text-xs text-gray-400 capitalize">{policy.category}</span>
+                      <span className="text-xs text-muted capitalize">{policy.category}</span>
                     )}
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted">
                       v{policy.version}
                     </span>
                     {policy.publishedAt && (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-muted">
                         &middot; Published {formatDate(policy.publishedAt)}
                       </span>
                     )}
@@ -1083,9 +1083,9 @@ export default function MyPortalPage() {
       {/* 10. OFFBOARDING PROGRESS                                     */}
       {/* ============================================================ */}
       {offboardingProgress.active && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <CircleDot className="w-5 h-5 text-orange-500" />
               Offboarding Progress
             </h3>
@@ -1094,20 +1094,20 @@ export default function MyPortalPage() {
                 "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full",
                 offboardingProgress.status === "in_progress"
                   ? "bg-blue-50 text-blue-700 border border-blue-200"
-                  : "bg-gray-100 text-gray-600 border border-gray-200"
+                  : "bg-surface text-muted border border-border"
               )}
             >
               {offboardingProgress.status === "in_progress" ? "In Progress" : "Not Started"}
             </span>
           </div>
 
-          <p className="text-sm text-gray-600 mb-3">
-            <span className="font-medium text-gray-800">{offboardingProgress.packName}</span>
+          <p className="text-sm text-muted mb-3">
+            <span className="font-medium text-foreground">{offboardingProgress.packName}</span>
           </p>
 
           {offboardingProgress.totalTasks !== undefined && offboardingProgress.totalTasks > 0 && (
             <>
-              <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+              <div className="flex items-center justify-between text-xs text-muted mb-1.5">
                 <span>
                   {offboardingProgress.completedTasks} / {offboardingProgress.totalTasks} tasks complete
                 </span>
@@ -1115,7 +1115,7 @@ export default function MyPortalPage() {
                   {Math.round(((offboardingProgress.completedTasks || 0) / offboardingProgress.totalTasks) * 100)}%
                 </span>
               </div>
-              <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="w-full h-2.5 bg-surface rounded-full overflow-hidden">
                 <div
                   className="h-full bg-orange-500 rounded-full transition-all duration-500"
                   style={{

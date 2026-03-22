@@ -83,8 +83,8 @@ export default function MarketingPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Marketing</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Marketing</h2>
+          <p className="text-sm text-muted mt-1 line-clamp-2">
             Manage campaigns, posts, and content across all platforms
           </p>
         </div>
@@ -176,7 +176,7 @@ export default function MarketingPage() {
                   className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
                     growthView === item.key
                       ? "bg-brand text-white border-brand"
-                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                      : "bg-card text-muted border-border hover:bg-surface"
                   }`}
                 >
                   {item.label}
@@ -227,7 +227,7 @@ export default function MarketingPage() {
                   className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
                     toolkitView === item.key
                       ? "bg-brand text-white border-brand"
-                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                      : "bg-card text-muted border-border hover:bg-surface"
                   }`}
                 >
                   {item.label}
@@ -238,7 +238,7 @@ export default function MarketingPage() {
             {toolkitView === "assets" && <AssetsTab />}
             {toolkitView === "templates" && <TemplatesTab />}
             {toolkitView === "email" && (
-              <Suspense fallback={<div className="flex items-center justify-center py-16 text-gray-500">Loading composer...</div>}>
+              <Suspense fallback={<div className="flex items-center justify-center py-16 text-muted">Loading composer...</div>}>
                 <EmailComposer />
               </Suspense>
             )}

@@ -1136,7 +1136,7 @@ export function GettingStartedContent() {
         <div className="flex items-center justify-between gap-2 mb-1">
           <div className="flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-brand" />
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-foreground">
               Welcome to Amana EOS, {firstName}!
             </h1>
           </div>
@@ -1152,7 +1152,7 @@ export function GettingStartedContent() {
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand/10 text-brand">
             {roleDisplayName}
           </span>
-          <p className="text-gray-500 text-sm">{getProgressMessage(pct)}</p>
+          <p className="text-muted text-sm">{getProgressMessage(pct)}</p>
         </div>
       </div>
 
@@ -1168,15 +1168,15 @@ export function GettingStartedContent() {
 
       {/* Tab toggle for admins */}
       {isAdmin && (
-        <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
+        <div className="flex gap-1 mb-6 bg-surface rounded-lg p-1 w-fit">
           <button
             type="button"
             onClick={() => setActiveTab("my-setup")}
             className={cn(
               "px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
               activeTab === "my-setup"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-700",
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted hover:text-foreground",
             )}
           >
             My Setup
@@ -1187,8 +1187,8 @@ export function GettingStartedContent() {
             className={cn(
               "px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
               activeTab === "team-progress"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-700",
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted hover:text-foreground",
             )}
           >
             Team Progress
@@ -1201,16 +1201,16 @@ export function GettingStartedContent() {
       ) : (
         <>
           {/* Progress bar */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+          <div className="bg-card rounded-xl border border-border p-5 mb-8">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-foreground/80">
                 Your progress
               </span>
               <span className="text-sm font-semibold text-brand">
                 {completedCount}/{totalCount} complete
               </span>
             </div>
-            <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-3 w-full bg-surface rounded-full overflow-hidden">
               <div
                 className={cn(
                   "h-full rounded-full transition-all duration-500 ease-out",
@@ -1228,13 +1228,13 @@ export function GettingStartedContent() {
 
           {/* Video walkthrough */}
           {roleVideoUrl ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+            <div className="bg-card rounded-xl border border-border p-5 mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <PlayCircle className="w-5 h-5 text-brand" />
-                <h3 className="text-sm font-semibold text-gray-900">Watch the walkthrough</h3>
-                <span className="text-xs text-gray-400">2-5 min</span>
+                <h3 className="text-sm font-semibold text-foreground">Watch the walkthrough</h3>
+                <span className="text-xs text-muted">2-5 min</span>
               </div>
-              <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+              <div className="aspect-video rounded-lg overflow-hidden bg-surface">
                 <iframe
                   src={roleVideoUrl}
                   className="w-full h-full"
@@ -1244,9 +1244,9 @@ export function GettingStartedContent() {
               </div>
             </div>
           ) : (
-            <div className="bg-gray-50 rounded-xl border border-dashed border-gray-200 p-4 mb-6 flex items-center gap-3">
-              <PlayCircle className="w-5 h-5 text-gray-300" />
-              <p className="text-xs text-gray-400">Video walkthrough coming soon — check back after rollout!</p>
+            <div className="bg-surface/50 rounded-xl border border-dashed border-border p-4 mb-6 flex items-center gap-3">
+              <PlayCircle className="w-5 h-5 text-muted/50" />
+              <p className="text-xs text-muted">Video walkthrough coming soon — check back after rollout!</p>
             </div>
           )}
 
@@ -1255,18 +1255,18 @@ export function GettingStartedContent() {
             <div className="space-y-6">
               {Array.from({ length: 3 }).map((_, gi) => (
                 <div key={gi}>
-                  <div className="h-5 w-40 bg-gray-200 rounded animate-pulse mb-3" />
+                  <div className="h-5 w-40 bg-border rounded animate-pulse mb-3" />
                   <div className="space-y-3">
                     {Array.from({ length: 4 }).map((_, i) => (
                       <div
                         key={i}
-                        className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse"
+                        className="bg-card rounded-xl border border-border p-4 animate-pulse"
                       >
                         <div className="flex items-center gap-4">
-                          <div className="w-6 h-6 rounded-full bg-gray-200" />
+                          <div className="w-6 h-6 rounded-full bg-border" />
                           <div className="flex-1 space-y-2">
-                            <div className="h-4 w-1/3 bg-gray-200 rounded" />
-                            <div className="h-3 w-2/3 bg-gray-100 rounded" />
+                            <div className="h-4 w-1/3 bg-border rounded" />
+                            <div className="h-3 w-2/3 bg-surface rounded" />
                           </div>
                         </div>
                       </div>
@@ -1294,14 +1294,14 @@ export function GettingStartedContent() {
                       className="flex items-center gap-2 w-full mb-3 group/cat focus:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md px-1 -mx-1"
                     >
                       {isCollapsed ? (
-                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                        <ChevronRight className="w-4 h-4 text-muted" />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-gray-400" />
+                        <ChevronDown className="w-4 h-4 text-muted" />
                       )}
                       <h2
                         className={cn(
                           "text-sm font-semibold",
-                          catDone ? "text-emerald-600" : "text-gray-700",
+                          catDone ? "text-emerald-600" : "text-foreground/80",
                         )}
                       >
                         {group.category}
@@ -1311,7 +1311,7 @@ export function GettingStartedContent() {
                           "text-xs font-medium px-2 py-0.5 rounded-full",
                           catDone
                             ? "bg-emerald-50 text-emerald-600"
-                            : "bg-gray-100 text-gray-500",
+                            : "bg-surface text-muted",
                         )}
                       >
                         {catCompleted}/{catTotal}
@@ -1328,8 +1328,8 @@ export function GettingStartedContent() {
                             <div
                               key={item.key}
                               className={cn(
-                                "group bg-white rounded-xl border border-gray-200 p-4 transition-all duration-200",
-                                done && "bg-gray-50/60 border-gray-100",
+                                "group bg-card rounded-xl border border-border p-4 transition-all duration-200",
+                                done && "bg-surface/50/60 border-border/50",
                               )}
                             >
                               <div className="flex items-start gap-4">
@@ -1350,7 +1350,7 @@ export function GettingStartedContent() {
                                   {done ? (
                                     <CheckCircle2 className="w-6 h-6 text-emerald-500 transition-transform duration-200 scale-110" />
                                   ) : (
-                                    <Circle className="w-6 h-6 text-gray-300 group-hover:text-brand transition-colors duration-200" />
+                                    <Circle className="w-6 h-6 text-muted/50 group-hover:text-brand transition-colors duration-200" />
                                   )}
                                 </button>
 
@@ -1361,8 +1361,8 @@ export function GettingStartedContent() {
                                     className={cn(
                                       "text-sm font-medium transition-colors duration-200",
                                       done
-                                        ? "text-gray-400 line-through"
-                                        : "text-gray-900 hover:text-brand",
+                                        ? "text-muted line-through"
+                                        : "text-foreground hover:text-brand",
                                     )}
                                   >
                                     {item.title}
@@ -1370,7 +1370,7 @@ export function GettingStartedContent() {
                                   <p
                                     className={cn(
                                       "text-xs mt-0.5 transition-colors duration-200",
-                                      done ? "text-gray-300" : "text-gray-500",
+                                      done ? "text-muted/50" : "text-muted",
                                     )}
                                   >
                                     {item.description}
@@ -1381,7 +1381,7 @@ export function GettingStartedContent() {
                                 <Icon
                                   className={cn(
                                     "w-5 h-5 flex-shrink-0 mt-0.5 transition-colors duration-200",
-                                    done ? "text-gray-200" : "text-gray-400",
+                                    done ? "text-muted/50" : "text-muted",
                                   )}
                                 />
                               </div>
@@ -1397,14 +1397,14 @@ export function GettingStartedContent() {
           )}
 
           {/* Need help card */}
-          <div className="mt-10 bg-white rounded-xl border border-gray-200 p-5">
+          <div className="mt-10 bg-card rounded-xl border border-border p-5">
             <div className="flex items-start gap-3">
               <HelpCircle className="w-5 h-5 text-brand mt-0.5 flex-shrink-0" />
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-foreground">
                   Need help?
                 </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-muted mt-0.5">
                   Browse our Knowledge Base or let us know if something isn&apos;t
                   working.
                 </p>
@@ -1418,7 +1418,7 @@ export function GettingStartedContent() {
                   </Link>
                   <Link
                     href="/tickets"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted bg-surface rounded-lg hover:bg-border transition-colors"
                   >
                     <AlertCircle className="w-3.5 h-3.5" />
                     Report an Issue

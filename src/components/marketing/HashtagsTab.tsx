@@ -78,7 +78,7 @@ export function HashtagsTab() {
                 className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-brand text-white"
-                    : "bg-white border border-gray-300 text-gray-600 hover:bg-gray-50"
+                    : "bg-card border border-border text-muted hover:bg-surface"
                 }`}
               >
                 {cat}
@@ -105,7 +105,7 @@ export function HashtagsTab() {
 
       {/* ── Empty State ──────────────────────────────── */}
       {!isLoading && (!hashtagSets || hashtagSets.length === 0) && (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+        <div className="flex flex-col items-center justify-center py-20 text-muted">
           <Hash className="h-12 w-12 mb-3" />
           <p className="text-lg font-medium">No hashtag sets found</p>
           <p className="text-sm mt-1">
@@ -120,18 +120,18 @@ export function HashtagsTab() {
           {hashtagSets.map((set) => {
             const badgeColor =
               categoryBadgeColors[set.category.toLowerCase()] ??
-              "bg-gray-100 text-gray-700";
+              "bg-surface text-foreground/80";
             const isCopied = copiedId === set.id;
 
             return (
               <div
                 key={set.id}
-                className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
+                className="bg-card rounded-xl border border-border p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div className="space-y-1.5">
-                    <h3 className="font-semibold text-gray-900 text-sm leading-tight">
+                    <h3 className="font-semibold text-foreground text-sm leading-tight">
                       {set.name}
                     </h3>
                     <span
@@ -146,25 +146,25 @@ export function HashtagsTab() {
                       if (confirm("Delete this hashtag set?"))
                         deleteHashtagSet.mutate(set.id);
                     }}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
 
                 {/* Tags content */}
-                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                <p className="text-sm text-muted leading-relaxed whitespace-pre-wrap">
                   {set.tags}
                 </p>
 
                 {/* Copy button */}
-                <div className="flex items-center justify-end mt-auto pt-2 border-t border-gray-100">
+                <div className="flex items-center justify-end mt-auto pt-2 border-t border-border/50">
                   <button
                     onClick={() => handleCopy(set.id, set.tags)}
                     className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                       isCopied
                         ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        : "bg-surface text-muted hover:bg-border"
                     }`}
                   >
                     {isCopied ? (
@@ -189,22 +189,22 @@ export function HashtagsTab() {
       {/* ── Create Modal ─────────────────────────────── */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 New Hashtag Set
               </h2>
               <button
                 onClick={() => setShowCreate(false)}
-                className="p-1 rounded-lg hover:bg-gray-100"
+                className="p-1 rounded-lg hover:bg-surface"
               >
-                <X className="h-5 w-5 text-gray-500" />
+                <X className="h-5 w-5 text-muted" />
               </button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -213,13 +213,13 @@ export function HashtagsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, name: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="Set name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Category <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -227,7 +227,7 @@ export function HashtagsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, category: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                 >
                   {CATEGORIES.filter((c) => c !== "All").map((c) => (
                     <option key={c} value={c.toLowerCase()}>
@@ -238,7 +238,7 @@ export function HashtagsTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Tags <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -247,7 +247,7 @@ export function HashtagsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, tags: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
                   placeholder="Enter hashtags, one per line or comma-separated"
                 />
               </div>
@@ -256,7 +256,7 @@ export function HashtagsTab() {
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowCreate(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-muted hover:bg-surface transition-colors"
               >
                 Cancel
               </button>

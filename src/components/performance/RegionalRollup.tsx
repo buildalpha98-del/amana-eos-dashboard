@@ -90,20 +90,20 @@ export function RegionalRollup({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="px-4 md:px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="px-4 md:px-6 py-4 border-b border-border flex items-center justify-between">
         <div>
-          <h3 className="text-base md:text-lg font-semibold text-gray-900">
+          <h3 className="text-base md:text-lg font-semibold text-foreground">
             Regional Overview
           </h3>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Performance grouped by state. Click to filter the leaderboard.
           </p>
         </div>
         {activeState && (
           <button
             onClick={() => onStateSelect(null)}
-            className="text-xs text-brand hover:text-brand/70 font-medium transition-colors px-2 py-1 rounded-lg hover:bg-gray-50"
+            className="text-xs text-brand hover:text-brand/70 font-medium transition-colors px-2 py-1 rounded-lg hover:bg-surface"
           >
             Clear filter
           </button>
@@ -125,7 +125,7 @@ export function RegionalRollup({
                 "text-left rounded-xl border-2 p-4 transition-all hover:shadow-sm",
                 isActive
                   ? "border-brand bg-brand/5 shadow-sm"
-                  : cn("hover:border-gray-300", getScoreBorderColor(group.avgScore)),
+                  : cn("hover:border-border", getScoreBorderColor(group.avgScore)),
                 !isActive && getScoreBgAccent(group.avgScore)
               )}
             >
@@ -135,19 +135,19 @@ export function RegionalRollup({
                   <MapPin
                     className={cn(
                       "w-4 h-4",
-                      isActive ? "text-brand" : "text-gray-400"
+                      isActive ? "text-brand" : "text-muted"
                     )}
                   />
                   <div>
                     <p
                       className={cn(
                         "text-sm font-bold",
-                        isActive ? "text-brand" : "text-gray-900"
+                        isActive ? "text-brand" : "text-foreground"
                       )}
                     >
                       {group.state}
                     </p>
-                    <p className="text-[10px] text-gray-400 leading-tight">
+                    <p className="text-[10px] text-muted leading-tight">
                       {fullName}
                     </p>
                   </div>
@@ -155,7 +155,7 @@ export function RegionalRollup({
                 <ChevronRight
                   className={cn(
                     "w-4 h-4 transition-transform",
-                    isActive ? "text-brand rotate-90" : "text-gray-300"
+                    isActive ? "text-brand rotate-90" : "text-muted/50"
                   )}
                 />
               </div>
@@ -164,7 +164,7 @@ export function RegionalRollup({
               <div className="space-y-2">
                 {/* Avg Score */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Avg Score</span>
+                  <span className="text-xs text-muted">Avg Score</span>
                   <span
                     className={cn(
                       "text-xl font-bold",
@@ -177,23 +177,23 @@ export function RegionalRollup({
 
                 {/* Centre Count */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                  <span className="text-xs text-muted flex items-center gap-1">
                     <Building2 className="w-3 h-3" />
                     Centres
                   </span>
-                  <span className="text-sm font-semibold text-gray-700">
+                  <span className="text-sm font-semibold text-foreground/80">
                     {group.centreCount}
                   </span>
                 </div>
 
                 {/* Top Performer */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500 flex items-center gap-1">
+                  <span className="text-xs text-muted flex items-center gap-1">
                     <Trophy className="w-3 h-3 text-accent" />
                     Top
                   </span>
                   <span
-                    className="text-xs font-medium text-gray-700 truncate max-w-[120px]"
+                    className="text-xs font-medium text-foreground/80 truncate max-w-[120px]"
                     title={group.topPerformer}
                   >
                     {group.topPerformer}

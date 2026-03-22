@@ -102,8 +102,8 @@ export default function CrmPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">CRM</h2>
-          <p className="text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-2xl font-bold text-foreground">CRM</h2>
+          <p className="text-muted mt-1 line-clamp-2">
             Sales pipeline & lead management
           </p>
         </div>
@@ -156,14 +156,14 @@ export default function CrmPage() {
         {/* Always-visible row: view toggle, mobile filter button, search */}
         <div className="flex items-center gap-3">
           {/* View toggle */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-surface rounded-lg p-1">
             <button
               onClick={() => setView("pipeline")}
               className={cn(
                 "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                 view === "pipeline"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted hover:text-foreground"
               )}
             >
               <LayoutGrid className="w-3.5 h-3.5 inline mr-1" />
@@ -174,8 +174,8 @@ export default function CrmPage() {
               className={cn(
                 "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                 view === "table"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted hover:text-foreground"
               )}
             >
               <List className="w-3.5 h-3.5 inline mr-1" />
@@ -190,7 +190,7 @@ export default function CrmPage() {
               "sm:hidden inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border transition-colors",
               showFilters || activeFilterCount > 0
                 ? "bg-brand text-white border-brand"
-                : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+                : "bg-card text-muted border-border hover:border-gray-400"
             )}
           >
             {showFilters ? (
@@ -200,7 +200,7 @@ export default function CrmPage() {
             )}
             Filters
             {activeFilterCount > 0 && !showFilters && (
-              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-[10px] font-bold">
+              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-card/20 text-[10px] font-bold">
                 {activeFilterCount}
               </span>
             )}
@@ -275,28 +275,28 @@ export default function CrmPage() {
 
           {/* Search */}
           <div className="relative flex-1 max-w-xs ml-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search leads..."
               aria-label="Search leads"
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
         </div>
 
         {/* Mobile collapsible filter dropdowns (visible only on mobile when toggled) */}
         {showFilters && (
-          <div className="sm:hidden flex flex-col gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="sm:hidden flex flex-col gap-2 p-3 bg-surface/50 rounded-lg border border-border">
             {/* Source filter */}
             <select
               value={filters.source || ""}
               onChange={(e) =>
                 setFilters((f) => ({ ...f, source: e.target.value || undefined }))
               }
-              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-dark"
+              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-card focus:ring-2 focus:ring-brand-dark"
             >
               {sourceOptions.map((o) => (
                 <option key={o.key} value={o.key}>
@@ -311,7 +311,7 @@ export default function CrmPage() {
               onChange={(e) =>
                 setFilters((f) => ({ ...f, state: e.target.value || undefined }))
               }
-              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-dark"
+              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-card focus:ring-2 focus:ring-brand-dark"
             >
               <option value="">All States</option>
               {AU_STATES.map((s) => (
@@ -327,7 +327,7 @@ export default function CrmPage() {
               onChange={(e) =>
                 setFilters((f) => ({ ...f, assigneeId: e.target.value || undefined }))
               }
-              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-dark"
+              className="w-full border rounded-lg px-3 py-2.5 text-sm bg-card focus:ring-2 focus:ring-brand-dark"
             >
               <option value="">All Assignees</option>
               {users?.map((u) => (
@@ -344,7 +344,7 @@ export default function CrmPage() {
                 onChange={(e) =>
                   setFilters((f) => ({ ...f, stage: e.target.value || undefined }))
                 }
-                className="w-full border rounded-lg px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-dark"
+                className="w-full border rounded-lg px-3 py-2.5 text-sm bg-card focus:ring-2 focus:ring-brand-dark"
               >
                 {stageTabs.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -361,7 +361,7 @@ export default function CrmPage() {
                   setFilters({});
                   setShowFilters(false);
                 }}
-                className="text-xs text-gray-500 hover:text-gray-700 underline self-end mt-1"
+                className="text-xs text-muted hover:text-foreground underline self-end mt-1"
               >
                 Clear all filters
               </button>
@@ -484,7 +484,7 @@ function SchoolHealthSection() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 py-4 text-sm text-gray-400">
+      <div className="flex items-center gap-2 py-4 text-sm text-muted">
         <Loader2 className="w-4 h-4 animate-spin" />
         Loading school health...
       </div>
@@ -505,33 +505,33 @@ function SchoolHealthSection() {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Handshake className="w-4 h-4 text-brand" />
-        <h3 className="text-sm font-semibold text-gray-900">School Relationship Health</h3>
+        <h3 className="text-sm font-semibold text-foreground">School Relationship Health</h3>
       </div>
-      <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <div className="border border-border rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-surface">
             <tr>
-              <th className="text-left px-4 py-2.5 font-medium text-gray-600">School</th>
-              <th className="text-center px-3 py-2.5 font-medium text-gray-600 w-20">Score</th>
-              <th className="text-left px-3 py-2.5 font-medium text-gray-600 hidden md:table-cell">Last Visit</th>
-              <th className="text-left px-3 py-2.5 font-medium text-gray-600 hidden lg:table-cell">Contract End</th>
-              <th className="text-center px-3 py-2.5 font-medium text-gray-600 hidden lg:table-cell w-16" title="Build Alpha Kids — after-school enrichment program">
+              <th className="text-left px-4 py-2.5 font-medium text-muted">School</th>
+              <th className="text-center px-3 py-2.5 font-medium text-muted w-20">Score</th>
+              <th className="text-left px-3 py-2.5 font-medium text-muted hidden md:table-cell">Last Visit</th>
+              <th className="text-left px-3 py-2.5 font-medium text-muted hidden lg:table-cell">Contract End</th>
+              <th className="text-center px-3 py-2.5 font-medium text-muted hidden lg:table-cell w-16" title="Build Alpha Kids — after-school enrichment program">
                 <span className="cursor-help underline decoration-dotted decoration-gray-400 underline-offset-2">BAK</span>
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border/50">
             {schools.map((s) => {
               const daysSinceVisit = s.lastPrincipalVisit
                 ? Math.floor((Date.now() - new Date(s.lastPrincipalVisit).getTime()) / (1000 * 60 * 60 * 24))
                 : null;
               return (
-                <tr key={s.serviceId} className="hover:bg-gray-50">
+                <tr key={s.serviceId} className="hover:bg-surface">
                   <td className="px-4 py-2.5">
-                    <Link href={`/services/${s.serviceId}`} className="text-gray-900 hover:text-brand font-medium">
+                    <Link href={`/services/${s.serviceId}`} className="text-foreground hover:text-brand font-medium">
                       {s.serviceName}
                     </Link>
-                    <span className="text-xs text-gray-400 ml-1.5">{s.serviceCode}</span>
+                    <span className="text-xs text-muted ml-1.5">{s.serviceCode}</span>
                   </td>
                   <td className="px-3 py-2.5 text-center">
                     <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-bold", scoreColor(s.healthScore))}>
@@ -540,15 +540,15 @@ function SchoolHealthSection() {
                   </td>
                   <td className="px-3 py-2.5 hidden md:table-cell">
                     {s.lastPrincipalVisit ? (
-                      <span className={cn("text-xs", daysSinceVisit && daysSinceVisit > 90 ? "text-red-600 font-medium" : "text-gray-600")}>
+                      <span className={cn("text-xs", daysSinceVisit && daysSinceVisit > 90 ? "text-red-600 font-medium" : "text-muted")}>
                         {new Date(s.lastPrincipalVisit).toLocaleDateString("en-AU")}
-                        {daysSinceVisit !== null && <span className="text-gray-400 ml-1">({daysSinceVisit}d)</span>}
+                        {daysSinceVisit !== null && <span className="text-muted ml-1">({daysSinceVisit}d)</span>}
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-400">No visit</span>
+                      <span className="text-xs text-muted">No visit</span>
                     )}
                   </td>
-                  <td className="px-3 py-2.5 hidden lg:table-cell text-xs text-gray-600">
+                  <td className="px-3 py-2.5 hidden lg:table-cell text-xs text-muted">
                     {s.contractEndDate ? new Date(s.contractEndDate).toLocaleDateString("en-AU") : "—"}
                   </td>
                   <td className="px-3 py-2.5 text-center hidden lg:table-cell">

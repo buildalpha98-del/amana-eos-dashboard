@@ -80,8 +80,8 @@ const STATUS_CONFIG: Record<
 > = {
   ts_draft: {
     label: "Draft",
-    color: "text-gray-700",
-    bg: "bg-gray-100",
+    color: "text-foreground/80",
+    bg: "bg-surface",
     dot: "bg-gray-400",
   },
   submitted: {
@@ -207,11 +207,11 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <div className="flex items-start justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+          <p className="text-xs font-medium text-muted">{title}</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{value}</p>
         </div>
         <div
           className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
@@ -274,12 +274,12 @@ function AddEntryModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Add Entry</h3>
+          <h3 className="text-lg font-semibold text-foreground">Add Entry</h3>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded-lg"
+            className="p-1 text-muted hover:text-foreground rounded-lg"
           >
             <X className="w-5 h-5" />
           </button>
@@ -287,14 +287,14 @@ function AddEntryModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Staff Member *
             </label>
             <select
               required
               value={form.userId}
               onChange={(e) => setForm({ ...form, userId: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Select staff...</option>
               {users?.map((u) => (
@@ -307,7 +307,7 @@ function AddEntryModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Date *
               </label>
               <input
@@ -315,17 +315,17 @@ function AddEntryModal({
                 required
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Shift Type *
               </label>
               <select
                 value={form.shiftType}
                 onChange={(e) => setForm({ ...form, shiftType: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="shift_bsc">BSC</option>
                 <option value="shift_asc">ASC</option>
@@ -337,7 +337,7 @@ function AddEntryModal({
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Start *
               </label>
               <input
@@ -347,11 +347,11 @@ function AddEntryModal({
                 onChange={(e) =>
                   setForm({ ...form, shiftStart: e.target.value })
                 }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 End *
               </label>
               <input
@@ -359,11 +359,11 @@ function AddEntryModal({
                 required
                 value={form.shiftEnd}
                 onChange={(e) => setForm({ ...form, shiftEnd: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Break (mins)
               </label>
               <input
@@ -373,20 +373,20 @@ function AddEntryModal({
                 onChange={(e) =>
                   setForm({ ...form, breakMinutes: Number(e.target.value) })
                 }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Notes
             </label>
             <input
               type="text"
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
@@ -394,7 +394,7 @@ function AddEntryModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium border border-border text-foreground/80 rounded-lg hover:bg-surface transition-colors"
             >
               Cancel
             </button>
@@ -435,14 +435,14 @@ function NewTimesheetModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             New Timesheet
           </h3>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded-lg"
+            className="p-1 text-muted hover:text-foreground rounded-lg"
           >
             <X className="w-5 h-5" />
           </button>
@@ -450,14 +450,14 @@ function NewTimesheetModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Service *
             </label>
             <select
               required
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Select a service...</option>
               {services.map((s) => (
@@ -469,7 +469,7 @@ function NewTimesheetModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Week Ending (Sunday) *
             </label>
             <input
@@ -477,7 +477,7 @@ function NewTimesheetModal({
               required
               value={weekEnding}
               onChange={(e) => setWeekEnding(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
@@ -485,7 +485,7 @@ function NewTimesheetModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium border border-border text-foreground/80 rounded-lg hover:bg-surface transition-colors"
             >
               Cancel
             </button>
@@ -697,14 +697,14 @@ function ImportFromOWNAModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             Import from OWNA
           </h3>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded-lg"
+            className="p-1 text-muted hover:text-foreground rounded-lg"
           >
             <X className="w-5 h-5" />
           </button>
@@ -713,13 +713,13 @@ function ImportFromOWNAModal({
         {step === "upload" && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Service *
               </label>
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select a service...</option>
                 {services.map((s) => (
@@ -731,14 +731,14 @@ function ImportFromOWNAModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Week Ending (Sunday) *
               </label>
               <input
                 type="date"
                 value={weekEnding}
                 onChange={(e) => setWeekEnding(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
 
@@ -755,14 +755,14 @@ function ImportFromOWNAModal({
                 "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors",
                 dragOver
                   ? "border-brand bg-brand/5"
-                  : "border-gray-300 hover:border-gray-400"
+                  : "border-border hover:border-gray-400"
               )}
             >
-              <FileUp className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-              <p className="text-sm font-medium text-gray-700">
+              <FileUp className="w-10 h-10 text-muted mx-auto mb-3" />
+              <p className="text-sm font-medium text-foreground/80">
                 {fileName || "Drop your OWNA export file here"}
               </p>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-muted mt-1">
                 Accepts .csv and .xlsx files
               </p>
               <input
@@ -786,8 +786,8 @@ function ImportFromOWNAModal({
         {step === "preview" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
-                <span className="font-semibold text-gray-900">
+              <p className="text-sm text-muted">
+                <span className="font-semibold text-foreground">
                   {parsedEntries.length}
                 </span>{" "}
                 entries parsed from{" "}
@@ -799,52 +799,52 @@ function ImportFromOWNAModal({
                   setParsedEntries([]);
                   setFileName("");
                 }}
-                className="text-xs text-gray-500 hover:text-gray-700 underline"
+                className="text-xs text-muted hover:text-foreground underline"
               >
                 Re-upload
               </button>
             </div>
 
             {/* Preview Table */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="border border-border rounded-lg overflow-hidden">
               <div className="overflow-x-auto max-h-64">
                 <table className="w-full text-xs">
                   <thead className="bg-surface sticky top-0">
                     <tr>
-                      <th className="px-3 py-2 text-left font-medium text-gray-500">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Staff
                       </th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-500">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Date
                       </th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-500">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Shift
                       </th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-500">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Break
                       </th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-500">
+                      <th className="px-3 py-2 text-left font-medium text-muted">
                         Type
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-border/50">
                     {parsedEntries.slice(0, 50).map((entry, i) => (
-                      <tr key={i} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 text-gray-900 font-medium whitespace-nowrap">
+                      <tr key={i} className="hover:bg-surface">
+                        <td className="px-3 py-2 text-foreground font-medium whitespace-nowrap">
                           {entry.staffName}
                         </td>
-                        <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
+                        <td className="px-3 py-2 text-muted whitespace-nowrap">
                           {entry.date}
                         </td>
-                        <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
+                        <td className="px-3 py-2 text-muted whitespace-nowrap">
                           {entry.shiftStart} - {entry.shiftEnd}
                         </td>
-                        <td className="px-3 py-2 text-gray-600">
+                        <td className="px-3 py-2 text-muted">
                           {entry.breakMins}m
                         </td>
                         <td className="px-3 py-2">
-                          <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 text-xs font-medium">
+                          <span className="px-1.5 py-0.5 rounded bg-surface text-foreground/80 text-xs font-medium">
                             {SHIFT_TYPE_LABELS[entry.shiftType] ||
                               entry.shiftType}
                           </span>
@@ -855,7 +855,7 @@ function ImportFromOWNAModal({
                 </table>
               </div>
               {parsedEntries.length > 50 && (
-                <div className="px-3 py-2 bg-gray-50 text-xs text-gray-500 text-center border-t">
+                <div className="px-3 py-2 bg-surface/50 text-xs text-muted text-center border-t">
                   Showing first 50 of {parsedEntries.length} entries
                 </div>
               )}
@@ -865,7 +865,7 @@ function ImportFromOWNAModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium border border-border text-foreground/80 rounded-lg hover:bg-surface transition-colors"
               >
                 Cancel
               </button>
@@ -975,9 +975,9 @@ function TimesheetDetail({
 
   if (isLoading || !ts) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mt-2">
+      <div className="bg-card rounded-xl border border-border p-6 mt-2">
         <div className="flex items-center justify-center py-12">
-          <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -1011,22 +1011,22 @@ function TimesheetDetail({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 mt-2 animate-in slide-in-from-top-2 duration-200">
+    <div className="bg-card rounded-xl border border-border p-4 sm:p-6 mt-2 animate-in slide-in-from-top-2 duration-200">
       {/* Detail Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded-lg"
+            className="p-1 text-muted hover:text-foreground rounded-lg"
           >
             <X className="w-5 h-5" />
           </button>
           <div>
-            <h4 className="text-base font-semibold text-gray-900">
+            <h4 className="text-base font-semibold text-foreground">
               {ts.service?.name} &mdash; Week ending{" "}
               {formatDate(ts.weekEnding)}
             </h4>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               {entries.length} entries &middot; {formatHours(entries.reduce((sum: number, e: any) => sum + (e.totalHours || 0), 0))} hrs
               total
             </p>
@@ -1037,59 +1037,59 @@ function TimesheetDetail({
 
       {/* Entries Table */}
       {entries.length > 0 ? (
-        <div className="border border-gray-200 rounded-lg overflow-hidden mb-4">
+        <div className="border border-border rounded-lg overflow-hidden mb-4">
           <StickyTable maxHeight="calc(100vh - 400px)">
             <table className="w-full text-sm">
               <thead className="bg-surface">
                 <tr>
-                  <th className="px-3 py-2.5 text-left font-medium text-gray-500 text-xs">
+                  <th className="px-3 py-2.5 text-left font-medium text-muted text-xs">
                     Staff Name
                   </th>
-                  <th className="px-3 py-2.5 text-left font-medium text-gray-500 text-xs">
+                  <th className="px-3 py-2.5 text-left font-medium text-muted text-xs">
                     Date
                   </th>
-                  <th className="px-3 py-2.5 text-left font-medium text-gray-500 text-xs">
+                  <th className="px-3 py-2.5 text-left font-medium text-muted text-xs">
                     Shift
                   </th>
-                  <th className="px-3 py-2.5 text-left font-medium text-gray-500 text-xs">
+                  <th className="px-3 py-2.5 text-left font-medium text-muted text-xs">
                     Break
                   </th>
-                  <th className="px-3 py-2.5 text-left font-medium text-gray-500 text-xs">
+                  <th className="px-3 py-2.5 text-left font-medium text-muted text-xs">
                     Hours
                   </th>
-                  <th className="px-3 py-2.5 text-left font-medium text-gray-500 text-xs">
+                  <th className="px-3 py-2.5 text-left font-medium text-muted text-xs">
                     Type
                   </th>
-                  <th className="px-3 py-2.5 text-left font-medium text-gray-500 text-xs">
+                  <th className="px-3 py-2.5 text-left font-medium text-muted text-xs">
                     Notes
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border/50">
                 {entries.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2.5 text-gray-900 font-medium whitespace-nowrap">
+                  <tr key={entry.id} className="hover:bg-surface">
+                    <td className="px-3 py-2.5 text-foreground font-medium whitespace-nowrap">
                       {entry.user?.name || "Unknown"}
                     </td>
-                    <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">
+                    <td className="px-3 py-2.5 text-muted whitespace-nowrap">
                       {formatDate(entry.date)}
                     </td>
-                    <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">
+                    <td className="px-3 py-2.5 text-muted whitespace-nowrap">
                       {formatTime(entry.shiftStart)} -{" "}
                       {formatTime(entry.shiftEnd)}
                     </td>
-                    <td className="px-3 py-2.5 text-gray-600">
+                    <td className="px-3 py-2.5 text-muted">
                       {entry.breakMinutes}m
                     </td>
-                    <td className="px-3 py-2.5 text-gray-900 font-medium">
+                    <td className="px-3 py-2.5 text-foreground font-medium">
                       {formatHours(entry.totalHours)}
                     </td>
                     <td className="px-3 py-2.5">
-                      <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 text-xs font-medium">
+                      <span className="px-1.5 py-0.5 rounded bg-surface text-foreground/80 text-xs font-medium">
                         {SHIFT_TYPE_LABELS[entry.shiftType] || entry.shiftType}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-gray-500 text-xs max-w-[200px] truncate">
+                    <td className="px-3 py-2.5 text-muted text-xs max-w-[200px] truncate">
                       {entry.notes || "\u2014"}
                     </td>
                   </tr>
@@ -1125,7 +1125,7 @@ function TimesheetDetail({
             </button>
             <button
               onClick={() => setShowRejectForm(false)}
-              className="px-3 py-1.5 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium border border-border text-foreground/80 rounded-lg hover:bg-surface transition-colors"
             >
               Cancel
             </button>
@@ -1140,7 +1140,7 @@ function TimesheetDetail({
           <>
             <button
               onClick={() => setShowAddEntry(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-border text-foreground/80 rounded-lg hover:bg-surface transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add Entry
@@ -1209,7 +1209,7 @@ function TimesheetDetail({
           <>
             <button
               onClick={() => setShowAddEntry(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-border text-foreground/80 rounded-lg hover:bg-surface transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add Entry
@@ -1353,14 +1353,14 @@ export default function TimesheetsPage() {
   if (!isAdmin) {
     return (
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
+        <div className="flex flex-col items-center justify-center py-24 text-center bg-card rounded-xl border border-border">
           <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8 text-red-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             Access Restricted
           </h3>
-          <p className="text-gray-500 mt-2 max-w-md">
+          <p className="text-muted mt-2 max-w-md">
             Timesheets are only accessible to Owners and Admins.
           </p>
         </div>
@@ -1372,8 +1372,8 @@ export default function TimesheetsPage() {
     return (
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Timesheets</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Timesheets</h2>
+          <p className="text-sm text-muted mt-1 line-clamp-2">
             Manage staff timesheets, import from OWNA, and export to Xero
           </p>
         </div>
@@ -1391,8 +1391,8 @@ export default function TimesheetsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Timesheets</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Timesheets</h2>
+          <p className="text-sm text-muted mt-1 line-clamp-2">
             Manage staff timesheets, import from OWNA, and export to Xero
           </p>
         </div>
@@ -1404,7 +1404,7 @@ export default function TimesheetsPage() {
               "p-2 rounded-lg border transition-colors",
               hasActiveFilters
                 ? "border-brand bg-brand/5 text-brand"
-                : "border-gray-200 text-gray-400 hover:text-gray-600"
+                : "border-border text-muted hover:text-foreground"
             )}
             title="Filters"
           >
@@ -1433,7 +1433,7 @@ export default function TimesheetsPage() {
           />
           <button
             onClick={() => setShowImport(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
           >
             <Upload className="w-4 h-4" />
             Import from OWNA
@@ -1450,15 +1450,15 @@ export default function TimesheetsPage() {
 
       {/* Filter Bar */}
       {showFilters && (
-        <div className="mb-4 flex flex-wrap items-end gap-3 p-4 bg-white rounded-xl border border-gray-200">
+        <div className="mb-4 flex flex-wrap items-end gap-3 p-4 bg-card rounded-xl border border-border">
           <div className="min-w-[160px]">
-            <label className="block text-xs font-medium text-gray-500 mb-1">
+            <label className="block text-xs font-medium text-muted mb-1">
               Service
             </label>
             <select
               value={filterService}
               onChange={(e) => setFilterService(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All Services</option>
               {services?.map((s) => (
@@ -1470,13 +1470,13 @@ export default function TimesheetsPage() {
           </div>
 
           <div className="min-w-[140px]">
-            <label className="block text-xs font-medium text-gray-500 mb-1">
+            <label className="block text-xs font-medium text-muted mb-1">
               Status
             </label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">All Statuses</option>
               <option value="ts_draft">Draft</option>
@@ -1488,26 +1488,26 @@ export default function TimesheetsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
+            <label className="block text-xs font-medium text-muted mb-1">
               From
             </label>
             <input
               type="date"
               value={filterFrom}
               onChange={(e) => setFilterFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
+            <label className="block text-xs font-medium text-muted mb-1">
               To
             </label>
             <input
               type="date"
               value={filterTo}
               onChange={(e) => setFilterTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
@@ -1519,7 +1519,7 @@ export default function TimesheetsPage() {
                 setFilterFrom("");
                 setFilterTo("");
               }}
-              className="px-3 py-2 text-xs text-gray-500 hover:text-gray-700 underline"
+              className="px-3 py-2 text-xs text-muted hover:text-foreground underline"
             >
               Clear filters
             </button>
@@ -1573,11 +1573,11 @@ export default function TimesheetsPage() {
             <div key={weekEnding}>
               {/* Week Header */}
               <div className="flex items-center gap-3 mb-3">
-                <Calendar className="w-4 h-4 text-gray-400" />
-                <h3 className="text-sm font-semibold text-gray-700">
+                <Calendar className="w-4 h-4 text-muted" />
+                <h3 className="text-sm font-semibold text-foreground/80">
                   Week ending {formatDate(weekEnding)}
                 </h3>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted">
                   {getWeekLabel(weekEnding)}
                 </span>
               </div>
@@ -1593,22 +1593,22 @@ export default function TimesheetsPage() {
                         )
                       }
                       className={cn(
-                        "w-full bg-white rounded-xl border border-gray-200 p-4 text-left hover:border-gray-300 transition-all",
+                        "w-full bg-card rounded-xl border border-border p-4 text-left hover:border-border transition-all",
                         expandedId === ts.id && "border-brand/30 ring-1 ring-brand/10"
                       )}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                           {expandedId === ts.id ? (
-                            <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+                            <ChevronDown className="w-4 h-4 text-muted shrink-0" />
                           ) : (
-                            <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                            <ChevronRight className="w-4 h-4 text-muted shrink-0" />
                           )}
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
+                            <p className="text-sm font-semibold text-foreground truncate">
                               {ts.service?.name || "Unknown Service"}
                             </p>
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="text-xs text-muted mt-0.5">
                               {ts.service?.code}
                             </p>
                           </div>
@@ -1616,7 +1616,7 @@ export default function TimesheetsPage() {
 
                         <div className="flex items-center gap-4 sm:gap-6 shrink-0">
                           <div className="text-right">
-                            <p className="text-sm font-bold text-gray-900">
+                            <p className="text-sm font-bold text-foreground">
                               {ts._count?.entries ?? 0} entries
                             </p>
                           </div>

@@ -28,17 +28,17 @@ export function ConfirmDialog({
     <AlertDialog.Root open={open} onOpenChange={onOpenChange}>
       <AlertDialog.Portal>
         <AlertDialog.Overlay className="fixed inset-0 bg-black/50 z-50 animate-in fade-in" />
-        <AlertDialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md rounded-xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95">
-          <AlertDialog.Title className="text-lg font-semibold text-gray-900">
+        <AlertDialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md rounded-xl bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95">
+          <AlertDialog.Title className="text-lg font-semibold text-foreground">
             {title}
           </AlertDialog.Title>
-          <AlertDialog.Description className="mt-2 text-sm text-gray-600">
+          <AlertDialog.Description className="mt-2 text-sm text-muted">
             {description}
           </AlertDialog.Description>
           <div className="mt-6 flex justify-end gap-3">
             <AlertDialog.Cancel asChild>
               <button
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-foreground/80 bg-surface rounded-lg hover:bg-border transition-colors"
                 disabled={loading}
               >
                 Cancel

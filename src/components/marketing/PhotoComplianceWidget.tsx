@@ -26,7 +26,7 @@ export function PhotoComplianceWidget() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-10 text-gray-500">
+      <div className="flex items-center justify-center py-10 text-muted">
         <Loader2 className="h-4 w-4 animate-spin mr-2" />
         Loading compliance data...
       </div>
@@ -35,10 +35,10 @@ export function PhotoComplianceWidget() {
 
   if (!data || data.services.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border bg-white py-10">
-        <Camera className="mb-2 h-8 w-8 text-gray-300" />
-        <p className="text-sm font-medium text-gray-700">No compliance data</p>
-        <p className="mt-1 text-xs text-gray-500">
+      <div className="flex flex-col items-center justify-center rounded-xl border bg-card py-10">
+        <Camera className="mb-2 h-8 w-8 text-muted/50" />
+        <p className="text-sm font-medium text-foreground/80">No compliance data</p>
+        <p className="mt-1 text-xs text-muted">
           Photo compliance logs will appear here once centres start logging.
         </p>
       </div>
@@ -58,8 +58,8 @@ export function PhotoComplianceWidget() {
       {/* Overall Rate */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Camera className="h-4 w-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700">
+          <Camera className="h-4 w-4 text-muted" />
+          <span className="text-sm font-medium text-foreground/80">
             Overall Compliance
           </span>
         </div>
@@ -74,11 +74,11 @@ export function PhotoComplianceWidget() {
       </div>
 
       {/* Desktop Grid */}
-      <div className="hidden sm:block overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div className="hidden sm:block overflow-hidden rounded-xl border border-border bg-card">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 text-xs font-medium uppercase tracking-wider text-gray-500">
+              <tr className="border-b border-border bg-surface/50 text-xs font-medium uppercase tracking-wider text-muted">
                 <th className="px-3 py-2 text-left">Centre</th>
                 {dateHeaders.map((d) => (
                   <th key={d} className="px-2 py-2 text-center whitespace-nowrap">
@@ -89,10 +89,10 @@ export function PhotoComplianceWidget() {
                 <th className="px-3 py-2 text-center">Rate</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border/50">
               {sorted.map((svc) => (
-                <tr key={svc.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-3 py-2 font-medium text-gray-900 whitespace-nowrap">
+                <tr key={svc.id} className="hover:bg-surface transition-colors">
+                  <td className="px-3 py-2 font-medium text-foreground whitespace-nowrap">
                     {svc.name}
                   </td>
                   {svc.days.map((day) => (
@@ -115,7 +115,7 @@ export function PhotoComplianceWidget() {
                         {svc.streak}
                       </span>
                     ) : (
-                      <span className="text-gray-400 text-xs">0</span>
+                      <span className="text-muted text-xs">0</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-center">
@@ -135,10 +135,10 @@ export function PhotoComplianceWidget() {
         {sorted.map((svc) => (
           <div
             key={svc.id}
-            className="rounded-lg border border-gray-200 bg-white p-3"
+            className="rounded-lg border border-border bg-card p-3"
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-900">
+              <span className="text-sm font-medium text-foreground">
                 {svc.name}
               </span>
               <div className="flex items-center gap-2">

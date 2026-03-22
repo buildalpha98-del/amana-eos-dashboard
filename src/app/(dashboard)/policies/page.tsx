@@ -48,7 +48,7 @@ const STATUS_TABS = [
 ];
 
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
-  draft: { label: "Draft", color: "bg-gray-100 text-gray-600" },
+  draft: { label: "Draft", color: "bg-gray-100 text-gray-500" },
   published: { label: "Published", color: "bg-green-50 text-green-700" },
   archived: { label: "Archived", color: "bg-amber-50 text-amber-700" },
 };
@@ -523,7 +523,7 @@ function ComplianceRow({ row }: { row: PolicyCompliance }) {
 
       {/* Compliance bar */}
       <div className="sm:col-span-3 flex items-center gap-2">
-        <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="flex-1 h-2 bg-surface rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full ${barColor}`}
             style={{ width: `${row.complianceRate}%` }}

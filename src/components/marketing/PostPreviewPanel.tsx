@@ -41,20 +41,20 @@ export function PostPreviewPanel({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl max-h-[85vh] overflow-y-auto">
+      <div className="w-full max-w-lg rounded-xl bg-card shadow-2xl max-h-[85vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
+        <div className="flex items-center justify-between border-b border-border px-5 py-3">
           <div className="flex items-center gap-2">
             <div className={`p-1.5 rounded-lg ${meta.bg}`}>
               <PlatformIcon className={`h-4 w-4 ${meta.accent}`} />
             </div>
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-sm font-semibold text-foreground">
               {meta.name} Preview
             </span>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -96,7 +96,7 @@ export function PostPreviewPanel({
         </div>
 
         {/* Footer meta */}
-        <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-400 flex items-center justify-between">
+        <div className="border-t border-border/50 px-5 py-3 text-xs text-muted flex items-center justify-between">
           <span>Preview is approximate — actual rendering varies by platform</span>
           {scheduledDate && (
             <span>
@@ -129,15 +129,15 @@ function FacebookPreview({
   scheduledDate?: string | null;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* FB header */}
       <div className="flex items-center gap-2.5 px-4 py-3">
         <div className="h-10 w-10 rounded-full bg-brand flex items-center justify-center text-white text-sm font-bold">
           A
         </div>
         <div>
-          <p className="text-sm font-semibold text-gray-900">Amana OSHC</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-sm font-semibold text-foreground">Amana OSHC</p>
+          <p className="text-xs text-muted">
             {scheduledDate
               ? new Date(scheduledDate).toLocaleDateString("en-AU", {
                   day: "numeric",
@@ -150,20 +150,20 @@ function FacebookPreview({
       </div>
       {/* Content */}
       <div className="px-4 pb-3">
-        <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
-          {content || <span className="text-gray-400 italic">No content yet</span>}
+        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+          {content || <span className="text-muted italic">No content yet</span>}
         </p>
       </div>
       {/* Image */}
       {imageUrl ? (
         <img src={imageUrl} alt={title} className="w-full object-cover max-h-72" />
       ) : (
-        <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
-          <span className="text-xs text-gray-400">Image will appear here</span>
+        <div className="w-full h-48 bg-surface flex items-center justify-center">
+          <span className="text-xs text-muted">Image will appear here</span>
         </div>
       )}
       {/* Engagement bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 text-xs text-gray-500">
+      <div className="flex items-center justify-between px-4 py-2 border-t border-border/50 text-xs text-muted">
         <span>👍 Like</span>
         <span>💬 Comment</span>
         <span>↗ Share</span>
@@ -183,35 +183,35 @@ function InstagramPreview({
   assigneeName?: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* IG header */}
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-0.5">
-          <div className="h-full w-full rounded-full bg-white flex items-center justify-center text-[10px] font-bold text-gray-700">
+          <div className="h-full w-full rounded-full bg-card flex items-center justify-center text-[10px] font-bold text-foreground/80">
             A
           </div>
         </div>
-        <span className="text-xs font-semibold text-gray-900">amana_oshc</span>
+        <span className="text-xs font-semibold text-foreground">amana_oshc</span>
       </div>
       {/* Image (square) */}
       {imageUrl ? (
         <img src={imageUrl} alt="Post" className="w-full aspect-square object-cover" />
       ) : (
-        <div className="w-full aspect-square bg-gray-100 flex items-center justify-center">
-          <span className="text-xs text-gray-400">Image will appear here</span>
+        <div className="w-full aspect-square bg-surface flex items-center justify-center">
+          <span className="text-xs text-muted">Image will appear here</span>
         </div>
       )}
       {/* Actions */}
-      <div className="flex items-center gap-4 px-3 py-2.5 text-gray-800">
+      <div className="flex items-center gap-4 px-3 py-2.5 text-foreground">
         <span className="text-lg">♡</span>
         <span className="text-lg">💬</span>
         <span className="text-lg">↗</span>
       </div>
       {/* Caption */}
       <div className="px-3 pb-3">
-        <p className="text-xs text-gray-900 leading-relaxed">
+        <p className="text-xs text-foreground leading-relaxed">
           <span className="font-semibold mr-1">amana_oshc</span>
-          {content || <span className="text-gray-400 italic">No caption yet</span>}
+          {content || <span className="text-muted italic">No caption yet</span>}
         </p>
       </div>
     </div>
@@ -229,27 +229,27 @@ function LinkedInPreview({
   assigneeName?: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* LI header */}
       <div className="flex items-center gap-2.5 px-4 py-3">
         <div className="h-12 w-12 rounded-lg bg-brand flex items-center justify-center text-white text-sm font-bold">
           A
         </div>
         <div>
-          <p className="text-sm font-semibold text-gray-900">Amana OSHC</p>
-          <p className="text-[10px] text-gray-500">
+          <p className="text-sm font-semibold text-foreground">Amana OSHC</p>
+          <p className="text-[10px] text-muted">
             1,200 followers · Just now
           </p>
         </div>
       </div>
       {/* Content */}
       <div className="px-4 pb-3">
-        <p className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">
-          {content || <span className="text-gray-400 italic">No content yet</span>}
+        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+          {content || <span className="text-muted italic">No content yet</span>}
         </p>
       </div>
       {/* Engagement */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 text-xs text-gray-500">
+      <div className="flex items-center justify-between px-4 py-2 border-t border-border/50 text-xs text-muted">
         <span>👍 Like</span>
         <span>💬 Comment</span>
         <span>🔄 Repost</span>
@@ -272,19 +272,19 @@ function GenericPreview({
   imageUrl?: string | null;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-      <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-        <p className="text-xs text-gray-500 uppercase tracking-wider">{platform}</p>
-        <p className="text-sm font-semibold text-gray-900 mt-0.5">
-          {title || <span className="text-gray-400 italic">Untitled</span>}
+    <div className="rounded-lg border border-border bg-card overflow-hidden">
+      <div className="px-4 py-3 bg-surface/50 border-b border-border">
+        <p className="text-xs text-muted uppercase tracking-wider">{platform}</p>
+        <p className="text-sm font-semibold text-foreground mt-0.5">
+          {title || <span className="text-muted italic">Untitled</span>}
         </p>
       </div>
       {imageUrl && (
         <img src={imageUrl} alt={title} className="w-full object-cover max-h-56" />
       )}
       <div className="px-4 py-3">
-        <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-          {content || <span className="text-gray-400 italic">No content yet</span>}
+        <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
+          {content || <span className="text-muted italic">No content yet</span>}
         </p>
       </div>
     </div>

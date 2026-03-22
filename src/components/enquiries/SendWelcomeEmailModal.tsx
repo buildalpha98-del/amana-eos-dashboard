@@ -163,17 +163,17 @@ export function SendWelcomeEmailModal({
         onClick={onClose}
       />
       <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div className="bg-card rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b">
-            <h2 className="text-base font-semibold text-gray-900">
+            <h2 className="text-base font-semibold text-foreground">
               Send Welcome Email
             </h2>
             <button
               onClick={onClose}
-              className="p-1 rounded hover:bg-gray-100"
+              className="p-1 rounded hover:bg-surface"
             >
-              <X className="h-5 w-5 text-gray-500" />
+              <X className="h-5 w-5 text-muted" />
             </button>
           </div>
 
@@ -183,45 +183,45 @@ export function SendWelcomeEmailModal({
             <div className="w-1/2 border-r overflow-y-auto p-5 space-y-4">
               {/* To */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">
+                <label className="block text-xs font-medium text-muted mb-1">
                   To
                 </label>
                 <input
                   type="email"
                   value={enquiry.parentEmail ?? "No email address"}
                   disabled
-                  className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500"
+                  className="w-full rounded-md border border-border bg-surface/50 px-3 py-2 text-sm text-muted"
                 />
               </div>
 
               {/* Subject */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">
+                <label className="block text-xs font-medium text-muted mb-1">
                   Subject
                 </label>
                 <input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-brand focus:border-brand"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm focus:ring-brand focus:border-brand"
                 />
               </div>
 
               {/* Body */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">
+                <label className="block text-xs font-medium text-muted mb-1">
                   Body
                 </label>
                 <textarea
                   rows={12}
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-brand focus:border-brand"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm focus:ring-brand focus:border-brand"
                 />
               </div>
 
               {/* Template indicator */}
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted">
                 {defaultTemplate
                   ? `Using template: ${defaultTemplate.name}`
                   : "Using default welcome message"}
@@ -229,12 +229,12 @@ export function SendWelcomeEmailModal({
             </div>
 
             {/* Right pane — preview */}
-            <div className="w-1/2 overflow-y-auto p-5 bg-gray-50">
-              <h3 className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">
+            <div className="w-1/2 overflow-y-auto p-5 bg-surface/50">
+              <h3 className="text-xs font-medium text-muted mb-3 uppercase tracking-wide">
                 Preview
               </h3>
               {previewMutation.isPending && !previewHtml ? (
-                <div className="flex items-center justify-center h-64 text-gray-400">
+                <div className="flex items-center justify-center h-64 text-muted">
                   <Loader2 className="h-5 w-5 animate-spin" />
                 </div>
               ) : (
@@ -244,10 +244,10 @@ export function SendWelcomeEmailModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t bg-gray-50">
+          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t bg-surface/50">
             <button
               onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-foreground/80 bg-card border border-border hover:bg-surface"
             >
               Cancel
             </button>

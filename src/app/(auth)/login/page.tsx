@@ -90,8 +90,8 @@ function LoginForm() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 sm:p-10 border border-white/50">
-          <h2 className="text-xl font-heading font-semibold text-gray-900 mb-6">
+        <div className="bg-card/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 sm:p-10 border border-white/50">
+          <h2 className="text-xl font-heading font-semibold text-foreground mb-6">
             Sign in to your account
           </h2>
 
@@ -105,7 +105,7 @@ function LoginForm() {
             <div>
               <label
                 htmlFor="email"
-                className="block font-heading text-sm font-semibold text-gray-700 tracking-wide mb-1.5"
+                className="block font-heading text-sm font-semibold text-foreground/80 tracking-wide mb-1.5"
               >
                 Email address
               </label>
@@ -115,7 +115,7 @@ function LoginForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200/80 rounded-xl bg-gray-50/50 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
+                className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
                 placeholder="you@amanaoshc.com.au"
                 autoComplete="email"
               />
@@ -124,7 +124,7 @@ function LoginForm() {
             <div>
               <label
                 htmlFor="password"
-                className="block font-heading text-sm font-semibold text-gray-700 tracking-wide mb-1.5"
+                className="block font-heading text-sm font-semibold text-foreground/80 tracking-wide mb-1.5"
               >
                 Password
               </label>
@@ -134,7 +134,7 @@ function LoginForm() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200/80 rounded-xl bg-gray-50/50 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
+                className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
                 placeholder="Enter your password"
                 autoComplete="current-password"
               />
@@ -147,11 +147,11 @@ function LoginForm() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-5 w-5 text-brand border-gray-300 rounded-md focus:ring-brand cursor-pointer"
+                  className="h-5 w-5 text-brand border-border rounded-md focus:ring-brand cursor-pointer"
                 />
                 <label
                   htmlFor="remember-me"
-                  className="ml-2 text-sm text-gray-600 cursor-pointer select-none"
+                  className="ml-2 text-sm text-muted cursor-pointer select-none"
                 >
                   Keep me signed in
                 </label>

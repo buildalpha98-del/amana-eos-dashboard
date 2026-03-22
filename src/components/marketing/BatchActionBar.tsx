@@ -28,7 +28,7 @@ export function BatchActionBar({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white shadow-lg">
+    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card shadow-lg">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-6 py-3 overflow-x-auto">
         {/* Count */}
         <span className="shrink-0 rounded-full bg-brand px-3 py-1 text-sm font-semibold text-white">
@@ -44,7 +44,7 @@ export function BatchActionBar({
               e.target.value = "";
             }
           }}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="" disabled>
             Change Status
@@ -65,7 +65,7 @@ export function BatchActionBar({
               e.target.value = "";
             }
           }}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="" disabled>
             Assign Campaign
@@ -89,7 +89,7 @@ export function BatchActionBar({
             }
           }}
           title="Reschedule"
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         />
 
         {/* Duplicate to Centres */}
@@ -116,7 +116,7 @@ export function BatchActionBar({
             </button>
             <button
               onClick={() => setShowDeleteConfirm(false)}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-surface transition-colors"
             >
               Cancel
             </button>
@@ -137,7 +137,7 @@ export function BatchActionBar({
         {/* Clear */}
         <button
           onClick={onClear}
-          className="shrink-0 rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+          className="shrink-0 rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
           title="Clear Selection"
         >
           <X className="h-5 w-5" />

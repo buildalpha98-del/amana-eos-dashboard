@@ -56,10 +56,10 @@ export default function EnrolmentStatusPage() {
 
   if (error || !data) {
     return (
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center">
+      <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center">
         <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Enrolment Not Found</h2>
-        <p className="text-gray-600">{error}</p>
+        <h2 className="text-xl font-bold text-foreground mb-2">Enrolment Not Found</h2>
+        <p className="text-muted">{error}</p>
       </div>
     );
   }
@@ -117,7 +117,7 @@ export default function EnrolmentStatusPage() {
   return (
     <div className="space-y-6">
       {/* Status header */}
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center">
+      <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center">
         <div
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold mb-4 ${statusInfo.color}`}
         >
@@ -128,17 +128,17 @@ export default function EnrolmentStatusPage() {
           )}
           {statusInfo.label}
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className="text-2xl font-bold text-foreground mb-2">
           Enrolment for {data.childNames}
         </h2>
-        <p className="text-gray-500 text-sm">
+        <p className="text-muted text-sm">
           Submitted by {data.parentName}
         </p>
       </div>
 
       {/* Timeline */}
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 sm:p-8">
-        <h3 className="text-lg font-bold text-gray-900 mb-6">Progress</h3>
+      <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 sm:p-8">
+        <h3 className="text-lg font-bold text-foreground mb-6">Progress</h3>
         <div className="space-y-0">
           {TIMELINE.map((item, i) => (
             <div key={i} className="flex gap-4">
@@ -149,7 +149,7 @@ export default function EnrolmentStatusPage() {
                       ? "bg-green-100 text-green-600"
                       : item.current
                       ? "bg-brand/10 text-brand animate-pulse"
-                      : "bg-gray-100 text-gray-400"
+                      : "bg-surface text-muted"
                   }`}
                 >
                   <item.icon className="h-5 w-5" />
@@ -157,7 +157,7 @@ export default function EnrolmentStatusPage() {
                 {i < TIMELINE.length - 1 && (
                   <div
                     className={`w-0.5 h-full min-h-[24px] ${
-                      item.done ? "bg-green-200" : "bg-gray-200"
+                      item.done ? "bg-green-200" : "bg-border"
                     }`}
                   />
                 )}
@@ -169,12 +169,12 @@ export default function EnrolmentStatusPage() {
                       ? "text-green-700"
                       : item.current
                       ? "text-brand"
-                      : "text-gray-500"
+                      : "text-muted"
                   }`}
                 >
                   {item.title}
                 </p>
-                <p className="text-sm text-gray-500 mt-0.5">{item.description}</p>
+                <p className="text-sm text-muted mt-0.5">{item.description}</p>
               </div>
             </div>
           ))}
@@ -182,8 +182,8 @@ export default function EnrolmentStatusPage() {
       </div>
 
       {/* Contact */}
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 text-center">
-        <p className="text-sm text-gray-600">
+      <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 text-center">
+        <p className="text-sm text-muted">
           Questions about your enrolment? Contact us at{" "}
           <a
             href="mailto:info@amanaoshc.com.au"

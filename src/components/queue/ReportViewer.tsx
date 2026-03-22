@@ -222,9 +222,9 @@ export function ReportViewer({
       />
 
       {/* Slide-over panel */}
-      <div className="relative w-full max-w-2xl bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+      <div className="relative w-full max-w-2xl bg-card shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
         {/* ── Top bar ── */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-[#FFFAE6]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-[#FFFAE6]">
           <div className="flex items-center gap-3">
             <span
               className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
@@ -232,7 +232,7 @@ export function ReportViewer({
             >
               {seatLabel(report.seat)}
             </span>
-            <span className="text-xs text-gray-500 capitalize">
+            <span className="text-xs text-muted capitalize">
               {report.reportType.replace(/-/g, " ")}
             </span>
           </div>
@@ -253,7 +253,7 @@ export function ReportViewer({
             />
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 text-muted hover:text-foreground rounded-lg hover:bg-surface transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -279,7 +279,7 @@ export function ReportViewer({
             <h1 className="text-xl font-bold text-[#004E64] leading-tight">
               {report.title}
             </h1>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-gray-500">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-muted">
               {report.service && (
                 <span className="flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5" />
@@ -354,7 +354,7 @@ export function ReportViewer({
                     <div className="text-lg font-bold text-[#004E64]">
                       {formatMetricValue(value)}
                     </div>
-                    <div className="text-xs text-gray-500 mt-0.5">
+                    <div className="text-xs text-muted mt-0.5">
                       {formatMetricLabel(key)}
                     </div>
                   </div>
@@ -371,7 +371,7 @@ export function ReportViewer({
                 Action Items ({actionItems.filter((i) => i.completed).length}/
                 {actionItems.length})
               </h2>
-              <div className="rounded-xl border border-gray-200 divide-y divide-gray-100">
+              <div className="rounded-xl border border-border divide-y divide-border/50">
                 {actionItems.map((item) => (
                   <div
                     key={item.id}
@@ -385,7 +385,7 @@ export function ReportViewer({
                         "mt-0.5 h-5 w-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors",
                         item.completed
                           ? "bg-[#004E64] border-[#004E64]"
-                          : "border-gray-300 hover:border-[#004E64]"
+                          : "border-border hover:border-[#004E64]"
                       )}
                     >
                       {item.completed && (
@@ -396,7 +396,7 @@ export function ReportViewer({
                       <span
                         className={cn(
                           "text-sm",
-                          item.completed && "line-through text-gray-400"
+                          item.completed && "line-through text-muted"
                         )}
                       >
                         {item.text}
@@ -441,7 +441,7 @@ export function ReportViewer({
                     </strong>
                   ),
                   li: ({ children }) => (
-                    <li className="text-sm text-gray-700 ml-4">{children}</li>
+                    <li className="text-sm text-foreground/80 ml-4">{children}</li>
                   ),
                   a: ({ href, children }) => (
                     <a
@@ -454,15 +454,15 @@ export function ReportViewer({
                     </a>
                   ),
                   p: ({ children }) => (
-                    <p className="text-sm text-gray-700 mb-2">{children}</p>
+                    <p className="text-sm text-foreground/80 mb-2">{children}</p>
                   ),
                   ol: ({ children }) => (
-                    <ol className="list-decimal pl-5 space-y-1 mb-3 text-sm text-gray-700">
+                    <ol className="list-decimal pl-5 space-y-1 mb-3 text-sm text-foreground/80">
                       {children}
                     </ol>
                   ),
                   ul: ({ children }) => (
-                    <ul className="list-disc pl-5 space-y-1 mb-3 text-sm text-gray-700">
+                    <ul className="list-disc pl-5 space-y-1 mb-3 text-sm text-foreground/80">
                       {children}
                     </ul>
                   ),
@@ -475,7 +475,7 @@ export function ReportViewer({
         </div>
 
         {/* ── Actions Bar ── */}
-        <div className="border-t border-gray-200 bg-white px-6 py-4 flex items-center gap-3">
+        <div className="border-t border-border bg-card px-6 py-4 flex items-center gap-3">
           {report.status === "pending" && onReview && (
             <button
               onClick={onReview}
@@ -494,7 +494,7 @@ export function ReportViewer({
             Export PDF
           </button>
           <div className="flex-1" />
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-muted">
             {report.id.slice(0, 8)}
           </span>
         </div>

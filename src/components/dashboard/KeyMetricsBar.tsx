@@ -165,8 +165,8 @@ export function KeyMetricsBar({ metrics, opsMetrics, hideFinancials }: KeyMetric
     <div className="space-y-3">
       {/* Ops metrics row */}
       {opsItems.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">
+        <div className="bg-card rounded-xl border border-border p-4">
+          <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-3">
             Live Operations
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -179,8 +179,8 @@ export function KeyMetricsBar({ metrics, opsMetrics, hideFinancials }: KeyMetric
                   <item.icon className="w-4.5 h-4.5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-gray-500 whitespace-nowrap">{item.label}</p>
-                  <p className="text-lg font-bold text-gray-900 leading-tight">
+                  <p className="text-xs text-muted whitespace-nowrap">{item.label}</p>
+                  <p className="text-lg font-bold text-foreground leading-tight">
                     {item.value}
                   </p>
                 </div>
@@ -191,9 +191,9 @@ export function KeyMetricsBar({ metrics, opsMetrics, hideFinancials }: KeyMetric
       )}
 
       {/* Core metrics row */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-card rounded-xl border border-border p-4">
         {hasOps && (
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">
+          <p className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-3">
             Period Metrics
           </p>
         )}
@@ -207,8 +207,8 @@ export function KeyMetricsBar({ metrics, opsMetrics, hideFinancials }: KeyMetric
                 <item.icon className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-gray-500 whitespace-nowrap">{item.label}</p>
-                <p className="text-lg font-bold text-gray-900 leading-tight">
+                <p className="text-xs text-muted whitespace-nowrap">{item.label}</p>
+                <p className="text-lg font-bold text-foreground leading-tight">
                   {item.value}
                 </p>
               </div>

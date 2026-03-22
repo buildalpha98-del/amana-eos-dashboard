@@ -77,18 +77,18 @@ export function PostHistoryPanel({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-xl bg-white shadow-2xl max-h-[80vh] flex flex-col">
+      <div className="w-full max-w-md rounded-xl bg-card shadow-2xl max-h-[80vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3 shrink-0">
+        <div className="flex items-center justify-between border-b border-border px-5 py-3 shrink-0">
           <div className="flex items-center gap-2">
             <History className="h-4 w-4 text-brand" />
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-sm font-semibold text-foreground">
               Revision History
             </span>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-foreground transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -101,26 +101,26 @@ export function PostHistoryPanel({
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand" />
             </div>
           ) : grouped.length === 0 ? (
-            <div className="text-center py-8 text-sm text-gray-400">
+            <div className="text-center py-8 text-sm text-muted">
               No changes recorded yet
             </div>
           ) : (
             <div className="relative">
               {/* Timeline line */}
-              <div className="absolute left-2 top-2 bottom-2 w-px bg-gray-200" />
+              <div className="absolute left-2 top-2 bottom-2 w-px bg-border" />
 
               <div className="space-y-4">
                 {grouped.map((group, gi) => (
                   <div key={gi} className="relative pl-7">
                     {/* Dot */}
-                    <div className="absolute left-0.5 top-1 h-3 w-3 rounded-full border-2 border-brand bg-white" />
+                    <div className="absolute left-0.5 top-1 h-3 w-3 rounded-full border-2 border-brand bg-card" />
 
                     {/* Meta */}
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-xs font-medium text-gray-700">
+                      <span className="text-xs font-medium text-foreground/80">
                         {group.user}
                       </span>
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-[10px] text-muted">
                         {new Date(group.time).toLocaleDateString("en-AU", {
                           day: "numeric",
                           month: "short",
@@ -135,17 +135,17 @@ export function PostHistoryPanel({
                       {group.changes.map((rev) => (
                         <div
                           key={rev.id}
-                          className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                          className="rounded-lg border border-border/50 bg-surface/50 px-3 py-2"
                         >
-                          <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                          <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
                             {FIELD_LABELS[rev.field] || rev.field}
                           </span>
                           <div className="flex items-center gap-1.5 mt-0.5 text-xs">
-                            <span className="text-gray-400 truncate max-w-[140px]">
+                            <span className="text-muted truncate max-w-[140px]">
                               {formatValue(rev.field, rev.oldValue)}
                             </span>
-                            <ArrowRight className="h-3 w-3 text-gray-300 shrink-0" />
-                            <span className="text-gray-800 font-medium truncate max-w-[140px]">
+                            <ArrowRight className="h-3 w-3 text-muted/50 shrink-0" />
+                            <span className="text-foreground font-medium truncate max-w-[140px]">
                               {formatValue(rev.field, rev.newValue)}
                             </span>
                           </div>

@@ -42,7 +42,7 @@ function RockRow({ rock, onClick }: { rock: RockData; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left group"
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-surface transition-colors text-left group"
     >
       {/* Progress circle */}
       <div className="relative w-9 h-9 flex-shrink-0">
@@ -66,14 +66,14 @@ function RockRow({ rock, onClick }: { rock: RockData; onClick: () => void }) {
             strokeLinecap="round"
           />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-700">
+        <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground/80">
           {rock.percentComplete}%
         </span>
       </div>
 
       {/* Rock info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">
+        <p className="text-sm font-medium text-foreground truncate">
           {rock.title}
         </p>
         <div className="flex items-center gap-2 mt-0.5">
@@ -86,7 +86,7 @@ function RockRow({ rock, onClick }: { rock: RockData; onClick: () => void }) {
           >
             {priority.label}
           </span>
-          <span className="text-xs text-gray-400">{rock.owner?.name ?? "Unassigned"}</span>
+          <span className="text-xs text-muted">{rock.owner?.name ?? "Unassigned"}</span>
         </div>
       </div>
 
@@ -99,7 +99,7 @@ function RockRow({ rock, onClick }: { rock: RockData; onClick: () => void }) {
       </span>
 
       {/* Chevron */}
-      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-brand transition-colors flex-shrink-0" />
+      <ChevronRight className="w-4 h-4 text-muted/50 group-hover:text-brand transition-colors flex-shrink-0" />
     </button>
   );
 }
@@ -123,33 +123,33 @@ function RockSection({
   const complete = rocks.filter((r) => r.status === "complete").length;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200">
+    <div className="bg-card rounded-xl border border-border">
       {/* Section header */}
-      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+      <div className="px-5 py-3.5 border-b border-border/50 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
             <Icon className="w-4 h-4 text-brand" />
           </div>
-          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-          <span className="text-xs text-gray-400 ml-1">({rocks.length})</span>
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+          <span className="text-xs text-muted ml-1">({rocks.length})</span>
         </div>
         <div className="flex items-center gap-3 text-[11px] font-medium">
           {onTrack > 0 && (
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-gray-500">{onTrack} on track</span>
+              <span className="text-muted">{onTrack} on track</span>
             </span>
           )}
           {offTrack > 0 && (
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-gray-500">{offTrack} off track</span>
+              <span className="text-muted">{offTrack} off track</span>
             </span>
           )}
           {complete > 0 && (
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-brand" />
-              <span className="text-gray-500">{complete} done</span>
+              <span className="text-muted">{complete} done</span>
             </span>
           )}
         </div>
@@ -167,14 +167,14 @@ function RockSection({
           ))
         ) : (
           <div className="px-5 py-8 text-center">
-            <Target className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">{emptyText}</p>
+            <Target className="w-8 h-8 text-muted/50 mx-auto mb-2" />
+            <p className="text-sm text-muted">{emptyText}</p>
           </div>
         )}
       </div>
 
       {/* Footer link */}
-      <div className="px-5 py-2.5 border-t border-gray-100">
+      <div className="px-5 py-2.5 border-t border-border/50">
         <Link
           href="/rocks"
           className="flex items-center justify-center gap-1 text-xs font-medium text-brand hover:text-brand-hover transition-colors"
@@ -199,7 +199,7 @@ export function DashboardRocks() {
         {[0, 1].map((i) => (
           <div
             key={i}
-            className="bg-white rounded-xl border border-gray-200 h-48 animate-pulse"
+            className="bg-card rounded-xl border border-border h-48 animate-pulse"
           />
         ))}
       </div>

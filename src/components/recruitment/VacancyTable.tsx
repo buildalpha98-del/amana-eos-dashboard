@@ -14,7 +14,7 @@ const STATUS_STYLES: Record<string, string> = {
   interviewing: "bg-amber-100 text-amber-700",
   offered: "bg-purple-100 text-purple-700",
   filled: "bg-emerald-100 text-emerald-700",
-  cancelled: "bg-gray-100 text-gray-500",
+  cancelled: "bg-surface text-muted",
 };
 
 interface Vacancy {
@@ -40,71 +40,71 @@ export function VacancyTable({ vacancies, isLoading, onSelect }: VacancyTablePro
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-border border-t-blue-600 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (vacancies.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-        <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500 text-sm">No vacancies found</p>
-        <p className="text-gray-400 text-xs mt-1">Create a new vacancy to get started</p>
+      <div className="bg-card rounded-xl border border-border p-12 text-center">
+        <Briefcase className="h-12 w-12 text-muted/50 mx-auto mb-3" />
+        <p className="text-muted text-sm">No vacancies found</p>
+        <p className="text-muted text-xs mt-1">Create a new vacancy to get started</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
       <table className="w-full">
         <thead>
-          <tr className="bg-gray-50 border-b border-gray-200">
-            <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">Role</th>
-            <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">Centre</th>
-            <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">Type</th>
-            <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">Status</th>
-            <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">Candidates</th>
-            <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">Assigned To</th>
-            <th className="text-left text-xs font-medium text-gray-500 uppercase px-4 py-3">Target Date</th>
+          <tr className="bg-surface/50 border-b border-border">
+            <th className="text-left text-xs font-medium text-muted uppercase px-4 py-3">Role</th>
+            <th className="text-left text-xs font-medium text-muted uppercase px-4 py-3">Centre</th>
+            <th className="text-left text-xs font-medium text-muted uppercase px-4 py-3">Type</th>
+            <th className="text-left text-xs font-medium text-muted uppercase px-4 py-3">Status</th>
+            <th className="text-left text-xs font-medium text-muted uppercase px-4 py-3">Candidates</th>
+            <th className="text-left text-xs font-medium text-muted uppercase px-4 py-3">Assigned To</th>
+            <th className="text-left text-xs font-medium text-muted uppercase px-4 py-3">Target Date</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-border/50">
           {vacancies.map((v) => (
             <tr
               key={v.id}
               onClick={() => onSelect(v.id)}
-              className="hover:bg-gray-50 cursor-pointer transition-colors"
+              className="hover:bg-surface cursor-pointer transition-colors"
             >
               <td className="px-4 py-3">
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-medium text-foreground">
                   {ROLE_LABELS[v.role] || v.role}
                 </span>
               </td>
               <td className="px-4 py-3">
-                <span className="text-sm text-gray-600">{v.service.name}</span>
+                <span className="text-sm text-muted">{v.service.name}</span>
               </td>
               <td className="px-4 py-3">
-                <span className="text-sm text-gray-600 capitalize">
+                <span className="text-sm text-muted capitalize">
                   {v.employmentType.replace("_", " ")}
                 </span>
               </td>
               <td className="px-4 py-3">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[v.status] || "bg-gray-100 text-gray-700"}`}>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[v.status] || "bg-surface text-foreground/80"}`}>
                   {v.status}
                 </span>
               </td>
               <td className="px-4 py-3">
-                <span className="text-sm text-gray-600">{v._count.candidates}</span>
+                <span className="text-sm text-muted">{v._count.candidates}</span>
               </td>
               <td className="px-4 py-3">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-muted">
                   {v.assignedTo?.name || "—"}
                 </span>
               </td>
               <td className="px-4 py-3">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-muted">
                   {v.targetFillDate
                     ? new Date(v.targetFillDate).toLocaleDateString("en-AU", {
                         day: "numeric",
@@ -114,7 +114,7 @@ export function VacancyTable({ vacancies, isLoading, onSelect }: VacancyTablePro
                 </span>
               </td>
               <td className="px-4 py-3 text-right">
-                <ChevronRight className="h-4 w-4 text-gray-400" />
+                <ChevronRight className="h-4 w-4 text-muted" />
               </td>
             </tr>
           ))}

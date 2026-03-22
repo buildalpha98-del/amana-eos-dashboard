@@ -48,8 +48,8 @@ export default function DataRoomPage() {
               <FolderLock className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Due Diligence Data Room</h2>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Due Diligence Data Room</h2>
+              <p className="text-sm text-muted mt-0.5">
                 Investor-ready document tracking and exit readiness scoring
               </p>
             </div>
@@ -102,8 +102,8 @@ export default function DataRoomPage() {
             <FolderLock className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Due Diligence Data Room</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Due Diligence Data Room</h2>
+            <p className="text-sm text-muted mt-0.5">
               Investor-ready document tracking and exit readiness scoring
             </p>
           </div>
@@ -130,12 +130,12 @@ export default function DataRoomPage() {
       <div className="space-y-4">
         {isLoading
           ? Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
+              <div key={i} className="bg-card rounded-xl border border-border p-5 animate-pulse">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-gray-100 rounded-lg" />
+                  <div className="w-9 h-9 bg-surface rounded-lg" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 w-40 bg-gray-100 rounded" />
-                    <div className="h-1.5 w-full bg-gray-100 rounded-full" />
+                    <div className="h-4 w-40 bg-surface rounded" />
+                    <div className="h-1.5 w-full bg-surface rounded-full" />
                   </div>
                 </div>
               </div>
@@ -165,7 +165,7 @@ export default function DataRoomPage() {
 
       {/* Generated timestamp */}
       {data?.generatedAt && (
-        <p className="text-xs text-gray-400 text-center">
+        <p className="text-xs text-muted text-center">
           Data Room index generated{" "}
           {new Date(data.generatedAt).toLocaleString("en-AU", {
             day: "numeric",

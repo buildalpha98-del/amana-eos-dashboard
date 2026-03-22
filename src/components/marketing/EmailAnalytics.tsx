@@ -151,7 +151,7 @@ export function EmailAnalytics() {
             <p className="text-center text-xs text-foreground/40 py-8">No sends in this period</p>
           ) : (
             recentSends.slice(0, 20).map((send) => {
-              const sc = statusColors[send.status] ?? { bg: "bg-gray-100", text: "text-gray-600" };
+              const sc = statusColors[send.status] ?? { bg: "bg-surface", text: "text-muted" };
               return (
                 <div key={send.id} className="px-4 py-2.5 flex items-center gap-3 text-xs">
                   <div className="flex-1 min-w-0">

@@ -123,15 +123,15 @@ export function CreateTaskModal({
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="w-full max-w-lg rounded-xl bg-white shadow-xl"
+          className="w-full max-w-lg rounded-xl bg-card shadow-xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">New Task</h2>
+            <h2 className="text-lg font-semibold text-foreground">New Task</h2>
             <button
               onClick={handleClose}
-              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-foreground"
             >
               <X className="h-5 w-5" />
             </button>
@@ -145,7 +145,7 @@ export function CreateTaskModal({
             <div className="space-y-4">
               {/* Title */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Title <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -154,13 +154,13 @@ export function CreateTaskModal({
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Task title"
                   required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Description
                 </label>
                 <textarea
@@ -168,14 +168,14 @@ export function CreateTaskModal({
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   placeholder="What needs to be done..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
               {/* Priority + Status Row */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-foreground/80">
                     Priority
                   </label>
                   <select
@@ -183,7 +183,7 @@ export function CreateTaskModal({
                     onChange={(e) =>
                       setPriority(e.target.value as MarketingTaskPriority)
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   >
                     {PRIORITY_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -193,7 +193,7 @@ export function CreateTaskModal({
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-foreground/80">
                     Status
                   </label>
                   <select
@@ -201,7 +201,7 @@ export function CreateTaskModal({
                     onChange={(e) =>
                       setStatus(e.target.value as MarketingTaskStatus)
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   >
                     {STATUS_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -214,26 +214,26 @@ export function CreateTaskModal({
 
               {/* Due Date */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Due Date
                 </label>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
               {/* Assignee */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Assignee
                 </label>
                 <select
                   value={assigneeId}
                   onChange={(e) => setAssigneeId(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">Unassigned</option>
                   {users.map((user) => (
@@ -246,13 +246,13 @@ export function CreateTaskModal({
 
               {/* Campaign */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Campaign
                 </label>
                 <select
                   value={campaignId}
                   onChange={(e) => setCampaignId(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">None</option>
                   {(campaigns ?? []).map((c) => (
@@ -276,7 +276,7 @@ export function CreateTaskModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface"
               >
                 Cancel
               </button>

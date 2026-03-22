@@ -85,8 +85,8 @@ export default function CrmTemplatesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Email Templates</h2>
-          <p className="text-gray-500 mt-1">
+          <h2 className="text-2xl font-bold text-foreground">Email Templates</h2>
+          <p className="text-muted mt-1">
             Manage CRM email templates for automated touchpoints
           </p>
         </div>
@@ -123,28 +123,28 @@ export default function CrmTemplatesPage() {
           <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
         </div>
       ) : templates && templates.length > 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Name</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Subject</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">
+              <tr className="border-b border-border bg-surface/50">
+                <th className="text-left px-4 py-3 font-medium text-muted">Name</th>
+                <th className="text-left px-4 py-3 font-medium text-muted">Subject</th>
+                <th className="text-left px-4 py-3 font-medium text-muted">
                   Trigger Stage
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Pipeline</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Order</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
+                <th className="text-left px-4 py-3 font-medium text-muted">Pipeline</th>
+                <th className="text-left px-4 py-3 font-medium text-muted">Order</th>
+                <th className="text-right px-4 py-3 font-medium text-muted">Actions</th>
               </tr>
             </thead>
             <tbody>
               {templates.map((t) => (
                 <tr
                   key={t.id}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  className="border-b border-border/50 hover:bg-surface transition-colors"
                 >
-                  <td className="px-4 py-3 font-medium text-gray-900">{t.name}</td>
-                  <td className="px-4 py-3 text-gray-600 truncate max-w-[200px]">
+                  <td className="px-4 py-3 font-medium text-foreground">{t.name}</td>
+                  <td className="px-4 py-3 text-muted truncate max-w-[200px]">
                     {t.subject}
                   </td>
                   <td className="px-4 py-3">
@@ -153,7 +153,7 @@ export default function CrmTemplatesPage() {
                         {stageLabels[t.triggerStage] || t.triggerStage}
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-400">Manual</span>
+                      <span className="text-xs text-muted">Manual</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -168,22 +168,22 @@ export default function CrmTemplatesPage() {
                         {t.pipeline}
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-400">Both</span>
+                      <span className="text-xs text-muted">Both</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{t.sortOrder}</td>
+                  <td className="px-4 py-3 text-muted">{t.sortOrder}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
                       <button
                         onClick={() => setEditingTemplate(t)}
-                        className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                        className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface transition-colors"
                         title="Edit"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setDeletingTemplate(t)}
-                        className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-md text-muted hover:text-danger hover:bg-red-50 transition-colors"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />

@@ -53,7 +53,7 @@ export function CampaignsTab({
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground/80 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -65,7 +65,7 @@ export function CampaignsTab({
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground/80 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           {TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -87,25 +87,25 @@ export function CampaignsTab({
 
       {/* Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16 text-gray-500">
+        <div className="flex items-center justify-center py-16 text-muted">
           Loading campaigns...
         </div>
       ) : !campaigns || campaigns.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border bg-white py-16">
-          <Megaphone className="mb-3 h-10 w-10 text-gray-300" />
-          <p className="text-lg font-medium text-gray-700">
+        <div className="flex flex-col items-center justify-center rounded-xl border bg-card py-16">
+          <Megaphone className="mb-3 h-10 w-10 text-muted/50" />
+          <p className="text-lg font-medium text-foreground/80">
             No campaigns found
           </p>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-muted">
             Adjust your filters or create a new campaign to get started.
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-white">
+        <div className="overflow-hidden rounded-xl border bg-card">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b bg-gray-50 text-xs font-medium uppercase tracking-wider text-gray-500">
+                <tr className="border-b bg-surface/50 text-xs font-medium uppercase tracking-wider text-muted">
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Status</th>
@@ -115,17 +115,17 @@ export function CampaignsTab({
                   <th className="px-4 py-3">Posts</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border/50">
                 {campaigns.map((campaign: CampaignData) => (
                   <tr
                     key={campaign.id}
                     onClick={() => onSelectCampaign(campaign.id)}
-                    className="cursor-pointer transition-colors hover:bg-gray-50"
+                    className="cursor-pointer transition-colors hover:bg-surface"
                   >
-                    <td className="px-4 py-3 font-medium text-gray-900">
+                    <td className="px-4 py-3 font-medium text-foreground">
                       {campaign.name}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-muted">
                       <span className="capitalize">{campaign.type}</span>
                       {campaign.type === "activation" && (
                         <span className="ml-1.5 inline-flex items-center rounded-full bg-purple-100 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700">
@@ -156,17 +156,17 @@ export function CampaignsTab({
                           ))}
                         </div>
                       ) : (
-                        <span className="text-gray-400 italic text-xs">
+                        <span className="text-muted italic text-xs">
                           All Centres
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-muted">
                       {campaign.startDate
                         ? new Date(campaign.startDate).toLocaleDateString()
                         : "\u2014"}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-4 py-3 text-muted">
                       {campaign._count.posts}
                     </td>
                   </tr>

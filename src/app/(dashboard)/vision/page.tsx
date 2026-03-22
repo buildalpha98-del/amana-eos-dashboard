@@ -46,15 +46,15 @@ export default function VisionPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-xl font-semibold text-foreground">
             Vision / Traction Organiser <HelpTooltip id="vto-heading" content="Your Vision/Traction Organizer defines where you're going and how you'll get there. Review quarterly to stay aligned." />
           </h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             Your strategic compass — click any section to edit
           </p>
         </div>
         {vto?.updatedBy && (
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-muted">
             Last updated by {vto.updatedBy.name} on{" "}
             {new Date(vto.updatedAt).toLocaleDateString("en-AU", {
               day: "numeric",
@@ -71,14 +71,14 @@ export default function VisionPage() {
           <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
+        <div className="flex flex-col items-center justify-center py-24 text-center bg-card rounded-xl border border-border">
           <div className="w-16 h-16 rounded-2xl bg-brand/5 flex items-center justify-center mb-4">
             <Eye className="w-8 h-8 text-brand/30" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             V/TO not available
           </h3>
-          <p className="text-gray-500 mt-2 max-w-md">
+          <p className="text-muted mt-2 max-w-md">
             No Vision/Traction Organiser has been set up yet. Run the database
             seed to create the default V/TO.
           </p>
@@ -124,7 +124,7 @@ export default function VisionPage() {
             <div className="space-y-6">
               <div className="flex items-center gap-2 px-1">
                 <div className="w-1.5 h-6 rounded-full bg-accent" />
-                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+                <h3 className="text-sm font-bold text-foreground/80 uppercase tracking-wider">
                   Traction
                 </h3>
               </div>
@@ -150,11 +150,11 @@ export default function VisionPage() {
           </div>
 
           {/* Current Quarter Rocks */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bg-card rounded-xl border border-border p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Mountain className="w-5 h-5 text-brand" />
-                <h3 className="text-sm font-bold text-gray-900">
+                <h3 className="text-sm font-bold text-foreground">
                   {quarter} Rocks
                 </h3>
               </div>
@@ -171,14 +171,14 @@ export default function VisionPage() {
                 {/* Progress bar */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted">
                       Average completion
                     </span>
                     <span className="text-sm font-semibold text-brand">
                       {rockStats.avgProgress}%
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
                     <div
                       className="h-full bg-brand rounded-full transition-all"
                       style={{ width: `${rockStats.avgProgress}%` }}
@@ -189,10 +189,10 @@ export default function VisionPage() {
                 {/* Stats */}
                 <div className="grid grid-cols-4 gap-3">
                   <div className="text-center">
-                    <div className="text-lg font-bold text-gray-900">
+                    <div className="text-lg font-bold text-foreground">
                       {rockStats.total}
                     </div>
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wider">
+                    <div className="text-[10px] text-muted uppercase tracking-wider">
                       Total
                     </div>
                   </div>
@@ -223,22 +223,22 @@ export default function VisionPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted">
                 No rocks set for {quarter} yet.
               </p>
             )}
           </div>
 
           {/* Company Issues (IDS Parking Lot) */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bg-card rounded-xl border border-border p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                <h3 className="text-sm font-bold text-gray-900">
+                <h3 className="text-sm font-bold text-foreground">
                   Company Issues
                 </h3>
                 {companyIssues.length > 0 && (
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-muted">
                     ({companyIssues.length} open)
                   </span>
                 )}
@@ -257,7 +257,7 @@ export default function VisionPage() {
                   <Link
                     key={issue.id}
                     href="/issues"
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors group"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface transition-colors group"
                   >
                     <div
                       className={cn(
@@ -269,10 +269,10 @@ export default function VisionPage() {
                           : "bg-gray-300"
                       )}
                     />
-                    <span className="text-sm text-gray-700 truncate flex-1 group-hover:text-gray-900">
+                    <span className="text-sm text-foreground/80 truncate flex-1 group-hover:text-foreground">
                       {issue.title}
                     </span>
-                    <span className="text-[10px] text-gray-400 uppercase flex-shrink-0">
+                    <span className="text-[10px] text-muted uppercase flex-shrink-0">
                       {issue.status.replace("_", " ")}
                     </span>
                   </Link>
@@ -287,7 +287,7 @@ export default function VisionPage() {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted">
                 No open company issues — great job!
               </p>
             )}

@@ -59,7 +59,7 @@ export function EnquiryStatsBar({
       colour:
         stats.stuckCount > 0
           ? "text-red-600 bg-red-50"
-          : "text-gray-500 bg-gray-50",
+          : "text-muted bg-surface/50",
     },
     {
       label: "New Enquiries",
@@ -80,14 +80,14 @@ export function EnquiryStatsBar({
       {statCards.map((card) => (
         <div
           key={card.label}
-          className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3"
+          className="bg-card rounded-lg border border-border p-4 flex items-center gap-3"
         >
           <div className={`p-2 rounded-lg ${card.colour}`}>
             <card.icon className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-            <p className="text-xs text-gray-500">{card.label}</p>
+            <p className="text-2xl font-bold text-foreground">{card.value}</p>
+            <p className="text-xs text-muted">{card.label}</p>
           </div>
         </div>
       ))}

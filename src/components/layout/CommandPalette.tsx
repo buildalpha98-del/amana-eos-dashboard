@@ -367,10 +367,10 @@ export function CommandPalette({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div role="dialog" aria-modal="true" aria-label="Command palette" className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-label="Command palette" className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 border-b border-gray-200">
-          <Search className="w-5 h-5 text-gray-400 shrink-0" />
+        <div className="flex items-center gap-3 px-4 border-b border-border">
+          <Search className="w-5 h-5 text-muted shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -379,7 +379,7 @@ export function CommandPalette({
             onKeyDown={handleKeyDown}
             placeholder="Search or jump to..."
             aria-label="Search or jump to a page"
-            className="flex-1 py-4 text-sm text-gray-900 bg-transparent focus:outline-none placeholder:text-gray-400"
+            className="flex-1 py-4 text-sm text-foreground bg-transparent focus:outline-none placeholder:text-muted"
           />
           {query && (
             <button
@@ -389,7 +389,7 @@ export function CommandPalette({
                 inputRef.current?.focus();
               }}
               aria-label="Clear search"
-              className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+              className="p-1 rounded-md text-muted hover:text-foreground"
             >
               <X className="w-4 h-4" />
             </button>
@@ -397,9 +397,9 @@ export function CommandPalette({
           <button
             onClick={onClose}
             aria-label="Close command palette"
-            className="p-1 rounded-md text-gray-300 hover:text-gray-500 text-xs"
+            className="p-1 rounded-md text-muted/50 hover:text-muted text-xs"
           >
-            <kbd className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-medium text-gray-400">
+            <kbd className="px-1.5 py-0.5 bg-surface border border-border rounded text-[10px] font-medium text-muted">
               Esc
             </kbd>
           </button>
@@ -409,7 +409,7 @@ export function CommandPalette({
         <div ref={listRef} className="max-h-[360px] overflow-y-auto">
           {/* Loading spinner */}
           {loading && (
-            <div className="px-4 py-8 text-center text-sm text-gray-400">
+            <div className="px-4 py-8 text-center text-sm text-muted">
               Searching...
             </div>
           )}
@@ -417,11 +417,11 @@ export function CommandPalette({
           {/* No results */}
           {showNoResults && (
             <div className="px-4 py-8 text-center">
-              <Search className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">
+              <Search className="w-8 h-8 text-muted/50 mx-auto mb-2" />
+              <p className="text-sm text-muted">
                 No results found for &quot;{query}&quot;
               </p>
-              <p className="text-xs text-gray-300 mt-1">
+              <p className="text-xs text-muted/50 mt-1">
                 Try searching for people, services, or EOS items
               </p>
             </div>
@@ -437,7 +437,7 @@ export function CommandPalette({
                   return (
                     <div key={group.type}>
                       <div className="px-4 pt-3 pb-1.5">
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                        <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
                           {config.label}
                         </span>
                       </div>
@@ -450,7 +450,7 @@ export function CommandPalette({
                             data-index={idx}
                             onClick={() => handleSelectResult(result)}
                             className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                              idx === activeIndex ? "bg-gray-100" : "hover:bg-gray-50"
+                              idx === activeIndex ? "bg-surface" : "hover:bg-surface"
                             }`}
                           >
                             <div
@@ -459,21 +459,21 @@ export function CommandPalette({
                               <Icon className={`w-3.5 h-3.5 ${config.color}`} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
+                              <p className="text-sm font-medium text-foreground truncate">
                                 {result.title}
                               </p>
                               {result.subtitle && (
-                                <p className="text-xs text-gray-400 truncate">
+                                <p className="text-xs text-muted truncate">
                                   {result.subtitle}
                                 </p>
                               )}
                             </div>
                             {idx === activeIndex ? (
-                              <kbd className="px-1 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-500 shrink-0">
+                              <kbd className="px-1 py-0.5 bg-border rounded text-[10px] font-medium text-muted shrink-0">
                                 {"\u21B5"}
                               </kbd>
                             ) : (
-                              <ArrowRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                              <ArrowRight className="w-3.5 h-3.5 text-muted/50 shrink-0" />
                             )}
                           </button>
                         );
@@ -493,7 +493,7 @@ export function CommandPalette({
                 {/* Quick actions */}
                 <div>
                   <div className="px-4 pt-3 pb-1.5">
-                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                    <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
                       Quick Actions
                     </span>
                   </div>
@@ -506,21 +506,21 @@ export function CommandPalette({
                         data-index={idx}
                         onClick={() => handleSelectAction(action)}
                         className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors ${
-                          idx === activeIndex ? "bg-gray-100" : "hover:bg-gray-50"
+                          idx === activeIndex ? "bg-surface" : "hover:bg-surface"
                         }`}
                       >
                         <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 bg-brand/10">
                           <Icon className="w-3.5 h-3.5 text-brand" />
                         </div>
-                        <span className="flex-1 text-sm font-medium text-gray-700 truncate">
+                        <span className="flex-1 text-sm font-medium text-foreground/80 truncate">
                           {action.label}
                         </span>
                         {idx === activeIndex ? (
-                          <kbd className="px-1 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-500 shrink-0">
+                          <kbd className="px-1 py-0.5 bg-border rounded text-[10px] font-medium text-muted shrink-0">
                             {"\u21B5"}
                           </kbd>
                         ) : (
-                          <ArrowRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                          <ArrowRight className="w-3.5 h-3.5 text-muted/50 shrink-0" />
                         )}
                       </button>
                     );
@@ -531,8 +531,8 @@ export function CommandPalette({
                 {query.trim().length === 0 && recentPages.length > 0 && (
                   <div>
                     <div className="px-4 pt-3 pb-1.5 flex items-center gap-1.5">
-                      <Clock className="w-3 h-3 text-gray-400" />
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                      <Clock className="w-3 h-3 text-muted" />
+                      <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
                         Recent
                       </span>
                     </div>
@@ -545,22 +545,22 @@ export function CommandPalette({
                           data-index={idx}
                           onClick={() => handleSelectRecentPage(rp)}
                           className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors ${
-                            idx === activeIndex ? "bg-gray-100" : "hover:bg-gray-50"
+                            idx === activeIndex ? "bg-surface" : "hover:bg-surface"
                           }`}
                         >
                           {Icon ? (
-                            <Icon className="w-4 h-4 text-gray-400 shrink-0" />
+                            <Icon className="w-4 h-4 text-muted shrink-0" />
                           ) : (
-                            <Clock className="w-4 h-4 text-gray-300 shrink-0" />
+                            <Clock className="w-4 h-4 text-muted/50 shrink-0" />
                           )}
-                          <span className="flex-1 text-sm text-gray-700 truncate">
+                          <span className="flex-1 text-sm text-foreground/80 truncate">
                             {rp.title}
                           </span>
-                          <span className="text-[10px] text-gray-300 shrink-0">
+                          <span className="text-[10px] text-muted/50 shrink-0">
                             {relativeTime(rp.timestamp)}
                           </span>
                           {idx === activeIndex && (
-                            <kbd className="px-1 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-500 shrink-0">
+                            <kbd className="px-1 py-0.5 bg-border rounded text-[10px] font-medium text-muted shrink-0">
                               {"\u21B5"}
                             </kbd>
                           )}
@@ -574,7 +574,7 @@ export function CommandPalette({
                 {recentSearches.length > 0 && (
                   <div>
                     <div className="px-4 pt-3 pb-1.5">
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                      <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
                         Recent Searches
                       </span>
                     </div>
@@ -586,11 +586,11 @@ export function CommandPalette({
                           data-index={idx}
                           onClick={() => handleSelectRecent(q)}
                           className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors group ${
-                            idx === activeIndex ? "bg-gray-100" : "hover:bg-gray-50"
+                            idx === activeIndex ? "bg-surface" : "hover:bg-surface"
                           }`}
                         >
-                          <Clock className="w-4 h-4 text-gray-300 shrink-0" />
-                          <span className="flex-1 text-sm text-gray-600 truncate">
+                          <Clock className="w-4 h-4 text-muted/50 shrink-0" />
+                          <span className="flex-1 text-sm text-muted truncate">
                             {q}
                           </span>
                           <span
@@ -613,7 +613,7 @@ export function CommandPalette({
                 {groupedPages.map((group) => (
                   <div key={group.section}>
                     <div className="px-4 pt-3 pb-1.5">
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                      <span className="text-[10px] font-semibold text-muted uppercase tracking-wider">
                         {group.section}
                       </span>
                     </div>
@@ -627,11 +627,11 @@ export function CommandPalette({
                           data-index={idx}
                           onClick={() => handleSelectPage(page)}
                           className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors ${
-                            idx === activeIndex ? "bg-gray-100" : "hover:bg-gray-50"
+                            idx === activeIndex ? "bg-surface" : "hover:bg-surface"
                           }`}
                         >
-                          <Icon className="w-4 h-4 text-gray-400 shrink-0" />
-                          <span className="flex-1 text-sm text-gray-700 truncate">
+                          <Icon className="w-4 h-4 text-muted shrink-0" />
+                          <span className="flex-1 text-sm text-foreground/80 truncate">
                             {page.label}
                           </span>
                           {isCurrentPage && (
@@ -640,11 +640,11 @@ export function CommandPalette({
                             </span>
                           )}
                           {idx === activeIndex ? (
-                            <kbd className="px-1 py-0.5 bg-gray-200 rounded text-[10px] font-medium text-gray-500 shrink-0">
+                            <kbd className="px-1 py-0.5 bg-border rounded text-[10px] font-medium text-muted shrink-0">
                               {"\u21B5"}
                             </kbd>
                           ) : (
-                            <ArrowRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                            <ArrowRight className="w-3.5 h-3.5 text-muted/50 shrink-0" />
                           )}
                         </button>
                       );
@@ -655,7 +655,7 @@ export function CommandPalette({
                 {/* Hint */}
                 {recentSearches.length === 0 && recentPages.length === 0 && filteredPages.length === pageOptions.length && (
                   <div className="px-4 pt-4 pb-3 text-center">
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-muted">
                       Search across rocks, to-dos, issues, services, projects and people
                     </p>
                   </div>
@@ -666,26 +666,26 @@ export function CommandPalette({
         </div>
 
         {/* Footer with keyboard hints */}
-        <div className="border-t border-gray-100 px-4 py-2 flex items-center gap-4 text-[10px] text-gray-400">
+        <div className="border-t border-border/50 px-4 py-2 flex items-center gap-4 text-[10px] text-muted">
           <span>
-            <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px]">
+            <kbd className="px-1 py-0.5 bg-surface rounded text-[10px]">
               {"\u2191\u2193"}
             </kbd>{" "}
             Navigate
           </span>
           <span>
-            <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px]">
+            <kbd className="px-1 py-0.5 bg-surface rounded text-[10px]">
               {"\u21B5"}
             </kbd>{" "}
             Select
           </span>
           <span>
-            <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[10px]">
+            <kbd className="px-1 py-0.5 bg-surface rounded text-[10px]">
               Esc
             </kbd>{" "}
             Close
           </span>
-          <span className="ml-auto text-gray-300">
+          <span className="ml-auto text-muted/50">
             {flatItems.length} item{flatItems.length !== 1 ? "s" : ""}
           </span>
         </div>

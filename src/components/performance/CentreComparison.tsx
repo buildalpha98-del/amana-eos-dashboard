@@ -79,11 +79,11 @@ function getScoreBg(score: number): string {
 }
 
 function DeltaBadge({ current, previous }: { current: number; previous: number | null }) {
-  if (previous === null) return <span className="text-[10px] text-gray-300">--</span>;
+  if (previous === null) return <span className="text-[10px] text-muted/50">--</span>;
   const delta = current - previous;
   if (delta === 0) {
     return (
-      <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-400">
+      <span className="inline-flex items-center gap-0.5 text-[10px] text-muted">
         <Minus className="w-3 h-3" /> 0
       </span>
     );
@@ -136,12 +136,12 @@ function CentreSelector({
       {/* Selected chips + trigger */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 min-w-[280px] rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-left hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand/20 transition-colors"
+        className="flex items-center gap-2 min-w-[280px] rounded-lg border border-border bg-card px-3 py-2 text-sm text-left hover:border-border focus:outline-none focus:ring-2 focus:ring-brand/20 transition-colors"
       >
-        <BarChart3 className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        <BarChart3 className="w-4 h-4 text-muted flex-shrink-0" />
         <div className="flex-1 flex flex-wrap gap-1 min-h-[20px]">
           {selectedCentres.length === 0 ? (
-            <span className="text-gray-400">Select 2-5 centres to compare...</span>
+            <span className="text-muted">Select 2-5 centres to compare...</span>
           ) : (
             selectedCentres.map((c) => (
               <span
@@ -162,24 +162,24 @@ function CentreSelector({
             ))
           )}
         </div>
-        <ChevronDown className={cn("w-4 h-4 text-gray-400 transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("w-4 h-4 text-muted transition-transform", open && "rotate-180")} />
       </button>
 
       {/* Dropdown */}
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute z-20 mt-1 w-full min-w-[280px] bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden">
+          <div className="absolute z-20 mt-1 w-full min-w-[280px] bg-card rounded-lg border border-border shadow-lg overflow-hidden">
             {/* Search */}
-            <div className="p-2 border-b border-gray-100">
-              <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 rounded-md">
-                <Search className="w-4 h-4 text-gray-400" />
+            <div className="p-2 border-b border-border/50">
+              <div className="flex items-center gap-2 px-2 py-1.5 bg-surface/50 rounded-md">
+                <Search className="w-4 h-4 text-muted" />
                 <input
                   autoFocus
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search centres..."
-                  className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 focus:outline-none"
+                  className="flex-1 bg-transparent text-sm text-foreground/80 placeholder-gray-400 focus:outline-none"
                 />
               </div>
             </div>
@@ -187,7 +187,7 @@ function CentreSelector({
             {/* Options */}
             <div className="max-h-60 overflow-y-auto">
               {filtered.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-gray-400 text-center">
+                <div className="px-4 py-3 text-sm text-muted text-center">
                   No centres found
                 </div>
               ) : (
@@ -206,7 +206,7 @@ function CentreSelector({
                         "w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors",
                         isSelected
                           ? "bg-brand/5 text-brand"
-                          : "hover:bg-gray-50 text-gray-700",
+                          : "hover:bg-surface text-foreground/80",
                         isDisabled && "opacity-40 cursor-not-allowed"
                       )}
                     >
@@ -215,7 +215,7 @@ function CentreSelector({
                           "w-4 h-4 rounded border flex items-center justify-center flex-shrink-0",
                           isSelected
                             ? "bg-brand border-brand"
-                            : "border-gray-300"
+                            : "border-border"
                         )}
                       >
                         {isSelected && (
@@ -236,7 +236,7 @@ function CentreSelector({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{c.name}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-muted">
                           {c.code} {c.state ? `- ${c.state}` : ""}
                         </p>
                       </div>
@@ -260,8 +260,8 @@ function CentreSelector({
 
             {/* Footer */}
             {selectedIds.length > 0 && (
-              <div className="border-t border-gray-100 px-4 py-2 flex items-center justify-between">
-                <span className="text-xs text-gray-500">
+              <div className="border-t border-border/50 px-4 py-2 flex items-center justify-between">
+                <span className="text-xs text-muted">
                   {selectedIds.length} of 5 selected
                 </span>
                 <button
@@ -333,13 +333,13 @@ export function CentreComparison() {
   return (
     <div className="space-y-6">
       {/* Selector */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
+      <div className="bg-card rounded-xl border border-border p-4 md:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1">
-            <h3 className="text-base font-semibold text-gray-900 mb-1">
+            <h3 className="text-base font-semibold text-foreground mb-1">
               Compare Centres
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted">
               Select 2 to 5 centres to compare side-by-side across all pillars.
             </p>
           </div>
@@ -354,10 +354,10 @@ export function CentreComparison() {
 
       {/* Empty State */}
       {selectedIds.length < 2 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">Select at least 2 centres</p>
-          <p className="text-sm text-gray-400 mt-1">
+        <div className="bg-card rounded-xl border border-border p-12 text-center">
+          <BarChart3 className="w-12 h-12 text-muted/50 mx-auto mb-3" />
+          <p className="text-muted font-medium">Select at least 2 centres</p>
+          <p className="text-sm text-muted mt-1">
             Use the selector above to pick centres for comparison.
           </p>
         </div>
@@ -365,15 +365,15 @@ export function CentreComparison() {
 
       {/* Loading */}
       {selectedIds.length >= 2 && compareLoading && (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <div className="bg-card rounded-xl border border-border p-12 text-center">
           <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-500">Loading comparison data...</p>
+          <p className="text-sm text-muted">Loading comparison data...</p>
         </div>
       )}
 
       {/* Error */}
       {compareError && (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <div className="bg-card rounded-xl border border-border p-12 text-center">
           <p className="text-red-500 text-sm">
             Failed to load comparison data. Please try again.
           </p>
@@ -382,27 +382,27 @@ export function CentreComparison() {
 
       {/* Comparison Table */}
       {centres.length >= 2 && !compareLoading && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-4 md:px-6 py-4 border-b border-gray-200">
-            <h3 className="text-base md:text-lg font-semibold text-gray-900">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="px-4 md:px-6 py-4 border-b border-border">
+            <h3 className="text-base md:text-lg font-semibold text-foreground">
               Side-by-Side Comparison
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-40">
+                <tr className="bg-surface/50">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider w-40">
                     Pillar
                   </th>
                   {centres.map((c) => (
                     <th
                       key={c.id}
-                      className="px-3 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider min-w-[120px]"
+                      className="px-3 py-3 text-center text-xs font-semibold text-foreground/80 uppercase tracking-wider min-w-[120px]"
                     >
                       <div>
                         <p className="truncate">{c.name}</p>
-                        <p className="text-[10px] text-gray-400 font-normal normal-case mt-0.5">
+                        <p className="text-[10px] text-muted font-normal normal-case mt-0.5">
                           {c.code} {c.state ? `- ${c.state}` : ""}
                         </p>
                       </div>
@@ -410,22 +410,22 @@ export function CentreComparison() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border/50">
                 {PILLARS.map((pillar) => {
                   const winnerId = getWinnerId(pillar.key);
                   return (
                     <tr
                       key={pillar.key}
                       className={cn(
-                        "hover:bg-gray-50/50 transition-colors",
-                        pillar.key === "overall" && "bg-gray-50/50"
+                        "hover:bg-surface/50 transition-colors",
+                        pillar.key === "overall" && "bg-surface/30"
                       )}
                     >
                       <td className="px-4 py-3">
                         <span
                           className={cn(
-                            "text-sm text-gray-700",
-                            pillar.key === "overall" && "font-semibold text-gray-900"
+                            "text-sm text-foreground/80",
+                            pillar.key === "overall" && "font-semibold text-foreground"
                           )}
                         >
                           {pillar.label}
@@ -469,9 +469,9 @@ export function CentreComparison() {
           </div>
 
           {/* Legend */}
-          <div className="px-4 md:px-6 py-3 border-t border-gray-100 flex flex-wrap items-center gap-4 text-xs text-gray-400">
+          <div className="px-4 md:px-6 py-3 border-t border-border/50 flex flex-wrap items-center gap-4 text-xs text-muted">
             <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded ring-2 ring-brand/30 bg-white" />
+              <span className="w-3 h-3 rounded ring-2 ring-brand/30 bg-card" />
               Highest in row
             </span>
             <span className="flex items-center gap-1">

@@ -138,15 +138,15 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="flex w-full max-w-2xl flex-col rounded-xl bg-white shadow-xl max-h-[90vh]"
+          className="flex w-full max-w-2xl flex-col rounded-xl bg-card shadow-xl max-h-[90vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">New Post</h2>
+          <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-4">
+            <h2 className="text-lg font-semibold text-foreground">New Post</h2>
             <button
               onClick={handleClose}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -163,27 +163,27 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
 
             {/* Title */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-foreground/80">
                 Title <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 placeholder="Post title"
               />
             </div>
 
             {/* Platform */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-foreground/80">
                 Platform <span className="text-red-500">*</span>
               </label>
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               >
                 <option value="">Select platform</option>
                 {PLATFORM_OPTIONS.map((opt) => (
@@ -197,7 +197,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
             {/* Content */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-foreground/80">
                   Content
                 </label>
                 <AiButton
@@ -219,7 +219,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={4}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
                 placeholder="Post content..."
               />
               {platform && (
@@ -229,14 +229,14 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
 
             {/* Scheduled Date */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-foreground/80">
                 Scheduled Date
               </label>
               <input
                 type="datetime-local"
                 value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               />
             </div>
 
@@ -244,13 +244,13 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Assignee */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Assignee
                 </label>
                 <select
                   value={assigneeId}
                   onChange={(e) => setAssigneeId(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">Unassigned</option>
                   {users?.map((user) => (
@@ -263,13 +263,13 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
 
               {/* Campaign */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Campaign
                 </label>
                 <select
                   value={campaignId}
                   onChange={(e) => setCampaignId(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   <option value="">None</option>
                   {campaigns?.map((c) => (
@@ -285,27 +285,27 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* Pillar */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Pillar
                 </label>
                 <input
                   type="text"
                   value={pillar}
                   onChange={(e) => setPillar(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   placeholder="Content pillar"
                 />
               </div>
 
               {/* Recurring */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Recurring
                 </label>
                 <select
                   value={recurring}
                   onChange={(e) => setRecurring(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   {RECURRING_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -323,49 +323,49 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
                 onChange={setServiceIds}
                 label="Target Centres"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted">
                 Leave empty for all centres
               </p>
             </div>
 
             {/* Notes */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-foreground/80">
                 Notes
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
                 placeholder="Internal notes..."
               />
             </div>
 
             {/* Design Link */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-foreground/80">
                 Design Link
               </label>
               <input
                 type="url"
                 value={designLink}
                 onChange={(e) => setDesignLink(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 placeholder="https://..."
               />
             </div>
 
             {/* Canva Design URL */}
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-foreground/80">
                 Canva Design URL
               </label>
               <input
                 type="url"
                 value={canvaDesignUrl}
                 onChange={(e) => setCanvaDesignUrl(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 placeholder="https://www.canva.com/design/..."
               />
             </div>
@@ -373,11 +373,11 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
             </div>
 
             {/* Submit */}
-            <div className="flex shrink-0 justify-end gap-3 border-t border-gray-200 px-6 py-4">
+            <div className="flex shrink-0 justify-end gap-3 border-t border-border px-6 py-4">
               <button
                 type="button"
                 onClick={handleClose}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface transition-colors"
               >
                 Cancel
               </button>
@@ -416,7 +416,7 @@ function ContentCharacterCounter({ content, platform }: { content: string; platf
   const isNear = pct >= 80;
 
   return (
-    <div className={`flex items-center justify-between mt-1 text-xs ${isOver ? "text-red-600 font-medium" : isNear ? "text-amber-600" : "text-gray-400"}`}>
+    <div className={`flex items-center justify-between mt-1 text-xs ${isOver ? "text-red-600 font-medium" : isNear ? "text-amber-600" : "text-muted"}`}>
       <span>{count.toLocaleString()} / {limit.toLocaleString()}</span>
       {isOver && <span>{(count - limit).toLocaleString()} over limit</span>}
     </div>

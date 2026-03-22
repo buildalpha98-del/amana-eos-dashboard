@@ -73,7 +73,7 @@ export function LaunchTracker() {
 
   if (!data || !data.hasLaunchCentres) {
     return (
-      <div className="text-center py-8 text-gray-400 text-sm">
+      <div className="text-center py-8 text-muted text-sm">
         No centres currently in launch phase
       </div>
     );
@@ -84,11 +84,11 @@ export function LaunchTracker() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-xl border p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+      <div className="bg-card rounded-xl border p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-1">
           Melbourne Launch Programme — Week {currentWeek} of 12
         </h3>
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-muted mb-4">
           Tracking trust-building progress across new Melbourne centres
         </p>
 
@@ -107,7 +107,7 @@ export function LaunchTracker() {
                       ? "bg-brand"
                       : isPast
                       ? "bg-brand/30"
-                      : "bg-gray-100"
+                      : "bg-surface"
                   }`}
                   title={`Week ${week}`}
                 />
@@ -116,7 +116,7 @@ export function LaunchTracker() {
                     <Milestone className="h-3 w-3 text-brand" />
                   </div>
                 )}
-                <span className="text-[8px] text-gray-400 block text-center mt-0.5">
+                <span className="text-[8px] text-muted block text-center mt-0.5">
                   {week}
                 </span>
               </div>
@@ -132,13 +132,13 @@ export function LaunchTracker() {
               className={`flex-1 p-2 rounded text-xs border ${
                 m.week <= currentWeek
                   ? "border-brand/20 bg-brand/5"
-                  : "border-gray-200 bg-gray-50"
+                  : "border-border bg-surface/50"
               }`}
             >
-              <span className="font-medium text-gray-700">
+              <span className="font-medium text-foreground/80">
                 Wk {m.week}: {m.label}
               </span>
-              <p className="text-gray-500 mt-0.5">{m.description}</p>
+              <p className="text-muted mt-0.5">{m.description}</p>
             </div>
           ))}
         </div>
@@ -174,8 +174,8 @@ function CentreCard({ centre }: { centre: LaunchCentre }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h4 className="font-semibold text-gray-900">{centre.serviceName}</h4>
-          <p className="text-xs text-gray-500">
+          <h4 className="font-semibold text-foreground">{centre.serviceName}</h4>
+          <p className="text-xs text-muted">
             Pop: {centre.schoolPopulation.toLocaleString()} · Week {centre.currentWeek}
           </p>
         </div>
@@ -187,31 +187,31 @@ function CentreCard({ centre }: { centre: LaunchCentre }) {
 
       {/* ASC / BSC */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white/60 rounded p-2">
-          <div className="text-[10px] text-gray-500 uppercase">ASC</div>
-          <div className="text-lg font-bold text-gray-900">
+        <div className="bg-card/60 rounded p-2">
+          <div className="text-[10px] text-muted uppercase">ASC</div>
+          <div className="text-lg font-bold text-foreground">
             {centre.ascEnrolled}
-            <span className="text-sm text-gray-400 font-normal"> / {centre.ascTarget}</span>
+            <span className="text-sm text-muted font-normal"> / {centre.ascTarget}</span>
           </div>
         </div>
-        <div className="bg-white/60 rounded p-2">
-          <div className="text-[10px] text-gray-500 uppercase">BSC</div>
-          <div className="text-lg font-bold text-gray-900">
+        <div className="bg-card/60 rounded p-2">
+          <div className="text-[10px] text-muted uppercase">BSC</div>
+          <div className="text-lg font-bold text-foreground">
             {centre.bscEnrolled}
-            <span className="text-sm text-gray-400 font-normal"> / {centre.bscTarget}</span>
+            <span className="text-sm text-muted font-normal"> / {centre.bscTarget}</span>
           </div>
         </div>
       </div>
 
       {/* Sparkline */}
       <div>
-        <div className="text-[10px] text-gray-500 mb-1">Weekly Attendance Trend</div>
+        <div className="text-[10px] text-muted mb-1">Weekly Attendance Trend</div>
         <div className="flex items-end gap-px h-8">
           {centre.weeklyTrend.map((val, i) => (
             <div
               key={i}
               className={`flex-1 rounded-t-sm ${
-                i < centre.currentWeek ? "bg-brand/60" : "bg-gray-200"
+                i < centre.currentWeek ? "bg-brand/60" : "bg-border"
               }`}
               style={{ height: `${Math.max((val / maxTrend) * 100, 4)}%` }}
               title={`Wk ${i + 1}: ${val}`}
@@ -223,23 +223,23 @@ function CentreCard({ centre }: { centre: LaunchCentre }) {
       {/* Enquiry Funnel */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1.5 text-xs">
-          <Users className="h-3.5 w-3.5 text-gray-400" />
-          <span className="text-gray-600">
+          <Users className="h-3.5 w-3.5 text-muted" />
+          <span className="text-muted">
             {centre.enquiryCount} enquiries → {centre.enrolmentCount} enrolled
           </span>
-          <span className="text-gray-400">({conversionRate}%)</span>
+          <span className="text-muted">({conversionRate}%)</span>
         </div>
       </div>
 
       {/* Activities Progress */}
       <div>
         <div className="flex items-center justify-between text-xs mb-1">
-          <span className="text-gray-600">Activities</span>
-          <span className="text-gray-500">
+          <span className="text-muted">Activities</span>
+          <span className="text-muted">
             {centre.completedActivities} / {centre.plannedActivities} completed
           </span>
         </div>
-        <div className="w-full bg-white/60 rounded-full h-2">
+        <div className="w-full bg-card/60 rounded-full h-2">
           <div
             className="bg-brand h-2 rounded-full"
             style={{ width: `${Math.min(activityProgress, 100)}%` }}
@@ -248,7 +248,7 @@ function CentreCard({ centre }: { centre: LaunchCentre }) {
       </div>
 
       {/* Trust Indicators */}
-      <div className="flex items-center gap-3 text-xs text-gray-500">
+      <div className="flex items-center gap-3 text-xs text-muted">
         {centre.npsAverage !== null && (
           <span>NPS: {centre.npsAverage}</span>
         )}

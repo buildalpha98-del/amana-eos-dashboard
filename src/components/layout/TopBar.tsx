@@ -180,7 +180,7 @@ export function TopBar() {
           {breadcrumbItems ? (
             <Breadcrumb items={breadcrumbItems} />
           ) : (
-            <h1 className="text-2xl font-heading font-semibold tracking-tight text-gray-900">{title}</h1>
+            <h1 className="text-2xl font-heading font-semibold tracking-tight text-foreground">{title}</h1>
           )}
           {quarterRelevantPages.has(pathname) && (
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-accent/20 text-brand border border-accent/30">
@@ -194,12 +194,12 @@ export function TopBar() {
           <button
             data-tour="search"
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 bg-surface rounded-xl hover:border-border transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted bg-surface rounded-xl hover:border-border transition-colors"
             title="Search (Cmd+K)"
           >
             <Search className="w-4 h-4" />
             <span className="hidden md:inline">Search...</span>
-            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium text-gray-400 bg-card rounded border-border border">
+            <kbd className="hidden md:inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium text-muted bg-card rounded border-border border">
               ⌘K
             </kbd>
           </button>
@@ -218,7 +218,7 @@ export function TopBar() {
           {breadcrumbItems ? (
             <Breadcrumb items={breadcrumbItems} />
           ) : (
-            <h1 className="text-base font-heading font-semibold tracking-tight text-gray-900 truncate">{title}</h1>
+            <h1 className="text-base font-heading font-semibold tracking-tight text-foreground truncate">{title}</h1>
           )}
           {quarterRelevantPages.has(pathname) && (
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent/20 text-brand border border-accent/30 shrink-0">
@@ -230,7 +230,7 @@ export function TopBar() {
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => setSearchOpen(true)}
-            className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg text-muted hover:bg-surface transition-colors"
             title="Search"
             aria-label="Search"
           >

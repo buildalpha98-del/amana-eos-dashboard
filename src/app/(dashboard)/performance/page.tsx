@@ -63,11 +63,11 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 function MetricCell({ value, suffix, good, threshold }: { value: number | null | undefined; suffix?: string; good?: "high" | "low"; threshold?: number }) {
-  if (value === null || value === undefined) return <span className="text-gray-300">—</span>;
+  if (value === null || value === undefined) return <span className="text-muted/50">—</span>;
   const t = threshold || 0;
   const isGood = good === "high" ? value >= t : good === "low" ? value <= t : true;
   return (
-    <span className={cn("font-medium", isGood ? "text-gray-900" : "text-red-600")}>
+    <span className={cn("font-medium", isGood ? "text-foreground" : "text-red-600")}>
       {typeof value === "number" && suffix === "%" ? `${value.toFixed(1)}%` : value}
       {suffix && suffix !== "%" ? ` ${suffix}` : ""}
     </span>
@@ -139,8 +139,8 @@ export default function PerformancePage() {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Centre Performance</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Centre Performance</h2>
+          <p className="text-sm text-muted mt-1 line-clamp-2">
             Rankings, KPIs, and operational health across all centres
           </p>
         </div>
@@ -158,21 +158,21 @@ export default function PerformancePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Centre Performance</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Centre Performance</h2>
+          <p className="text-sm text-muted mt-1 line-clamp-2">
             Rankings, KPIs, and operational health across all centres
           </p>
         </div>
         <div className="flex items-center gap-3">
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-surface rounded-lg p-0.5">
             <button
               onClick={() => { setViewMode("centres"); setStateFilter(null); }}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                 viewMode === "centres"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-card text-brand shadow-sm"
+                  : "text-muted hover:text-foreground"
               )}
             >
               <LayoutGrid className="w-4 h-4" />
@@ -183,8 +183,8 @@ export default function PerformancePage() {
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                 viewMode === "leaderboard"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-card text-brand shadow-sm"
+                  : "text-muted hover:text-foreground"
               )}
             >
               <ListOrdered className="w-4 h-4" />
@@ -195,8 +195,8 @@ export default function PerformancePage() {
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                 viewMode === "compare"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-card text-brand shadow-sm"
+                  : "text-muted hover:text-foreground"
               )}
             >
               <BarChart3 className="w-4 h-4" />
@@ -242,39 +242,39 @@ export default function PerformancePage() {
       <>
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-2">
             <Building2 className="w-5 h-5 text-brand" />
-            <p className="text-sm font-medium text-gray-500">Total Centres</p>
+            <p className="text-sm font-medium text-muted">Total Centres</p>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{centres?.length || 0}</p>
+          <p className="text-3xl font-bold text-foreground">{centres?.length || 0}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-2">
             <Star className="w-5 h-5 text-accent" />
-            <p className="text-sm font-medium text-gray-500">Avg Performance Score</p>
+            <p className="text-sm font-medium text-muted">Avg Performance Score</p>
           </div>
           <div className="flex items-baseline gap-2">
-            <p className="text-3xl font-bold text-gray-900">{avgScore}</p>
-            <span className="text-sm text-gray-400">/ 100</span>
+            <p className="text-3xl font-bold text-foreground">{avgScore}</p>
+            <span className="text-sm text-muted">/ 100</span>
           </div>
-          <p className="text-sm text-gray-400 mt-1">out of 100</p>
+          <p className="text-sm text-muted mt-1">out of 100</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-2">
             <Trophy className="w-5 h-5 text-emerald-500" />
-            <p className="text-sm font-medium text-gray-500">Top Performer</p>
+            <p className="text-sm font-medium text-muted">Top Performer</p>
           </div>
-          <p className="text-xl font-bold text-gray-900 truncate">{topPerformer?.name || "—"}</p>
+          <p className="text-xl font-bold text-foreground truncate">{topPerformer?.name || "—"}</p>
           {topPerformer && <p className="text-sm text-emerald-600 mt-1">Score: {topPerformer.score}</p>}
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-5 h-5 text-red-500" />
-            <p className="text-sm font-medium text-gray-500">Needs Attention</p>
+            <p className="text-sm font-medium text-muted">Needs Attention</p>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{needsAttention.length}</p>
-          <p className="text-sm text-gray-400 mt-1">centres below 60</p>
+          <p className="text-3xl font-bold text-foreground">{needsAttention.length}</p>
+          <p className="text-sm text-muted mt-1">centres below 60</p>
         </div>
       </div>
 
@@ -291,15 +291,15 @@ export default function PerformancePage() {
       )}
 
       {/* Performance League Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-4 md:px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <h3 className="text-base md:text-lg font-semibold text-gray-900">Centre Rankings</h3>
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="px-4 md:px-6 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h3 className="text-base md:text-lg font-semibold text-foreground">Centre Rankings</h3>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">Sort by:</span>
+            <span className="text-sm text-muted">Sort by:</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/20"
+              className="rounded-lg border border-border px-3 py-1.5 text-sm text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand/20"
             >
               {sortOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -323,10 +323,10 @@ export default function PerformancePage() {
             <div className="w-16 h-16 rounded-2xl bg-brand/5 flex items-center justify-center mb-4">
               <Building2 className="w-8 h-8 text-brand/30" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               No performance data available yet
             </h3>
-            <p className="text-gray-500 mt-2 max-w-md">
+            <p className="text-muted mt-2 max-w-md">
               Performance scores will appear here once service centres have been
               set up and start reporting data.
             </p>
@@ -335,33 +335,33 @@ export default function PerformancePage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-3 md:px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-10">#</th>
-                  <th className="px-3 md:px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Centre</th>
-                  <th className="hidden sm:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">State</th>
-                  <th className="px-3 md:px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Score</th>
-                  <th className="px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Trend</th>
-                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Fin</th>
-                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Ops</th>
-                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Comp</th>
-                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Sat</th>
-                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Team</th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Occupancy</th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Revenue</th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Margin</th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Compliance</th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">NPS</th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Staff</th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Issues</th>
+                <tr className="bg-surface/50 text-left">
+                  <th className="px-3 md:px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider w-10">#</th>
+                  <th className="px-3 md:px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Centre</th>
+                  <th className="hidden sm:table-cell px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">State</th>
+                  <th className="px-3 md:px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-center">Score</th>
+                  <th className="px-3 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-center">Trend</th>
+                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-center">Fin</th>
+                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-center">Ops</th>
+                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-center">Comp</th>
+                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-center">Sat</th>
+                  <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-center">Team</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Occupancy</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Revenue</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Margin</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Compliance</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">NPS</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Staff</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Issues</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border/50">
                 {sortedCentres.map((centre, index) => (
                   <tr
                     key={centre.id}
                     onClick={() => setSelectedCentreId(centre.id)}
                     className={cn(
-                      "hover:bg-gray-50 transition-colors cursor-pointer",
+                      "hover:bg-surface transition-colors cursor-pointer",
                       index === 0 ? "bg-emerald-50/30" : "",
                       centre.score < 60 ? "bg-red-50/30" : ""
                     )}
@@ -370,21 +370,21 @@ export default function PerformancePage() {
                       <span className={cn(
                         "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold",
                         index === 0 ? "bg-accent text-brand" :
-                        index === 1 ? "bg-gray-200 text-gray-700" :
+                        index === 1 ? "bg-border text-foreground/80" :
                         index === 2 ? "bg-amber-100 text-amber-700" :
-                        "text-gray-400"
+                        "text-muted"
                       )}>
                         {index + 1}
                       </span>
                     </td>
                     <td className="px-3 md:px-4 py-3">
                       <div>
-                        <p className="font-medium text-gray-900 text-sm">{centre.name}</p>
-                        <p className="text-xs text-gray-400 hidden sm:block">{centre.manager?.name || "No manager"}</p>
+                        <p className="font-medium text-foreground text-sm">{centre.name}</p>
+                        <p className="text-xs text-muted hidden sm:block">{centre.manager?.name || "No manager"}</p>
                       </div>
                     </td>
                     <td className="hidden sm:table-cell px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface text-foreground/80">
                         {centre.state || "—"}
                       </span>
                     </td>
@@ -397,7 +397,7 @@ export default function PerformancePage() {
                       ) : centre.trend === "declining" ? (
                         <ArrowDown className="w-4 h-4 text-red-500 mx-auto" />
                       ) : (
-                        <Minus className="w-4 h-4 text-gray-400 mx-auto" />
+                        <Minus className="w-4 h-4 text-muted mx-auto" />
                       )}
                     </td>
                     {["financial", "operational", "compliance", "satisfaction", "teamCulture"].map((key) => {
@@ -414,9 +414,9 @@ export default function PerformancePage() {
                     </td>
                     <td className="hidden lg:table-cell px-4 py-3 text-right">
                       {centre.financials ? (
-                        <span className="font-medium text-gray-900">{formatCurrency(centre.financials.totalRevenue)}</span>
+                        <span className="font-medium text-foreground">{formatCurrency(centre.financials.totalRevenue)}</span>
                       ) : (
-                        <span className="text-gray-300">—</span>
+                        <span className="text-muted/50">—</span>
                       )}
                     </td>
                     <td className="hidden lg:table-cell px-4 py-3 text-right">
@@ -429,7 +429,7 @@ export default function PerformancePage() {
                           {centre.financials.margin.toFixed(1)}%
                         </span>
                       ) : (
-                        <span className="text-gray-300">—</span>
+                        <span className="text-muted/50">—</span>
                       )}
                     </td>
                     <td className="hidden lg:table-cell px-4 py-3 text-right">
@@ -471,7 +471,7 @@ export default function PerformancePage() {
       {viewMode === "leaderboard" && (
         <>
           {isLoading ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="bg-card rounded-xl border border-border p-6">
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-4">
@@ -493,9 +493,9 @@ export default function PerformancePage() {
               <CentreLeaderboard centres={centres} stateFilter={stateFilter} />
             </>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No performance data available yet.</p>
+            <div className="bg-card rounded-xl border border-border p-12 text-center">
+              <Building2 className="w-12 h-12 text-muted/50 mx-auto mb-3" />
+              <p className="text-muted">No performance data available yet.</p>
             </div>
           )}
         </>

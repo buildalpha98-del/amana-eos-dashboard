@@ -75,7 +75,7 @@ interface ServiceOption {
 }
 
 const STATUS_COLORS = {
-  not_started: { bg: "bg-gray-100", text: "text-gray-600", label: "Not Started" },
+  not_started: { bg: "bg-surface", text: "text-muted", label: "Not Started" },
   in_progress: { bg: "bg-blue-100", text: "text-blue-700", label: "In Progress" },
   completed: { bg: "bg-emerald-100", text: "text-emerald-700", label: "Completed" },
 };
@@ -108,7 +108,7 @@ function StaffLMSView() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -117,17 +117,17 @@ function StaffLMSView() {
     <div className="space-y-8">
       {/* My Courses */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-brand" />
           My Courses
-          <span className="text-sm font-normal text-gray-400">({myEnrollments.length})</span>
+          <span className="text-sm font-normal text-muted">({myEnrollments.length})</span>
         </h3>
 
         {myEnrollments.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
-            <GraduationCap className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-            <p className="text-gray-500">You haven&apos;t enrolled in any courses yet.</p>
-            <p className="text-sm text-gray-400 mt-1">Browse available courses below to get started.</p>
+          <div className="bg-card rounded-xl border border-border p-6 text-center">
+            <GraduationCap className="w-10 h-10 text-muted/50 mx-auto mb-2" />
+            <p className="text-muted">You haven&apos;t enrolled in any courses yet.</p>
+            <p className="text-sm text-muted mt-1">Browse available courses below to get started.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -139,35 +139,35 @@ function StaffLMSView() {
               const isExpanded = expandedCourseId === enrollment.id;
 
               return (
-                <div key={enrollment.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div key={enrollment.id} className="bg-card rounded-xl border border-border overflow-hidden">
                   <button
                     onClick={() => setExpandedCourseId(isExpanded ? null : enrollment.id)}
-                    className="w-full p-4 flex items-center gap-4 text-left hover:bg-gray-50 transition-colors"
+                    className="w-full p-4 flex items-center gap-4 text-left hover:bg-surface transition-colors"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{course.title}</p>
-                      <p className="text-sm text-gray-500 truncate">{course.description}</p>
+                      <p className="font-medium text-foreground truncate">{course.title}</p>
+                      <p className="text-sm text-muted truncate">{course.description}</p>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-gray-900">{progress}%</p>
-                        <p className="text-xs text-gray-400">{completedModules}/{totalModules} modules</p>
+                        <p className="text-sm font-semibold text-foreground">{progress}%</p>
+                        <p className="text-xs text-muted">{completedModules}/{totalModules} modules</p>
                       </div>
-                      <div className="w-16 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="w-16 h-2 bg-surface rounded-full overflow-hidden">
                         <div
                           className={cn(
                             "h-full rounded-full transition-all",
-                            progress >= 100 ? "bg-emerald-500" : progress > 0 ? "bg-brand" : "bg-gray-200"
+                            progress >= 100 ? "bg-emerald-500" : progress > 0 ? "bg-brand" : "bg-border"
                           )}
                           style={{ width: `${progress}%` }}
                         />
                       </div>
-                      {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                      {isExpanded ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
                     </div>
                   </button>
 
                   {isExpanded && course.modules && (
-                    <div className="border-t border-gray-100 divide-y divide-gray-50">
+                    <div className="border-t border-border/50 divide-y divide-gray-50">
                       {course.modules.map((mod) => {
                         const moduleProgress = enrollment.moduleProgress?.find((p) => p.moduleId === mod.id);
                         const isComplete = moduleProgress?.completed || false;
@@ -176,7 +176,7 @@ function StaffLMSView() {
 
                         return (
                           <div key={mod.id}>
-                            <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                            <div className="flex items-center gap-3 px-4 py-3 hover:bg-surface">
                               <button
                                 onClick={() =>
                                   updateProgress.mutate({
@@ -190,15 +190,15 @@ function StaffLMSView() {
                                 {isComplete ? (
                                   <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                                 ) : (
-                                  <Circle className="w-5 h-5 text-gray-300 hover:text-brand" />
+                                  <Circle className="w-5 h-5 text-muted/50 hover:text-brand" />
                                 )}
                               </button>
-                              <ModIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                              <ModIcon className="w-4 h-4 text-muted flex-shrink-0" />
                               <button
                                 onClick={() => setExpandedModuleId(isModExpanded ? null : mod.id)}
                                 className="flex-1 text-left"
                               >
-                                <p className={cn("text-sm font-medium", isComplete ? "text-gray-400 line-through" : "text-gray-900")}>
+                                <p className={cn("text-sm font-medium", isComplete ? "text-muted line-through" : "text-foreground")}>
                                   {mod.title}
                                 </p>
                               </button>
@@ -213,7 +213,7 @@ function StaffLMSView() {
                             </div>
                             {isModExpanded && mod.content && (
                               <div className="px-12 pb-3">
-                                <div className="prose prose-sm max-w-none text-gray-600 whitespace-pre-wrap text-xs leading-relaxed">
+                                <div className="prose prose-sm max-w-none text-muted whitespace-pre-wrap text-xs leading-relaxed">
                                   {mod.content}
                                 </div>
                                 {mod.resourceUrl && (
@@ -238,25 +238,25 @@ function StaffLMSView() {
       {/* Available Courses */}
       {availableCourses.length > 0 && (
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-500" />
             Available Courses
-            <span className="text-sm font-normal text-gray-400">({availableCourses.length})</span>
+            <span className="text-sm font-normal text-muted">({availableCourses.length})</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {availableCourses.map((course) => (
-              <div key={course.id} className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col">
+              <div key={course.id} className="bg-card rounded-xl border border-border p-5 flex flex-col">
                 <div className="flex-1">
-                  <p className="font-semibold text-gray-900 mb-1">{course.title}</p>
-                  <p className="text-sm text-gray-500 line-clamp-2 mb-3">{course.description}</p>
-                  <div className="flex items-center gap-3 text-xs text-gray-400">
+                  <p className="font-semibold text-foreground mb-1">{course.title}</p>
+                  <p className="text-sm text-muted line-clamp-2 mb-3">{course.description}</p>
+                  <div className="flex items-center gap-3 text-xs text-muted">
                     <span className="flex items-center gap-1">
                       <BookOpen className="w-3.5 h-3.5" />
                       {course._count.modules} modules
                     </span>
                     {course.category && (
-                      <span className="px-2 py-0.5 bg-gray-100 rounded-full text-gray-500">{course.category}</span>
+                      <span className="px-2 py-0.5 bg-surface rounded-full text-muted">{course.category}</span>
                     )}
                   </div>
                 </div>
@@ -504,8 +504,8 @@ export default function OnboardingPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading onboarding & training...</p>
+          <div className="w-12 h-12 border-4 border-border border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted">Loading onboarding & training...</p>
         </div>
       </div>
     );
@@ -516,8 +516,8 @@ export default function OnboardingPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Onboarding & Training</h2>
-          <p className="text-gray-500 mt-1">
+          <h2 className="text-2xl font-bold text-foreground">Onboarding & Training</h2>
+          <p className="text-muted mt-1">
             {isStaff
               ? "Complete your onboarding tasks and training modules."
               : "Manage onboarding packs and LMS courses for staff."}
@@ -568,7 +568,7 @@ export default function OnboardingPage() {
             </button>
             <button
               onClick={() => setShowAssign(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
             >
               <Users className="w-4 h-4" />
               Assign Pack
@@ -585,12 +585,12 @@ export default function OnboardingPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit">
         <button
           onClick={() => setActiveTab("onboarding")}
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
-            activeTab === "onboarding" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            activeTab === "onboarding" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
           )}
         >
           <ClipboardList className="w-4 h-4" />
@@ -600,7 +600,7 @@ export default function OnboardingPage() {
           onClick={() => setActiveTab("lms")}
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
-            activeTab === "lms" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            activeTab === "lms" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
           )}
         >
           <GraduationCap className="w-4 h-4" />
@@ -610,7 +610,7 @@ export default function OnboardingPage() {
           onClick={() => setActiveTab("exit-surveys")}
           className={cn(
             "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors",
-            activeTab === "exit-surveys" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            activeTab === "exit-surveys" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
           )}
         >
           <ClipboardCheck className="w-4 h-4" />
@@ -635,7 +635,7 @@ export default function OnboardingPage() {
           {/* My Assignments (for staff) or All Assignments (for admin) */}
           {assignments.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              <h3 className="text-lg font-semibold text-foreground mb-3">
                 {isStaff ? "My Onboarding" : "Active Assignments"}
               </h3>
               <div className="space-y-3">
@@ -647,18 +647,18 @@ export default function OnboardingPage() {
                   const isExpanded = expandedAssignment === assignment.id;
 
                   return (
-                    <div key={assignment.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div key={assignment.id} className="bg-card rounded-xl border border-border overflow-hidden">
                       <button
                         onClick={() => setExpandedAssignment(isExpanded ? null : assignment.id)}
-                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left"
+                        className="w-full flex items-center justify-between p-4 hover:bg-surface transition-colors text-left"
                       >
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center">
                             <ClipboardList className="w-5 h-5 text-brand" />
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-900">{assignment.pack.name}</p>
-                            <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                            <p className="font-semibold text-foreground">{assignment.pack.name}</p>
+                            <div className="flex items-center gap-3 text-xs text-muted mt-0.5">
                               {!isStaff && <span>{assignment.user.name}</span>}
                               {assignment.pack.service && (
                                 <span className="flex items-center gap-1">
@@ -680,22 +680,22 @@ export default function OnboardingPage() {
                             <span className={cn("text-xs font-medium px-2.5 py-1 rounded-full", status.bg, status.text)}>
                               {status.label}
                             </span>
-                            <p className="text-xs text-gray-400 mt-1">{completedTasks}/{totalTasks} tasks</p>
+                            <p className="text-xs text-muted mt-1">{completedTasks}/{totalTasks} tasks</p>
                           </div>
                           <div className="w-20">
-                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="h-2 bg-border rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-brand rounded-full transition-all duration-500"
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
                           </div>
-                          {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                          {isExpanded ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
                         </div>
                       </button>
 
                       {isExpanded && (
-                        <div className="border-t border-gray-100 px-4 py-3 space-y-2">
+                        <div className="border-t border-border/50 px-4 py-3 space-y-2">
                           {assignment.progress.map((p) => (
                             <div key={p.id} className="flex items-center gap-3 py-1.5">
                               <button
@@ -706,15 +706,15 @@ export default function OnboardingPage() {
                                 {p.completed ? (
                                   <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                                 ) : (
-                                  <Circle className="w-5 h-5 text-gray-300 hover:text-brand" />
+                                  <Circle className="w-5 h-5 text-muted/50 hover:text-brand" />
                                 )}
                               </button>
                               <div className="flex-1">
-                                <p className={cn("text-sm", p.completed ? "text-gray-400 line-through" : "text-gray-900")}>
+                                <p className={cn("text-sm", p.completed ? "text-muted line-through" : "text-foreground")}>
                                   {p.task.title}
                                 </p>
                                 {p.task.category && (
-                                  <span className="text-xs text-gray-400">{p.task.category}</span>
+                                  <span className="text-xs text-muted">{p.task.category}</span>
                                 )}
                               </div>
                               {p.task.isRequired && (
@@ -734,18 +734,18 @@ export default function OnboardingPage() {
           {/* Packs Library (admin view) */}
           {isAdmin && (
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Onboarding Packs</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-3">Onboarding Packs</h3>
               {packs.length === 0 ? (
-                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                  <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No onboarding packs yet.</p>
-                  <p className="text-gray-400 text-sm mt-1">Create your first pack to start onboarding new staff.</p>
+                <div className="bg-card rounded-xl border border-border p-8 text-center">
+                  <ClipboardList className="w-12 h-12 text-muted/50 mx-auto mb-3" />
+                  <p className="text-muted">No onboarding packs yet.</p>
+                  <p className="text-muted text-sm mt-1">Create your first pack to start onboarding new staff.</p>
                 </div>
               ) : (
                 <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {packs.map((pack) => (
-                    <div key={pack.id} onClick={() => setSelectedPackId(selectedPackId === pack.id ? null : pack.id)} className={cn("bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer", selectedPackId === pack.id && "ring-2 ring-brand border-brand")}>
+                    <div key={pack.id} onClick={() => setSelectedPackId(selectedPackId === pack.id ? null : pack.id)} className={cn("bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow cursor-pointer", selectedPackId === pack.id && "ring-2 ring-brand border-brand")}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
                           <ClipboardList className="w-5 h-5 text-cyan-700" />
@@ -754,11 +754,11 @@ export default function OnboardingPage() {
                           <span className="text-[10px] font-bold uppercase bg-accent text-brand px-2 py-0.5 rounded-full">Default</span>
                         )}
                       </div>
-                      <h4 className="font-semibold text-gray-900 mb-1">{pack.name}</h4>
+                      <h4 className="font-semibold text-foreground mb-1">{pack.name}</h4>
                       {pack.description && (
-                        <p className="text-sm text-gray-500 line-clamp-2 mb-2">{pack.description}</p>
+                        <p className="text-sm text-muted line-clamp-2 mb-2">{pack.description}</p>
                       )}
-                      <div className="flex items-center gap-4 text-xs text-gray-400 mt-3">
+                      <div className="flex items-center gap-4 text-xs text-muted mt-3">
                         <span>{pack._count.tasks} tasks</span>
                         <span>{pack._count.assignments} assigned</span>
                         {pack.service && <span>{pack.service.name}</span>}
@@ -769,7 +769,7 @@ export default function OnboardingPage() {
 
                 {/* Selected Pack Detail Panel */}
                 {selectedPackId && (
-                  <div className="bg-white rounded-xl border border-gray-200 p-6 mt-4">
+                  <div className="bg-card rounded-xl border border-border p-6 mt-4">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center">
@@ -780,13 +780,13 @@ export default function OnboardingPage() {
                             <input
                               value={editPackName}
                               onChange={(e) => setEditPackName(e.target.value)}
-                              className="w-full text-lg font-semibold text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand focus:border-brand outline-none"
+                              className="w-full text-lg font-semibold text-foreground border border-border rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                               placeholder="Pack name"
                             />
                             <input
                               value={editPackDesc}
                               onChange={(e) => setEditPackDesc(e.target.value)}
-                              className="w-full text-sm text-gray-600 border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand focus:border-brand outline-none"
+                              className="w-full text-sm text-muted border border-border rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand focus:border-brand outline-none"
                               placeholder="Description (optional)"
                             />
                             <div className="flex items-center gap-2">
@@ -799,7 +799,7 @@ export default function OnboardingPage() {
                               </button>
                               <button
                                 onClick={() => setEditingPackId(null)}
-                                className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                                className="px-3 py-1 text-xs font-medium text-muted bg-surface rounded-lg hover:bg-border"
                               >
                                 Cancel
                               </button>
@@ -807,7 +807,7 @@ export default function OnboardingPage() {
                           </div>
                         ) : (
                           <div>
-                            <h4 className="text-lg font-semibold text-gray-900">
+                            <h4 className="text-lg font-semibold text-foreground">
                               {selectedPackData?.name ?? packs.find(p => p.id === selectedPackId)?.name ?? "Pack Details"}
                             </h4>
                             {selectedPackData?.isDefault && (
@@ -825,7 +825,7 @@ export default function OnboardingPage() {
                                 const pack = selectedPackData ?? packs.find(p => p.id === selectedPackId);
                                 if (pack) startEditPack({ id: pack.id, name: pack.name, description: pack.description });
                               }}
-                              className="p-1.5 text-gray-400 hover:text-brand hover:bg-gray-100 rounded-lg transition-colors"
+                              className="p-1.5 text-muted hover:text-brand hover:bg-surface rounded-lg transition-colors"
                               title="Edit pack"
                             >
                               <Pencil className="w-4 h-4" />
@@ -842,7 +842,7 @@ export default function OnboardingPage() {
                                 </button>
                                 <button
                                   onClick={() => setConfirmDeletePackId(null)}
-                                  className="px-2 py-0.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded hover:bg-gray-50"
+                                  className="px-2 py-0.5 text-xs font-medium text-muted bg-card border border-border rounded hover:bg-surface"
                                 >
                                   No
                                 </button>
@@ -850,7 +850,7 @@ export default function OnboardingPage() {
                             ) : (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setConfirmDeletePackId(selectedPackId); }}
-                                className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-1.5 text-muted hover:text-danger hover:bg-red-50 rounded-lg transition-colors"
                                 title="Delete pack"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -858,7 +858,7 @@ export default function OnboardingPage() {
                             )}
                           </>
                         )}
-                        <button onClick={(e) => { e.stopPropagation(); setSelectedPackId(null); setEditingPackId(null); setConfirmDeletePackId(null); }} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button onClick={(e) => { e.stopPropagation(); setSelectedPackId(null); setEditingPackId(null); setConfirmDeletePackId(null); }} className="p-1.5 text-muted hover:text-foreground hover:bg-surface rounded-lg transition-colors">
                           <X className="w-5 h-5" />
                         </button>
                       </div>
@@ -866,28 +866,28 @@ export default function OnboardingPage() {
 
                     {selectedPackLoading ? (
                       <div className="flex items-center justify-center py-8">
-                        <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-                        <span className="ml-2 text-sm text-gray-500">Loading pack details...</span>
+                        <Loader2 className="w-6 h-6 text-muted animate-spin" />
+                        <span className="ml-2 text-sm text-muted">Loading pack details...</span>
                       </div>
                     ) : selectedPackData ? (
                       <div className="space-y-4">
                         {selectedPackData.description && (
-                          <p className="text-sm text-gray-600">{selectedPackData.description}</p>
+                          <p className="text-sm text-muted">{selectedPackData.description}</p>
                         )}
 
                         <div>
-                          <h5 className="text-sm font-medium text-gray-700 mb-2">Tasks ({selectedPackData.tasks.length})</h5>
+                          <h5 className="text-sm font-medium text-foreground/80 mb-2">Tasks ({selectedPackData.tasks.length})</h5>
                           <div className="space-y-2">
                             {selectedPackData.tasks
                               .sort((a, b) => a.sortOrder - b.sortOrder)
                               .map((task) => (
-                                <div key={task.id} className="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-lg">
-                                  <CheckCircle2 className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                                <div key={task.id} className="flex items-center gap-3 py-2 px-3 bg-surface/50 rounded-lg">
+                                  <CheckCircle2 className="w-4 h-4 text-muted/50 flex-shrink-0" />
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-gray-900">{task.title}</p>
+                                    <p className="text-sm text-foreground">{task.title}</p>
                                   </div>
                                   <div className="flex items-center gap-2 flex-shrink-0">
-                                    <span className="text-[10px] font-medium bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full capitalize">
+                                    <span className="text-[10px] font-medium bg-border text-muted px-2 py-0.5 rounded-full capitalize">
                                       {task.category.replace("_", " ")}
                                     </span>
                                     {task.isRequired && (
@@ -900,7 +900,7 @@ export default function OnboardingPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center py-8 text-sm text-gray-500">
+                      <div className="flex items-center justify-center py-8 text-sm text-muted">
                         <AlertCircle className="w-4 h-4 mr-2" />
                         Could not load pack details.
                       </div>
@@ -914,10 +914,10 @@ export default function OnboardingPage() {
 
           {/* Empty state for staff */}
           {isStaff && assignments.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <div className="bg-card rounded-xl border border-border p-8 text-center">
               <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
-              <p className="text-gray-500 text-lg">All caught up!</p>
-              <p className="text-gray-400 text-sm mt-1">You have no onboarding tasks assigned.</p>
+              <p className="text-muted text-lg">All caught up!</p>
+              <p className="text-muted text-sm mt-1">You have no onboarding tasks assigned.</p>
             </div>
           )}
         </div>
@@ -931,17 +931,17 @@ export default function OnboardingPage() {
       {activeTab === "lms" && !isServiceScoped && (
         <div className="space-y-6">
           {courses.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-              <GraduationCap className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 text-lg">No training courses yet</p>
-              <p className="text-gray-400 text-sm mt-1">
+            <div className="bg-card rounded-xl border border-border p-8 text-center">
+              <GraduationCap className="w-12 h-12 text-muted/50 mx-auto mb-3" />
+              <p className="text-muted text-lg">No training courses yet</p>
+              <p className="text-muted text-sm mt-1">
                 {isAdmin ? "Create your first course to start training staff." : "No courses available at the moment."}
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {courses.map((course) => (
-                <div key={course.id} onClick={() => { setSelectedCourseId(selectedCourseId === course.id ? null : course.id); setExpandedModuleId(null); setExpandedEnrollmentId(null); }} className={cn("bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer", selectedCourseId === course.id && "ring-2 ring-brand border-brand")}>
+                <div key={course.id} onClick={() => { setSelectedCourseId(selectedCourseId === course.id ? null : course.id); setExpandedModuleId(null); setExpandedEnrollmentId(null); }} className={cn("bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow cursor-pointer", selectedCourseId === course.id && "ring-2 ring-brand border-brand")}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                       <BookOpen className="w-5 h-5 text-purple-700" />
@@ -953,21 +953,21 @@ export default function OnboardingPage() {
                       <span className={cn(
                         "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
                         course.status === "published" ? "bg-emerald-100 text-emerald-700"
-                          : course.status === "draft" ? "bg-gray-100 text-gray-600"
+                          : course.status === "draft" ? "bg-gray-100 text-gray-500"
                           : "bg-amber-100 text-amber-700"
                       )}>
                         {course.status}
                       </span>
                     </div>
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-1">{course.title}</h4>
+                  <h4 className="font-semibold text-foreground mb-1">{course.title}</h4>
                   {course.description && (
-                    <p className="text-sm text-gray-500 line-clamp-2 mb-2">{course.description}</p>
+                    <p className="text-sm text-muted line-clamp-2 mb-2">{course.description}</p>
                   )}
                   {course.category && (
-                    <span className="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full mb-2">{course.category}</span>
+                    <span className="inline-block text-xs bg-surface text-muted px-2 py-0.5 rounded-full mb-2">{course.category}</span>
                   )}
-                  <div className="flex items-center gap-4 text-xs text-gray-400 mt-3">
+                  <div className="flex items-center gap-4 text-xs text-muted mt-3">
                     <span>{course._count.modules} modules</span>
                     <span>{course._count.enrollments} enrolled</span>
                     {course.service && <span>{course.service.name}</span>}
@@ -979,14 +979,14 @@ export default function OnboardingPage() {
 
           {/* Selected Course Detail Panel */}
           {selectedCourseId && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="bg-card rounded-xl border border-border p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                     <BookOpen className="w-5 h-5 text-purple-700" />
                   </div>
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900">
+                    <h4 className="text-lg font-semibold text-foreground">
                       {selectedCourseData?.title ?? courses.find(c => c.id === selectedCourseId)?.title ?? "Course Details"}
                     </h4>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -994,7 +994,7 @@ export default function OnboardingPage() {
                         <span className={cn(
                           "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
                           selectedCourseData.status === "published" ? "bg-emerald-100 text-emerald-700"
-                            : selectedCourseData.status === "draft" ? "bg-gray-100 text-gray-600"
+                            : selectedCourseData.status === "draft" ? "bg-gray-100 text-gray-500"
                             : "bg-amber-100 text-amber-700"
                         )}>
                           {selectedCourseData.status}
@@ -1016,7 +1016,7 @@ export default function OnboardingPage() {
                       Enrol Staff
                     </button>
                   )}
-                  <button onClick={(e) => { e.stopPropagation(); setSelectedCourseId(null); }} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                  <button onClick={(e) => { e.stopPropagation(); setSelectedCourseId(null); }} className="p-1.5 text-muted hover:text-foreground hover:bg-surface rounded-lg transition-colors">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -1024,18 +1024,18 @@ export default function OnboardingPage() {
 
               {selectedCourseLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-                  <span className="ml-2 text-sm text-gray-500">Loading course details...</span>
+                  <Loader2 className="w-6 h-6 text-muted animate-spin" />
+                  <span className="ml-2 text-sm text-muted">Loading course details...</span>
                 </div>
               ) : selectedCourseData ? (
                 <div className="space-y-6">
                   {selectedCourseData.description && (
-                    <p className="text-sm text-gray-600">{selectedCourseData.description}</p>
+                    <p className="text-sm text-muted">{selectedCourseData.description}</p>
                   )}
 
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-4 text-sm text-muted">
                     {selectedCourseData.category && (
-                      <span className="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{selectedCourseData.category}</span>
+                      <span className="inline-block text-xs bg-surface text-muted px-2 py-0.5 rounded-full">{selectedCourseData.category}</span>
                     )}
                     <span className="flex items-center gap-1">
                       <Users className="w-3.5 h-3.5" />
@@ -1054,7 +1054,7 @@ export default function OnboardingPage() {
                       {/* Enrolled Staff Section */}
                       {selectedCourseData.enrollments && selectedCourseData.enrollments.length > 0 && (
                         <div>
-                          <h5 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <h5 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                             <Users className="w-4 h-4" />
                             Enrolled Staff ({selectedCourseData.enrollments.length})
                           </h5>
@@ -1066,35 +1066,35 @@ export default function OnboardingPage() {
                               const isExpandedEnrollment = expandedEnrollmentId === enrollment.id;
 
                               return (
-                                <div key={enrollment.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                                <div key={enrollment.id} className="border border-border rounded-lg overflow-hidden">
                                   <div
                                     onClick={() => setExpandedEnrollmentId(isExpandedEnrollment ? null : enrollment.id)}
-                                    className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
+                                    className="flex items-center gap-3 p-3 hover:bg-surface cursor-pointer"
                                   >
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-gray-900">{enrollment.user.name}</p>
-                                      <p className="text-xs text-gray-500">{enrollment.user.email}</p>
+                                      <p className="text-sm font-medium text-foreground">{enrollment.user.name}</p>
+                                      <p className="text-xs text-muted">{enrollment.user.email}</p>
                                     </div>
                                     <span className={cn(
                                       "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
                                       enrollment.status === "completed" ? "bg-emerald-100 text-emerald-700"
                                         : enrollment.status === "in_progress" ? "bg-blue-100 text-blue-700"
                                         : enrollment.status === "expired" ? "bg-red-100 text-red-700"
-                                        : "bg-gray-100 text-gray-600"
+                                        : "bg-gray-100 text-gray-500"
                                     )}>
                                       {enrollment.status.replace("_", " ")}
                                     </span>
                                     <div className="w-24">
-                                      <div className="flex items-center justify-between text-[10px] text-gray-400 mb-0.5">
+                                      <div className="flex items-center justify-between text-[10px] text-muted mb-0.5">
                                         <span>{completedModules}/{totalModules}</span>
                                         <span>{pct}%</span>
                                       </div>
-                                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                      <div className="h-1.5 bg-border rounded-full overflow-hidden">
                                         <div className="h-full bg-brand rounded-full transition-all" style={{ width: `${pct}%` }} />
                                       </div>
                                     </div>
                                     {enrollment.dueDate && (
-                                      <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                                      <span className="text-[10px] text-muted flex items-center gap-0.5">
                                         <Clock className="w-3 h-3" />
                                         {new Date(enrollment.dueDate).toLocaleDateString("en-AU", { month: "short", day: "numeric" })}
                                       </span>
@@ -1107,15 +1107,15 @@ export default function OnboardingPage() {
                                         }
                                       }}
                                       disabled={unenrollStaff.isPending}
-                                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                      className="p-1 text-muted hover:text-danger transition-colors"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
                                     </button>
-                                    {isExpandedEnrollment ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                                    {isExpandedEnrollment ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
                                   </div>
 
                                   {isExpandedEnrollment && (
-                                    <div className="border-t border-gray-100 p-3 space-y-1.5 bg-gray-50/50">
+                                    <div className="border-t border-border/50 p-3 space-y-1.5 bg-surface/30">
                                       {selectedCourseData.modules
                                         ?.slice()
                                         .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -1126,13 +1126,13 @@ export default function OnboardingPage() {
                                               {modProgress?.completed ? (
                                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
                                               ) : (
-                                                <Circle className="w-3.5 h-3.5 text-gray-300 flex-shrink-0" />
+                                                <Circle className="w-3.5 h-3.5 text-muted/50 flex-shrink-0" />
                                               )}
-                                              <span className={cn("flex-1", modProgress?.completed ? "text-gray-400 line-through" : "text-gray-700")}>
+                                              <span className={cn("flex-1", modProgress?.completed ? "text-muted line-through" : "text-foreground/80")}>
                                                 {mod.title}
                                               </span>
                                               {modProgress?.completedAt && (
-                                                <span className="text-gray-400">
+                                                <span className="text-muted">
                                                   {new Date(modProgress.completedAt).toLocaleDateString("en-AU", { month: "short", day: "numeric" })}
                                                 </span>
                                               )}
@@ -1149,9 +1149,9 @@ export default function OnboardingPage() {
                       )}
 
                       {selectedCourseData.enrollments && selectedCourseData.enrollments.length === 0 && (
-                        <div className="bg-gray-50 rounded-lg p-4 text-center">
-                          <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                          <p className="text-sm text-gray-500">No staff enrolled yet.</p>
+                        <div className="bg-surface/50 rounded-lg p-4 text-center">
+                          <Users className="w-8 h-8 text-muted/50 mx-auto mb-2" />
+                          <p className="text-sm text-muted">No staff enrolled yet.</p>
                           <button
                             onClick={() => { setEnrollForm({ userIds: [], dueDate: "" }); setShowEnroll(true); }}
                             className="text-sm text-brand hover:underline mt-1"
@@ -1176,7 +1176,7 @@ export default function OnboardingPage() {
                   )}
                 </div>
               ) : (
-                <div className="flex items-center justify-center py-8 text-sm text-gray-500">
+                <div className="flex items-center justify-center py-8 text-sm text-muted">
                   <AlertCircle className="w-4 h-4 mr-2" />
                   Could not load course details.
                 </div>
@@ -1194,38 +1194,38 @@ export default function OnboardingPage() {
       {/* Create Pack Modal */}
       {showCreatePack && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Create Onboarding Pack</h3>
-              <button onClick={() => setShowCreatePack(false)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+              <h3 className="text-lg font-semibold text-foreground">Create Onboarding Pack</h3>
+              <button onClick={() => setShowCreatePack(false)} className="p-1 text-muted hover:text-foreground"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleCreatePack} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                <input type="text" value={packForm.name} onChange={(e) => setPackForm({ ...packForm, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" placeholder="E.g., New Staff Induction Pack" required />
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Name *</label>
+                <input type="text" value={packForm.name} onChange={(e) => setPackForm({ ...packForm, name: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" placeholder="E.g., New Staff Induction Pack" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea value={packForm.description} onChange={(e) => setPackForm({ ...packForm, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" rows={2} />
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Description</label>
+                <textarea value={packForm.description} onChange={(e) => setPackForm({ ...packForm, description: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" rows={2} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Centre (Optional)</label>
-                  <select value={packForm.serviceId} onChange={(e) => setPackForm({ ...packForm, serviceId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand">
+                  <label className="block text-sm font-medium text-foreground/80 mb-1">Centre (Optional)</label>
+                  <select value={packForm.serviceId} onChange={(e) => setPackForm({ ...packForm, serviceId: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand">
                     <option value="">Company-wide</option>
                     {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
                 <div className="flex items-end">
                   <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={packForm.isDefault} onChange={(e) => setPackForm({ ...packForm, isDefault: e.target.checked })} className="rounded border-gray-300 text-brand focus:ring-brand" />
+                    <input type="checkbox" checked={packForm.isDefault} onChange={(e) => setPackForm({ ...packForm, isDefault: e.target.checked })} className="rounded border-border text-brand focus:ring-brand" />
                     Default pack for new staff
                   </label>
                 </div>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">Tasks</label>
+                  <label className="block text-sm font-medium text-foreground/80">Tasks</label>
                   <button type="button" onClick={() => setPackForm({ ...packForm, tasks: [...packForm.tasks, { title: "", description: "", category: "general", isRequired: true }] })} className="text-xs text-brand hover:underline flex items-center gap-1">
                     <Plus className="w-3 h-3" /> Add Task
                   </button>
@@ -1241,7 +1241,7 @@ export default function OnboardingPage() {
                           tasks[i] = { ...tasks[i], title: e.target.value };
                           setPackForm({ ...packForm, tasks });
                         }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                        className="flex-1 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
                         placeholder={`Task ${i + 1}...`}
                       />
                       <select
@@ -1251,7 +1251,7 @@ export default function OnboardingPage() {
                           tasks[i] = { ...tasks[i], category: e.target.value };
                           setPackForm({ ...packForm, tasks });
                         }}
-                        className="px-2 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand"
+                        className="px-2 py-2 border border-border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand"
                       >
                         <option value="general">General</option>
                         <option value="documentation">Documentation</option>
@@ -1260,7 +1260,7 @@ export default function OnboardingPage() {
                         <option value="it_setup">IT Setup</option>
                       </select>
                       {packForm.tasks.length > 1 && (
-                        <button type="button" onClick={() => setPackForm({ ...packForm, tasks: packForm.tasks.filter((_, j) => j !== i) })} className="p-1 text-gray-400 hover:text-red-500">
+                        <button type="button" onClick={() => setPackForm({ ...packForm, tasks: packForm.tasks.filter((_, j) => j !== i) })} className="p-1 text-muted hover:text-danger">
                           <X className="w-4 h-4" />
                         </button>
                       )}
@@ -1269,7 +1269,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <div className="flex gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowCreatePack(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={() => setShowCreatePack(false)} className="flex-1 px-4 py-2.5 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface">Cancel</button>
                 <button type="submit" disabled={createPack.isPending} className="flex-1 bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
                   {createPack.isPending ? "Creating..." : "Create Pack"}
                 </button>
@@ -1282,39 +1282,39 @@ export default function OnboardingPage() {
       {/* Create Course Modal */}
       {showCreateCourse && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6">
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Create Training Course</h3>
-              <button onClick={() => setShowCreateCourse(false)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+              <h3 className="text-lg font-semibold text-foreground">Create Training Course</h3>
+              <button onClick={() => setShowCreateCourse(false)} className="p-1 text-muted hover:text-foreground"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleCreateCourse} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-                <input type="text" value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" placeholder="E.g., Workplace Health & Safety" required />
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Title *</label>
+                <input type="text" value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" placeholder="E.g., Workplace Health & Safety" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" rows={3} />
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Description</label>
+                <textarea value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" rows={3} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <input type="text" value={courseForm.category} onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" placeholder="E.g., Safety, Compliance" />
+                  <label className="block text-sm font-medium text-foreground/80 mb-1">Category</label>
+                  <input type="text" value={courseForm.category} onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" placeholder="E.g., Safety, Compliance" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Centre (Optional)</label>
-                  <select value={courseForm.serviceId} onChange={(e) => setCourseForm({ ...courseForm, serviceId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand">
+                  <label className="block text-sm font-medium text-foreground/80 mb-1">Centre (Optional)</label>
+                  <select value={courseForm.serviceId} onChange={(e) => setCourseForm({ ...courseForm, serviceId: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand">
                     <option value="">Company-wide</option>
                     {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
               </div>
               <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={courseForm.isRequired} onChange={(e) => setCourseForm({ ...courseForm, isRequired: e.target.checked })} className="rounded border-gray-300 text-brand focus:ring-brand" />
+                <input type="checkbox" checked={courseForm.isRequired} onChange={(e) => setCourseForm({ ...courseForm, isRequired: e.target.checked })} className="rounded border-border text-brand focus:ring-brand" />
                 Required course for all staff
               </label>
               <div className="flex gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowCreateCourse(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={() => setShowCreateCourse(false)} className="flex-1 px-4 py-2.5 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface">Cancel</button>
                 <button type="submit" disabled={createCourse.isPending} className="flex-1 bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
                   {createCourse.isPending ? "Creating..." : "Create Course"}
                 </button>
@@ -1327,29 +1327,29 @@ export default function OnboardingPage() {
       {/* Assign Pack Modal */}
       {showAssign && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Assign Onboarding Pack</h3>
-              <button onClick={() => setShowAssign(false)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+              <h3 className="text-lg font-semibold text-foreground">Assign Onboarding Pack</h3>
+              <button onClick={() => setShowAssign(false)} className="p-1 text-muted hover:text-foreground"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleAssign} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Staff Member *</label>
-                <select value={assignForm.userId} onChange={(e) => setAssignForm({ ...assignForm, userId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" required>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Staff Member *</label>
+                <select value={assignForm.userId} onChange={(e) => setAssignForm({ ...assignForm, userId: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" required>
                   <option value="">Select user...</option>
                   {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Onboarding Pack *</label>
-                <select value={assignForm.packId} onChange={(e) => setAssignForm({ ...assignForm, packId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" required>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Onboarding Pack *</label>
+                <select value={assignForm.packId} onChange={(e) => setAssignForm({ ...assignForm, packId: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" required>
                   <option value="">Select pack...</option>
                   {packs.map(p => <option key={p.id} value={p.id}>{p.name} ({p._count.tasks} tasks)</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date (Optional)</label>
-                <input type="date" value={assignForm.dueDate} onChange={(e) => setAssignForm({ ...assignForm, dueDate: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Due Date (Optional)</label>
+                <input type="date" value={assignForm.dueDate} onChange={(e) => setAssignForm({ ...assignForm, dueDate: e.target.value })} className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
               {assignPack.isError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
@@ -1357,7 +1357,7 @@ export default function OnboardingPage() {
                 </div>
               )}
               <div className="flex gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowAssign(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={() => setShowAssign(false)} className="flex-1 px-4 py-2.5 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface">Cancel</button>
                 <button type="submit" disabled={assignPack.isPending} className="flex-1 bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
                   {assignPack.isPending ? "Assigning..." : "Assign"}
                 </button>
@@ -1370,22 +1370,22 @@ export default function OnboardingPage() {
       {/* Enrol Staff Modal */}
       {showEnroll && selectedCourseData && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Enrol Staff</h3>
-                <p className="text-sm text-gray-500 mt-0.5">{selectedCourseData.title}</p>
+                <h3 className="text-lg font-semibold text-foreground">Enrol Staff</h3>
+                <p className="text-sm text-muted mt-0.5">{selectedCourseData.title}</p>
               </div>
-              <button onClick={() => setShowEnroll(false)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowEnroll(false)} className="p-1 text-muted hover:text-foreground"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleEnroll} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Staff Members *</label>
-                <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg p-2 space-y-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Select Staff Members *</label>
+                <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-2 space-y-1">
                   {users
                     .filter(u => !selectedCourseData.enrollments?.some(e => e.userId === u.id))
                     .map(u => (
-                      <label key={u.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer">
+                      <label key={u.id} className="flex items-center gap-2 p-1.5 hover:bg-surface rounded cursor-pointer">
                         <input
                           type="checkbox"
                           checked={enrollForm.userIds.includes(u.id)}
@@ -1396,28 +1396,28 @@ export default function OnboardingPage() {
                               setEnrollForm({ ...enrollForm, userIds: enrollForm.userIds.filter(id => id !== u.id) });
                             }
                           }}
-                          className="rounded border-gray-300 text-brand focus:ring-brand"
+                          className="rounded border-border text-brand focus:ring-brand"
                         />
-                        <span className="text-sm text-gray-900">{u.name}</span>
-                        <span className="text-xs text-gray-400">({u.role})</span>
+                        <span className="text-sm text-foreground">{u.name}</span>
+                        <span className="text-xs text-muted">({u.role})</span>
                       </label>
                     ))
                   }
                   {users.filter(u => !selectedCourseData.enrollments?.some(e => e.userId === u.id)).length === 0 && (
-                    <p className="text-sm text-gray-400 italic p-2">All staff are already enrolled.</p>
+                    <p className="text-sm text-muted italic p-2">All staff are already enrolled.</p>
                   )}
                 </div>
                 {enrollForm.userIds.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-1">{enrollForm.userIds.length} selected</p>
+                  <p className="text-xs text-muted mt-1">{enrollForm.userIds.length} selected</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date (Optional)</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Due Date (Optional)</label>
                 <input
                   type="date"
                   value={enrollForm.dueDate}
                   onChange={(e) => setEnrollForm({ ...enrollForm, dueDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
               {enrollStaff.isError && (
@@ -1426,7 +1426,7 @@ export default function OnboardingPage() {
                 </div>
               )}
               <div className="flex gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowEnroll(false)} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={() => setShowEnroll(false)} className="flex-1 px-4 py-2.5 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface">Cancel</button>
                 <button type="submit" disabled={enrollStaff.isPending || enrollForm.userIds.length === 0} className="flex-1 bg-brand hover:bg-brand-hover text-white font-medium px-4 py-2.5 rounded-lg disabled:opacity-50">
                   {enrollStaff.isPending ? "Enrolling..." : `Enrol ${enrollForm.userIds.length} Staff`}
                 </button>
@@ -1496,13 +1496,13 @@ function StaffCourseViewer({
       {myEnrollment && (
         <div className="bg-gradient-to-r from-brand/5 to-transparent rounded-lg p-4">
           <div className="flex items-center justify-between text-sm mb-2">
-            <span className="font-medium text-gray-700">Your Progress</span>
-            <span className="text-gray-500">
+            <span className="font-medium text-foreground/80">Your Progress</span>
+            <span className="text-muted">
               {completedCount}/{totalModules} modules
               {pct === 100 && " ✓ Complete!"}
             </span>
           </div>
-          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-3 bg-border rounded-full overflow-hidden">
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-500",
@@ -1526,10 +1526,10 @@ function StaffCourseViewer({
 
       {/* Module accordion */}
       {modules.length === 0 ? (
-        <p className="text-sm text-gray-400 italic">No modules in this course yet.</p>
+        <p className="text-sm text-muted italic">No modules in this course yet.</p>
       ) : (
         <div className="space-y-2">
-          <h5 className="text-sm font-semibold text-gray-900">
+          <h5 className="text-sm font-semibold text-foreground">
             Modules ({modules.length})
           </h5>
           {modules.map((mod) => {
@@ -1539,33 +1539,33 @@ function StaffCourseViewer({
             const isCompleted = progress?.completed ?? false;
 
             return (
-              <div key={mod.id} className={cn("border rounded-lg overflow-hidden transition-colors", isCompleted ? "border-emerald-200 bg-emerald-50/30" : "border-gray-200")}>
+              <div key={mod.id} className={cn("border rounded-lg overflow-hidden transition-colors", isCompleted ? "border-emerald-200 bg-emerald-50/30" : "border-border")}>
                 {/* Module header */}
                 <button
                   onClick={() => setExpandedModuleId(isExpanded ? null : mod.id)}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-50/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-3 hover:bg-surface/50 transition-colors text-left"
                 >
                   {myEnrollment && (
                     <div className="flex-shrink-0">
                       {isCompleted ? (
                         <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                       ) : (
-                        <Circle className="w-5 h-5 text-gray-300" />
+                        <Circle className="w-5 h-5 text-muted/50" />
                       )}
                     </div>
                   )}
-                  <TypeIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <TypeIcon className="w-4 h-4 text-muted flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm font-medium", isCompleted ? "text-gray-400 line-through" : "text-gray-900")}>
+                    <p className={cn("text-sm font-medium", isCompleted ? "text-muted line-through" : "text-foreground")}>
                       {mod.title}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] font-medium bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full capitalize">
+                    <span className="text-[10px] font-medium bg-border text-muted px-2 py-0.5 rounded-full capitalize">
                       {mod.type.replace("_", " ")}
                     </span>
                     {mod.duration && (
-                      <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                      <span className="text-[10px] text-muted flex items-center gap-0.5">
                         <Clock className="w-3 h-3" />
                         {mod.duration}m
                       </span>
@@ -1573,31 +1573,31 @@ function StaffCourseViewer({
                     {mod.isRequired && (
                       <span className="text-[10px] font-medium text-red-500 uppercase">Required</span>
                     )}
-                    {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+                    {isExpanded ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
                   </div>
                 </button>
 
                 {/* Expanded content */}
                 {isExpanded && (
-                  <div className="border-t border-gray-100 p-4 bg-white">
+                  <div className="border-t border-border/50 p-4 bg-card">
                     {mod.description && (
-                      <p className="text-sm text-gray-600 mb-3 italic">{mod.description}</p>
+                      <p className="text-sm text-muted mb-3 italic">{mod.description}</p>
                     )}
 
                     {/* Document content */}
                     {mod.type === "document" && mod.content && (
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed max-h-[500px] overflow-y-auto">
+                      <div className="bg-surface/50 rounded-lg p-4 border border-border text-sm text-foreground whitespace-pre-wrap leading-relaxed max-h-[500px] overflow-y-auto">
                         {mod.content}
                       </div>
                     )}
 
                     {/* Checklist content */}
                     {mod.type === "checklist" && mod.content && (
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-2">
+                      <div className="bg-surface/50 rounded-lg p-4 border border-border space-y-2">
                         {mod.content.split("\n").filter(line => line.trim()).map((line, i) => (
-                          <div key={i} className="flex items-start gap-2.5 text-sm text-gray-800">
-                            <div className="w-4 h-4 mt-0.5 rounded border border-gray-300 flex-shrink-0 flex items-center justify-center">
-                              <span className="text-[10px] text-gray-400">{i + 1}</span>
+                          <div key={i} className="flex items-start gap-2.5 text-sm text-foreground">
+                            <div className="w-4 h-4 mt-0.5 rounded border border-border flex-shrink-0 flex items-center justify-center">
+                              <span className="text-[10px] text-muted">{i + 1}</span>
                             </div>
                             <span>{line.replace(/^[☐☑✓✔•\-\*]\s*/, "").trim()}</span>
                           </div>
@@ -1607,7 +1607,7 @@ function StaffCourseViewer({
 
                     {/* Quiz content */}
                     {mod.type === "quiz" && mod.content && (
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-4">
+                      <div className="bg-surface/50 rounded-lg p-4 border border-border space-y-4">
                         {mod.content.split(/\n(?=Q\d|Question)/i).filter(q => q.trim()).map((qa, i) => {
                           const lines = qa.split("\n").filter(l => l.trim());
                           const question = lines[0];
@@ -1617,7 +1617,7 @@ function StaffCourseViewer({
 
                           return (
                             <div key={i} className="space-y-1.5">
-                              <p className="text-sm font-medium text-gray-900">{question}</p>
+                              <p className="text-sm font-medium text-foreground">{question}</p>
                               {answer && (
                                 <div>
                                   <button
@@ -1635,7 +1635,7 @@ function StaffCourseViewer({
                                     {isRevealed ? "Hide Answer" : "Show Answer"}
                                   </button>
                                   {isRevealed && (
-                                    <p className="text-sm text-gray-600 mt-1.5 pl-3 border-l-2 border-brand/20 whitespace-pre-wrap">
+                                    <p className="text-sm text-muted mt-1.5 pl-3 border-l-2 border-brand/20 whitespace-pre-wrap">
                                       {answer}
                                     </p>
                                   )}
@@ -1649,47 +1649,47 @@ function StaffCourseViewer({
 
                     {/* Video content */}
                     {mod.type === "video" && (
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <div className="bg-surface/50 rounded-lg p-4 border border-border">
                         {mod.resourceUrl ? (
                           <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors text-sm">
                             <Play className="w-4 h-4" /> Watch Video
                           </a>
                         ) : mod.content ? (
-                          <p className="text-sm text-gray-600 whitespace-pre-wrap">{mod.content}</p>
+                          <p className="text-sm text-muted whitespace-pre-wrap">{mod.content}</p>
                         ) : (
-                          <p className="text-sm text-gray-400 italic">No video link provided yet.</p>
+                          <p className="text-sm text-muted italic">No video link provided yet.</p>
                         )}
                       </div>
                     )}
 
                     {/* External link content */}
                     {mod.type === "external_link" && (
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <div className="bg-surface/50 rounded-lg p-4 border border-border">
                         {mod.resourceUrl ? (
                           <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors text-sm">
                             <ExternalLink className="w-4 h-4" /> Open Resource
                           </a>
                         ) : (
-                          <p className="text-sm text-gray-400 italic">No link provided yet.</p>
+                          <p className="text-sm text-muted italic">No link provided yet.</p>
                         )}
                       </div>
                     )}
 
                     {/* Fallback no content */}
                     {!mod.content && !mod.resourceUrl && mod.type !== "video" && mod.type !== "external_link" && (
-                      <p className="text-sm text-gray-400 italic">No content available for this module yet.</p>
+                      <p className="text-sm text-muted italic">No content available for this module yet.</p>
                     )}
 
                     {/* Mark as Complete button */}
                     {myEnrollment && (
-                      <div className="mt-4 pt-3 border-t border-gray-200">
+                      <div className="mt-4 pt-3 border-t border-border">
                         <button
                           onClick={() => onModuleProgress(myEnrollment.id, mod.id, !isCompleted)}
                           disabled={isUpdating}
                           className={cn(
                             "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                             isCompleted
-                              ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
                               : "bg-emerald-600 text-white hover:bg-emerald-700"
                           )}
                         >

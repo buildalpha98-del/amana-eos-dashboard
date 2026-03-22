@@ -116,7 +116,7 @@ export function DataEntryCell({
           onChange={(e) => setValue(e.target.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          className="w-full px-1.5 py-1 text-xs text-center border border-brand rounded bg-white focus:outline-none focus:ring-1 focus:ring-brand"
+          className="w-full px-1.5 py-1 text-xs text-center border border-brand rounded bg-card focus:outline-none focus:ring-1 focus:ring-brand"
         />
       </td>
     );
@@ -131,7 +131,7 @@ export function DataEntryCell({
           setEditing(true);
         }}
         className={cn(
-          "px-1 py-1 text-center cursor-pointer transition-colors duration-300 hover:bg-gray-100",
+          "px-1 py-1 text-center cursor-pointer transition-colors duration-300 hover:bg-surface",
           justSaved
             ? "bg-emerald-200"
             : isOnTrack
@@ -154,11 +154,11 @@ export function DataEntryCell({
         setEditing(true);
       }}
       className={cn(
-        "px-1 py-1 text-center cursor-pointer hover:bg-gray-100 transition-colors duration-300",
+        "px-1 py-1 text-center cursor-pointer hover:bg-surface transition-colors duration-300",
         justSaved && "bg-emerald-200"
       )}
     >
-      <span className="text-xs text-gray-300">{"\u2014"}</span>
+      <span className="text-xs text-muted/50">{"\u2014"}</span>
     </td>
   );
 }

@@ -27,7 +27,7 @@ export function AgentWorkloadChart({ data }: AgentWorkloadChartProps) {
   if (sortedData.length === 0) {
     return (
       <ChartCard title="Agent Workload" subtitle="Tickets assigned per agent">
-        <div className="flex items-center justify-center h-[200px] text-sm text-gray-400">
+        <div className="flex items-center justify-center h-[200px] text-sm text-muted">
           No data available
         </div>
       </ChartCard>

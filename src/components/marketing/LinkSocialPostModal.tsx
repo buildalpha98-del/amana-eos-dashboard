@@ -77,18 +77,18 @@ export function LinkSocialPostModal({
 
       {/* Modal */}
       <div className="fixed inset-0 z-[61] flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="w-full max-w-2xl rounded-xl bg-card shadow-2xl max-h-[85vh] flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <div className="flex items-center gap-2">
               <Link2 className="h-5 w-5 text-brand" />
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 Link to Social Post
               </h2>
             </div>
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-foreground transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -98,10 +98,10 @@ export function LinkSocialPostModal({
           {linked ? (
             <div className="flex flex-col items-center justify-center py-16 px-6">
               <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
-              <p className="text-lg font-semibold text-gray-900 mb-1">
+              <p className="text-lg font-semibold text-foreground mb-1">
                 Post Linked Successfully
               </p>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className="text-sm text-muted mb-6">
                 Engagement metrics will now sync automatically.
               </p>
               <button
@@ -114,13 +114,13 @@ export function LinkSocialPostModal({
           ) : (
             <>
               {/* Tab Bar */}
-              <div className="flex border-b border-gray-200 px-6">
+              <div className="flex border-b border-border px-6">
                 <button
                   onClick={() => setTab("browse")}
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     tab === "browse"
                       ? "border-brand text-brand"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
+                      : "border-transparent text-muted hover:text-foreground"
                   }`}
                 >
                   Browse Recent Posts
@@ -130,7 +130,7 @@ export function LinkSocialPostModal({
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     tab === "manual"
                       ? "border-brand text-brand"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
+                      : "border-transparent text-muted hover:text-foreground"
                   }`}
                 >
                   Manual Entry
@@ -142,28 +142,28 @@ export function LinkSocialPostModal({
                 {tab === "browse" ? (
                   <>
                     {loadingAccounts || loadingPosts ? (
-                      <p className="text-sm text-gray-500 text-center py-8">
+                      <p className="text-sm text-muted text-center py-8">
                         Loading social posts...
                       </p>
                     ) : !matchingAccount ? (
                       <div className="text-center py-8">
-                        <p className="text-sm text-gray-500 mb-2">
+                        <p className="text-sm text-muted mb-2">
                           No connected {platform} account found.
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-muted">
                           Connect your {platform} account first from the Social
                           Connections panel.
                         </p>
                       </div>
                     ) : !socialPosts || socialPosts.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-8">
+                      <p className="text-sm text-muted text-center py-8">
                         No recent posts found on this account.
                       </p>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="border-b border-gray-200 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wider text-muted">
                               <th className="pb-2 pr-3">Post</th>
                               <th className="pb-2 pr-3">Date</th>
                               <th className="pb-2 pr-3 text-right">Likes</th>
@@ -173,12 +173,12 @@ export function LinkSocialPostModal({
                               <th className="pb-2"></th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100">
+                          <tbody className="divide-y divide-border/50">
                             {socialPosts.map((sp: SocialPostData) => (
                               <tr key={sp.externalId}>
                                 <td className="py-2.5 pr-3">
                                   <div className="flex items-center gap-2">
-                                    <p className="text-gray-900 max-w-[200px] truncate">
+                                    <p className="text-foreground max-w-[200px] truncate">
                                       {truncate(
                                         sp.message || "(no caption)",
                                         60
@@ -189,20 +189,20 @@ export function LinkSocialPostModal({
                                         href={sp.permalink}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-gray-400 hover:text-brand"
+                                        className="text-muted hover:text-brand"
                                       >
                                         <ExternalLink className="h-3.5 w-3.5" />
                                       </a>
                                     )}
                                   </div>
                                 </td>
-                                <td className="py-2.5 pr-3 text-gray-500 whitespace-nowrap">
+                                <td className="py-2.5 pr-3 text-muted whitespace-nowrap">
                                   {formatDate(sp.createdTime)}
                                 </td>
-                                <td className="py-2.5 pr-3 text-right text-gray-600">
+                                <td className="py-2.5 pr-3 text-right text-muted">
                                   {sp.likes}
                                 </td>
-                                <td className="py-2.5 pr-3 text-right text-gray-600">
+                                <td className="py-2.5 pr-3 text-right text-muted">
                                   {sp.comments}
                                 </td>
                                 <td className="py-2.5 text-right">
@@ -229,7 +229,7 @@ export function LinkSocialPostModal({
                 ) : (
                   <div className="space-y-4 py-2">
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
                         External Post ID *
                       </label>
                       <input
@@ -237,11 +237,11 @@ export function LinkSocialPostModal({
                         value={manualPostId}
                         onChange={(e) => setManualPostId(e.target.value)}
                         placeholder="e.g. 123456789012345_987654321098765"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
                         External URL (optional)
                       </label>
                       <input
@@ -249,7 +249,7 @@ export function LinkSocialPostModal({
                         value={manualUrl}
                         onChange={(e) => setManualUrl(e.target.value)}
                         placeholder="https://www.facebook.com/..."
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                     <button

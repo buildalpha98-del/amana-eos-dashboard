@@ -42,7 +42,7 @@ const categoryBadgeColors: Record<string, string> = {
 };
 
 const periodBadgeColors: Record<string, string> = {
-  weekly: "bg-gray-100 text-gray-600",
+  weekly: "bg-surface text-muted",
   monthly: "bg-sky-100 text-sky-700",
   quarterly: "bg-indigo-100 text-indigo-700",
   yearly: "bg-teal-100 text-teal-700",
@@ -207,7 +207,7 @@ export function KPIsTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20 text-gray-500">
+      <div className="flex items-center justify-center py-20 text-muted">
         Loading KPIs...
       </div>
     );
@@ -215,10 +215,10 @@ export function KPIsTab() {
 
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-xl border bg-white py-16">
+      <div className="flex flex-col items-center justify-center rounded-xl border bg-card py-16">
         <Target className="mb-3 h-10 w-10 text-red-300" />
-        <p className="text-lg font-medium text-gray-700">Failed to load KPIs</p>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="text-lg font-medium text-foreground/80">Failed to load KPIs</p>
+        <p className="mt-1 text-sm text-muted">
           Something went wrong. Please try refreshing the page.
         </p>
       </div>
@@ -236,7 +236,7 @@ export function KPIsTab() {
             className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
               categoryFilter === cat
                 ? "bg-brand text-white"
-                : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                : "border border-border bg-card text-foreground/80 hover:bg-surface"
             }`}
           >
             {cat}
@@ -260,10 +260,10 @@ export function KPIsTab() {
 
       {/* Card Grid */}
       {!filteredKPIs || filteredKPIs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border bg-white py-16">
-          <Target className="mb-3 h-10 w-10 text-gray-300" />
-          <p className="text-lg font-medium text-gray-700">No KPIs found</p>
-          <p className="mt-1 text-sm text-gray-500">
+        <div className="flex flex-col items-center justify-center rounded-xl border bg-card py-16">
+          <Target className="mb-3 h-10 w-10 text-muted/50" />
+          <p className="text-lg font-medium text-foreground/80">No KPIs found</p>
+          <p className="mt-1 text-sm text-muted">
             {categoryFilter !== "All"
               ? "Try selecting a different category or create a new KPI."
               : "Create your first KPI to start tracking performance."}
@@ -282,11 +282,11 @@ export function KPIsTab() {
               return (
                 <div
                   key={kpi.id}
-                  className="rounded-xl border border-brand bg-white p-5"
+                  className="rounded-xl border border-brand bg-card p-5"
                 >
                   <div className="space-y-3">
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600">
+                      <label className="mb-1 block text-xs font-medium text-muted">
                         Name
                       </label>
                       <input
@@ -295,13 +295,13 @@ export function KPIsTab() {
                         onChange={(e) =>
                           setEditForm({ ...editForm, name: e.target.value })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-600">
+                        <label className="mb-1 block text-xs font-medium text-muted">
                           Target
                         </label>
                         <input
@@ -311,11 +311,11 @@ export function KPIsTab() {
                             setEditForm({ ...editForm, target: e.target.value })
                           }
                           min="0"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                          className="w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-600">
+                        <label className="mb-1 block text-xs font-medium text-muted">
                           Current
                         </label>
                         <input
@@ -328,13 +328,13 @@ export function KPIsTab() {
                             })
                           }
                           min="0"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                          className="w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-600">
+                      <label className="mb-1 block text-xs font-medium text-muted">
                         Unit
                       </label>
                       <input
@@ -344,13 +344,13 @@ export function KPIsTab() {
                           setEditForm({ ...editForm, unit: e.target.value })
                         }
                         placeholder="e.g. %, followers, posts"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-600">
+                        <label className="mb-1 block text-xs font-medium text-muted">
                           Period
                         </label>
                         <select
@@ -358,7 +358,7 @@ export function KPIsTab() {
                           onChange={(e) =>
                             setEditForm({ ...editForm, period: e.target.value })
                           }
-                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                          className="w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                         >
                           {PERIOD_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
@@ -368,7 +368,7 @@ export function KPIsTab() {
                         </select>
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-600">
+                        <label className="mb-1 block text-xs font-medium text-muted">
                           Category
                         </label>
                         <select
@@ -379,7 +379,7 @@ export function KPIsTab() {
                               category: e.target.value,
                             })
                           }
-                          className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                          className="w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                         >
                           {CATEGORY_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
@@ -400,7 +400,7 @@ export function KPIsTab() {
                       <button
                         type="button"
                         onClick={cancelEdit}
-                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                        className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground/80 transition-colors hover:bg-surface"
                       >
                         Cancel
                       </button>
@@ -423,19 +423,19 @@ export function KPIsTab() {
             return (
               <div
                 key={kpi.id}
-                className="rounded-xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-sm"
+                className="rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-sm"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold text-gray-900 truncate">
+                    <h4 className="text-sm font-semibold text-foreground truncate">
                       {kpi.name}
                     </h4>
                     <div className="mt-1.5 flex flex-wrap gap-1.5">
                       <span
                         className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                           categoryBadgeColors[kpi.category.toLowerCase()] ??
-                          "bg-gray-100 text-gray-600"
+                          "bg-surface text-muted"
                         }`}
                       >
                         {kpi.category}
@@ -443,7 +443,7 @@ export function KPIsTab() {
                       <span
                         className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                           periodBadgeColors[kpi.period.toLowerCase()] ??
-                          "bg-gray-100 text-gray-600"
+                          "bg-surface text-muted"
                         }`}
                       >
                         {kpi.period.charAt(0).toUpperCase() +
@@ -454,14 +454,14 @@ export function KPIsTab() {
                   <div className="flex items-center gap-1 ml-2 shrink-0">
                     <button
                       onClick={() => startEdit(kpi)}
-                      className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                      className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-foreground"
                       title="Edit"
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => setDeleteConfirmId(kpi.id)}
-                      className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                      className="rounded-lg p-1.5 text-muted transition-colors hover:bg-red-50 hover:text-danger"
                       title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -471,7 +471,7 @@ export function KPIsTab() {
 
                 {/* Progress Bar */}
                 <div className="mb-2">
-                  <div className="h-3 w-full rounded-full bg-gray-100">
+                  <div className="h-3 w-full rounded-full bg-surface">
                     <div
                       className={`h-3 rounded-full transition-all duration-500 ${
                         isComplete ? "bg-green-500" : "bg-brand"
@@ -483,14 +483,14 @@ export function KPIsTab() {
 
                 {/* Values */}
                 <div className="flex items-baseline justify-between">
-                  <span className="text-sm text-gray-600">
-                    <span className="font-semibold text-gray-900">
+                  <span className="text-sm text-muted">
+                    <span className="font-semibold text-foreground">
                       {kpi.current.toLocaleString()}
                     </span>
                     {" / "}
                     <span>{kpi.target.toLocaleString()}</span>
                     {kpi.unit && (
-                      <span className="ml-1 text-xs text-gray-400">
+                      <span className="ml-1 text-xs text-muted">
                         {kpi.unit}
                       </span>
                     )}
@@ -514,7 +514,7 @@ export function KPIsTab() {
                       <button
                         type="button"
                         onClick={() => setDeleteConfirmId(null)}
-                        className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                        className="rounded-lg border border-border bg-card px-3 py-1 text-xs font-medium text-foreground/80 transition-colors hover:bg-surface"
                       >
                         Cancel
                       </button>
@@ -550,12 +550,12 @@ export function KPIsTab() {
           {/* Modal */}
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div
-              className="w-full max-w-md rounded-xl bg-white shadow-xl"
+              className="w-full max-w-md rounded-xl bg-card shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
               <div className="flex items-center justify-between border-b px-6 py-4">
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-foreground">
                   New KPI
                 </h2>
                 <button
@@ -563,7 +563,7 @@ export function KPIsTab() {
                     setShowCreateModal(false);
                     setFormError("");
                   }}
-                  className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-foreground"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -577,7 +577,7 @@ export function KPIsTab() {
                 <div className="space-y-4">
                   {/* Name */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-foreground/80">
                       Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -588,14 +588,14 @@ export function KPIsTab() {
                       }
                       placeholder="e.g. Monthly Engagement Rate"
                       required
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
 
                   {/* Target & Current */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                      <label className="mb-1 block text-sm font-medium text-foreground/80">
                         Target <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -610,11 +610,11 @@ export function KPIsTab() {
                         min="0"
                         placeholder="0"
                         required
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                      <label className="mb-1 block text-sm font-medium text-foreground/80">
                         Current
                       </label>
                       <input
@@ -627,14 +627,14 @@ export function KPIsTab() {
                           })
                         }
                         min="0"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                   </div>
 
                   {/* Unit */}
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-foreground/80">
                       Unit
                     </label>
                     <input
@@ -644,14 +644,14 @@ export function KPIsTab() {
                         setCreateForm({ ...createForm, unit: e.target.value })
                       }
                       placeholder="e.g. %, followers, posts"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
 
                   {/* Period & Category */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                      <label className="mb-1 block text-sm font-medium text-foreground/80">
                         Period
                       </label>
                       <select
@@ -662,7 +662,7 @@ export function KPIsTab() {
                             period: e.target.value,
                           })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       >
                         {PERIOD_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -672,7 +672,7 @@ export function KPIsTab() {
                       </select>
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                      <label className="mb-1 block text-sm font-medium text-foreground/80">
                         Category
                       </label>
                       <select
@@ -683,7 +683,7 @@ export function KPIsTab() {
                             category: e.target.value,
                           })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       >
                         {CATEGORY_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -710,7 +710,7 @@ export function KPIsTab() {
                       setShowCreateModal(false);
                       setFormError("");
                     }}
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface"
                   >
                     Cancel
                   </button>

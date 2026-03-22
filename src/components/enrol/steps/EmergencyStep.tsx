@@ -25,7 +25,7 @@ function Input({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-foreground/80 mb-1">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -34,7 +34,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
+        className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
       />
     </div>
   );
@@ -75,8 +75,8 @@ export function EmergencyStep({ data, updateData }: Props) {
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Emergency Contacts</h3>
-        <p className="text-sm text-gray-500 mb-4">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Emergency Contacts</h3>
+        <p className="text-sm text-muted mb-4">
           At least one emergency contact is required. These contacts will be called if we are unable
           to reach the parents/guardians.
         </p>
@@ -84,7 +84,7 @@ export function EmergencyStep({ data, updateData }: Props) {
         {data.emergencyContacts.map((contact, i) => (
           <div key={i} className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-gray-600">
+              <h4 className="text-sm font-semibold text-muted">
                 Emergency Contact {i + 1}
                 {i === 0 && <span className="text-red-500 ml-0.5">*</span>}
               </h4>
@@ -118,11 +118,11 @@ export function EmergencyStep({ data, updateData }: Props) {
         )}
       </div>
 
-      <hr className="border-gray-200" />
+      <hr className="border-border" />
 
       <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Authorised Pickup Persons</h3>
-        <p className="text-sm text-gray-500 mb-4">
+        <h3 className="text-lg font-semibold text-foreground mb-2">Authorised Pickup Persons</h3>
+        <p className="text-sm text-muted mb-4">
           Other people authorised to collect your child from the service.
         </p>
 

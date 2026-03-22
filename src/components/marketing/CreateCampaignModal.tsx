@@ -126,17 +126,17 @@ export function CreateCampaignModal({
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="w-full max-w-lg rounded-xl bg-white shadow-xl"
+          className="w-full max-w-lg rounded-xl bg-card shadow-xl"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-foreground">
               New Campaign
             </h2>
             <button
               onClick={handleClose}
-              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-foreground"
             >
               <X className="h-5 w-5" />
             </button>
@@ -147,7 +147,7 @@ export function CreateCampaignModal({
             <div className="space-y-4">
               {/* Name */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -156,13 +156,13 @@ export function CreateCampaignModal({
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Campaign name"
                   required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
               {/* Type */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Type
                 </label>
                 <select
@@ -170,7 +170,7 @@ export function CreateCampaignModal({
                   onChange={(e) =>
                     setType(e.target.value as MarketingCampaignType)
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   {CAMPAIGN_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -183,32 +183,32 @@ export function CreateCampaignModal({
               {/* Date Row */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-foreground/80">
                     Start Date
                   </label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-foreground/80">
                     End Date
                   </label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </div>
               </div>
 
               {/* Platforms */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-sm font-medium text-foreground/80">
                   Platforms
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -218,7 +218,7 @@ export function CreateCampaignModal({
                       className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                         platforms.includes(p)
                           ? "border-brand bg-brand/10 text-brand"
-                          : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                          : "border-border bg-card text-muted hover:border-border"
                       }`}
                     >
                       <input
@@ -238,7 +238,7 @@ export function CreateCampaignModal({
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                      <label className="mb-1 block text-sm font-medium text-foreground/80">
                         Budget ($)
                       </label>
                       <input
@@ -248,11 +248,11 @@ export function CreateCampaignModal({
                         value={budget}
                         onChange={(e) => setBudget(e.target.value)}
                         placeholder="0.00"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                      <label className="mb-1 block text-sm font-medium text-foreground/80">
                         Location
                       </label>
                       <input
@@ -260,12 +260,12 @@ export function CreateCampaignModal({
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
                         placeholder="Venue or address"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label className="mb-1 block text-sm font-medium text-foreground/80">
                       Deliverables
                     </label>
                     <textarea
@@ -273,7 +273,7 @@ export function CreateCampaignModal({
                       onChange={(e) => setDeliverables(e.target.value)}
                       rows={2}
                       placeholder="Key deliverables for this activation..."
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </>
@@ -286,14 +286,14 @@ export function CreateCampaignModal({
                   onChange={setServiceIds}
                   label="Target Centres"
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-muted">
                   Leave empty for all centres
                 </p>
               </div>
 
               {/* Goal */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Goal
                 </label>
                 <textarea
@@ -301,13 +301,13 @@ export function CreateCampaignModal({
                   onChange={(e) => setGoal(e.target.value)}
                   rows={2}
                   placeholder="What is the campaign goal?"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
               {/* Notes */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Notes
                 </label>
                 <textarea
@@ -315,13 +315,13 @@ export function CreateCampaignModal({
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
                   placeholder="Additional notes..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
               {/* Design Link */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
+                <label className="mb-1 block text-sm font-medium text-foreground/80">
                   Design Link
                 </label>
                 <input
@@ -329,7 +329,7 @@ export function CreateCampaignModal({
                   value={designLink}
                   onChange={(e) => setDesignLink(e.target.value)}
                   placeholder="https://..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
@@ -346,7 +346,7 @@ export function CreateCampaignModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface"
               >
                 Cancel
               </button>

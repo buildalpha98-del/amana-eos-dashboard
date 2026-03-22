@@ -27,7 +27,7 @@ function Input({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-sm font-medium text-foreground/80 mb-1">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -36,7 +36,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
+        className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
       />
     </div>
   );
@@ -59,7 +59,7 @@ function ParentSection({
 }) {
   return (
     <div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
+      <h3 className="text-lg font-semibold text-foreground mb-4">{title}</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input label="First Name" value={parent.firstName} onChange={(v) => onChange("firstName", v)} required={required} />
         <Input label="Surname" value={parent.surname} onChange={(v) => onChange("surname", v)} required={required} />
@@ -70,7 +70,7 @@ function ParentSection({
       </div>
 
       <div className="flex items-center justify-between mt-6 mb-3">
-        <h4 className="text-sm font-semibold text-gray-600">Address</h4>
+        <h4 className="text-sm font-semibold text-muted">Address</h4>
         {onCopyChildAddress && (
           <button
             type="button"
@@ -88,11 +88,11 @@ function ParentSection({
         <Input label="Suburb" value={parent.suburb} onChange={(v) => onChange("suburb", v)} />
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">State</label>
             <select
               value={parent.state}
               onChange={(e) => onChange("state", e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-white"
+              className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
             >
               <option value="">Select...</option>
               {AUSTRALIAN_STATES.map((s) => (
@@ -114,7 +114,7 @@ function ParentSection({
         </div>
       </div>
 
-      <h4 className="text-sm font-semibold text-gray-600 mt-6 mb-3">Employment</h4>
+      <h4 className="text-sm font-semibold text-muted mt-6 mb-3">Employment</h4>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input label="Occupation" value={parent.occupation} onChange={(v) => onChange("occupation", v)} />
         <Input label="Workplace" value={parent.workplace} onChange={(v) => onChange("workplace", v)} />
@@ -163,13 +163,13 @@ export function ParentDetailsStep({ data, updateData }: Props) {
       {/* Child CRNs */}
       {data.children.length > 0 && (
         <div>
-          <h4 className="text-sm font-semibold text-gray-600 mb-3">
+          <h4 className="text-sm font-semibold text-muted mb-3">
             Child CRN (Customer Reference Number)
           </h4>
           <div className="space-y-3">
             {data.children.map((child, i) => (
               <div key={i}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   {child.firstName || `Child ${i + 1}`}
                 </label>
                 <input
@@ -180,7 +180,7 @@ export function ParentDetailsStep({ data, updateData }: Props) {
                     updateData({ children });
                   }}
                   placeholder="CRN"
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
                 />
               </div>
             ))}
@@ -188,7 +188,7 @@ export function ParentDetailsStep({ data, updateData }: Props) {
         </div>
       )}
 
-      <hr className="border-gray-200" />
+      <hr className="border-border" />
 
       <button
         onClick={() => setShowSecondary(!showSecondary)}
@@ -207,7 +207,7 @@ export function ParentDetailsStep({ data, updateData }: Props) {
           />
 
           <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground/80 mb-2">
               Does the primary parent/guardian have sole custody?
             </label>
             <div className="flex gap-3">
@@ -225,7 +225,7 @@ export function ParentDetailsStep({ data, updateData }: Props) {
                       ? opt
                         ? "bg-green-50 border-green-300 text-green-700"
                         : "bg-red-50 border-red-300 text-red-700"
-                      : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100"
+                      : "bg-surface/50 border-border text-muted hover:bg-surface"
                   }`}
                 >
                   {opt ? "Yes" : "No"}

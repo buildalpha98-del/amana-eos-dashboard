@@ -20,7 +20,7 @@ const CHANNELS = [
 ] as const;
 
 const STATUS_STYLES: Record<string, string> = {
-  planned: "bg-gray-100 text-gray-700",
+  planned: "bg-surface text-foreground/80",
   in_progress: "bg-blue-500 text-white",
   completed: "bg-emerald-500 text-white",
   skipped: "bg-red-100 text-red-600 line-through",
@@ -61,7 +61,7 @@ export function TermCalendarTab({ serviceId }: TermCalendarTabProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-muted" />
       </div>
     );
   }
@@ -71,9 +71,9 @@ export function TermCalendarTab({ serviceId }: TermCalendarTabProps) {
   if (totalEntries === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <CalendarDays className="h-12 w-12 text-gray-300 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">No term plan loaded</h3>
-        <p className="text-sm text-gray-500 max-w-md">
+        <CalendarDays className="h-12 w-12 text-muted/50 mb-4" />
+        <h3 className="text-lg font-semibold text-foreground mb-1">No term plan loaded</h3>
+        <p className="text-sm text-muted max-w-md">
           The term calendar will be pre-loaded by Cowork at the start of each term.
           You can also add entries manually via the API.
         </p>
@@ -90,7 +90,7 @@ export function TermCalendarTab({ serviceId }: TermCalendarTabProps) {
         <select
           value={year}
           onChange={(e) => setYear(Number(e.target.value))}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+          className="rounded-lg border border-border px-3 py-1.5 text-sm"
         >
           {[current.year - 1, current.year, current.year + 1].map((y) => (
             <option key={y} value={y}>{y}</option>
@@ -99,7 +99,7 @@ export function TermCalendarTab({ serviceId }: TermCalendarTabProps) {
         <select
           value={term}
           onChange={(e) => setTerm(Number(e.target.value))}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+          className="rounded-lg border border-border px-3 py-1.5 text-sm"
         >
           {[1, 2, 3, 4].map((t) => (
             <option key={t} value={t}>Term {t}</option>
@@ -114,7 +114,7 @@ export function TermCalendarTab({ serviceId }: TermCalendarTabProps) {
 
         {/* Summary pills */}
         <div className="ml-auto flex flex-wrap items-center gap-2 text-xs">
-          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-gray-600">
+          <span className="rounded-full bg-surface px-2.5 py-1 text-muted">
             {totalEntries} entries
           </span>
           {(byStatus.completed ?? 0) > 0 && (
@@ -128,7 +128,7 @@ export function TermCalendarTab({ serviceId }: TermCalendarTabProps) {
             </span>
           )}
           {(byStatus.planned ?? 0) > 0 && (
-            <span className="rounded-full bg-gray-50 px-2.5 py-1 text-gray-500">
+            <span className="rounded-full bg-surface/50 px-2.5 py-1 text-muted">
               {byStatus.planned} planned
             </span>
           )}
@@ -136,7 +136,7 @@ export function TermCalendarTab({ serviceId }: TermCalendarTabProps) {
       </div>
 
       {/* Desktop grid */}
-      <div className="hidden md:block overflow-x-auto rounded-xl border border-gray-200">
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-border">
         <TermGrid weeks={data?.weeks ?? {}} />
       </div>
 
@@ -177,12 +177,12 @@ function TermGrid({ weeks }: { weeks: Record<string, TermCalendarEntry[]> }) {
             <tr
               key={week}
               className={cn(
-                "border-t border-gray-100",
+                "border-t border-border/50",
                 isNewsletter && "bg-amber-50/40",
-                !isNewsletter && week % 2 === 0 && "bg-gray-50/60",
+                !isNewsletter && week % 2 === 0 && "bg-surface/50/60",
               )}
             >
-              <td className="px-3 py-2 font-semibold text-gray-700 align-top">
+              <td className="px-3 py-2 font-semibold text-foreground/80 align-top">
                 W{week}
               </td>
               {CHANNELS.map((ch) => {
@@ -205,14 +205,14 @@ function TermGrid({ weeks }: { weeks: Record<string, TermCalendarEntry[]> }) {
 
 function CellContent({ entries }: { entries: TermCalendarEntry[] }) {
   if (entries.length === 0) {
-    return <span className="text-gray-300 text-xs">&mdash;</span>;
+    return <span className="text-muted/50 text-xs">&mdash;</span>;
   }
 
   if (entries.length === 1) {
     const e = entries[0];
     return (
       <div className="group relative" title={e.description || e.title}>
-        <p className="text-xs text-gray-800 truncate max-w-[140px] leading-snug">
+        <p className="text-xs text-foreground truncate max-w-[140px] leading-snug">
           {e.title}
         </p>
         <StatusBadge status={e.status} />
@@ -225,14 +225,14 @@ function CellContent({ entries }: { entries: TermCalendarEntry[] }) {
     <div className="space-y-1.5">
       {entries.slice(0, 2).map((e) => (
         <div key={e.id} title={e.description || e.title}>
-          <p className="text-xs text-gray-800 truncate max-w-[140px] leading-snug">
+          <p className="text-xs text-foreground truncate max-w-[140px] leading-snug">
             {e.title}
           </p>
           <StatusBadge status={e.status} />
         </div>
       ))}
       {entries.length > 2 && (
-        <span className="text-[10px] text-gray-400">
+        <span className="text-[10px] text-muted">
           +{entries.length - 2} more
         </span>
       )}
@@ -248,7 +248,7 @@ function StatusBadge({ status }: { status: string }) {
     <span
       className={cn(
         "inline-block mt-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none capitalize",
-        STATUS_STYLES[status] ?? "bg-gray-100 text-gray-500",
+        STATUS_STYLES[status] ?? "bg-surface text-muted",
       )}
     >
       {label}
@@ -266,16 +266,16 @@ function TermMobileList({ weeks }: { weeks: Record<string, TermCalendarEntry[]> 
         if (entries.length === 0) return null;
 
         return (
-          <div key={week} className="rounded-xl border border-gray-200 overflow-hidden">
+          <div key={week} className="rounded-xl border border-border overflow-hidden">
             <div className={cn(
               "px-4 py-2 font-semibold text-sm",
               NEWSLETTER_WEEKS.has(week)
                 ? "bg-amber-50 text-amber-800"
-                : "bg-gray-50 text-gray-700",
+                : "bg-surface/50 text-foreground/80",
             )}>
               Week {week}
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border/50">
               {entries.map((e) => {
                 const ch = CHANNELS.find((c) => c.key === e.channel);
                 return (
@@ -285,9 +285,9 @@ function TermMobileList({ weeks }: { weeks: Record<string, TermCalendarEntry[]> 
                       style={{ backgroundColor: ch?.color ?? "#9e9e9e" }}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-800 truncate">{e.title}</p>
+                      <p className="text-sm text-foreground truncate">{e.title}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[11px] text-gray-400">{ch?.label ?? e.channel}</span>
+                        <span className="text-[11px] text-muted">{ch?.label ?? e.channel}</span>
                         <StatusBadge status={e.status} />
                       </div>
                     </div>

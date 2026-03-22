@@ -58,7 +58,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; badge: string 
   financial: { bg: "bg-amber-50", text: "text-amber-700", badge: "bg-amber-100" },
   marketing: { bg: "bg-pink-50", text: "text-pink-700", badge: "bg-pink-100" },
   hr: { bg: "bg-indigo-50", text: "text-indigo-700", badge: "bg-indigo-100" },
-  other: { bg: "bg-gray-50", text: "text-gray-700", badge: "bg-gray-100" },
+  other: { bg: "bg-surface/50", text: "text-foreground/80", badge: "bg-surface" },
 };
 
 const CATEGORIES = ["program", "policy", "procedure", "template", "guide", "compliance", "financial", "marketing", "hr", "other"];
@@ -308,8 +308,8 @@ export default function DocumentsPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading documents...</p>
+          <div className="w-12 h-12 border-4 border-border border-t-brand rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted">Loading documents...</p>
         </div>
       </div>
     );
@@ -332,21 +332,21 @@ export default function DocumentsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Document Library</h2>
-            <p className="text-sm text-gray-500 mt-1 line-clamp-2">Manage and organize your policies, procedures, templates, and more.</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Document Library</h2>
+            <p className="text-sm text-muted mt-1 line-clamp-2">Manage and organize your policies, procedures, templates, and more.</p>
           </div>
           <div className="flex items-center gap-3">
             <ExportButton onClick={handleExport} disabled={documents.length === 0} />
             <button
               onClick={() => setShowNewFolder(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
             >
               <FolderPlus className="w-4 h-4" />
               New Folder
             </button>
             <button
               onClick={() => setShowBulkUpload(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
             >
               <Files className="w-4 h-4" />
               Bulk Upload
@@ -367,7 +367,7 @@ export default function DocumentsPage() {
             onClick={() => setCurrentFolderId(null)}
             className={cn(
               "flex items-center gap-1 px-2 py-1 rounded-md transition-colors",
-              !currentFolderId ? "text-brand font-medium" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              !currentFolderId ? "text-brand font-medium" : "text-muted hover:text-foreground hover:bg-surface"
             )}
           >
             <Home className="w-3.5 h-3.5" />
@@ -375,12 +375,12 @@ export default function DocumentsPage() {
           </button>
           {breadcrumbs.map((folder) => (
             <span key={folder.id} className="flex items-center gap-1.5">
-              <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+              <ChevronRight className="w-3.5 h-3.5 text-muted" />
               <button
                 onClick={() => setCurrentFolderId(folder.id)}
                 className={cn(
                   "px-2 py-1 rounded-md transition-colors",
-                  folder.id === currentFolderId ? "text-brand font-medium" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  folder.id === currentFolderId ? "text-brand font-medium" : "text-muted hover:text-foreground hover:bg-surface"
                 )}
               >
                 {folder.name}
@@ -391,7 +391,7 @@ export default function DocumentsPage() {
 
         {/* New Folder Inline Form */}
         {showNewFolder && (
-          <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-3 border border-gray-200">
+          <div className="flex items-center gap-3 bg-surface/50 rounded-lg p-3 border border-border">
             <Folder className="w-5 h-5 text-brand" />
             <input
               type="text"
@@ -403,7 +403,7 @@ export default function DocumentsPage() {
                 if (e.key === "Enter") handleCreateFolder();
                 if (e.key === "Escape") { setShowNewFolder(false); setNewFolderName(""); }
               }}
-              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+              className="flex-1 px-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
             />
             <button
               onClick={handleCreateFolder}
@@ -414,7 +414,7 @@ export default function DocumentsPage() {
             </button>
             <button
               onClick={() => { setShowNewFolder(false); setNewFolderName(""); }}
-              className="p-1.5 text-gray-400 hover:text-gray-600"
+              className="p-1.5 text-muted hover:text-foreground"
             >
               <X className="w-4 h-4" />
             </button>
@@ -429,7 +429,7 @@ export default function DocumentsPage() {
               "px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-colors",
               !selectedCategory
                 ? "bg-brand text-white border-brand"
-                : "bg-white text-gray-600 border-gray-300 hover:border-brand hover:text-brand"
+                : "bg-card text-muted border-border hover:border-brand hover:text-brand"
             )}
           >
             All
@@ -444,7 +444,7 @@ export default function DocumentsPage() {
                   "px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-colors capitalize",
                   selectedCategory === cat
                     ? `${colors.badge} ${colors.text} border-current`
-                    : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+                    : "bg-card text-muted border-border hover:border-gray-400"
                 )}
               >
                 {cat === "hr" ? "HR" : cat}
@@ -456,20 +456,20 @@ export default function DocumentsPage() {
         {/* Search and Filters */}
         <div className="flex items-center gap-4">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
             <input
               type="text"
               placeholder="Search documents..."
               aria-label="Search documents"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
           <select
             value={selectedCentre}
             onChange={(e) => setSelectedCentre(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Centres</option>
             {services.map(service => (
@@ -478,12 +478,12 @@ export default function DocumentsPage() {
               </option>
             ))}
           </select>
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-surface rounded-lg p-1">
             <button
               onClick={() => setViewMode("grid")}
               className={cn(
                 "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                viewMode === "grid" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                viewMode === "grid" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
               )}
             >
               <Grid3X3 className="w-4 h-4" />
@@ -492,7 +492,7 @@ export default function DocumentsPage() {
               onClick={() => setViewMode("list")}
               className={cn(
                 "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                viewMode === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                viewMode === "list" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground"
               )}
             >
               <List className="w-4 h-4" />
@@ -506,14 +506,14 @@ export default function DocumentsPage() {
             {currentSubfolders.map((folder) => (
               <div
                 key={folder.id}
-                className="group bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md hover:border-brand/30 transition-all cursor-pointer relative"
+                className="group bg-card rounded-lg border border-border p-3 hover:shadow-md hover:border-brand/30 transition-all cursor-pointer relative"
                 onClick={() => setCurrentFolderId(folder.id)}
               >
                 <div className="flex items-center gap-2.5 mb-1.5">
                   <Folder className="w-5 h-5 text-brand" />
-                  <span className="text-sm font-medium text-gray-900 truncate">{folder.name}</span>
+                  <span className="text-sm font-medium text-foreground truncate">{folder.name}</span>
                 </div>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted">
                   {folder._count.documents} doc{folder._count.documents !== 1 ? "s" : ""}
                   {folder._count.children > 0 && `, ${folder._count.children} folder${folder._count.children !== 1 ? "s" : ""}`}
                 </p>
@@ -534,9 +534,9 @@ export default function DocumentsPage() {
         {/* Documents Grid/List */}
         {documents.length === 0 && currentSubfolders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <FileText className="w-16 h-16 text-gray-300 mb-4" />
-            <p className="text-gray-500 text-lg">No documents found</p>
-            <p className="text-gray-400 text-sm mt-1">
+            <FileText className="w-16 h-16 text-muted/50 mb-4" />
+            <p className="text-muted text-lg">No documents found</p>
+            <p className="text-muted text-sm mt-1">
               {searchTerm || selectedCategory || selectedCentre
                 ? "Try adjusting your filters or search term."
                 : currentFolderId
@@ -560,7 +560,7 @@ export default function DocumentsPage() {
               return (
                 <div
                   key={doc.id}
-                  className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
+                  className="bg-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", colors.badge)}>
@@ -570,28 +570,28 @@ export default function DocumentsPage() {
                       {doc.category}
                     </span>
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{doc.title}</h3>
+                  <h3 className="font-semibold text-foreground mb-1 line-clamp-2">{doc.title}</h3>
                   {doc.description && (
-                    <p className="text-gray-500 text-sm mb-3 line-clamp-2">{doc.description}</p>
+                    <p className="text-muted text-sm mb-3 line-clamp-2">{doc.description}</p>
                   )}
                   {doc.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-3">
                       {doc.tags.slice(0, 3).map(tag => (
-                        <span key={tag} className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span key={tag} className="bg-surface text-muted text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
                           <Tag className="w-3 h-3" /> {tag}
                         </span>
                       ))}
                       {doc.tags.length > 3 && (
-                        <span className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full">
+                        <span className="bg-surface text-muted text-xs px-2 py-0.5 rounded-full">
                           +{doc.tags.length - 3}
                         </span>
                       )}
                     </div>
                   )}
                   {doc.centre && (
-                    <p className="text-sm text-gray-500 mb-2">📍 {doc.centre.name}</p>
+                    <p className="text-sm text-muted mb-2">📍 {doc.centre.name}</p>
                   )}
-                  <div className="space-y-1 mb-4 text-xs text-gray-400">
+                  <div className="space-y-1 mb-4 text-xs text-muted">
                     <div className="flex items-center gap-2">
                       <User className="w-3 h-3" /> {doc.uploadedBy?.name ?? "Unknown"}
                     </div>
@@ -604,7 +604,7 @@ export default function DocumentsPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2 pt-3 border-t border-gray-100">
+                  <div className="flex gap-2 pt-3 border-t border-border/50">
                     <a
                       href={getDownloadUrl(doc.fileUrl)}
                       target="_blank"
@@ -615,14 +615,14 @@ export default function DocumentsPage() {
                     </a>
                     <button
                       onClick={() => handleEditDoc(doc)}
-                      className="px-3 py-2 rounded-lg text-sm text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+                      className="px-3 py-2 rounded-lg text-sm text-muted border border-border hover:bg-surface transition-colors"
                       title="Edit document"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setMoveDocId(doc.id)}
-                      className="px-3 py-2 rounded-lg text-sm text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+                      className="px-3 py-2 rounded-lg text-sm text-muted border border-border hover:bg-surface transition-colors"
                       title="Move to folder"
                     >
                       <FolderInput className="w-4 h-4" />
@@ -640,32 +640,32 @@ export default function DocumentsPage() {
             })}
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
             <StickyTable>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Document</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Centre</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Uploaded By</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Size</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                  <tr className="bg-surface/50 text-left">
+                    <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Document</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Category</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Centre</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Uploaded By</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Date</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Size</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-border/50">
                   {documents.map(doc => {
                     const colors = CATEGORY_COLORS[doc.category] || CATEGORY_COLORS.other;
                     return (
-                      <tr key={doc.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={doc.id} className="hover:bg-surface transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <FileText className="w-5 h-5 text-gray-400" />
+                            <FileText className="w-5 h-5 text-muted" />
                             <div>
-                              <p className="font-medium text-gray-900">{doc.title}</p>
+                              <p className="font-medium text-foreground">{doc.title}</p>
                               {doc.description && (
-                                <p className="text-xs text-gray-400 line-clamp-1">{doc.description}</p>
+                                <p className="text-xs text-muted line-clamp-1">{doc.description}</p>
                               )}
                             </div>
                           </div>
@@ -675,16 +675,16 @@ export default function DocumentsPage() {
                             {doc.category}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-600">
+                        <td className="px-4 py-3 text-muted">
                           {doc.centre?.name || "—"}
                         </td>
-                        <td className="px-4 py-3 text-gray-600">
+                        <td className="px-4 py-3 text-muted">
                           {doc.uploadedBy?.name ?? "Unknown"}
                         </td>
-                        <td className="px-4 py-3 text-gray-600">
+                        <td className="px-4 py-3 text-muted">
                           {formatDate(doc.createdAt)}
                         </td>
-                        <td className="px-4 py-3 text-gray-600">
+                        <td className="px-4 py-3 text-muted">
                           {formatFileSize(doc.fileSize)}
                         </td>
                         <td className="px-4 py-3">
@@ -700,14 +700,14 @@ export default function DocumentsPage() {
                             </a>
                             <button
                               onClick={() => handleEditDoc(doc)}
-                              className="text-gray-500 hover:text-gray-700 transition-colors"
+                              className="text-muted hover:text-foreground transition-colors"
                               title="Edit document"
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => setMoveDocId(doc.id)}
-                              className="text-gray-500 hover:text-gray-700 transition-colors"
+                              className="text-muted hover:text-foreground transition-colors"
                               title="Move to folder"
                             >
                               <FolderInput className="w-4 h-4" />
@@ -734,21 +734,21 @@ export default function DocumentsPage() {
       {/* Pagination */}
       {totalDocPages > 1 && (
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted">
             Page {docPage} of {totalDocPages} ({docResult?.total ?? 0} documents)
           </span>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setDocPage((p) => Math.max(1, p - 1))}
               disabled={docPage <= 1}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Previous
             </button>
             <button
               onClick={() => setDocPage((p) => Math.min(totalDocPages, p + 1))}
               disabled={docPage >= totalDocPages}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-sm border border-border rounded-lg hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Next
             </button>
@@ -759,31 +759,31 @@ export default function DocumentsPage() {
       {/* Move to Folder Modal */}
       {moveDocId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
-              <h3 className="text-base font-semibold text-gray-900">Move to Folder</h3>
-              <button onClick={() => setMoveDocId(null)} className="p-1 text-gray-400 hover:text-gray-600">
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h3 className="text-base font-semibold text-foreground">Move to Folder</h3>
+              <button onClick={() => setMoveDocId(null)} className="p-1 text-muted hover:text-foreground">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="p-3 max-h-[300px] overflow-y-auto space-y-1">
               <button
                 onClick={() => handleMoveDocument(moveDocId, null)}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-gray-100 transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-surface transition-colors"
               >
-                <Home className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-700">Root (No Folder)</span>
+                <Home className="w-4 h-4 text-muted" />
+                <span className="text-foreground/80">Root (No Folder)</span>
               </button>
               {folders.map(folder => (
                 <button
                   key={folder.id}
                   onClick={() => handleMoveDocument(moveDocId, folder.id)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-gray-100 transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-left hover:bg-surface transition-colors"
                   style={{ paddingLeft: folder.parentId ? "2rem" : undefined }}
                 >
                   <Folder className="w-4 h-4 text-brand" />
-                  <span className="text-gray-700">{folder.name}</span>
-                  <span className="text-xs text-gray-400 ml-auto">{folder._count.documents}</span>
+                  <span className="text-foreground/80">{folder.name}</span>
+                  <span className="text-xs text-muted ml-auto">{folder._count.documents}</span>
                 </button>
               ))}
             </div>
@@ -794,11 +794,11 @@ export default function DocumentsPage() {
       {/* Upload Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Upload Document</h3>
-                <p className="text-sm text-gray-500 mt-0.5">
+                <h3 className="text-lg font-semibold text-foreground">Upload Document</h3>
+                <p className="text-sm text-muted mt-0.5">
                   Upload a file to the library
                   {currentFolderId && breadcrumbs.length > 0 && (
                     <span className="text-brand"> in {breadcrumbs[breadcrumbs.length - 1].name}</span>
@@ -807,7 +807,7 @@ export default function DocumentsPage() {
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+                className="p-1 rounded-md text-muted hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -815,27 +815,27 @@ export default function DocumentsPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                   Title *
                 </label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="E.g., Staff Handbook 2025"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                   Description
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="Brief description of the document..."
                   rows={3}
                 />
@@ -843,13 +843,13 @@ export default function DocumentsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                     Category *
                   </label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   >
                     {CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>
@@ -860,13 +860,13 @@ export default function DocumentsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                     Centre (Optional)
                   </label>
                   <select
                     value={formData.centreId}
                     onChange={(e) => setFormData({ ...formData, centreId: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   >
                     <option value="">Not centre-specific</option>
                     {services.map(service => (
@@ -880,15 +880,15 @@ export default function DocumentsPage() {
 
               {/* File Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                   File *
                 </label>
                 {uploadedFile ? (
                   <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{uploadedFile.fileName}</p>
-                      <p className="text-xs text-gray-500">{formatFileSize(uploadedFile.fileSize)} &middot; {uploadedFile.mimeType}</p>
+                      <p className="text-sm font-medium text-foreground truncate">{uploadedFile.fileName}</p>
+                      <p className="text-xs text-muted">{formatFileSize(uploadedFile.fileSize)} &middot; {uploadedFile.mimeType}</p>
                     </div>
                     <button
                       type="button"
@@ -896,7 +896,7 @@ export default function DocumentsPage() {
                         setUploadedFile(null);
                         setFormData((prev) => ({ ...prev, fileName: "", fileUrl: "" }));
                       }}
-                      className="p-1 text-gray-400 hover:text-gray-600"
+                      className="p-1 text-muted hover:text-foreground"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -908,7 +908,7 @@ export default function DocumentsPage() {
                   </div>
                 ) : (
                   <label
-                    className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-brand hover:bg-brand/5 transition-colors"
+                    className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-brand hover:bg-brand/5 transition-colors"
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                     onDrop={(e) => {
                       e.preventDefault();
@@ -917,12 +917,12 @@ export default function DocumentsPage() {
                       if (file) handleFileUpload(file);
                     }}
                   >
-                    <Upload className="w-8 h-8 text-gray-400" />
+                    <Upload className="w-8 h-8 text-muted" />
                     <div className="text-center">
                       <span className="text-sm font-medium text-brand">Click to upload</span>
-                      <span className="text-sm text-gray-500"> or drag and drop</span>
+                      <span className="text-sm text-muted"> or drag and drop</span>
                     </div>
-                    <p className="text-xs text-gray-400">PDF, Word, Excel, PowerPoint, images up to 10MB</p>
+                    <p className="text-xs text-muted">PDF, Word, Excel, PowerPoint, images up to 10MB</p>
                     <input
                       type="file"
                       className="hidden"
@@ -937,23 +937,23 @@ export default function DocumentsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                   Tags (comma-separated)
                 </label>
                 <input
                   type="text"
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="E.g., staff, mandatory, 2025"
                 />
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-gray-200 mt-2">
+              <div className="flex gap-3 pt-4 border-t border-border mt-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2.5 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface transition-colors"
                 >
                   Cancel
                 </button>
@@ -973,38 +973,38 @@ export default function DocumentsPage() {
       {/* Edit Document Modal */}
       {editingDoc && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6">
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Edit Document</h3>
-              <button onClick={() => setEditingDoc(null)} className="p-1 rounded-md text-gray-400 hover:text-gray-600">
+              <h3 className="text-lg font-semibold text-foreground">Edit Document</h3>
+              <button onClick={() => setEditingDoc(null)} className="p-1 rounded-md text-muted hover:text-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Title *</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-1.5">Title *</label>
                 <input
                   type="text"
                   value={editDocForm.title}
                   onChange={(e) => setEditDocForm({ ...editDocForm, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-1.5">Description</label>
                 <textarea
                   value={editDocForm.description}
                   onChange={(e) => setEditDocForm({ ...editDocForm, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   rows={3}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-1.5">Category</label>
                 <select
                   value={editDocForm.category}
                   onChange={(e) => setEditDocForm({ ...editDocForm, category: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 >
                   <option value="">No category</option>
                   {["program", "policy", "procedure", "template", "guide", "compliance", "financial", "marketing", "hr", "other"].map(cat => (
@@ -1012,11 +1012,11 @@ export default function DocumentsPage() {
                   ))}
                 </select>
               </div>
-              <div className="flex gap-3 pt-4 border-t border-gray-200">
+              <div className="flex gap-3 pt-4 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setEditingDoc(null)}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2.5 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface transition-colors"
                 >
                   Cancel
                 </button>

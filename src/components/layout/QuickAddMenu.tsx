@@ -40,7 +40,7 @@ export function QuickAddMenu({
       <div
         role="menu"
         aria-label="Quick add options"
-        className="fixed w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
+        className="fixed w-48 bg-card border border-border rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150"
         style={{ top: position.top, right: position.right }}
       >
         {quickItems.map((item) => {
@@ -49,9 +49,9 @@ export function QuickAddMenu({
             <button
               key={item.label}
               onClick={item.action}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-foreground/80 hover:bg-surface transition-colors"
             >
-              <Icon className="w-4 h-4 text-gray-400" />
+              <Icon className="w-4 h-4 text-muted" />
               {item.label}
             </button>
           );

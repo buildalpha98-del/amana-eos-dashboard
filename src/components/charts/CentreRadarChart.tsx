@@ -72,7 +72,7 @@ export function CentreRadarChart({ centres }: CentreRadarChartProps) {
         <select
           value={selectedId}
           onChange={(e) => setSelectedId(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+          className="w-full rounded-lg border border-border px-3 py-2 text-sm text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
         >
           {centres.map((c) => (
             <option key={c.id} value={c.id}>

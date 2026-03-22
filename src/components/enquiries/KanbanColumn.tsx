@@ -53,14 +53,14 @@ export function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex-shrink-0 w-64 rounded-lg bg-gray-50 border ${
-        isOver ? "border-blue-400 bg-blue-50" : "border-gray-200"
+      className={`flex-shrink-0 w-64 rounded-lg bg-surface/50 border ${
+        isOver ? "border-blue-400 bg-blue-50" : "border-border"
       }`}
     >
-      <div className="p-3 border-b border-gray-200">
+      <div className="p-3 border-b border-border">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">{label}</h3>
-          <span className="text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">
+          <h3 className="text-sm font-semibold text-foreground/80">{label}</h3>
+          <span className="text-xs text-muted bg-border px-1.5 py-0.5 rounded-full">
             {enquiries.length}
           </span>
         </div>
@@ -79,7 +79,7 @@ export function KanbanColumn({
           />
         ))}
         {enquiries.length === 0 && (
-          <p className="text-xs text-gray-400 text-center py-8">No enquiries</p>
+          <p className="text-xs text-muted text-center py-8">No enquiries</p>
         )}
       </div>
     </div>

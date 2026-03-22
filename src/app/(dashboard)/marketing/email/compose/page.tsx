@@ -3,7 +3,7 @@ import { EmailComposer } from "@/components/email/EmailComposer";
 
 export default function EmailComposePage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center py-16 text-gray-500">Loading composer...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center py-16 text-muted">Loading composer...</div>}>
       <EmailComposer />
     </Suspense>
   );

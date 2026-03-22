@@ -59,7 +59,7 @@ const ACTION_OPTIONS = [
 
 const ACTION_COLORS: Record<string, string> = {
   "user.login": "bg-blue-100 text-blue-700",
-  "user.logout": "bg-gray-100 text-gray-700",
+  "user.logout": "bg-surface text-foreground/80",
   "user.password_reset": "bg-amber-100 text-amber-700",
   "user.role_change": "bg-purple-100 text-purple-700",
   "user.created": "bg-teal-100 text-teal-700",
@@ -96,7 +96,7 @@ function metadataPreview(meta: Record<string, unknown> | null): string {
 }
 
 function actionBadge(action: string) {
-  const color = ACTION_COLORS[action] ?? "bg-gray-100 text-gray-600";
+  const color = ACTION_COLORS[action] ?? "bg-gray-100 text-gray-500";
   return (
     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
       {action}
@@ -174,10 +174,10 @@ export default function AuditLogPage() {
             <Shield className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-foreground">
               Security Audit Log
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted">
               Track all security-related events across the platform
             </p>
           </div>
@@ -186,7 +186,7 @@ export default function AuditLogPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-surface"
           >
             <Filter className="h-4 w-4" />
             Filters
@@ -204,11 +204,11 @@ export default function AuditLogPage() {
 
       {/* Filters */}
       {showFilters && (
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-card rounded-xl border border-border p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Action filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Action Type
               </label>
               <select
@@ -217,7 +217,7 @@ export default function AuditLogPage() {
                   setActionFilter(e.target.value);
                   setPage(1);
                 }}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               >
                 {ACTION_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -229,7 +229,7 @@ export default function AuditLogPage() {
 
             {/* Email search */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Actor Email
               </label>
               <div className="flex gap-2">
@@ -240,11 +240,11 @@ export default function AuditLogPage() {
                   onKeyDown={(e) => e.key === "Enter" && handleEmailSearch()}
                   placeholder="Search by email..."
                   aria-label="Search audit log by email"
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="flex-1 rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
                 <button
                   onClick={handleEmailSearch}
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-gray-600 hover:bg-gray-50"
+                  className="rounded-lg border border-border px-3 py-2 text-muted hover:bg-surface"
                 >
                   <Search className="h-4 w-4" />
                 </button>
@@ -260,7 +260,7 @@ export default function AuditLogPage() {
                   setEmailInput("");
                   setPage(1);
                 }}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-surface"
               >
                 Clear Filters
               </button>
@@ -278,32 +278,32 @@ export default function AuditLogPage() {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
         <StickyTable>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-50/80">
-                <th className="px-4 py-3 text-left font-medium text-gray-600 whitespace-nowrap">
+              <tr className="border-b border-border bg-surface/50/80">
+                <th className="px-4 py-3 text-left font-medium text-muted whitespace-nowrap">
                   Timestamp
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600 whitespace-nowrap">
+                <th className="px-4 py-3 text-left font-medium text-muted whitespace-nowrap">
                   Action
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600 whitespace-nowrap">
+                <th className="px-4 py-3 text-left font-medium text-muted whitespace-nowrap">
                   Actor
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600 whitespace-nowrap">
+                <th className="px-4 py-3 text-left font-medium text-muted whitespace-nowrap">
                   Target
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600 whitespace-nowrap">
+                <th className="px-4 py-3 text-left font-medium text-muted whitespace-nowrap">
                   IP
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600 whitespace-nowrap">
+                <th className="px-4 py-3 text-left font-medium text-muted whitespace-nowrap">
                   Metadata
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border/50">
               {isLoading &&
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i}>
@@ -345,26 +345,26 @@ export default function AuditLogPage() {
                 filteredEntries.map((entry) => (
                   <tr
                     key={entry.id}
-                    className="hover:bg-gray-50/50 transition-colors"
+                    className="hover:bg-surface/50 transition-colors"
                   >
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-muted">
                       {formatAUDateTime(entry.createdAt)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {actionBadge(entry.action)}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-800">
+                    <td className="px-4 py-3 whitespace-nowrap text-foreground">
                       {entry.actorEmail ?? entry.actorId ?? "-"}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-600">
+                    <td className="px-4 py-3 whitespace-nowrap text-muted">
                       {entry.targetType
                         ? `${entry.targetType}${entry.targetId ? `: ${entry.targetId.slice(0, 8)}...` : ""}`
                         : "-"}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-gray-500">
+                    <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-muted">
                       {entry.ip ?? "-"}
                     </td>
-                    <td className="px-4 py-3 max-w-[200px] truncate text-gray-500 font-mono text-xs">
+                    <td className="px-4 py-3 max-w-[200px] truncate text-muted font-mono text-xs">
                       {metadataPreview(entry.metadata)}
                     </td>
                   </tr>
@@ -375,8 +375,8 @@ export default function AuditLogPage() {
 
         {/* Pagination */}
         {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 bg-gray-50/50">
-            <p className="text-sm text-gray-600">
+          <div className="flex items-center justify-between border-t border-border px-4 py-3 bg-surface/30">
+            <p className="text-sm text-muted">
               Showing{" "}
               <span className="font-medium">
                 {(data.page - 1) * data.limit + 1}
@@ -391,12 +391,12 @@ export default function AuditLogPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground/80 hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Prev
               </button>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted">
                 Page {data.page} of {data.totalPages}
               </span>
               <button
@@ -404,7 +404,7 @@ export default function AuditLogPage() {
                   setPage((p) => Math.min(data.totalPages, p + 1))
                 }
                 disabled={page >= data.totalPages}
-                className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground/80 hover:bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
                 <ChevronRight className="h-4 w-4" />
@@ -416,7 +416,7 @@ export default function AuditLogPage() {
 
       {/* Summary */}
       {data && (
-        <p className="text-xs text-gray-400 text-center">
+        <p className="text-xs text-muted text-center">
           Total entries: {data.total}
         </p>
       )}

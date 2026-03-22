@@ -88,7 +88,7 @@ export function TemplatesTab() {
         <select
           value={platformFilter}
           onChange={(e) => setPlatformFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+          className="rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
         >
           {PLATFORMS.map((p) => (
             <option key={p} value={p === "all" ? "" : p}>
@@ -115,7 +115,7 @@ export function TemplatesTab() {
 
       {/* ── Empty State ──────────────────────────────── */}
       {!isLoading && (!templates || templates.length === 0) && (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+        <div className="flex flex-col items-center justify-center py-20 text-muted">
           <FileStack className="h-12 w-12 mb-3" />
           <p className="text-lg font-medium">No templates found</p>
           <p className="text-sm mt-1">
@@ -130,12 +130,12 @@ export function TemplatesTab() {
           {templates.map((tpl) => (
             <div
               key={tpl.id}
-              className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
+              className="bg-card rounded-xl border border-border p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
             >
               {/* Header */}
               <div className="flex items-start justify-between">
                 <div className="space-y-1.5">
-                  <h3 className="font-semibold text-gray-900 text-sm leading-tight">
+                  <h3 className="font-semibold text-foreground text-sm leading-tight">
                     {tpl.name}
                   </h3>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -152,14 +152,14 @@ export function TemplatesTab() {
                     if (confirm("Delete this template?"))
                       deleteTemplate.mutate(tpl.id);
                   }}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
 
               {/* Content preview */}
-              <p className="text-sm text-gray-600 leading-relaxed">
+              <p className="text-sm text-muted leading-relaxed">
                 {tpl.content.length > 100
                   ? tpl.content.slice(0, 100) + "..."
                   : tpl.content}
@@ -167,14 +167,14 @@ export function TemplatesTab() {
 
               {/* Hashtags */}
               {tpl.hashtags && (
-                <div className="flex items-start gap-1.5 text-xs text-gray-500">
+                <div className="flex items-start gap-1.5 text-xs text-muted">
                   <Hash className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   <span className="line-clamp-2">{tpl.hashtags}</span>
                 </div>
               )}
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-2 mt-auto pt-2 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-2 mt-auto pt-2 border-t border-border/50">
                 <button
                   onClick={() => handleUseTemplate(tpl.id)}
                   disabled={useTemplate.isPending}
@@ -196,22 +196,22 @@ export function TemplatesTab() {
       {/* ── Create Modal ─────────────────────────────── */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 New Template
               </h2>
               <button
                 onClick={() => setShowCreate(false)}
-                className="p-1 rounded-lg hover:bg-gray-100"
+                className="p-1 rounded-lg hover:bg-surface"
               >
-                <X className="h-5 w-5 text-gray-500" />
+                <X className="h-5 w-5 text-muted" />
               </button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -220,13 +220,13 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, name: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="Template name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Platform <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -234,7 +234,7 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, platform: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                 >
                   {PLATFORMS.filter((p) => p !== "all").map((p) => (
                     <option key={p} value={p}>
@@ -245,7 +245,7 @@ export function TemplatesTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Pillar
                 </label>
                 <input
@@ -254,13 +254,13 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, pillar: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="e.g. Education, Community"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Content <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -269,13 +269,13 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, content: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
                   placeholder="Template content..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Notes
                 </label>
                 <textarea
@@ -284,13 +284,13 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, notes: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 resize-none"
                   placeholder="Internal notes..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Hashtags
                 </label>
                 <input
@@ -299,7 +299,7 @@ export function TemplatesTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, hashtags: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="#amana #oshc #childcare"
                 />
               </div>
@@ -308,7 +308,7 @@ export function TemplatesTab() {
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowCreate(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-muted hover:bg-surface transition-colors"
               >
                 Cancel
               </button>

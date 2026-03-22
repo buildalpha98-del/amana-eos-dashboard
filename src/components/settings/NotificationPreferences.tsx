@@ -153,20 +153,20 @@ export function NotificationPreferences() {
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
+      <div className="rounded-xl border border-border bg-card p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-6 w-48 rounded bg-gray-200" />
-          <div className="h-4 w-64 rounded bg-gray-100" />
+          <div className="h-6 w-48 rounded bg-border" />
+          <div className="h-4 w-64 rounded bg-surface" />
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="flex items-center justify-between py-3">
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-gray-100" />
+                <div className="h-9 w-9 rounded-lg bg-surface" />
                 <div className="space-y-1">
-                  <div className="h-4 w-32 rounded bg-gray-200" />
-                  <div className="h-3 w-48 rounded bg-gray-100" />
+                  <div className="h-4 w-32 rounded bg-border" />
+                  <div className="h-3 w-48 rounded bg-surface" />
                 </div>
               </div>
-              <div className="h-6 w-11 rounded-full bg-gray-200" />
+              <div className="h-6 w-11 rounded-full bg-border" />
             </div>
           ))}
         </div>
@@ -175,14 +175,14 @@ export function NotificationPreferences() {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white">
+    <div className="rounded-xl border border-border bg-card">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+      <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">
+          <h3 className="text-base font-semibold text-foreground">
             Notification Preferences
           </h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             Control what notifications you receive
           </p>
         </div>
@@ -211,16 +211,16 @@ export function NotificationPreferences() {
                     "flex h-9 w-9 items-center justify-center rounded-lg",
                     enabled
                       ? "bg-brand/10 text-brand"
-                      : "bg-gray-100 text-gray-400",
+                      : "bg-surface text-muted",
                   )}
                 >
                   <Icon className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-foreground">
                     {item.label}
                   </p>
-                  <p className="text-xs text-gray-500">{item.description}</p>
+                  <p className="text-xs text-muted">{item.description}</p>
                 </div>
               </div>
 
@@ -232,12 +232,12 @@ export function NotificationPreferences() {
                 onClick={() => handleToggle(item.key)}
                 className={cn(
                   "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2",
-                  enabled ? "bg-brand" : "bg-gray-200",
+                  enabled ? "bg-brand" : "bg-border",
                 )}
               >
                 <span
                   className={cn(
-                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-card shadow ring-0 transition duration-200 ease-in-out",
                     enabled ? "translate-x-5" : "translate-x-0",
                   )}
                 />

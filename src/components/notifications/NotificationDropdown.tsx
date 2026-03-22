@@ -90,7 +90,7 @@ export function NotificationDropdown() {
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
         <button
-          className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors relative"
+          className="p-2 rounded-lg text-muted hover:text-foreground hover:bg-surface transition-colors relative"
           title="Notifications"
           aria-label="Notifications"
         >
@@ -99,7 +99,7 @@ export function NotificationDropdown() {
             <span
               className={cn(
                 "absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white",
-                critical > 0 ? "bg-red-500" : "bg-accent text-gray-900"
+                critical > 0 ? "bg-red-500" : "bg-accent text-foreground"
               )}
             >
               {total > 99 ? "99+" : total}
@@ -112,15 +112,15 @@ export function NotificationDropdown() {
         <Popover.Content
           sideOffset={8}
           align="end"
-          className="z-50 w-[calc(100vw-16px)] sm:w-[380px] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden animate-in fade-in-0 zoom-in-95"
+          className="z-50 w-[calc(100vw-16px)] sm:w-[380px] bg-card rounded-xl shadow-xl border border-border overflow-hidden animate-in fade-in-0 zoom-in-95"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-surface/30">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-gray-900">
+              <h3 className="text-sm font-semibold text-foreground">
                 Notifications
               </h3>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-200 text-gray-600">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-border text-muted">
                 {total}
               </span>
             </div>
@@ -134,7 +134,7 @@ export function NotificationDropdown() {
                 <button
                   onClick={handleDismissAll}
                   disabled={dismiss.isPending}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-muted hover:text-foreground hover:bg-surface transition-colors disabled:opacity-50"
                   title="Mark all as read"
                 >
                   <CheckCheck className="w-3 h-3" />
@@ -148,17 +148,17 @@ export function NotificationDropdown() {
           <div className="max-h-[400px] overflow-y-auto">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                <Loader2 className="w-5 h-5 text-muted animate-spin" />
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                 <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mb-3">
                   <CheckCircle className="w-5 h-5 text-green-500" />
                 </div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-foreground">
                   You&apos;re all caught up!
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted mt-1">
                   No new notifications
                 </p>
               </div>
@@ -172,7 +172,7 @@ export function NotificationDropdown() {
                     <div
                       key={notification.id}
                       className={cn(
-                        "relative group w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-l-[3px] cursor-pointer",
+                        "relative group w-full text-left px-4 py-3 hover:bg-surface transition-colors border-l-[3px] cursor-pointer",
                         severityBorder[notification.severity]
                       )}
                       onClick={() => handleNotificationClick(notification)}
@@ -188,14 +188,14 @@ export function NotificationDropdown() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-semibold text-gray-900">
+                            <span className="text-xs font-semibold text-foreground">
                               {notification.title}
                             </span>
-                            <span className="text-[10px] text-gray-400 flex-shrink-0">
+                            <span className="text-[10px] text-muted flex-shrink-0">
                               {timeAgo(notification.timestamp)}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
+                          <p className="text-xs text-muted mt-0.5 line-clamp-2">
                             {notification.message}
                           </p>
                         </div>

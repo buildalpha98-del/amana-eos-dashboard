@@ -74,12 +74,12 @@ export function DashboardRecentActivity() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center gap-2 mb-4">
           <Clock className="w-4 h-4 text-brand" />
-          <h3 className="text-sm font-semibold text-gray-700">Recent Activity</h3>
+          <h3 className="text-sm font-semibold text-foreground/80">Recent Activity</h3>
         </div>
-        <div className="flex items-center justify-center py-6 text-gray-400">
+        <div className="flex items-center justify-center py-6 text-muted">
           <Loader2 className="w-4 h-4 animate-spin mr-2" />
           <span className="text-sm">Loading...</span>
         </div>
@@ -90,11 +90,11 @@ export function DashboardRecentActivity() {
   const logs = data?.logs || [];
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
+    <div className="bg-card rounded-xl border border-border p-4 sm:p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-brand" />
-          <h3 className="text-sm font-semibold text-gray-700">Recent Activity</h3>
+          <h3 className="text-sm font-semibold text-foreground/80">Recent Activity</h3>
         </div>
         <Link
           href="/audit-log"
@@ -119,25 +119,25 @@ export function DashboardRecentActivity() {
             return (
               <div
                 key={log.id}
-                className="flex items-start gap-3 py-2 px-2 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-start gap-3 py-2 px-2 rounded-lg hover:bg-surface transition-colors"
               >
                 <div className="mt-0.5 w-7 h-7 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
                   <span className="text-[11px] font-semibold text-brand">{initial}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-700 leading-relaxed">
+                  <p className="text-xs text-foreground/80 leading-relaxed">
                     <span className="font-semibold">{log.user.name?.split(" ")[0] || "System"}</span>{" "}
                     {humaniseAction(log.action)}{" "}
-                    <span className="text-gray-500">{humaniseEntity(log.entityType)}</span>
+                    <span className="text-muted">{humaniseEntity(log.entityType)}</span>
                     {entityName && (
                       <>
                         {" "}
-                        <span className="font-medium text-gray-800 truncate">&ldquo;{entityName}&rdquo;</span>
+                        <span className="font-medium text-foreground truncate">&ldquo;{entityName}&rdquo;</span>
                       </>
                     )}
                   </p>
                 </div>
-                <span className="text-[10px] text-gray-400 shrink-0 mt-0.5 whitespace-nowrap">
+                <span className="text-[10px] text-muted shrink-0 mt-0.5 whitespace-nowrap">
                   {formatTimeAgo(log.createdAt)}
                 </span>
               </div>

@@ -45,7 +45,7 @@ function PlatformIcon({ platform }: { platform: string }) {
     );
   }
   return (
-    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-300">
+    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-border">
       <span className="text-xs font-bold text-white">?</span>
     </div>
   );
@@ -73,7 +73,7 @@ function StatusBadge({ status }: { status: string }) {
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+        <span className="inline-flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-muted">
           <Unplug className="h-3 w-3" /> Disconnected
         </span>
       );
@@ -132,19 +132,19 @@ export function SocialConnectionsPanel() {
   const hasConnections = connections && connections.length > 0;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white">
+    <div className="rounded-xl border border-border bg-card">
       {/* Header - clickable to expand */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
+        className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-surface transition-colors"
       >
         <div className="flex items-center gap-3">
           {expanded ? (
-            <ChevronDown className="h-4 w-4 text-gray-400" />
+            <ChevronDown className="h-4 w-4 text-muted" />
           ) : (
-            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <ChevronRight className="h-4 w-4 text-muted" />
           )}
-          <h3 className="text-sm font-semibold text-gray-900">
+          <h3 className="text-sm font-semibold text-foreground">
             Social Media Connections
           </h3>
           {hasConnections && (
@@ -164,7 +164,7 @@ export function SocialConnectionsPanel() {
 
       {/* Expanded content */}
       {expanded && (
-        <div className="border-t border-gray-200 px-5 py-4 space-y-4">
+        <div className="border-t border-border px-5 py-4 space-y-4">
           {/* Connect buttons */}
           <div className="flex flex-wrap gap-2">
             <button
@@ -191,12 +191,12 @@ export function SocialConnectionsPanel() {
 
           {/* Loading state */}
           {isLoading && (
-            <p className="text-sm text-gray-500">Loading connections...</p>
+            <p className="text-sm text-muted">Loading connections...</p>
           )}
 
           {/* Connection cards */}
           {!isLoading && connections && connections.length === 0 && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted">
               No social accounts connected yet. Click a button above to get
               started.
             </p>
@@ -205,24 +205,24 @@ export function SocialConnectionsPanel() {
           {connections?.map((conn: SocialConnectionData) => (
             <div
               key={conn.id}
-              className="flex items-start gap-3 rounded-lg border border-gray-200 p-3"
+              className="flex items-start gap-3 rounded-lg border border-border p-3"
             >
               <PlatformIcon platform={conn.platform} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {conn.accountName || conn.accountId || "Unknown Account"}
                   </p>
                   <StatusBadge status={conn.status} />
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted">
                   {conn.platform.charAt(0).toUpperCase() +
                     conn.platform.slice(1)}{" "}
                   {conn.service
                     ? `- ${conn.service.name}`
                     : ""}
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-muted mt-0.5">
                   Last synced: {formatTimeAgo(conn.lastSyncAt)}
                 </p>
 
@@ -242,7 +242,7 @@ export function SocialConnectionsPanel() {
                 className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                   confirmDisconnect === conn.id
                     ? "bg-red-600 text-white"
-                    : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                    : "border border-border text-muted hover:bg-surface"
                 }`}
               >
                 {confirmDisconnect === conn.id ? "Confirm" : "Disconnect"}

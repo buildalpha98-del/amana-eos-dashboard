@@ -50,7 +50,7 @@ function getTypeConfig(type: string) {
 }
 
 function getBannerStatus(banner: Banner): { label: string; color: string } {
-  if (!banner.active) return { label: "Inactive", color: "bg-gray-100 text-gray-600" };
+  if (!banner.active) return { label: "Inactive", color: "bg-surface text-muted" };
   const now = new Date();
   if (banner.startsAt && new Date(banner.startsAt) > now) return { label: "Scheduled", color: "bg-blue-100 text-blue-700" };
   if (banner.expiresAt && new Date(banner.expiresAt) <= now) return { label: "Expired", color: "bg-red-100 text-red-700" };
@@ -173,14 +173,14 @@ function BannerFormModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-border/50">
+          <h3 className="text-lg font-semibold text-foreground">
             {isEditing ? "Edit Banner" : "Create Banner"}
           </h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+            className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -189,7 +189,7 @@ function BannerFormModal({
         <div className="p-6 space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -197,13 +197,13 @@ function BannerFormModal({
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="e.g. Welcome to the Dashboard!"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
             />
           </div>
 
           {/* Body */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Message <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -211,13 +211,13 @@ function BannerFormModal({
               onChange={(e) => setForm({ ...form, body: e.target.value })}
               placeholder="Banner message content..."
               rows={3}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand resize-none"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand resize-none"
             />
           </div>
 
           {/* Type selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground/80 mb-1.5">
               Type
             </label>
             <div className="flex flex-wrap gap-2">
@@ -233,7 +233,7 @@ function BannerFormModal({
                       "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors",
                       selected
                         ? `${t.bg} ${t.border} ${t.color}`
-                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50",
+                        : "bg-card border-border text-muted hover:bg-surface",
                     )}
                   >
                     <BtnIcon className="w-3.5 h-3.5" />
@@ -247,7 +247,7 @@ function BannerFormModal({
           {/* Link */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Link URL
               </label>
               <input
@@ -255,11 +255,11 @@ function BannerFormModal({
                 value={form.linkUrl}
                 onChange={(e) => setForm({ ...form, linkUrl: e.target.value })}
                 placeholder="/getting-started"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Link Label
               </label>
               <input
@@ -267,7 +267,7 @@ function BannerFormModal({
                 value={form.linkLabel}
                 onChange={(e) => setForm({ ...form, linkLabel: e.target.value })}
                 placeholder="Get Started"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
               />
             </div>
           </div>
@@ -275,7 +275,7 @@ function BannerFormModal({
           {/* Schedule */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 <Calendar className="w-3.5 h-3.5 inline mr-1" />
                 Starts At
               </label>
@@ -283,11 +283,11 @@ function BannerFormModal({
                 type="datetime-local"
                 value={form.startsAt}
                 onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 <Calendar className="w-3.5 h-3.5 inline mr-1" />
                 Expires At
               </label>
@@ -295,7 +295,7 @@ function BannerFormModal({
                 type="datetime-local"
                 value={form.expiresAt}
                 onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
               />
             </div>
           </div>
@@ -306,9 +306,9 @@ function BannerFormModal({
               type="checkbox"
               checked={form.dismissible}
               onChange={(e) => setForm({ ...form, dismissible: e.target.checked })}
-              className="rounded border-gray-300 text-brand focus:ring-brand"
+              className="rounded border-border text-brand focus:ring-brand"
             />
-            <span className="text-sm text-gray-700">Users can dismiss this banner</span>
+            <span className="text-sm text-foreground/80">Users can dismiss this banner</span>
           </label>
 
           {/* Preview toggle */}
@@ -363,10 +363,10 @@ function BannerFormModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 p-6 pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-end gap-2 p-6 pt-4 border-t border-border/50">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 rounded-lg border border-gray-200 hover:bg-gray-50"
+            className="px-4 py-2 text-sm font-medium text-foreground/80 rounded-lg border border-border hover:bg-surface"
           >
             Cancel
           </button>
@@ -431,14 +431,14 @@ export function BannerManagementSection() {
   const banners = data?.banners ?? [];
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Megaphone className="w-5 h-5 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900">
+          <Megaphone className="w-5 h-5 text-muted" />
+          <h3 className="text-lg font-semibold text-foreground">
             System Banners
           </h3>
-          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+          <span className="text-xs text-muted bg-surface px-2 py-0.5 rounded-full">
             {banners.length}
           </span>
         </div>
@@ -452,11 +452,11 @@ export function BannerManagementSection() {
       </div>
 
       {isLoading ? (
-        <div className="py-8 text-center text-gray-500 text-sm">Loading banners...</div>
+        <div className="py-8 text-center text-muted text-sm">Loading banners...</div>
       ) : banners.length === 0 ? (
         <div className="py-8 text-center">
-          <Megaphone className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">No banners yet. Create one to announce something to your team.</p>
+          <Megaphone className="w-8 h-8 text-muted/50 mx-auto mb-2" />
+          <p className="text-sm text-muted">No banners yet. Create one to announce something to your team.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -470,7 +470,7 @@ export function BannerManagementSection() {
                 key={banner.id}
                 className={cn(
                   "rounded-lg border p-4 transition-colors",
-                  banner.active ? "border-gray-200 bg-white" : "border-gray-100 bg-gray-50 opacity-60",
+                  banner.active ? "border-border bg-card" : "border-border/50 bg-surface/50 opacity-60",
                 )}
               >
                 <div className="flex items-start gap-3">
@@ -480,7 +480,7 @@ export function BannerManagementSection() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
+                      <p className="text-sm font-semibold text-foreground truncate">
                         {banner.title}
                       </p>
                       <span
@@ -492,15 +492,15 @@ export function BannerManagementSection() {
                         {status.label}
                       </span>
                       {!banner.dismissible && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-surface text-muted">
                           Pinned
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                    <p className="text-xs text-muted mt-0.5 line-clamp-1">
                       {banner.body}
                     </p>
-                    <div className="flex items-center gap-3 mt-1.5 text-[11px] text-gray-400">
+                    <div className="flex items-center gap-3 mt-1.5 text-[11px] text-muted">
                       {banner.startsAt && (
                         <span>Starts: {formatDate(banner.startsAt)}</span>
                       )}
@@ -517,21 +517,21 @@ export function BannerManagementSection() {
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => toggleMutation.mutate({ id: banner.id, active: !banner.active })}
-                      className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                      className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface transition-colors"
                       title={banner.active ? "Deactivate" : "Activate"}
                     >
                       {banner.active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                     <button
                       onClick={() => setEditBanner(banner)}
-                      className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                      className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface transition-colors"
                       title="Edit"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setDeleteId(banner.id)}
-                      className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      className="p-1.5 rounded-md text-muted hover:text-red-600 hover:bg-red-50 transition-colors"
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4" />

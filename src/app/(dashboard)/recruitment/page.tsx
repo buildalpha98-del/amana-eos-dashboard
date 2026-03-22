@@ -58,10 +58,10 @@ export default function RecruitmentPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
             Recruitment Pipeline
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted mt-1">
             Track vacancies, candidates, and staff referrals
           </p>
         </div>
@@ -70,7 +70,7 @@ export default function RecruitmentPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-300 rounded-lg"
+            className="px-3 py-2 text-sm border border-border rounded-lg"
           >
             <option value="">All Statuses</option>
             <option value="open">Open</option>
@@ -80,14 +80,14 @@ export default function RecruitmentPage() {
             <option value="cancelled">Cancelled</option>
           </select>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search vacancies..."
               aria-label="Search vacancies"
-              className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-full sm:w-48"
+              className="pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-full sm:w-48"
             />
           </div>
           <ExportButton
@@ -129,12 +129,12 @@ export default function RecruitmentPage() {
 
       {/* Empty State */}
       {!isLoading && vacancies.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-gray-200">
-          <div className="p-4 bg-gray-100 rounded-full mb-4">
-            <Briefcase className="h-8 w-8 text-gray-400" />
+        <div className="flex flex-col items-center justify-center py-16 bg-card rounded-xl border border-border">
+          <div className="p-4 bg-surface rounded-full mb-4">
+            <Briefcase className="h-8 w-8 text-muted" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">No vacancies found</h3>
-          <p className="text-sm text-gray-500 mb-4">
+          <h3 className="text-lg font-semibold text-foreground mb-1">No vacancies found</h3>
+          <p className="text-sm text-muted mb-4">
             {search || statusFilter || selectedServiceId
               ? "Try adjusting your filters or search terms."
               : "Get started by creating your first vacancy."}
@@ -199,14 +199,14 @@ function StatCard({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${colors[color]}`}>
           <Icon className="h-5 w-5" />
         </div>
         <div>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          <p className="text-xs text-gray-500">{label}</p>
+          <p className="text-2xl font-bold text-foreground">{value}</p>
+          <p className="text-xs text-muted">{label}</p>
         </div>
       </div>
     </div>

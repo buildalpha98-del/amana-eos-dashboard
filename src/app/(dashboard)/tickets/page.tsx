@@ -52,7 +52,7 @@ const statusTabs = [
   { key: "open", label: "Open", icon: Clock, color: "text-amber-600" },
   { key: "pending_parent", label: "Pending", icon: Clock, color: "text-purple-600" },
   { key: "resolved", label: "Resolved", icon: CheckCircle, color: "text-emerald-600" },
-  { key: "closed", label: "Closed", icon: XCircle, color: "text-gray-400" },
+  { key: "closed", label: "Closed", icon: XCircle, color: "text-muted" },
 ] as const;
 
 export default function TicketsPage() {
@@ -161,7 +161,7 @@ export default function TicketsPage() {
     { key: "open" as const, label: "Open", color: "border-amber-400", icon: Clock, iconColor: "text-amber-500" },
     { key: "pending_parent" as const, label: "Pending Parent", color: "border-purple-400", icon: Clock, iconColor: "text-purple-500" },
     { key: "resolved" as const, label: "Resolved", color: "border-emerald-400", icon: CheckCircle, iconColor: "text-emerald-500" },
-    { key: "closed" as const, label: "Closed", color: "border-gray-300", icon: XCircle, iconColor: "text-gray-400" },
+    { key: "closed" as const, label: "Closed", color: "border-border", icon: XCircle, iconColor: "text-muted" },
   ];
 
   if (error) {
@@ -181,8 +181,8 @@ export default function TicketsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Support Tickets</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Support Tickets</h2>
+          <p className="text-sm text-muted mt-1 line-clamp-2">
             Manage parent enquiries and WhatsApp conversations
           </p>
         </div>
@@ -191,14 +191,14 @@ export default function TicketsPage() {
           <ExportButton onClick={handleExport} disabled={!tickets || tickets.length === 0} />
 
           {/* View Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+          <div className="flex items-center bg-surface rounded-lg p-0.5">
             <button
               onClick={() => setViewMode("board")}
               className={cn(
                 "p-2 rounded-md transition-colors",
                 viewMode === "board"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "bg-card text-brand shadow-sm"
+                  : "text-muted hover:text-foreground"
               )}
             >
               <LayoutGrid className="w-4 h-4" />
@@ -208,8 +208,8 @@ export default function TicketsPage() {
               className={cn(
                 "p-2 rounded-md transition-colors",
                 viewMode === "list"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "bg-card text-brand shadow-sm"
+                  : "text-muted hover:text-foreground"
               )}
             >
               <List className="w-4 h-4" />
@@ -219,8 +219,8 @@ export default function TicketsPage() {
               className={cn(
                 "p-2 rounded-md transition-colors",
                 viewMode === "analytics"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "bg-card text-brand shadow-sm"
+                  : "text-muted hover:text-foreground"
               )}
             >
               <BarChart3 className="w-4 h-4" />
@@ -234,7 +234,7 @@ export default function TicketsPage() {
               "p-2 rounded-lg border transition-colors",
               showFilters || hasActiveFilters
                 ? "bg-brand text-white border-brand"
-                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                : "bg-card text-muted border-border hover:bg-surface"
             )}
           >
             <Filter className="w-4 h-4" />
@@ -243,7 +243,7 @@ export default function TicketsPage() {
           {/* Templates */}
           <button
             onClick={() => setShowTemplates(true)}
-            className="inline-flex items-center gap-2 px-3 py-2.5 border border-gray-300 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-2.5 border border-border text-sm font-medium text-foreground/80 rounded-lg hover:bg-surface transition-colors"
           >
             <FileText className="w-4 h-4" />
             <span className="hidden sm:inline">Templates</span>
@@ -264,14 +264,14 @@ export default function TicketsPage() {
       {viewMode !== "analytics" && (
         <div className="mb-4">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
             <input
               type="text"
               placeholder="Search tickets by subject or contact..."
               aria-label="Search tickets"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
         </div>
@@ -280,7 +280,7 @@ export default function TicketsPage() {
       {/* Status Tabs (List View) */}
       {viewMode === "list" && (
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mb-4">
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+          <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit">
             {statusTabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -290,8 +290,8 @@ export default function TicketsPage() {
                   className={cn(
                     "flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
                     statusFilter === tab.key
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted hover:text-foreground"
                   )}
                 >
                   {Icon && <Icon className={cn("w-3.5 h-3.5", tab.color)} />}
@@ -305,11 +305,11 @@ export default function TicketsPage() {
 
       {/* Advanced Filters */}
       {showFilters && viewMode !== "analytics" && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
+        <div className="mb-4 flex flex-wrap items-center gap-3 p-3 bg-card rounded-lg border border-border">
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Priorities</option>
             <option value="urgent">Urgent</option>
@@ -320,7 +320,7 @@ export default function TicketsPage() {
           <select
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Assignees</option>
             {users.map((u) => (
@@ -332,7 +332,7 @@ export default function TicketsPage() {
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Centres</option>
             {services.map((s) => (
@@ -359,8 +359,8 @@ export default function TicketsPage() {
       {/* Stats Bar */}
       {viewMode !== "analytics" && tickets && tickets.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 px-1">
-          <span className="text-sm text-gray-500">
-            <span className="font-semibold text-gray-900">{stats.total}</span> tickets
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-foreground">{stats.total}</span> tickets
           </span>
           {stats.new > 0 && (
             <span className="text-sm text-blue-600">
@@ -386,8 +386,8 @@ export default function TicketsPage() {
       ) : isLoading ? (
         <div className="flex items-center justify-center py-24">
           <div className="text-center">
-            <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm text-gray-500">Loading tickets...</p>
+            <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-muted">Loading tickets...</p>
           </div>
         </div>
       ) : tickets && tickets.length > 0 ? (
@@ -401,13 +401,13 @@ export default function TicketsPage() {
                 <div key={col.key} className="space-y-3 min-w-[260px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
                   <div className={cn("flex items-center gap-2 pb-2 border-b-2", col.color)}>
                     <Icon className={cn("w-4 h-4", col.iconColor)} />
-                    <h3 className="text-sm font-semibold text-gray-700">{col.label}</h3>
-                    <span className="text-xs text-gray-400 ml-auto bg-gray-100 px-1.5 py-0.5 rounded-full">
+                    <h3 className="text-sm font-semibold text-foreground/80">{col.label}</h3>
+                    <span className="text-xs text-muted ml-auto bg-surface px-1.5 py-0.5 rounded-full">
                       {items.length}
                     </span>
                   </div>
                   {items.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-8">No tickets</p>
+                    <p className="text-xs text-muted text-center py-8">No tickets</p>
                   ) : (
                     items.map((ticket) => (
                       <TicketCard

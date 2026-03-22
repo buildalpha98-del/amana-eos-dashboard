@@ -41,8 +41,8 @@ function SliderInput({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-gray-600">{meta.label}</label>
-        <span className="text-xs font-semibold text-gray-900 tabular-nums">
+        <label className="text-xs font-medium text-muted">{meta.label}</label>
+        <span className="text-xs font-semibold text-foreground tabular-nums">
           {formatDisplay(value, meta)}
         </span>
       </div>
@@ -54,7 +54,7 @@ function SliderInput({
           step={meta.step}
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value))}
-          className="flex-1 h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer accent-brand"
+          className="flex-1 h-1.5 bg-border rounded-full appearance-none cursor-pointer accent-brand"
         />
         <input
           type="number"
@@ -66,7 +66,7 @@ function SliderInput({
             const v = parseFloat(e.target.value);
             if (!isNaN(v)) onChange(Math.min(meta.max, Math.max(meta.min, v)));
           }}
-          className="w-20 rounded-md border border-gray-300 px-2 py-1 text-xs text-right tabular-nums focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="w-20 rounded-md border border-border px-2 py-1 text-xs text-right tabular-nums focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         />
       </div>
     </div>
@@ -86,13 +86,13 @@ function InputGroup({
   const items = INPUT_CONFIG.filter((m) => m.group === groupKey);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200">
+    <div className="bg-card rounded-xl border border-border">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 rounded-xl transition-colors"
+        className="flex items-center justify-between w-full px-4 py-3 text-sm font-semibold text-foreground hover:bg-surface rounded-xl transition-colors"
       >
         {GROUP_LABELS[groupKey]}
-        {open ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+        {open ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronRight className="w-4 h-4 text-muted" />}
       </button>
       {open && (
         <div className="px-4 pb-4 space-y-3">
@@ -114,15 +114,15 @@ export function ScenarioInputPanel({ inputs, onChange, onLoadPreset, onSave }: P
   return (
     <div className="space-y-3">
       {/* Preset Selector */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <label className="block text-xs font-medium text-gray-600 mb-1.5">Load Preset</label>
+      <div className="bg-card rounded-xl border border-border p-4">
+        <label className="block text-xs font-medium text-muted mb-1.5">Load Preset</label>
         <select
           onChange={(e) => {
             const preset = PRESET_SCENARIOS.find((p) => p.key === e.target.value);
             if (preset) onLoadPreset(preset.inputs);
           }}
           defaultValue=""
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="" disabled>Select a preset scenario...</option>
           {PRESET_SCENARIOS.map((p) => (

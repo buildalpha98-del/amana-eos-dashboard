@@ -58,7 +58,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   social_emotional: "bg-rose-100 text-rose-700",
   quiet_time: "bg-sky-100 text-sky-700",
   free_play: "bg-teal-100 text-teal-700",
-  other: "bg-gray-100 text-gray-700",
+  other: "bg-surface text-foreground/80",
 };
 
 function getCategoryLabel(value: string) {
@@ -113,11 +113,11 @@ export default function ActivityLibraryPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <Library className="w-7 h-7 text-brand" />
           Activity Library
         </h1>
-        <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+        <p className="text-sm text-muted mt-1 line-clamp-2">
           Reusable activity templates for weekly programming. Browse, search, and use templates to pre-fill your program.
         </p>
       </div>
@@ -125,20 +125,20 @@ export default function ActivityLibraryPage() {
       {/* Action bar */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             type="text"
             placeholder="Search activities..."
             aria-label="Search activities"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+            className="w-full pl-10 pr-4 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
           />
         </div>
         <select
           value={categoryFilter}
           onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+          className="px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
         >
           <option value="">All Categories</option>
           {CATEGORIES.map((c) => (
@@ -168,7 +168,7 @@ export default function ActivityLibraryPage() {
           <Loader2 className="w-8 h-8 text-brand animate-spin" />
         </div>
       ) : !data?.templates.length ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-muted">
           <Library className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p className="text-lg font-medium">No templates yet</p>
           <p className="text-sm mt-1">
@@ -196,17 +196,17 @@ export default function ActivityLibraryPage() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-3 py-1.5 text-sm border border-gray-200 rounded-md disabled:opacity-50"
+                className="px-3 py-1.5 text-sm border border-border rounded-md disabled:opacity-50"
               >
                 Previous
               </button>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-muted">
                 Page {page} of {totalPages}
               </span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="px-3 py-1.5 text-sm border border-gray-200 rounded-md disabled:opacity-50"
+                className="px-3 py-1.5 text-sm border border-border rounded-md disabled:opacity-50"
               >
                 Next
               </button>
@@ -244,7 +244,7 @@ function TemplateCard({
 }) {
   return (
     <div
-      className="group bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+      className="group bg-card rounded-xl border border-border p-4 hover:shadow-md transition-shadow cursor-pointer"
       onClick={onClick}
     >
       <div className="flex items-start justify-between mb-2">
@@ -255,9 +255,9 @@ function TemplateCard({
           <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 opacity-60 transition-opacity">
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="p-1 rounded hover:bg-gray-100"
+              className="p-1 rounded hover:bg-surface"
             >
-              <Pencil className="w-3.5 h-3.5 text-gray-500" />
+              <Pencil className="w-3.5 h-3.5 text-muted" />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
@@ -268,11 +268,11 @@ function TemplateCard({
           </div>
         )}
       </div>
-      <h3 className="font-semibold text-gray-900 text-sm mb-1">{template.title}</h3>
+      <h3 className="font-semibold text-foreground text-sm mb-1">{template.title}</h3>
       {template.description && (
-        <p className="text-xs text-gray-500 line-clamp-2 mb-3">{template.description}</p>
+        <p className="text-xs text-muted line-clamp-2 mb-3">{template.description}</p>
       )}
-      <div className="flex items-center gap-3 text-xs text-gray-400">
+      <div className="flex items-center gap-3 text-xs text-muted">
         {template.ageGroup && (
           <span className="flex items-center gap-1">
             <Users className="w-3 h-3" />
@@ -383,67 +383,67 @@ function TemplateModal({
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-card rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between p-5 border-b border-border/50">
+          <h2 className="text-lg font-semibold text-foreground">
             {isEdit ? (isAdmin ? "Edit Template" : "View Template") : "New Template"}
           </h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100">
-            <X className="w-5 h-5 text-gray-400" />
+          <button onClick={onClose} className="p-1 rounded hover:bg-surface">
+            <X className="w-5 h-5 text-muted" />
           </button>
         </div>
 
         <div className="p-5 space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">Title *</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={!isAdmin}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-surface/50"
               placeholder="e.g. Obstacle Course Relay"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={!isAdmin}
               rows={2}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50 resize-none"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-surface/50 resize-none"
               placeholder="Short description of the activity"
             />
           </div>
 
           {/* How To */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">How To Instructions</label>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">How To Instructions</label>
             <textarea
               value={howTo}
               onChange={(e) => setHowTo(e.target.value)}
               disabled={!isAdmin}
               rows={5}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50 resize-none"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-surface/50 resize-none"
               placeholder="Step-by-step instructions for running this activity..."
             />
           </div>
 
           {/* Resources Needed */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Resources / Materials Needed</label>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">Resources / Materials Needed</label>
             <textarea
               value={resourcesNeeded}
               onChange={(e) => setResourcesNeeded(e.target.value)}
               disabled={!isAdmin}
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50 resize-none"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-surface/50 resize-none"
               placeholder="List materials, equipment, or resources needed..."
             />
           </div>
@@ -451,7 +451,7 @@ function TemplateModal({
           {/* Category / Age / Duration row */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 <Tag className="w-3.5 h-3.5 inline mr-1" />
                 Category
               </label>
@@ -459,7 +459,7 @@ function TemplateModal({
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 disabled={!isAdmin}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-surface/50"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -467,7 +467,7 @@ function TemplateModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 <Users className="w-3.5 h-3.5 inline mr-1" />
                 Age Group
               </label>
@@ -476,12 +476,12 @@ function TemplateModal({
                 value={ageGroup}
                 onChange={(e) => setAgeGroup(e.target.value)}
                 disabled={!isAdmin}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-surface/50"
                 placeholder="e.g. 5-8"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 <Clock className="w-3.5 h-3.5 inline mr-1" />
                 Duration (min)
               </label>
@@ -492,7 +492,7 @@ function TemplateModal({
                 disabled={!isAdmin}
                 min={1}
                 max={480}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-gray-50"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none disabled:bg-surface/50"
                 placeholder="30"
               />
             </div>
@@ -500,16 +500,16 @@ function TemplateModal({
 
           {/* Files */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Attached Files</label>
+            <label className="block text-sm font-medium text-foreground/80 mb-2">Attached Files</label>
             {files.length > 0 ? (
               <div className="space-y-2 mb-3">
                 {files.map((f) => (
-                  <div key={f.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                  <div key={f.id} className="flex items-center justify-between bg-surface/50 rounded-lg px-3 py-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <FileText className="w-4 h-4 text-gray-400 shrink-0" />
-                      <span className="text-sm text-gray-700 truncate">{f.fileName}</span>
+                      <FileText className="w-4 h-4 text-muted shrink-0" />
+                      <span className="text-sm text-foreground/80 truncate">{f.fileName}</span>
                       {f.fileSize && (
-                        <span className="text-xs text-gray-400 shrink-0">{formatFileSize(f.fileSize)}</span>
+                        <span className="text-xs text-muted shrink-0">{formatFileSize(f.fileSize)}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -517,10 +517,10 @@ function TemplateModal({
                         href={f.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1 rounded hover:bg-gray-200"
+                        className="p-1 rounded hover:bg-border"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <Download className="w-3.5 h-3.5 text-gray-500" />
+                        <Download className="w-3.5 h-3.5 text-muted" />
                       </a>
                       {isAdmin && (
                         <button
@@ -535,7 +535,7 @@ function TemplateModal({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 mb-2">No files attached</p>
+              <p className="text-xs text-muted mb-2">No files attached</p>
             )}
             {isAdmin && isEdit && (
               <>
@@ -549,7 +549,7 @@ function TemplateModal({
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadFile.isPending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50 text-gray-600 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border hover:bg-surface text-muted disabled:opacity-50"
                 >
                   {uploadFile.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -565,10 +565,10 @@ function TemplateModal({
 
         {/* Footer */}
         {isAdmin && (
-          <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-100">
+          <div className="flex items-center justify-end gap-3 p-5 border-t border-border/50">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50"
+              className="px-4 py-2 text-sm font-medium rounded-lg border border-border hover:bg-surface"
             >
               Cancel
             </button>
@@ -583,10 +583,10 @@ function TemplateModal({
           </div>
         )}
         {!isAdmin && (
-          <div className="flex items-center justify-end p-5 border-t border-gray-100">
+          <div className="flex items-center justify-end p-5 border-t border-border/50">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50"
+              className="px-4 py-2 text-sm font-medium rounded-lg border border-border hover:bg-surface"
             >
               Close
             </button>

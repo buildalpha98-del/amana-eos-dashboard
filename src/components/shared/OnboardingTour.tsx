@@ -181,14 +181,14 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
       <div
         ref={tooltipRef}
         style={getTooltipStyle()}
-        className={`z-[9999] max-w-xs w-80 bg-white rounded-xl shadow-xl p-5 transition-opacity duration-150 ${
+        className={`z-[9999] max-w-xs w-80 bg-card rounded-xl shadow-xl p-5 transition-opacity duration-150 ${
           transitioning ? "opacity-0" : "opacity-100"
         }`}
       >
-        <h3 className="text-base font-semibold text-gray-900 mb-1">
+        <h3 className="text-base font-semibold text-foreground mb-1">
           {currentStep.title}
         </h3>
-        <p className="text-sm text-gray-600 leading-relaxed mb-4">
+        <p className="text-sm text-muted leading-relaxed mb-4">
           {currentStep.description}
         </p>
 
@@ -199,7 +199,7 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
               <span
                 key={i}
                 className={`block w-2 h-2 rounded-full transition-colors duration-200 ${
-                  i === step ? "bg-brand" : "bg-gray-200"
+                  i === step ? "bg-brand" : "bg-border"
                 }`}
               />
             ))}
@@ -208,7 +208,7 @@ export function OnboardingTour({ onComplete }: OnboardingTourProps) {
           <div className="flex items-center gap-3">
             <button
               onClick={skip}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-xs text-muted hover:text-foreground transition-colors"
             >
               Skip Tour
             </button>

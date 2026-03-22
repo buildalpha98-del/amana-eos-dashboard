@@ -89,8 +89,8 @@ export function ConsentsStep({ data, updateData }: Props) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Consents & Permissions</h3>
-        <p className="text-sm text-gray-500 mb-6">
+        <h3 className="text-lg font-semibold text-foreground mb-2">Consents & Permissions</h3>
+        <p className="text-sm text-muted mb-6">
           Please review each item and indicate your consent.
         </p>
 
@@ -105,13 +105,13 @@ export function ConsentsStep({ data, updateData }: Props) {
                     ? "bg-green-50 border-green-200"
                     : value === false
                       ? "bg-red-50 border-red-200"
-                      : "bg-gray-50 border-gray-200"
+                      : "bg-surface/50 border-border"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-800">{item.label}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{item.description}</p>
+                    <p className="text-sm font-medium text-foreground">{item.label}</p>
+                    <p className="text-xs text-muted mt-0.5">{item.description}</p>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     {[true, false].map((opt) => (
@@ -124,7 +124,7 @@ export function ConsentsStep({ data, updateData }: Props) {
                             ? opt
                               ? "bg-green-50 border-green-300 text-green-700"
                               : "bg-red-50 border-red-300 text-red-700"
-                            : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100"
+                            : "bg-surface/50 border-border text-muted hover:bg-surface"
                         }`}
                       >
                         {opt ? "Yes" : "No"}
@@ -138,13 +138,13 @@ export function ConsentsStep({ data, updateData }: Props) {
         </div>
       </div>
 
-      <hr className="border-gray-200" />
+      <hr className="border-border" />
 
       <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Court Orders</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-2">Court Orders</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground/80 mb-2">
               Are there any court orders or parenting orders related to this child?
             </label>
             <div className="flex gap-3">
@@ -158,7 +158,7 @@ export function ConsentsStep({ data, updateData }: Props) {
                       ? opt
                         ? "bg-red-50 border-red-300 text-red-700"
                         : "bg-green-50 border-green-300 text-green-700"
-                      : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100"
+                      : "bg-surface/50 border-border text-muted hover:bg-surface"
                   }`}
                 >
                   {opt ? "Yes" : "No"}
@@ -188,7 +188,7 @@ export function ConsentsStep({ data, updateData }: Props) {
                 </div>
               ))}
 
-              <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-brand hover:text-brand cursor-pointer transition-colors">
+              <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg text-sm text-muted hover:border-brand hover:text-brand cursor-pointer transition-colors">
                 <Upload className="h-4 w-4" />
                 {uploading ? "Uploading..." : "Upload court order document"}
                 <input type="file" className="sr-only" onChange={handleCourtOrderUpload} accept=".pdf,.jpg,.jpeg,.png" />

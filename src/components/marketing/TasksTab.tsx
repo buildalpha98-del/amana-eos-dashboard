@@ -34,9 +34,9 @@ const STATUS_COLUMNS = [
     key: "todo" as const,
     label: "To Do",
     icon: AlertCircle,
-    color: "border-gray-300",
-    bg: "bg-gray-50",
-    badge: "bg-gray-100 text-gray-700",
+    color: "border-border",
+    bg: "bg-surface/50",
+    badge: "bg-surface text-foreground/80",
   },
   {
     key: "in_progress" as const,
@@ -67,7 +67,7 @@ const STATUS_COLUMNS = [
 const PRIORITY_COLORS = {
   high: "bg-red-100 text-red-700 border-red-200",
   medium: "bg-amber-100 text-amber-700 border-amber-200",
-  low: "bg-gray-100 text-gray-600 border-gray-200",
+  low: "bg-surface text-muted border-border",
 };
 
 function getDueIndicator(dueDate: string | null): {
@@ -103,7 +103,7 @@ function getDueIndicator(dueDate: string | null): {
       day: "numeric",
       month: "short",
     }),
-    className: "text-gray-500 bg-gray-50",
+    className: "text-muted bg-surface/50",
   };
 }
 
@@ -211,23 +211,23 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3">
         {/* View Toggle */}
-        <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+        <div className="flex rounded-lg border border-border overflow-hidden">
           <button
             onClick={() => setView("kanban")}
             className={`px-3 py-2 text-sm font-medium transition-colors ${
               view === "kanban"
                 ? "bg-brand text-white"
-                : "bg-white text-gray-600 hover:bg-gray-50"
+                : "bg-card text-muted hover:bg-surface"
             }`}
           >
             <LayoutGrid className="h-4 w-4" />
           </button>
           <button
             onClick={() => setView("list")}
-            className={`px-3 py-2 text-sm font-medium border-l border-gray-300 transition-colors ${
+            className={`px-3 py-2 text-sm font-medium border-l border-border transition-colors ${
               view === "list"
                 ? "bg-brand text-white"
-                : "bg-white text-gray-600 hover:bg-gray-50"
+                : "bg-card text-muted hover:bg-surface"
             }`}
           >
             <List className="h-4 w-4" />
@@ -240,7 +240,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
           className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
             myTasksOnly
               ? "bg-brand text-white border-brand"
-              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+              : "bg-card text-muted border-border hover:bg-surface"
           }`}
         >
           <User className="h-3.5 w-3.5" />
@@ -251,7 +251,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground/80 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="">All Statuses</option>
           <option value="todo">To Do</option>
@@ -263,7 +263,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground/80 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           <option value="">All Priorities</option>
           <option value="high">High</option>
@@ -274,7 +274,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => setShowTemplates(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-brand bg-white px-4 py-2 text-sm font-medium text-brand hover:bg-brand/5 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-brand bg-card px-4 py-2 text-sm font-medium text-brand hover:bg-brand/5 transition-colors"
           >
             <Zap className="h-4 w-4" />
             Quick Start
@@ -291,7 +291,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
 
       {/* Content */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-16 text-gray-500">
+        <div className="flex items-center justify-center py-16 text-muted">
           Loading tasks...
         </div>
       ) : view === "kanban" ? (
@@ -315,10 +315,10 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                 onDrop={(e) => handleDrop(e, col.key)}
               >
                 {/* Column Header */}
-                <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-200/50">
+                <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/50">
                   <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-gray-500" />
-                    <h4 className="text-sm font-semibold text-gray-700">
+                    <Icon className="h-4 w-4 text-muted" />
+                    <h4 className="text-sm font-semibold text-foreground/80">
                       {col.label}
                     </h4>
                     <span
@@ -334,7 +334,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                       );
                       setQuickAddTitle("");
                     }}
-                    className="rounded p-1 text-gray-400 hover:bg-white/60 hover:text-gray-600 transition-colors"
+                    className="rounded p-1 text-muted hover:bg-card/60 hover:text-foreground transition-colors"
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </button>
@@ -342,7 +342,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
 
                 {/* Quick Add */}
                 {quickAddColumn === col.key && (
-                  <div className="px-3 py-2 border-b border-gray-200/50">
+                  <div className="px-3 py-2 border-b border-border/50">
                     <input
                       type="text"
                       value={quickAddTitle}
@@ -353,7 +353,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                       }}
                       placeholder="Task title..."
                       autoFocus
-                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      className="w-full rounded border border-border px-2 py-1.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                     <div className="flex gap-1.5 mt-1.5">
                       <button
@@ -365,7 +365,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                       </button>
                       <button
                         onClick={() => setQuickAddColumn(null)}
-                        className="rounded border border-gray-300 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-100"
+                        className="rounded border border-border px-2.5 py-1 text-xs text-muted hover:bg-surface"
                       >
                         Cancel
                       </button>
@@ -376,7 +376,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                 {/* Task Cards */}
                 <div className="flex-1 p-2 space-y-2 overflow-y-auto max-h-[500px]">
                   {columnTasks.length === 0 && (
-                    <p className="text-center text-xs text-gray-400 py-6">
+                    <p className="text-center text-xs text-muted py-6">
                       No tasks
                     </p>
                   )}
@@ -390,12 +390,12 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                         onDragStart={(e) => handleDragStart(e, task.id)}
                         onDragEnd={handleDragEnd}
                         onClick={() => onSelectTask(task.id)}
-                        className={`rounded-lg border border-gray-200 bg-white p-3 shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing transition-all group ${
+                        className={`rounded-lg border border-border bg-card p-3 shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing transition-all group ${
                           draggingTaskId === task.id ? "opacity-40 scale-95 rotate-1" : ""
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <p className="text-sm font-medium text-gray-900 leading-snug line-clamp-2">
+                          <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
                             {task.title}
                           </p>
                           <span
@@ -416,7 +416,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                             </span>
                           )}
                           {task.assignee && (
-                            <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
+                            <span className="inline-flex items-center rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-medium text-muted">
                               {(task.assignee?.name ?? "Unassigned").split(" ")[0]}
                             </span>
                           )}
@@ -436,16 +436,16 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
         </div>
       ) : (
         /* List View */
-        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
           {!tasks || tasks.length === 0 ? (
-            <div className="flex items-center justify-center py-16 text-gray-500">
+            <div className="flex items-center justify-center py-16 text-muted">
               No tasks found
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase tracking-wider text-muted">
                     <th className="px-4 py-3">Title</th>
                     <th className="px-4 py-3">Priority</th>
                     <th className="px-4 py-3">Status</th>
@@ -454,16 +454,16 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                     <th className="px-4 py-3">Campaign</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-border/50">
                   {tasks.map((task) => {
                     const dueIndicator = getDueIndicator(task.dueDate);
                     return (
                       <tr
                         key={task.id}
                         onClick={() => onSelectTask(task.id)}
-                        className="cursor-pointer hover:bg-gray-50 transition-colors"
+                        className="cursor-pointer hover:bg-surface transition-colors"
                       >
-                        <td className="px-4 py-3 font-medium text-gray-900">
+                        <td className="px-4 py-3 font-medium text-foreground">
                           {task.title}
                         </td>
                         <td className="px-4 py-3">
@@ -476,7 +476,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="capitalize text-gray-600">
+                          <span className="capitalize text-muted">
                             {task.status.replace("_", " ")}
                           </span>
                         </td>
@@ -488,13 +488,13 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                               {dueIndicator.label}
                             </span>
                           ) : (
-                            <span className="text-gray-400">&mdash;</span>
+                            <span className="text-muted">&mdash;</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-gray-600">
+                        <td className="px-4 py-3 text-muted">
                           {task.assignee?.name ?? "Unassigned"}
                         </td>
-                        <td className="px-4 py-3 text-gray-600">
+                        <td className="px-4 py-3 text-muted">
                           {task.campaign?.name ?? "\u2014"}
                         </td>
                       </tr>

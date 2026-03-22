@@ -63,8 +63,8 @@ export default function ScenariosPage() {
               <Calculator className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Scenario Modelling</h2>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Scenario Modelling</h2>
+              <p className="text-sm text-muted mt-0.5">
                 What-if analysis — adjust inputs and see real-time financial projections
               </p>
             </div>
@@ -91,8 +91,8 @@ export default function ScenariosPage() {
             <Calculator className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Scenario Modelling</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Scenario Modelling</h2>
+            <p className="text-sm text-muted mt-0.5">
               What-if analysis — adjust inputs and see real-time financial projections
             </p>
           </div>
@@ -101,7 +101,7 @@ export default function ScenariosPage() {
 
       {/* Tab Toggle */}
       <div className="mb-6">
-        <div className="inline-flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="inline-flex items-center gap-1 bg-surface rounded-lg p-1">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const active = tab.key === activeTab;
@@ -112,8 +112,8 @@ export default function ScenariosPage() {
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
                   active
-                    ? "bg-white text-brand shadow-sm"
-                    : "text-gray-500 hover:text-gray-700",
+                    ? "bg-card text-brand shadow-sm"
+                    : "text-muted hover:text-foreground",
                 )}
               >
                 <Icon className="w-4 h-4" />

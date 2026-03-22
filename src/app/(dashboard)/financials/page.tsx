@@ -61,7 +61,7 @@ function XeroSyncBadge() {
         Xero Connected
       </div>
       {xeroStatus.lastSyncAt && (
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-muted">
           Last sync: {new Date(xeroStatus.lastSyncAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
         </span>
       )}
@@ -126,18 +126,18 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-t-xl sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-base font-semibold text-gray-900">Enter Financial Data</h3>
-          <button onClick={onClose} className="p-1 rounded-md text-gray-400 hover:text-gray-600">
+      <div className="bg-card rounded-t-xl sm:rounded-xl shadow-2xl w-full sm:max-w-lg sm:mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h3 className="text-base font-semibold text-foreground">Enter Financial Data</h3>
+          <button onClick={onClose} className="p-1 rounded-md text-muted hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="px-6 py-4 space-y-4">
           {/* Centre */}
           <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">Centre</label>
-            <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
+            <label className="text-xs font-medium text-muted block mb-1">Centre</label>
+            <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
               <option value="">Select centre...</option>
               {services?.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
             </select>
@@ -145,24 +145,24 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
           {/* Period */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">Period Type</label>
-              <select value={periodType} onChange={(e) => setPeriodType(e.target.value as "monthly" | "quarterly")} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
+              <label className="text-xs font-medium text-muted block mb-1">Period Type</label>
+              <select value={periodType} onChange={(e) => setPeriodType(e.target.value as "monthly" | "quarterly")} className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand">
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">Start Date</label>
-              <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
+              <label className="text-xs font-medium text-muted block mb-1">Start Date</label>
+              <input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1">End Date</label>
-              <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
+              <label className="text-xs font-medium text-muted block mb-1">End Date</label>
+              <input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
           </div>
           {/* Revenue */}
           <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">Revenue ($)</label>
+            <label className="text-xs font-medium text-muted block mb-1">Revenue ($)</label>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { label: "BSC", val: bscRevenue, set: setBscRevenue },
@@ -171,8 +171,8 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
                 { label: "Other", val: otherRevenue, set: setOtherRevenue },
               ].map((f) => (
                 <div key={f.label}>
-                  <label className="text-[10px] text-gray-400">{f.label}</label>
-                  <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
+                  <label className="text-[10px] text-muted">{f.label}</label>
+                  <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
                 </div>
               ))}
             </div>
@@ -180,7 +180,7 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
           </div>
           {/* Costs */}
           <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">Costs ($)</label>
+            <label className="text-xs font-medium text-muted block mb-1">Costs ($)</label>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { label: "Staff", val: staffCosts, set: setStaffCosts },
@@ -191,8 +191,8 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
                 { label: "Other", val: otherCosts, set: setOtherCosts },
               ].map((f) => (
                 <div key={f.label}>
-                  <label className="text-[10px] text-gray-400">{f.label}</label>
-                  <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
+                  <label className="text-[10px] text-muted">{f.label}</label>
+                  <input type="number" min={0} value={f.val || ""} onChange={(e) => f.set(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
                 </div>
               ))}
             </div>
@@ -200,29 +200,29 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
           </div>
           {/* Budget */}
           <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">Budget (optional)</label>
+            <label className="text-xs font-medium text-muted block mb-1">Budget (optional)</label>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-gray-400">Budget Revenue</label>
-                <input type="number" min={0} value={budgetRevenue || ""} onChange={(e) => setBudgetRevenue(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
+                <label className="text-[10px] text-muted">Budget Revenue</label>
+                <input type="number" min={0} value={budgetRevenue || ""} onChange={(e) => setBudgetRevenue(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
               <div>
-                <label className="text-[10px] text-gray-400">Budget Costs</label>
-                <input type="number" min={0} value={budgetCosts || ""} onChange={(e) => setBudgetCosts(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
+                <label className="text-[10px] text-muted">Budget Costs</label>
+                <input type="number" min={0} value={budgetCosts || ""} onChange={(e) => setBudgetCosts(Number(e.target.value) || 0)} className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand" />
               </div>
             </div>
           </div>
           {/* Summary */}
-          <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+          <div className="bg-surface/50 rounded-lg p-3 space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-700">Gross Profit</span>
+              <span className="text-sm font-medium text-foreground/80">Gross Profit</span>
               <span className={cn("text-sm font-bold", totalRev - totalCost >= 0 ? "text-emerald-600" : "text-red-600")}>
                 {formatCurrency(totalRev - totalCost)}
               </span>
             </div>
             {budgetRevenue > 0 && (
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">Revenue vs Budget</span>
+                <span className="text-sm text-muted">Revenue vs Budget</span>
                 <span className={cn("text-sm font-semibold", totalRev >= budgetRevenue ? "text-emerald-600" : "text-amber-600")}>
                   {formatCurrency(totalRev - budgetRevenue)} ({totalRev >= budgetRevenue ? "+" : ""}{((totalRev - budgetRevenue) / budgetRevenue * 100).toFixed(1)}%)
                 </span>
@@ -230,8 +230,8 @@ function EnterDataModal({ open, onClose }: { open: boolean; onClose: () => void 
             )}
           </div>
         </div>
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+        <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-muted hover:text-foreground">Cancel</button>
           <button
             onClick={() => submit.mutate()}
             disabled={!serviceId || !periodStart || !periodEnd || submit.isPending}
@@ -297,8 +297,8 @@ export default function FinancialsPage() {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Financial Dashboard</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">Revenue, costs, and profitability across all centres</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Financial Dashboard</h2>
+          <p className="text-sm text-muted mt-1 line-clamp-2">Revenue, costs, and profitability across all centres</p>
         </div>
         <ErrorState
           title="Failed to load financials"
@@ -314,8 +314,8 @@ export default function FinancialsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Financial Dashboard</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">Revenue, costs, and profitability across all centres</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Financial Dashboard</h2>
+          <p className="text-sm text-muted mt-1 line-clamp-2">Revenue, costs, and profitability across all centres</p>
           <div className="mt-2">
             <XeroSyncBadge />
           </div>
@@ -374,7 +374,7 @@ export default function FinancialsPage() {
             />
             <ExportButton onClick={handleExport} disabled={!data?.financials || data.financials.length === 0} />
           </div>
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-surface rounded-lg p-1">
           {[
             { label: "Weekly", value: "weekly" },
             { label: "Monthly", value: "monthly" },
@@ -386,8 +386,8 @@ export default function FinancialsPage() {
               className={cn(
                 "px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors",
                 period === opt.value
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-card text-brand shadow-sm"
+                  : "text-muted hover:text-foreground"
               )}
             >
               {opt.label}
@@ -486,26 +486,26 @@ export default function FinancialsPage() {
 
       {/* Attendance Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-2">
             <Building2 className="w-5 h-5 text-brand" />
-            <h3 className="text-sm font-medium text-gray-500">Active Centres</h3>
+            <h3 className="text-sm font-medium text-muted">Active Centres</h3>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{summary?.centreCount || 0}</p>
+          <p className="text-3xl font-bold text-foreground">{summary?.centreCount || 0}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-2">
             <TrendingUp className="w-5 h-5 text-blue-500" />
-            <h3 className="text-sm font-medium text-gray-500">BSC Attendance</h3>
+            <h3 className="text-sm font-medium text-muted">BSC Attendance</h3>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-900">{summary?.totalBscAttendance || 0}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-foreground">{summary?.totalBscAttendance || 0}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-2">
             <TrendingUp className="w-5 h-5 text-emerald-500" />
-            <h3 className="text-sm font-medium text-gray-500">ASC Attendance</h3>
+            <h3 className="text-sm font-medium text-muted">ASC Attendance</h3>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-gray-900">{summary?.totalAscAttendance || 0}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-foreground">{summary?.totalAscAttendance || 0}</p>
         </div>
       </div>
 
@@ -521,9 +521,9 @@ export default function FinancialsPage() {
       )}
 
       {/* Revenue by Centre Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Revenue by Centre</h3>
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
+          <h3 className="text-lg font-semibold text-foreground">Revenue by Centre</h3>
         </div>
         {isLoading ? (
           <div className="space-y-3 p-6">
@@ -547,30 +547,30 @@ export default function FinancialsPage() {
           <ScrollableTable>
             <table className="w-full min-w-[900px] text-sm">
               <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Centre</th>
-                  <th className="hidden md:table-cell px-2 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center w-12">Source</th>
-                  <th className="hidden md:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">State</th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">BSC Rev</th>
-                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">ASC Rev</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Total Rev</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Costs</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Profit</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Margin</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Budget</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Variance</th>
+                <tr className="bg-surface/50 text-left">
+                  <th className="px-6 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Centre</th>
+                  <th className="hidden md:table-cell px-2 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-center w-12">Source</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">State</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">BSC Rev</th>
+                  <th className="hidden lg:table-cell px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">ASC Rev</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Total Rev</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Costs</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Profit</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Margin</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Budget</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-right">Variance</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border/50">
                 {sortedData.map((row) => (
                   <tr
                     key={row.id}
                     className={cn(
-                      "hover:bg-gray-50 transition-colors",
+                      "hover:bg-surface transition-colors",
                       row.grossProfit > 0 ? "" : "bg-red-50/50"
                     )}
                   >
-                    <td className="px-6 py-3 font-medium text-gray-900">{row.service.name}</td>
+                    <td className="px-6 py-3 font-medium text-foreground">{row.service.name}</td>
                     <td className="hidden md:table-cell px-2 py-3 text-center">
                       {row.dataSource === "xero" ? (
                         <span title="Synced from Xero"><RefreshCw className="w-3.5 h-3.5 text-[#13B5EA] inline-block" /></span>
@@ -579,18 +579,18 @@ export default function FinancialsPage() {
                       ) : row.dataSource === "owna_import" ? (
                         <span title="Imported from OWNA"><FileSpreadsheet className="w-3.5 h-3.5 text-amber-500 inline-block" /></span>
                       ) : (
-                        <span title="Manually entered"><Pencil className="w-3.5 h-3.5 text-gray-400 inline-block" /></span>
+                        <span title="Manually entered"><Pencil className="w-3.5 h-3.5 text-muted inline-block" /></span>
                       )}
                     </td>
                     <td className="hidden md:table-cell px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface text-foreground/80">
                         {row.service.state}
                       </span>
                     </td>
-                    <td className="hidden lg:table-cell px-4 py-3 text-right text-gray-600">{formatCurrency(row.bscRevenue)}</td>
-                    <td className="hidden lg:table-cell px-4 py-3 text-right text-gray-600">{formatCurrency(row.ascRevenue)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(row.totalRevenue)}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(row.totalCosts)}</td>
+                    <td className="hidden lg:table-cell px-4 py-3 text-right text-muted">{formatCurrency(row.bscRevenue)}</td>
+                    <td className="hidden lg:table-cell px-4 py-3 text-right text-muted">{formatCurrency(row.ascRevenue)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-foreground">{formatCurrency(row.totalRevenue)}</td>
+                    <td className="px-4 py-3 text-right text-muted">{formatCurrency(row.totalCosts)}</td>
                     <td className={cn(
                       "px-4 py-3 text-right font-semibold",
                       row.grossProfit > 0 ? "text-emerald-600" : "text-red-600"
@@ -603,12 +603,12 @@ export default function FinancialsPage() {
                     )}>
                       {formatPercent(row.margin)}
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-600">
+                    <td className="px-4 py-3 text-right text-muted">
                       {row.budgetRevenue ? formatCurrency(row.budgetRevenue) : "—"}
                     </td>
                     <td className={cn(
                       "px-4 py-3 text-right font-semibold",
-                      !row.budgetRevenue ? "text-gray-400" :
+                      !row.budgetRevenue ? "text-muted" :
                       row.totalRevenue >= row.budgetRevenue ? "text-emerald-600" : "text-red-600"
                     )}>
                       {row.budgetRevenue
@@ -621,19 +621,19 @@ export default function FinancialsPage() {
               {/* Totals row */}
               <tfoot>
                 <tr className="bg-brand/5 font-semibold">
-                  <td className="px-6 py-3 text-gray-900">Total</td>
+                  <td className="px-6 py-3 text-foreground">Total</td>
                   <td className="hidden md:table-cell px-2 py-3"></td>
                   <td className="hidden md:table-cell px-4 py-3"></td>
-                  <td className="hidden lg:table-cell px-4 py-3 text-right text-gray-900">
+                  <td className="hidden lg:table-cell px-4 py-3 text-right text-foreground">
                     {formatCurrency(sortedData.reduce((s, r) => s + r.bscRevenue, 0))}
                   </td>
-                  <td className="hidden lg:table-cell px-4 py-3 text-right text-gray-900">
+                  <td className="hidden lg:table-cell px-4 py-3 text-right text-foreground">
                     {formatCurrency(sortedData.reduce((s, r) => s + r.ascRevenue, 0))}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-900">
+                  <td className="px-4 py-3 text-right text-foreground">
                     {formatCurrency(sortedData.reduce((s, r) => s + r.totalRevenue, 0))}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-900">
+                  <td className="px-4 py-3 text-right text-foreground">
                     {formatCurrency(sortedData.reduce((s, r) => s + r.totalCosts, 0))}
                   </td>
                   <td className={cn(
@@ -642,14 +642,14 @@ export default function FinancialsPage() {
                   )}>
                     {formatCurrency(sortedData.reduce((s, r) => s + r.grossProfit, 0))}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-900">
+                  <td className="px-4 py-3 text-right text-foreground">
                     {formatPercent(
                       sortedData.length > 0
                         ? sortedData.reduce((s, r) => s + r.margin, 0) / sortedData.length
                         : 0
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right text-gray-900">
+                  <td className="px-4 py-3 text-right text-foreground">
                     {(() => {
                       const totalBudget = sortedData.reduce((s, r) => s + (r.budgetRevenue ?? 0), 0);
                       return totalBudget > 0 ? formatCurrency(totalBudget) : "—";
@@ -658,7 +658,7 @@ export default function FinancialsPage() {
                   <td className={cn("px-4 py-3 text-right font-semibold", (() => {
                     const totalBudget = sortedData.reduce((s, r) => s + (r.budgetRevenue ?? 0), 0);
                     const totalActual = sortedData.reduce((s, r) => s + r.totalRevenue, 0);
-                    return totalBudget > 0 ? (totalActual >= totalBudget ? "text-emerald-600" : "text-red-600") : "text-gray-400";
+                    return totalBudget > 0 ? (totalActual >= totalBudget ? "text-emerald-600" : "text-red-600") : "text-muted";
                   })())}>
                     {(() => {
                       const totalBudget = sortedData.reduce((s, r) => s + (r.budgetRevenue ?? 0), 0);

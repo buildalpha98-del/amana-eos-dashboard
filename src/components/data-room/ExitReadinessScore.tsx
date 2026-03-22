@@ -35,15 +35,15 @@ export function ExitReadinessScore({ overallScore, sections, loading }: Props) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+      <div className="bg-card rounded-xl border border-border p-6 animate-pulse">
         <div className="flex items-center gap-8">
-          <div className="w-[120px] h-[120px] rounded-full bg-gray-100" />
+          <div className="w-[120px] h-[120px] rounded-full bg-surface" />
           <div className="flex-1 space-y-3">
-            <div className="h-5 w-48 bg-gray-100 rounded" />
-            <div className="h-3 w-32 bg-gray-100 rounded" />
+            <div className="h-5 w-48 bg-surface rounded" />
+            <div className="h-3 w-32 bg-surface rounded" />
             <div className="flex gap-3 flex-wrap mt-4">
               {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="h-8 w-28 bg-gray-100 rounded-lg" />
+                <div key={i} className="h-8 w-28 bg-surface rounded-lg" />
               ))}
             </div>
           </div>
@@ -53,7 +53,7 @@ export function ExitReadinessScore({ overallScore, sections, loading }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border p-6">
       <div className="flex flex-col sm:flex-row items-center gap-6">
         {/* SVG Ring */}
         <div className="flex-shrink-0 relative">
@@ -86,7 +86,7 @@ export function ExitReadinessScore({ overallScore, sections, loading }: Props) {
             <span className="text-2xl font-bold tabular-nums" style={{ color }}>
               {overallScore}%
             </span>
-            <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">
+            <span className="text-[10px] text-muted font-medium uppercase tracking-wider">
               Ready
             </span>
           </div>
@@ -94,8 +94,8 @@ export function ExitReadinessScore({ overallScore, sections, loading }: Props) {
 
         {/* Score details */}
         <div className="flex-1 text-center sm:text-left">
-          <h3 className="text-lg font-bold text-gray-900">Exit Readiness Score</h3>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h3 className="text-lg font-bold text-foreground">Exit Readiness Score</h3>
+          <p className="text-sm text-muted mt-0.5">
             <span className="font-semibold" style={{ color }}>
               {scoreLabel(overallScore)}
             </span>
@@ -111,12 +111,12 @@ export function ExitReadinessScore({ overallScore, sections, loading }: Props) {
               return (
                 <div
                   key={section.key}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-100 bg-gray-50/60"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border/50 bg-surface/50/60"
                 >
                   {SectionIcon && (
                     <SectionIcon className="w-3.5 h-3.5" style={{ color: cfg.iconColor }} />
                   )}
-                  <span className="text-xs text-gray-600 font-medium">{section.label.split(" ")[0]}</span>
+                  <span className="text-xs text-muted font-medium">{section.label.split(" ")[0]}</span>
                   <span className="text-xs font-bold tabular-nums" style={{ color: sColor }}>
                     {section.completeness}%
                   </span>

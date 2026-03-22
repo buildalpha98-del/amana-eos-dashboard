@@ -140,11 +140,11 @@ export function ImportWizard({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
             <div className="flex items-center gap-4 mt-1">
               {(["upload", "preview", "result"] as const).map((s, i) => (
                 <div key={s} className="flex items-center gap-1.5">
@@ -155,19 +155,19 @@ export function ImportWizard({
                         ? "bg-brand text-white"
                         : i < ["upload", "preview", "result"].indexOf(step)
                         ? "bg-emerald-100 text-emerald-700"
-                        : "bg-gray-100 text-gray-400"
+                        : "bg-surface text-muted"
                     )}
                   >
                     {i + 1}
                   </div>
-                  <span className="text-xs text-gray-500 capitalize">{s}</span>
+                  <span className="text-xs text-muted capitalize">{s}</span>
                 </div>
               ))}
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+            className="p-2 text-muted hover:text-foreground rounded-lg hover:bg-surface"
           >
             <X className="w-5 h-5" />
           </button>
@@ -185,8 +185,8 @@ export function ImportWizard({
                 className={cn(
                   "border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors",
                   loading
-                    ? "border-gray-200 bg-gray-50"
-                    : "border-gray-300 hover:border-brand hover:bg-brand/5"
+                    ? "border-border bg-surface/50"
+                    : "border-border hover:border-brand hover:bg-brand/5"
                 )}
               >
                 <input
@@ -202,26 +202,26 @@ export function ImportWizard({
                 {loading ? (
                   <Loader2 className="w-10 h-10 text-brand animate-spin mx-auto mb-3" />
                 ) : (
-                  <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+                  <Upload className="w-10 h-10 text-muted mx-auto mb-3" />
                 )}
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-foreground">
                   {loading
                     ? "Processing file..."
                     : "Drop your file here or click to browse"}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted mt-1">
                   Supports CSV, XLSX, XLS
                 </p>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+              <div className="bg-surface/50 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-foreground/80 mb-2 flex items-center gap-1.5">
                   <FileSpreadsheet className="w-4 h-4" />
                   Expected Columns
                 </h3>
                 <div className="grid grid-cols-2 gap-1">
                   {columnConfig.map((col) => (
-                    <div key={col.key} className="text-xs text-gray-600 flex items-center gap-1">
+                    <div key={col.key} className="text-xs text-muted flex items-center gap-1">
                       <span className={col.required ? "font-semibold" : ""}>
                         {col.label}
                       </span>
@@ -297,15 +297,15 @@ export function ImportWizard({
 
               {/* Preview table */}
               {dryRunResult.preview.length > 0 && (
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="border border-border rounded-lg overflow-hidden">
                   <div className="overflow-x-auto max-h-64">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200">
+                        <tr className="bg-surface/50 border-b border-border">
                           {dryRunResult.columns.map((col) => (
                             <th
                               key={col}
-                              className="text-left px-3 py-2 font-semibold text-gray-600 whitespace-nowrap"
+                              className="text-left px-3 py-2 font-semibold text-muted whitespace-nowrap"
                             >
                               {col}
                             </th>
@@ -316,12 +316,12 @@ export function ImportWizard({
                         {dryRunResult.preview.slice(0, 10).map((row, i) => (
                           <tr
                             key={i}
-                            className="border-b border-gray-50 hover:bg-gray-50"
+                            className="border-b border-gray-50 hover:bg-surface"
                           >
                             {dryRunResult.columns.map((col) => (
                               <td
                                 key={col}
-                                className="px-3 py-1.5 text-gray-700 whitespace-nowrap"
+                                className="px-3 py-1.5 text-foreground/80 whitespace-nowrap"
                               >
                                 {row[col] != null ? String(row[col]) : "—"}
                               </td>
@@ -332,7 +332,7 @@ export function ImportWizard({
                     </table>
                   </div>
                   {dryRunResult.preview.length > 10 && (
-                    <div className="px-3 py-2 bg-gray-50 text-xs text-gray-500 border-t border-gray-200">
+                    <div className="px-3 py-2 bg-surface/50 text-xs text-muted border-t border-border">
                       Showing 10 of {dryRunResult.preview.length} rows
                     </div>
                   )}
@@ -353,7 +353,7 @@ export function ImportWizard({
             <div className="space-y-4 py-8">
               <div className="text-center">
                 <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   Import Complete
                 </h3>
               </div>
@@ -371,11 +371,11 @@ export function ImportWizard({
                   </p>
                   <p className="text-xs text-blue-600">Updated</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-gray-700">
+                <div className="bg-surface/50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-foreground/80">
                     {executeResult.skipped}
                   </p>
-                  <p className="text-xs text-gray-600">Skipped</p>
+                  <p className="text-xs text-muted">Skipped</p>
                 </div>
               </div>
 
@@ -396,7 +396,7 @@ export function ImportWizard({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-surface/50 rounded-b-xl">
           <div>
             {step === "preview" && (
               <button
@@ -406,7 +406,7 @@ export function ImportWizard({
                   setDryRunResult(null);
                   setError(null);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted hover:text-foreground"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back

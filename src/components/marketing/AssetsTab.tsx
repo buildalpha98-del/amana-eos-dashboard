@@ -96,7 +96,7 @@ export function AssetsTab() {
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+            className="rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
           >
             {ASSET_TYPES.map((t) => (
               <option key={t} value={t === "all" ? "" : t}>
@@ -106,13 +106,13 @@ export function AssetsTab() {
           </select>
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
             <input
               type="text"
               placeholder="Search assets..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 w-56"
+              className="pl-9 pr-3 py-2 rounded-lg border border-border text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 w-56"
             />
           </div>
         </div>
@@ -135,7 +135,7 @@ export function AssetsTab() {
 
       {/* ── Empty State ──────────────────────────────── */}
       {!isLoading && (!assets || assets.length === 0) && (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+        <div className="flex flex-col items-center justify-center py-20 text-muted">
           <FolderOpen className="h-12 w-12 mb-3" />
           <p className="text-lg font-medium">No assets found</p>
           <p className="text-sm mt-1">
@@ -150,20 +150,20 @@ export function AssetsTab() {
           {assets.map((asset) => {
             const badgeColor =
               typeBadgeColors[asset.type.toLowerCase()] ??
-              "bg-gray-100 text-gray-700";
+              "bg-surface text-foreground/80";
             return (
               <div
                 key={asset.id}
-                className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
+                className="bg-card rounded-xl border border-border p-5 flex flex-col gap-3 hover:shadow-md transition-shadow"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-50 text-brand">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-surface/50 text-brand">
                       {getIcon(asset.type)}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 text-sm leading-tight">
+                      <h3 className="font-semibold text-foreground text-sm leading-tight">
                         {asset.name}
                       </h3>
                       <span
@@ -179,7 +179,7 @@ export function AssetsTab() {
                       if (confirm("Delete this asset?"))
                         deleteAsset.mutate(asset.id);
                     }}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    className="p-1.5 rounded-lg text-muted hover:text-danger hover:bg-red-50 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -218,22 +218,22 @@ export function AssetsTab() {
       {/* ── Create Modal ─────────────────────────────── */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
+          <div className="bg-card rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-foreground">
                 New Asset
               </h2>
               <button
                 onClick={() => setShowCreate(false)}
-                className="p-1 rounded-lg hover:bg-gray-100"
+                className="p-1 rounded-lg hover:bg-surface"
               >
-                <X className="h-5 w-5 text-gray-500" />
+                <X className="h-5 w-5 text-muted" />
               </button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -242,13 +242,13 @@ export function AssetsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, name: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="Asset name"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Type
                 </label>
                 <select
@@ -256,7 +256,7 @@ export function AssetsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, type: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                 >
                   {ASSET_TYPES.filter((t) => t !== "all").map((t) => (
                     <option key={t} value={t}>
@@ -267,7 +267,7 @@ export function AssetsTab() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   URL <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -276,13 +276,13 @@ export function AssetsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, url: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="https://..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Tags
                 </label>
                 <input
@@ -291,10 +291,10 @@ export function AssetsTab() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, tags: e.target.value }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
                   placeholder="tag1, tag2, tag3"
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-muted mt-1">
                   Comma-separated list
                 </p>
               </div>
@@ -303,7 +303,7 @@ export function AssetsTab() {
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowCreate(false)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-muted hover:bg-surface transition-colors"
               >
                 Cancel
               </button>

@@ -54,7 +54,7 @@ const statusConfig: Record<
     color: "text-emerald-700",
     bg: "bg-emerald-100",
   },
-  declined: { label: "Declined", color: "text-gray-500", bg: "bg-gray-100" },
+  declined: { label: "Declined", color: "text-muted", bg: "bg-surface" },
 };
 
 const statusTabs = [
@@ -145,15 +145,15 @@ function OpportunityRow({
   const annualValue = sessionsPerWeek * rates.regular * WEEKS_PER_YEAR;
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50/50 transition-colors">
+    <div className="border border-border rounded-lg p-4 hover:bg-surface/50 transition-colors">
       <div className="flex items-start gap-4">
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-semibold text-gray-900">
+            <p className="text-sm font-semibold text-foreground">
               {opp.service.name}
             </p>
-            <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] font-medium text-muted bg-surface px-1.5 py-0.5 rounded">
               {opp.service.code}
             </span>
             <span
@@ -166,28 +166,28 @@ function OpportunityRow({
               {config.label}
             </span>
           </div>
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+          <div className="flex items-center gap-3 mt-1.5 text-xs text-muted">
             <span>
               Family:{" "}
-              <span className="font-medium text-gray-700">{opp.familyRef}</span>
+              <span className="font-medium text-foreground/80">{opp.familyRef}</span>
             </span>
             <span>|</span>
             <span>
               Session:{" "}
-              <span className="font-medium text-gray-700 uppercase">
+              <span className="font-medium text-foreground/80 uppercase">
                 {opp.sessionType}
               </span>
             </span>
             <span>|</span>
             <span>
               Casual bookings:{" "}
-              <span className="font-semibold text-gray-700">
+              <span className="font-semibold text-foreground/80">
                 {opp.casualCount}
               </span>{" "}
               in 14 days
             </span>
           </div>
-          <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+          <div className="flex items-center gap-2 mt-1 text-xs text-muted">
             <span>
               Period: {new Date(opp.periodStart).toLocaleDateString()} &ndash;{" "}
               {new Date(opp.periodEnd).toLocaleDateString()}
@@ -236,7 +236,7 @@ function OpportunityRow({
               <button
                 onClick={() => onUpdateStatus(opp.id, "declined")}
                 disabled={isPending}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-500 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-muted bg-surface/50 border border-border rounded-lg hover:bg-surface transition-colors disabled:opacity-50"
               >
                 <XCircle className="w-3 h-3" />
                 Decline
@@ -245,7 +245,7 @@ function OpportunityRow({
           )}
           <button
             onClick={() => setShowNotes(!showNotes)}
-            className="px-2 py-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            className="px-2 py-1.5 text-xs text-muted hover:text-foreground transition-colors"
           >
             Notes
           </button>
@@ -254,14 +254,14 @@ function OpportunityRow({
 
       {/* Notes panel */}
       {showNotes && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
+        <div className="mt-3 pt-3 border-t border-border/50">
           <div className="flex gap-2">
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               placeholder="Add notes about this conversion opportunity..."
-              className="flex-1 px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+              className="flex-1 px-3 py-2 text-xs border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
             />
             <button
               onClick={() => {
@@ -321,10 +321,10 @@ export default function ConversionsPage() {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-2xl font-bold text-foreground">
             Casual &rarr; Regular Conversions
           </h2>
-          <p className="text-gray-500 mt-1 line-clamp-2">
+          <p className="text-muted mt-1 line-clamp-2">
             Identify and convert repeat casual families to regular bookings
           </p>
         </div>
@@ -341,10 +341,10 @@ export default function ConversionsPage() {
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">
+        <h2 className="text-2xl font-bold text-foreground">
           Casual → Regular Conversions
         </h2>
-        <p className="text-gray-500 mt-1 line-clamp-2">
+        <p className="text-muted mt-1 line-clamp-2">
           Identify and convert repeat casual families to regular bookings
         </p>
       </div>
@@ -371,7 +371,7 @@ export default function ConversionsPage() {
           <StatCard
             title="Casual Bookings"
             value={stats.totalCasualBookings}
-            valueColor="text-gray-600"
+            valueColor="text-muted"
           />
         </div>
       )}
@@ -383,7 +383,7 @@ export default function ConversionsPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-surface rounded-lg p-1">
           {statusTabs.map((tab) => (
             <button
               key={tab.key}
@@ -391,8 +391,8 @@ export default function ConversionsPage() {
               className={cn(
                 "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
                 statusFilter === tab.key
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted hover:text-foreground"
               )}
             >
               {tab.label}
@@ -401,11 +401,11 @@ export default function ConversionsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-gray-400" />
+          <Filter className="w-3.5 h-3.5 text-muted" />
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand"
+            className="text-xs border border-border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="">All Centres</option>
             {services?.map((s) => (
@@ -418,7 +418,7 @@ export default function ConversionsPage() {
           <select
             value={sessionFilter}
             onChange={(e) => setSessionFilter(e.target.value)}
-            className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand"
+            className="text-xs border border-border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="">All Sessions</option>
             <option value="bsc">BSC</option>
@@ -444,7 +444,7 @@ export default function ConversionsPage() {
                     <span className="text-[10px] font-medium text-foreground/60">{step.label}</span>
                     <span className="text-xs font-bold text-foreground">{step.count}</span>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-surface rounded-full overflow-hidden">
                     <div
                       className={cn("h-full rounded-full transition-all", step.color)}
                       style={{ width: `${stats.total > 0 ? (step.count / stats.total) * 100 : 0}%` }}
@@ -475,10 +475,10 @@ export default function ConversionsPage() {
           {byService.map(([serviceName, opps]) => (
             <div key={serviceName}>
               <div className="flex items-center gap-2 mb-3">
-                <h3 className="text-sm font-semibold text-gray-700">
+                <h3 className="text-sm font-semibold text-foreground/80">
                   {serviceName}
                 </h3>
-                <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-medium text-muted bg-surface px-1.5 py-0.5 rounded">
                   {opps.length} opportunit{opps.length === 1 ? "y" : "ies"}
                 </span>
               </div>

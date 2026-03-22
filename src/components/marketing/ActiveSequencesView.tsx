@@ -73,7 +73,7 @@ export function ActiveSequencesView() {
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 typeFilter === f.value
                   ? "bg-brand text-white"
-                  : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                  : "border border-border bg-card text-muted hover:bg-surface"
               }`}
             >
               {f.label}
@@ -92,7 +92,7 @@ export function ActiveSequencesView() {
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 statusFilter === f.value
                   ? "bg-brand text-white"
-                  : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                  : "border border-border bg-card text-muted hover:bg-surface"
               }`}
             >
               {f.label}
@@ -220,7 +220,7 @@ export function ActiveSequencesView() {
                         className={cn(
                           "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
                           STATUS_BADGE[enrolment.status] ??
-                            "bg-gray-100 text-gray-700",
+                            "bg-surface text-foreground/80",
                         )}
                       >
                         {enrolment.status}
@@ -261,7 +261,7 @@ export function ActiveSequencesView() {
                               cancelMutation.mutate(enrolment.id)
                             }
                             disabled={cancelMutation.isPending}
-                            className="rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-red-50 hover:text-red-500"
+                            className="rounded-lg p-1.5 text-foreground/50 transition-colors hover:bg-red-50 hover:text-danger"
                             title="Cancel"
                           >
                             <XCircle className="h-4 w-4" />

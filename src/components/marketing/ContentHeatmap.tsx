@@ -40,7 +40,7 @@ export function ContentHeatmap({ data, onCentreClick }: ContentHeatmapProps) {
 
   if (sorted.length === 0 || weekColumns.length === 0) {
     return (
-      <p className="text-sm text-gray-500 text-center py-4">
+      <p className="text-sm text-muted text-center py-4">
         No heatmap data available
       </p>
     );
@@ -49,15 +49,15 @@ export function ContentHeatmap({ data, onCentreClick }: ContentHeatmapProps) {
   return (
     <div className="space-y-3">
       {/* Scrollable table container */}
-      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+      <div className="overflow-x-auto border border-border rounded-lg">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="bg-gray-50">
+            <tr className="bg-surface/50">
               {/* Sticky first column header */}
               <th
                 className={cn(
-                  "sticky left-0 z-10 bg-gray-50 px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500",
-                  "border-b border-r border-gray-200 min-w-[160px]"
+                  "sticky left-0 z-10 bg-surface/50 px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted",
+                  "border-b border-r border-border min-w-[160px]"
                 )}
               >
                 Centre
@@ -65,34 +65,34 @@ export function ContentHeatmap({ data, onCentreClick }: ContentHeatmapProps) {
               {weekColumns.map((week) => (
                 <th
                   key={week.weekStart}
-                  className="w-16 border-b border-gray-200 px-1 py-2 text-center text-xs font-medium text-gray-500"
+                  className="w-16 border-b border-border px-1 py-2 text-center text-xs font-medium text-muted"
                 >
                   {formatWeekLabel(week.weekStart)}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border/50">
             {sorted.map((centre) => (
               <tr
                 key={centre.serviceId}
                 onClick={() => onCentreClick?.(centre.serviceId)}
                 className={cn(
                   "transition-colors",
-                  onCentreClick && "cursor-pointer hover:bg-gray-50"
+                  onCentreClick && "cursor-pointer hover:bg-surface"
                 )}
               >
                 {/* Sticky centre name column */}
                 <td
                   className={cn(
-                    "sticky left-0 z-10 bg-white px-4 py-2",
-                    "border-r border-gray-200"
+                    "sticky left-0 z-10 bg-card px-4 py-2",
+                    "border-r border-border"
                   )}
                 >
-                  <div className="font-medium text-gray-900 text-sm leading-tight">
+                  <div className="font-medium text-foreground text-sm leading-tight">
                     {centre.serviceName}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-muted">
                     {centre.serviceCode}
                   </div>
                 </td>
@@ -118,7 +118,7 @@ export function ContentHeatmap({ data, onCentreClick }: ContentHeatmapProps) {
       </div>
 
       {/* Colour legend */}
-      <div className="flex items-center gap-5 text-xs text-gray-500">
+      <div className="flex items-center gap-5 text-xs text-muted">
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded-full bg-red-200" />
           0 posts

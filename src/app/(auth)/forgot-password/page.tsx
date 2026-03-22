@@ -81,7 +81,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 sm:p-10 border border-white/50">
+        <div className="bg-card/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 sm:p-10 border border-white/50">
           {sent ? (
             <div className="text-center">
               <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
@@ -89,11 +89,11 @@ export default function ForgotPasswordPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-xl font-heading font-semibold text-gray-900 mb-2">
+              <h2 className="text-xl font-heading font-semibold text-foreground mb-2">
                 Check your email
               </h2>
-              <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-                If an account exists for <strong className="text-gray-700">{email}</strong>, we&apos;ve sent a password reset link.
+              <p className="text-muted text-sm mb-6 leading-relaxed">
+                If an account exists for <strong className="text-foreground/80">{email}</strong>, we&apos;ve sent a password reset link.
                 Check your inbox and spam folder.
               </p>
               <Link
@@ -105,10 +105,10 @@ export default function ForgotPasswordPage() {
             </div>
           ) : (
             <>
-              <h2 className="text-xl font-heading font-semibold text-gray-900 mb-2">
+              <h2 className="text-xl font-heading font-semibold text-foreground mb-2">
                 Forgot your password?
               </h2>
-              <p className="text-gray-500 text-sm mb-6 leading-relaxed">
+              <p className="text-muted text-sm mb-6 leading-relaxed">
                 Enter your email address and we&apos;ll send you a link to reset your password.
               </p>
 
@@ -122,7 +122,7 @@ export default function ForgotPasswordPage() {
                 <div>
                   <label
                     htmlFor="email"
-                    className="block font-heading text-sm font-semibold text-gray-700 tracking-wide mb-1.5"
+                    className="block font-heading text-sm font-semibold text-foreground/80 tracking-wide mb-1.5"
                   >
                     Email address
                   </label>
@@ -132,7 +132,7 @@ export default function ForgotPasswordPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-gray-200/80 rounded-xl bg-gray-50/50 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
+                    className="w-full px-4 py-3 border-2 border-border/80 rounded-xl bg-surface/30 text-base text-foreground placeholder-gray-400 focus:outline-none focus:border-brand focus:ring-0 transition-colors duration-200"
                     placeholder="you@amanaoshc.com.au"
                     autoComplete="email"
                     autoFocus
@@ -173,7 +173,7 @@ export default function ForgotPasswordPage() {
                 </button>
               </form>
 
-              <p className="text-center text-sm text-gray-400 mt-5">
+              <p className="text-center text-sm text-muted mt-5">
                 <Link href="/login" className="text-brand font-semibold hover:text-brand-light transition-colors">
                   Back to Sign In
                 </Link>

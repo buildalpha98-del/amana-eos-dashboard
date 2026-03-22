@@ -196,7 +196,7 @@ export default function ProfilePage() {
           </div>
           <Skeleton className="h-9 w-28 rounded-lg" />
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+        <div className="bg-card rounded-xl border border-border p-6 space-y-4">
           <div className="flex items-center gap-3">
             <Skeleton className="w-14 h-14 rounded-full" />
             <div className="space-y-1.5">
@@ -214,7 +214,7 @@ export default function ProfilePage() {
           </div>
         </div>
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <div key={i} className="bg-card rounded-xl border border-border p-6 space-y-4">
             <Skeleton className="h-5 w-32" />
             <div className="space-y-3">
               <Skeleton className="h-9 w-full rounded-lg" />
@@ -233,13 +233,13 @@ export default function ProfilePage() {
           <Link
             href="/my-portal"
             aria-label="Back to My Portal"
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-surface transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-500" />
+            <ArrowLeft className="w-5 h-5 text-muted" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h1 className="text-2xl font-bold text-foreground">Edit Profile</h1>
+            <p className="text-sm text-muted mt-0.5">
               Update your personal details and superannuation information
             </p>
           </div>
@@ -256,8 +256,8 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
-        <User className="w-12 h-12 text-gray-300" />
-        <p className="text-gray-500">Unable to load your profile.</p>
+        <User className="w-12 h-12 text-muted/50" />
+        <p className="text-muted">Unable to load your profile.</p>
         <Link
           href="/my-portal"
           className="text-sm text-brand hover:underline"
@@ -275,16 +275,16 @@ export default function ProfilePage() {
         <div className="flex items-center gap-3">
           <Link
             href="/my-portal"
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-surface transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-500" />
+            <ArrowLeft className="w-5 h-5 text-muted" />
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
+              <h1 className="text-2xl font-bold text-foreground">Edit Profile</h1>
               {hasChanges && <UnsavedBadge />}
             </div>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-muted mt-0.5">
               Update your personal details and superannuation information
             </p>
           </div>
@@ -304,7 +304,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Read-only info */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center gap-3 mb-4">
           {/* Avatar with upload */}
           <div className="relative group">
@@ -312,7 +312,7 @@ export default function ProfilePage() {
               <img
                 src={profile.avatar}
                 alt={`${profile.name}'s avatar`}
-                className="w-14 h-14 rounded-full object-cover border-2 border-gray-200"
+                className="w-14 h-14 rounded-full object-cover border-2 border-border"
               />
             ) : (
               <div className="w-14 h-14 rounded-full bg-brand flex items-center justify-center text-white font-bold text-lg">
@@ -355,41 +355,41 @@ export default function ProfilePage() {
             )}
           </div>
           <div>
-            <h2 className="font-semibold text-gray-900">{profile.name}</h2>
-            <p className="text-sm text-gray-500">{profile.email}</p>
+            <h2 className="font-semibold text-foreground">{profile.name}</h2>
+            <p className="text-sm text-muted">{profile.email}</p>
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
           <div>
-            <span className="text-gray-400">Role</span>
-            <p className="font-medium text-gray-700 capitalize">{profile.role}</p>
+            <span className="text-muted">Role</span>
+            <p className="font-medium text-foreground/80 capitalize">{profile.role}</p>
           </div>
           {profile.service && (
             <div>
-              <span className="text-gray-400">Service</span>
-              <p className="font-medium text-gray-700">{profile.service.name}</p>
+              <span className="text-muted">Service</span>
+              <p className="font-medium text-foreground/80">{profile.service.name}</p>
             </div>
           )}
           {profile.employmentType && (
             <div>
-              <span className="text-gray-400">Employment</span>
-              <p className="font-medium text-gray-700 capitalize">
+              <span className="text-muted">Employment</span>
+              <p className="font-medium text-foreground/80 capitalize">
                 {profile.employmentType.replace("_", " ")}
               </p>
             </div>
           )}
         </div>
         {!isAdmin && (
-          <p className="text-xs text-gray-400 mt-4">
+          <p className="text-xs text-muted mt-4">
             Name, email, role, and employment details can only be changed by an administrator.
           </p>
         )}
       </div>
 
       {/* Contact Details */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
-          <Phone className="w-4 h-4 text-gray-400" />
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h3 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+          <Phone className="w-4 h-4 text-muted" />
           Contact Details
         </h3>
         <div className="space-y-4">
@@ -399,16 +399,16 @@ export default function ProfilePage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. 0412 345 678"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
         </div>
       </div>
 
       {/* Address */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
-          <MapPin className="w-4 h-4 text-gray-400" />
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h3 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+          <MapPin className="w-4 h-4 text-muted" />
           Address
         </h3>
         <div className="space-y-4">
@@ -418,7 +418,7 @@ export default function ProfilePage() {
               value={addressStreet}
               onChange={(e) => setAddressStreet(e.target.value)}
               placeholder="123 Main Street"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -428,14 +428,14 @@ export default function ProfilePage() {
                 value={addressSuburb}
                 onChange={(e) => setAddressSuburb(e.target.value)}
                 placeholder="Suburb"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </FieldRow>
             <FieldRow label="State">
               <select
                 value={addressState}
                 onChange={(e) => setAddressState(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand bg-white"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand bg-card"
               >
                 <option value="">Select</option>
                 <option value="NSW">NSW</option>
@@ -455,7 +455,7 @@ export default function ProfilePage() {
                 onChange={(e) => setAddressPostcode(e.target.value)}
                 placeholder="2000"
                 maxLength={4}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </FieldRow>
           </div>
@@ -463,9 +463,9 @@ export default function ProfilePage() {
       </div>
 
       {/* Superannuation */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
-          <Shield className="w-4 h-4 text-gray-400" />
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h3 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+          <Shield className="w-4 h-4 text-muted" />
           Superannuation
         </h3>
         <div className="space-y-4">
@@ -475,7 +475,7 @@ export default function ProfilePage() {
               value={superFundName}
               onChange={(e) => setSuperFundName(e.target.value)}
               placeholder="e.g. AustralianSuper"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -485,7 +485,7 @@ export default function ProfilePage() {
                 value={superMemberNumber}
                 onChange={(e) => setSuperMemberNumber(e.target.value)}
                 placeholder="Member number"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </FieldRow>
             <FieldRow label="USI">
@@ -494,7 +494,7 @@ export default function ProfilePage() {
                 value={superUSI}
                 onChange={(e) => setSuperUSI(e.target.value)}
                 placeholder="Unique Superannuation Identifier"
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </FieldRow>
           </div>
@@ -502,9 +502,9 @@ export default function ProfilePage() {
       </div>
 
       {/* Bank Details */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2 mb-4">
-          <Landmark className="w-4 h-4 text-gray-400" />
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h3 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+          <Landmark className="w-4 h-4 text-muted" />
           Bank Details
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
@@ -514,7 +514,7 @@ export default function ProfilePage() {
               value={bankAccountName}
               onChange={(e) => setBankAccountName(e.target.value)}
               placeholder="e.g. John Smith"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
           <FieldRow label="BSB">
@@ -524,7 +524,7 @@ export default function ProfilePage() {
               onChange={(e) => setBankBSB(e.target.value)}
               placeholder="e.g. 062-000"
               maxLength={7}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
           <FieldRow label="Account Number">
@@ -533,7 +533,7 @@ export default function ProfilePage() {
               value={bankAccountNumber}
               onChange={(e) => setBankAccountNumber(e.target.value)}
               placeholder="e.g. 12345678"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </FieldRow>
         </div>
@@ -543,10 +543,10 @@ export default function ProfilePage() {
             onChange={(e) => setBankDetailsNote(e.target.value)}
             placeholder="Any additional bank details or notes for payroll..."
             rows={2}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand resize-none"
+            className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand resize-none"
           />
         </FieldRow>
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-muted mt-2">
           Bank details are visible to administrators only for payroll processing.
         </p>
       </div>
@@ -558,7 +558,7 @@ export default function ProfilePage() {
           <button
             onClick={handleSave}
             disabled={updateMutation.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white text-brand hover:bg-gray-100 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-card text-brand hover:bg-surface disabled:opacity-50 transition-colors"
           >
             {updateMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -586,7 +586,7 @@ function FieldRow({
 }) {
   return (
     <label className="block">
-      <span className="block text-sm font-medium text-gray-600 mb-1">
+      <span className="block text-sm font-medium text-muted mb-1">
         {label}
       </span>
       {children}

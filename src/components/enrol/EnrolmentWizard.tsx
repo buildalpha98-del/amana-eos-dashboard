@@ -205,22 +205,22 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
 
     return (
       <div className="space-y-6">
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center">
+        <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
             <Check className="h-10 w-10 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Welcome to the Amana Family!
           </h2>
-          <p className="text-gray-600">
+          <p className="text-muted">
             Thank you{submitResult?.parentName ? `, ${submitResult.parentName.split(" ")[0]}` : ""}! Your enrolment
             {submitResult?.childNames ? ` for ${submitResult.childNames}` : ""} has been submitted.
           </p>
         </div>
 
         {/* What Happens Next */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 sm:p-8">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">What Happens Next</h3>
+        <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 sm:p-8">
+          <h3 className="text-lg font-bold text-foreground mb-6">What Happens Next</h3>
           <div className="space-y-0">
             {TIMELINE.map((item, i) => (
               <div key={i} className="flex gap-4">
@@ -231,7 +231,7 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
                         ? "bg-green-100 text-green-600"
                         : item.status === "current"
                         ? "bg-brand/10 text-brand"
-                        : "bg-gray-100 text-gray-400"
+                        : "bg-surface text-muted"
                     }`}
                   >
                     <item.icon className="h-5 w-5" />
@@ -239,7 +239,7 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
                   {i < TIMELINE.length - 1 && (
                     <div
                       className={`w-0.5 h-full min-h-[24px] ${
-                        item.status === "done" ? "bg-green-200" : "bg-gray-200"
+                        item.status === "done" ? "bg-green-200" : "bg-border"
                       }`}
                     />
                   )}
@@ -251,12 +251,12 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
                         ? "text-green-700"
                         : item.status === "current"
                         ? "text-brand"
-                        : "text-gray-500"
+                        : "text-muted"
                     }`}
                   >
                     {item.title}
                   </p>
-                  <p className="text-sm text-gray-500 mt-0.5">{item.description}</p>
+                  <p className="text-sm text-muted mt-0.5">{item.description}</p>
                 </div>
               </div>
             ))}
@@ -265,8 +265,8 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
 
         {/* Status tracking link */}
         {submitResult?.token && (
-          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 text-center">
-            <p className="text-sm text-gray-600 mb-3">
+          <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 text-center">
+            <p className="text-sm text-muted mb-3">
               Bookmark this link to check your enrolment status anytime:
             </p>
             <a
@@ -342,7 +342,7 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
                     ? "bg-green-500 text-white"
                     : i === step
                     ? "bg-[#FECE00] text-[#002E3D]"
-                    : "bg-white/20 text-white/60"
+                    : "bg-card/20 text-white/60"
                 }`}
               >
                 {i < step ? <Check className="h-4 w-4" /> : i + 1}
@@ -353,7 +353,7 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
             </button>
           ))}
         </div>
-        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-card/10 rounded-full overflow-hidden">
           <div
             className="h-full bg-[#FECE00] rounded-full transition-all duration-500"
             style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
@@ -389,7 +389,7 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
       )}
 
       {/* Card */}
-      <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 sm:p-8">
+      <div className="bg-card/95 backdrop-blur-xl rounded-2xl shadow-xl p-6 sm:p-8">
         {renderStep()}
 
         {submitError && (
@@ -409,7 +409,7 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             disabled={step === 0}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-card/10 text-white font-medium hover:bg-card/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="h-4 w-4" />
             Back

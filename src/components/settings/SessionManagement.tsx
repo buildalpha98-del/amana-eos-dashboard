@@ -134,17 +134,17 @@ export function SessionManagement() {
   return (
     <div className="space-y-6">
       {/* Active Sessions */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-card rounded-xl border border-border">
+        <div className="px-6 py-4 border-b border-border/50">
+          <h3 className="text-lg font-semibold text-foreground">
             Recent Login Sessions
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted mt-1">
             Your last 10 login events
           </p>
         </div>
 
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-border/50">
           {isLoading ? (
             <div className="px-6 py-4 space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -158,7 +158,7 @@ export function SessionManagement() {
               ))}
             </div>
           ) : sessions.length === 0 ? (
-            <div className="px-6 py-8 text-center text-sm text-gray-500">
+            <div className="px-6 py-8 text-center text-sm text-muted">
               No login sessions found.
             </div>
           ) : (
@@ -169,7 +169,7 @@ export function SessionManagement() {
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-foreground">
                       {parseUserAgent(entry.userAgent)}
                     </p>
                     {index === 0 && (
@@ -178,7 +178,7 @@ export function SessionManagement() {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 mt-0.5">
+                  <p className="text-sm text-muted mt-0.5">
                     {entry.ip ?? "Unknown IP"} &middot;{" "}
                     {formatDate(entry.createdAt)}
                   </p>
@@ -190,9 +190,9 @@ export function SessionManagement() {
       </div>
 
       {/* Security Actions */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-card rounded-xl border border-border">
+        <div className="px-6 py-4 border-b border-border/50">
+          <h3 className="text-lg font-semibold text-foreground">
             Security Actions
           </h3>
         </div>
@@ -211,7 +211,7 @@ export function SessionManagement() {
               <div>
                 <label
                   htmlFor="currentPassword"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="block text-sm font-medium text-foreground/80 mb-1"
                 >
                   Current Password
                 </label>
@@ -221,14 +221,14 @@ export function SessionManagement() {
                   required
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none"
                 />
               </div>
 
               <div>
                 <label
                   htmlFor="newPassword"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="block text-sm font-medium text-foreground/80 mb-1"
                 >
                   New Password
                 </label>
@@ -238,22 +238,22 @@ export function SessionManagement() {
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none"
                 />
                 {newPassword.length > 0 && (
                   <div className="mt-2">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="flex-1 h-1.5 bg-border rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full transition-all ${strength.color}`}
                           style={{ width: `${(strength.score / 5) * 100}%` }}
                         />
                       </div>
-                      <span className="text-xs font-medium text-gray-600">
+                      <span className="text-xs font-medium text-muted">
                         {strength.label}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted mt-1">
                       Min 12 characters, with uppercase, number, and special
                       character
                     </p>
@@ -264,7 +264,7 @@ export function SessionManagement() {
               <div>
                 <label
                   htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="block text-sm font-medium text-foreground/80 mb-1"
                 >
                   Confirm New Password
                 </label>
@@ -274,7 +274,7 @@ export function SessionManagement() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand outline-none"
                 />
                 {confirmPassword.length > 0 &&
                   newPassword !== confirmPassword && (
@@ -302,7 +302,7 @@ export function SessionManagement() {
                     setNewPassword("");
                     setConfirmPassword("");
                   }}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-muted hover:bg-surface transition-colors"
                 >
                   Cancel
                 </button>

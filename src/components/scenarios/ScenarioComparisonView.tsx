@@ -124,8 +124,8 @@ export function ScenarioComparisonView({ savedScenarios }: Props) {
   return (
     <div className="space-y-6">
       {/* Scenario Selector */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <h3 className="text-sm font-semibold text-gray-800 mb-3">Select Scenarios to Compare (max 3)</h3>
+      <div className="bg-card rounded-xl border border-border p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Select Scenarios to Compare (max 3)</h3>
         <div className="flex flex-wrap gap-2">
           {options.map((opt) => {
             const active = selectedIds.includes(opt.id);
@@ -136,7 +136,7 @@ export function ScenarioComparisonView({ savedScenarios }: Props) {
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   active
                     ? "bg-brand text-white border-brand"
-                    : "bg-white text-gray-600 border-gray-300 hover:border-brand hover:text-brand"
+                    : "bg-card text-muted border-border hover:border-brand hover:text-brand"
                 } ${!active && selectedIds.length >= 3 ? "opacity-40 cursor-not-allowed" : ""}`}
                 disabled={!active && selectedIds.length >= 3}
               >
@@ -148,18 +148,18 @@ export function ScenarioComparisonView({ savedScenarios }: Props) {
       </div>
 
       {compareItems.length === 0 && (
-        <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
-          <p className="text-gray-400 text-sm">Select 2-3 scenarios above to compare them side by side</p>
+        <div className="bg-card rounded-xl border border-dashed border-border p-12 text-center">
+          <p className="text-muted text-sm">Select 2-3 scenarios above to compare them side by side</p>
         </div>
       )}
 
       {/* Comparison Table */}
       {compareItems.length >= 2 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+        <div className="bg-card rounded-xl border border-border overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Metric</th>
+              <tr className="border-b border-border">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Metric</th>
                 {compareItems.map((c, i) => (
                   <th key={c.id} className="text-right px-4 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: CHART_PALETTE[i] }}>
                     {c.name}
@@ -169,8 +169,8 @@ export function ScenarioComparisonView({ savedScenarios }: Props) {
             </thead>
             <tbody>
               {METRICS.map((m) => (
-                <tr key={m.key} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-2.5 text-xs font-medium text-gray-600">{m.label}</td>
+                <tr key={m.key} className="border-b border-border/50 last:border-0">
+                  <td className="px-4 py-2.5 text-xs font-medium text-muted">{m.label}</td>
                   {compareItems.map((c, i) => {
                     const value = c.outputs[m.key] as number;
                     const baseValue = i === 0 ? value : (compareItems[0].outputs[m.key] as number);

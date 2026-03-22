@@ -30,7 +30,7 @@ export function SequencesTab() {
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               subTab === tab.key
                 ? "bg-brand text-white"
-                : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                : "border border-border bg-card text-muted hover:bg-surface"
             }`}
           >
             {tab.label}

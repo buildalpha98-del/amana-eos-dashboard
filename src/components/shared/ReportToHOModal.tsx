@@ -137,20 +137,20 @@ export function ReportToHOModal({ open, onClose }: ReportToHOModalProps) {
         if (e.target === e.currentTarget) handleClose();
       }}
     >
-      <div className="mx-4 w-full max-w-lg rounded-xl bg-white shadow-2xl">
+      <div className="mx-4 w-full max-w-lg rounded-xl bg-card shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-foreground">
               Report to Head Office
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted">
               Send a message directly to the Head Office team
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-foreground"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -161,7 +161,7 @@ export function ReportToHOModal({ open, onClose }: ReportToHOModalProps) {
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Category selection */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
+            <label className="mb-2 block text-sm font-medium text-foreground/80">
               What is this about?
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -178,13 +178,13 @@ export function ReportToHOModal({ open, onClose }: ReportToHOModalProps) {
                       "flex items-center gap-2.5 rounded-lg border-2 px-3 py-3 text-left text-sm transition-all",
                       isSelected
                         ? "border-brand bg-brand/5 text-brand"
-                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50",
+                        : "border-border bg-card text-foreground/80 hover:border-border hover:bg-surface",
                     )}
                   >
                     <Icon
                       className={cn(
                         "h-4.5 w-4.5 shrink-0",
-                        isSelected ? "text-brand" : "text-gray-400",
+                        isSelected ? "text-brand" : "text-muted",
                       )}
                     />
                     <span className="font-medium">{cat.label}</span>
@@ -198,7 +198,7 @@ export function ReportToHOModal({ open, onClose }: ReportToHOModalProps) {
           <div>
             <label
               htmlFor="ho-message"
-              className="mb-1.5 block text-sm font-medium text-gray-700"
+              className="mb-1.5 block text-sm font-medium text-foreground/80"
             >
               Message
             </label>
@@ -208,12 +208,12 @@ export function ReportToHOModal({ open, onClose }: ReportToHOModalProps) {
               onChange={(e) => setMessage(e.target.value)}
               placeholder={category?.placeholder ?? "Select a category above..."}
               rows={4}
-              className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full resize-none rounded-lg border border-border bg-surface/50 px-3 py-2.5 text-sm text-foreground placeholder:text-muted focus:border-brand focus:bg-card focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
 
           {/* Page context */}
-          <p className="text-[11px] text-gray-400 truncate">
+          <p className="text-[11px] text-muted truncate">
             Submitted from: {pathname}
           </p>
 

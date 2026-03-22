@@ -8,12 +8,12 @@ export default function AuthError({
   reset: () => void;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="max-w-sm w-full p-8 bg-white rounded-xl shadow-lg text-center">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">
+    <div className="min-h-screen flex items-center justify-center bg-surface/50 p-4">
+      <div className="max-w-sm w-full p-8 bg-card rounded-xl shadow-lg text-center">
+        <h2 className="text-lg font-semibold text-foreground mb-2">
           Authentication error
         </h2>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-muted mb-6">
           Something went wrong. Please try again.
         </p>
         <button

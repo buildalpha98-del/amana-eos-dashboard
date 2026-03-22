@@ -20,7 +20,7 @@ interface Props {
 
 function FieldLabel({ label, required }: { label: string; required?: boolean }) {
   return (
-    <label className="block text-sm font-medium text-gray-700 mb-1">
+    <label className="block text-sm font-medium text-foreground/80 mb-1">
       {label}
       {required && <span className="text-red-500 ml-0.5">*</span>}
     </label>
@@ -50,7 +50,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
+        className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
       />
     </div>
   );
@@ -69,7 +69,7 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
         <div key={i} className="relative">
           {data.children.length > 1 && (
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">
+              <h3 className="text-lg font-semibold text-foreground">
                 Child {i + 1}: {child.firstName || ""}
               </h3>
               <button
@@ -106,7 +106,7 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
               <select
                 value={child.gender}
                 onChange={(e) => updateChild(i, "gender", e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-white"
+                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
               >
                 <option value="">Select...</option>
                 <option value="female">Female</option>
@@ -115,7 +115,7 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
             </div>
           </div>
 
-          <h4 className="text-sm font-semibold text-gray-600 mt-6 mb-3">Address</h4>
+          <h4 className="text-sm font-semibold text-muted mt-6 mb-3">Address</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <Input
@@ -135,7 +135,7 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
                 <select
                   value={child.state}
                   onChange={(e) => updateChild(i, "state", e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-white"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
                 >
                   <option value="">Select...</option>
                   {AUSTRALIAN_STATES.map((s) => (
@@ -157,7 +157,7 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
             </div>
           </div>
 
-          <h4 className="text-sm font-semibold text-gray-600 mt-6 mb-3">
+          <h4 className="text-sm font-semibold text-muted mt-6 mb-3">
             Cultural / Language Background
           </h4>
           <div className="flex flex-wrap gap-2">
@@ -167,7 +167,7 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors border ${
                   child.culturalBackground.includes(opt)
                     ? "bg-brand/10 border-brand text-brand font-medium"
-                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                    : "bg-surface/50 border-border text-muted hover:bg-surface"
                 }`}
               >
                 <input
@@ -186,7 +186,7 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
             ))}
           </div>
 
-          <h4 className="text-sm font-semibold text-gray-600 mt-6 mb-3">School</h4>
+          <h4 className="text-sm font-semibold text-muted mt-6 mb-3">School</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="School Name"
@@ -202,10 +202,10 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
           </div>
 
           {/* Documents Upload */}
-          <h4 className="text-sm font-semibold text-gray-600 mt-6 mb-3">
+          <h4 className="text-sm font-semibold text-muted mt-6 mb-3">
             Documents
           </h4>
-          <p className="text-xs text-gray-500 mb-3">
+          <p className="text-xs text-muted mb-3">
             Please upload the following documents for {child.firstName || `this child`}.
           </p>
           <div className="space-y-3">
@@ -222,14 +222,14 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
           </div>
 
           {i < data.children.length - 1 && (
-            <hr className="mt-8 border-gray-200" />
+            <hr className="mt-8 border-border" />
           )}
         </div>
       ))}
 
       <button
         onClick={onAddChild}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-gray-300 text-gray-500 hover:border-brand hover:text-brand transition-colors text-sm font-medium w-full justify-center"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-border text-muted hover:border-brand hover:text-brand transition-colors text-sm font-medium w-full justify-center"
       >
         <Plus className="h-4 w-4" />
         Add Another Child
@@ -296,9 +296,9 @@ function DocumentUploadRow({
   };
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3">
+    <div className="bg-surface/50 rounded-lg p-3">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <span className="text-sm font-medium text-foreground/80">{label}</span>
       </div>
       {existing.map((f, fi) => (
         <div
@@ -316,7 +316,7 @@ function DocumentUploadRow({
         </div>
       ))}
       {existing.length === 0 && (
-        <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-brand hover:text-brand cursor-pointer transition-colors">
+        <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg text-sm text-muted hover:border-brand hover:text-brand cursor-pointer transition-colors">
           <Upload className="h-4 w-4" />
           {uploading ? "Uploading..." : `Upload ${label.toLowerCase()}`}
           <input

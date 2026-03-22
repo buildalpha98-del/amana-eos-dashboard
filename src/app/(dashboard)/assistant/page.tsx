@@ -21,11 +21,11 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
           isUser
             ? "bg-brand text-white rounded-br-md"
-            : "bg-gray-100 text-gray-800 rounded-bl-md"
+            : "bg-surface text-foreground rounded-bl-md"
         }`}
       >
         {!isUser && !message.content && (
-          <span className="inline-flex items-center gap-1 text-gray-400">
+          <span className="inline-flex items-center gap-1 text-muted">
             <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
             <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
             <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
@@ -77,7 +77,7 @@ export default function AssistantPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)]">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 pb-4 border-b border-gray-200">
+      <div className="flex items-center justify-between gap-3 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -86,14 +86,14 @@ export default function AssistantPage() {
             <Bot className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">AI Assistant</h2>
-            <p className="text-sm text-gray-500">Ask questions about your dashboard data</p>
+            <h2 className="text-xl font-bold text-foreground">AI Assistant</h2>
+            <p className="text-sm text-muted">Ask questions about your dashboard data</p>
           </div>
         </div>
         {messages.length > 0 && (
           <button
             onClick={clearMessages}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted hover:text-foreground hover:bg-surface rounded-lg transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Clear
@@ -111,10 +111,10 @@ export default function AssistantPage() {
             >
               <Bot className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-1">
+            <h3 className="text-lg font-semibold text-foreground mb-1">
               How can I help you today?
             </h3>
-            <p className="text-sm text-gray-500 mb-6 max-w-md">
+            <p className="text-sm text-muted mb-6 max-w-md">
               I have access to your live dashboard data including financials, operations,
               compliance, pipeline, staffing, and quarterly rocks.
             </p>
@@ -123,7 +123,7 @@ export default function AssistantPage() {
                 <button
                   key={prompt}
                   onClick={() => handleSubmit(prompt)}
-                  className="text-left px-4 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 text-sm text-gray-700 transition-colors"
+                  className="text-left px-4 py-3 rounded-xl border border-border bg-card hover:bg-surface hover:border-border text-sm text-foreground/80 transition-colors"
                 >
                   {prompt}
                 </button>
@@ -141,7 +141,7 @@ export default function AssistantPage() {
       </div>
 
       {/* Input bar */}
-      <div className="border-t border-gray-200 pt-4 pb-2">
+      <div className="border-t border-border pt-4 pb-2">
         <div className="flex items-end gap-2">
           <div className="flex-1 relative">
             <textarea
@@ -152,9 +152,9 @@ export default function AssistantPage() {
               placeholder="Ask about your dashboard data..."
               rows={1}
               disabled={isStreaming}
-              className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 pr-12 text-sm text-gray-700
+              className="w-full resize-none rounded-xl border border-border px-4 py-3 pr-12 text-sm text-foreground/80
                          focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40
-                         placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                         placeholder:text-muted disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
           {isStreaming ? (
@@ -175,7 +175,7 @@ export default function AssistantPage() {
             </button>
           )}
         </div>
-        <p className="text-[10px] text-gray-400 mt-1.5 text-center">
+        <p className="text-[10px] text-muted mt-1.5 text-center">
           AI responses are based on your live dashboard data. Always verify critical decisions.
         </p>
       </div>

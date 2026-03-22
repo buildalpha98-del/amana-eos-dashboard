@@ -20,7 +20,7 @@ export function ChildTabs({ children, activeIndex, onChange }: ChildTabsProps) {
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
             i === activeIndex
               ? "bg-brand text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              : "bg-surface text-muted hover:bg-border"
           }`}
         >
           {child.firstName || `Child ${i + 1}`}

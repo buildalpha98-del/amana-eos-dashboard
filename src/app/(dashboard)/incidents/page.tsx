@@ -81,12 +81,12 @@ const TYPE_COLORS: Record<string, string> = {
   missing_child: "bg-rose-50 text-rose-700",
   near_miss: "bg-amber-50 text-amber-700",
   medication_error: "bg-orange-50 text-orange-700",
-  property_damage: "bg-gray-100 text-gray-700",
+  property_damage: "bg-surface text-foreground/80",
   complaint: "bg-cyan-50 text-cyan-700",
 };
 
 const SEVERITY_BADGE: Record<string, string> = {
-  minor: "bg-gray-100 text-gray-700",
+  minor: "bg-surface text-foreground/80",
   moderate: "bg-yellow-100 text-yellow-700",
   reportable: "bg-orange-100 text-orange-700",
   serious: "bg-red-100 text-red-700",
@@ -536,12 +536,12 @@ function IncidentRow({ incident }: { incident: IncidentRecord }) {
         <td className="px-4 py-3">{incident.service.name}</td>
         <td className="px-4 py-3">{incident.childName || <span className="text-foreground/30">-</span>}</td>
         <td className="px-4 py-3">
-          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[incident.incidentType] || "bg-gray-100 text-gray-700"}`}>
+          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[incident.incidentType] || "bg-surface text-foreground/80"}`}>
             {formatLabel(incident.incidentType)}
           </span>
         </td>
         <td className="px-4 py-3">
-          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${SEVERITY_BADGE[incident.severity] || "bg-gray-100 text-gray-700"}`}>
+          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${SEVERITY_BADGE[incident.severity] || "bg-surface text-foreground/80"}`}>
             {formatLabel(incident.severity)}
           </span>
         </td>
@@ -609,10 +609,10 @@ function IncidentCard({ incident }: { incident: IncidentRecord }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[incident.incidentType] || "bg-gray-100 text-gray-700"}`}>
+            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[incident.incidentType] || "bg-surface text-foreground/80"}`}>
               {formatLabel(incident.incidentType)}
             </span>
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${SEVERITY_BADGE[incident.severity] || "bg-gray-100 text-gray-700"}`}>
+            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${SEVERITY_BADGE[incident.severity] || "bg-surface text-foreground/80"}`}>
               {formatLabel(incident.severity)}
             </span>
           </div>

@@ -16,7 +16,7 @@ interface PlatformBadgeProps {
 
 export function PlatformBadge({ platform }: PlatformBadgeProps) {
   const colors =
-    platformColors[platform.toLowerCase()] ?? "bg-gray-100 text-gray-700";
+    platformColors[platform.toLowerCase()] ?? "bg-surface text-foreground/80";
 
   const label = platform.charAt(0).toUpperCase() + platform.slice(1);
 

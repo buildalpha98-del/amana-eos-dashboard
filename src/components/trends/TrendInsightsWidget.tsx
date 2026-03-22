@@ -73,7 +73,7 @@ export function TrendInsightsWidget({ serviceId, category, className }: TrendIns
 
   return (
     <div className={cn("space-y-2", className)}>
-      <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+      <h4 className="text-sm font-semibold text-foreground/80 flex items-center gap-1.5">
         <TrendingUp className="h-4 w-4 text-blue-500" />
         Trend Insights
       </h4>
@@ -85,13 +85,13 @@ export function TrendInsightsWidget({ serviceId, category, className }: TrendIns
             key={t.id}
             className={cn(
               "rounded-lg border px-4 py-3 flex items-start gap-3",
-              SEVERITY_STYLES[t.severity] || "border-gray-200 bg-gray-50"
+              SEVERITY_STYLES[t.severity] || "border-border bg-surface/50"
             )}
           >
             <SevIcon className={cn("h-4 w-4 mt-0.5 shrink-0", SEVERITY_ICON_STYLES[t.severity])} />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
-                <DirIcon className="h-3.5 w-3.5 text-gray-500" />
+                <DirIcon className="h-3.5 w-3.5 text-muted" />
                 {t.changePercent != null && (
                   <span className={cn(
                     "text-xs font-semibold",
@@ -101,11 +101,11 @@ export function TrendInsightsWidget({ serviceId, category, className }: TrendIns
                   </span>
                 )}
                 {t.service && (
-                  <span className="text-xs text-gray-500">{t.service.name}</span>
+                  <span className="text-xs text-muted">{t.service.name}</span>
                 )}
-                <span className="text-xs text-gray-400 capitalize">{t.category}</span>
+                <span className="text-xs text-muted capitalize">{t.category}</span>
               </div>
-              <p className="text-sm text-gray-700">{t.summary}</p>
+              <p className="text-sm text-foreground/80">{t.summary}</p>
               {/* Mini sparkline */}
               {t.dataPoints && Array.isArray(t.dataPoints) && t.dataPoints.length > 1 && (
                 <div className="flex items-end gap-0.5 mt-2 h-6">
@@ -130,7 +130,7 @@ export function TrendInsightsWidget({ serviceId, category, className }: TrendIns
             </div>
             <button
               onClick={() => handleDismiss(t.id)}
-              className="text-gray-400 hover:text-gray-600 shrink-0"
+              className="text-muted hover:text-foreground shrink-0"
               title="Dismiss"
             >
               <X className="h-4 w-4" />

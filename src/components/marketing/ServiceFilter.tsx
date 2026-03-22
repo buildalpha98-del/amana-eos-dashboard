@@ -48,7 +48,7 @@ export function ServiceFilter({ value, onChange }: ServiceFilterProps) {
               className={`px-2 py-1 text-xs font-medium rounded-full border transition-colors ${
                 stateFilter === st
                   ? "bg-brand text-white border-brand"
-                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50"
+                  : "bg-card text-muted border-border hover:bg-surface"
               }`}
             >
               {st}
@@ -57,7 +57,7 @@ export function ServiceFilter({ value, onChange }: ServiceFilterProps) {
           {stateFilter && (
             <button
               onClick={() => { setStateFilter(""); }}
-              className="px-2 py-1 text-xs text-gray-400 hover:text-gray-600"
+              className="px-2 py-1 text-xs text-muted hover:text-foreground"
             >
               Clear
             </button>
@@ -69,7 +69,7 @@ export function ServiceFilter({ value, onChange }: ServiceFilterProps) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-gray-300 bg-white text-sm px-3 py-2 focus:ring-brand focus:border-transparent focus:outline-none focus:ring-1"
+        className="rounded-lg border border-border bg-card text-sm px-3 py-2 focus:ring-brand focus:border-transparent focus:outline-none focus:ring-1"
       >
         <option value="">
           {stateFilter ? `All ${stateFilter} Centres` : "All Centres"}

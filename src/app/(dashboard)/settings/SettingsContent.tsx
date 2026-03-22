@@ -156,14 +156,14 @@ function InviteUserModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             Invite Team Member
           </h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+            className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -183,7 +183,7 @@ function InviteUserModal({
           className="space-y-4"
         >
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Full Name
             </label>
             <input
@@ -191,13 +191,13 @@ function InviteUserModal({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="John Smith"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Email
             </label>
             <input
@@ -205,13 +205,13 @@ function InviteUserModal({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="john@amanaoshc.com.au"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Temporary Password
             </label>
             <input
@@ -219,20 +219,20 @@ function InviteUserModal({
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="Set a temporary password"
               minLength={8}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Role
             </label>
             <select
               value={role}
               onChange={(e) => { setRole(e.target.value as Role); if (e.target.value !== "staff" && e.target.value !== "member") setServiceId(""); if (e.target.value !== "admin") setState(""); }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="staff">{ROLE_DISPLAY_NAMES.staff}</option>
               <option value="member">{ROLE_DISPLAY_NAMES.member}</option>
@@ -246,14 +246,14 @@ function InviteUserModal({
 
           {needsService && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Service / Centre <span className="text-red-500">*</span>
               </label>
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select a service...</option>
                 {services?.map((svc) => (
@@ -262,7 +262,7 @@ function InviteUserModal({
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted">
                 {role === "staff" ? ROLE_DISPLAY_NAMES.staff + "s" : ROLE_DISPLAY_NAMES.member + "s"} are scoped to their assigned service
               </p>
             </div>
@@ -270,14 +270,14 @@ function InviteUserModal({
 
           {needsState && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 State <span className="text-red-500">*</span>
               </label>
               <select
                 value={state}
                 onChange={(e) => setState(e.target.value)}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select a state...</option>
                 {AUSTRALIAN_STATES.map((s) => (
@@ -286,7 +286,7 @@ function InviteUserModal({
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted">
                 {ROLE_DISPLAY_NAMES.admin}s are scoped to services within their assigned state
               </p>
             </div>
@@ -296,7 +296,7 @@ function InviteUserModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface transition-colors"
             >
               Cancel
             </button>
@@ -323,7 +323,7 @@ function RoleIcon({ role }: { role: Role }) {
     case "admin":
       return <Shield className="w-4 h-4 text-brand" />;
     default:
-      return <User className="w-4 h-4 text-gray-400" />;
+      return <User className="w-4 h-4 text-muted" />;
   }
 }
 
@@ -415,7 +415,7 @@ function UserRow({
   });
 
   return (
-    <tr className="border-b border-gray-100 last:border-0">
+    <tr className="border-b border-border/50 last:border-0">
       <td className="py-3 px-4">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-xs font-medium text-brand">
@@ -428,14 +428,14 @@ function UserRow({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="text-sm font-medium text-gray-900">{user.name}</p>
+              <p className="text-sm font-medium text-foreground">{user.name}</p>
               {user.email === "admin@amanaoshc.com.au" && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface text-muted border border-border">
                   System
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500">{user.email}</p>
+            <p className="text-xs text-muted">{user.email}</p>
           </div>
         </div>
       </td>
@@ -450,13 +450,13 @@ function UserRow({
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
             user.active
               ? "bg-green-50 text-green-700"
-              : "bg-gray-100 text-gray-500"
+              : "bg-surface text-muted"
           }`}
         >
           {user.active ? "Active" : "Inactive"}
         </span>
       </td>
-      <td className="py-3 px-4 text-xs text-gray-500">
+      <td className="py-3 px-4 text-xs text-muted">
         {new Date(user.createdAt).toLocaleDateString("en-AU")}
       </td>
       <td className="py-3 px-4">
@@ -464,7 +464,7 @@ function UserRow({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              className="p-1 rounded-md text-muted hover:text-foreground hover:bg-surface"
             >
               <MoreVertical className="w-4 h-4" />
             </button>
@@ -474,41 +474,41 @@ function UserRow({
                   className="fixed inset-0 z-10"
                   onClick={() => setShowMenu(false)}
                 />
-                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 max-h-[calc(100vh-200px)] overflow-y-auto">
+                <div className="absolute right-0 mt-1 w-48 bg-card rounded-lg shadow-lg border border-border py-1 z-20 max-h-[calc(100vh-200px)] overflow-y-auto">
                   <button
                     onClick={() => updateRole.mutate("staff")}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
                     Set as {ROLE_DISPLAY_NAMES.staff}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("member")}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
                     Set as {ROLE_DISPLAY_NAMES.member}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("coordinator")}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
                     Set as {ROLE_DISPLAY_NAMES.coordinator}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("marketing")}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
                     Set as {ROLE_DISPLAY_NAMES.marketing}
                   </button>
                   <button
                     onClick={() => updateRole.mutate("admin")}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                   >
                     Set as {ROLE_DISPLAY_NAMES.admin}
                   </button>
                   {isOwner && (
                     <button
                       onClick={() => updateRole.mutate("head_office")}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                     >
                       Set as {ROLE_DISPLAY_NAMES.head_office}
                     </button>
@@ -516,7 +516,7 @@ function UserRow({
                   {isOwner && (
                     <button
                       onClick={() => updateRole.mutate("owner")}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface"
                     >
                       Set as {ROLE_DISPLAY_NAMES.owner}
                     </button>
@@ -532,7 +532,7 @@ function UserRow({
                   <hr className="my-1" />
                   <button
                     onClick={() => { setShowResetPw(true); setShowMenu(false); }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    className="w-full text-left px-4 py-2 text-sm text-foreground/80 hover:bg-surface flex items-center gap-2"
                   >
                     <Lock className="w-3.5 h-3.5" />
                     Reset Password
@@ -555,14 +555,14 @@ function UserRow({
         )}
         {showResetPw && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+            <div className="bg-card rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-semibold text-gray-900">Reset Password</h3>
-                <button onClick={() => { setShowResetPw(false); setNewPassword(""); setResetError(""); }} className="p-1 text-gray-400 hover:text-gray-600">
+                <h3 className="text-base font-semibold text-foreground">Reset Password</h3>
+                <button onClick={() => { setShowResetPw(false); setNewPassword(""); setResetError(""); }} className="p-1 text-muted hover:text-foreground">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-sm text-gray-500 mb-4">Set a new password for <span className="font-medium text-gray-900">{user.name}</span></p>
+              <p className="text-sm text-muted mb-4">Set a new password for <span className="font-medium text-foreground">{user.name}</span></p>
               {resetError && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                   {resetError}
@@ -580,13 +580,13 @@ function UserRow({
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="New password (min 8 characters)"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent mb-4"
+                    className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent mb-4"
                     minLength={8}
                   />
                   <div className="flex gap-3">
                     <button
                       onClick={() => { setShowResetPw(false); setNewPassword(""); setResetError(""); }}
-                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                      className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface transition-colors text-sm"
                     >
                       Cancel
                     </button>
@@ -605,18 +605,18 @@ function UserRow({
         )}
         {showDeleteConfirm && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+            <div className="bg-card rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">Delete User</h3>
-                  <p className="text-sm text-gray-500">This action cannot be undone</p>
+                  <h3 className="text-base font-semibold text-foreground">Delete User</h3>
+                  <p className="text-sm text-muted">This action cannot be undone</p>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 mb-4">
-                Are you sure you want to permanently delete <span className="font-medium text-gray-900">{user.name}</span>? All their data (todos, rocks, issues, timesheets, etc.) will be removed or unlinked.
+              <p className="text-sm text-muted mb-4">
+                Are you sure you want to permanently delete <span className="font-medium text-foreground">{user.name}</span>? All their data (todos, rocks, issues, timesheets, etc.) will be removed or unlinked.
               </p>
               {deleteUser.isError && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
@@ -626,7 +626,7 @@ function UserRow({
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                  className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface transition-colors text-sm"
                 >
                   Cancel
                 </button>
@@ -704,23 +704,23 @@ function ActivityLogPanel() {
   const totalPages = data?.totalPages || 1;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Activity className="w-5 h-5 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900">Activity Log</h3>
+          <Activity className="w-5 h-5 text-muted" />
+          <h3 className="text-lg font-semibold text-foreground">Activity Log</h3>
           {data && (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-muted">
               {data.total} entries
             </span>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-400" />
+          <Filter className="w-4 h-4 text-muted" />
           <select
             value={entityType}
             onChange={(e) => { setEntityType(e.target.value); setPage(1); }}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
           >
             {entityTypeOptions.map((t) => (
               <option key={t} value={t === "All" ? "" : t}>
@@ -732,7 +732,7 @@ function ActivityLogPanel() {
       </div>
 
       {isLoading ? (
-        <div className="py-8 text-center text-gray-500">Loading activity...</div>
+        <div className="py-8 text-center text-muted">Loading activity...</div>
       ) : logs.length === 0 ? (
         <EmptyState icon={Activity} title="No Activity" description="No activity recorded yet. Actions will appear here as users interact with the dashboard." variant="inline" />
       ) : (
@@ -740,12 +740,12 @@ function ActivityLogPanel() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">When</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">User</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Action</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Type</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Details</th>
+                <tr className="border-b border-border">
+                  <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">When</th>
+                  <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">User</th>
+                  <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">Action</th>
+                  <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">Type</th>
+                  <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">Details</th>
                 </tr>
               </thead>
               <tbody>
@@ -761,8 +761,8 @@ function ActivityLogPanel() {
                     .join(", ");
 
                   return (
-                    <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                      <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">
+                    <tr key={log.id} className="border-b border-gray-50 hover:bg-surface/50">
+                      <td className="py-2.5 px-3 text-xs text-muted whitespace-nowrap">
                         {new Date(log.createdAt).toLocaleDateString("en-AU", {
                           day: "2-digit",
                           month: "short",
@@ -771,7 +771,7 @@ function ActivityLogPanel() {
                         })}
                       </td>
                       <td className="py-2.5 px-3">
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm font-medium text-foreground">
                           {log.user.name}
                         </span>
                       </td>
@@ -779,16 +779,16 @@ function ActivityLogPanel() {
                         <span
                           className={cn(
                             "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize",
-                            actionBadge[log.action] || "bg-gray-100 text-gray-600"
+                            actionBadge[log.action] || "bg-surface text-muted"
                           )}
                         >
                           {log.action}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-600">
+                      <td className="py-2.5 px-3 text-xs text-muted">
                         {log.entityType}
                       </td>
-                      <td className="py-2.5 px-3 text-xs text-gray-500 max-w-xs truncate">
+                      <td className="py-2.5 px-3 text-xs text-muted max-w-xs truncate">
                         {detailStr || "—"}
                       </td>
                     </tr>
@@ -800,22 +800,22 @@ function ActivityLogPanel() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-              <span className="text-xs text-gray-500">
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
+              <span className="text-xs text-muted">
                 Page {page} of {totalPages}
               </span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+                  className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface disabled:opacity-30"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
-                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 disabled:opacity-30"
+                  className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface disabled:opacity-30"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -894,11 +894,11 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Settings className="w-5 h-5 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900">
+          <Settings className="w-5 h-5 text-muted" />
+          <h3 className="text-lg font-semibold text-foreground">
             Organisation Settings
           </h3>
           {hasChanges && <UnsavedBadge />}
@@ -917,7 +917,7 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
                 "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                 hasChanges
                   ? "bg-brand text-white hover:bg-brand-hover"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-surface text-muted cursor-not-allowed"
               )}
             >
               {updateOrg.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -928,11 +928,11 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
       </div>
 
       {orgLoading ? (
-        <div className="py-4 text-center text-gray-400 text-sm">Loading...</div>
+        <div className="py-4 text-center text-muted text-sm">Loading...</div>
       ) : (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Organisation Name
             </label>
             <input
@@ -941,14 +941,14 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
               onChange={(e) => setOrgName(e.target.value)}
               readOnly={!isOwner}
               className={cn(
-                "w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent",
-                !isOwner && "bg-gray-50 cursor-not-allowed"
+                "w-full max-w-md px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent",
+                !isOwner && "bg-surface/50 cursor-not-allowed"
               )}
             />
           </div>
           <div className="grid grid-cols-2 gap-4 max-w-md">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Primary Colour
               </label>
               <div className="flex items-center gap-2">
@@ -957,7 +957,7 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
                   value={primaryColor}
                   onChange={(e) => setPrimaryColor(e.target.value)}
                   disabled={!isOwner}
-                  className="w-8 h-8 rounded-md border border-gray-200 cursor-pointer disabled:cursor-not-allowed p-0"
+                  className="w-8 h-8 rounded-md border border-border cursor-pointer disabled:cursor-not-allowed p-0"
                 />
                 <input
                   type="text"
@@ -968,15 +968,15 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
                   }}
                   readOnly={!isOwner}
                   className={cn(
-                    "w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand",
-                    !isOwner && "bg-gray-50 cursor-not-allowed"
+                    "w-24 px-2 py-1 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand",
+                    !isOwner && "bg-surface/50 cursor-not-allowed"
                   )}
                   maxLength={7}
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Accent Colour
               </label>
               <div className="flex items-center gap-2">
@@ -985,7 +985,7 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
                   value={accentColor}
                   onChange={(e) => setAccentColor(e.target.value)}
                   disabled={!isOwner}
-                  className="w-8 h-8 rounded-md border border-gray-200 cursor-pointer disabled:cursor-not-allowed p-0"
+                  className="w-8 h-8 rounded-md border border-border cursor-pointer disabled:cursor-not-allowed p-0"
                 />
                 <input
                   type="text"
@@ -996,8 +996,8 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
                   }}
                   readOnly={!isOwner}
                   className={cn(
-                    "w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand",
-                    !isOwner && "bg-gray-50 cursor-not-allowed"
+                    "w-24 px-2 py-1 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand",
+                    !isOwner && "bg-surface/50 cursor-not-allowed"
                   )}
                   maxLength={7}
                 />
@@ -1006,8 +1006,8 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
           </div>
 
           {/* Preview */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-500 mb-2">Preview</p>
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <p className="text-xs text-muted mb-2">Preview</p>
             <div className="flex items-center gap-3">
               <div
                 className="px-4 py-2 rounded-lg text-white text-sm font-medium"
@@ -1247,26 +1247,26 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Link2 className="w-5 h-5 text-gray-400" />
-            <h3 className="text-lg font-semibold text-gray-900">
+            <Link2 className="w-5 h-5 text-muted" />
+            <h3 className="text-lg font-semibold text-foreground">
               Integrations
             </h3>
           </div>
         </div>
 
         {statusLoading ? (
-          <div className="py-4 text-center text-gray-400 text-sm">
+          <div className="py-4 text-center text-muted text-sm">
             <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
             Checking connection...
           </div>
         ) : !isConnected ? (
           /* ——— State 1: Disconnected ——— */
           <div>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-muted mb-4">
               Connect your Xero account to automatically sync financial data
               across all centres.
             </p>
@@ -1326,19 +1326,19 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
             </div>
 
             {/* Stats row */}
-            <div className="flex items-center gap-4 mb-3 text-sm text-gray-600">
+            <div className="flex items-center gap-4 mb-3 text-sm text-muted">
               <span className="inline-flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                <MapPin className="w-3.5 h-3.5 text-muted" />
                 {status?.mappedCentres} centres mapped
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <FileSpreadsheet className="w-3.5 h-3.5 text-gray-400" />
+                <FileSpreadsheet className="w-3.5 h-3.5 text-muted" />
                 {status?.accountMappings} accounts mapped
               </span>
             </div>
 
             {/* Last sync info */}
-            <div className="flex items-center gap-2 mb-4 text-xs text-gray-500">
+            <div className="flex items-center gap-2 mb-4 text-xs text-muted">
               <RefreshCw className="w-3.5 h-3.5" />
               {status?.lastSyncAt
                 ? `Last synced: ${formatRelativeTime(status.lastSyncAt)}`
@@ -1379,7 +1379,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
               </button>
               <button
                 onClick={openModal}
-                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
               >
                 <MapPin className="w-4 h-4" />
                 Edit Mappings
@@ -1400,16 +1400,16 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
       {/* ——— Mapping Modal ——— */}
       {showMappingModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 p-6 max-h-[80vh] overflow-y-auto">
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-2xl mx-4 p-6 max-h-[80vh] overflow-y-auto">
             {/* Modal header */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-foreground">
                   {mappingStep === 1
                     ? "Step 1: Centre Mapping"
                     : "Step 2: Account Mapping"}
                 </h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-muted mt-1">
                   {mappingStep === 1
                     ? "Map Xero tracking categories to your services"
                     : "Map Xero accounts to your financial categories"}
@@ -1420,7 +1420,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                   setShowMappingModal(false);
                   setMappingStep(1);
                 }}
-                className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+                className="p-1 rounded-md text-muted hover:text-foreground"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1442,7 +1442,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                   "1"
                 )}
               </span>
-              <div className="flex-1 h-0.5 bg-gray-200">
+              <div className="flex-1 h-0.5 bg-border">
                 <div
                   className={cn(
                     "h-full bg-brand transition-all",
@@ -1455,7 +1455,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                   "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
                   mappingStep === 2
                     ? "bg-brand text-white"
-                    : "bg-gray-100 text-gray-400"
+                    : "bg-surface text-muted"
                 )}
               >
                 2
@@ -1466,20 +1466,20 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
               /* ——— Step 1: Centre Mapping ——— */
               <div>
                 {trackingLoading ? (
-                  <div className="py-8 text-center text-gray-400 text-sm">
+                  <div className="py-8 text-center text-muted text-sm">
                     <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
                     Loading tracking categories...
                   </div>
                 ) : (
                   <>
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-foreground/80 mb-1">
                         Tracking Category
                       </label>
                       <select
                         value={selectedCategoryId}
                         onChange={(e) => setSelectedCategoryId(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                        className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                       >
                         <option value="">Select a tracking category</option>
                         {trackingCategories?.map(
@@ -1507,13 +1507,13 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                               return (
                                 <div
                                   key={opt.id}
-                                  className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-gray-50"
+                                  className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-surface/50"
                                 >
-                                  <span className="text-sm font-medium text-gray-700 flex-shrink-0">
+                                  <span className="text-sm font-medium text-foreground/80 flex-shrink-0">
                                     {opt.name}
                                   </span>
                                   <div className="flex items-center gap-2">
-                                    <ArrowRight className="w-4 h-4 text-gray-300" />
+                                    <ArrowRight className="w-4 h-4 text-muted/50" />
                                     <select
                                       value={mapping?.serviceId || ""}
                                       onChange={(e) => {
@@ -1528,7 +1528,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                                         });
                                         setCentreMappings(newMappings);
                                       }}
-                                      className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                                      className="w-48 px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                                     >
                                       <option value="">Not mapped</option>
                                       {(
@@ -1561,7 +1561,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                           "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                           selectedCategoryId
                             ? "bg-brand text-white hover:bg-brand-hover"
-                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-surface text-muted cursor-not-allowed"
                         )}
                       >
                         Next
@@ -1575,7 +1575,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
               /* ——— Step 2: Account Mapping ——— */
               <div>
                 {accountsLoading ? (
-                  <div className="py-8 text-center text-gray-400 text-sm">
+                  <div className="py-8 text-center text-muted text-sm">
                     <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
                     Loading Xero accounts...
                   </div>
@@ -1583,7 +1583,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                   <>
                     {/* Revenue Accounts */}
                     <div className="mb-6">
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                      <h4 className="text-sm font-semibold text-foreground mb-3">
                         Revenue Accounts
                       </h4>
                       <div className="space-y-2">
@@ -1603,16 +1603,16 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                             return (
                               <div
                                 key={acc.id}
-                                className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-gray-50"
+                                className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-surface/50"
                               >
-                                <span className="text-sm text-gray-700">
-                                  <span className="font-mono text-xs text-gray-400 mr-2">
+                                <span className="text-sm text-foreground/80">
+                                  <span className="font-mono text-xs text-muted mr-2">
                                     {acc.code}
                                   </span>
                                   {acc.name}
                                 </span>
                                 <div className="flex items-center gap-2">
-                                  <ArrowRight className="w-4 h-4 text-gray-300" />
+                                  <ArrowRight className="w-4 h-4 text-muted/50" />
                                   <select
                                     value={mapping?.category || ""}
                                     onChange={(e) => {
@@ -1627,7 +1627,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                                       });
                                       setAccountMappings(newMappings);
                                     }}
-                                    className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="w-48 px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                                   >
                                     <option value="">Not mapped</option>
                                     {Object.entries(
@@ -1647,7 +1647,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
 
                     {/* Expense Accounts */}
                     <div className="mb-6">
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                      <h4 className="text-sm font-semibold text-foreground mb-3">
                         Expense Accounts
                       </h4>
                       <div className="space-y-2">
@@ -1667,16 +1667,16 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                             return (
                               <div
                                 key={acc.id}
-                                className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-gray-50"
+                                className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg bg-surface/50"
                               >
-                                <span className="text-sm text-gray-700">
-                                  <span className="font-mono text-xs text-gray-400 mr-2">
+                                <span className="text-sm text-foreground/80">
+                                  <span className="font-mono text-xs text-muted mr-2">
                                     {acc.code}
                                   </span>
                                   {acc.name}
                                 </span>
                                 <div className="flex items-center gap-2">
-                                  <ArrowRight className="w-4 h-4 text-gray-300" />
+                                  <ArrowRight className="w-4 h-4 text-muted/50" />
                                   <select
                                     value={mapping?.category || ""}
                                     onChange={(e) => {
@@ -1691,7 +1691,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                                       });
                                       setAccountMappings(newMappings);
                                     }}
-                                    className="w-48 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                                    className="w-48 px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                                   >
                                     <option value="">Not mapped</option>
                                     {Object.entries(
@@ -1713,7 +1713,7 @@ function XeroIntegrationSection({ isOwner }: { isOwner: boolean }) {
                     <div className="flex items-center justify-between mt-6">
                       <button
                         onClick={() => setMappingStep(1)}
-                        className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
                       >
                         <ChevronLeft className="w-4 h-4" />
                         Back
@@ -1762,14 +1762,14 @@ function PermissionsPanel() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Lock className="w-5 h-5 text-gray-400" />
-        <h3 className="text-lg font-semibold text-gray-900">
+        <Lock className="w-5 h-5 text-muted" />
+        <h3 className="text-lg font-semibold text-foreground">
           Role Permissions
         </h3>
       </div>
-      <p className="text-sm text-gray-500 mb-5">
+      <p className="text-sm text-muted mb-5">
         An overview of what each role can access. Custom per-user permissions are
         not supported yet — all users of a role share the same access level.
       </p>
@@ -1777,29 +1777,29 @@ function PermissionsPanel() {
       <div className="overflow-x-auto -mx-6 px-6">
         <table className="w-full text-sm min-w-[580px]">
           <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+            <tr className="border-b border-border">
+              <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">
                 Permission
               </th>
-              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
+              <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 {ROLE_DISPLAY_NAMES.owner}
               </th>
-              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
+              <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 {ROLE_DISPLAY_NAMES.head_office}
               </th>
-              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
+              <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 {ROLE_DISPLAY_NAMES.admin}
               </th>
-              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
+              <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 {ROLE_DISPLAY_NAMES.marketing}
               </th>
-              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
+              <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 {ROLE_DISPLAY_NAMES.coordinator}
               </th>
-              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
+              <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 {ROLE_DISPLAY_NAMES.member}
               </th>
-              <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
+              <th className="text-center text-xs font-medium text-muted uppercase tracking-wider py-2 px-3 w-20 sm:w-24">
                 {ROLE_DISPLAY_NAMES.staff}
               </th>
             </tr>
@@ -1810,7 +1810,7 @@ function PermissionsPanel() {
                 <tr>
                   <td
                     colSpan={8}
-                    className="pt-4 pb-1 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider"
+                    className="pt-4 pb-1 px-3 text-xs font-semibold text-muted uppercase tracking-wider"
                   >
                     {section.name}
                   </td>
@@ -1818,9 +1818,9 @@ function PermissionsPanel() {
                 {section.rows.map((row) => (
                   <tr
                     key={row.label}
-                    className="border-b border-gray-50 hover:bg-gray-50/50"
+                    className="border-b border-gray-50 hover:bg-surface/50"
                   >
-                    <td className="py-2 px-3 text-sm text-gray-700">
+                    <td className="py-2 px-3 text-sm text-foreground/80">
                       {row.label}
                     </td>
                     {(["owner", "head_office", "admin", "marketing", "coordinator", "member", "staff"] as const).map((role) => (
@@ -1828,7 +1828,7 @@ function PermissionsPanel() {
                         {row[role] ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto" />
                         ) : (
-                          <XCircle className="w-4 h-4 text-gray-300 mx-auto" />
+                          <XCircle className="w-4 h-4 text-muted/50 mx-auto" />
                         )}
                       </td>
                     ))}
@@ -1963,11 +1963,11 @@ function ApiKeysSection() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Key className="w-5 h-5 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900">API Keys</h3>
+          <Key className="w-5 h-5 text-muted" />
+          <h3 className="text-lg font-semibold text-foreground">API Keys</h3>
         </div>
         <button
           onClick={() => setShowCreate(true)}
@@ -1978,25 +1978,25 @@ function ApiKeysSection() {
         </button>
       </div>
 
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-sm text-muted mb-4">
         API keys allow external systems (e.g. Cowork) to push data into the dashboard.
         Keys are hashed and cannot be viewed after creation.
       </p>
 
       {isLoading ? (
-        <div className="py-8 text-center text-gray-500">Loading API keys...</div>
+        <div className="py-8 text-center text-muted">Loading API keys...</div>
       ) : !keys?.length ? (
         <EmptyState icon={Key} title="No API Keys" description="No API keys created yet. Create a key to allow external systems to push data." variant="inline" />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Name</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Key</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Scopes</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Last Used</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">Status</th>
+              <tr className="border-b border-border">
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">Name</th>
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">Key</th>
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">Scopes</th>
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">Last Used</th>
+                <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">Status</th>
                 <th className="w-20"></th>
               </tr>
             </thead>
@@ -2004,15 +2004,15 @@ function ApiKeysSection() {
               {keys.map((key) => {
                 const status = getKeyStatus(key);
                 return (
-                  <tr key={key.id} className="border-b border-gray-100">
+                  <tr key={key.id} className="border-b border-border/50">
                     <td className="py-3 px-3">
-                      <div className="text-sm font-medium text-gray-900">{key.name}</div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-sm font-medium text-foreground">{key.name}</div>
+                      <div className="text-xs text-muted">
                         by {key.createdBy?.name ?? "Unknown"} &middot; {formatDate(key.createdAt)}
                       </div>
                     </td>
                     <td className="py-3 px-3">
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono text-gray-600">
+                      <code className="text-xs bg-surface px-2 py-1 rounded font-mono text-muted">
                         {key.keyPrefix}...
                       </code>
                     </td>
@@ -2028,7 +2028,7 @@ function ApiKeysSection() {
                         ))}
                       </div>
                     </td>
-                    <td className="py-3 px-3 text-sm text-gray-500">
+                    <td className="py-3 px-3 text-sm text-muted">
                       {formatDate(key.lastUsedAt)}
                     </td>
                     <td className="py-3 px-3">
@@ -2049,7 +2049,7 @@ function ApiKeysSection() {
                             </button>
                             <button
                               onClick={() => setConfirmRevoke(null)}
-                              className="text-xs text-gray-400 hover:text-gray-600"
+                              className="text-xs text-muted hover:text-foreground"
                             >
                               Cancel
                             </button>
@@ -2075,28 +2075,28 @@ function ApiKeysSection() {
       {/* Create Key Modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 mx-4">
+          <div className="bg-card rounded-xl shadow-xl w-full max-w-md p-6 mx-4">
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-semibold text-gray-900">Create API Key</h4>
-              <button onClick={resetCreateForm} className="text-gray-400 hover:text-gray-600">
+              <h4 className="text-lg font-semibold text-foreground">Create API Key</h4>
+              <button onClick={resetCreateForm} className="text-muted hover:text-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">Name</label>
                 <input
                   type="text"
                   value={keyName}
                   onChange={(e) => setKeyName(e.target.value)}
                   placeholder="e.g. Cowork Production"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent"
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Scopes</label>
+                <label className="block text-sm font-medium text-foreground/80 mb-2">Scopes</label>
                 <div className="space-y-2">
                   {WRITE_SCOPES.map((scope) => (
                     <label key={scope} className="flex items-center gap-2 cursor-pointer">
@@ -2104,23 +2104,23 @@ function ApiKeysSection() {
                         type="checkbox"
                         checked={keyScopes.includes(scope)}
                         onChange={() => toggleScope(scope)}
-                        className="rounded border-gray-300 text-brand-dark focus:ring-brand-dark"
+                        className="rounded border-border text-brand-dark focus:ring-brand-dark"
                       />
-                      <span className="text-sm text-gray-700">{SCOPE_LABELS[scope] || scope}</span>
+                      <span className="text-sm text-foreground/80">{SCOPE_LABELS[scope] || scope}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Expiry <span className="text-gray-400">(optional)</span>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
+                  Expiry <span className="text-muted">(optional)</span>
                 </label>
                 <input
                   type="date"
                   value={keyExpiry}
                   onChange={(e) => setKeyExpiry(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent"
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-dark focus:border-transparent"
                 />
               </div>
 
@@ -2132,7 +2132,7 @@ function ApiKeysSection() {
             <div className="flex justify-end gap-2 mt-6">
               <button
                 onClick={resetCreateForm}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                className="px-4 py-2 text-sm text-muted hover:text-foreground"
               >
                 Cancel
               </button>
@@ -2152,10 +2152,10 @@ function ApiKeysSection() {
       {/* Key Reveal Modal — shown ONCE after creation */}
       {showReveal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 mx-4">
+          <div className="bg-card rounded-xl shadow-xl w-full max-w-lg p-6 mx-4">
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle className="w-5 h-5 text-amber-500" />
-              <h4 className="text-lg font-semibold text-gray-900">API Key Created</h4>
+              <h4 className="text-lg font-semibold text-foreground">API Key Created</h4>
             </div>
 
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
@@ -2165,12 +2165,12 @@ function ApiKeysSection() {
             </div>
 
             <div className="flex items-center gap-2 mb-6">
-              <code className="flex-1 bg-gray-100 rounded-lg px-4 py-3 text-sm font-mono text-gray-800 break-all select-all">
+              <code className="flex-1 bg-surface rounded-lg px-4 py-3 text-sm font-mono text-foreground break-all select-all">
                 {revealKey}
               </code>
               <button
                 onClick={() => copyToClipboard(revealKey)}
-                className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                className="flex-shrink-0 p-2 text-muted hover:text-foreground hover:bg-surface rounded-lg"
                 title="Copy to clipboard"
               >
                 <Copy className="w-5 h-5" />
@@ -2227,11 +2227,11 @@ function OwnaIntegrationSection() {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <CloudCog className="w-5 h-5 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900">
+          <CloudCog className="w-5 h-5 text-muted" />
+          <h3 className="text-lg font-semibold text-foreground">
             OWNA Integration
           </h3>
         </div>
@@ -2251,21 +2251,21 @@ function OwnaIntegrationSection() {
       </div>
 
       {isLoading ? (
-        <div className="py-4 text-center text-gray-400 text-sm">
+        <div className="py-4 text-center text-muted text-sm">
           <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
           Loading OWNA status...
         </div>
       ) : !status?.configured ? (
         <div>
-          <p className="text-sm text-gray-500 mb-2">
-            Set the <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">OWNA_API_URL</code> and{" "}
-            <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">OWNA_API_KEY</code> environment
+          <p className="text-sm text-muted mb-2">
+            Set the <code className="text-xs bg-surface px-1.5 py-0.5 rounded">OWNA_API_URL</code> and{" "}
+            <code className="text-xs bg-surface px-1.5 py-0.5 rounded">OWNA_API_KEY</code> environment
             variables to enable automatic attendance and booking sync from OWNA.
           </p>
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             Map each service to its OWNA Service ID to enable automatic
             attendance, booking, and roster sync every 30 minutes during
             operating hours.
@@ -2275,14 +2275,14 @@ function OwnaIntegrationSection() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+                <tr className="border-b border-border">
+                  <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">
                     Service
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+                  <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">
                     OWNA Service ID
                   </th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-3">
+                  <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-3">
                     Last Synced
                   </th>
                   <th className="w-20"></th>
@@ -2292,13 +2292,13 @@ function OwnaIntegrationSection() {
                 {status.services.map((svc) => (
                   <tr
                     key={svc.id}
-                    className="border-b border-gray-100 last:border-0"
+                    className="border-b border-border/50 last:border-0"
                   >
                     <td className="py-2.5 px-3">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-foreground">
                         {svc.name}
                       </div>
-                      <div className="text-xs text-gray-400">{svc.code}</div>
+                      <div className="text-xs text-muted">{svc.code}</div>
                     </td>
                     <td className="py-2.5 px-3">
                       {editingId === svc.id ? (
@@ -2308,7 +2308,7 @@ function OwnaIntegrationSection() {
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                             placeholder="e.g. SVC-001"
-                            className="w-40 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                            className="w-40 px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === "Enter") handleSave(svc.id);
@@ -2328,21 +2328,21 @@ function OwnaIntegrationSection() {
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="p-1 text-gray-400 hover:text-gray-600"
+                            className="p-1 text-muted hover:text-foreground"
                           >
                             <X className="w-4 h-4" />
                           </button>
                         </div>
                       ) : (
                         <span
-                          className={`text-sm ${svc.ownaServiceId ? "text-gray-900 font-mono" : "text-gray-400 italic"}`}
+                          className={`text-sm ${svc.ownaServiceId ? "text-foreground font-mono" : "text-muted italic"}`}
                         >
                           {svc.ownaServiceId || "Not mapped"}
                         </span>
                       )}
                     </td>
                     <td className="py-2.5 px-3">
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-muted">
                         {svc.ownaSyncedAt
                           ? new Date(svc.ownaSyncedAt).toLocaleString("en-AU", {
                               day: "numeric",
@@ -2404,13 +2404,13 @@ function OwnaIntegrationSection() {
               </span>
             )}
             {status.mappedCount === 0 && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted">
                 Map at least one service to enable sync
               </span>
             )}
           </div>
 
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-muted">
             {status.mappedCount} of {status.totalServices} services mapped.
             Auto-sync runs every 30 minutes during operating hours (6am–7pm
             AEST, Mon–Fri).
@@ -2494,14 +2494,14 @@ function BudgetTiersSection() {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border p-6">
       <div className="flex items-center gap-2 mb-4">
-        <DollarSign className="w-5 h-5 text-gray-400" />
-        <h3 className="text-lg font-semibold text-gray-900">
+        <DollarSign className="w-5 h-5 text-muted" />
+        <h3 className="text-lg font-semibold text-foreground">
           Centre Purchase Budget Tiers
         </h3>
       </div>
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-sm text-muted mb-4">
         Set monthly budget allocations based on average weekly attendance.
         Services are matched to the first tier where their weekly attendance meets the minimum.
       </p>
@@ -2509,14 +2509,14 @@ function BudgetTiersSection() {
       {isLoading ? (
         <div className="space-y-2">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
+            <div key={i} className="h-10 bg-surface rounded animate-pulse" />
           ))}
         </div>
       ) : (
         <>
           <table className="w-full text-sm mb-4">
             <thead>
-              <tr className="text-left text-gray-500 border-b border-gray-100">
+              <tr className="text-left text-muted border-b border-border/50">
                 <th className="pb-2 font-medium">Min Weekly Children</th>
                 <th className="pb-2 font-medium">Monthly Budget ($)</th>
                 <th className="pb-2 font-medium w-20" />
@@ -2525,8 +2525,8 @@ function BudgetTiersSection() {
             <tbody className="divide-y divide-gray-50">
               {tiers.map((tier, idx) => (
                 <tr key={idx}>
-                  <td className="py-2 text-gray-900">{tier.minWeeklyChildren}+</td>
-                  <td className="py-2 text-gray-900 font-medium">${tier.monthlyBudget}</td>
+                  <td className="py-2 text-foreground">{tier.minWeeklyChildren}+</td>
+                  <td className="py-2 text-foreground font-medium">${tier.monthlyBudget}</td>
                   <td className="py-2 text-right">
                     <button
                       onClick={() => removeTier(idx)}
@@ -2548,7 +2548,7 @@ function BudgetTiersSection() {
               onChange={(e) => setNewMin(e.target.value)}
               placeholder="Min children"
               min={0}
-              className="w-32 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-32 px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             />
             <input
               type="number"
@@ -2557,11 +2557,11 @@ function BudgetTiersSection() {
               placeholder="Budget ($)"
               min={0}
               step="0.01"
-              className="w-32 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-32 px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             />
             <button
               onClick={addTier}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface text-foreground/80 hover:bg-border transition-colors"
             >
               Add Tier
             </button>
@@ -2608,7 +2608,7 @@ const SECTION_COLORS: Record<string, string> = {
   operations: "bg-emerald-500",
   engagement: "bg-purple-500",
   strategy: "bg-indigo-500",
-  assistant: "bg-gray-500",
+  assistant: "bg-surface/500",
   sentiment: "bg-rose-500",
   attendance: "bg-teal-500",
   duplicates: "bg-orange-500",
@@ -2639,11 +2639,11 @@ function AiUsageDashboard() {
   const maxSectionCalls = sectionEntries.length > 0 ? sectionEntries[0][1].calls : 1;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-purple-500" />
-          <h3 className="text-lg font-semibold text-gray-900">AI Usage</h3>
+          <h3 className="text-lg font-semibold text-foreground">AI Usage</h3>
         </div>
         <div className="flex items-center gap-1">
           {[7, 30, 90].map((d) => (
@@ -2654,7 +2654,7 @@ function AiUsageDashboard() {
                 "px-3 py-1 text-xs rounded-full font-medium transition-colors",
                 days === d
                   ? "bg-purple-100 text-purple-700"
-                  : "text-gray-500 hover:bg-gray-100"
+                  : "text-muted hover:bg-surface"
               )}
             >
               {d}d
@@ -2664,12 +2664,12 @@ function AiUsageDashboard() {
       </div>
 
       {isLoading ? (
-        <div className="py-8 text-center text-gray-400 text-sm">
+        <div className="py-8 text-center text-muted text-sm">
           <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
           Loading AI usage data...
         </div>
       ) : !data || data.totalCalls === 0 ? (
-        <p className="text-sm text-gray-500 py-4 text-center">No AI usage in this period.</p>
+        <p className="text-sm text-muted py-4 text-center">No AI usage in this period.</p>
       ) : (
         <div className="space-y-6">
           {/* Summary Cards */}
@@ -2702,18 +2702,18 @@ function AiUsageDashboard() {
 
           {/* By Section */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Usage by Section</h4>
+            <h4 className="text-sm font-medium text-foreground/80 mb-2">Usage by Section</h4>
             <div className="space-y-2">
               {sectionEntries.map(([section, stats]) => (
                 <div key={section} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-600 w-24 capitalize truncate">{section}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                  <span className="text-xs text-muted w-24 capitalize truncate">{section}</span>
+                  <div className="flex-1 bg-surface rounded-full h-5 overflow-hidden">
                     <div
                       className={cn("h-full rounded-full transition-all", SECTION_COLORS[section] || "bg-gray-400")}
                       style={{ width: `${(stats.calls / maxSectionCalls) * 100}%` }}
                     />
                   </div>
-                  <span className="text-xs font-medium text-gray-700 w-12 text-right">{stats.calls}</span>
+                  <span className="text-xs font-medium text-foreground/80 w-12 text-right">{stats.calls}</span>
                 </div>
               ))}
             </div>
@@ -2721,22 +2721,22 @@ function AiUsageDashboard() {
 
           {/* By User */}
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Usage by User</h4>
+            <h4 className="text-sm font-medium text-foreground/80 mb-2">Usage by User</h4>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left text-xs font-medium text-gray-500 py-1.5">User</th>
-                    <th className="text-right text-xs font-medium text-gray-500 py-1.5">Calls</th>
-                    <th className="text-right text-xs font-medium text-gray-500 py-1.5">Tokens</th>
+                  <tr className="border-b border-border/50">
+                    <th className="text-left text-xs font-medium text-muted py-1.5">User</th>
+                    <th className="text-right text-xs font-medium text-muted py-1.5">Calls</th>
+                    <th className="text-right text-xs font-medium text-muted py-1.5">Tokens</th>
                   </tr>
                 </thead>
                 <tbody>
                   {userEntries.map(([uid, stats]) => (
                     <tr key={uid} className="border-b border-gray-50">
-                      <td className="py-1.5 text-gray-700">{stats.name}</td>
-                      <td className="py-1.5 text-right text-gray-600">{stats.calls}</td>
-                      <td className="py-1.5 text-right text-gray-500 text-xs">
+                      <td className="py-1.5 text-foreground/80">{stats.name}</td>
+                      <td className="py-1.5 text-right text-muted">{stats.calls}</td>
+                      <td className="py-1.5 text-right text-muted text-xs">
                         {formatTokens(stats.inputTokens + stats.outputTokens)}
                       </td>
                     </tr>
@@ -2749,12 +2749,12 @@ function AiUsageDashboard() {
           {/* Top Templates */}
           {templateEntries.length > 0 && (
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Top Templates</h4>
+              <h4 className="text-sm font-medium text-foreground/80 mb-2">Top Templates</h4>
               <div className="space-y-1.5">
                 {templateEntries.map(([slug, stats]) => (
                   <div key={slug} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-600 font-mono truncate max-w-[60%]">{slug}</span>
-                    <span className="text-gray-500">
+                    <span className="text-muted font-mono truncate max-w-[60%]">{slug}</span>
+                    <span className="text-muted">
                       {stats.calls} calls &middot; {formatTokens(stats.inputTokens + stats.outputTokens)} tokens
                     </span>
                   </div>
@@ -2817,30 +2817,30 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       {(userRole === "owner" || userRole === "admin") && (
         <Link
           href="/settings/seed"
-          className="flex items-center gap-4 bg-white rounded-xl border border-gray-200 p-6 hover:border-brand/40 hover:shadow-sm transition-all group"
+          className="flex items-center gap-4 bg-card rounded-xl border border-border p-6 hover:border-brand/40 hover:shadow-sm transition-all group"
         >
           <div className="p-2.5 rounded-lg bg-brand/10 text-brand shrink-0">
             <Database className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900 group-hover:text-brand transition-colors">
+            <h3 className="text-sm font-semibold text-foreground group-hover:text-brand transition-colors">
               Seed Template Data
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               Populate default templates, policies, checklists, and guides. Safe to run multiple times.
             </p>
           </div>
-          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-brand ml-auto shrink-0 transition-colors" />
+          <ArrowRight className="w-4 h-4 text-muted group-hover:text-brand ml-auto shrink-0 transition-colors" />
         </Link>
       )}
 
       {/* User Management (owner + head_office) */}
       {canManageUsers && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-gray-400" />
-              <h3 className="text-lg font-semibold text-gray-900">
+              <Users className="w-5 h-5 text-muted" />
+              <h3 className="text-lg font-semibold text-foreground">
                 User Management
               </h3>
             </div>
@@ -2848,7 +2848,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
               {isOwner && (
                 <button
                   onClick={() => setShowImportStaff(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-border text-foreground/80 hover:bg-surface transition-colors"
                 >
                   <FileSpreadsheet className="w-4 h-4" />
                   Import Staff
@@ -2856,7 +2856,7 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
               )}
               <button
                 onClick={() => setShowBulkInvite(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-border text-foreground/80 hover:bg-surface transition-colors"
               >
                 <Users className="w-4 h-4" />
                 Bulk Invite
@@ -2872,22 +2872,22 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
           </div>
 
           {isLoading ? (
-            <div className="py-8 text-center text-gray-500">Loading users...</div>
+            <div className="py-8 text-center text-muted">Loading users...</div>
           ) : (
             <div className="overflow-visible">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-4">
+                  <tr className="border-b border-border">
+                    <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-4">
                       User
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-4">
+                    <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-4">
                       Role
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-4">
+                    <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-4">
                       Status
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider py-2 px-4">
+                    <th className="text-left text-xs font-medium text-muted uppercase tracking-wider py-2 px-4">
                       Joined
                     </th>
                     <th className="w-12"></th>
@@ -2932,14 +2932,14 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
       )}
 
       {!canManageUsers && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-2">
-            <Users className="w-5 h-5 text-gray-400" />
-            <h3 className="text-lg font-semibold text-gray-900">
+            <Users className="w-5 h-5 text-muted" />
+            <h3 className="text-lg font-semibold text-foreground">
               User Management
             </h3>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             Only owners and head office users can manage users. Contact your organisation owner to
             invite new team members or change roles.
           </p>
@@ -2951,10 +2951,10 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
 
       {/* Adoption Metrics (owner/admin/head_office) */}
       {(isOwner || isHeadOffice || userRole === "admin") && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-card rounded-xl border border-border p-6">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-5 h-5 text-gray-400" />
-            <h3 className="text-lg font-semibold text-gray-900">
+            <BarChart3 className="w-5 h-5 text-muted" />
+            <h3 className="text-lg font-semibold text-foreground">
               Adoption Metrics
             </h3>
           </div>

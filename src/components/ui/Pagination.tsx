@@ -32,7 +32,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, classNa
   return (
     <div className={cn("flex flex-col sm:flex-row items-center justify-between gap-3 pt-4", className)}>
       {totalItems !== undefined && (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted">
           {totalItems} item{totalItems !== 1 ? "s" : ""}
         </p>
       )}
@@ -40,7 +40,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, classNa
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg text-muted hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="Previous page"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -48,7 +48,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, classNa
 
         {pages.map((p, i) =>
           p === "..." ? (
-            <span key={`ellipsis-${i}`} className="px-1 text-xs text-gray-400">
+            <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted">
               …
             </span>
           ) : (
@@ -59,7 +59,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, classNa
                 "min-w-[32px] h-8 rounded-lg text-xs font-medium transition-colors",
                 p === page
                   ? "bg-brand text-white"
-                  : "text-gray-600 hover:bg-gray-100"
+                  : "text-muted hover:bg-surface"
               )}
             >
               {p}
@@ -70,7 +70,7 @@ export function Pagination({ page, totalPages, onPageChange, totalItems, classNa
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg text-muted hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="Next page"
         >
           <ChevronRight className="w-4 h-4" />

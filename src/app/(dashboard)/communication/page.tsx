@@ -23,15 +23,15 @@ export default function CommunicationPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Communication</h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Communication</h2>
+          <p className="text-sm text-muted mt-1 line-clamp-2">
             Stay aligned with announcements, cascade messages, and team pulse check-ins
           </p>
         </div>
       </div>
 
       {/* Tab Bar */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-border">
         <nav className="flex gap-0 -mb-px">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -44,7 +44,7 @@ export default function CommunicationPage() {
                   "flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors",
                   isActive
                     ? "border-brand text-brand"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent text-muted hover:text-foreground hover:border-border"
                 )}
               >
                 <Icon className="w-4 h-4" />

@@ -120,8 +120,8 @@ export function CCSCalculator({
             <Calculator className="h-6 w-6 text-[#004E64]" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">CCS Calculator</h3>
-            <p className="text-sm text-gray-500">
+            <h3 className="text-lg font-semibold text-foreground">CCS Calculator</h3>
+            <p className="text-sm text-muted">
               Estimate your Child Care Subsidy and out-of-pocket costs
             </p>
           </div>
@@ -130,17 +130,17 @@ export function CCSCalculator({
 
       {/* Callout */}
       <div className="bg-[#FECE00]/20 border border-[#FECE00] rounded-xl p-4 text-center">
-        <p className="text-sm text-gray-600">From as little as</p>
+        <p className="text-sm text-muted">From as little as</p>
         <p className="text-3xl font-bold text-[#004E64]">
           ${result.youPay.toFixed(2)}
         </p>
-        <p className="text-sm text-gray-600">per session</p>
+        <p className="text-sm text-muted">per session</p>
       </div>
 
       {/* Inputs */}
       <div className={`grid ${compact ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"} gap-4`}>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-foreground/80 mb-1">
             Household Income
           </label>
           <select
@@ -155,7 +155,7 @@ export function CCSCalculator({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-foreground/80 mb-1">
             Session Type
           </label>
           <div className="flex gap-2">
@@ -164,7 +164,7 @@ export function CCSCalculator({
               className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
                 sessionType === "bsc"
                   ? "bg-[#004E64] text-white border-[#004E64]"
-                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  : "bg-card text-muted border-border hover:bg-surface"
               }`}
             >
               BSC (Before)
@@ -174,7 +174,7 @@ export function CCSCalculator({
               className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
                 sessionType === "asc"
                   ? "bg-[#004E64] text-white border-[#004E64]"
-                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  : "bg-card text-muted border-border hover:bg-surface"
               }`}
             >
               ASC (After)
@@ -183,7 +183,7 @@ export function CCSCalculator({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-foreground/80 mb-1">
             Booking Type
           </label>
           <div className="flex gap-2">
@@ -192,7 +192,7 @@ export function CCSCalculator({
               className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
                 bookingType === "regular"
                   ? "bg-[#004E64] text-white border-[#004E64]"
-                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  : "bg-card text-muted border-border hover:bg-surface"
               }`}
             >
               Regular
@@ -202,7 +202,7 @@ export function CCSCalculator({
               className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
                 bookingType === "casual"
                   ? "bg-[#004E64] text-white border-[#004E64]"
-                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  : "bg-card text-muted border-border hover:bg-surface"
               }`}
             >
               Casual
@@ -211,7 +211,7 @@ export function CCSCalculator({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-foreground/80 mb-1">
             Days per Week: {daysPerWeek}
           </label>
           <input
@@ -222,14 +222,14 @@ export function CCSCalculator({
             onChange={(e) => setDaysPerWeek(Number(e.target.value))}
             className="w-full accent-[#004E64]"
           />
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
+          <div className="flex justify-between text-xs text-muted mt-1">
             <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
           </div>
         </div>
       </div>
 
       {/* Results */}
-      <div className="bg-white rounded-xl border divide-y">
+      <div className="bg-card rounded-xl border divide-y">
         <ResultRow label="Session Fee" value={`$${result.fee.toFixed(2)}`} />
         <ResultRow label="CCS Percentage" value={`${result.ccsPercent}%`} />
         <ResultRow label="Government Pays" value={`$${result.govPays.toFixed(2)}`} highlight="green" />
@@ -239,7 +239,7 @@ export function CCSCalculator({
       </div>
 
       {/* Disclaimer */}
-      <div className="flex items-start gap-2 text-xs text-gray-400 bg-gray-50 rounded-lg p-3">
+      <div className="flex items-start gap-2 text-xs text-muted bg-surface/50 rounded-lg p-3">
         <Info className="h-4 w-4 shrink-0 mt-0.5" />
         <p>
           This is an estimate only. Actual CCS depends on your individual
@@ -268,11 +268,11 @@ function ResultRow({
       ? "text-green-600"
       : highlight === "blue"
       ? "text-[#004E64]"
-      : "text-gray-900";
+      : "text-foreground";
 
   return (
     <div className="flex items-center justify-between px-4 py-3">
-      <span className={`text-sm ${bold ? "font-semibold text-gray-900" : "text-gray-600"}`}>
+      <span className={`text-sm ${bold ? "font-semibold text-foreground" : "text-muted"}`}>
         {label}
       </span>
       <span className={`text-sm font-semibold ${valueColour}`}>{value}</span>

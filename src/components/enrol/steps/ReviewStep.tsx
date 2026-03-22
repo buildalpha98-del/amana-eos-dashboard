@@ -25,13 +25,13 @@ function Section({
 }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
+    <div className="border border-border rounded-xl overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+        className="w-full flex items-center justify-between p-4 bg-surface/50 hover:bg-surface transition-colors"
       >
-        <span className="text-sm font-semibold text-gray-800">{title}</span>
+        <span className="text-sm font-semibold text-foreground">{title}</span>
         <div className="flex items-center gap-2">
           {onEdit && (
             <span
@@ -44,10 +44,10 @@ function Section({
               <Edit2 className="h-3 w-3" /> Edit
             </span>
           )}
-          {open ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+          {open ? <ChevronUp className="h-4 w-4 text-muted" /> : <ChevronDown className="h-4 w-4 text-muted" />}
         </div>
       </button>
-      {open && <div className="p-4 text-sm text-gray-600 space-y-2">{children}</div>}
+      {open && <div className="p-4 text-sm text-muted space-y-2">{children}</div>}
     </div>
   );
 }
@@ -57,8 +57,8 @@ function Field({ label, value }: { label: string; value?: string | boolean | nul
   const display = typeof value === "boolean" ? (value ? "Yes" : "No") : value;
   return (
     <div className="flex flex-col sm:flex-row sm:gap-2">
-      <span className="text-gray-500 sm:w-40 shrink-0">{label}:</span>
-      <span className="text-gray-800 font-medium">{display}</span>
+      <span className="text-muted sm:w-40 shrink-0">{label}:</span>
+      <span className="text-foreground font-medium">{display}</span>
     </div>
   );
 }
@@ -82,7 +82,7 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500 mb-2">
+      <p className="text-sm text-muted mb-2">
         Please review all details below before submitting your enrolment.
       </p>
 
@@ -91,7 +91,7 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
         {data.children.map((child, i) => (
           <div key={i} className="mb-3">
             {data.children.length > 1 && (
-              <p className="font-semibold text-gray-800 mb-1">{child.firstName} {child.surname}</p>
+              <p className="font-semibold text-foreground mb-1">{child.firstName} {child.surname}</p>
             )}
             <Field label="Name" value={`${child.firstName} ${child.surname}`} />
             <Field label="DOB" value={child.dob} />
@@ -114,7 +114,7 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
 
       {/* Parents */}
       <Section title="Parent / Guardian" stepIndex={1}>
-        <p className="font-semibold text-gray-800 mb-1">Primary</p>
+        <p className="font-semibold text-foreground mb-1">Primary</p>
         <Field label="Name" value={`${data.primaryParent.firstName} ${data.primaryParent.surname}`} />
         <Field label="Email" value={data.primaryParent.email} />
         <Field label="Mobile" value={data.primaryParent.mobile} />
@@ -124,7 +124,7 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
         <Field label="Sole Custody" value={data.primaryParent.soleCustody} />
         {data.secondaryParent.firstName && (
           <>
-            <p className="font-semibold text-gray-800 mt-3 mb-1">Secondary</p>
+            <p className="font-semibold text-foreground mt-3 mb-1">Secondary</p>
             <Field label="Name" value={`${data.secondaryParent.firstName} ${data.secondaryParent.surname}`} />
             <Field label="Email" value={data.secondaryParent.email} />
             <Field label="Mobile" value={data.secondaryParent.mobile} />
@@ -137,7 +137,7 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
         {data.medicals.map((med, i) => (
           <div key={i} className="mb-3">
             {data.children.length > 1 && (
-              <p className="font-semibold text-gray-800 mb-1">
+              <p className="font-semibold text-foreground mb-1">
                 {data.children[i]?.firstName || `Child ${i + 1}`}
               </p>
             )}
@@ -168,7 +168,7 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
         ))}
         {data.authorisedPickup.length > 0 && (
           <>
-            <p className="font-semibold text-gray-800 mt-3 mb-1">Authorised Pickup</p>
+            <p className="font-semibold text-foreground mt-3 mb-1">Authorised Pickup</p>
             {data.authorisedPickup.map((p, i) => (
               <Field key={i} label={p.name} value={p.relationship} />
             ))}
@@ -193,7 +193,7 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
         {data.bookingPrefs.map((bp, i) => (
           <div key={i} className="mb-3">
             {data.children.length > 1 && (
-              <p className="font-semibold text-gray-800 mb-1">
+              <p className="font-semibold text-foreground mb-1">
                 {data.children[i]?.firstName || `Child ${i + 1}`}
               </p>
             )}
@@ -220,17 +220,17 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
         <Field label="Direct Debit Agreement" value={data.debitAgreement} />
       </Section>
 
-      <hr className="border-gray-200 my-6" />
+      <hr className="border-border my-6" />
 
       {/* Referral Source */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-foreground/80 mb-2">
           How did you hear about us?
         </label>
         <select
           value={data.referralSource}
           onChange={(e) => updateData({ referralSource: e.target.value })}
-          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-white"
+          className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
         >
           <option value="">Select...</option>
           {REFERRAL_OPTIONS.map((o) => (
@@ -241,35 +241,35 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
 
       {/* Terms */}
       <div className="space-y-3">
-        <label className="flex items-start gap-3 p-4 rounded-xl border bg-gray-50 border-gray-200 cursor-pointer">
+        <label className="flex items-start gap-3 p-4 rounded-xl border bg-surface/50 border-border cursor-pointer">
           <input
             type="checkbox"
             checked={data.termsAccepted}
             onChange={(e) => updateData({ termsAccepted: e.target.checked })}
-            className="mt-1 h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+            className="mt-1 h-4 w-4 rounded border-border text-brand focus:ring-brand"
           />
           <div>
-            <p className="text-sm font-medium text-gray-800">
+            <p className="text-sm font-medium text-foreground">
               Terms & Conditions <span className="text-red-500">*</span>
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               I accept the Amana OSHC Terms & Conditions.
             </p>
           </div>
         </label>
 
-        <label className="flex items-start gap-3 p-4 rounded-xl border bg-gray-50 border-gray-200 cursor-pointer">
+        <label className="flex items-start gap-3 p-4 rounded-xl border bg-surface/50 border-border cursor-pointer">
           <input
             type="checkbox"
             checked={data.privacyAccepted}
             onChange={(e) => updateData({ privacyAccepted: e.target.checked })}
-            className="mt-1 h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+            className="mt-1 h-4 w-4 rounded border-border text-brand focus:ring-brand"
           />
           <div>
-            <p className="text-sm font-medium text-gray-800">
+            <p className="text-sm font-medium text-foreground">
               Privacy Policy <span className="text-red-500">*</span>
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               I accept the Amana OSHC Privacy Policy.
             </p>
           </div>
@@ -278,7 +278,7 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
 
       {/* Signature */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-foreground/80 mb-2">
           Digital Signature <span className="text-red-500">*</span>
         </label>
         <SignaturePad value={data.signature} onChange={(v) => updateData({ signature: v })} />

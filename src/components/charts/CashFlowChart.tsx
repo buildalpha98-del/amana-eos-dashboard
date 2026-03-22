@@ -118,11 +118,11 @@ export function CashFlowChart() {
       </div>
 
       {isLoading ? (
-        <div className="h-[350px] flex items-center justify-center text-gray-400">
+        <div className="h-[350px] flex items-center justify-center text-muted">
           Loading...
         </div>
       ) : !hasData ? (
-        <div className="h-[350px] flex flex-col items-center justify-center text-gray-400 gap-2">
+        <div className="h-[350px] flex flex-col items-center justify-center text-muted gap-2">
           <p>No cash flow data yet</p>
           <p className="text-xs">
             Click &quot;Generate 12-Month Forecast&quot; to create projections from your financial data

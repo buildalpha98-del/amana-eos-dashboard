@@ -114,8 +114,8 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
           className="fixed inset-0 z-40 bg-black/30"
           onClick={onClose}
         />
-        <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg items-center justify-center bg-white shadow-xl">
-          <p className="text-gray-500">Loading post...</p>
+        <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg items-center justify-center bg-card shadow-xl">
+          <p className="text-muted">Loading post...</p>
         </div>
       </>
     );
@@ -128,8 +128,8 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
           className="fixed inset-0 z-40 bg-black/30"
           onClick={onClose}
         />
-        <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg items-center justify-center bg-white shadow-xl">
-          <p className="text-gray-500">Post not found</p>
+        <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg items-center justify-center bg-card shadow-xl">
+          <p className="text-muted">Post not found</p>
         </div>
       </>
     );
@@ -144,15 +144,15 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto bg-white shadow-xl">
+      <div className="fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto bg-card shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex-1 mr-4">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={() => autoSave("title", title)}
-              className="text-lg font-semibold text-gray-900 bg-transparent border-none outline-none focus:ring-0 w-full"
+              className="text-lg font-semibold text-foreground bg-transparent border-none outline-none focus:ring-0 w-full"
             />
             {/* Service Badges */}
             {post.services && post.services.length > 0 && (
@@ -168,20 +168,20 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               </div>
             )}
             {(!post.services || post.services.length === 0) && (
-              <p className="text-xs text-gray-400 italic mt-1">All Centres</p>
+              <p className="text-xs text-muted italic mt-1">All Centres</p>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowPreview(true)}
-              className="rounded-lg p-2 text-gray-400 hover:bg-brand/5 hover:text-brand transition-colors"
+              className="rounded-lg p-2 text-muted hover:bg-brand/5 hover:text-brand transition-colors"
               title="Preview post"
             >
               <Eye className="h-4 w-4" />
             </button>
             <button
               onClick={() => setShowHistory(true)}
-              className="rounded-lg p-2 text-gray-400 hover:bg-brand/5 hover:text-brand transition-colors"
+              className="rounded-lg p-2 text-muted hover:bg-brand/5 hover:text-brand transition-colors"
               title="Revision history"
             >
               <History className="h-4 w-4" />
@@ -199,7 +199,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
             </button>
             <button
               onClick={onClose}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              className="rounded-lg p-2 text-muted hover:bg-surface hover:text-foreground transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -207,7 +207,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
         </div>
 
         {/* Workflow Status Buttons */}
-        <div className="flex gap-1 border-b border-gray-200 px-6 py-3 overflow-x-auto">
+        <div className="flex gap-1 border-b border-border px-6 py-3 overflow-x-auto">
           {STATUSES.map((s) => (
             <button
               key={s.value}
@@ -215,7 +215,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               className={`rounded-lg px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                 post.status === s.value
                   ? "bg-brand text-white"
-                  : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                  : "border border-border text-muted hover:bg-surface"
               }`}
             >
               {s.label}
@@ -225,7 +225,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
 
         {/* Approval Section */}
         {post.status === "draft" && (
-          <div className="border-b border-gray-200 px-6 py-3">
+          <div className="border-b border-border px-6 py-3">
             <button
               onClick={() => handleStatusChange("in_review")}
               className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors"
@@ -245,7 +245,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
         )}
 
         {post.status === "in_review" && (
-          <div className="border-b border-gray-200 px-6 py-3 space-y-2">
+          <div className="border-b border-border px-6 py-3 space-y-2">
             <div className="flex items-center gap-2">
               <button
                 onClick={() =>
@@ -280,7 +280,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="Reason for rejection (optional)..."
                   rows={2}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
                 <button
                   onClick={() => {
@@ -311,7 +311,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
         )}
 
         {post.status === "approved" && post.approvedBy && (
-          <div className="border-b border-gray-200 px-6 py-3">
+          <div className="border-b border-border px-6 py-3">
             <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
               <Check className="h-4 w-4 text-emerald-600" />
               <span className="text-sm text-emerald-700">
@@ -332,7 +332,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
         <div className="space-y-4 px-6 py-4">
           {/* Platform */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               Platform
             </label>
             <select
@@ -341,7 +341,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                 setPlatform(e.target.value);
                 autoSave("platform", e.target.value);
               }}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             >
               {PLATFORM_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -353,7 +353,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
 
           {/* Scheduled Date */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               Scheduled Date
             </label>
             <input
@@ -366,14 +366,14 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                   scheduledDate ? new Date(scheduledDate).toISOString() : null
                 )
               }
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
 
           {/* Target Centres */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <label className="block text-xs font-medium text-muted uppercase tracking-wider">
                 Target Centres
               </label>
               <button
@@ -391,9 +391,9 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                 onChange={handleSaveCentres}
               />
             ) : (
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+              <div className="rounded-lg border border-border bg-surface/50 px-3 py-2">
                 {serviceIds.length === 0 ? (
-                  <span className="text-sm text-gray-500 italic">
+                  <span className="text-sm text-muted italic">
                     All Centres
                   </span>
                 ) : (
@@ -414,7 +414,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
 
           {/* Content */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               Content
             </label>
             <textarea
@@ -422,14 +422,14 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               onChange={(e) => setContent(e.target.value)}
               onBlur={() => autoSave("content", content || null)}
               rows={4}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
             />
             <ContentCharCounter content={content} platform={platform} />
           </div>
 
           {/* Pillar */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               Pillar
             </label>
             <input
@@ -437,33 +437,33 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               value={pillar}
               onChange={(e) => setPillar(e.target.value)}
               onBlur={() => autoSave("pillar", pillar || null)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
 
           {/* Assignee (read-only) */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               Assignee
             </label>
-            <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+            <p className="rounded-lg border border-border bg-surface/50 px-3 py-2 text-sm text-foreground/80">
               {post.assignee?.name ?? "Unassigned"}
             </p>
           </div>
 
           {/* Campaign (read-only) */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               Campaign
             </label>
-            <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+            <p className="rounded-lg border border-border bg-surface/50 px-3 py-2 text-sm text-foreground/80">
               {post.campaign?.name ?? "None"}
             </p>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               Notes
             </label>
             <textarea
@@ -471,13 +471,13 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               onChange={(e) => setNotes(e.target.value)}
               onBlur={() => autoSave("notes", notes || null)}
               rows={3}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand resize-none"
             />
           </div>
 
           {/* Design Link */}
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="mb-1 block text-xs font-medium text-muted uppercase tracking-wider">
               Design Link
             </label>
             <input
@@ -486,7 +486,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
               onChange={(e) => setDesignLink(e.target.value)}
               onBlur={() => autoSave("designLink", designLink || null)}
               placeholder="https://..."
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
 
@@ -529,8 +529,8 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
         </div>
 
         {/* Engagement Stats */}
-        <div className="border-t border-gray-200 px-6 py-4">
-          <h3 className="mb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <div className="border-t border-border px-6 py-4">
+          <h3 className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">
             Engagement Stats
           </h3>
           <div className="grid grid-cols-2 gap-3">
@@ -542,16 +542,16 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
             ].map((stat) => (
               <div
                 key={stat.field}
-                className="rounded-lg border border-gray-200 bg-gray-50 p-3"
+                className="rounded-lg border border-border bg-surface/50 p-3"
               >
-                <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
+                <p className="text-xs text-muted mb-1">{stat.label}</p>
                 <input
                   type="number"
                   min={0}
                   value={stat.value}
                   onChange={(e) => stat.setter(Number(e.target.value) || 0)}
                   onBlur={() => autoSave(stat.field, stat.value)}
-                  className="w-full bg-transparent text-lg font-semibold text-gray-900 border-none outline-none focus:ring-0 p-0"
+                  className="w-full bg-transparent text-lg font-semibold text-foreground border-none outline-none focus:ring-0 p-0"
                 />
               </div>
             ))}
@@ -561,8 +561,8 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
         {/* Social Metrics Section (published FB/IG posts only) */}
         {post.status === "published" &&
           ["facebook", "instagram"].includes(post.platform) && (
-            <div className="border-t border-gray-200 px-6 py-4">
-              <h3 className="mb-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <div className="border-t border-border px-6 py-4">
+              <h3 className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">
                 Social Metrics
               </h3>
 
@@ -575,7 +575,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                         Live
                       </span>
                       {post.engagementSyncedAt && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted">
                           Last synced:{" "}
                           {(() => {
                             const diff =
@@ -611,7 +611,7 @@ export function PostDetailPanel({ postId, onClose }: PostDetailPanelProps) {
                             externalUrl: null,
                           })
                         }
-                        className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-red-500"
+                        className="inline-flex items-center gap-1 text-xs text-muted hover:text-danger"
                       >
                         <Unlink className="h-3 w-3" />
                         Unlink
@@ -702,7 +702,7 @@ function ContentCharCounter({ content, platform }: { content: string; platform: 
   const isNear = pct >= 80;
 
   return (
-    <div className={`flex items-center justify-between mt-1 text-xs ${isOver ? "text-red-600 font-medium" : isNear ? "text-amber-600" : "text-gray-400"}`}>
+    <div className={`flex items-center justify-between mt-1 text-xs ${isOver ? "text-red-600 font-medium" : isNear ? "text-amber-600" : "text-muted"}`}>
       <span>{count.toLocaleString()} / {limit.toLocaleString()}</span>
       {isOver && <span>{(count - limit).toLocaleString()} over limit</span>}
     </div>

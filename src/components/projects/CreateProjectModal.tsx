@@ -27,7 +27,7 @@ function TemplateCategoryBadges({ tasks }: { tasks: ProjectTemplate["tasks"] }) 
       {categories.map(([cat, count]) => (
         <span
           key={cat}
-          className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-600"
+          className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-surface text-muted"
         >
           {cat} ({count})
         </span>
@@ -53,9 +53,9 @@ function TemplateTaskPreview({ template }: { template: ProjectTemplate }) {
   const totalDays = Math.max(...template.tasks.map((t) => t.defaultDays || 0));
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3">
+    <div className="bg-surface/50 rounded-lg p-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <p className="text-xs font-medium text-muted uppercase tracking-wider">
           {template.tasks.length} tasks over {totalDays} days
         </p>
         <button
@@ -79,17 +79,17 @@ function TemplateTaskPreview({ template }: { template: ProjectTemplate }) {
       >
         {grouped.map(([category, tasks]) => (
           <div key={category}>
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">
+            <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
               {category}
             </p>
             <div className="space-y-0.5">
               {tasks.map((t, i) => (
-                <p key={t.id} className="text-xs text-gray-600 flex items-start gap-1.5">
-                  <CheckCircle2 className="w-3 h-3 text-gray-300 mt-0.5 flex-shrink-0" />
+                <p key={t.id} className="text-xs text-muted flex items-start gap-1.5">
+                  <CheckCircle2 className="w-3 h-3 text-muted/50 mt-0.5 flex-shrink-0" />
                   <span className="flex-1">
                     {t.title}
                     {t.defaultDays != null && (
-                      <span className="text-gray-400"> (day {t.defaultDays})</span>
+                      <span className="text-muted"> (day {t.defaultDays})</span>
                     )}
                   </span>
                 </p>
@@ -219,13 +219,13 @@ export function CreateProjectModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               {preselectedTemplateId ? "Launch from Template" : "Create New Project"}
             </h3>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-muted mt-0.5">
               {preselectedTemplateId
                 ? "Configure your project launch"
                 : "Optionally start from a template"}
@@ -233,7 +233,7 @@ export function CreateProjectModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+            className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -249,9 +249,9 @@ export function CreateProjectModal({
           {/* Template Selector */}
           {sortedTemplates.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Project Template{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                <span className="text-muted font-normal">(optional)</span>
               </label>
               <div className="space-y-2">
                 {sortedTemplates.map((t) => {
@@ -270,7 +270,7 @@ export function CreateProjectModal({
                             : "border-brand bg-brand/5"
                           : isFeatured
                             ? "border-brand/30 bg-brand/[0.02] hover:border-brand/50"
-                            : "border-gray-200 hover:border-gray-300"
+                            : "border-border hover:border-border"
                       }`}
                     >
                       {isFeatured ? (
@@ -282,13 +282,13 @@ export function CreateProjectModal({
                       ) : (
                         <FileText
                           className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                            isSelected ? "text-brand" : "text-gray-400"
+                            isSelected ? "text-brand" : "text-muted"
                           }`}
                         />
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-foreground">
                             {t.name}
                           </p>
                           {isFeatured && (
@@ -298,7 +298,7 @@ export function CreateProjectModal({
                           )}
                         </div>
                         {t.description && (
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                          <p className="text-xs text-muted mt-0.5 line-clamp-2">
                             {t.description}
                           </p>
                         )}
@@ -312,7 +312,7 @@ export function CreateProjectModal({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Project Name
             </label>
             <input
@@ -320,34 +320,34 @@ export function CreateProjectModal({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="e.g., Lakemba Centre Opening"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Description{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
+              <span className="text-muted font-normal">(optional)</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Service Centre{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                <span className="text-muted font-normal">(optional)</span>
               </label>
               <select
                 value={serviceId}
                 onChange={(e) => setServiceId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">No linked centre</option>
                 {services?.map((s) => (
@@ -358,14 +358,14 @@ export function CreateProjectModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Project Owner
               </label>
               <select
                 required
                 value={ownerId}
                 onChange={(e) => setOwnerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="">Select owner...</option>
                 {users?.map((u) => (
@@ -379,26 +379,26 @@ export function CreateProjectModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Start Date
               </label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Target Date{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                <span className="text-muted font-normal">(optional)</span>
               </label>
               <input
                 type="date"
                 value={targetDate}
                 onChange={(e) => setTargetDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
           </div>
@@ -412,7 +412,7 @@ export function CreateProjectModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface transition-colors"
             >
               Cancel
             </button>

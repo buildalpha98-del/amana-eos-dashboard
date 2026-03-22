@@ -169,7 +169,7 @@ export function CampaignDetailPanel({
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col bg-white shadow-xl">
+      <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col bg-card shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4">
           <div className="min-w-0 flex-1">
@@ -183,12 +183,12 @@ export function CampaignDetailPanel({
                   if (e.key === "Enter") handleNameBlur();
                 }}
                 autoFocus
-                className="w-full rounded border border-brand px-2 py-1 text-lg font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand"
+                className="w-full rounded border border-brand px-2 py-1 text-lg font-semibold text-foreground focus:outline-none focus:ring-1 focus:ring-brand"
               />
             ) : (
               <h2
                 onClick={() => setEditingName(true)}
-                className="cursor-pointer truncate text-lg font-semibold text-gray-900 hover:text-brand"
+                className="cursor-pointer truncate text-lg font-semibold text-foreground hover:text-brand"
               >
                 {isLoading ? "Loading..." : name}
               </h2>
@@ -207,7 +207,7 @@ export function CampaignDetailPanel({
               </div>
             )}
             {campaign && (!campaign.services || campaign.services.length === 0) && (
-              <p className="text-xs text-gray-400 italic mt-1">All Centres</p>
+              <p className="text-xs text-muted italic mt-1">All Centres</p>
             )}
           </div>
           <div className="ml-3 flex items-center gap-2">
@@ -216,7 +216,7 @@ export function CampaignDetailPanel({
               className={`rounded-lg p-2 transition-colors ${
                 confirmDelete
                   ? "bg-red-100 text-red-600 hover:bg-red-200"
-                  : "text-gray-400 hover:bg-gray-100 hover:text-red-500"
+                  : "text-muted hover:bg-surface hover:text-danger"
               }`}
               title={confirmDelete ? "Click again to confirm delete" : "Delete campaign"}
             >
@@ -224,7 +224,7 @@ export function CampaignDetailPanel({
             </button>
             <button
               onClick={onClose}
-              className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-lg p-2 text-muted transition-colors hover:bg-surface hover:text-foreground"
             >
               <X className="h-5 w-5" />
             </button>
@@ -233,7 +233,7 @@ export function CampaignDetailPanel({
 
         {/* AI Campaign Brief */}
         {campaign && !isLoading && (
-          <div className="flex items-center gap-2 border-b px-6 py-2 bg-gray-50">
+          <div className="flex items-center gap-2 border-b px-6 py-2 bg-surface/50">
             <AiButton
               templateSlug="marketing/campaign-brief"
               variables={{
@@ -279,7 +279,7 @@ export function CampaignDetailPanel({
         )}
 
         {isLoading ? (
-          <div className="flex flex-1 items-center justify-center text-gray-500">
+          <div className="flex flex-1 items-center justify-center text-muted">
             Loading campaign...
           </div>
         ) : (
@@ -288,7 +288,7 @@ export function CampaignDetailPanel({
             <div className="space-y-4">
               {/* Status */}
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted">
                   Status
                 </label>
                 <select
@@ -297,7 +297,7 @@ export function CampaignDetailPanel({
                     setStatus(e.target.value);
                     handleUpdate("status", e.target.value);
                   }}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   {CAMPAIGN_STATUSES.map((s) => (
                     <option key={s} value={s} className="capitalize">
@@ -309,7 +309,7 @@ export function CampaignDetailPanel({
 
               {/* Type */}
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted">
                   Type
                 </label>
                 <select
@@ -318,7 +318,7 @@ export function CampaignDetailPanel({
                     setType(e.target.value);
                     handleUpdate("type", e.target.value);
                   }}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 >
                   {CAMPAIGN_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -330,7 +330,7 @@ export function CampaignDetailPanel({
 
               {/* Start Date */}
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted">
                   Start Date
                 </label>
                 <input
@@ -343,13 +343,13 @@ export function CampaignDetailPanel({
                       startDate ? new Date(startDate).toISOString() : null
                     )
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
               {/* End Date */}
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted">
                   End Date
                 </label>
                 <input
@@ -362,13 +362,13 @@ export function CampaignDetailPanel({
                       endDate ? new Date(endDate).toISOString() : null
                     )
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
               {/* Platforms */}
               <div>
-                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-muted">
                   Platforms
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -378,7 +378,7 @@ export function CampaignDetailPanel({
                       className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                         platforms.includes(p)
                           ? "border-brand bg-brand/10 text-brand"
-                          : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                          : "border-border bg-card text-muted hover:border-border"
                       }`}
                     >
                       <input
@@ -396,7 +396,7 @@ export function CampaignDetailPanel({
               {/* Target Centres */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <label className="block text-xs font-medium uppercase tracking-wider text-muted">
                     Target Centres
                   </label>
                   <button
@@ -414,9 +414,9 @@ export function CampaignDetailPanel({
                     onChange={handleSaveCentres}
                   />
                 ) : (
-                  <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                  <div className="rounded-lg border border-border bg-surface/50 px-3 py-2">
                     {serviceIds.length === 0 ? (
-                      <span className="text-sm text-gray-500 italic">
+                      <span className="text-sm text-muted italic">
                         All Centres
                       </span>
                     ) : (
@@ -437,7 +437,7 @@ export function CampaignDetailPanel({
 
               {/* Goal */}
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted">
                   Goal
                 </label>
                 <textarea
@@ -446,13 +446,13 @@ export function CampaignDetailPanel({
                   onBlur={() => handleUpdate("goal", goal || null)}
                   rows={2}
                   placeholder="Campaign goal..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
               {/* Notes */}
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted">
                   Notes
                 </label>
                 <textarea
@@ -461,13 +461,13 @@ export function CampaignDetailPanel({
                   onBlur={() => handleUpdate("notes", notes || null)}
                   rows={2}
                   placeholder="Additional notes..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
 
               {/* Design Link */}
               <div>
-                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted">
                   Design Link
                 </label>
                 <input
@@ -478,7 +478,7 @@ export function CampaignDetailPanel({
                     handleUpdate("designLink", designLink || null)
                   }
                   placeholder="https://..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
               </div>
               {/* Activation / Event Fields */}
@@ -486,7 +486,7 @@ export function CampaignDetailPanel({
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted">
                         Budget ($)
                       </label>
                       <input
@@ -502,11 +502,11 @@ export function CampaignDetailPanel({
                           )
                         }
                         placeholder="0.00"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                      <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted">
                         Location
                       </label>
                       <input
@@ -517,12 +517,12 @@ export function CampaignDetailPanel({
                           handleUpdate("location", location || null)
                         }
                         placeholder="Venue or address"
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                        className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-gray-500">
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-muted">
                       Deliverables
                     </label>
                     <textarea
@@ -533,7 +533,7 @@ export function CampaignDetailPanel({
                       }
                       rows={2}
                       placeholder="Key deliverables..."
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </>
@@ -553,7 +553,7 @@ export function CampaignDetailPanel({
             {/* Centre Assignments (activation / event only) */}
             {(type === "activation" || type === "event") && (
               <div>
-                <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                <h3 className="text-xs font-medium text-muted uppercase tracking-wider mb-3">
                   Centre Assignments
                 </h3>
                 <ActivationAssignmentGrid campaignId={campaignId} />
@@ -563,7 +563,7 @@ export function CampaignDetailPanel({
             {/* Tasks */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-medium uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                <h3 className="text-xs font-medium uppercase tracking-wider text-muted flex items-center gap-1.5">
                   <CheckSquare className="h-3.5 w-3.5" />
                   Tasks{" "}
                   {campaignTasks && campaignTasks.length > 0
@@ -582,7 +582,7 @@ export function CampaignDetailPanel({
                 <div className="space-y-1.5">
                   {campaignTasks.map((task) => {
                     const statusColors: Record<string, string> = {
-                      todo: "bg-gray-100 text-gray-600",
+                      todo: "bg-surface text-muted",
                       in_progress: "bg-blue-100 text-blue-700",
                       in_review: "bg-amber-100 text-amber-700",
                       done: "bg-emerald-100 text-emerald-700",
@@ -590,26 +590,26 @@ export function CampaignDetailPanel({
                     return (
                       <div
                         key={task.id}
-                        className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                        className="flex items-center justify-between rounded-lg border border-border/50 bg-surface/50 px-3 py-2"
                       >
                         <span
                           className={`text-sm font-medium ${
                             task.status === "done"
-                              ? "text-gray-400 line-through"
-                              : "text-gray-800"
+                              ? "text-muted line-through"
+                              : "text-foreground"
                           }`}
                         >
                           {task.title}
                         </span>
                         <div className="flex items-center gap-2">
                           {task.assignee && (
-                            <span className="text-[10px] text-gray-400">
+                            <span className="text-[10px] text-muted">
                               {task.assignee?.name ?? "Unassigned"}
                             </span>
                           )}
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                              statusColors[task.status] ?? "bg-gray-100 text-gray-600"
+                              statusColors[task.status] ?? "bg-surface text-muted"
                             }`}
                           >
                             {task.status.replace("_", " ")}
@@ -620,7 +620,7 @@ export function CampaignDetailPanel({
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted">
                   No tasks linked to this campaign.
                 </p>
               )}
@@ -629,16 +629,16 @@ export function CampaignDetailPanel({
             {/* Linked Posts */}
             {campaign?.posts && campaign.posts.length > 0 && (
               <div>
-                <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-gray-500">
+                <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted">
                   Linked Posts ({campaign.posts.length})
                 </h3>
                 <div className="space-y-2">
                   {campaign.posts.map((post) => (
                     <div
                       key={post.id}
-                      className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+                      className="flex items-center justify-between rounded-lg border border-border/50 bg-surface/50 px-3 py-2"
                     >
-                      <span className="text-sm font-medium text-gray-800">
+                      <span className="text-sm font-medium text-foreground">
                         {post.title}
                       </span>
                       <div className="flex items-center gap-2">
@@ -653,7 +653,7 @@ export function CampaignDetailPanel({
 
             {/* Comments Thread */}
             <div>
-              <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-gray-500">
+              <h3 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted">
                 Comments{" "}
                 {campaign?.comments
                   ? `(${campaign.comments.length})`
@@ -665,22 +665,22 @@ export function CampaignDetailPanel({
                   {campaign.comments.map((comment) => (
                     <div
                       key={comment.id}
-                      className="rounded-lg bg-gray-50 px-3 py-2"
+                      className="rounded-lg bg-surface/50 px-3 py-2"
                     >
                       <div className="mb-1 flex items-center gap-2">
-                        <span className="text-xs font-semibold text-gray-700">
+                        <span className="text-xs font-semibold text-foreground/80">
                           {comment.author?.name ?? "Unknown"}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted">
                           {new Date(comment.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">{comment.text}</p>
+                      <p className="text-sm text-muted">{comment.text}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="mb-4 text-sm text-gray-400">
+                <p className="mb-4 text-sm text-muted">
                   No comments yet.
                 </p>
               )}
@@ -692,7 +692,7 @@ export function CampaignDetailPanel({
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Add a comment..."
                   rows={2}
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                  className="flex-1 rounded-lg border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                 />
                 <button
                   type="submit"
@@ -750,8 +750,8 @@ function CampaignProgressSummary({
   const taskPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
-      <h3 className="text-xs font-medium uppercase tracking-wider text-gray-500">
+    <div className="rounded-lg border border-border bg-surface/50 p-4 space-y-3">
+      <h3 className="text-xs font-medium uppercase tracking-wider text-muted">
         Campaign Progress
       </h3>
       <div className="grid grid-cols-3 gap-3">
@@ -786,10 +786,10 @@ function ProgressMetric({
   return (
     <div>
       <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-gray-500">{label}</span>
-        <span className="font-medium text-gray-700">{value}</span>
+        <span className="text-muted">{label}</span>
+        <span className="font-medium text-foreground/80">{value}</span>
       </div>
-      <div className="w-full bg-gray-200 rounded-full h-1.5">
+      <div className="w-full bg-border rounded-full h-1.5">
         <div
           className={`${barColour} h-1.5 rounded-full transition-all`}
           style={{ width: `${Math.min(pct, 100)}%` }}

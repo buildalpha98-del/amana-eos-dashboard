@@ -88,7 +88,7 @@ export function MobileQuickActions({ role }: MobileQuickActionsProps) {
 
   return (
     <div className="md:hidden">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h3>
+      <h3 className="text-sm font-semibold text-foreground/80 mb-3">Quick Actions</h3>
       <div className="grid grid-cols-4 gap-2">
         {actions.map((action) => {
           const Icon = action.icon;
@@ -97,14 +97,14 @@ export function MobileQuickActions({ role }: MobileQuickActionsProps) {
               key={action.href}
               href={action.href}
               className={cn(
-                "flex flex-col items-center gap-1.5 p-3 rounded-xl border border-gray-100 transition-all active:scale-95",
+                "flex flex-col items-center gap-1.5 p-3 rounded-xl border border-border/50 transition-all active:scale-95",
                 action.bgColor
               )}
             >
-              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center bg-white shadow-sm")}>
+              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center bg-card shadow-sm")}>
                 <Icon className={cn("w-5 h-5", action.color)} />
               </div>
-              <span className="text-[11px] font-medium text-gray-700 text-center leading-tight">
+              <span className="text-[11px] font-medium text-foreground/80 text-center leading-tight">
                 {action.label}
               </span>
             </Link>

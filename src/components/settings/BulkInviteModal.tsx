@@ -457,18 +457,18 @@ export function BulkInviteModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-brand" />
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               Bulk Invite Users
             </h3>
           </div>
           <button
             onClick={handleClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+            className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -479,7 +479,7 @@ export function BulkInviteModal({
           {/* ── Step: Upload ── */}
           {step === "upload" && (
             <div className="space-y-6">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted">
                 Upload a CSV file to invite multiple users at once. Each user
                 will receive a welcome email with a temporary password.
               </p>
@@ -497,14 +497,14 @@ export function BulkInviteModal({
                   "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors",
                   dragActive
                     ? "border-brand bg-brand/5"
-                    : "border-gray-300 hover:border-brand/40 hover:bg-gray-50",
+                    : "border-border hover:border-brand/40 hover:bg-surface",
                 )}
               >
-                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-3" />
-                <p className="text-sm font-medium text-gray-700">
+                <Upload className="w-8 h-8 text-muted mx-auto mb-3" />
+                <p className="text-sm font-medium text-foreground/80">
                   Drop your CSV file here, or click to browse
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted mt-1">
                   Accepts .csv files up to 500 rows
                 </p>
                 <input
@@ -517,21 +517,21 @@ export function BulkInviteModal({
               </div>
 
               {/* Template download */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-surface/50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <FileSpreadsheet className="w-5 h-5 text-gray-400" />
+                  <FileSpreadsheet className="w-5 h-5 text-muted" />
                   <div>
-                    <p className="text-sm font-medium text-gray-700">
+                    <p className="text-sm font-medium text-foreground/80">
                       CSV Template
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted">
                       Download a sample CSV with the correct columns
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={downloadTemplate}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 text-gray-700 hover:bg-white transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-border text-foreground/80 hover:bg-card transition-colors"
                 >
                   <Download className="w-4 h-4" />
                   Download Template
@@ -540,31 +540,31 @@ export function BulkInviteModal({
 
               {/* Expected format */}
               <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
                   Expected Columns
                 </p>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center gap-2">
                     <span className="text-red-500">*</span>
-                    <span className="text-gray-700">
+                    <span className="text-foreground/80">
                       <strong>name</strong> — Full name
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-red-500">*</span>
-                    <span className="text-gray-700">
+                    <span className="text-foreground/80">
                       <strong>email</strong> — Email address
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-400">-</span>
-                    <span className="text-gray-700">
+                    <span className="text-muted">-</span>
+                    <span className="text-foreground/80">
                       <strong>role</strong> — member, staff, coordinator, etc.
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-gray-400">-</span>
-                    <span className="text-gray-700">
+                    <span className="text-muted">-</span>
+                    <span className="text-foreground/80">
                       <strong>centre</strong> — Service name or code
                     </span>
                   </div>
@@ -599,32 +599,32 @@ export function BulkInviteModal({
               </div>
 
               {/* Preview table */}
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="border border-border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto max-h-96">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50 sticky top-0">
+                    <thead className="bg-surface/50 sticky top-0">
                       <tr>
-                        <th className="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase w-8">
+                        <th className="text-left px-3 py-2 text-xs font-medium text-muted uppercase w-8">
                           #
                         </th>
-                        <th className="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">
+                        <th className="text-left px-3 py-2 text-xs font-medium text-muted uppercase">
                           Status
                         </th>
-                        <th className="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">
+                        <th className="text-left px-3 py-2 text-xs font-medium text-muted uppercase">
                           Name
                         </th>
-                        <th className="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">
+                        <th className="text-left px-3 py-2 text-xs font-medium text-muted uppercase">
                           Email
                         </th>
-                        <th className="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">
+                        <th className="text-left px-3 py-2 text-xs font-medium text-muted uppercase">
                           Role
                         </th>
-                        <th className="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">
+                        <th className="text-left px-3 py-2 text-xs font-medium text-muted uppercase">
                           Centre
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-border/50">
                       {rows.map((row, i) => (
                         <tr
                           key={i}
@@ -633,7 +633,7 @@ export function BulkInviteModal({
                             row.status === "warning" && "bg-yellow-50/50",
                           )}
                         >
-                          <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                          <td className="px-3 py-2 text-muted">{i + 1}</td>
                           <td className="px-3 py-2">
                             <div className="flex items-center gap-1.5">
                               {row.status === "valid" && (
@@ -653,7 +653,7 @@ export function BulkInviteModal({
                                       ? "text-red-600"
                                       : row.status === "warning"
                                         ? "text-yellow-600"
-                                        : "text-gray-500",
+                                        : "text-muted",
                                   )}
                                 >
                                   {row.statusMessage}
@@ -661,10 +661,10 @@ export function BulkInviteModal({
                               )}
                             </div>
                           </td>
-                          <td className="px-3 py-2 text-gray-900">
+                          <td className="px-3 py-2 text-foreground">
                             {row.name}
                           </td>
-                          <td className="px-3 py-2 text-gray-600">
+                          <td className="px-3 py-2 text-muted">
                             {row.email}
                           </td>
                           <td className="px-3 py-2">
@@ -674,7 +674,7 @@ export function BulkInviteModal({
                                 onChange={(e) =>
                                   updateRowRole(i, e.target.value as Role)
                                 }
-                                className="text-xs px-1.5 py-0.5 border border-gray-200 rounded text-gray-700 bg-white"
+                                className="text-xs px-1.5 py-0.5 border border-border rounded text-foreground/80 bg-card"
                               >
                                 {VALID_ROLES.filter(
                                   (r) =>
@@ -687,12 +687,12 @@ export function BulkInviteModal({
                                 ))}
                               </select>
                             ) : (
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-muted">
                                 {ROLE_DISPLAY_NAMES[row.role] || row.role}
                               </span>
                             )}
                           </td>
-                          <td className="px-3 py-2 text-gray-600 text-xs">
+                          <td className="px-3 py-2 text-muted text-xs">
                             {row.centre || "—"}
                           </td>
                         </tr>
@@ -708,17 +708,17 @@ export function BulkInviteModal({
           {step === "inviting" && (
             <div className="py-8 text-center space-y-4">
               <Loader2 className="w-8 h-8 text-brand animate-spin mx-auto" />
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-foreground/80">
                 Sending invites...
               </p>
               <div className="max-w-xs mx-auto">
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-surface rounded-full overflow-hidden">
                   <div
                     className="h-full bg-brand rounded-full transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-2">{progress}%</p>
+                <p className="text-xs text-muted mt-2">{progress}%</p>
               </div>
             </div>
           )}
@@ -751,7 +751,7 @@ export function BulkInviteModal({
               {/* Skipped details */}
               {result.skipped.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                  <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
                     Skipped
                   </p>
                   <div className="bg-yellow-50 rounded-lg p-3 space-y-1">
@@ -767,7 +767,7 @@ export function BulkInviteModal({
               {/* Error details */}
               {result.errors.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                  <p className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
                     Errors
                   </p>
                   <div className="bg-red-50 rounded-lg p-3 space-y-1">
@@ -784,13 +784,13 @@ export function BulkInviteModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border shrink-0">
           {step === "upload" && (
             <>
               <div />
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors"
               >
                 Cancel
               </button>
@@ -801,7 +801,7 @@ export function BulkInviteModal({
             <>
               <button
                 onClick={reset}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors"
               >
                 Back
               </button>
@@ -812,7 +812,7 @@ export function BulkInviteModal({
                   "inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors",
                   validCount > 0
                     ? "bg-brand text-white hover:bg-brand-hover"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed",
+                    : "bg-surface text-muted cursor-not-allowed",
                 )}
               >
                 <Users className="w-4 h-4" />
@@ -824,7 +824,7 @@ export function BulkInviteModal({
           {step === "inviting" && (
             <>
               <div />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted">
                 Please wait, this may take a moment...
               </p>
             </>

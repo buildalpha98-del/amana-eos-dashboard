@@ -37,7 +37,7 @@ interface ReferralStats {
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; icon: typeof CheckCircle }> = {
-  pending: { bg: "bg-gray-100", text: "text-gray-700", icon: Clock },
+  pending: { bg: "bg-surface", text: "text-foreground/80", icon: Clock },
   enquired: { bg: "bg-blue-100", text: "text-blue-700", icon: Users },
   enrolled: { bg: "bg-green-100", text: "text-green-700", icon: CheckCircle },
   rewarded: { bg: "bg-emerald-100", text: "text-emerald-700", icon: Gift },
@@ -143,7 +143,7 @@ export function ReferralsTab({ serviceId }: { serviceId?: string }) {
               className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
                 filterStatus === s
                   ? "bg-brand/5 border-brand text-brand"
-                  : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                  : "bg-card border-border text-muted hover:bg-surface"
               }`}
             >
               {s || "All"}
@@ -161,11 +161,11 @@ export function ReferralsTab({ serviceId }: { serviceId?: string }) {
       </div>
 
       {/* Referrals Table */}
-      <div className="bg-white rounded-xl border overflow-hidden">
+      <div className="bg-card rounded-xl border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left text-xs text-gray-500 uppercase">
+              <tr className="bg-surface/50 text-left text-xs text-muted uppercase">
                 <th className="px-4 py-3">Referrer</th>
                 <th className="px-4 py-3">Referred</th>
                 <th className="px-4 py-3">Centre</th>
@@ -175,10 +175,10 @@ export function ReferralsTab({ serviceId }: { serviceId?: string }) {
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border/50">
               {referrals.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted">
                     No referrals found
                   </td>
                 </tr>
@@ -187,30 +187,30 @@ export function ReferralsTab({ serviceId }: { serviceId?: string }) {
                   const style = STATUS_STYLES[ref.status] || STATUS_STYLES.pending;
                   const StatusIcon = style.icon;
                   return (
-                    <tr key={ref.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">
+                    <tr key={ref.id} className="hover:bg-surface">
+                      <td className="px-4 py-3 font-medium text-foreground">
                         {ref.referrerName}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-gray-900">{ref.referredName}</div>
+                        <div className="text-foreground">{ref.referredName}</div>
                         {ref.referredEmail && (
-                          <div className="text-xs text-gray-400">{ref.referredEmail}</div>
+                          <div className="text-xs text-muted">{ref.referredEmail}</div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{ref.service.name}</td>
+                      <td className="px-4 py-3 text-muted">{ref.service.name}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
                           <StatusIcon className="h-3 w-3" />
                           {ref.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">
+                      <td className="px-4 py-3 text-muted">
                         ${ref.rewardAmount}
                         {ref.rewardIssuedAt && (
                           <span className="text-xs text-green-600 ml-1">Issued</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">
+                      <td className="px-4 py-3 text-muted text-xs">
                         {new Date(ref.createdAt).toLocaleDateString("en-AU")}
                       </td>
                       <td className="px-4 py-3">
@@ -278,15 +278,15 @@ function StatCard({
   sub?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border p-4">
+    <div className="bg-card rounded-xl border p-4">
       <div className="flex items-center gap-2 mb-2">
         <div className={`p-1.5 rounded-lg bg-${colour}-50`}>
           <Icon className={`h-4 w-4 text-${colour}-600`} />
         </div>
-        <span className="text-xs text-gray-500">{label}</span>
+        <span className="text-xs text-muted">{label}</span>
       </div>
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
-      {sub && <div className="text-xs text-gray-400 mt-0.5">{sub}</div>}
+      <div className="text-2xl font-bold text-foreground">{value}</div>
+      {sub && <div className="text-xs text-muted mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -339,11 +339,11 @@ function CreateReferralModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Referral</h3>
+      <div className="bg-card rounded-xl shadow-xl w-full max-w-md p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4">Add Referral</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Centre</label>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">Centre</label>
             <select
               className="w-full border rounded-lg px-3 py-2 text-sm"
               value={form.serviceId}
@@ -357,7 +357,7 @@ function CreateReferralModal({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Referrer Name</label>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">Referrer Name</label>
             <input
               type="text"
               className="w-full border rounded-lg px-3 py-2 text-sm"
@@ -367,7 +367,7 @@ function CreateReferralModal({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Referred Family Name</label>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">Referred Family Name</label>
             <input
               type="text"
               className="w-full border rounded-lg px-3 py-2 text-sm"
@@ -378,7 +378,7 @@ function CreateReferralModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Email</label>
               <input
                 type="email"
                 className="w-full border rounded-lg px-3 py-2 text-sm"
@@ -387,7 +387,7 @@ function CreateReferralModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Phone</label>
               <input
                 type="tel"
                 className="w-full border rounded-lg px-3 py-2 text-sm"
@@ -400,7 +400,7 @@ function CreateReferralModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              className="px-4 py-2 text-sm text-muted hover:text-foreground"
             >
               Cancel
             </button>

@@ -51,7 +51,7 @@ export function ScoreTrendChart() {
   if (isLoading) {
     return (
       <ChartCard title="Score Trend" subtitle="Historical performance over time">
-        <div className="h-[320px] flex items-center justify-center text-gray-400 text-sm">
+        <div className="h-[320px] flex items-center justify-center text-muted text-sm">
           Loading...
         </div>
       </ChartCard>
@@ -61,7 +61,7 @@ export function ScoreTrendChart() {
   if (!data || data.months.length === 0) {
     return (
       <ChartCard title="Score Trend" subtitle="Historical performance over time">
-        <div className="h-[320px] flex items-center justify-center text-gray-400 text-sm">
+        <div className="h-[320px] flex items-center justify-center text-muted text-sm">
           No historical data available yet. Scores are computed from monthly metrics snapshots.
         </div>
       </ChartCard>
