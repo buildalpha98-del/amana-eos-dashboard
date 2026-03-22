@@ -208,6 +208,24 @@ body::before {
   border-radius: 4px;
 }
 
+/* ─── Mobile Touch Targets ─────────────────────────────── */
+/* Apple HIG: 44px minimum. Apply to all interactive elements on coarse-pointer (touch) devices */
+
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  select,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  textarea {
+    min-height: 44px;
+  }
+
+  /* Exception: icon-only buttons that are nested inside larger interactive areas */
+  button[aria-label] > svg:only-child {
+    /* Parent button gets the 44px, SVG stays at its own size */
+  }
+}
+
 /* ─── Input Refinements ─────────────────────────────────── */
 
 input:not([type="checkbox"]):not([type="radio"]),

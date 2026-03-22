@@ -44,7 +44,9 @@ function SheetContent({
   return (
     <DialogPrimitive.Content
       className={cn(
-        "fixed inset-y-0 z-50 w-full bg-white shadow-2xl flex flex-col",
+        "fixed inset-y-0 z-50 bg-card shadow-2xl flex flex-col",
+        // Full width on mobile, constrained width on desktop
+        "w-full max-md:max-w-none",
         width,
         side === "right" ? "right-0" : "left-0",
         side === "right"
