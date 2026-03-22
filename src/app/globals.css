@@ -179,6 +179,25 @@ body::before {
   animation: widget-in 0.4s ease-out both;
 }
 
+/* ─── Auto-stagger children ───────────────────────────── */
+/* Apply to a parent: each direct child gets a progressively delayed widget-in animation */
+
+@utility stagger-children {
+  & > * {
+    opacity: 0;
+    animation: widget-in 0.4s ease-out both;
+  }
+  & > *:nth-child(1) { animation-delay: 0ms; }
+  & > *:nth-child(2) { animation-delay: 60ms; }
+  & > *:nth-child(3) { animation-delay: 120ms; }
+  & > *:nth-child(4) { animation-delay: 180ms; }
+  & > *:nth-child(5) { animation-delay: 240ms; }
+  & > *:nth-child(6) { animation-delay: 300ms; }
+  & > *:nth-child(7) { animation-delay: 360ms; }
+  & > *:nth-child(8) { animation-delay: 420ms; }
+  & > *:nth-child(n+9) { animation-delay: 480ms; }
+}
+
 /* Respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

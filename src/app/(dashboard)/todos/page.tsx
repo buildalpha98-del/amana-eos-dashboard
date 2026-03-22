@@ -260,7 +260,7 @@ function TodosPageContent() {
   }, [carryForwardTodos, weekOf, updateTodo]);
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto stagger-children">
       <PullToRefreshIndicator pullDistance={pullDistance} isRefreshing={isRefreshing} />
 
       {/* Header */}

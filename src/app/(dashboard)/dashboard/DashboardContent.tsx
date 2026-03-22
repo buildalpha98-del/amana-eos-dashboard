@@ -390,7 +390,7 @@ function CommandCentreDashboard({
           </div>
         </div>
       ) : data ? (
-        <>
+        <div className="contents stagger-children">
           {/* ── Alert Banner ────────────────────────────────── */}
           <WidgetErrorBoundary widgetName="Alert Banner">
             <AlertBanner
@@ -612,7 +612,7 @@ function CommandCentreDashboard({
           <WidgetErrorBoundary widgetName="Recent Activity">
             <DashboardRecentActivity />
           </WidgetErrorBoundary>
-        </>
+        </div>
       ) : (
         <div className="text-center py-16 text-muted">
           <p>Unable to load dashboard data. Please try again.</p>
