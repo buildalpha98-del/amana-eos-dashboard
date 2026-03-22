@@ -85,12 +85,12 @@ function AttendanceBar({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-xs">
-        <span className="font-medium text-gray-700">{label}</span>
-        <span className="text-gray-500">
+        <span className="font-medium text-foreground/80">{label}</span>
+        <span className="text-muted">
           {session.attended}/{session.enrolled} permanent
         </span>
       </div>
-      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-2 bg-surface rounded-full overflow-hidden">
         <div
           className={cn(
             "h-full rounded-full transition-all",
@@ -103,7 +103,7 @@ function AttendanceBar({
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-[10px] text-gray-400">
+      <p className="text-[10px] text-muted">
         {pct}% of {session.capacity} capacity
       </p>
     </div>
@@ -141,7 +141,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center gap-2 mb-4">
           <Skeleton className="w-2 h-2 rounded-full" />
           <Skeleton className="h-4 w-32" />
@@ -149,7 +149,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="rounded-lg p-4 space-y-3 bg-gray-50">
+            <div key={i} className="rounded-lg p-4 space-y-3 bg-surface/50">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-2 w-full" />
               <Skeleton className="h-2 w-3/4" />
@@ -166,18 +166,18 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
     data.attendance.bsc || data.attendance.asc || data.attendance.vc;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
       {/* Header */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-3 hover:bg-surface/50 transition-colors"
       >
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-500" />
-          <h3 className="text-sm font-semibold text-gray-900">
+          <h3 className="text-sm font-semibold text-foreground">
             Today&apos;s Snapshot
           </h3>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-muted">
             {new Date().toLocaleDateString("en-AU", {
               weekday: "short",
               day: "numeric",
@@ -186,9 +186,9 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
           </span>
         </div>
         {collapsed ? (
-          <ChevronDown className="w-4 h-4 text-gray-400" />
+          <ChevronDown className="w-4 h-4 text-muted" />
         ) : (
-          <ChevronUp className="w-4 h-4 text-gray-400" />
+          <ChevronUp className="w-4 h-4 text-muted" />
         )}
       </button>
 
@@ -201,7 +201,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
             <div className="bg-slate-50 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-4 h-4 text-brand" />
-                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <h4 className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
                   Attendance Today
                 </h4>
               </div>
@@ -216,7 +216,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400 italic">
+                <p className="text-xs text-muted italic">
                   No attendance recorded today
                 </p>
               )}
@@ -226,10 +226,10 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
             <div className="bg-blue-50/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-brand" />
-                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <h4 className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
                   Staff On Duty
                 </h4>
-                <span className="ml-auto text-xs font-medium text-gray-500 bg-white px-1.5 py-0.5 rounded">
+                <span className="ml-auto text-xs font-medium text-muted bg-card px-1.5 py-0.5 rounded">
                   {data.staffOnDuty.length}
                 </span>
               </div>
@@ -252,14 +252,14 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                           {getInitials(staff.name)}
                         </div>
                       )}
-                      <span className="text-xs text-gray-600 max-w-[80px] truncate">
+                      <span className="text-xs text-muted max-w-[80px] truncate">
                         {staff.name.split(" ")[0]}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400 italic">
+                <p className="text-xs text-muted italic">
                   No staff assigned
                 </p>
               )}
@@ -269,7 +269,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
             <div className="bg-amber-50/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <CheckSquare className="w-4 h-4 text-brand" />
-                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <h4 className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
                   To-Dos Due
                 </h4>
                 <span
@@ -277,7 +277,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                     "ml-auto text-xs font-medium px-1.5 py-0.5 rounded",
                     data.todosToday.length > 0
                       ? "bg-amber-100 text-amber-700"
-                      : "bg-white text-gray-500"
+                      : "bg-card text-muted"
                   )}
                 >
                   {data.todosToday.length}
@@ -296,10 +296,10 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                         )}
                       />
                       <div className="min-w-0">
-                        <p className="text-xs text-gray-800 truncate leading-tight">
+                        <p className="text-xs text-foreground truncate leading-tight">
                           {todo.title}
                         </p>
-                        <p className="text-[10px] text-gray-400">
+                        <p className="text-[10px] text-muted">
                           {todo.assigneeName}
                         </p>
                       </div>
@@ -317,7 +317,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                   )}
                 </ul>
               ) : (
-                <p className="text-xs text-gray-400 italic">
+                <p className="text-xs text-muted italic">
                   All caught up!
                 </p>
               )}
@@ -327,7 +327,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
             <div className="bg-rose-50/50 rounded-lg p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <Ticket className="w-4 h-4 text-brand" />
-                <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <h4 className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
                   Open Tickets
                 </h4>
                 <span
@@ -335,7 +335,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                     "ml-auto text-xs font-medium px-1.5 py-0.5 rounded",
                     data.openTickets.length > 0
                       ? "bg-rose-100 text-rose-700"
-                      : "bg-white text-gray-500"
+                      : "bg-card text-muted"
                   )}
                 >
                   {data.openTickets.length}
@@ -354,10 +354,10 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                         )}
                       />
                       <div className="min-w-0">
-                        <p className="text-xs text-gray-800 truncate leading-tight">
+                        <p className="text-xs text-foreground truncate leading-tight">
                           {ticket.title}
                         </p>
-                        <p className="text-[10px] text-gray-400">
+                        <p className="text-[10px] text-muted">
                           {new Date(ticket.createdAt).toLocaleDateString(
                             "en-AU",
                             { day: "numeric", month: "short" }
@@ -378,7 +378,7 @@ export function ServiceTodayPanel({ serviceId }: { serviceId: string }) {
                   )}
                 </ul>
               ) : (
-                <p className="text-xs text-gray-400 italic">
+                <p className="text-xs text-muted italic">
                   No open tickets
                 </p>
               )}

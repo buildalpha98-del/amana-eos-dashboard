@@ -158,7 +158,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -170,7 +170,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
         <select
           value={platform}
           onChange={(e) => setPlatform(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          className="rounded-lg border border-border bg-card px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
           {PLATFORM_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -195,7 +195,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
           </button>
           <button
             onClick={() => setShowImport(true)}
-            className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground/80 hover:bg-surface transition-colors"
           >
             Import Template
           </button>
@@ -203,13 +203,13 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-gray-500">
+          <div className="flex items-center justify-center py-16 text-muted">
             Loading posts...
           </div>
         ) : !posts || posts.length === 0 ? (
-          <div className="flex items-center justify-center py-16 text-gray-500">
+          <div className="flex items-center justify-center py-16 text-muted">
             No posts found
           </div>
         ) : (
@@ -217,13 +217,13 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <tr className="border-b border-border bg-surface/50 text-left text-xs font-medium uppercase tracking-wider text-muted">
                   <th className="px-3 py-3 w-10">
                     <input
                       type="checkbox"
                       checked={selectedPostIds.size === posts.length && posts.length > 0}
                       onChange={toggleSelectAll}
-                      className="rounded border-gray-300 text-brand focus:ring-brand"
+                      className="rounded border-border text-brand focus:ring-brand"
                     />
                   </th>
                   <th className="px-4 py-3">Title</th>
@@ -235,7 +235,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                   <th className="px-4 py-3">Campaign</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border/50">
                 {posts.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map((post) => {
                   const hasLiveSync = isRecentSync(post.engagementSyncedAt);
                   const totalEngagement =
@@ -244,7 +244,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                   return (
                     <tr
                       key={post.id}
-                      className="cursor-pointer hover:bg-gray-50 transition-colors"
+                      className="cursor-pointer hover:bg-surface transition-colors"
                     >
                       <td
                         className="px-3 py-3"
@@ -254,11 +254,11 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                           type="checkbox"
                           checked={selectedPostIds.has(post.id)}
                           onChange={() => toggleSelect(post.id)}
-                          className="rounded border-gray-300 text-brand focus:ring-brand"
+                          className="rounded border-border text-brand focus:ring-brand"
                         />
                       </td>
                       <td
-                        className="px-4 py-3 font-medium text-gray-900"
+                        className="px-4 py-3 font-medium text-foreground"
                         onClick={() => onSelectPost(post.id)}
                       >
                         <div className="flex items-center gap-1.5">
@@ -285,13 +285,13 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                               </span>
                             ))}
                             {post.services.length > 3 && (
-                              <span className="text-[10px] text-gray-400">
+                              <span className="text-[10px] text-muted">
                                 +{post.services.length - 3}
                               </span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400 italic">
+                          <span className="text-xs text-muted italic">
                             All Centres
                           </span>
                         )}
@@ -317,13 +317,13 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                         </div>
                       </td>
                       <td
-                        className="px-4 py-3 text-gray-600"
+                        className="px-4 py-3 text-muted"
                         onClick={() => onSelectPost(post.id)}
                       >
                         {formatDate(post.scheduledDate)}
                       </td>
                       <td
-                        className="px-4 py-3 text-gray-600"
+                        className="px-4 py-3 text-muted"
                         onClick={() => onSelectPost(post.id)}
                       >
                         <div className="flex items-center gap-1.5">
@@ -337,7 +337,7 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
                         </div>
                       </td>
                       <td
-                        className="px-4 py-3 text-gray-600"
+                        className="px-4 py-3 text-muted"
                         onClick={() => onSelectPost(post.id)}
                       >
                         {post.campaign?.name ?? "\u2014"}
@@ -350,22 +350,22 @@ export function PostsTab({ onSelectPost, serviceId }: PostsTabProps) {
           </div>
           {/* Pagination */}
           {posts.length > PAGE_SIZE && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
-              <span className="text-xs text-gray-500">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-surface/50">
+              <span className="text-xs text-muted">
                 Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, posts.length)} of {posts.length}
               </span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="px-3 py-1 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-xs font-medium rounded border border-border bg-card text-muted hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setPage((p) => p + 1)}
                   disabled={(page + 1) * PAGE_SIZE >= posts.length}
-                  className="px-3 py-1 text-xs font-medium rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-xs font-medium rounded border border-border bg-card text-muted hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>

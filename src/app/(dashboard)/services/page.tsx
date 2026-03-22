@@ -26,6 +26,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { toast } from "@/hooks/useToast";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 /** Swim-lane definitions — order matters for rendering */
 const swimLanes = [
@@ -209,23 +210,11 @@ export default function ServicesPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Service Centres
-          </h2>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-            Manage your OSHC centres across all locations
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          Add Centre
-        </button>
-      </div>
+      <PageHeader
+        title="Service Centres"
+        description="Manage your OSHC centres across all locations"
+        primaryAction={{ label: "Add Centre", icon: Plus, onClick: () => setShowCreate(true) }}
+      />
 
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -241,14 +230,14 @@ export default function ServicesPage() {
       {/* Search + Sort */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         <div className="relative flex-1 sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search centres..."
             aria-label="Search centres"
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
         <div className="flex items-center gap-3">
@@ -256,7 +245,7 @@ export default function ServicesPage() {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortKey)}
             aria-label="Sort centres"
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30"
+            className="text-sm border border-border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/30"
           >
             <option value="name">Sort: Name</option>
             <option value="state">Sort: State</option>
@@ -265,7 +254,7 @@ export default function ServicesPage() {
           {isAdmin && (
             <button
               onClick={selectAll}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 px-2 py-1"
+              className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground px-2 py-1"
               title={
                 selectedIds.size === filtered.length
                   ? "Deselect all"
@@ -281,7 +270,7 @@ export default function ServicesPage() {
             </button>
           )}
         </div>
-        <p className="text-sm text-gray-400 sm:ml-auto">
+        <p className="text-sm text-muted sm:ml-auto">
           {filtered.length} of {totalCount} centres
         </p>
       </div>
@@ -295,7 +284,7 @@ export default function ServicesPage() {
           <select
             value={bulkAction}
             onChange={(e) => setBulkAction(e.target.value)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand/30"
+            className="text-sm border border-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand/30"
           >
             <option value="">Choose action...</option>
             <option value="active">Set Active</option>
@@ -317,7 +306,7 @@ export default function ServicesPage() {
           </button>
           <button
             onClick={clearSelection}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-surface"
           >
             <X className="w-4 h-4" />
           </button>
@@ -339,7 +328,7 @@ export default function ServicesPage() {
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="bg-white rounded-xl border border-gray-200 p-4 space-y-3"
+              className="bg-card rounded-xl border border-border p-4 space-y-3"
             >
               <Skeleton className="h-5 w-3/4" />
               <Skeleton className="h-3 w-1/2" />
@@ -379,7 +368,7 @@ export default function ServicesPage() {
                   <div
                     className={`w-1 h-6 rounded-full border-l-4 ${lane.accentColor}`}
                   />
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                  <h3 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider">
                     {lane.label}
                   </h3>
                   <span
@@ -390,15 +379,15 @@ export default function ServicesPage() {
                 </div>
 
                 {items.length === 0 ? (
-                  <div className="flex items-center justify-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                    <p className="text-sm text-gray-400">
+                  <div className="flex items-center justify-center py-6 bg-surface/50 rounded-xl border border-dashed border-border">
+                    <p className="text-sm text-muted">
                       No centres in this category
                     </p>
                   </div>
                 ) : (
                   <>
                     {/* Desktop: horizontal scroll */}
-                    <div className="hidden sm:flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                    <div className="hidden sm:flex gap-3 sm:gap-4 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
                       {items.map((service) => (
                         <div
                           key={service.id}
@@ -416,7 +405,7 @@ export default function ServicesPage() {
                               {selectedIds.has(service.id) ? (
                                 <CheckSquare className="w-5 h-5 text-brand" />
                               ) : (
-                                <Square className="w-5 h-5 text-gray-300" />
+                                <Square className="w-5 h-5 text-border" />
                               )}
                             </button>
                           )}
@@ -434,7 +423,7 @@ export default function ServicesPage() {
                                 e.stopPropagation();
                                 setDeleteTarget(service);
                               }}
-                              className="absolute bottom-2 left-2 p-1.5 rounded-lg bg-white/90 border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-300 opacity-0 group-hover/card:opacity-100 transition-all z-10"
+                              className="absolute bottom-2 left-2 p-1.5 rounded-lg bg-card/90 border border-border text-muted hover:text-red-600 hover:border-red-300 opacity-0 group-hover/card:opacity-100 transition-all z-10"
                               title="Delete centre"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -460,7 +449,7 @@ export default function ServicesPage() {
                               {selectedIds.has(service.id) ? (
                                 <CheckSquare className="w-5 h-5 text-brand" />
                               ) : (
-                                <Square className="w-5 h-5 text-gray-300" />
+                                <Square className="w-5 h-5 text-border" />
                               )}
                             </button>
                           )}
@@ -479,7 +468,7 @@ export default function ServicesPage() {
                                 e.stopPropagation();
                                 setDeleteTarget(service);
                               }}
-                              className="absolute bottom-2 left-2 p-2 rounded-lg bg-white border border-gray-200 text-gray-400 active:text-red-600 active:border-red-300 z-10"
+                              className="absolute bottom-2 left-2 p-2 rounded-lg bg-card border border-border text-muted active:text-red-600 active:border-red-300 z-10"
                               title="Delete centre"
                             >
                               <Trash2 className="w-4 h-4" />

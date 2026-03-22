@@ -36,14 +36,14 @@ const priorityConfig = {
     label: "Medium",
     icon: Minus,
     color: "text-yellow-600",
-    bg: "bg-white border-gray-200",
+    bg: "bg-card border-border",
     badge: "bg-yellow-100 text-yellow-700",
   },
   low: {
     label: "Low",
     icon: ArrowDown,
     color: "text-blue-600",
-    bg: "bg-white border-gray-200",
+    bg: "bg-card border-border",
     badge: "bg-blue-100 text-blue-700",
   },
 };
@@ -70,8 +70,8 @@ const statusConfig = {
   closed: {
     label: "Closed",
     icon: XCircle,
-    color: "text-gray-400",
-    bg: "bg-gray-50",
+    color: "text-muted",
+    bg: "bg-surface/50",
   },
 };
 
@@ -106,7 +106,7 @@ export function IssueCard({
     >
       <div className="flex items-start gap-3">
         {/* Drag Handle */}
-        <GripVertical className="w-4 h-4 text-gray-300 opacity-0 group-hover/card:opacity-100 transition-opacity mt-0.5 flex-shrink-0" />
+        <GripVertical className="w-4 h-4 text-muted/50 md:opacity-0 md:group-hover/card:opacity-100 opacity-60 transition-opacity mt-0.5 flex-shrink-0" />
 
         {/* Priority Icon */}
         <div className={cn("mt-0.5 flex-shrink-0", p.color)}>
@@ -115,13 +115,13 @@ export function IssueCard({
 
         <div className="flex-1 min-w-0">
           {/* Title */}
-          <h4 className="text-sm font-semibold text-gray-900 leading-snug">
+          <h4 className="text-sm font-semibold text-foreground leading-snug">
             {issue.title}
           </h4>
 
           {/* Description preview */}
           {issue.description && (
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+            <p className="text-xs text-muted mt-1 line-clamp-2">
               {issue.description}
             </p>
           )}
@@ -160,7 +160,7 @@ export function IssueCard({
 
             {/* Spawned Todos count */}
             {issue._count.spawnedTodos > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+              <span className="inline-flex items-center gap-1 text-xs text-muted">
                 <CheckSquare className="w-3 h-3" />
                 {issue._count.spawnedTodos}
               </span>
@@ -175,7 +175,7 @@ export function IssueCard({
                     ? "bg-red-100 text-red-700"
                     : daysOpen >= 7
                     ? "bg-amber-100 text-amber-700"
-                    : "bg-gray-100 text-gray-500"
+                    : "bg-surface text-muted"
                 )}
               >
                 <Clock className="w-3 h-3" />
@@ -187,13 +187,13 @@ export function IssueCard({
           {/* Owner / Raised by */}
           <div className="flex items-center gap-3 mt-2">
             {issue.owner && (
-              <span className="text-xs text-gray-400">
-                Owner: <span className="text-gray-600">{issue.owner?.name ?? "Unassigned"}</span>
+              <span className="text-xs text-muted">
+                Owner: <span className="text-muted">{issue.owner?.name ?? "Unassigned"}</span>
               </span>
             )}
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-muted">
               Raised by{" "}
-              <span className="text-gray-500">{issue.raisedBy?.name ?? "Unknown"}</span>
+              <span className="text-muted">{issue.raisedBy?.name ?? "Unknown"}</span>
             </span>
           </div>
         </div>

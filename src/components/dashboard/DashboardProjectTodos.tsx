@@ -13,7 +13,7 @@ import {
 import type { ProjectTodoItem } from "@/hooks/useDashboardData";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pending", color: "text-gray-500" },
+  pending: { label: "Pending", color: "text-muted" },
   in_progress: { label: "In Progress", color: "text-blue-600" },
 };
 
@@ -59,14 +59,14 @@ export function DashboardProjectTodos({
   const projectEntries = Object.entries(grouped);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-card rounded-xl border border-border p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <FolderKanban className="w-5 h-5 text-brand" />
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             Project To-Dos
           </h3>
-          <span className="text-xs text-gray-400 font-medium ml-1">
+          <span className="text-xs text-muted font-medium ml-1">
             {todos.length} active
           </span>
         </div>
@@ -88,12 +88,12 @@ export function DashboardProjectTodos({
               <div className="flex items-center gap-2 mb-2">
                 <Link
                   href="/projects"
-                  className="text-sm font-semibold text-gray-800 hover:text-brand transition-colors"
+                  className="text-sm font-semibold text-foreground hover:text-brand transition-colors"
                 >
                   {first.projectName}
                 </Link>
                 {first.serviceName && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-md">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted bg-surface px-1.5 py-0.5 rounded-md">
                     <Building2 className="w-3 h-3" />
                     {first.serviceName}
                   </span>
@@ -114,13 +114,13 @@ export function DashboardProjectTodos({
                   return (
                     <div
                       key={todo.id}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors group"
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface/50 transition-colors group"
                     >
                       {/* Checkbox */}
                       <button
                         onClick={() => toggleTodo.mutate(todo.id)}
                         disabled={toggleTodo.isPending}
-                        className="w-4.5 h-4.5 rounded border-2 border-gray-300 hover:border-brand flex items-center justify-center flex-shrink-0 transition-colors"
+                        className="w-4.5 h-4.5 rounded border-2 border-border hover:border-brand flex items-center justify-center flex-shrink-0 transition-colors"
                         title="Mark complete"
                       >
                         <CheckSquare className="w-0 h-0 group-hover:w-3 group-hover:h-3 text-brand transition-all" />
@@ -128,10 +128,10 @@ export function DashboardProjectTodos({
 
                       {/* Title + meta */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-700 truncate">
+                        <p className="text-sm text-foreground/80 truncate">
                           {todo.title}
                         </p>
-                        <p className="text-[10px] text-gray-400">
+                        <p className="text-[10px] text-muted">
                           {todo.assigneeName} &middot;{" "}
                           <span className={st.color}>{st.label}</span>
                         </p>
@@ -143,7 +143,7 @@ export function DashboardProjectTodos({
                           "flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md shrink-0",
                           todo.isOverdue
                             ? "bg-red-50 text-red-600"
-                            : "bg-gray-50 text-gray-500"
+                            : "bg-surface/50 text-muted"
                         )}
                       >
                         {todo.isOverdue && (

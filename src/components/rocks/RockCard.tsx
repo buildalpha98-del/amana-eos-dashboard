@@ -39,7 +39,7 @@ export function RockCard({
     <div
       onClick={onClick}
       className={cn(
-        "bg-white rounded-lg border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-all duration-150 group",
+        "bg-card rounded-lg border border-border p-4 cursor-pointer hover:shadow-md transition-all duration-150 group",
         isDragging && "shadow-lg rotate-1 opacity-90"
       )}
     >
@@ -61,31 +61,31 @@ export function RockCard({
               Co.
             </span>
           ) : (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-gray-50 text-gray-500">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-surface/50 text-muted">
               <User className="w-2.5 h-2.5" />
               Personal
             </span>
           )}
         </div>
-        <GripVertical className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <GripVertical className="w-4 h-4 text-muted/50 md:opacity-0 md:group-hover:opacity-100 opacity-60 transition-opacity" />
       </div>
 
       {/* Title */}
-      <h4 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2">
+      <h4 className="text-sm font-semibold text-foreground mb-2 line-clamp-2">
         {rock.title}
       </h4>
 
       {/* Progress Bar */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+          <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
             Progress
           </span>
-          <span className="text-xs font-semibold text-gray-700">
+          <span className="text-xs font-semibold text-foreground/80">
             {rock.percentComplete}%
           </span>
         </div>
-        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-surface rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
@@ -109,12 +109,12 @@ export function RockCard({
                 .slice(0, 2)}
             </span>
           </div>
-          <span className="text-xs text-gray-500 truncate max-w-[100px]">
+          <span className="text-xs text-muted truncate max-w-[100px]">
             {rock.owner?.name ?? "Unassigned"}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 text-gray-400">
+        <div className="flex items-center gap-2 text-muted">
           {rock._count.todos > 0 && (
             <span className="flex items-center gap-0.5 text-xs">
               <CheckSquare className="w-3 h-3" />

@@ -163,7 +163,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
         </div>
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            <div key={i} className="bg-card rounded-xl border border-border p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <Skeleton className="w-8 h-8 rounded-full" />
                 <Skeleton className="h-4 w-32" />
@@ -185,7 +185,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-5 h-5 text-brand" />
-          <h3 className="text-base font-semibold text-gray-900">
+          <h3 className="text-base font-semibold text-foreground">
             Service Scorecard
           </h3>
         </div>
@@ -200,12 +200,12 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
 
       {/* Empty state */}
       {measurables.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 py-16 text-center">
-          <BarChart3 className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-sm font-medium text-gray-500">
+        <div className="bg-card rounded-xl border border-border py-16 text-center">
+          <BarChart3 className="w-10 h-10 text-muted/50 mx-auto mb-3" />
+          <p className="text-sm font-medium text-muted">
             No measurables yet
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-muted mt-1">
             Add a measurable to start tracking service KPIs weekly.
           </p>
           <button
@@ -227,7 +227,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                 return val.toLocaleString();
               };
               return (
-                <div key={m.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                <div key={m.id} className="bg-card rounded-xl border border-border p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
                       <span className="text-[10px] font-medium text-brand">
@@ -240,16 +240,16 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{m.title}</p>
-                      <p className="text-xs text-gray-400">{m.owner?.name ?? "Unassigned"}</p>
+                      <p className="text-sm font-medium text-foreground truncate">{m.title}</p>
+                      <p className="text-xs text-muted">{m.owner?.name ?? "Unassigned"}</p>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-gray-600 font-medium shrink-0">
+                    <div className="flex items-center gap-1 text-xs text-muted font-medium shrink-0">
                       {m.goalDirection === "above" ? (
                         <TrendingUp className="w-3 h-3 text-emerald-500" />
                       ) : m.goalDirection === "below" ? (
                         <TrendingDown className="w-3 h-3 text-blue-500" />
                       ) : (
-                        <Target className="w-3 h-3 text-gray-500" />
+                        <Target className="w-3 h-3 text-muted" />
                       )}
                       {formatVal(m.goalValue)}
                     </div>
@@ -261,7 +261,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                       const entry = entryLookup[m.id]?.[weekKey];
                       return (
                         <div key={weekKey} className="text-center">
-                          <p className="text-[10px] text-gray-400 mb-1">{formatWeekShort(week)}</p>
+                          <p className="text-[10px] text-muted mb-1">{formatWeekShort(week)}</p>
                           <EntryCell
                             entry={entry}
                             unit={m.unit}
@@ -285,17 +285,17 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
           </div>
 
           {/* Desktop: Full scorecard table */}
-          <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
+          <div className="hidden sm:block bg-card rounded-xl border border-border overflow-x-auto">
             <table className="w-full min-w-[900px]">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="sticky left-0 z-10 bg-white px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[140px]">
+                <tr className="border-b border-border">
+                  <th className="sticky left-0 z-10 bg-card px-4 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider w-[140px]">
                     Owner
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-[160px]">
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider w-[160px]">
                     Measurable
                   </th>
-                  <th className="px-2 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-[80px]">
+                  <th className="px-2 py-3 text-center text-xs font-semibold text-muted uppercase tracking-wider w-[80px]">
                     Goal
                   </th>
                   {weeks.map((week) => (
@@ -305,7 +305,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                         "px-1 py-3 text-center text-[10px] font-medium w-[70px]",
                         week.getTime() === getWeekStart().getTime()
                           ? "text-brand bg-brand/5 font-semibold"
-                          : "text-gray-400"
+                          : "text-muted"
                       )}
                     >
                       {formatWeekShort(week)}
@@ -317,10 +317,10 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                 {measurables.map((m) => (
                   <tr
                     key={m.id}
-                    className="border-b border-gray-100 hover:bg-gray-50/50"
+                    className="border-b border-border/50 hover:bg-surface/30"
                   >
                     {/* Owner */}
-                    <td className="sticky left-0 z-10 bg-white px-4 py-2">
+                    <td className="sticky left-0 z-10 bg-card px-4 py-2">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
                           <span className="text-[10px] font-medium text-brand">
@@ -332,7 +332,7 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                               .slice(0, 2)}
                           </span>
                         </div>
-                        <span className="text-xs text-gray-700 truncate max-w-[90px]">
+                        <span className="text-xs text-foreground/80 truncate max-w-[90px]">
                           {m.owner?.name ?? "Unassigned"}
                         </span>
                       </div>
@@ -340,11 +340,11 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
 
                     {/* Measurable title */}
                     <td className="px-3 py-2">
-                      <div className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
+                      <div className="text-sm font-medium text-foreground truncate max-w-[150px]">
                         {m.title}
                       </div>
                       {m.description && (
-                        <div className="text-[10px] text-gray-400 truncate max-w-[150px]">
+                        <div className="text-[10px] text-muted truncate max-w-[150px]">
                           {m.description}
                         </div>
                       )}
@@ -358,9 +358,9 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
                         ) : m.goalDirection === "below" ? (
                           <TrendingDown className="w-3 h-3 text-blue-500" />
                         ) : (
-                          <Target className="w-3 h-3 text-gray-500" />
+                          <Target className="w-3 h-3 text-muted" />
                         )}
-                        <span className="text-xs text-gray-600 font-medium">
+                        <span className="text-xs text-muted font-medium">
                           {m.unit === "$"
                             ? `$${m.goalValue.toLocaleString()}`
                             : m.unit === "%"
@@ -475,7 +475,7 @@ function EntryCell({
             if (e.key === "Enter") handleSave();
             if (e.key === "Escape") setEditing(false);
           }}
-          className="w-full px-1.5 py-1 text-xs text-center border border-brand rounded bg-white focus:outline-none focus:ring-1 focus:ring-brand"
+          className="w-full px-1.5 py-1 text-xs text-center border border-brand rounded bg-card focus:outline-none focus:ring-1 focus:ring-brand"
         />
       </td>
     );
@@ -507,9 +507,9 @@ function EntryCell({
         setValue("");
         setEditing(true);
       }}
-      className="px-1 py-1 text-center cursor-pointer hover:bg-gray-100 transition-colors"
+      className="px-1 py-1 text-center cursor-pointer hover:bg-surface transition-colors"
     >
-      <span className="text-xs text-gray-300">--</span>
+      <span className="text-xs text-muted/50">--</span>
     </td>
   );
 }
@@ -575,19 +575,19 @@ function AddMeasurableForm({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               Add Measurable
             </h3>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-muted mt-0.5">
               Add a new KPI to this service scorecard
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+            className="p-1 rounded-md text-muted hover:text-muted"
           >
             <X className="w-5 h-5" />
           </button>
@@ -602,7 +602,7 @@ function AddMeasurableForm({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Title
             </label>
             <input
@@ -610,21 +610,21 @@ function AddMeasurableForm({
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               placeholder="e.g., Weekly enrolments"
             />
           </div>
 
           {/* Owner */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Owner
             </label>
             <select
               required
               value={ownerId}
               onChange={(e) => setOwnerId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">Select person...</option>
               {users.map((u) => (
@@ -638,7 +638,7 @@ function AddMeasurableForm({
           {/* Goal Value + Direction + Unit */}
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Goal Value
               </label>
               <input
@@ -647,12 +647,12 @@ function AddMeasurableForm({
                 step="any"
                 value={goalValue}
                 onChange={(e) => setGoalValue(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="100"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Direction
               </label>
               <select
@@ -662,7 +662,7 @@ function AddMeasurableForm({
                     e.target.value as "above" | "below" | "exact"
                   )
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="above">Above</option>
                 <option value="below">Below</option>
@@ -670,9 +670,9 @@ function AddMeasurableForm({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Unit{" "}
-                <span className="text-gray-400 font-normal text-xs">
+                <span className="text-muted font-normal text-xs">
                   (opt)
                 </span>
               </label>
@@ -680,7 +680,7 @@ function AddMeasurableForm({
                 type="text"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 placeholder="$, %, etc."
               />
             </div>
@@ -688,7 +688,7 @@ function AddMeasurableForm({
 
           {/* Frequency */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Frequency
             </label>
             <select
@@ -696,7 +696,7 @@ function AddMeasurableForm({
               onChange={(e) =>
                 setFrequency(e.target.value as "weekly" | "monthly")
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
@@ -708,7 +708,7 @@ function AddMeasurableForm({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface/50 transition-colors"
             >
               Cancel
             </button>

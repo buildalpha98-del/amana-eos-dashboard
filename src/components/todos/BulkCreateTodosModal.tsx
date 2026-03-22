@@ -189,18 +189,18 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <ListPlus className="w-5 h-5 text-brand" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-foreground">
               Bulk Create To-Dos
             </h2>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+            className="p-2 text-muted hover:text-foreground rounded-lg hover:bg-surface"
           >
             <X className="w-5 h-5" />
           </button>
@@ -213,10 +213,10 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
               <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                 <ListPlus className="w-8 h-8 text-emerald-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-xl font-semibold text-foreground mb-2">
                 {result.created} To-Dos Created
               </h3>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className="text-sm text-muted mb-6">
                 All to-dos have been added to this week.
               </p>
               <button
@@ -251,7 +251,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
                       value={meetingNotes}
                       onChange={(e) => setMeetingNotes(e.target.value)}
                       placeholder="Paste your L10 meeting notes here... AI will extract action items with assignees."
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-purple-400 focus:ring-1 focus:ring-purple-400 focus:outline-none resize-none"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:border-purple-400 focus:ring-1 focus:ring-purple-400 focus:outline-none resize-none"
                     />
                     <button
                       onClick={handleAiExtract}
@@ -272,9 +272,9 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
               {rows.map((row, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg border border-gray-100"
+                  className="flex items-start gap-2 p-3 bg-surface/50 rounded-lg border border-border/50"
                 >
-                  <span className="text-xs font-mono text-gray-400 mt-2.5 w-5 text-right shrink-0">
+                  <span className="text-xs font-mono text-muted mt-2.5 w-5 text-right shrink-0">
                     {i + 1}
                   </span>
                   <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2">
@@ -283,14 +283,14 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
                       placeholder="To-Do title *"
                       value={row.title}
                       onChange={(e) => updateRow(i, "title", e.target.value)}
-                      className="sm:col-span-2 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+                      className="sm:col-span-2 px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
                     />
                     <select
                       value={row.assigneeId}
                       onChange={(e) =>
                         updateRow(i, "assigneeId", e.target.value)
                       }
-                      className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+                      className="px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
                     >
                       <option value="">Assignee *</option>
                       {users.map((u) => (
@@ -304,7 +304,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
                       onChange={(e) =>
                         updateRow(i, "serviceId", e.target.value)
                       }
-                      className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+                      className="px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
                     >
                       <option value="">Centre (optional)</option>
                       {services.map((s) => (
@@ -317,7 +317,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
                   <button
                     onClick={() => removeRow(i)}
                     disabled={rows.length <= 1}
-                    className="p-1.5 text-gray-400 hover:text-red-500 disabled:opacity-30 mt-1.5"
+                    className="p-1.5 text-muted hover:text-danger disabled:opacity-30 mt-1.5"
                     title="Remove row"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -328,7 +328,7 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
               <button
                 onClick={addRow}
                 disabled={rows.length >= 50}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-500 border border-dashed border-gray-300 rounded-lg hover:border-brand hover:text-brand transition-colors disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-muted border border-dashed border-border rounded-lg hover:border-brand hover:text-brand transition-colors disabled:opacity-50"
               >
                 <Plus className="w-4 h-4" />
                 Add Row ({rows.length}/50)
@@ -345,14 +345,14 @@ export function BulkCreateTodosModal({ open, onClose, weekOf }: Props) {
 
         {/* Footer */}
         {!result && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-            <p className="text-xs text-gray-400">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-surface/50 rounded-b-xl">
+            <p className="text-xs text-muted">
               {validRows.length} of {rows.length} rows valid
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+                className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground"
               >
                 Cancel
               </button>

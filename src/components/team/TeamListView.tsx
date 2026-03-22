@@ -28,7 +28,7 @@ const roleBadge: Record<string, { label: string; className: string }> = {
   },
   member: {
     label: ROLE_DISPLAY_NAMES.member,
-    className: "bg-gray-100 text-gray-700",
+    className: "bg-surface text-foreground/80",
   },
   staff: {
     label: ROLE_DISPLAY_NAMES.staff,
@@ -51,34 +51,34 @@ interface TeamListViewProps {
 
 export function TeamListView({ members }: TeamListViewProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
       <ScrollableTable>
         <table className="w-full min-w-[700px] text-sm">
           <thead>
-            <tr className="bg-gray-50 text-left">
-              <th className="px-4 py-3 font-medium text-gray-500">Name</th>
-              <th className="px-4 py-3 font-medium text-gray-500">Role</th>
-              <th className="hidden md:table-cell px-4 py-3 font-medium text-gray-500 text-center">
+            <tr className="bg-surface/50 text-left">
+              <th className="px-4 py-3 font-medium text-muted">Name</th>
+              <th className="px-4 py-3 font-medium text-muted">Role</th>
+              <th className="hidden md:table-cell px-4 py-3 font-medium text-muted text-center">
                 Active Rocks
               </th>
-              <th className="px-4 py-3 font-medium text-gray-500">
+              <th className="px-4 py-3 font-medium text-muted">
                 Todo Completion
               </th>
-              <th className="hidden md:table-cell px-4 py-3 font-medium text-gray-500 text-center">
+              <th className="hidden md:table-cell px-4 py-3 font-medium text-muted text-center">
                 Open Issues
               </th>
-              <th className="px-4 py-3 font-medium text-gray-500 text-center">
+              <th className="px-4 py-3 font-medium text-muted text-center">
                 Centres Managed
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border/50">
             {members.map((member) => {
               const badge = roleBadge[member.role] || roleBadge.member;
               return (
                 <tr
                   key={member.id}
-                  className="hover:bg-gray-50 transition-colors"
+                  className="hover:bg-surface transition-colors"
                 >
                   {/* Name + avatar + email */}
                   <td className="px-4 py-3">
@@ -97,10 +97,10 @@ export function TeamListView({ members }: TeamListViewProps) {
                         )}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-foreground">
                           {member.name}
                         </p>
-                        <p className="text-xs text-gray-500">{member.email}</p>
+                        <p className="text-xs text-muted">{member.email}</p>
                       </div>
                     </div>
                   </td>
@@ -118,14 +118,14 @@ export function TeamListView({ members }: TeamListViewProps) {
                   </td>
 
                   {/* Active Rocks */}
-                  <td className="hidden md:table-cell px-4 py-3 text-center font-medium text-gray-700">
+                  <td className="hidden md:table-cell px-4 py-3 text-center font-medium text-foreground/80">
                     {member.activeRocks}
                   </td>
 
                   {/* Todo Completion */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="w-16 h-2 bg-border rounded-full overflow-hidden">
                         <div
                           className="h-full bg-brand rounded-full transition-all"
                           style={{
@@ -133,7 +133,7 @@ export function TeamListView({ members }: TeamListViewProps) {
                           }}
                         />
                       </div>
-                      <span className="text-xs text-gray-600 w-8">
+                      <span className="text-xs text-muted w-8">
                         {member.todoCompletionPct}%
                       </span>
                     </div>
@@ -153,7 +153,7 @@ export function TeamListView({ members }: TeamListViewProps) {
                   </td>
 
                   {/* Centres Managed */}
-                  <td className="px-4 py-3 text-center font-medium text-gray-700">
+                  <td className="px-4 py-3 text-center font-medium text-foreground/80">
                     {member.managedServices}
                   </td>
                 </tr>

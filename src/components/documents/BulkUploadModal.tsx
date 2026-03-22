@@ -175,13 +175,13 @@ export function BulkUploadModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-foreground">
               Bulk Upload Documents
             </h3>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-muted mt-0.5">
               Upload multiple files at once
               {currentFolderId && breadcrumbs.length > 0 && (
                 <span className="text-brand">
@@ -193,7 +193,7 @@ export function BulkUploadModal({
           </div>
           <button
             onClick={handleClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+            className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -204,7 +204,7 @@ export function BulkUploadModal({
           <div className="space-y-4">
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <CheckCircle2 className="w-12 h-12 text-emerald-500 mb-3" />
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-semibold text-foreground">
                 {uploadResult.created} document
                 {uploadResult.created !== 1 ? "s" : ""} uploaded
               </p>
@@ -214,7 +214,7 @@ export function BulkUploadModal({
                   {uploadResult.failed !== 1 ? "s" : ""} failed to upload
                   {uploadResult.failedFiles &&
                     uploadResult.failedFiles.length > 0 && (
-                      <span className="block text-xs text-gray-500 mt-1">
+                      <span className="block text-xs text-muted mt-1">
                         {uploadResult.failedFiles.join(", ")}
                       </span>
                     )}
@@ -233,7 +233,7 @@ export function BulkUploadModal({
           <div className="space-y-4">
             {/* Drag-and-drop zone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                 Files *
               </label>
               <label
@@ -241,23 +241,23 @@ export function BulkUploadModal({
                   "flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
                   isDragOver
                     ? "border-brand bg-brand/10"
-                    : "border-gray-300 hover:border-brand hover:bg-brand/5"
+                    : "border-border hover:border-brand hover:bg-brand/5"
                 )}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
-                <Upload className="w-8 h-8 text-gray-400" />
+                <Upload className="w-8 h-8 text-muted" />
                 <div className="text-center">
                   <span className="text-sm font-medium text-brand">
                     Click to select files
                   </span>
-                  <span className="text-sm text-gray-500">
-                    {" "}
+                  <span className="text-sm text-muted">
+                 {" "}
                     or drag and drop
                   </span>
                 </div>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted">
                   PDF, Word, Excel, PowerPoint, images up to {MAX_FILE_SIZE_MB}
                   MB each (max {MAX_BULK_FILES} files)
                 </p>
@@ -295,12 +295,12 @@ export function BulkUploadModal({
 
             {/* Selected files list */}
             {selectedFiles.length > 0 && (
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <div className="bg-gray-50 px-3 py-2 flex items-center justify-between border-b border-gray-200">
-                  <span className="text-xs font-medium text-gray-600">
+              <div className="border border-border rounded-lg overflow-hidden">
+                <div className="bg-surface px-3 py-2 flex items-center justify-between border-b border-gray-200">
+                  <span className="text-xs font-medium text-muted">
                     {selectedFiles.length} file
                     {selectedFiles.length !== 1 ? "s" : ""} selected
-                    <span className="text-gray-400 ml-1">
+                    <span className="text-muted ml-1">
                       ({formatFileSize(totalSize)})
                     </span>
                   </span>
@@ -311,18 +311,18 @@ export function BulkUploadModal({
                     Clear all
                   </button>
                 </div>
-                <ul className="divide-y divide-gray-100 max-h-[200px] overflow-y-auto">
+                <ul className="divide-y divide-border/50 max-h-[200px] overflow-y-auto">
                   {selectedFiles.map((file, idx) => (
                     <li
                       key={`${file.name}-${idx}`}
-                      className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50"
+                      className="flex items-center gap-3 px-3 py-2 hover:bg-surface"
                     >
-                      <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <FileText className="w-4 h-4 text-muted flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-900 truncate">
+                        <p className="text-sm text-foreground truncate">
                           {file.name}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-muted">
                           {formatFileSize(file.size)}
                         </p>
                       </div>
@@ -331,7 +331,7 @@ export function BulkUploadModal({
                       )}
                       <button
                         onClick={() => removeFile(idx)}
-                        className="p-1 text-gray-300 hover:text-red-500 transition-colors"
+                        className="p-1 text-muted/50 hover:text-danger transition-colors"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -344,13 +344,13 @@ export function BulkUploadModal({
             {/* Metadata fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                   Category
                 </label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 >
                   {categories.map((cat) => (
                     <option key={cat} value={cat}>
@@ -361,13 +361,13 @@ export function BulkUploadModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                   Centre (Optional)
                 </label>
                 <select
                   value={centreId}
                   onChange={(e) => setCentreId(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 >
                   <option value="">Not centre-specific</option>
                   {services.map((service) => (
@@ -384,7 +384,7 @@ export function BulkUploadModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2.5 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface transition-colors"
               >
                 Cancel
               </button>

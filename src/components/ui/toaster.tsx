@@ -41,7 +41,7 @@ export function Toaster() {
           </ToastPrimitive.Close>
         </ToastPrimitive.Root>
       ))}
-      <ToastPrimitive.Viewport aria-live="polite" aria-label="Notifications" className="fixed top-4 right-4 z-[100] flex max-h-screen w-full max-w-sm flex-col gap-2" />
+      <ToastPrimitive.Viewport aria-live="polite" aria-label="Notifications" className="fixed z-[100] flex max-h-screen w-full max-w-sm flex-col gap-2 bottom-20 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-4 sm:right-4 sm:left-auto sm:translate-x-0" />
     </ToastPrimitive.Provider>
   );
 }

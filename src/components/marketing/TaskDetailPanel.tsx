@@ -300,7 +300,7 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
                   </span>
                   <button
                     onClick={() => removeSubtask(i)}
-                    className="shrink-0 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all"
+                    className="shrink-0 md:opacity-0 md:group-hover:opacity-100 opacity-60 text-muted/50 hover:text-danger transition-all"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>

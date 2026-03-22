@@ -417,9 +417,9 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
 
       {/* Trend chart */}
       {chartData.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-card rounded-xl border border-border p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-brand" />
               Occupancy Trend (13 weeks)
             </h3>
@@ -593,10 +593,10 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
       )}
 
       {/* Weekly Data Entry Grid */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="bg-card rounded-xl border border-border p-5">
         <div className="space-y-3 mb-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Calendar className="w-4 h-4 text-brand" />
               <span className="hidden sm:inline">Week Starting {weekDates[0].toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
               <span className="sm:hidden">{weekDates[0].toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span>
@@ -604,20 +604,20 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
             <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => { setWeekOffset((w) => w - 1); setGridEdits({}); }}
-                className="px-2 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50"
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
               >
                 ←
               </button>
               <button
                 onClick={() => { setWeekOffset(0); setGridEdits({}); }}
-                className="px-2 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50"
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
                 disabled={weekOffset === 0}
               >
                 Today
               </button>
               <button
                 onClick={() => { setWeekOffset((w) => w + 1); setGridEdits({}); }}
-                className="px-2 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50"
+                className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
                 disabled={weekOffset >= 0}
               >
                 →
@@ -627,25 +627,25 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowImportAttendance(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50 text-gray-600"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50 text-muted"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               Import CSV
             </button>
             <button
               onClick={() => printAttendance(grid, weekDates, serviceName)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50 text-gray-600"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50 text-muted"
               title="Print attendance"
             >
               <Printer className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Print</span>
             </button>
-            <label className="flex items-center gap-1.5 text-xs text-gray-500">
+            <label className="flex items-center gap-1.5 text-xs text-muted">
               <input
                 type="checkbox"
                 checked={showVC}
                 onChange={(e) => setShowVC(e.target.checked)}
-                className="rounded border-gray-300 text-brand focus:ring-brand"
+                className="rounded border-border text-brand focus:ring-brand"
               />
               Show VC
             </label>
@@ -673,12 +673,12 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 return (
                   <div
                     key={dateStr}
-                    className="rounded-lg border border-gray-200 p-3 space-y-3"
+                    className="rounded-lg border border-border p-3 space-y-3"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-gray-900">{row.day}</span>
-                        <span className="text-xs text-gray-400">{formatDateLabel(row.date)}</span>
+                        <span className="text-sm font-semibold text-foreground">{row.day}</span>
+                        <span className="text-xs text-muted">{formatDateLabel(row.date)}</span>
                       </div>
                     </div>
                     {(["bsc", "asc"] as const).map((session) => (
@@ -692,7 +692,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                         <div className="grid grid-cols-2 gap-2">
                           {(["enrolled", "attended"] as const).map((field) => (
                             <div key={field}>
-                              <label className="text-[10px] text-gray-400 uppercase">{field === "attended" ? "Casual" : "Perm."}</label>
+                              <label className="text-[10px] text-muted uppercase">{field === "attended" ? "Casual" : "Perm."}</label>
                               <input
                                 type="number"
                                 min={0}
@@ -700,7 +700,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                                 onChange={(e) =>
                                   handleCellChange(dateStr, session, field, parseInt(e.target.value) || 0)
                                 }
-                                className="w-full text-center text-sm border border-gray-200 rounded-md px-2 py-1.5 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+                                className="w-full text-center text-sm border border-border rounded-md px-2 py-1.5 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
                               />
                             </div>
                           ))}
@@ -716,29 +716,29 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-2 text-xs font-medium text-gray-500 w-24">
+                  <tr className="border-b border-border">
+                    <th className="text-left py-2 px-2 text-xs font-medium text-muted w-24">
                       Day
                     </th>
                     <th
                       colSpan={2}
-                      className="text-center py-2 px-2 text-xs font-semibold text-blue-600 border-l border-gray-100"
+                      className="text-center py-2 px-2 text-xs font-semibold text-blue-600 border-l border-border/50"
                     >
                       BSC (Before School)
                     </th>
                     <th
                       colSpan={2}
-                      className="text-center py-2 px-2 text-xs font-semibold text-purple-600 border-l border-gray-100"
+                      className="text-center py-2 px-2 text-xs font-semibold text-purple-600 border-l border-border/50"
                     >
                       ASC (After School)
                     </th>
                   </tr>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-left py-1 px-2 text-xs text-gray-400" />
+                  <tr className="border-b border-border/50">
+                    <th className="text-left py-1 px-2 text-xs text-muted" />
                     {["Permanent", "Casual Bookings"].map((h) => (
                       <th
                         key={`bsc-${h}`}
-                        className="text-center py-1 px-1 text-xs text-gray-400 border-l border-gray-50"
+                        className="text-center py-1 px-1 text-xs text-muted border-l border-border/30"
                       >
                         {h}
                       </th>
@@ -746,7 +746,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                     {["Permanent", "Casual Bookings"].map((h) => (
                       <th
                         key={`asc-${h}`}
-                        className="text-center py-1 px-1 text-xs text-gray-400 border-l border-gray-50"
+                        className="text-center py-1 px-1 text-xs text-muted border-l border-border/30"
                       >
                         {h}
                       </th>
@@ -757,16 +757,16 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                   {grid.map((row) => {
                     const dateStr = formatDate(row.date);
                     return (
-                      <tr key={dateStr} className="border-b border-gray-50 hover:bg-gray-50/50">
+                      <tr key={dateStr} className="border-b border-border/30 hover:bg-surface/30">
                         <td className="py-2 px-2">
-                          <span className="font-medium text-gray-900">{row.day}</span>
-                          <div className="text-xs text-gray-400">{formatDateLabel(row.date)}</div>
+                          <span className="font-medium text-foreground">{row.day}</span>
+                          <div className="text-xs text-muted">{formatDateLabel(row.date)}</div>
                         </td>
                         {(["bsc", "asc"] as const).map((session) =>
                           (["enrolled", "attended"] as const).map((field) => (
                             <td
                               key={`${session}-${field}`}
-                              className="py-1 px-1 text-center border-l border-gray-50"
+                              className="py-1 px-1 text-center border-l border-border/30"
                             >
                               <input
                                 type="number"
@@ -780,7 +780,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                                     parseInt(e.target.value) || 0
                                   )
                                 }
-                                className="w-16 text-center text-sm border border-gray-200 rounded-md px-1 py-1 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+                                className="w-16 text-center text-sm border border-border rounded-md px-1 py-1 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
                               />
                             </td>
                           ))
@@ -792,8 +792,8 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
               </table>
             </div>
 
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-              <p className="text-xs text-gray-400 flex items-center gap-1">
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
+              <p className="text-xs text-muted flex items-center gap-1">
                 <Info className="w-3.5 h-3.5" />
                 Data auto-saves per cell on save. Upserts by date + session type.
               </p>
@@ -801,7 +801,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 <button
                   onClick={handlePropagate}
                   disabled={propagateMutation.isPending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 hover:bg-gray-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border hover:bg-surface/50 text-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {propagateMutation.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

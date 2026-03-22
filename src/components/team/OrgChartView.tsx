@@ -28,7 +28,7 @@ function SeatCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="bg-white border-2 border-[#D4A843] rounded-xl shadow-sm w-56 group/card hover:shadow-md transition-shadow">
+    <div className="bg-card border-2 border-[#D4A843] rounded-xl shadow-sm w-56 group/card hover:shadow-md transition-shadow">
       {/* Title bar */}
       <div className="bg-brand rounded-t-[10px] px-3 py-2 flex items-center justify-between">
         <h3 className="text-sm font-bold text-white truncate" title={seat.title}>{seat.title}</h3>
@@ -60,7 +60,7 @@ function SeatCard({
       </div>
 
       {/* Assignees */}
-      <div className="px-3 py-2 border-b border-gray-100">
+      <div className="px-3 py-2 border-b border-border/50">
         {seat.assignees.length > 0 ? (
           <div className="space-y-1">
             {seat.assignees.map((a) => (
@@ -82,14 +82,14 @@ function SeatCard({
                     </span>
                   </div>
                 )}
-                <span className="text-xs font-medium text-gray-800 truncate" title={a.name}>
+                <span className="text-xs font-medium text-foreground truncate" title={a.name}>
                   {a.name}
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 text-gray-400">
+          <div className="flex items-center gap-1.5 text-muted">
             <User className="w-4 h-4" />
             <span className="text-xs italic">Unassigned</span>
           </div>
@@ -101,8 +101,8 @@ function SeatCard({
         <div className="px-3 py-2">
           <ul className="space-y-0.5">
             {seat.responsibilities.map((r, i) => (
-              <li key={i} className="text-[11px] text-gray-600 flex items-start gap-1.5">
-                <span className="text-gray-400 mt-0.5 shrink-0">&bull;</span>
+              <li key={i} className="text-[11px] text-muted flex items-start gap-1.5">
+                <span className="text-muted mt-0.5 shrink-0">&bull;</span>
                 <span>{r}</span>
               </li>
             ))}
@@ -148,12 +148,12 @@ function TreeNode({
         {hasChildren && (
           <button
             onClick={() => setCollapsed((c) => !c)}
-            className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 w-5 h-5 bg-white border border-gray-300 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-50"
+            className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 w-5 h-5 bg-card border border-border rounded-full flex items-center justify-center shadow-sm hover:bg-surface"
           >
             {collapsed ? (
-              <ChevronRight className="w-3 h-3 text-gray-500" />
+              <ChevronRight className="w-3 h-3 text-muted" />
             ) : (
-              <ChevronDown className="w-3 h-3 text-gray-500" />
+              <ChevronDown className="w-3 h-3 text-muted" />
             )}
           </button>
         )}
@@ -163,7 +163,7 @@ function TreeNode({
       {hasChildren && !collapsed && (
         <>
           {/* Vertical connector from parent */}
-          <div className="w-px h-8 bg-gray-300" />
+          <div className="w-px h-8 bg-border" />
 
           {/* Children row with horizontal connector */}
           {seat.children.length === 1 ? (
@@ -177,7 +177,7 @@ function TreeNode({
           ) : (
             <div className="relative">
               {/* Horizontal line spanning all children */}
-              <div className="absolute top-0 left-[calc(50%/(var(--child-count)))] right-[calc(50%/(var(--child-count)))] h-px bg-gray-300"
+              <div className="absolute top-0 left-[calc(50%/(var(--child-count)))] right-[calc(50%/(var(--child-count)))] h-px bg-border"
                 style={{
                   left: `calc(100% / ${seat.children.length * 2})`,
                   right: `calc(100% / ${seat.children.length * 2})`,
@@ -187,7 +187,7 @@ function TreeNode({
                 {seat.children.map((child) => (
                   <div key={child.id} className="flex flex-col items-center">
                     {/* Vertical drop line to child */}
-                    <div className="w-px h-6 bg-gray-300" />
+                    <div className="w-px h-6 bg-border" />
                     <TreeNode
                       seat={child}
                       canEdit={canEdit}
@@ -223,7 +223,7 @@ export function OrgChartView() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -237,7 +237,7 @@ export function OrgChartView() {
   const isEmpty = !tree || tree.length === 0;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 overflow-x-auto">
+    <div className="bg-card rounded-xl border border-border p-6 overflow-x-auto">
       {isEmpty ? (
         <EmptyState
           icon={Plus}
@@ -302,11 +302,11 @@ export function OrgChartView() {
       {/* Delete Confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-sm mx-4 shadow-xl">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="bg-card rounded-xl p-6 max-w-sm mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
               Delete &ldquo;{deleteConfirm.title}&rdquo;?
             </h3>
-            <p className="text-sm text-gray-500 mb-1">
+            <p className="text-sm text-muted mb-1">
               This will remove the seat from the chart.
             </p>
             {deleteConfirm.children.length > 0 && (
@@ -318,7 +318,7 @@ export function OrgChartView() {
             <div className="flex justify-end gap-3 mt-4">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface"
               >
                 Cancel
               </button>

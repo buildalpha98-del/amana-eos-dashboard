@@ -19,6 +19,7 @@ import {
   LayoutGrid,
   List,
   Archive,
+  Download,
   X,
   Trash2,
   UserPlus,
@@ -31,8 +32,8 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { FilterPresets } from "@/components/ui/FilterPresets";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface UserOption {
   id: string;
@@ -44,7 +45,7 @@ const statusTabs = [
   { key: "open", label: "Identify", icon: AlertTriangle, color: "text-amber-600" },
   { key: "in_discussion", label: "Discuss", icon: MessageSquare, color: "text-blue-600" },
   { key: "solved", label: "Solved", icon: CheckCircle2, color: "text-emerald-600" },
-  { key: "closed", label: "Closed", icon: XCircle, color: "text-gray-400" },
+  { key: "closed", label: "Closed", icon: XCircle, color: "text-muted" },
 ] as const;
 
 export default function IssuesPage() {
@@ -200,74 +201,37 @@ export default function IssuesPage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Issues <HelpTooltip id="issues-heading" content="The Issues List captures problems, ideas, and opportunities. Use IDS (Identify, Discuss, Solve) in your L10 meeting to work through them." />
-          </h2>
-          <p className="text-sm text-gray-500">
-            Track and resolve using IDS (Identify, Discuss, Solve)
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* View Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-            <button
-              onClick={() => setViewMode("board")}
-              className={cn(
-                "p-1.5 rounded-md transition-colors",
-                viewMode === "board"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
-              )}
-              title="Board view"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={cn(
-                "p-1.5 rounded-md transition-colors",
-                viewMode === "list"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
-              )}
-              title="List view"
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Archive Toggle */}
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className={cn(
-              "p-2 rounded-lg border transition-colors",
-              showArchived
-                ? "border-brand bg-brand/5 text-brand"
-                : "border-gray-200 text-gray-400 hover:text-gray-600"
-            )}
-            title={showArchived ? "Hide closed issues" : "Show closed issues"}
-          >
-            <Archive className="w-4 h-4" />
-          </button>
-
-          {/* Filter Toggle */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={cn(
-              "p-2 rounded-lg border transition-colors",
-              hasActiveFilters
-                ? "border-brand bg-brand/5 text-brand"
-                : "border-gray-200 text-gray-400 hover:text-gray-600"
-            )}
-            title="Filters"
-          >
-            <Filter className="w-4 h-4" />
-          </button>
-
-          <ExportButton
-            onClick={() =>
+      <PageHeader
+        title="Issues"
+        description="Track and resolve using IDS (Identify, Discuss, Solve)"
+        helpTooltipId="issues-heading"
+        helpTooltipContent="The Issues List captures problems, ideas, and opportunities. Use IDS (Identify, Discuss, Solve) in your L10 meeting to work through them."
+        primaryAction={{ label: "Raise Issue", icon: Plus, onClick: () => setShowCreate(true) }}
+        toggles={[{
+          options: [
+            { icon: LayoutGrid, label: "Board view", value: "board" },
+            { icon: List, label: "List view", value: "list" },
+          ],
+          value: viewMode,
+          onChange: (v) => setViewMode(v as "board" | "list"),
+        }]}
+        secondaryActions={[
+          {
+            label: showArchived ? "Hide Closed" : "Show Closed",
+            icon: Archive,
+            onClick: () => setShowArchived(!showArchived),
+            active: showArchived,
+          },
+          {
+            label: "Filters",
+            icon: Filter,
+            onClick: () => setShowFilters(!showFilters),
+            active: !!hasActiveFilters,
+          },
+          {
+            label: "Export CSV",
+            icon: Download,
+            onClick: () =>
               exportToCsv(
                 `amana-issues-${new Date().toISOString().slice(0, 10)}`,
                 filteredIssues,
@@ -282,35 +246,26 @@ export default function IssuesPage() {
                   { header: "Identified", accessor: (i) => new Date(i.identifiedAt).toLocaleDateString("en-AU") },
                   { header: "Resolution", accessor: (i) => i.resolution ?? "" },
                 ],
-              )
-            }
-            disabled={filteredIssues.length === 0}
-          />
-
-          <AiButton
-            templateSlug="issues/smart-prioritize"
-            variables={{ issueList: issueListForAi }}
-            onResult={(text) => setAiPrioritization(text)}
-            label="AI Prioritize"
-            size="sm"
-            section="issues"
-            disabled={openIssues.length === 0}
-          />
-
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Raise Issue
-          </button>
-        </div>
-      </div>
+              ),
+          },
+        ]}
+      >
+        {/* AI Prioritize — kept inline since it's unique to Issues */}
+        <AiButton
+          templateSlug="issues/smart-prioritize"
+          variables={{ issueList: issueListForAi }}
+          onResult={(text) => setAiPrioritization(text)}
+          label="AI Prioritize"
+          size="sm"
+          section="issues"
+          disabled={openIssues.length === 0}
+        />
+      </PageHeader>
 
       {/* Status Tabs */}
       {viewMode === "list" && (
         <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mb-4">
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+          <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit">
             {statusTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = statusFilter === tab.key;
@@ -321,8 +276,8 @@ export default function IssuesPage() {
                   className={cn(
                     "flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap",
                     isActive
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted hover:text-foreground"
                   )}
                 >
                   {Icon && <Icon className={cn("w-3.5 h-3.5", isActive && tab.color)} />}
@@ -336,11 +291,11 @@ export default function IssuesPage() {
 
       {/* Filters */}
       {showFilters && (
-        <div className="mb-4 flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
+        <div className="mb-4 flex items-center gap-3 p-3 bg-card rounded-lg border border-border">
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="">All Priorities</option>
             <option value="critical">Critical</option>
@@ -352,7 +307,7 @@ export default function IssuesPage() {
           <select
             value={ownerFilter}
             onChange={(e) => setOwnerFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="">All Owners</option>
             {users?.map((u) => (
@@ -368,7 +323,7 @@ export default function IssuesPage() {
                 setPriorityFilter("");
                 setOwnerFilter("");
               }}
-              className="text-xs text-gray-500 hover:text-gray-700 underline"
+              className="text-xs text-muted hover:text-foreground underline"
             >
               Clear filters
             </button>
@@ -408,15 +363,15 @@ export default function IssuesPage() {
       {/* Summary Bar */}
       {!error && issues && issues.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 px-1">
-          <span className="text-sm text-gray-500">
-            <span className="font-semibold text-gray-900">{stats.total}</span> Issues
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-foreground">{stats.total}</span> Issues
           </span>
-          <span className="text-gray-300">|</span>
+          <span className="text-border">|</span>
           <span className="text-sm text-amber-600">{stats.open} open</span>
           <span className="text-sm text-blue-600">{stats.discussing} discussing</span>
-          <span className="text-sm text-emerald-600">{stats.solved} solved</span>
+          <span className="text-sm text-success">{stats.solved} solved</span>
           {stats.critical > 0 && (
-            <span className="text-sm text-red-600 font-medium">
+            <span className="text-sm text-danger font-medium">
               {stats.critical} critical
             </span>
           )}
@@ -447,7 +402,7 @@ export default function IssuesPage() {
             <div key={col} className="space-y-3">
               <Skeleton className="h-5 w-24 mb-2" />
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-lg border border-gray-200 p-3 space-y-2">
+                <div key={i} className="bg-card rounded-lg border border-border p-3 space-y-2">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-3 w-2/3" />
                 </div>
@@ -467,10 +422,10 @@ export default function IssuesPage() {
                 type="checkbox"
                 checked={isAllSelected}
                 onChange={toggleSelectAll}
-                className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand cursor-pointer"
+                className="h-4 w-4 rounded border-border text-brand focus:ring-brand cursor-pointer"
                 aria-label="Select all issues"
               />
-              <span className="text-xs text-gray-500 font-medium">
+              <span className="text-xs text-muted font-medium">
                 {selectedIds.size > 0
                   ? `${selectedIds.size} of ${filteredIssues.length} selected`
                   : "Select all"}
@@ -485,7 +440,7 @@ export default function IssuesPage() {
                     checked={selectedIds.has(issue.id)}
                     onChange={() => toggleSelect(issue.id)}
                     onClick={(e) => e.stopPropagation()}
-                    className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand cursor-pointer"
+                    className="h-4 w-4 rounded border-border text-brand focus:ring-brand cursor-pointer"
                     aria-label={`Select issue: ${issue.title}`}
                   />
                 </div>
@@ -514,7 +469,7 @@ export default function IssuesPage() {
         <div className="fixed bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-30 bg-card border border-border rounded-xl shadow-lg p-4 w-[95vw] max-w-2xl">
           <div className="flex flex-col sm:flex-row items-center gap-3">
             {/* Count */}
-            <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            <span className="text-sm font-medium text-foreground/80 whitespace-nowrap">
               {selectedIds.size} selected
             </span>
 
@@ -540,18 +495,18 @@ export default function IssuesPage() {
                   Assign To
                 </button>
                 {showAssignDropdown && (
-                  <div className="absolute bottom-full mb-1 left-0 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 max-h-48 overflow-y-auto z-40">
+                  <div className="absolute bottom-full mb-1 left-0 w-48 bg-card border border-border rounded-lg shadow-lg py-1 max-h-48 overflow-y-auto z-40">
                     {users?.map((u) => (
                       <button
                         key={u.id}
                         onClick={() => handleBulkAssign(u.id)}
-                        className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="w-full text-left px-3 py-1.5 text-sm text-foreground/80 hover:bg-surface transition-colors"
                       >
                         {u.name}
                       </button>
                     ))}
                     {(!users || users.length === 0) && (
-                      <p className="px-3 py-1.5 text-sm text-gray-400">No users found</p>
+                      <p className="px-3 py-1.5 text-sm text-muted">No users found</p>
                     )}
                   </div>
                 )}
@@ -590,7 +545,7 @@ export default function IssuesPage() {
               {/* Clear Selection */}
               <button
                 onClick={clearSelection}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium text-muted hover:text-foreground transition-colors"
               >
                 <X className="w-3.5 h-3.5" />
                 Clear

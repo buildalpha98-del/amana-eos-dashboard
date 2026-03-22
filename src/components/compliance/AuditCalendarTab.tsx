@@ -52,7 +52,7 @@ const statusConfig: Record<string, { color: string; bg: string; border: string; 
   in_progress: { color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", icon: Play },
   completed: { color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", icon: CheckCircle2 },
   overdue: { color: "text-red-700", bg: "bg-red-50", border: "border-red-200", icon: AlertTriangle },
-  skipped: { color: "text-gray-500", bg: "bg-gray-50", border: "border-gray-200", icon: SkipForward },
+  skipped: { color: "text-muted", bg: "bg-surface/50", border: "border-border", icon: SkipForward },
 };
 
 interface ServiceOption {
@@ -140,15 +140,15 @@ function UploadCalendarDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-brand" />
-            <h2 className="text-lg font-semibold text-gray-900">Upload Compliance Calendar</h2>
+            <h2 className="text-lg font-semibold text-foreground">Upload Compliance Calendar</h2>
           </div>
-          <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-gray-100">
-            <X className="w-4 h-4 text-gray-500" />
+          <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-surface">
+            <X className="w-4 h-4 text-muted" />
           </button>
         </div>
 
@@ -160,8 +160,8 @@ function UploadCalendarDialog({
               <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-emerald-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Calendar Imported Successfully</h3>
-              <div className="space-y-1 text-sm text-gray-600">
+              <h3 className="text-lg font-semibold text-foreground mb-2">Calendar Imported Successfully</h3>
+              <div className="space-y-1 text-sm text-muted">
                 <p>{result.templatesCreated} new template{result.templatesCreated !== 1 ? "s" : ""} created</p>
                 <p>{result.templatesUpdated} existing template{result.templatesUpdated !== 1 ? "s" : ""} updated</p>
                 {result.instancesCreated > 0 && (
@@ -173,11 +173,11 @@ function UploadCalendarDialog({
             <>
               {/* File upload */}
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1.5">
+                <label className="text-sm font-medium text-foreground/80 block mb-1.5">
                   Compliance Calendar Document
                 </label>
                 <div
-                  className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-brand hover:bg-brand/5 transition-colors"
+                  className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-brand hover:bg-brand/5 transition-colors"
                   onClick={() => fileRef.current?.click()}
                 >
                   <input
@@ -190,18 +190,18 @@ function UploadCalendarDialog({
                   {file ? (
                     <div className="flex items-center justify-center gap-2">
                       <FileText className="w-5 h-5 text-brand" />
-                      <span className="text-sm font-medium text-gray-900">{file.name}</span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-sm font-medium text-foreground">{file.name}</span>
+                      <span className="text-xs text-muted">
                         ({(file.size / 1024).toFixed(0)} KB)
                       </span>
                     </div>
                   ) : (
                     <>
-                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">
+                      <Upload className="w-8 h-8 text-muted mx-auto mb-2" />
+                      <p className="text-sm text-muted">
                         Click to upload a <strong>.docx</strong> compliance calendar
                       </p>
-                      <p className="text-xs text-gray-400 mt-1">Max 10 MB</p>
+                      <p className="text-xs text-muted mt-1">Max 10 MB</p>
                     </>
                   )}
                 </div>
@@ -216,7 +216,7 @@ function UploadCalendarDialog({
               {previewMutation.isPending && (
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="w-6 h-6 text-brand animate-spin mr-2" />
-                  <span className="text-sm text-gray-600">Parsing document...</span>
+                  <span className="text-sm text-muted">Parsing document...</span>
                 </div>
               )}
 
@@ -224,26 +224,26 @@ function UploadCalendarDialog({
               {preview && preview.length > 0 && (
                 <>
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                    <h3 className="text-sm font-semibold text-foreground mb-2">
                       {preview.length} Templates Detected
                     </h3>
                     <div className="border rounded-xl overflow-hidden max-h-64 overflow-y-auto">
                       <table className="w-full text-sm">
                         <thead className="bg-surface sticky top-0">
                           <tr>
-                            <th className="text-left px-3 py-2 font-medium text-gray-600">Name</th>
-                            <th className="text-left px-3 py-2 font-medium text-gray-600 w-16">QA</th>
-                            <th className="text-left px-3 py-2 font-medium text-gray-600 w-24">Frequency</th>
-                            <th className="text-left px-3 py-2 font-medium text-gray-600 w-32">Months</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted">Name</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted w-16">QA</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted w-24">Frequency</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted w-32">Months</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-border/50">
                           {preview.map((t, i) => (
-                            <tr key={i} className="hover:bg-gray-50">
-                              <td className="px-3 py-2 text-gray-900">{t.name}</td>
-                              <td className="px-3 py-2 text-gray-600">QA{t.qualityArea}</td>
-                              <td className="px-3 py-2 text-gray-600">{freqLabels[t.frequency] || t.frequency}</td>
-                              <td className="px-3 py-2 text-gray-500 text-xs">
+                            <tr key={i} className="hover:bg-surface">
+                              <td className="px-3 py-2 text-foreground">{t.name}</td>
+                              <td className="px-3 py-2 text-muted">QA{t.qualityArea}</td>
+                              <td className="px-3 py-2 text-muted">{freqLabels[t.frequency] || t.frequency}</td>
+                              <td className="px-3 py-2 text-muted text-xs">
                                 {t.scheduledMonths.length === 12
                                   ? "Every month"
                                   : t.scheduledMonths
@@ -258,20 +258,20 @@ function UploadCalendarDialog({
                   </div>
 
                   {/* Options */}
-                  <div className="flex flex-wrap items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                  <div className="flex flex-wrap items-center gap-4 p-4 bg-surface/50 rounded-xl">
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
                       <input
                         type="checkbox"
                         checked={generateInstances}
                         onChange={(e) => setGenerateInstances(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
+                        className="w-4 h-4 rounded border-border text-brand focus:ring-brand"
                       />
-                      <span className="text-gray-700">Generate audit instances for</span>
+                      <span className="text-foreground/80">Generate audit instances for</span>
                     </label>
                     <select
                       value={year}
                       onChange={(e) => setYear(parseInt(e.target.value, 10))}
-                      className="px-2 py-1 text-sm border border-gray-300 rounded-lg"
+                      className="px-2 py-1 text-sm border border-border rounded-lg"
                     >
                       {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
                         <option key={y} value={y}>
@@ -287,7 +287,7 @@ function UploadCalendarDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-gray-50">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-surface/50">
           {result ? (
             <button
               onClick={handleClose}
@@ -299,7 +299,7 @@ function UploadCalendarDialog({
             <>
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface"
               >
                 Cancel
               </button>
@@ -395,23 +395,23 @@ export function AuditCalendarTab() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setYear((y) => y - 1)}
-            className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+            className="p-1.5 rounded-lg border border-border hover:bg-surface transition-colors"
           >
-            <ChevronLeft className="w-4 h-4 text-gray-600" />
+            <ChevronLeft className="w-4 h-4 text-muted" />
           </button>
-          <span className="text-sm font-semibold text-gray-900 min-w-[4rem] text-center">{year}</span>
+          <span className="text-sm font-semibold text-foreground min-w-[4rem] text-center">{year}</span>
           <button
             onClick={() => setYear((y) => y + 1)}
-            className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+            className="p-1.5 rounded-lg border border-border hover:bg-surface transition-colors"
           >
-            <ChevronRight className="w-4 h-4 text-gray-600" />
+            <ChevronRight className="w-4 h-4 text-muted" />
           </button>
         </div>
 
         <select
           value={serviceFilter}
           onChange={(e) => setServiceFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         >
           <option value="">All Centres</option>
           {services.map((s) => (
@@ -424,7 +424,7 @@ export function AuditCalendarTab() {
         <select
           value={qaFilter}
           onChange={(e) => setQaFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         >
           <option value="">All Quality Areas</option>
           {[1, 2, 3, 4, 5, 6, 7].map((qa) => (
@@ -464,27 +464,27 @@ export function AuditCalendarTab() {
                   "rounded-xl border p-4 transition-colors",
                   isCurrent
                     ? "border-brand bg-brand/5 ring-1 ring-brand/20"
-                    : "border-gray-200 bg-white"
+                    : "border-border bg-card"
                 )}
               >
                 <div className="flex items-center justify-between mb-3">
                   <h4
                     className={cn(
                       "text-sm font-semibold",
-                      isCurrent ? "text-brand" : isPast ? "text-gray-400" : "text-gray-900"
+                      isCurrent ? "text-brand" : isPast ? "text-muted" : "text-foreground"
                     )}
                   >
                     {monthNames[month - 1]}
                   </h4>
                   {audits.length > 0 && (
-                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-medium text-muted bg-surface px-2 py-0.5 rounded-full">
                       {audits.length}
                     </span>
                   )}
                 </div>
 
                 {audits.length === 0 ? (
-                  <p className="text-xs text-gray-400 italic">No audits scheduled</p>
+                  <p className="text-xs text-muted italic">No audits scheduled</p>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {audits.map((audit) => {
@@ -506,7 +506,7 @@ export function AuditCalendarTab() {
                               <p className={cn("text-xs font-medium truncate", cfg.color)}>
                                 {audit.template.name}
                               </p>
-                              <p className="text-[10px] text-gray-500 truncate">
+                              <p className="text-[10px] text-muted truncate">
                                 {audit.service.code} · QA{audit.template.qualityArea}
                                 {audit.complianceScore != null && ` · ${audit.complianceScore}%`}
                               </p>

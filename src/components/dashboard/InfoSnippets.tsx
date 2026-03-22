@@ -65,14 +65,14 @@ export function InfoSnippets() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-card rounded-xl border border-border p-4">
         <div className="flex items-center gap-2 mb-3">
-          <div className="h-4 w-4 rounded bg-gray-200 animate-pulse" />
-          <div className="h-4 w-32 rounded bg-gray-200 animate-pulse" />
+          <div className="h-4 w-4 rounded bg-border animate-pulse" />
+          <div className="h-4 w-32 rounded bg-border animate-pulse" />
         </div>
         <div className="space-y-2">
-          <div className="h-16 rounded-lg bg-gray-100 animate-pulse" />
-          <div className="h-16 rounded-lg bg-gray-100 animate-pulse" />
+          <div className="h-16 rounded-lg bg-surface animate-pulse" />
+          <div className="h-16 rounded-lg bg-surface animate-pulse" />
         </div>
       </div>
     );
@@ -87,15 +87,15 @@ export function InfoSnippets() {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
       {/* Header */}
       <button
         onClick={() => setExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-4 py-3 border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 border-b border-border/50 hover:bg-surface/50 transition-colors"
       >
         <div className="flex items-center gap-2">
           <Bell className="w-4 h-4 text-brand" />
-          <h3 className="text-sm font-semibold text-gray-900">
+          <h3 className="text-sm font-semibold text-foreground">
             New Information
           </h3>
           {unacknowledgedCount > 0 && (
@@ -112,9 +112,9 @@ export function InfoSnippets() {
             </span>
           )}
           {isExpanded ? (
-            <ChevronUp className="w-4 h-4 text-gray-400" />
+            <ChevronUp className="w-4 h-4 text-muted" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-gray-400" />
+            <ChevronDown className="w-4 h-4 text-muted" />
           )}
         </div>
       </button>
@@ -153,20 +153,20 @@ function SnippetCard({
 }) {
   return (
     <div
-      className={`border border-gray-200 border-l-4 ${borderColor} rounded-lg p-3 flex items-start justify-between gap-3`}
+      className={`border border-border border-l-4 ${borderColor} rounded-lg p-3 flex items-start justify-between gap-3`}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-gray-900">{snippet.title}</p>
-        <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
+        <p className="text-sm font-semibold text-foreground">{snippet.title}</p>
+        <p className="text-xs text-muted mt-0.5 line-clamp-2">
           {snippet.summary}
         </p>
         <div className="flex items-center gap-2 mt-1.5">
           {snippet.category && (
-            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+            <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
               {snippet.category}
             </span>
           )}
-          <span className="text-[10px] text-gray-300">
+          <span className="text-[10px] text-muted/50">
             {snippet.totalAcks}/{snippet.totalUsers} acknowledged
           </span>
         </div>

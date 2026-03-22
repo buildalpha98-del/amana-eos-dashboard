@@ -58,7 +58,7 @@ function DroppableColumn({
       <div
         ref={setNodeRef}
         className={`space-y-3 min-h-[200px] p-2 mt-2 rounded-xl transition-colors duration-200 ${
-          isOver ? "bg-brand/5 ring-2 ring-brand/20" : "bg-gray-50/30"
+          isOver ? "bg-brand/5 ring-2 ring-brand/20" : "bg-surface/30"
         }`}
       >
         <SortableContext
@@ -75,7 +75,7 @@ function DroppableColumn({
         </SortableContext>
 
         {issues.length === 0 && (
-          <div className="flex items-center justify-center h-[120px] text-sm text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+          <div className="flex items-center justify-center h-[120px] text-sm text-muted border-2 border-dashed border-border rounded-lg">
             Drop issues here
           </div>
         )}

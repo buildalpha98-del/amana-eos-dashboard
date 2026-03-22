@@ -23,17 +23,17 @@ export function LeadCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-all ${
+      className={`bg-card rounded-lg border border-border p-3 cursor-pointer hover:shadow-md transition-all ${
         isDragging ? "shadow-lg ring-2 ring-[#FECE00] opacity-90" : ""
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-1.5">
-        <h4 className="text-sm font-semibold text-gray-900 line-clamp-1">
+        <h4 className="text-sm font-semibold text-foreground line-clamp-1">
           {lead.schoolName}
         </h4>
         <span
           className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap ${
-            sourceColors[lead.source] || "bg-gray-100 text-gray-600"
+            sourceColors[lead.source] || "bg-surface text-muted"
           }`}
         >
           {lead.source}
@@ -41,15 +41,15 @@ export function LeadCard({
       </div>
 
       {lead.contactName && (
-        <p className="text-xs text-gray-500 mb-1.5 line-clamp-1">
+        <p className="text-xs text-muted mb-1.5 line-clamp-1">
           {lead.contactName}
         </p>
       )}
 
-      <div className="flex items-center justify-between text-[11px] text-gray-400">
+      <div className="flex items-center justify-between text-[11px] text-muted">
         <div className="flex items-center gap-2">
           {lead.state && (
-            <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+            <span className="bg-surface text-muted px-1.5 py-0.5 rounded">
               {lead.state}
             </span>
           )}
@@ -71,7 +71,7 @@ export function LeadCard({
 
         <div className="flex items-center gap-2">
           {lead._count.touchpoints > 0 && (
-            <span className="text-gray-500">
+            <span className="text-muted">
               {lead._count.touchpoints} touch{lead._count.touchpoints !== 1 ? "es" : ""}
             </span>
           )}

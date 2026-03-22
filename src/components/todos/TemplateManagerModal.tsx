@@ -181,20 +181,20 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             {view === "form" && (
               <button
                 onClick={() => setView("list")}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 mr-1"
+                className="p-1 text-muted hover:text-foreground rounded-md hover:bg-surface mr-1"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
             )}
             <Repeat className="w-5 h-5 text-brand" />
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-foreground">
               {view === "form"
                 ? editingId
                   ? "Edit Template"
@@ -204,7 +204,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+            className="p-2 text-muted hover:text-foreground rounded-lg hover:bg-surface"
           >
             <X className="w-5 h-5" />
           </button>
@@ -223,11 +223,11 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                   {templates.map((template) => (
                     <div
                       key={template.id}
-                      className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors"
+                      className="flex items-center gap-3 p-4 bg-surface/50 rounded-lg border border-border/50 hover:border-border transition-colors"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-semibold text-gray-900 truncate">
+                          <h4 className="text-sm font-semibold text-foreground truncate">
                             {template.title}
                           </h4>
                           <span
@@ -238,15 +238,15 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                             {recurrenceLabels[template.recurrence]}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <div className="flex items-center gap-3 text-xs text-muted">
                           <span>{template.assignee?.name ?? "Unassigned"}</span>
                           {template.service && (
                             <>
-                              <span className="text-gray-300">|</span>
+                              <span className="text-border">|</span>
                               <span>{template.service.code}</span>
                             </>
                           )}
-                          <span className="text-gray-300">|</span>
+                          <span className="text-border">|</span>
                           <span className="inline-flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             Next:{" "}
@@ -265,7 +265,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                       <button
                         onClick={() => handleToggleActive(template)}
                         className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
-                          template.isActive ? "bg-brand" : "bg-gray-300"
+                          template.isActive ? "bg-brand" : "bg-border"
                         }`}
                         title={template.isActive ? "Active" : "Paused"}
                       >
@@ -279,7 +279,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                       {/* Edit */}
                       <button
                         onClick={() => openEditForm(template)}
-                        className="p-1.5 text-gray-400 hover:text-brand rounded-md hover:bg-gray-100"
+                        className="p-1.5 text-muted hover:text-brand rounded-md hover:bg-surface"
                         title="Edit template"
                       >
                         <Pencil className="w-4 h-4" />
@@ -288,7 +288,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                       {/* Delete */}
                       <button
                         onClick={() => handleDelete(template.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 rounded-md hover:bg-gray-100"
+                        className="p-1.5 text-muted hover:text-danger rounded-md hover:bg-surface"
                         title="Remove template"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -301,10 +301,10 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                   <div className="w-14 h-14 rounded-2xl bg-brand/5 flex items-center justify-center mx-auto mb-4">
                     <Repeat className="w-7 h-7 text-brand/30" />
                   </div>
-                  <h3 className="text-base font-semibold text-gray-900 mb-1">
+                  <h3 className="text-base font-semibold text-foreground mb-1">
                     No templates yet
                   </h3>
-                  <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                  <p className="text-sm text-muted max-w-sm mx-auto">
                     Create a recurring template to automatically generate to-dos
                     on a schedule.
                   </p>
@@ -321,7 +321,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Title
                 </label>
                 <input
@@ -331,15 +331,15 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, title: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   placeholder="e.g., Weekly service report"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Description{" "}
-                  <span className="text-gray-400 font-normal">(optional)</span>
+                  <span className="text-muted font-normal">(optional)</span>
                 </label>
                 <textarea
                   value={form.description}
@@ -347,14 +347,14 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                     setForm((f) => ({ ...f, description: e.target.value }))
                   }
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
                   placeholder="Add details..."
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground/80 mb-1">
                     Assignee
                   </label>
                   <select
@@ -363,7 +363,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, assigneeId: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   >
                     <option value="">Select person...</option>
                     {users.map((u) => (
@@ -375,16 +375,16 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground/80 mb-1">
                     Service{" "}
-                    <span className="text-gray-400 font-normal">(optional)</span>
+                    <span className="text-muted font-normal">(optional)</span>
                   </label>
                   <select
                     value={form.serviceId}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, serviceId: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   >
                     <option value="">No service</option>
                     {services.map((s) => (
@@ -398,7 +398,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground/80 mb-1">
                     Recurrence
                   </label>
                   <select
@@ -410,7 +410,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                         recurrence: e.target.value as RecurrenceRule,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   >
                     <option value="daily">Daily</option>
                     <option value="weekly">Weekly</option>
@@ -421,7 +421,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground/80 mb-1">
                     Next Run Date
                   </label>
                   <input
@@ -431,7 +431,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, nextRunAt: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-3 py-2 border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
                 </div>
               </div>
@@ -440,10 +440,10 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-surface/50 rounded-b-xl">
           {view === "list" ? (
             <>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted">
                 {templates?.length || 0} template{templates?.length !== 1 ? "s" : ""}
               </p>
               <button
@@ -458,7 +458,7 @@ export function TemplateManagerModal({ onClose }: { onClose: () => void }) {
             <>
               <button
                 onClick={() => setView("list")}
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+                className="px-4 py-2 text-sm font-medium text-muted hover:text-foreground"
               >
                 Cancel
               </button>

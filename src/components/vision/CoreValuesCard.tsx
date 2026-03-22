@@ -33,10 +33,10 @@ export function CoreValuesCard({ values }: { values: string[] }) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border/50 bg-surface/50">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-gray-700">Core Values</h3>
+          <h3 className="text-sm font-semibold text-foreground/80">Core Values</h3>
           {hasDirtyValues && <UnsavedBadge />}
         </div>
         {!editing && (
@@ -45,7 +45,7 @@ export function CoreValuesCard({ values }: { values: string[] }) {
               setDraft([...values]);
               setEditing(true);
             }}
-            className="p-1 text-gray-400 hover:text-brand transition-colors"
+            className="p-1 text-muted hover:text-brand transition-colors"
             title="Edit"
           >
             <Pencil className="w-3.5 h-3.5" />
@@ -68,11 +68,11 @@ export function CoreValuesCard({ values }: { values: string[] }) {
                       next[idx] = e.target.value;
                       setDraft(next);
                     }}
-                    className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="flex-1 px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                   <button
                     onClick={() => removeValue(idx)}
-                    className="p-1 text-gray-300 hover:text-red-500"
+                    className="p-1 text-muted/50 hover:text-danger"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -111,7 +111,7 @@ export function CoreValuesCard({ values }: { values: string[] }) {
               </button>
               <button
                 onClick={() => setEditing(false)}
-                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 text-gray-500"
+                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 text-muted"
               >
                 <X className="w-3 h-3" />
                 Cancel
@@ -125,12 +125,12 @@ export function CoreValuesCard({ values }: { values: string[] }) {
                 <div className="flex-shrink-0 w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center mt-0.5">
                   <Star className="w-3 h-3 text-brand" />
                 </div>
-                <span className="text-sm text-gray-700 font-medium">{val}</span>
+                <span className="text-sm text-foreground/80 font-medium">{val}</span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-400 italic">No core values set</p>
+          <p className="text-sm text-muted italic">No core values set</p>
         )}
       </div>
     </div>

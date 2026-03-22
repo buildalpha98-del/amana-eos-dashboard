@@ -19,7 +19,7 @@ function percentBar(percent: number, threshold?: number) {
   const isBelow = threshold != null && percent < threshold;
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+      <div className="flex-1 h-2 bg-surface rounded-full overflow-hidden">
         <div
           className={cn(
             "h-full rounded-full transition-all",
@@ -28,7 +28,7 @@ function percentBar(percent: number, threshold?: number) {
           style={{ width: `${Math.min(percent, 100)}%` }}
         />
       </div>
-      <span className={cn("text-xs font-medium w-10 text-right", isBelow ? "text-red-600" : "text-gray-600")}>
+      <span className={cn("text-xs font-medium w-10 text-right", isBelow ? "text-red-600" : "text-muted")}>
         {percent.toFixed(0)}%
       </span>
     </div>
@@ -52,7 +52,7 @@ export function QualificationRatiosTab() {
 
   if (!data) {
     return (
-      <div className="text-center py-16 text-gray-400">
+      <div className="text-center py-16 text-muted">
         <p className="text-sm">No qualification data available</p>
       </div>
     );
@@ -63,37 +63,37 @@ export function QualificationRatiosTab() {
   return (
     <div className="space-y-6">
       {/* Network summary */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-4">
+      <div className="bg-card rounded-xl border border-border shadow-sm p-6">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
           <Users className="w-4 h-4 text-brand" />
           Network Summary
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{network.totalStaff}</div>
-            <div className="text-xs text-gray-500">Total Staff</div>
+            <div className="text-2xl font-bold text-foreground">{network.totalStaff}</div>
+            <div className="text-xs text-muted">Total Staff</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-brand">{network.diplomaPlusPercent.toFixed(0)}%</div>
-            <div className="text-xs text-gray-500">Diploma+ Rate</div>
+            <div className="text-xs text-muted">Diploma+ Rate</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">
+            <div className="text-2xl font-bold text-foreground">
               {network.compliantCentres}/{network.totalCentres}
             </div>
-            <div className="text-xs text-gray-500">50% Rule Compliant</div>
+            <div className="text-xs text-muted">50% Rule Compliant</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{network.wwccCount}</div>
-            <div className="text-xs text-gray-500">WWCC Holders</div>
+            <div className="text-2xl font-bold text-foreground">{network.wwccCount}</div>
+            <div className="text-xs text-muted">WWCC Holders</div>
           </div>
         </div>
       </div>
 
       {/* Per-centre breakdown */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-border/50">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <GraduationCap className="w-4 h-4 text-brand" />
             Qualification Ratios by Centre
           </h3>
@@ -101,32 +101,32 @@ export function QualificationRatiosTab() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-4 py-3 font-semibold text-gray-700">Centre</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-700">Staff</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-700">Cert III</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-700">Diploma+</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-700">Diploma+ %</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-700">WWCC</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-700">First Aid</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-700">50% Rule</th>
+              <tr className="bg-surface/50 border-b border-border">
+                <th className="text-left px-4 py-3 font-semibold text-foreground/80">Centre</th>
+                <th className="text-center px-4 py-3 font-semibold text-foreground/80">Staff</th>
+                <th className="text-center px-4 py-3 font-semibold text-foreground/80">Cert III</th>
+                <th className="text-center px-4 py-3 font-semibold text-foreground/80">Diploma+</th>
+                <th className="text-center px-4 py-3 font-semibold text-foreground/80">Diploma+ %</th>
+                <th className="text-center px-4 py-3 font-semibold text-foreground/80">WWCC</th>
+                <th className="text-center px-4 py-3 font-semibold text-foreground/80">First Aid</th>
+                <th className="text-center px-4 py-3 font-semibold text-foreground/80">50% Rule</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border/50">
               {centres.map((centre) => (
-                <tr key={centre.service.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={centre.service.id} className="hover:bg-surface transition-colors">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900">{centre.service.name}</p>
-                    <p className="text-xs text-gray-500">{centre.service.code}</p>
+                    <p className="font-medium text-foreground">{centre.service.name}</p>
+                    <p className="text-xs text-muted">{centre.service.code}</p>
                   </td>
-                  <td className="px-4 py-3 text-center font-medium text-gray-900">
+                  <td className="px-4 py-3 text-center font-medium text-foreground">
                     {centre.totalStaff}
                   </td>
-                  <td className="px-4 py-3 text-center text-gray-600">
+                  <td className="px-4 py-3 text-center text-muted">
                     {centre.certIIICount}
-                    <span className="text-xs text-gray-400 ml-1">({centre.certIIIPercent.toFixed(0)}%)</span>
+                    <span className="text-xs text-muted ml-1">({centre.certIIIPercent.toFixed(0)}%)</span>
                   </td>
-                  <td className="px-4 py-3 text-center text-gray-600">
+                  <td className="px-4 py-3 text-center text-muted">
                     {centre.diplomaPlusCount}
                   </td>
                   <td className="px-4 py-3 min-w-[140px]">

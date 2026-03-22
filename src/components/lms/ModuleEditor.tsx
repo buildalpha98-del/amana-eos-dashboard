@@ -236,7 +236,7 @@ function ModuleCard({
         </div>
       </div>
 
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 opacity-60 transition-opacity">
         <button onClick={onEdit} className="p-1.5 text-gray-400 hover:text-brand rounded-md hover:bg-gray-100">
           <Pencil className="w-3.5 h-3.5" />
         </button>

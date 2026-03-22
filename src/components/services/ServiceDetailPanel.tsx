@@ -58,7 +58,7 @@ export function ServiceDetailPanel({
 
   if (isLoading || !service) {
     return (
-      <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 z-50 flex items-center justify-center">
+      <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-card shadow-2xl border-l border-border z-50 flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
       </div>
     );
@@ -67,25 +67,25 @@ export function ServiceDetailPanel({
   return (
     <>
       <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 z-50 flex flex-col overflow-hidden">
+      <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-card shadow-2xl border-l border-border z-50 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
-            <h3 className="text-base font-semibold text-gray-900">
+            <h3 className="text-base font-semibold text-foreground">
               {service.name}
             </h3>
-            <p className="text-xs text-gray-400 font-mono">{service.code}</p>
+            <p className="text-xs text-muted font-mono">{service.code}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+            className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 px-6">
+        <div className="flex border-b border-border px-6">
           {([
             { key: "overview", label: "Overview" },
             { key: "weekly", label: "Weekly Data", icon: BarChart3 },
@@ -98,7 +98,7 @@ export function ServiceDetailPanel({
                 "px-3 py-2.5 text-xs font-medium border-b-2 transition-colors",
                 activeTab === tab.key
                   ? "border-brand text-brand"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                  : "border-transparent text-muted hover:text-foreground"
               )}
             >
               {tab.label}
@@ -120,7 +120,7 @@ export function ServiceDetailPanel({
 
           {/* Financials Tab */}
           {activeTab === "financials" && (
-            <div className="text-center py-12 text-gray-400 text-sm">
+            <div className="text-center py-12 text-muted text-sm">
               Financial summary is available on the Financial Dashboard page filtered to this centre.
             </div>
           )}
@@ -129,7 +129,7 @@ export function ServiceDetailPanel({
           <>
           {/* Status */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
               Status
             </label>
             <div className="flex gap-1">
@@ -143,7 +143,7 @@ export function ServiceDetailPanel({
                     "flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors",
                     service.status === s.key
                       ? s.color
-                      : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
+                      : "bg-card border-border text-muted hover:border-border"
                   )}
                 >
                   {s.label}
@@ -154,12 +154,12 @@ export function ServiceDetailPanel({
 
           {/* Contact Info */}
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider">
               Contact Details
             </label>
             {service.address && (
-              <div className="flex items-start gap-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+              <div className="flex items-start gap-2 text-sm text-muted">
+                <MapPin className="w-4 h-4 text-muted mt-0.5" />
                 <span>
                   {service.address}
                   {service.suburb && `, ${service.suburb}`}
@@ -169,26 +169,26 @@ export function ServiceDetailPanel({
               </div>
             )}
             {service.phone && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Phone className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <Phone className="w-4 h-4 text-muted" />
                 <span>{service.phone}</span>
               </div>
             )}
             {service.email && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Mail className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <Mail className="w-4 h-4 text-muted" />
                 <span>{service.email}</span>
               </div>
             )}
             {service.capacity && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Users className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <Users className="w-4 h-4 text-muted" />
                 <span>Capacity: {service.capacity} children</span>
               </div>
             )}
             {service.operatingDays && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <Calendar className="w-4 h-4 text-muted" />
                 <span>{service.operatingDays}</span>
               </div>
             )}
@@ -196,7 +196,7 @@ export function ServiceDetailPanel({
 
           {/* Manager */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-1">
               Centre Manager
             </label>
             <select
@@ -207,7 +207,7 @@ export function ServiceDetailPanel({
                   managerId: e.target.value || null,
                 })
               }
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="">Unassigned</option>
               {users?.map((u) => (
@@ -221,7 +221,7 @@ export function ServiceDetailPanel({
           {/* Notes */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <label className="text-xs font-medium text-muted uppercase tracking-wider">
                 Notes
               </label>
               {!editing && (
@@ -230,7 +230,7 @@ export function ServiceDetailPanel({
                     setNotes(service.notes || "");
                     setEditing(true);
                   }}
-                  className="text-gray-400 hover:text-brand"
+                  className="text-muted hover:text-brand"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                 </button>
@@ -243,7 +243,7 @@ export function ServiceDetailPanel({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
                 />
                 <div className="flex gap-2">
                   <button
@@ -257,14 +257,14 @@ export function ServiceDetailPanel({
                   </button>
                   <button
                     onClick={() => setEditing(false)}
-                    className="text-xs px-3 py-1 text-gray-500"
+                    className="text-xs px-3 py-1 text-muted"
                   >
                     Cancel
                   </button>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted">
                 {service.notes || "No notes yet."}
               </p>
             )}
@@ -273,7 +273,7 @@ export function ServiceDetailPanel({
           {/* Active Todos */}
           {service.todos && service.todos.length > 0 && (
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                 <CheckSquare className="w-3.5 h-3.5 inline mr-1" />
                 Active To-Dos ({service.todos.length})
               </label>
@@ -281,20 +281,20 @@ export function ServiceDetailPanel({
                 {service.todos.slice(0, 10).map((todo) => (
                   <div
                     key={todo.id}
-                    className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-sm"
+                    className="flex items-center gap-2 px-3 py-2 bg-surface/50 rounded-lg text-sm"
                   >
                     <CheckSquare
                       className={cn(
                         "w-4 h-4 flex-shrink-0",
                         todo.status === "complete"
                           ? "text-emerald-500"
-                          : "text-gray-300"
+                          : "text-muted/50"
                       )}
                     />
-                    <span className="flex-1 truncate text-gray-700">
+                    <span className="flex-1 truncate text-foreground/80">
                       {todo.title}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted">
                       {todo.assignee?.name ?? "Unassigned"}
                     </span>
                   </div>
@@ -306,7 +306,7 @@ export function ServiceDetailPanel({
           {/* Open Issues */}
           {service.issues && service.issues.length > 0 && (
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                 <AlertCircle className="w-3.5 h-3.5 inline mr-1" />
                 Open Issues ({service.issues.length})
               </label>
@@ -314,7 +314,7 @@ export function ServiceDetailPanel({
                 {service.issues.slice(0, 10).map((issue) => (
                   <div
                     key={issue.id}
-                    className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-sm"
+                    className="flex items-center gap-2 px-3 py-2 bg-surface/50 rounded-lg text-sm"
                   >
                     <span
                       className={cn(
@@ -328,10 +328,10 @@ export function ServiceDetailPanel({
                           : "bg-blue-500"
                       )}
                     />
-                    <span className="flex-1 truncate text-gray-700">
+                    <span className="flex-1 truncate text-foreground/80">
                       {issue.title}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted">
                       {issue.owner?.name || "Unassigned"}
                     </span>
                   </div>
@@ -343,7 +343,7 @@ export function ServiceDetailPanel({
           {/* Projects */}
           {service.projects && service.projects.length > 0 && (
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                 <FolderKanban className="w-3.5 h-3.5 inline mr-1" />
                 Projects ({service.projects.length})
               </label>
@@ -358,7 +358,7 @@ export function ServiceDetailPanel({
                     <span className="flex-1 truncate text-brand font-medium">
                       {project.name}
                     </span>
-                    <span className="text-xs text-gray-400 capitalize">
+                    <span className="text-xs text-muted capitalize">
                       {project.status.replace("_", " ")}
                     </span>
                   </button>
@@ -369,13 +369,13 @@ export function ServiceDetailPanel({
 
           {/* Rate Configuration */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
               <DollarSign className="w-3.5 h-3.5 inline mr-1" />
               Daily Rates (per child per day)
             </label>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">BSC</label>
+                <label className="text-[10px] text-muted block mb-0.5">BSC</label>
                 <input
                   type="number"
                   min={0}
@@ -385,12 +385,12 @@ export function ServiceDetailPanel({
                     const val = parseFloat(e.target.value);
                     updateService.mutate({ id: serviceId, bscDailyRate: isNaN(val) ? null : val });
                   }}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="$0"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">ASC</label>
+                <label className="text-[10px] text-muted block mb-0.5">ASC</label>
                 <input
                   type="number"
                   min={0}
@@ -400,12 +400,12 @@ export function ServiceDetailPanel({
                     const val = parseFloat(e.target.value);
                     updateService.mutate({ id: serviceId, ascDailyRate: isNaN(val) ? null : val });
                   }}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="$0"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">VC</label>
+                <label className="text-[10px] text-muted block mb-0.5">VC</label>
                 <input
                   type="number"
                   min={0}
@@ -415,7 +415,7 @@ export function ServiceDetailPanel({
                     const val = parseFloat(e.target.value);
                     updateService.mutate({ id: serviceId, vcDailyRate: isNaN(val) ? null : val });
                   }}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="$0"
                 />
               </div>

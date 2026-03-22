@@ -28,7 +28,7 @@ export function QuarterSelector({
   const current = getCurrentQuarter();
 
   return (
-    <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+    <div className="flex items-center gap-1 bg-surface rounded-lg p-1">
       {options.map((q) => (
         <button
           key={q}
@@ -39,7 +39,7 @@ export function QuarterSelector({
               ? "bg-brand text-white shadow-sm"
               : q === current
               ? "text-brand hover:bg-white/60 font-semibold"
-              : "text-gray-500 hover:bg-white/60"
+              : "text-muted hover:bg-white/60"
           )}
         >
           {q.replace("-", " ")}

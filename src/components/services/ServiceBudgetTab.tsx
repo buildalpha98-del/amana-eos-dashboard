@@ -164,14 +164,14 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Centre Budget</h2>
-          <p className="text-sm text-gray-500">{fy.label} — Groceries &amp; Centre Purchases</p>
+          <h2 className="text-lg font-semibold text-foreground">Centre Budget</h2>
+          <p className="text-sm text-muted">{fy.label} — Groceries &amp; Centre Purchases</p>
         </div>
         <div className="flex items-center gap-2">
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value as "weekly" | "monthly")}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="px-3 py-1.5 border border-border rounded-lg text-sm text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="monthly">Monthly</option>
             <option value="weekly">Weekly</option>
@@ -183,7 +183,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
       {summaryLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+            <div key={i} className="bg-card rounded-xl border border-border p-4 space-y-2">
               <Skeleton className="h-3 w-20" />
               <Skeleton className="h-7 w-24" />
               <Skeleton className="h-2.5 w-16" />
@@ -193,28 +193,28 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Card 1: Grocery Spend */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs font-medium text-gray-500 mb-1">Grocery Spend</p>
+          <div className="bg-card rounded-xl border border-border p-4">
+            <p className="text-xs font-medium text-muted mb-1">Grocery Spend</p>
             <p className="text-2xl font-bold text-emerald-700">
               ${summary?.groceryBudget?.total?.toFixed(0) || "0"}
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-muted mt-1">
               {period === "weekly" ? "This week" : "This month"}
             </p>
           </div>
 
           {/* Card 2: Purchase Budget */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs font-medium text-gray-500 mb-1">Purchase Budget</p>
-            <p className="text-2xl font-bold text-gray-900">
+          <div className="bg-card rounded-xl border border-border p-4">
+            <p className="text-xs font-medium text-muted mb-1">Purchase Budget</p>
+            <p className="text-2xl font-bold text-foreground">
               ${summary?.monthToDatePurchaseSpend?.toFixed(0) || "0"}
-              <span className="text-sm font-normal text-gray-400">
+              <span className="text-sm font-normal text-muted">
                 {" "}/ ${summary?.monthlyAllocation || 0}
               </span>
             </p>
             {summary?.monthlyAllocation && (
               <>
-                <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
+                <div className="w-full bg-surface rounded-full h-1.5 mt-2">
                   <div
                     className={cn(
                       "h-1.5 rounded-full transition-all",
@@ -229,7 +229,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                     }}
                   />
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">{summary.allocationLabel}</p>
+                <p className="text-[10px] text-muted mt-1">{summary.allocationLabel}</p>
               </>
             )}
             <button
@@ -243,12 +243,12 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
             </button>
             {showOverride && (
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-gray-500">$</span>
+                <span className="text-xs text-muted">$</span>
                 <input
                   type="number"
                   value={overrideValue}
                   onChange={(e) => setOverrideValue(e.target.value)}
-                  className="w-20 px-2 py-1 text-xs border border-gray-300 rounded"
+                  className="w-20 px-2 py-1 text-xs border border-border rounded"
                 />
                 <button onClick={handleSaveOverride} className="text-xs text-blue-600 font-medium">
                   Save
@@ -263,19 +263,19 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
           </div>
 
           {/* Card 3: Total Spend */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs font-medium text-gray-500 mb-1">Total Spend</p>
+          <div className="bg-card rounded-xl border border-border p-4">
+            <p className="text-xs font-medium text-muted mb-1">Total Spend</p>
             <p className="text-2xl font-bold text-purple-700">
               ${summary?.combinedTotal?.toFixed(0) || "0"}
             </p>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-muted mt-1">
               {period === "weekly" ? "This week" : "This month"}
             </p>
           </div>
 
           {/* Card 4: Budget Remaining */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs font-medium text-gray-500 mb-1">Budget Remaining</p>
+          <div className="bg-card rounded-xl border border-border p-4">
+            <p className="text-xs font-medium text-muted mb-1">Budget Remaining</p>
             <p className={cn(
               "text-2xl font-bold",
               (summary?.budgetRemaining ?? 0) < 0 ? "text-red-600" : "text-emerald-700"
@@ -285,14 +285,14 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                 <span className="text-xs font-medium ml-1">over</span>
               )}
             </p>
-            <p className="text-xs text-gray-400 mt-1">This month</p>
+            <p className="text-xs text-muted mt-1">This month</p>
           </div>
         </div>
       )}
 
       {/* Grocery Breakdown */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+      <div className="bg-card rounded-xl border border-border p-6">
+        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <ShoppingCart className="w-4 h-4 text-emerald-600" />
           Grocery Budget Breakdown
         </h3>
@@ -311,14 +311,14 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-gray-500 border-b border-gray-100">
+                  <tr className="text-left text-muted border-b border-border/50">
                     <th className="pb-2 font-medium">Session Type</th>
                     <th className="pb-2 font-medium text-right">Total Estimated</th>
                     <th className="pb-2 font-medium text-right">Rate / Head</th>
                     <th className="pb-2 font-medium text-right">Grocery Cost</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-border/30">
                   <tr>
                     <td className="py-2.5">
                       <span className="inline-flex items-center gap-1.5">
@@ -329,10 +329,10 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                     <td className="py-2.5 text-right font-medium">
                       {summary?.groceryBudget.bsc.attended.toLocaleString() || 0}
                     </td>
-                    <td className="py-2.5 text-right text-gray-600">
+                    <td className="py-2.5 text-right text-muted">
                       ${summary?.groceryBudget.bsc.rate.toFixed(2) || "0.80"}
                     </td>
-                    <td className="py-2.5 text-right font-semibold text-gray-900">
+                    <td className="py-2.5 text-right font-semibold text-foreground">
                       {formatCurrency(summary?.groceryBudget.bsc.cost || 0)}
                     </td>
                   </tr>
@@ -346,10 +346,10 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                     <td className="py-2.5 text-right font-medium">
                       {summary?.groceryBudget.asc.attended.toLocaleString() || 0}
                     </td>
-                    <td className="py-2.5 text-right text-gray-600">
+                    <td className="py-2.5 text-right text-muted">
                       ${summary?.groceryBudget.asc.rate.toFixed(2) || "1.20"}
                     </td>
-                    <td className="py-2.5 text-right font-semibold text-gray-900">
+                    <td className="py-2.5 text-right font-semibold text-foreground">
                       {formatCurrency(summary?.groceryBudget.asc.cost || 0)}
                     </td>
                   </tr>
@@ -363,17 +363,17 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                     <td className="py-2.5 text-right font-medium">
                       {summary?.groceryBudget.vc.attended.toLocaleString() || 0}
                     </td>
-                    <td className="py-2.5 text-right text-gray-600">
+                    <td className="py-2.5 text-right text-muted">
                       ${summary?.groceryBudget.vc.rate.toFixed(2) || "4.50"}
                     </td>
-                    <td className="py-2.5 text-right font-semibold text-gray-900">
+                    <td className="py-2.5 text-right font-semibold text-foreground">
                       {formatCurrency(summary?.groceryBudget.vc.cost || 0)}
                     </td>
                   </tr>
                 </tbody>
                 <tfoot>
-                  <tr className="border-t border-gray-200">
-                    <td className="pt-3 font-semibold text-gray-900">Total</td>
+                  <tr className="border-t border-border">
+                    <td className="pt-3 font-semibold text-foreground">Total</td>
                     <td className="pt-3 text-right font-semibold">
                       {(
                         (summary?.groceryBudget.bsc.attended || 0) +
@@ -389,7 +389,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                 </tfoot>
               </table>
             </div>
-            <p className="text-xs text-gray-400 mt-3">
+            <p className="text-xs text-muted mt-3">
               Auto-calculated from attendance records × grocery rates per head
             </p>
           </>
@@ -398,8 +398,8 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
 
       {/* Budget Trend Chart */}
       {chartData.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="bg-card rounded-xl border border-border p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-brand" />
             Budget Trend ({period === "monthly" ? "Monthly" : "Weekly"})
           </h3>
@@ -443,9 +443,9 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
       )}
 
       {/* Equipment Section */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-card rounded-xl border border-border p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Package className="w-4 h-4 text-blue-600" />
             Centre Purchases
           </h3>
@@ -469,7 +469,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
               "px-2.5 py-1 text-xs font-medium rounded-full border transition-colors",
               !categoryFilter
                 ? "bg-brand text-white border-brand"
-                : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                : "bg-card text-muted border-border hover:border-border"
             )}
           >
             All
@@ -482,7 +482,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                 "px-2.5 py-1 text-xs font-medium rounded-full border transition-colors",
                 categoryFilter === cat
                   ? "text-white border-transparent"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                  : "bg-card text-muted border-border hover:border-border"
               )}
               style={
                 categoryFilter === cat
@@ -511,9 +511,9 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
           </div>
         ) : !items?.length ? (
           <div className="text-center py-8">
-            <Wrench className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No purchases recorded</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <Wrench className="w-8 h-8 text-muted/50 mx-auto mb-2" />
+            <p className="text-sm text-muted">No purchases recorded</p>
+            <p className="text-xs text-muted mt-1">
               Click &quot;Add Purchase&quot; to log a purchase
             </p>
           </div>
@@ -530,8 +530,8 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                 }}
               />
             ))}
-            <div className="flex justify-between pt-3 border-t border-gray-200 mt-3">
-              <span className="text-sm font-semibold text-gray-900">
+            <div className="flex justify-between pt-3 border-t border-border mt-3">
+              <span className="text-sm font-semibold text-foreground">
                 Total ({items.length} item{items.length !== 1 ? "s" : ""})
               </span>
               <span className="text-sm font-bold text-blue-700">
@@ -571,7 +571,7 @@ function EquipmentRow({
   const deleteMutation = useDeleteEquipmentItem(serviceId);
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 group transition-colors">
+    <div className="flex items-center gap-3 px-3 py-2.5 bg-surface/50 rounded-lg hover:bg-surface group transition-colors">
       {/* Category badge */}
       <span
         className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium text-white flex-shrink-0"
@@ -581,30 +581,30 @@ function EquipmentRow({
       </span>
 
       {/* Name */}
-      <span className="flex-1 text-sm text-gray-900 truncate">{item.name}</span>
+      <span className="flex-1 text-sm text-foreground truncate">{item.name}</span>
 
       {/* Notes */}
       {item.notes && (
-        <span className="hidden sm:block text-xs text-gray-400 truncate max-w-[150px]">
+        <span className="hidden sm:block text-xs text-muted truncate max-w-[150px]">
           {item.notes}
         </span>
       )}
 
       {/* Date */}
-      <span className="text-xs text-gray-500 whitespace-nowrap">
+      <span className="text-xs text-muted whitespace-nowrap">
         {formatDateAU(item.date)}
       </span>
 
       {/* Amount */}
-      <span className="text-sm font-semibold text-gray-900 whitespace-nowrap w-20 text-right">
+      <span className="text-sm font-semibold text-foreground whitespace-nowrap w-20 text-right">
         ${item.amount.toFixed(2)}
       </span>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 opacity-60 transition-opacity">
         <button
           onClick={onEdit}
-          className="p-1 text-gray-400 hover:text-brand transition-colors"
+          className="p-1 text-muted hover:text-brand transition-colors"
           title="Edit"
         >
           <Pencil className="w-3.5 h-3.5" />
@@ -623,7 +623,7 @@ function EquipmentRow({
             }
           }}
           disabled={deleteMutation.isPending}
-          className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+          className="p-1 text-muted hover:text-red-600 transition-colors disabled:opacity-50"
           title="Delete"
         >
           {deleteMutation.isPending ? (
@@ -704,15 +704,15 @@ function EquipmentModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-md">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="text-base font-semibold text-gray-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+          <h3 className="text-base font-semibold text-foreground">
             {isEditing ? "Edit Purchase" : "Add Purchase"}
           </h3>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-1 text-muted hover:text-muted transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -722,13 +722,13 @@ function EquipmentModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Item Name</label>
+            <label className="block text-xs font-medium text-foreground/80 mb-1">Item Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Kitchen blender"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               required
             />
           </div>
@@ -736,7 +736,7 @@ function EquipmentModal({
           {/* Amount + Category */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Amount ($)</label>
+              <label className="block text-xs font-medium text-foreground/80 mb-1">Amount ($)</label>
               <input
                 type="number"
                 value={amount}
@@ -744,16 +744,16 @@ function EquipmentModal({
                 placeholder="0.00"
                 step="0.01"
                 min="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                 required
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+              <label className="block text-xs font-medium text-foreground/80 mb-1">Category</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 {ALL_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -766,26 +766,26 @@ function EquipmentModal({
 
           {/* Date */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Purchase Date</label>
+            <label className="block text-xs font-medium text-foreground/80 mb-1">Purchase Date</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               required
             />
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Notes (optional)</label>
+            <label className="block text-xs font-medium text-foreground/80 mb-1">Notes (optional)</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Additional details..."
               rows={2}
               maxLength={500}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
             />
           </div>
 
@@ -794,7 +794,7 @@ function EquipmentModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-foreground/80 bg-surface rounded-lg hover:bg-border transition-colors"
             >
               Cancel
             </button>

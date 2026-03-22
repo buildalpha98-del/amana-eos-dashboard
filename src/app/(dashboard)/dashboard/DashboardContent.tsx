@@ -522,10 +522,10 @@ function CommandCentreDashboard({
                     <div
                       className={`text-3xl sm:text-4xl font-bold ${
                         data.npsSurvey.score !== null && data.npsSurvey.score >= 50
-                          ? "text-green-600"
+                          ? "text-success"
                           : data.npsSurvey.score !== null && data.npsSurvey.score >= 0
-                          ? "text-amber-600"
-                          : "text-red-600"
+                          ? "text-warning"
+                          : "text-danger"
                       }`}
                     >
                       {data.npsSurvey.score !== null ? data.npsSurvey.score : "N/A"}
@@ -535,15 +535,15 @@ function CommandCentreDashboard({
 
                   <div className="flex-1 grid grid-cols-3 gap-2 sm:gap-4">
                     <div className="text-center">
-                      <div className="text-base sm:text-lg font-semibold text-green-600">{data.npsSurvey.promoters}</div>
+                      <div className="text-base sm:text-lg font-semibold text-success">{data.npsSurvey.promoters}</div>
                       <div className="text-[10px] sm:text-xs text-muted">Promoters</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-base sm:text-lg font-semibold text-amber-500">{data.npsSurvey.passives}</div>
+                      <div className="text-base sm:text-lg font-semibold text-warning">{data.npsSurvey.passives}</div>
                       <div className="text-[10px] sm:text-xs text-muted">Passives</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-base sm:text-lg font-semibold text-red-500">{data.npsSurvey.detractors}</div>
+                      <div className="text-base sm:text-lg font-semibold text-danger">{data.npsSurvey.detractors}</div>
                       <div className="text-[10px] sm:text-xs text-muted">Detractors</div>
                     </div>
                   </div>

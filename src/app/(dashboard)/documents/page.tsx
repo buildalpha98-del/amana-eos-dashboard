@@ -520,7 +520,7 @@ export default function DocumentsPage() {
                 {folder._count.documents === 0 && folder._count.children === 0 && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleteFolderId(folder.id); }}
-                    className="absolute top-2 right-2 p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 p-1 text-muted/50 hover:text-danger md:opacity-0 md:group-hover:opacity-100 opacity-60 transition-opacity"
                     title="Delete empty folder"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

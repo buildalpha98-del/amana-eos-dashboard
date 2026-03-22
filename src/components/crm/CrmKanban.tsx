@@ -57,10 +57,10 @@ function DroppableColumn({
           className="w-2 h-2 rounded-full"
           style={{ backgroundColor: column.color }}
         />
-        <h3 className="text-xs font-semibold text-gray-700 truncate">
+        <h3 className="text-xs font-semibold text-foreground/80 truncate">
           {column.label}
         </h3>
-        <span className="text-[10px] text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5">
+        <span className="text-[10px] text-muted bg-surface rounded-full px-1.5 py-0.5">
           {leads.length}
         </span>
       </div>
@@ -68,7 +68,7 @@ function DroppableColumn({
       <div
         ref={setNodeRef}
         className={`space-y-2 min-h-[200px] p-1.5 rounded-xl transition-colors duration-200 ${
-          isOver ? "bg-brand/5 ring-2 ring-brand/20" : "bg-gray-50/50"
+          isOver ? "bg-brand/5 ring-2 ring-brand/20" : "bg-surface/50"
         }`}
       >
         <SortableContext
@@ -85,7 +85,7 @@ function DroppableColumn({
         </SortableContext>
 
         {leads.length === 0 && (
-          <div className="flex items-center justify-center h-[100px] text-xs text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+          <div className="flex items-center justify-center h-[100px] text-xs text-muted border-2 border-dashed border-border rounded-lg">
             Drop here
           </div>
         )}

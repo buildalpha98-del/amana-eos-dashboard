@@ -60,26 +60,26 @@ export function WeekSelector({
 
   return (
     <div className="flex items-center gap-3">
-      <div className="flex items-center bg-white border border-gray-200 rounded-lg">
+      <div className="flex items-center bg-card border border-border rounded-lg">
         <button
           onClick={goBack}
-          className="p-2 hover:bg-gray-50 rounded-l-lg transition-colors border-r border-gray-200"
+          className="p-2 hover:bg-surface rounded-l-lg transition-colors border-r border-border"
           title="Previous week"
         >
-          <ChevronLeft className="w-4 h-4 text-gray-600" />
+          <ChevronLeft className="w-4 h-4 text-muted" />
         </button>
         <div className="px-4 py-2 flex items-center gap-2 min-w-[220px] justify-center">
           <Calendar className="w-4 h-4 text-brand" />
-          <span className="text-sm font-medium text-gray-900">
+          <span className="text-sm font-medium text-foreground">
             {formatWeekLabel(value)}
           </span>
         </div>
         <button
           onClick={goForward}
-          className="p-2 hover:bg-gray-50 rounded-r-lg transition-colors border-l border-gray-200"
+          className="p-2 hover:bg-surface rounded-r-lg transition-colors border-l border-border"
           title="Next week"
         >
-          <ChevronRight className="w-4 h-4 text-gray-600" />
+          <ChevronRight className="w-4 h-4 text-muted" />
         </button>
       </div>
 

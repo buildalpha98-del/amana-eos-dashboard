@@ -57,21 +57,21 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+      <div className="bg-card rounded-xl shadow-xl w-full max-w-lg mx-4">
         <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">New Vacancy</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <h3 className="text-lg font-semibold text-foreground">New Vacancy</h3>
+          <button onClick={onClose} className="text-muted hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Centre *</label>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">Centre *</label>
             <select
               value={form.serviceId}
               onChange={(e) => setForm({ ...form, serviceId: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg"
               required
             >
               <option value="">Select centre...</option>
@@ -83,11 +83,11 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Role *</label>
               <select
                 value={form.role}
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg"
               >
                 <option value="educator">Educator</option>
                 <option value="senior_educator">Senior Educator</option>
@@ -96,11 +96,11 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Employment Type *</label>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Employment Type *</label>
               <select
                 value={form.employmentType}
                 onChange={(e) => setForm({ ...form, employmentType: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg"
               >
                 <option value="casual">Casual</option>
                 <option value="part_time">Part Time</option>
@@ -112,11 +112,11 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Qualification Required</label>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Qualification Required</label>
               <select
                 value={form.qualificationRequired}
                 onChange={(e) => setForm({ ...form, qualificationRequired: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg"
               >
                 <option value="">None</option>
                 <option value="cert_iii">Certificate III</option>
@@ -124,19 +124,19 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Target Fill Date</label>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Target Fill Date</label>
               <input
                 type="date"
                 value={form.targetFillDate}
                 onChange={(e) => setForm({ ...form, targetFillDate: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg"
               />
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">Notes</label>
+              <label className="block text-sm font-medium text-foreground/80">Notes</label>
               <AiButton
                 templateSlug="recruitment/job-ad"
                 variables={{
@@ -155,7 +155,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg"
               placeholder="Any additional details..."
             />
           </div>
@@ -164,7 +164,7 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              className="px-4 py-2 text-sm text-muted hover:text-foreground"
             >
               Cancel
             </button>

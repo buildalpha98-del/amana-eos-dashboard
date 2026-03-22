@@ -103,7 +103,7 @@ function StatusCell({
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-center w-full h-full p-2 rounded-lg hover:bg-gray-50 transition-colors group"
+      className="flex items-center justify-center w-full h-full p-2 rounded-lg hover:bg-surface transition-colors group"
       title={
         cert.status === "valid"
           ? `Valid - expires ${cert.expiryDate}`
@@ -129,7 +129,7 @@ function StatusCell({
         <XCircle className="w-5 h-5 text-red-500" />
       )}
       {cert.status === "missing" && (
-        <Minus className="w-5 h-5 text-gray-300" />
+        <Minus className="w-5 h-5 text-muted/50" />
       )}
     </button>
   );
@@ -174,25 +174,25 @@ function CertDetailModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-card rounded-2xl shadow-xl w-full max-w-sm">
+        <div className="flex items-center justify-between p-5 border-b border-border/50">
+          <h3 className="text-lg font-semibold text-foreground">
             {TYPE_LABELS[cert.type] || cert.type}
           </h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-surface transition-colors"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-muted" />
           </button>
         </div>
         <div className="p-5 space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Staff Member</span>
-            <span className="font-medium text-gray-900">{userName}</span>
+            <span className="text-muted">Staff Member</span>
+            <span className="font-medium text-foreground">{userName}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">Status</span>
+            <span className="text-muted">Status</span>
             <span
               className={cn(
                 "font-semibold px-2 py-0.5 rounded-lg text-xs",
@@ -202,7 +202,7 @@ function CertDetailModal({
                   ? "bg-amber-100 text-amber-700"
                   : cert.status === "expired"
                   ? "bg-red-100 text-red-700"
-                  : "bg-gray-100 text-gray-500"
+                  : "bg-surface text-muted"
               )}
             >
               {cert.status === "valid"
@@ -216,8 +216,8 @@ function CertDetailModal({
           </div>
           {cert.expiryDate && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Expiry Date</span>
-              <span className="font-medium text-gray-900">
+              <span className="text-muted">Expiry Date</span>
+              <span className="font-medium text-foreground">
                 {new Date(cert.expiryDate).toLocaleDateString("en-AU", {
                   day: "numeric",
                   month: "short",
@@ -228,7 +228,7 @@ function CertDetailModal({
           )}
           {cert.daysLeft !== null && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Days Left</span>
+              <span className="text-muted">Days Left</span>
               <span
                 className={cn(
                   "font-medium",
@@ -246,10 +246,10 @@ function CertDetailModal({
             </div>
           )}
         </div>
-        <div className="p-5 border-t border-gray-100">
+        <div className="p-5 border-t border-border/50">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="w-full px-4 py-2 text-sm font-medium text-foreground/80 bg-surface rounded-lg hover:bg-border transition-colors"
           >
             Close
           </button>
@@ -271,13 +271,13 @@ function MobileStaffCard({
   onCertClick: (cert: CertEntry, userName: string) => void;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <p className="text-sm font-semibold text-gray-900">{row.userName}</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-sm font-semibold text-foreground">{row.userName}</p>
+          <p className="text-xs text-muted">
             {row.serviceName}{" "}
-            <span className="text-gray-400">({row.serviceCode})</span>
+            <span className="text-muted">({row.serviceCode})</span>
           </p>
         </div>
         <ScoreBadge valid={row.validCount} total={row.totalRequired} />
@@ -295,7 +295,7 @@ function MobileStaffCard({
                 ? "border-amber-200 bg-amber-50"
                 : cert.status === "expired"
                 ? "border-red-200 bg-red-50"
-                : "border-gray-200 bg-gray-50"
+                : "border-border bg-surface/50"
             )}
           >
             {cert.status === "valid" && (
@@ -308,9 +308,9 @@ function MobileStaffCard({
               <XCircle className="w-4 h-4 text-red-500" />
             )}
             {cert.status === "missing" && (
-              <Minus className="w-4 h-4 text-gray-300" />
+              <Minus className="w-4 h-4 text-muted/50" />
             )}
-            <span className="text-[10px] font-medium text-gray-600 text-center leading-tight">
+            <span className="text-[10px] font-medium text-muted text-center leading-tight">
               {SHORT_LABELS[cert.type] || cert.type}
             </span>
           </button>
@@ -363,7 +363,7 @@ export default function ComplianceMatrixView({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <div className="w-10 h-10 border-4 border-gray-200 border-t-brand rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin" />
       </div>
     );
   }
@@ -380,18 +380,18 @@ export default function ComplianceMatrixView({
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Users className="w-4 h-4 text-gray-400" />
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <Users className="w-4 h-4 text-muted" />
+            <p className="text-xs font-medium text-muted uppercase tracking-wider">
               Total Staff
             </p>
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold text-foreground">
             {summary.totalStaff}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-emerald-200 p-4">
+        <div className="bg-card rounded-xl border border-emerald-200 p-4">
           <div className="flex items-center gap-2 mb-1">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
             <p className="text-xs font-medium text-emerald-600 uppercase tracking-wider">
@@ -402,7 +402,7 @@ export default function ComplianceMatrixView({
             {summary.fullyCompliant}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-amber-200 p-4">
+        <div className="bg-card rounded-xl border border-amber-200 p-4">
           <div className="flex items-center gap-2 mb-1">
             <ShieldAlert className="w-4 h-4 text-amber-500" />
             <p className="text-xs font-medium text-amber-600 uppercase tracking-wider">
@@ -413,7 +413,7 @@ export default function ComplianceMatrixView({
             {summary.atRisk}
           </p>
         </div>
-        <div className="bg-white rounded-xl border border-red-200 p-4">
+        <div className="bg-card rounded-xl border border-red-200 p-4">
           <div className="flex items-center gap-2 mb-1">
             <ShieldX className="w-4 h-4 text-red-500" />
             <p className="text-xs font-medium text-red-600 uppercase tracking-wider">
@@ -432,7 +432,7 @@ export default function ComplianceMatrixView({
           <select
             value={serviceFilter}
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Centres</option>
             {services.map((s) => (
@@ -452,7 +452,7 @@ export default function ComplianceMatrixView({
         </div>
         <button
           onClick={handleExport}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
         >
           <Download className="w-4 h-4" />
           Export CSV
@@ -461,14 +461,14 @@ export default function ComplianceMatrixView({
 
       {/* Desktop Table */}
       {rows.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-xl border border-gray-200">
+        <div className="flex flex-col items-center justify-center py-24 text-center bg-card rounded-xl border border-border">
           <div className="w-16 h-16 rounded-2xl bg-brand/10 flex items-center justify-center mb-4">
             <Users className="w-8 h-8 text-brand" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+          <h3 className="text-lg font-semibold text-foreground mb-1">
             No staff found
           </h3>
-          <p className="text-sm text-gray-500 max-w-sm">
+          <p className="text-sm text-muted max-w-sm">
             There are no active staff members assigned to centres. Assign staff
             to centres first to see the compliance matrix.
           </p>
@@ -476,42 +476,42 @@ export default function ComplianceMatrixView({
       ) : (
         <>
           {/* Desktop view */}
-          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="hidden md:block bg-card rounded-xl border border-border overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">
+                  <tr className="bg-surface/50 border-b border-border">
+                    <th className="text-left px-4 py-3 font-semibold text-foreground/80 whitespace-nowrap">
                       Staff Name
                     </th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="text-left px-4 py-3 font-semibold text-foreground/80 whitespace-nowrap">
                       Centre
                     </th>
                     {Object.entries(TYPE_LABELS).map(([key, label]) => (
                       <th
                         key={key}
-                        className="text-center px-2 py-3 font-semibold text-gray-700 whitespace-nowrap"
+                        className="text-center px-2 py-3 font-semibold text-foreground/80 whitespace-nowrap"
                       >
                         {label}
                       </th>
                     ))}
-                    <th className="text-center px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">
+                    <th className="text-center px-4 py-3 font-semibold text-foreground/80 whitespace-nowrap">
                       Score
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-border/50">
                   {rows.map((row) => (
                     <tr
                       key={row.userId}
-                      className="hover:bg-gray-50/50 transition-colors"
+                      className="hover:bg-surface/50 transition-colors"
                     >
-                      <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                      <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
                         {row.userName}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                      <td className="px-4 py-3 text-muted whitespace-nowrap">
                         {row.serviceName}{" "}
-                        <span className="text-gray-400 text-xs">
+                        <span className="text-muted text-xs">
                           ({row.serviceCode})
                         </span>
                       </td>

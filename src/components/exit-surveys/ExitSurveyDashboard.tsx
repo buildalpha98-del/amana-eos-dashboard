@@ -63,7 +63,7 @@ function StarRating({ rating, max = 5 }: { rating: number; max?: number }) {
             "w-4 h-4",
             i < Math.round(rating)
               ? "fill-amber-400 text-amber-400"
-              : "fill-gray-200 text-gray-200"
+              : "fill-gray-200 text-muted/50"
           )}
         />
       ))}
@@ -78,12 +78,12 @@ function StarRating({ rating, max = 5 }: { rating: number; max?: number }) {
 
 function ReasonBar({ reasons }: { reasons: ReasonDistribution[] }) {
   if (!reasons.length) {
-    return <p className="text-sm text-gray-400">No reason data</p>;
+    return <p className="text-sm text-muted">No reason data</p>;
   }
 
   return (
     <div className="space-y-2">
-      <div className="flex h-3 rounded-full overflow-hidden bg-gray-100">
+      <div className="flex h-3 rounded-full overflow-hidden bg-surface">
         {reasons.map((r) => (
           <div
             key={r.reason}
@@ -99,7 +99,7 @@ function ReasonBar({ reasons }: { reasons: ReasonDistribution[] }) {
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1">
         {reasons.map((r) => (
-          <div key={r.reason} className="flex items-center gap-1.5 text-xs text-gray-600">
+          <div key={r.reason} className="flex items-center gap-1.5 text-xs text-muted">
             <div
               className="w-2.5 h-2.5 rounded-full flex-shrink-0"
               style={{ backgroundColor: getReasonColor(r.reason) }}
@@ -127,20 +127,20 @@ function ServiceCard({ service }: { service: ServiceSurveyData }) {
       <div className="flex items-start justify-between">
         <div>
           <h4 className="font-semibold text-foreground">{service.serviceName}</h4>
-          <p className="text-xs text-gray-500">{service.serviceCode}</p>
+          <p className="text-xs text-muted">{service.serviceCode}</p>
         </div>
-        <span className="text-sm font-medium text-gray-500">
+        <span className="text-sm font-medium text-muted">
           {service.totalExits} exit{service.totalExits !== 1 ? "s" : ""}
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <p className="text-xs text-gray-500 mb-1">Satisfaction</p>
+          <p className="text-xs text-muted mb-1">Satisfaction</p>
           <StarRating rating={service.averageSatisfaction} />
         </div>
         <div>
-          <p className="text-xs text-gray-500 mb-1">Would Return</p>
+          <p className="text-xs text-muted mb-1">Would Return</p>
           <span className={cn("inline-block text-sm font-semibold px-2 py-0.5 rounded-full", wouldReturnColor)}>
             {service.wouldReturnRate.toFixed(0)}%
           </span>
@@ -148,13 +148,13 @@ function ServiceCard({ service }: { service: ServiceSurveyData }) {
       </div>
 
       <div>
-        <p className="text-xs text-gray-500 mb-2">Reasons for Leaving</p>
+        <p className="text-xs text-muted mb-2">Reasons for Leaving</p>
         <ReasonBar reasons={service.reasonDistribution} />
       </div>
 
       {service.recentComments.length > 0 && (
         <div>
-          <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+          <p className="text-xs text-muted mb-2 flex items-center gap-1">
             <MessageSquare className="w-3 h-3" />
             Recent Comments
           </p>
@@ -162,7 +162,7 @@ function ServiceCard({ service }: { service: ServiceSurveyData }) {
             {service.recentComments.slice(0, 5).map((c, i) => (
               <div key={i} className="bg-surface rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-medium text-gray-400">
+                  <span className="text-[10px] font-medium text-muted">
                     {new Date(c.date).toLocaleDateString()}
                   </span>
                   <span
@@ -233,7 +233,7 @@ function TriggerSurveyModal({
       <div className="bg-background rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-semibold text-foreground">Send Exit Survey</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-muted hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -301,7 +301,7 @@ function TriggerSurveyModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors"
             >
               Cancel
             </button>
@@ -393,7 +393,7 @@ export function ExitSurveyDashboard() {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-foreground">Exit Surveys</h3>
-            <p className="text-sm text-gray-500">Track why families leave and satisfaction trends</p>
+            <p className="text-sm text-muted">Track why families leave and satisfaction trends</p>
           </div>
         </div>
 
@@ -443,7 +443,7 @@ export function ExitSurveyDashboard() {
           {/* Stats Row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-background rounded-xl border border-border p-4">
-              <div className="flex items-center gap-2 text-gray-500 mb-1">
+              <div className="flex items-center gap-2 text-muted mb-1">
                 <Users className="w-4 h-4" />
                 <span className="text-xs font-medium">Total Exits</span>
               </div>
@@ -451,7 +451,7 @@ export function ExitSurveyDashboard() {
             </div>
 
             <div className="bg-background rounded-xl border border-border p-4">
-              <div className="flex items-center gap-2 text-gray-500 mb-1">
+              <div className="flex items-center gap-2 text-muted mb-1">
                 <Star className="w-4 h-4" />
                 <span className="text-xs font-medium">Avg Satisfaction</span>
               </div>
@@ -459,7 +459,7 @@ export function ExitSurveyDashboard() {
             </div>
 
             <div className="bg-background rounded-xl border border-border p-4">
-              <div className="flex items-center gap-2 text-gray-500 mb-1">
+              <div className="flex items-center gap-2 text-muted mb-1">
                 <ArrowRight className="w-4 h-4" />
                 <span className="text-xs font-medium">Would Return</span>
               </div>
@@ -478,7 +478,7 @@ export function ExitSurveyDashboard() {
             </div>
 
             <div className="bg-background rounded-xl border border-border p-4">
-              <div className="flex items-center gap-2 text-gray-500 mb-1">
+              <div className="flex items-center gap-2 text-muted mb-1">
                 <TrendingDown className="w-4 h-4" />
                 <span className="text-xs font-medium">Churn Rate</span>
               </div>
@@ -494,7 +494,7 @@ export function ExitSurveyDashboard() {
               >
                 {summary.churn.churnRate.toFixed(1)}%
               </p>
-              <p className="text-[10px] text-gray-400 mt-0.5">
+              <p className="text-[10px] text-muted mt-0.5">
                 {summary.churn.withdrawnCount} withdrawn / {summary.churn.activeCount} active
               </p>
             </div>
@@ -509,9 +509,9 @@ export function ExitSurveyDashboard() {
             </div>
           ) : (
             <div className="bg-background rounded-xl border border-border p-8 text-center">
-              <BarChart3 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 text-lg">No exit survey data yet</p>
-              <p className="text-gray-400 text-sm mt-1">
+              <BarChart3 className="w-12 h-12 text-muted/50 mx-auto mb-3" />
+              <p className="text-muted text-lg">No exit survey data yet</p>
+              <p className="text-muted text-sm mt-1">
                 Send an exit survey to start collecting feedback from departing families.
               </p>
             </div>

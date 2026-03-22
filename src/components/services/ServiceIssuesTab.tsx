@@ -160,7 +160,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
           <AlertCircle className="w-4 h-4 text-brand" />
           Service Issues
         </h3>
@@ -168,7 +168,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
+            className="text-xs border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             {statusFilters.map((f) => (
               <option key={f} value={f}>
@@ -179,7 +179,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
+            className="text-xs border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             {priorityFilters.map((f) => (
               <option key={f} value={f}>
@@ -201,7 +201,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
       {isLoading ? (
         <div className="space-y-1.5">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-lg">
+            <div key={i} className="flex items-center gap-3 px-3 py-2.5 bg-surface/50 rounded-lg">
               <Skeleton className="w-2.5 h-2.5 rounded-full" />
               <Skeleton className="h-4 flex-1" />
               <Skeleton className="h-5 w-16 rounded-full" />
@@ -210,7 +210,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
           ))}
         </div>
       ) : filteredIssues.length === 0 ? (
-        <div className="text-center py-8 text-sm text-gray-400">
+        <div className="text-center py-8 text-sm text-muted">
           No issues found.
         </div>
       ) : (
@@ -222,18 +222,18 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
             return (
               <div
                 key={issue.id}
-                className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 bg-surface/50 rounded-lg hover:bg-surface transition-colors"
               >
                 {/* Priority Dot */}
                 <span
                   className={cn(
                     "w-2.5 h-2.5 rounded-full flex-shrink-0",
-                    priorityConfig[issue.priority]?.dot || "bg-gray-400"
+                    priorityConfig[issue.priority]?.dot || "bg-border"
                   )}
                 />
 
                 {/* Title */}
-                <span className="flex-1 text-sm text-gray-700 truncate">
+                <span className="flex-1 text-sm text-foreground/80 truncate">
                   {issue.title}
                 </span>
 
@@ -248,7 +248,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                 </span>
 
                 {/* Owner */}
-                <span className="text-xs text-gray-400 whitespace-nowrap min-w-[80px] text-right">
+                <span className="text-xs text-muted whitespace-nowrap min-w-[80px] text-right">
                   {issue.owner?.name || "Unassigned"}
                 </span>
 
@@ -306,14 +306,14 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
             onClick={() => setShowModal(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <div className="bg-card rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-gray-900">
+                <h4 className="text-sm font-semibold text-foreground">
                   Raise Issue
                 </h4>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-1 text-gray-400 hover:text-gray-600"
+                  className="p-1 text-muted hover:text-muted"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -322,7 +322,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
               <div className="space-y-3">
                 {/* Title */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-muted mb-1">
                     Title <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -331,14 +331,14 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                     onChange={(e) =>
                       setFormData((p) => ({ ...p, title: e.target.value }))
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                     placeholder="Describe the issue..."
                   />
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-muted mb-1">
                     Description
                   </label>
                   <textarea
@@ -347,14 +347,14 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                       setFormData((p) => ({ ...p, description: e.target.value }))
                     }
                     rows={3}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
                     placeholder="Additional context..."
                   />
                 </div>
 
                 {/* Priority */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-muted mb-1">
                     Priority
                   </label>
                   <select
@@ -362,7 +362,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                     onChange={(e) =>
                       setFormData((p) => ({ ...p, priority: e.target.value }))
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="critical">Critical</option>
                     <option value="high">High</option>
@@ -373,7 +373,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
 
                 {/* Owner */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-muted mb-1">
                     Owner
                   </label>
                   <select
@@ -381,7 +381,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                     onChange={(e) =>
                       setFormData((p) => ({ ...p, ownerId: e.target.value }))
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="">Unassigned</option>
                     {users.map((u) => (
@@ -396,7 +396,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   onClick={() => setShowModal(false)}
-                  className="text-xs px-4 py-2 text-gray-500 hover:text-gray-700"
+                  className="text-xs px-4 py-2 text-muted hover:text-foreground/80"
                 >
                   Cancel
                 </button>
@@ -407,7 +407,7 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
                     "text-xs px-4 py-2 rounded-lg font-medium transition-colors",
                     formData.title
                       ? "bg-brand text-white hover:bg-brand/90"
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-surface text-muted cursor-not-allowed"
                   )}
                 >
                   {createIssue.isPending ? "Creating..." : "Raise Issue"}

@@ -18,7 +18,7 @@ interface RockOption {
 }
 
 const statusOptions: { value: TodoStatus; label: string; color: string }[] = [
-  { value: "pending", label: "Pending", color: "bg-gray-100 text-gray-700" },
+  { value: "pending", label: "Pending", color: "bg-surface text-foreground/80" },
   { value: "in_progress", label: "In Progress", color: "bg-blue-100 text-blue-700" },
   { value: "complete", label: "Complete", color: "bg-emerald-100 text-emerald-700" },
   { value: "cancelled", label: "Cancelled", color: "bg-red-100 text-red-700" },
@@ -96,9 +96,9 @@ export function TodoDetailPanel({
       <SheetContent width="max-w-md">
         <SheetTitle className="sr-only">To-Do Detail</SheetTitle>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-gray-900">To-Do Detail</h3>
+            <h3 className="text-lg font-semibold text-foreground">To-Do Detail</h3>
             {isPrivate && (
               <span className="flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
                 <Lock className="w-3 h-3" />
@@ -108,7 +108,7 @@ export function TodoDetailPanel({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-md text-gray-400 hover:text-gray-600"
+            className="p-1 rounded-md text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -118,7 +118,7 @@ export function TodoDetailPanel({
         <div className="flex-1 px-6 py-5 space-y-5">
           {/* Title (inline edit) */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
+            <label className="block text-xs font-medium text-muted mb-1">
               Title
             </label>
             <input
@@ -128,13 +128,13 @@ export function TodoDetailPanel({
               onBlur={() => {
                 if (title !== todo.title && title.trim()) saveField("title", title);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
+            <label className="block text-xs font-medium text-muted mb-1">
               Description
             </label>
             <textarea
@@ -145,14 +145,14 @@ export function TodoDetailPanel({
                   saveField("description", description || null);
               }}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
               placeholder="Add details..."
             />
           </div>
 
           {/* Status */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-2">
+            <label className="block text-xs font-medium text-muted mb-2">
               Status
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -165,8 +165,8 @@ export function TodoDetailPanel({
                   }}
                   className={`text-xs font-medium px-3 py-1.5 rounded-full transition-all ${
                     status === opt.value
-                      ? opt.color + " ring-2 ring-offset-1 ring-gray-300"
-                      : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                      ? opt.color + " ring-2 ring-offset-1 ring-border"
+                      : "bg-surface/50 text-muted hover:bg-surface"
                   }`}
                 >
                   {opt.label}
@@ -178,7 +178,7 @@ export function TodoDetailPanel({
           {/* Assignee + Due Date */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
+              <label className="block text-xs font-medium text-muted mb-1">
                 Assignee
               </label>
               <select
@@ -187,7 +187,7 @@ export function TodoDetailPanel({
                   setAssigneeId(e.target.value);
                   saveField("assigneeId", e.target.value);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 <option value="" disabled>Select assignee</option>
                 {users?.map((u) => (
@@ -198,7 +198,7 @@ export function TodoDetailPanel({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
+              <label className="block text-xs font-medium text-muted mb-1">
                 Due Date
               </label>
               <input
@@ -208,14 +208,14 @@ export function TodoDetailPanel({
                   setDueDate(e.target.value);
                   saveField("dueDate", e.target.value);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
           </div>
 
           {/* Linked Rock */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
+            <label className="block text-xs font-medium text-muted mb-1">
               <Mountain className="w-3 h-3 inline mr-1" />
               Linked Rock
             </label>
@@ -225,7 +225,7 @@ export function TodoDetailPanel({
                 setRockId(e.target.value);
                 saveField("rockId", e.target.value || null);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             >
               <option value="">No linked Rock</option>
               {rocks?.map((r) => (
@@ -239,29 +239,29 @@ export function TodoDetailPanel({
           {/* Linked Issue (read-only) */}
           {todo.issue && (
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">
+              <label className="block text-xs font-medium text-muted mb-1">
                 <AlertCircle className="w-3 h-3 inline mr-1" />
                 Linked Issue
               </label>
-              <p className="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg">
+              <p className="text-sm text-foreground/80 bg-surface/50 px-3 py-2 rounded-lg">
                 {todo.issue.title}
               </p>
             </div>
           )}
 
           {/* Private Toggle */}
-          <div className="flex items-center justify-between py-3 px-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between py-3 px-3 bg-surface/50 rounded-lg">
             <div className="flex items-center gap-2">
               {isPrivate ? (
                 <Lock className="w-4 h-4 text-amber-600" />
               ) : (
-                <Unlock className="w-4 h-4 text-gray-400" />
+                <Unlock className="w-4 h-4 text-muted" />
               )}
               <div>
-                <p className="text-sm font-medium text-gray-700">
+                <p className="text-sm font-medium text-foreground/80">
                   {isPrivate ? "Private To-Do" : "Public To-Do"}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted">
                   {isPrivate
                     ? "Only visible to you and admins"
                     : "Visible to all team members"}
@@ -275,7 +275,7 @@ export function TodoDetailPanel({
                 saveField("isPrivate", next);
               }}
               className={`relative w-10 h-5 rounded-full transition-colors ${
-                isPrivate ? "bg-amber-500" : "bg-gray-300"
+                isPrivate ? "bg-amber-500" : "bg-border"
               }`}
             >
               <span
@@ -287,7 +287,7 @@ export function TodoDetailPanel({
           </div>
 
           {/* Meta info */}
-          <div className="text-xs text-gray-400 space-y-0.5 pt-2 border-t border-gray-100">
+          <div className="text-xs text-muted space-y-0.5 pt-2 border-t border-border/50">
             <p>
               Created{" "}
               {new Date(todo.createdAt).toLocaleDateString("en-AU", {
@@ -308,10 +308,10 @@ export function TodoDetailPanel({
         </div>
 
         {/* Footer - Delete */}
-        <div className="px-6 py-4 border-t border-gray-200">
+        <div className="px-6 py-4 border-t border-border">
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-muted hover:text-red-600 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
             Delete To-Do

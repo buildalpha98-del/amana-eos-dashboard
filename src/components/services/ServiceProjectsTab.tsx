@@ -60,7 +60,7 @@ export function ServiceProjectsTab({ serviceId }: { serviceId: string }) {
           <Skeleton className="h-8 w-28 rounded-lg" />
         </div>
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
+          <div key={i} className="bg-card rounded-xl border border-border p-4 flex items-center gap-4">
             <Skeleton className="h-10 w-10 rounded-lg" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-48" />
@@ -79,7 +79,7 @@ export function ServiceProjectsTab({ serviceId }: { serviceId: string }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FolderKanban className="w-5 h-5 text-brand" />
-          <h3 className="text-base font-semibold text-gray-900">
+          <h3 className="text-base font-semibold text-foreground">
             Projects ({projects?.length || 0})
           </h3>
         </div>
@@ -102,13 +102,13 @@ export function ServiceProjectsTab({ serviceId }: { serviceId: string }) {
               <button
                 key={project.id}
                 onClick={() => setSelectedProjectId(project.id)}
-                className="w-full text-left bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-gray-300 transition-all group"
+                className="w-full text-left bg-card rounded-xl border border-border p-4 hover:shadow-md hover:border-border transition-all group"
               >
                 <div className="flex items-center gap-4">
                   {/* Left content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="text-sm font-semibold text-gray-900 truncate">
+                      <h4 className="text-sm font-semibold text-foreground truncate">
                         {project.name}
                       </h4>
                       <span
@@ -123,12 +123,12 @@ export function ServiceProjectsTab({ serviceId }: { serviceId: string }) {
                     </div>
 
                     {project.description && (
-                      <p className="text-xs text-gray-500 line-clamp-1 mb-2">
+                      <p className="text-xs text-muted line-clamp-1 mb-2">
                         {project.description}
                       </p>
                     )}
 
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <div className="flex items-center gap-3 text-xs text-muted">
                       <div className="flex items-center gap-1">
                         <User className="w-3.5 h-3.5" />
                         <span>{project.owner?.name ?? "Unassigned"}</span>
@@ -145,7 +145,7 @@ export function ServiceProjectsTab({ serviceId }: { serviceId: string }) {
                         </div>
                       )}
                       {project.template && (
-                        <span className="text-gray-400">
+                        <span className="text-muted">
                           Template: {project.template.name}
                         </span>
                       )}
@@ -155,15 +155,15 @@ export function ServiceProjectsTab({ serviceId }: { serviceId: string }) {
                   {/* Progress */}
                   <div className="w-28 shrink-0">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-[10px] text-muted">
                         {project.progress.completed}/{project.progress.total}{" "}
                         tasks
                       </span>
-                      <span className="text-xs font-semibold text-gray-700">
+                      <span className="text-xs font-semibold text-foreground/80">
                         {project.progress.percent}%
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
                       <div
                         className={cn(
                           "h-full rounded-full transition-all",
@@ -173,7 +173,7 @@ export function ServiceProjectsTab({ serviceId }: { serviceId: string }) {
                             ? "bg-brand"
                             : project.progress.percent > 0
                             ? "bg-blue-500"
-                            : "bg-gray-200"
+                            : "bg-border"
                         )}
                         style={{ width: `${project.progress.percent}%` }}
                       />
@@ -181,19 +181,19 @@ export function ServiceProjectsTab({ serviceId }: { serviceId: string }) {
                   </div>
 
                   {/* Arrow */}
-                  <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-brand transition-colors shrink-0" />
+                  <ChevronRight className="w-5 h-5 text-muted/50 group-hover:text-brand transition-colors shrink-0" />
                 </div>
               </button>
             );
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-xl border border-gray-200">
-          <FolderKanban className="w-12 h-12 text-gray-300 mb-3" />
-          <p className="text-gray-500 text-sm font-medium">
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-card rounded-xl border border-border">
+          <FolderKanban className="w-12 h-12 text-muted/50 mb-3" />
+          <p className="text-muted text-sm font-medium">
             No projects linked to this centre
           </p>
-          <p className="text-gray-400 text-xs mt-1 max-w-xs">
+          <p className="text-muted text-xs mt-1 max-w-xs">
             Create a project to track tasks and progress for this service centre.
           </p>
           <button

@@ -36,7 +36,7 @@ const roleBadge: Record<string, { label: string; className: string }> = {
   },
   member: {
     label: ROLE_DISPLAY_NAMES.member,
-    className: "bg-gray-100 text-gray-700",
+    className: "bg-surface text-foreground/80",
   },
   staff: {
     label: ROLE_DISPLAY_NAMES.staff,
@@ -63,7 +63,7 @@ export function PersonCard({ member, compact = false }: PersonCardProps) {
   const badge = roleBadge[member.role] || roleBadge.member;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 transition-shadow hover:shadow-md">
+    <div className="bg-card rounded-xl border border-border p-4 transition-shadow hover:shadow-md">
       {/* Header */}
       <div
         className={cn(
@@ -90,7 +90,7 @@ export function PersonCard({ member, compact = false }: PersonCardProps) {
         {/* Name + role */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-gray-900 truncate">
+            <span className="font-semibold text-foreground truncate">
               {member.name}
             </span>
             <span
@@ -102,12 +102,12 @@ export function PersonCard({ member, compact = false }: PersonCardProps) {
               {badge.label}
             </span>
           </div>
-          <p className="text-xs text-gray-500 truncate">{member.email}</p>
+          <p className="text-xs text-muted truncate">{member.email}</p>
         </div>
 
         {/* Expand indicator */}
         {!compact && (
-          <div className="flex-shrink-0 text-gray-400 mt-1">
+          <div className="flex-shrink-0 text-muted mt-1">
             {expanded ? (
               <ChevronDown className="w-4 h-4" />
             ) : (
@@ -119,16 +119,16 @@ export function PersonCard({ member, compact = false }: PersonCardProps) {
 
       {/* Stats row */}
       {!compact && (
-        <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+        <div className="flex items-center gap-4 mt-3 text-xs text-muted">
           <div className="flex items-center gap-1" title="Active Rocks">
             <Mountain className="w-3.5 h-3.5" />
-            <span className="font-medium text-gray-700">
+            <span className="font-medium text-foreground/80">
               {member.activeRocks}
             </span>
           </div>
           <div className="flex items-center gap-1" title="Todo Completion">
             <CheckSquare className="w-3.5 h-3.5" />
-            <span className="font-medium text-gray-700">
+            <span className="font-medium text-foreground/80">
               {member.todoCompletionPct}%
             </span>
           </div>
@@ -143,7 +143,7 @@ export function PersonCard({ member, compact = false }: PersonCardProps) {
             <span
               className={cn(
                 "font-medium",
-                member.openIssues > 0 ? "text-red-600" : "text-gray-700"
+                member.openIssues > 0 ? "text-red-600" : "text-foreground/80"
               )}
             >
               {member.openIssues}
@@ -151,7 +151,7 @@ export function PersonCard({ member, compact = false }: PersonCardProps) {
           </div>
           <div className="flex items-center gap-1" title="Managed Centres">
             <Building2 className="w-3.5 h-3.5" />
-            <span className="font-medium text-gray-700">
+            <span className="font-medium text-foreground/80">
               {member.managedServices}
             </span>
           </div>
@@ -160,8 +160,8 @@ export function PersonCard({ member, compact = false }: PersonCardProps) {
 
       {/* Expanded rocks list */}
       {!compact && expanded && member.rocks.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+        <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
+          <p className="text-xs font-medium text-muted uppercase tracking-wide">
             Active Rocks
           </p>
           {member.rocks.map((rock) => (
@@ -175,10 +175,10 @@ export function PersonCard({ member, compact = false }: PersonCardProps) {
                   rock.status === "on_track" ? "bg-green-500" : "bg-red-500"
                 )}
               />
-              <span className="flex-1 text-gray-700 truncate">
+              <span className="flex-1 text-foreground/80 truncate">
                 {rock.title}
               </span>
-              <span className="text-xs text-gray-400 whitespace-nowrap">
+              <span className="text-xs text-muted whitespace-nowrap">
                 {rock.percentComplete}%
               </span>
             </div>
@@ -187,8 +187,8 @@ export function PersonCard({ member, compact = false }: PersonCardProps) {
       )}
 
       {!compact && expanded && member.rocks.length === 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <p className="text-xs text-gray-400">No active rocks</p>
+        <div className="mt-3 pt-3 border-t border-border/50">
+          <p className="text-xs text-muted">No active rocks</p>
         </div>
       )}
     </div>

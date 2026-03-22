@@ -120,7 +120,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
   const monthLabel = currentDate.toLocaleDateString("en-AU", { month: "long", year: "numeric" });
 
   if (isLoading || (viewMode === "timeline" && (campaignsLoading || tasksLoading))) {
-    return <div className="flex items-center justify-center py-12 text-gray-500">Loading calendar...</div>;
+    return <div className="flex items-center justify-center py-12 text-muted">Loading calendar...</div>;
   }
 
   return (
@@ -130,22 +130,22 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
         {viewMode === "calendar" ? (
           <>
             <div className="flex items-center gap-1">
-              <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <ChevronLeft className="w-5 h-5 text-gray-600" />
+              <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-surface transition-colors">
+                <ChevronLeft className="w-5 h-5 text-muted" />
               </button>
               <button
                 onClick={() => setCurrentDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}
-                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors"
+                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card text-muted hover:bg-surface transition-colors"
               >
                 Today
               </button>
-              <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <ChevronRight className="w-5 h-5 text-gray-600" />
+              <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-surface transition-colors">
+                <ChevronRight className="w-5 h-5 text-muted" />
               </button>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">{monthLabel}</h3>
+            <h3 className="text-lg font-semibold text-foreground">{monthLabel}</h3>
             <div className="flex items-center gap-2">
-              <div className="ml-2 flex rounded-lg border border-gray-200 overflow-hidden">
+              <div className="ml-2 flex rounded-lg border border-border overflow-hidden">
                 <button
                   onClick={() => setViewMode("calendar")}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand text-white"
@@ -155,7 +155,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
                 </button>
                 <button
                   onClick={() => setViewMode("timeline")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface transition-colors"
                 >
                   <GanttChart className="w-3.5 h-3.5" />
                   Timeline
@@ -165,11 +165,11 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
           </>
         ) : (
           <>
-            <h3 className="text-lg font-semibold text-gray-900">Timeline</h3>
-            <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            <h3 className="text-lg font-semibold text-foreground">Timeline</h3>
+            <div className="flex rounded-lg border border-border overflow-hidden">
               <button
                 onClick={() => setViewMode("calendar")}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface transition-colors"
               >
                 <CalendarDays className="w-3.5 h-3.5" />
                 Calendar
@@ -197,11 +197,11 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
         />
       ) : (
         /* Calendar grid */
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
           {/* Day headers */}
-          <div className="grid grid-cols-7 border-b border-gray-200">
+          <div className="grid grid-cols-7 border-b border-border">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-              <div key={day} className="px-2 py-2 text-xs font-medium text-gray-500 text-center">
+              <div key={day} className="px-2 py-2 text-xs font-medium text-muted text-center">
                 {day}
               </div>
             ))}
@@ -228,12 +228,12 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
                     setSelectedDate(`${yyyy}-${mm}-${dd}T09:00`);
                     setShowCreateModal(true);
                   }}
-                  className={`min-h-[100px] border-b border-r border-gray-100 p-1 cursor-pointer transition-colors hover:bg-brand/[0.03] ${
-                    !isCurrentMonth ? "bg-gray-50 hover:bg-gray-100/80" : ""
+                  className={`min-h-[100px] border-b border-r border-border/50 p-1 cursor-pointer transition-colors hover:bg-brand/[0.03] ${
+                    !isCurrentMonth ? "bg-surface/50 hover:bg-surface" : ""
                   } ${isToday ? "ring-2 ring-inset ring-brand" : ""}`}
                 >
                   <div className={`text-xs font-medium mb-1 ${
-                    isCurrentMonth ? "text-gray-900" : "text-gray-400"
+                    isCurrentMonth ? "text-foreground" : "text-muted"
                   } ${isToday ? "text-brand font-bold" : ""}`}>
                     {day.getDate()}
                   </div>
@@ -243,8 +243,8 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
                         key={post.id}
                         onClick={(e) => { e.stopPropagation(); onSelectPost(post.id); }}
                         className={`w-full text-left px-1.5 py-0.5 rounded text-[10px] leading-tight border-l-2 ${
-                          PLATFORM_COLORS[post.platform] || "border-gray-300"
-                        } bg-gray-50 hover:bg-gray-100 transition-colors truncate flex items-center gap-1`}
+                          PLATFORM_COLORS[post.platform] || "border-border"
+                        } bg-surface/50 hover:bg-surface transition-colors truncate flex items-center gap-1`}
                       >
                         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOTS[post.status] || "bg-gray-400"}`} />
                         <span className="truncate">{post.title}</span>
@@ -263,7 +263,7 @@ export function CalendarTab({ onSelectPost, onSelectCampaign, onSelectTask, serv
                       </button>
                     ))}
                     {totalItems > 3 && (
-                      <div className="text-[10px] text-gray-400 px-1">+{totalItems - 3} more</div>
+                      <div className="text-[10px] text-muted px-1">+{totalItems - 3} more</div>
                     )}
                   </div>
                 </div>

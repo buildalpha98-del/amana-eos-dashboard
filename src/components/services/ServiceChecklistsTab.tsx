@@ -62,7 +62,7 @@ function statusBadge(status: string) {
     <span
       className={cn(
         "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-        styles[status] || "bg-gray-100 text-gray-600"
+        styles[status] || "bg-gray-100 text-gray-500"
       )}
     >
       {status.replace(/_/g, " ")}
@@ -150,21 +150,21 @@ function ChecklistCard({
   });
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between p-4 hover:bg-surface/50 transition-colors"
       >
         <div className="flex items-center gap-3">
           {expanded ? (
-            <ChevronDown className="w-4 h-4 text-gray-400" />
+            <ChevronDown className="w-4 h-4 text-muted" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <ChevronRight className="w-4 h-4 text-muted" />
           )}
           <div className="text-left">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-900">
+              <span className="text-sm font-medium text-foreground">
                 {dateStr}
               </span>
               <span className="px-2 py-0.5 rounded text-xs font-medium bg-brand/10 text-brand">
@@ -173,7 +173,7 @@ function ChecklistCard({
               {statusBadge(checklist.status)}
             </div>
             {checklist.completedBy && (
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-muted mt-0.5">
                 Completed by {checklist.completedBy.name}
               </p>
             )}
@@ -198,10 +198,10 @@ function ChecklistCard({
             </button>
           )}
           <div className="text-right">
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-muted">
               {checkedCount}/{totalCount}
             </div>
-            <div className="w-24 h-1.5 bg-gray-200 rounded-full mt-1">
+            <div className="w-24 h-1.5 bg-border rounded-full mt-1">
               <div
                 className={cn(
                   "h-1.5 rounded-full transition-all",
@@ -216,10 +216,10 @@ function ChecklistCard({
 
       {/* Expanded items */}
       {expanded && (
-        <div className="border-t border-gray-100 px-4 py-3 space-y-4">
+        <div className="border-t border-border/50 px-4 py-3 space-y-4">
           {Object.entries(grouped).map(([category, items]) => (
             <div key={category}>
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              <h4 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
                 {category}
               </h4>
               <div className="space-y-1.5">
@@ -233,19 +233,19 @@ function ChecklistCard({
                       })
                     }
                     disabled={toggleItem.isPending}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left group"
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface/50 transition-colors text-left group"
                   >
                     {item.checked ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                     ) : (
-                      <Circle className="w-5 h-5 text-gray-300 group-hover:text-brand flex-shrink-0" />
+                      <Circle className="w-5 h-5 text-muted/50 group-hover:text-brand flex-shrink-0" />
                     )}
                     <span
                       className={cn(
                         "text-sm flex-1",
                         item.checked
-                          ? "text-gray-400 line-through"
-                          : "text-gray-700"
+                          ? "text-muted line-through"
+                          : "text-foreground/80"
                       )}
                     >
                       {item.label}
@@ -262,9 +262,9 @@ function ChecklistCard({
           ))}
 
           {checklist.notes && (
-            <div className="bg-gray-50 rounded-lg p-3 mt-2">
-              <p className="text-xs text-gray-500 font-medium mb-1">Notes</p>
-              <p className="text-sm text-gray-700">{checklist.notes}</p>
+            <div className="bg-surface/50 rounded-lg p-3 mt-2">
+              <p className="text-xs text-muted font-medium mb-1">Notes</p>
+              <p className="text-sm text-foreground/80">{checklist.notes}</p>
             </div>
           )}
         </div>
@@ -393,7 +393,7 @@ export function ServiceChecklistsTab({
     return (
       <div className="space-y-3">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+          <div key={i} className="bg-card rounded-xl border border-border p-4 space-y-2">
             <div className="flex items-center gap-3">
               <Skeleton className="w-5 h-5 rounded" />
               <Skeleton className="h-4 w-48" />
@@ -410,7 +410,7 @@ export function ServiceChecklistsTab({
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <AlertCircle className="w-8 h-8 text-red-400 mb-3" />
-        <p className="text-sm text-gray-600">Failed to load checklists</p>
+        <p className="text-sm text-muted">Failed to load checklists</p>
       </div>
     );
   }
@@ -419,7 +419,7 @@ export function ServiceChecklistsTab({
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <ClipboardList className="w-4 h-4 text-brand" />
           Daily Checklists
         </h2>
@@ -427,7 +427,7 @@ export function ServiceChecklistsTab({
           {checklists.length > 0 && (
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-surface/50 text-muted transition-colors"
               title="Print checklists"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -437,7 +437,7 @@ export function ServiceChecklistsTab({
           <select
             value={sessionFilter}
             onChange={(e) => setSessionFilter(e.target.value)}
-            className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white"
+            className="px-3 py-1.5 border border-border rounded-lg text-sm text-foreground/80 bg-card"
           >
             <option value="">All Sessions</option>
             <option value="bsc">Before School</option>
@@ -449,13 +449,13 @@ export function ServiceChecklistsTab({
 
       {checklists.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <ClipboardList className="w-6 h-6 text-gray-400" />
+          <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center mb-4">
+            <ClipboardList className="w-6 h-6 text-muted" />
           </div>
-          <h3 className="text-sm font-medium text-gray-900 mb-1">
+          <h3 className="text-sm font-medium text-foreground mb-1">
             No checklists yet
           </h3>
-          <p className="text-xs text-gray-500 max-w-xs">
+          <p className="text-xs text-muted max-w-xs">
             Daily checklists will appear here once automation generates them for
             this centre.
           </p>

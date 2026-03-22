@@ -95,7 +95,7 @@ function Checklist({ items }: { items: string[] }) {
   return (
     <ul className="space-y-1.5 my-3">
       {items.map((item, i) => (
-        <li key={i} className="flex items-start gap-2.5 text-sm py-1.5 border-b border-gray-100 last:border-b-0">
+        <li key={i} className="flex items-start gap-2.5 text-sm py-1.5 border-b border-border/50 last:border-b-0">
           <CheckCircle2 className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
           <span dangerouslySetInnerHTML={{ __html: item }} />
         </li>
@@ -108,9 +108,9 @@ function Checklist({ items }: { items: string[] }) {
 
 function ContentBlock({ title, ownaPath, children }: { title: string; ownaPath?: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-6 mb-5 shadow-sm">
+    <div className="bg-card rounded-xl border border-border p-5 md:p-6 mb-5 shadow-sm">
       {ownaPath && (
-        <div className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-2 flex items-center gap-1.5">
+        <div className="text-[10px] uppercase tracking-wider text-muted font-semibold mb-2 flex items-center gap-1.5">
           <span className="bg-brand text-white px-1.5 py-0.5 rounded text-[9px] font-bold">OWNA</span>
           {ownaPath}
         </div>
@@ -126,8 +126,8 @@ function ContentBlock({ title, ownaPath, children }: { title: string; ownaPath?:
 function Accordion({ title, children }: { title: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border border-gray-200 rounded-lg mb-2 overflow-hidden">
-      <button onClick={() => setOpen(!open)} className={`w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-brand hover:bg-gray-50 ${open ? "bg-sky-50 border-b" : ""}`}>
+    <div className="border border-border rounded-lg mb-2 overflow-hidden">
+      <button onClick={() => setOpen(!open)} className={`w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-brand hover:bg-surface ${open ? "bg-sky-50 border-b" : ""}`}>
         {title}
         {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
       </button>
@@ -144,8 +144,8 @@ function WelcomeSection() {
   return (
     <>
       <ContentBlock title="Welcome to The Amana Way">
-        <p className="text-sm text-gray-600 mb-3">This interactive handbook is your go-to guide for everything you need to know as an Amana OSHC Educator. From daily operations to child protection, compliance, and our unique values - it&apos;s all here.</p>
-        <p className="text-sm text-gray-600">Use the sidebar to navigate between sections. You can also search for any topic using the search bar above.</p>
+        <p className="text-sm text-muted mb-3">This interactive handbook is your go-to guide for everything you need to know as an Amana OSHC Educator. From daily operations to child protection, compliance, and our unique values - it&apos;s all here.</p>
+        <p className="text-sm text-muted">Use the sidebar to navigate between sections. You can also search for any topic using the search bar above.</p>
       </ContentBlock>
     </>
   );
@@ -155,16 +155,16 @@ function IdentitySection() {
   return (
     <>
       <ContentBlock title="IHSAN Values">
-        <p className="text-sm text-gray-600 mb-4">Every Amana OSHC educator is expected to embody <strong>IHSAN</strong> - striving for excellence and sincerity in all that we do.</p>
+        <p className="text-sm text-muted mb-4">Every Amana OSHC educator is expected to embody <strong>IHSAN</strong> - striving for excellence and sincerity in all that we do.</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead><tr className="bg-brand text-white"><th className="p-2.5 text-left">Letter</th><th className="p-2.5 text-left">Value</th><th className="p-2.5 text-left">What It Means</th></tr></thead>
             <tbody className="divide-y">
-              <tr><td className="p-2.5 font-bold text-brand-yellow text-lg">I</td><td className="p-2.5 font-semibold">Inspire</td><td className="p-2.5 text-gray-600">Spark curiosity, creativity and Islamic identity in every child</td></tr>
-              <tr><td className="p-2.5 font-bold text-brand-yellow text-lg">H</td><td className="p-2.5 font-semibold">Honour</td><td className="p-2.5 text-gray-600">Respect every culture, faith, family dynamic and individual</td></tr>
-              <tr><td className="p-2.5 font-bold text-brand-yellow text-lg">S</td><td className="p-2.5 font-semibold">Safeguard</td><td className="p-2.5 text-gray-600">Uphold child-safe, physically and emotionally secure environments</td></tr>
-              <tr><td className="p-2.5 font-bold text-brand-yellow text-lg">A</td><td className="p-2.5 font-semibold">Aspire</td><td className="p-2.5 text-gray-600">Pursue continuous growth, professional development and reflection</td></tr>
-              <tr><td className="p-2.5 font-bold text-brand-yellow text-lg">N</td><td className="p-2.5 font-semibold">Nurture</td><td className="p-2.5 text-gray-600">Safe ratios, proactive behaviour guidance, emotional coaching</td></tr>
+              <tr><td className="p-2.5 font-bold text-brand-yellow text-lg">I</td><td className="p-2.5 font-semibold">Inspire</td><td className="p-2.5 text-muted">Spark curiosity, creativity and Islamic identity in every child</td></tr>
+              <tr><td className="p-2.5 font-bold text-brand-yellow text-lg">H</td><td className="p-2.5 font-semibold">Honour</td><td className="p-2.5 text-muted">Respect every culture, faith, family dynamic and individual</td></tr>
+              <tr><td className="p-2.5 font-bold text-brand-yellow text-lg">S</td><td className="p-2.5 font-semibold">Safeguard</td><td className="p-2.5 text-muted">Uphold child-safe, physically and emotionally secure environments</td></tr>
+              <tr><td className="p-2.5 font-bold text-brand-yellow text-lg">A</td><td className="p-2.5 font-semibold">Aspire</td><td className="p-2.5 text-muted">Pursue continuous growth, professional development and reflection</td></tr>
+              <tr><td className="p-2.5 font-bold text-brand-yellow text-lg">N</td><td className="p-2.5 font-semibold">Nurture</td><td className="p-2.5 text-muted">Safe ratios, proactive behaviour guidance, emotional coaching</td></tr>
             </tbody>
           </table>
         </div>
@@ -179,26 +179,26 @@ function IdentitySection() {
             { icon: "👨‍👩‍👧", t: "Families Are Key Partners", d: "We foster strong relationships with families, inviting their collaboration and involvement." },
             { icon: "✅", t: "Best Practice In Education & Care", d: "Our educators provide high-quality care that reflects best practices and promotes learning through play." },
           ].map((p) => (
-            <div key={p.t} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+            <div key={p.t} className="border border-border rounded-lg p-4 hover:shadow-sm transition-shadow">
               <div className="font-semibold text-brand text-sm mb-1">{p.icon} {p.t}</div>
-              <p className="text-xs text-gray-500">{p.d}</p>
+              <p className="text-xs text-muted">{p.d}</p>
             </div>
           ))}
         </div>
       </ContentBlock>
 
       <ContentBlock title="Amana OSHC Principles">
-        <p className="text-sm text-gray-600 mb-4">In addition to IHSAN, everyone contributes to these three principles:</p>
+        <p className="text-sm text-muted mb-4">In addition to IHSAN, everyone contributes to these three principles:</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { emoji: "😄", t: "Fun", d: "Every child, family, educator or member of the school community should walk into the service and have fun.", color: "border-brand-yellow" },
             { emoji: "💡", t: "Engaging", d: "Do children and families want to be at the service? Are we creating experiences worth coming back for?", color: "border-teal-500" },
             { emoji: "🌟", t: "Presentation", d: "What do families see and feel when they enter a service or interact with Amana OSHC?", color: "border-brand" },
           ].map((p) => (
-            <div key={p.t} className={`border-t-4 ${p.color} rounded-lg border border-gray-200 p-4 text-center`}>
+            <div key={p.t} className={`border-t-4 ${p.color} rounded-lg border border-border p-4 text-center`}>
               <div className="text-2xl mb-2">{p.emoji}</div>
               <div className="font-bold text-brand text-sm mb-1">{p.t}</div>
-              <p className="text-xs text-gray-500">{p.d}</p>
+              <p className="text-xs text-muted">{p.d}</p>
             </div>
           ))}
         </div>
@@ -217,16 +217,16 @@ function WhatWeDoSection() {
             { icon: "🏖️", t: "Holiday Programs", d: "Full day of care - Excursion Days, Incursion Days and In-House Days during school holidays.", color: "border-l-brand-yellow" },
             { icon: "📅", t: "Pupil Free Days", d: "Full day of care provided during the school term on pupil-free days.", color: "border-l-teal-500" },
           ].map((c) => (
-            <div key={c.t} className={`border-l-4 ${c.color} rounded-lg border border-gray-200 p-4`}>
+            <div key={c.t} className={`border-l-4 ${c.color} rounded-lg border border-border p-4`}>
               <div className="font-bold text-brand text-sm mb-2">{c.icon} {c.t}</div>
-              <p className="text-xs text-gray-500 whitespace-pre-line">{c.d}</p>
+              <p className="text-xs text-muted whitespace-pre-line">{c.d}</p>
             </div>
           ))}
         </div>
       </ContentBlock>
 
       <ContentBlock title="Our Club Names">
-        <p className="text-sm text-gray-600 mb-3">Amana OSHC runs a variety of signature clubs designed to develop different strengths in children.</p>
+        <p className="text-sm text-muted mb-3">Amana OSHC runs a variety of signature clubs designed to develop different strengths in children.</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead><tr className="bg-surface"><th className="p-2.5 text-left font-semibold">Club Name</th><th className="p-2.5 text-left font-semibold">Focus</th></tr></thead>
@@ -241,7 +241,7 @@ function WhatWeDoSection() {
                 ["Imagination Station", "Engage in STEM projects, arts and crafts"],
                 ["Holiday Quest", "School holiday adventures with themed activities, projects and excursions"],
               ].map(([name, focus]) => (
-                <tr key={name}><td className="p-2.5 font-semibold text-brand">{name}</td><td className="p-2.5 text-gray-600">{focus}</td></tr>
+                <tr key={name}><td className="p-2.5 font-semibold text-brand">{name}</td><td className="p-2.5 text-muted">{focus}</td></tr>
               ))}
             </tbody>
           </table>
@@ -264,13 +264,13 @@ function RolesSection() {
             <div className="text-xs font-bold tracking-wider text-brand-yellow uppercase mb-2">Coordinator / Centre Director</div>
             <ul className="text-xs space-y-1 list-disc pl-4 opacity-90"><li>Experience in childcare or OSHC</li><li>Educational Leader of the program</li><li>Reports to Area Manager</li></ul>
           </div>
-          <div className="bg-gray-50 border-2 border-teal-500 rounded-lg p-4">
+          <div className="bg-surface/50 border-2 border-teal-500 rounded-lg p-4">
             <div className="text-xs font-bold tracking-wider text-teal-600 uppercase mb-2">2IC Educators</div>
-            <ul className="text-xs space-y-1 list-disc pl-4 text-gray-600"><li>Second in Charge at larger services</li><li>Supports Coordinator with administration</li><li>Working towards becoming a Coordinator</li></ul>
+            <ul className="text-xs space-y-1 list-disc pl-4 text-muted"><li>Second in Charge at larger services</li><li>Supports Coordinator with administration</li><li>Working towards becoming a Coordinator</li></ul>
           </div>
           <div className="bg-amber-50 border-2 border-brand-yellow rounded-lg p-4">
             <div className="text-xs font-bold tracking-wider text-brand uppercase mb-2">Educators &larr; You!</div>
-            <ul className="text-xs space-y-1 list-disc pl-4 text-gray-600"><li>Make up the largest part of the team</li><li>Priority is engaging with the children</li><li>Helps to run the program</li></ul>
+            <ul className="text-xs space-y-1 list-disc pl-4 text-muted"><li>Make up the largest part of the team</li><li>Priority is engaging with the children</li><li>Helps to run the program</li></ul>
           </div>
         </div>
       </ContentBlock>
@@ -299,9 +299,9 @@ function RolesSection() {
           { n: "4", t: "Professional Conduct & Teamwork", d: "Model ethical behaviour, follow the ECA Code of Ethics, participate in meetings, and contribute to continuous improvement.", c: "border-l-brand-yellow" },
           { n: "5", t: "Relationships & Community", d: "Promote inclusion, cultural safety and partnerships with families and local communities.", c: "border-l-teal-500" },
         ].map((f) => (
-          <div key={f.n} className={`border-l-4 ${f.c} border border-gray-200 rounded-lg p-4 mb-2`}>
+          <div key={f.n} className={`border-l-4 ${f.c} border border-border rounded-lg p-4 mb-2`}>
             <div className="font-semibold text-brand text-sm mb-1">{f.n}. {f.t}</div>
-            <p className="text-xs text-gray-500">{f.d}</p>
+            <p className="text-xs text-muted">{f.d}</p>
           </div>
         ))}
       </ContentBlock>
@@ -313,7 +313,7 @@ function FirstDaySection() {
   return (
     <>
       <ContentBlock title="Your First Day - Things to Remember">
-        <p className="text-sm text-gray-600 mb-3"><strong>Prior to your first shift:</strong></p>
+        <p className="text-sm text-muted mb-3"><strong>Prior to your first shift:</strong></p>
         <Checklist items={[
           "Read the service-specific guide book",
           "Know where the school is that your shift is at",
@@ -340,7 +340,7 @@ function FirstDaySection() {
       </ContentBlock>
 
       <ContentBlock title="Educator Compliance">
-        <p className="text-sm text-gray-600 mb-3">All compliance is managed through <strong>OWNA</strong>. Amana OSHC mandates all educators hold:</p>
+        <p className="text-sm text-muted mb-3">All compliance is managed through <strong>OWNA</strong>. Amana OSHC mandates all educators hold:</p>
         <Checklist items={[
           "Employee Working with Children Check",
           "Copy of completed Qualification OR evidence of enrolment (dated within the last 3 months)",
@@ -354,7 +354,7 @@ function FirstDaySection() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead><tr className="bg-surface"><th className="p-2 text-left">Code</th><th className="p-2 text-left">Course</th><th className="p-2 text-left">Cost</th><th className="p-2 text-left">Who</th></tr></thead>
-            <tbody className="divide-y text-gray-600">
+            <tbody className="divide-y text-muted">
               <tr><td className="p-2 font-semibold">CHCPRT025</td><td className="p-2">Identify & Report Children at Risk</td><td className="p-2">$119</td><td className="p-2">All</td></tr>
               <tr><td className="p-2 font-semibold">HLTAID009</td><td className="p-2">CPR (renew yearly)</td><td className="p-2">$45</td><td className="p-2">All</td></tr>
               <tr><td className="p-2 font-semibold">HLTAID012</td><td className="p-2">First Aid in Education & Care (3 years)</td><td className="p-2">$115</td><td className="p-2">All</td></tr>
@@ -367,12 +367,12 @@ function FirstDaySection() {
       </ContentBlock>
 
       <ContentBlock title="Rosters">
-        <p className="text-sm text-gray-600 mb-3">Rosters are published through <strong>OWNA</strong>. Most rosters are published <strong>1 week in advance</strong>.</p>
+        <p className="text-sm text-muted mb-3">Rosters are published through <strong>OWNA</strong>. Most rosters are published <strong>1 week in advance</strong>.</p>
         <h3 className="text-xs font-bold uppercase tracking-wider text-teal-600 mb-2">Cancelling a Shift</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead><tr className="bg-surface"><th className="p-2 text-left">Shift Type</th><th className="p-2 text-left">Notify By</th></tr></thead>
-            <tbody className="divide-y text-gray-600">
+            <tbody className="divide-y text-muted">
               <tr><td className="p-2">Before School Care (BSC)</td><td className="p-2">2:30 pm the day before</td></tr>
               <tr><td className="p-2">After School Care (ASC)</td><td className="p-2">10:00 am the day of</td></tr>
               <tr><td className="p-2">Holiday Program Shifts</td><td className="p-2">2:30 pm the day before</td></tr>
@@ -411,7 +411,7 @@ function DailyOpsSection() {
               <span className="flex-shrink-0 bg-brand text-brand-yellow text-[11px] font-bold px-2 py-1 rounded mt-0.5 min-w-[60px] text-center">{item.time}</span>
               <div>
                 <div className="text-sm font-semibold text-brand">{item.t}</div>
-                <p className="text-xs text-gray-500">{item.d}</p>
+                <p className="text-xs text-muted">{item.d}</p>
               </div>
             </div>
           ))}
@@ -523,7 +523,7 @@ function MTOPSection() {
   ];
   return (
     <ContentBlock title="5 Learning Outcomes">
-      <p className="text-sm text-gray-600 mb-4">The <strong>My Time, Our Place (MTOP)</strong> Framework is the national framework for school-age care. All programs and reflections must link to these 5 outcomes.</p>
+      <p className="text-sm text-muted mb-4">The <strong>My Time, Our Place (MTOP)</strong> Framework is the national framework for school-age care. All programs and reflections must link to these 5 outcomes.</p>
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
         {outcomes.map((o) => (
           <div key={o.n} className={`${o.c} rounded-lg p-3 text-center text-white`}>
@@ -535,7 +535,7 @@ function MTOPSection() {
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
           <thead><tr className="bg-surface"><th className="p-2 text-left">#</th><th className="p-2 text-left">Outcome</th><th className="p-2 text-left">Key Learning Behaviours</th></tr></thead>
-          <tbody className="divide-y text-gray-600">
+          <tbody className="divide-y text-muted">
             {outcomes.map((o) => (
               <tr key={o.n}><td className="p-2 font-bold">{o.n}</td><td className="p-2 font-semibold text-brand">{o.t}</td><td className="p-2">{o.d}</td></tr>
             ))}
@@ -550,7 +550,7 @@ function SupervisionSection() {
   return (
     <>
       <ContentBlock title="The CLEAR Supervision Model">
-        <p className="text-sm text-gray-600 mb-4">Active supervision is a proactive approach to ensure all children are always safe.</p>
+        <p className="text-sm text-muted mb-4">Active supervision is a proactive approach to ensure all children are always safe.</p>
         <div className="grid grid-cols-5 gap-2 mb-4">
           {[
             { l: "C", t: "Count", d: "Headcounts every 30 minutes" },
@@ -578,7 +578,7 @@ function SupervisionSection() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead><tr className="bg-surface"><th className="p-2 text-left">Setting / Activity</th><th className="p-2 text-left">Staff : Children</th></tr></thead>
-            <tbody className="divide-y text-gray-600">
+            <tbody className="divide-y text-muted">
               <tr><td className="p-2">Standard regulation ratio</td><td className="p-2 font-bold">1 : 15</td></tr>
               <tr><td className="p-2">Low risk excursions</td><td className="p-2 font-bold">1 : 11</td></tr>
               <tr><td className="p-2">High risk excursions</td><td className="p-2 font-bold">1 : 8</td></tr>
@@ -597,11 +597,11 @@ function ChildProtectionSection() {
   return (
     <>
       <ContentBlock title="Child Safe Standards">
-        <p className="text-sm text-gray-600 mb-3">The Child Safe Standards ensure children&apos;s safety is everyone&apos;s priority, promoting cultural safety for all children.</p>
+        <p className="text-sm text-muted mb-3">The Child Safe Standards ensure children&apos;s safety is everyone&apos;s priority, promoting cultural safety for all children.</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead><tr className="bg-surface"><th className="p-2 text-left">Standard</th><th className="p-2 text-left">Description</th></tr></thead>
-            <tbody className="divide-y text-gray-600">
+            <tbody className="divide-y text-muted">
               {[
                 ["1", "Strategies to embed an organisational culture of child safety"],
                 ["2", "A child safe policy or statement of commitment to child safety"],
@@ -632,7 +632,7 @@ function ChildProtectionSection() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead><tr className="bg-surface"><th className="p-2 text-left">State</th><th className="p-2 text-left">Authority</th><th className="p-2 text-left">Contact</th></tr></thead>
-            <tbody className="divide-y text-gray-600">
+            <tbody className="divide-y text-muted">
               <tr><td className="p-2 font-bold">NSW</td><td className="p-2">Child Protection Helpline</td><td className="p-2 font-bold">13 2111</td></tr>
               <tr><td className="p-2 font-bold">VIC</td><td className="p-2">Child First</td><td className="p-2 font-bold">(03) 9329 4822</td></tr>
               <tr><td className="p-2 font-bold">WA</td><td className="p-2">Central Intake Team</td><td className="p-2 font-bold">1800 273 889</td></tr>
@@ -649,7 +649,7 @@ function CollectionSection() {
   return (
     <>
       <ContentBlock title="Late/Non-Arrival Procedure">
-        <p className="text-sm text-gray-600 mb-3">Follow the Keeping Children Safe: Non-arrival/missing child process.</p>
+        <p className="text-sm text-muted mb-3">Follow the Keeping Children Safe: Non-arrival/missing child process.</p>
         <div className="space-y-3">
           {[
             { time: "3:15", c: "bg-green-500", d: "Safe arrival time - all booked children should be present and signed in" },
@@ -659,7 +659,7 @@ function CollectionSection() {
           ].map((s) => (
             <div key={s.time} className="flex items-start gap-3">
               <span className={`${s.c} text-white text-xs font-bold px-2 py-1 rounded min-w-[50px] text-center`}>{s.time}</span>
-              <span className="text-sm text-gray-700">{s.d}</span>
+              <span className="text-sm text-foreground/80">{s.d}</span>
             </div>
           ))}
         </div>
@@ -683,7 +683,7 @@ function MedicalSection() {
   return (
     <>
       <ContentBlock title="Medical Conditions">
-        <p className="text-sm text-gray-600 mb-3">A <strong>Risk Minimisation Plan</strong> must be developed for each child with a medical condition. Copies must be:</p>
+        <p className="text-sm text-muted mb-3">A <strong>Risk Minimisation Plan</strong> must be developed for each child with a medical condition. Copies must be:</p>
         <Checklist items={["In the child's enrolment form", "In the medical folder", "With the medication"]} />
         <Alert type="warning"><strong>Expired Medications:</strong> Contact the parent immediately. A replacement must be provided before the child attends again.</Alert>
       </ContentBlock>
@@ -750,7 +750,7 @@ function PoliciesSection() {
     <>
       {policies.map((p) => (
         <ContentBlock key={p.n} title={`${p.n}. ${p.t}`}>
-          <p className="text-sm text-gray-600 mb-3">{p.d}</p>
+          <p className="text-sm text-muted mb-3">{p.d}</p>
           <h3 className="text-xs font-bold uppercase tracking-wider text-teal-600 mb-2">As an Educator, you must:</h3>
           <Checklist items={p.items} />
         </ContentBlock>
@@ -763,7 +763,7 @@ function AcknowledgementSection() {
   return (
     <>
       <ContentBlock title="Policy Acknowledgement">
-        <p className="text-sm text-gray-600 mb-3">I acknowledge that I have read and understood all 14 Amana OSHC policies listed in the Policies section.</p>
+        <p className="text-sm text-muted mb-3">I acknowledge that I have read and understood all 14 Amana OSHC policies listed in the Policies section.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {[
             "Behaviour Guidance", "Emergency and Evacuation", "Child Protection", "Administration of First Aid",
@@ -771,16 +771,16 @@ function AcknowledgementSection() {
             "Dealing with Complaints", "Safe Use of Digital Technologies", "Delivery and Collection", "Sick Leave",
             "Educational Program", "Work Health and Safety (WHS)",
           ].map((p) => (
-            <div key={p} className="flex items-center gap-2 text-sm py-1.5 border-b border-gray-100">
+            <div key={p} className="flex items-center gap-2 text-sm py-1.5 border-b border-border/50">
               <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
-              <span className="text-gray-600">{p} Policy</span>
+              <span className="text-muted">{p} Policy</span>
             </div>
           ))}
         </div>
       </ContentBlock>
 
       <ContentBlock title="Educator Declaration">
-        <p className="text-sm text-gray-600 mb-4">At Amana OSHC, understanding our policies and procedures is essential to providing a safe, high-quality and inclusive environment for all children.</p>
+        <p className="text-sm text-muted mb-4">At Amana OSHC, understanding our policies and procedures is essential to providing a safe, high-quality and inclusive environment for all children.</p>
         <div className="space-y-3">
           {[
             "I understand that these policies are designed to keep children, families and staff safe and supported at all times.",
@@ -788,9 +788,9 @@ function AcknowledgementSection() {
             "I understand that failure to follow these policies may result in further review or disciplinary action.",
             "I commit to asking questions if anything is unclear and to staying updated on any policy changes.",
           ].map((text, i) => (
-            <label key={i} className="flex items-start gap-3 text-sm cursor-pointer p-3 border border-gray-200 rounded-lg bg-amber-50/50 hover:bg-amber-50">
+            <label key={i} className="flex items-start gap-3 text-sm cursor-pointer p-3 border border-border rounded-lg bg-amber-50/50 hover:bg-amber-50">
               <input type="checkbox" className="mt-0.5 w-4 h-4 accent-brand flex-shrink-0" />
-              <span className="text-gray-700">{text}</span>
+              <span className="text-foreground/80">{text}</span>
             </label>
           ))}
         </div>
@@ -856,22 +856,22 @@ export function TheAmanaWay() {
       {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 fixed lg:sticky top-0 lg:top-0 left-0 z-40 lg:z-auto w-64 h-screen lg:h-auto bg-white border-r border-gray-200 overflow-y-auto transition-transform flex-shrink-0`}>
-        <div className="p-4 border-b border-gray-200 bg-brand">
+      <aside className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 fixed lg:sticky top-0 lg:top-0 left-0 z-40 lg:z-auto w-64 h-screen lg:h-auto bg-card border-r border-border overflow-y-auto transition-transform flex-shrink-0`}>
+        <div className="p-4 border-b border-border bg-brand">
           <h2 className="text-sm font-bold text-white">The Amana Way</h2>
           <p className="text-[10px] text-white/60 uppercase tracking-widest mt-0.5">Educators Induction Module</p>
         </div>
 
         {/* Search */}
-        <div className="p-3 border-b border-gray-200">
+        <div className="p-3 border-b border-border">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search topics..."
-              className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:ring-brand focus:border-brand"
+              className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded-md focus:ring-brand focus:border-brand"
             />
           </div>
         </div>
@@ -885,7 +885,7 @@ export function TheAmanaWay() {
               className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-sm transition-colors border-l-3 ${
                 activeSection === s.id
                   ? "bg-sky-50 text-brand border-l-brand font-semibold border-l-[3px]"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-brand border-l-transparent border-l-[3px]"
+                  : "text-muted hover:bg-surface hover:text-brand border-l-transparent border-l-[3px]"
               }`}
             >
               {s.icon}

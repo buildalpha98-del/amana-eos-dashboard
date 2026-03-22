@@ -598,7 +598,7 @@ export function CommandPalette({
                             tabIndex={0}
                             onClick={(e) => handleRemoveRecent(q, e)}
                             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleRemoveRecent(q, e as unknown as React.MouseEvent); } }}
-                            className="p-0.5 rounded text-gray-300 opacity-0 group-hover:opacity-100 hover:text-gray-500 transition-opacity"
+                            className="p-0.5 rounded text-muted/50 md:opacity-0 md:group-hover:opacity-100 opacity-60 hover:text-muted transition-opacity"
                             title="Remove"
                           >
                             <X className="w-3 h-3" />

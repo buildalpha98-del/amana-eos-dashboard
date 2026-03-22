@@ -70,16 +70,16 @@ function PersonSection({
   const allDone = group.completedCount === group.totalCount;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
       {/* Person Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface transition-colors"
       >
         {expanded ? (
-          <ChevronDown className="w-4 h-4 text-gray-400" />
+          <ChevronDown className="w-4 h-4 text-muted" />
         ) : (
-          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <ChevronRight className="w-4 h-4 text-muted" />
         )}
         <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0">
           <span className="text-xs font-medium text-brand">
@@ -92,15 +92,15 @@ function PersonSection({
           </span>
         </div>
         <div className="flex-1 text-left">
-          <span className="text-sm font-semibold text-gray-900">
+          <span className="text-sm font-semibold text-foreground">
             {group.assignee?.name ?? "Unassigned"}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted">
             {group.completedCount}/{group.totalCount}
           </span>
-          <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="w-16 h-1.5 bg-surface rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all"
               style={{

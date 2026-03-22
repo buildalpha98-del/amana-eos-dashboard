@@ -77,13 +77,13 @@ export default function QuickFeedbackPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#004E64] via-[#005f77] to-[#00768a]">
         <div className="max-w-md w-full mx-4 bg-white rounded-2xl shadow-2xl p-8 text-center">
           <div className="text-6xl mb-4">🎉</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl font-bold text-foreground mb-2">Thank You!</h1>
+          <p className="text-muted">
             Your feedback helps us create the best experience for your child
             {serviceName ? ` at ${serviceName}` : ""}.
           </p>
           <div className="mt-6 pt-4 border-t">
-            <p className="text-xs text-gray-400">Amana OSHC</p>
+            <p className="text-xs text-muted">Amana OSHC</p>
           </div>
         </div>
       </div>
@@ -106,10 +106,10 @@ export default function QuickFeedbackPage() {
         <div className="p-6 space-y-6">
           {/* Question */}
           <div className="text-center">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-foreground">
               How was your child&apos;s experience this week?
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-muted mt-1">
               Tap a face to share your feedback
             </p>
           </div>
@@ -123,12 +123,12 @@ export default function QuickFeedbackPage() {
                 className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all duration-200 ${
                   score === s.score
                     ? SELECTED_BG[s.score]
-                    : `bg-gray-50 ${s.color}`
+                    : `bg-surface/50 ${s.color}`
                 }`}
                 title={s.label}
               >
                 <span className="text-4xl">{s.emoji}</span>
-                <span className="text-[10px] text-gray-500 font-medium">
+                <span className="text-[10px] text-muted font-medium">
                   {s.label}
                 </span>
               </button>
@@ -137,27 +137,27 @@ export default function QuickFeedbackPage() {
 
           {/* Comment */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Any comments? <span className="text-gray-400">(optional)</span>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
+              Any comments? <span className="text-muted">(optional)</span>
             </label>
             <textarea
               rows={3}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
               placeholder="Tell us more..."
             />
           </div>
 
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Your name <span className="text-gray-400">(optional)</span>
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
+              Your name <span className="text-muted">(optional)</span>
             </label>
             <input
               value={parentName}
               onChange={(e) => setParentName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
               placeholder="Parent name"
             />
           </div>
@@ -175,7 +175,7 @@ export default function QuickFeedbackPage() {
             {submitting ? "Submitting..." : "Submit Feedback"}
           </button>
 
-          <p className="text-center text-xs text-gray-400">
+          <p className="text-center text-xs text-muted">
             Your response is anonymous unless you provide your name.
           </p>
         </div>

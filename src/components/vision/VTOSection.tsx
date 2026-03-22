@@ -45,15 +45,15 @@ export function VTOSection({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border/50 bg-surface/50">
         {editingTitle ? (
           <div className="flex items-center gap-2 flex-1">
             <input
               autoFocus
               value={titleDraft}
               onChange={(e) => setTitleDraft(e.target.value)}
-              className="flex-1 px-2 py-1 text-sm font-semibold border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+              className="flex-1 px-2 py-1 text-sm font-semibold border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSaveTitle();
                 if (e.key === "Escape") setEditingTitle(false);
@@ -68,7 +68,7 @@ export function VTOSection({
             </button>
             <button
               onClick={() => setEditingTitle(false)}
-              className="p-1 text-gray-400 hover:text-gray-600"
+              className="p-1 text-muted hover:text-foreground"
               title="Cancel"
             >
               <X className="w-3.5 h-3.5" />
@@ -76,7 +76,7 @@ export function VTOSection({
           </div>
         ) : (
           <h3
-            className="text-sm font-semibold text-gray-700 cursor-pointer hover:text-brand transition-colors"
+            className="text-sm font-semibold text-foreground/80 cursor-pointer hover:text-brand transition-colors"
             onClick={() => {
               setTitleDraft(displayTitle);
               setEditingTitle(true);
@@ -94,7 +94,7 @@ export function VTOSection({
                 setDraft(value || "");
                 setEditing(true);
               }}
-              className="p-1 text-gray-400 hover:text-brand transition-colors"
+              className="p-1 text-muted hover:text-brand transition-colors"
               title="Edit"
             >
               <Pencil className="w-3.5 h-3.5" />
@@ -111,14 +111,14 @@ export function VTOSection({
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
               />
             ) : (
               <input
                 autoFocus
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
               />
             )}
             <div className="flex gap-2">
@@ -132,7 +132,7 @@ export function VTOSection({
               </button>
               <button
                 onClick={() => setEditing(false)}
-                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 text-gray-500 hover:text-gray-700"
+                className="inline-flex items-center gap-1 text-xs px-3 py-1.5 text-muted hover:text-foreground"
               >
                 <X className="w-3 h-3" />
                 Cancel
@@ -140,11 +140,11 @@ export function VTOSection({
             </div>
           </div>
         ) : value ? (
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+          <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
             {value}
           </p>
         ) : (
-          <p className="text-sm text-gray-400 italic">Not set — click edit to add</p>
+          <p className="text-sm text-muted italic">Not set — click edit to add</p>
         )}
       </div>
     </div>

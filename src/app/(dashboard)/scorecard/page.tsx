@@ -7,15 +7,14 @@ import type { MeasurableData } from "@/hooks/useScorecard";
 import { ScorecardGrid } from "@/components/scorecard/ScorecardGrid";
 import { AddMeasurableModal } from "@/components/scorecard/AddMeasurableModal";
 import { DeleteMeasurableDialog } from "@/components/scorecard/DeleteMeasurableDialog";
-import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV } from "@/lib/csv-export";
-import { BarChart3, Plus, Users, Building2, X } from "lucide-react";
+import { BarChart3, Plus, Users, Building2, X, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { AiButton } from "@/components/ui/AiButton";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function ScorecardPage() {
   const { data: scorecard, isLoading, error, refetch } = useScorecard();
@@ -89,85 +88,55 @@ export default function ScorecardPage() {
   return (
     <div className="max-w-full mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            Scorecard <HelpTooltip id="scorecard-heading" content="Track your centre's key measurables weekly. Green = on track, red = off track. Update numbers each week before your L10 meeting." />
-          </h2>
-          <p className="text-sm text-gray-500">
-            Track your weekly measurables — trailing 13 weeks
-          </p>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Group By Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-            <button
-              onClick={() => setGroupBy("person")}
-              className={cn(
-                "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
-                groupBy === "person"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
-              )}
-              title="Group by person"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Person</span>
-            </button>
-            <button
-              onClick={() => setGroupBy("service")}
-              className={cn(
-                "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors",
-                groupBy === "service"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
-              )}
-              title="Group by centre"
-            >
-              <Building2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Centre</span>
-            </button>
-          </div>
-
-          <AiButton
-            templateSlug="scorecard/narrative"
-            variables={{
-              measurableCount: String(scorecard?.measurables?.length ?? 0),
-              onTrackSummary: scorecard?.measurables
-                ? (() => {
-                    const total = scorecard.measurables.length;
-                    const onTrack = scorecard.measurables.filter((m) => {
-                      const last = m.entries[m.entries.length - 1];
-                      return last?.onTrack;
-                    }).length;
-                    return `${onTrack}/${total} on track`;
-                  })()
-                : "no data",
-              measurables: scorecard?.measurables
-                ?.slice(0, 10)
-                .map((m) => `${m.title} (${m.owner?.name ?? "unassigned"}): goal ${m.goalDirection} ${m.goalValue}, last=${m.entries[m.entries.length - 1]?.value ?? "N/A"}`)
-                .join("; ") || "none",
-            }}
-            onResult={(text) => setAiNarrative(text)}
-            label="AI Narrative"
-            size="sm"
-            section="scorecard"
-            disabled={!scorecard?.measurables?.length}
-          />
-          <ExportButton
-            onClick={handleExport}
-            disabled={!scorecard?.measurables || scorecard.measurables.length === 0}
-          />
-          <button
-            onClick={() => setShowAddMeasurable(true)}
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Measurable</span>
-            <span className="sm:hidden">Add</span>
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Scorecard"
+        description="Track your weekly measurables — trailing 13 weeks"
+        helpTooltipId="scorecard-heading"
+        helpTooltipContent="Track your centre's key measurables weekly. Green = on track, red = off track. Update numbers each week before your L10 meeting."
+        primaryAction={{ label: "Add Measurable", icon: Plus, onClick: () => setShowAddMeasurable(true) }}
+        toggles={[{
+          options: [
+            { icon: Users, label: "Group by person", value: "person" },
+            { icon: Building2, label: "Group by centre", value: "service" },
+          ],
+          value: groupBy,
+          onChange: (v) => setGroupBy(v as "person" | "service"),
+        }]}
+        secondaryActions={[
+          {
+            label: "Export CSV",
+            icon: Download,
+            onClick: handleExport,
+          },
+        ]}
+      >
+        {/* AI Narrative — unique to Scorecard */}
+        <AiButton
+          templateSlug="scorecard/narrative"
+          variables={{
+            measurableCount: String(scorecard?.measurables?.length ?? 0),
+            onTrackSummary: scorecard?.measurables
+              ? (() => {
+                  const total = scorecard.measurables.length;
+                  const onTrack = scorecard.measurables.filter((m) => {
+                    const last = m.entries[m.entries.length - 1];
+                    return last?.onTrack;
+                  }).length;
+                  return `${onTrack}/${total} on track`;
+                })()
+              : "no data",
+            measurables: scorecard?.measurables
+              ?.slice(0, 10)
+              .map((m) => `${m.title} (${m.owner?.name ?? "unassigned"}): goal ${m.goalDirection} ${m.goalValue}, last=${m.entries[m.entries.length - 1]?.value ?? "N/A"}`)
+              .join("; ") || "none",
+          }}
+          onResult={(text) => setAiNarrative(text)}
+          label="AI Narrative"
+          size="sm"
+          section="scorecard"
+          disabled={!scorecard?.measurables?.length}
+        />
+      </PageHeader>
 
       {/* AI Narrative */}
       {aiNarrative && (
@@ -183,8 +152,8 @@ export default function ScorecardPage() {
 
       {/* Content */}
       {isLoading ? (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-100 bg-gray-50">
+        <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="flex items-center gap-4 px-4 py-3 border-b border-border/50 bg-surface/50">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-4 w-16" />
             {Array.from({ length: 6 }).map((_, i) => (
@@ -192,7 +161,7 @@ export default function ScorecardPage() {
             ))}
           </div>
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-gray-50">
+            <div key={i} className="flex items-center gap-4 px-4 py-3 border-b border-border/50">
               <Skeleton className="h-4 w-40" />
               <Skeleton className="h-4 w-16" />
               {Array.from({ length: 6 }).map((_, j) => (

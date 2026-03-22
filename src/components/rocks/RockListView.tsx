@@ -9,7 +9,7 @@ const statusConfig = {
   on_track: { label: "On Track", bg: "bg-emerald-50", text: "text-emerald-700" },
   off_track: { label: "Off Track", bg: "bg-red-50", text: "text-red-700" },
   complete: { label: "Complete", bg: "bg-brand/10", text: "text-brand" },
-  dropped: { label: "Dropped", bg: "bg-gray-100", text: "text-gray-500" },
+  dropped: { label: "Dropped", bg: "bg-surface", text: "text-muted" },
 };
 
 const priorityConfig = {
@@ -71,7 +71,7 @@ export function RockListView({
     children: React.ReactNode;
   }) => (
     <th
-      className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700 select-none"
+      className="text-left py-3 px-4 text-xs font-medium text-muted uppercase tracking-wider cursor-pointer hover:text-foreground select-none"
       onClick={() => handleSort(field)}
     >
       <span className="inline-flex items-center gap-1">
@@ -90,16 +90,16 @@ export function RockListView({
   );
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
       <table className="w-full">
-        <thead className="bg-surface border-b border-gray-200">
+        <thead className="bg-surface border-b border-border">
           <tr>
             <SortHeader field="title">Title</SortHeader>
             <SortHeader field="owner">Owner</SortHeader>
             <SortHeader field="priority">Priority</SortHeader>
             <SortHeader field="status">Status</SortHeader>
             <SortHeader field="percentComplete">Progress</SortHeader>
-            <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th className="text-left py-3 px-4 text-xs font-medium text-muted uppercase tracking-wider">
               Linked Goal
             </th>
           </tr>
@@ -112,10 +112,10 @@ export function RockListView({
               <tr
                 key={rock.id}
                 onClick={() => onRockClick(rock)}
-                className="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer transition-colors"
+                className="border-b border-border/50 last:border-0 hover:bg-surface cursor-pointer transition-colors"
               >
                 <td className="py-3 px-4">
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium text-foreground">
                     {rock.title}
                   </span>
                 </td>
@@ -131,7 +131,7 @@ export function RockListView({
                           .slice(0, 2)}
                       </span>
                     </div>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-muted">
                       {rock.owner?.name ?? "Unassigned"}
                     </span>
                   </div>
@@ -154,7 +154,7 @@ export function RockListView({
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2 min-w-[120px]">
-                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-surface rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{
@@ -168,7 +168,7 @@ export function RockListView({
                         }}
                       />
                     </div>
-                    <span className="text-xs font-medium text-gray-600 w-8 text-right">
+                    <span className="text-xs font-medium text-muted w-8 text-right">
                       {rock.percentComplete}%
                     </span>
                   </div>
@@ -179,7 +179,7 @@ export function RockListView({
                       {rock.oneYearGoal.title}
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-300">—</span>
+                    <span className="text-xs text-muted/50">—</span>
                   )}
                 </td>
               </tr>

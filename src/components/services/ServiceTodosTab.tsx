@@ -162,7 +162,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
           <CheckSquare className="w-4 h-4 text-brand" />
           Service To-Dos
         </h3>
@@ -170,7 +170,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
+            className="text-xs border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             {statusFilters.map((f) => (
               <option key={f} value={f}>
@@ -182,7 +182,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
             <select
               value={assigneeFilter}
               onChange={(e) => setAssigneeFilter(e.target.value)}
-              className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
+              className="text-xs border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
             >
               <option value="all">All Assignees</option>
               {assigneeOptions.map(([id, name]) => (
@@ -193,7 +193,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="text-xs border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
+            className="text-xs border border-border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand"
           >
             <option value="due_asc">Due Date ↑</option>
             <option value="due_desc">Due Date ↓</option>
@@ -214,7 +214,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
       {isLoading ? (
         <div className="space-y-1.5">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-lg">
+            <div key={i} className="flex items-center gap-3 px-3 py-2.5 bg-surface/50 rounded-lg">
               <Skeleton className="w-4.5 h-4.5 rounded" />
               <Skeleton className="h-4 flex-1" />
               <Skeleton className="h-3 w-16" />
@@ -224,7 +224,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
           ))}
         </div>
       ) : filteredTodos.length === 0 ? (
-        <div className="text-center py-8 text-sm text-gray-400">
+        <div className="text-center py-8 text-sm text-muted">
           No to-dos found.
         </div>
       ) : (
@@ -232,7 +232,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
           {filteredTodos.map((todo) => (
             <div
               key={todo.id}
-              className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-3 px-3 py-2.5 bg-surface/50 rounded-lg hover:bg-surface transition-colors"
             >
               {/* Checkbox */}
               <button
@@ -252,7 +252,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                       ? "text-emerald-500"
                       : todo.status === "in_progress"
                       ? "text-blue-500"
-                      : "text-gray-300 hover:text-gray-400"
+                      : "text-muted/50 hover:text-muted"
                   )}
                 />
               </button>
@@ -262,8 +262,8 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                 className={cn(
                   "flex-1 text-sm truncate",
                   todo.status === "complete"
-                    ? "text-gray-400 line-through"
-                    : "text-gray-700"
+                    ? "text-muted line-through"
+                    : "text-foreground/80"
                 )}
               >
                 {todo.title}
@@ -282,12 +282,12 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
               )}
 
               {/* Assignee */}
-              <span className="text-xs text-gray-400 whitespace-nowrap">
+              <span className="text-xs text-muted whitespace-nowrap">
                 {todo.assignee?.name ?? "Unassigned"}
               </span>
 
               {/* Due Date */}
-              <span className="text-xs text-gray-400 flex items-center gap-1 whitespace-nowrap">
+              <span className="text-xs text-muted flex items-center gap-1 whitespace-nowrap">
                 <Calendar className="w-3 h-3" />
                 {formatDateAU(todo.dueDate)}
               </span>
@@ -314,14 +314,14 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
             onClick={() => setShowModal(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <div className="bg-card rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-gray-900">
+                <h4 className="text-sm font-semibold text-foreground">
                   Add To-Do
                 </h4>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-1 text-gray-400 hover:text-gray-600"
+                  className="p-1 text-muted hover:text-muted"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -330,7 +330,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
               <div className="space-y-3">
                 {/* Title */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-muted mb-1">
                     Title <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -339,14 +339,14 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                     onChange={(e) =>
                       setFormData((p) => ({ ...p, title: e.target.value }))
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                     placeholder="What needs to be done?"
                   />
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-muted mb-1">
                     Description
                   </label>
                   <textarea
@@ -355,14 +355,14 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                       setFormData((p) => ({ ...p, description: e.target.value }))
                     }
                     rows={3}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
                     placeholder="Additional details..."
                   />
                 </div>
 
                 {/* Assignee */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-muted mb-1">
                     Assignee <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -370,7 +370,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                     onChange={(e) =>
                       setFormData((p) => ({ ...p, assigneeId: e.target.value }))
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="">Select assignee...</option>
                     {users.map((u) => (
@@ -383,7 +383,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
 
                 {/* Due Date */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-muted mb-1">
                     Due Date <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -392,7 +392,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                     onChange={(e) =>
                       setFormData((p) => ({ ...p, dueDate: e.target.value }))
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
               </div>
@@ -406,7 +406,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   onClick={() => { setShowModal(false); setError(null); }}
-                  className="text-xs px-4 py-2 text-gray-500 hover:text-gray-700"
+                  className="text-xs px-4 py-2 text-muted hover:text-foreground/80"
                 >
                   Cancel
                 </button>
@@ -422,7 +422,7 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
                     "text-xs px-4 py-2 rounded-lg font-medium transition-colors",
                     formData.title && formData.assigneeId && formData.dueDate
                       ? "bg-brand text-white hover:bg-brand/90"
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-surface text-muted cursor-not-allowed"
                   )}
                 >
                   {createTodo.isPending ? "Creating..." : "Create To-Do"}

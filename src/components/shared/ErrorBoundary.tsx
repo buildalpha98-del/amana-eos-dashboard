@@ -63,15 +63,15 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Something went wrong</h2>
-            <p className="mt-2 text-sm text-gray-500">
+            <h2 className="text-xl font-semibold text-foreground">Something went wrong</h2>
+            <p className="mt-2 text-sm text-muted">
               An unexpected error occurred. Our team has been notified.
             </p>
           </div>
 
           {errorId && (
-            <p className="text-xs text-gray-400">
-              Reference: <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono">{errorId}</code>
+            <p className="text-xs text-muted">
+              Reference: <code className="rounded bg-surface px-1.5 py-0.5 font-mono">{errorId}</code>
             </p>
           )}
 
@@ -94,7 +94,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             </button>
             <a
               href="/dashboard"
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-surface"
             >
               Go to Dashboard
             </a>

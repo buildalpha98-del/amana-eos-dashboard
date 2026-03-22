@@ -75,9 +75,9 @@ export default function NotificationPreferencesPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#001824] via-[#003344] to-[#0A5E7E] flex items-center justify-center p-4">
         <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <MailX className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Not Found</h2>
-          <p className="text-gray-600">{error}</p>
+          <MailX className="h-12 w-12 text-muted mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-foreground mb-2">Not Found</h2>
+          <p className="text-muted">{error}</p>
         </div>
       </div>
     );
@@ -98,12 +98,12 @@ export default function NotificationPreferencesPage() {
               <Bell className="h-5 w-5 text-brand" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Email Preferences</h2>
-              <p className="text-sm text-gray-500">{data.email}</p>
+              <h2 className="text-lg font-bold text-foreground">Email Preferences</h2>
+              <p className="text-sm text-muted">{data.email}</p>
             </div>
           </div>
 
-          <p className="text-sm text-gray-600 mb-6">
+          <p className="text-sm text-muted mb-6">
             Hi {data.firstName || "there"}, manage your email notifications from{" "}
             <strong>{data.serviceName}</strong>.
           </p>
@@ -113,20 +113,20 @@ export default function NotificationPreferencesPage() {
             className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${
               data.subscribed
                 ? "bg-green-50 border-green-200"
-                : "bg-gray-50 border-gray-200"
+                : "bg-surface/50 border-border"
             }`}
           >
             <div className="flex items-center gap-3">
               {data.subscribed ? (
                 <Mail className="h-5 w-5 text-green-600" />
               ) : (
-                <MailX className="h-5 w-5 text-gray-400" />
+                <MailX className="h-5 w-5 text-muted" />
               )}
               <div>
-                <p className="text-sm font-semibold text-gray-800">
+                <p className="text-sm font-semibold text-foreground">
                   {data.subscribed ? "Subscribed" : "Unsubscribed"}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted">
                   {data.subscribed
                     ? "You'll receive updates, check-ins, and helpful tips."
                     : "You won't receive any nurture or follow-up emails."}
@@ -137,7 +137,7 @@ export default function NotificationPreferencesPage() {
               onClick={() => handleToggle(!data.subscribed)}
               disabled={saving}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                data.subscribed ? "bg-green-500" : "bg-gray-300"
+                data.subscribed ? "bg-green-500" : "bg-border"
               }`}
             >
               <span
@@ -156,7 +156,7 @@ export default function NotificationPreferencesPage() {
             </div>
           )}
 
-          <p className="text-xs text-gray-400 mt-6">
+          <p className="text-xs text-muted mt-6">
             This only affects nurture and follow-up emails. Important service
             notifications (safety alerts, booking confirmations) will always be sent.
           </p>

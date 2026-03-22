@@ -56,16 +56,16 @@ export function SendEmailModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Send Email</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <h2 className="text-lg font-bold text-foreground">Send Email</h2>
+            <p className="text-xs text-muted mt-0.5">
               To: {contactName ? `${contactName} <${contactEmail}>` : contactEmail}
             </p>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
-            <X className="w-5 h-5 text-gray-500" />
+          <button onClick={onClose} className="p-1 hover:bg-surface rounded">
+            <X className="w-5 h-5 text-muted" />
           </button>
         </div>
 
@@ -73,7 +73,7 @@ export function SendEmailModal({
           {/* Template selection */}
           {templates && templates.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Template
               </label>
               <select
@@ -92,7 +92,7 @@ export function SendEmailModal({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Subject *
             </label>
             <input
@@ -106,7 +106,7 @@ export function SendEmailModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Body *
             </label>
             <textarea
@@ -117,7 +117,7 @@ export function SendEmailModal({
               placeholder="Compose your email..."
               required
             />
-            <p className="text-[10px] text-gray-400 mt-1">
+            <p className="text-[10px] text-muted mt-1">
               Available merge tags: {"{{schoolName}}"}, {"{{contactName}}"}, {"{{senderName}}"}, {"{{companyName}}"}
             </p>
           </div>
@@ -126,7 +126,7 @@ export function SendEmailModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+              className="px-4 py-2 text-sm text-muted hover:bg-surface rounded-lg"
             >
               Cancel
             </button>

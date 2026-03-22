@@ -27,7 +27,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
 };
 
 function scoreColor(score: number | null) {
-  if (score == null) return "text-gray-400";
+  if (score == null) return "text-muted";
   if (score >= 80) return "text-emerald-600";
   if (score >= 60) return "text-amber-600";
   return "text-red-600";
@@ -76,22 +76,22 @@ export function ServiceAuditsTab({ serviceId }: { serviceId: string }) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setYear((y) => y - 1)}
-            className="p-1 rounded border border-gray-200 hover:bg-gray-50"
+            className="p-1 rounded border border-border hover:bg-surface/50"
           >
-            <ChevronLeft className="w-4 h-4 text-gray-600" />
+            <ChevronLeft className="w-4 h-4 text-muted" />
           </button>
-          <span className="text-sm font-semibold text-gray-900 min-w-[3rem] text-center">{year}</span>
+          <span className="text-sm font-semibold text-foreground min-w-[3rem] text-center">{year}</span>
           <button
             onClick={() => setYear((y) => y + 1)}
-            className="p-1 rounded border border-gray-200 hover:bg-gray-50"
+            className="p-1 rounded border border-border hover:bg-surface/50"
           >
-            <ChevronRight className="w-4 h-4 text-gray-600" />
+            <ChevronRight className="w-4 h-4 text-muted" />
           </button>
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+          className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All Statuses</option>
           <option value="scheduled">Scheduled</option>
@@ -105,7 +105,7 @@ export function ServiceAuditsTab({ serviceId }: { serviceId: string }) {
       {isLoading ? (
         <div className="space-y-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
+            <div key={i} className="bg-card rounded-xl border border-border p-4 flex items-center gap-4">
               <Skeleton className="w-10 h-10 rounded-lg" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-48" />
@@ -116,8 +116,8 @@ export function ServiceAuditsTab({ serviceId }: { serviceId: string }) {
           ))}
         </div>
       ) : instances.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
-          <ShieldCheck className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+        <div className="text-center py-12 text-muted">
+          <ShieldCheck className="w-12 h-12 mx-auto mb-3 text-muted/50" />
           <p className="text-sm">No audits found for {year}</p>
         </div>
       ) : (
@@ -129,7 +129,7 @@ export function ServiceAuditsTab({ serviceId }: { serviceId: string }) {
               <Link
                 key={inst.id}
                 href={`/compliance/audit/${inst.id}`}
-                className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-brand/20 transition-all"
+                className="block bg-card rounded-xl border border-border p-4 hover:shadow-md hover:border-brand/20 transition-all"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3 min-w-0">
@@ -137,13 +137,13 @@ export function ServiceAuditsTab({ serviceId }: { serviceId: string }) {
                       <ShieldCheck className="w-4 h-4 text-brand" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{inst.template.name}</p>
+                      <p className="text-sm font-semibold text-foreground truncate">{inst.template.name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-xs font-mono bg-brand/10 text-brand px-1.5 py-0.5 rounded">
                           QA{inst.template.qualityArea}
                         </span>
-                        <span className="text-xs text-gray-500">{inst.template.nqsReference}</span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted">{inst.template.nqsReference}</span>
+                        <span className="text-xs text-muted">
                           Due {new Date(inst.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                         </span>
                       </div>

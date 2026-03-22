@@ -26,13 +26,13 @@ export default function NotFound() {
 
         {/* Card */}
         <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 sm:p-10 border border-white/50">
-          <div className="text-6xl font-heading font-bold text-gray-200 mb-2">
+          <div className="text-6xl font-heading font-bold text-border mb-2">
             404
           </div>
-          <h1 className="text-xl font-heading font-semibold text-gray-900 mb-2">
+          <h1 className="text-xl font-heading font-semibold text-foreground mb-2">
             Page not found
           </h1>
-          <p className="text-gray-500 text-sm mb-8">
+          <p className="text-muted text-sm mb-8">
             The page you&apos;re looking for doesn&apos;t exist or has been moved.
           </p>
 

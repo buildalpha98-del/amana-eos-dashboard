@@ -229,16 +229,16 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setWeekOffset((o) => o + 1)}
-              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="p-2 rounded-lg border border-border hover:bg-surface/50 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-sm font-semibold text-gray-900 min-w-[140px] sm:min-w-[220px] text-center">
+            <span className="text-sm font-semibold text-foreground min-w-[140px] sm:min-w-[220px] text-center">
               {formatWeekLabel(selectedWeek)}
             </span>
             <button
               onClick={() => setWeekOffset((o) => o - 1)}
-              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              className="p-2 rounded-lg border border-border hover:bg-surface/50 transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -268,21 +268,21 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
           <button
             onClick={handleCopyPrevious}
             disabled={bulkMutation.isPending}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-card border border-border rounded-lg hover:bg-surface/50 transition-colors disabled:opacity-50"
           >
             <Copy className="w-3.5 h-3.5" />
             Copy Prev Week
           </button>
           <button
             onClick={() => setShowImport(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-card border border-border rounded-lg hover:bg-surface/50 transition-colors"
           >
             <Upload className="w-3.5 h-3.5" />
             Import
           </button>
           <button
             onClick={() => setShowLibraryPicker(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-card border border-border rounded-lg hover:bg-surface/50 transition-colors"
           >
             <Library className="w-3.5 h-3.5" />
             Library
@@ -339,11 +339,11 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
           {DAYS.map((day) => (
             <div key={day} className="space-y-2">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold text-foreground">
                   <span className="hidden md:inline">{DAY_LABELS[day]}</span>
                   <span className="md:hidden">{DAY_SHORT[day]}</span>
                 </h3>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted">
                   {byDay[day]?.length || 0}
                 </span>
               </div>
@@ -365,7 +365,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
                       setEditingActivity(null);
                       setShowModal(true);
                     }}
-                    className="w-full py-6 border-2 border-dashed border-gray-200 rounded-lg text-xs text-gray-400 hover:border-brand hover:text-brand transition-colors"
+                    className="w-full py-6 border-2 border-dashed border-border rounded-lg text-xs text-muted hover:border-brand hover:text-brand transition-colors"
                   >
                     + Add
                   </button>
@@ -378,9 +378,9 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
 
       {/* MTOP Coverage Bar */}
       {mtopCoverage && mtopCoverage.totalActivities > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-gray-900">MTOP Outcome Coverage</h4>
+            <h4 className="text-sm font-semibold text-foreground">MTOP Outcome Coverage</h4>
             {mtopCoverage.untaggedActivities > 0 && (
               <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                 {mtopCoverage.untaggedActivities} untagged
@@ -390,10 +390,10 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
           <div className="space-y-2">
             {mtopCoverage.coverage.map((c) => (
               <div key={c.outcome} className="flex items-center gap-3">
-                <span className="text-xs font-medium text-gray-600 w-32 shrink-0">
+                <span className="text-xs font-medium text-muted w-32 shrink-0">
                   O{c.outcome}: {c.label}
                 </span>
-                <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="flex-1 h-5 bg-surface rounded-full overflow-hidden">
                   <div
                     className={cn(
                       "h-full rounded-full transition-all",
@@ -402,7 +402,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
                     style={{ width: `${Math.max(c.percentage, c.percentage === 0 ? 100 : 0)}%`, opacity: c.percentage === 0 ? 0.3 : 1 }}
                   />
                 </div>
-                <span className={cn("text-xs font-medium w-10 text-right", c.percentage === 0 ? "text-red-500" : "text-gray-600")}>
+                <span className={cn("text-xs font-medium w-10 text-right", c.percentage === 0 ? "text-red-500" : "text-muted")}>
                   {c.percentage}%
                 </span>
               </div>
@@ -412,16 +412,16 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
       )}
 
       {/* Children's Interests Section */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="bg-card rounded-xl border border-border p-4">
         <button
           onClick={() => setShowInterests(!showInterests)}
           className="flex items-center justify-between w-full"
         >
-          <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Tag className="w-4 h-4 text-brand" />
             Children&apos;s Interests
           </h4>
-          <ChevronRight className={cn("w-4 h-4 text-gray-400 transition-transform", showInterests && "rotate-90")} />
+          <ChevronRight className={cn("w-4 h-4 text-muted transition-transform", showInterests && "rotate-90")} />
         </button>
         {showInterests && (
           <InterestsPanel serviceId={serviceId} />
@@ -431,7 +431,7 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
       {/* Empty state */}
       {!isLoading && (!activities || activities.length === 0) && (
         <div className="text-center py-8">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             No activities scheduled this week. Add activities or import from CSV.
           </p>
         </div>
@@ -518,27 +518,27 @@ function ActivityCard({
       <div className="absolute top-2 right-2 hidden group-hover:flex items-center gap-1">
         <button
           onClick={onEdit}
-          className="p-1 rounded bg-white/80 hover:bg-white text-gray-500 hover:text-brand"
+          className="p-1 rounded bg-card/80 hover:bg-card text-muted hover:text-brand"
         >
           <Pencil className="w-3 h-3" />
         </button>
         <button
           onClick={onDelete}
-          className="p-1 rounded bg-white/80 hover:bg-white text-gray-500 hover:text-red-500"
+          className="p-1 rounded bg-card/80 hover:bg-card text-muted hover:text-red-500"
         >
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
 
-      <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+      <div className="flex items-center gap-1 text-xs text-muted mb-1">
         <Clock className="w-3 h-3" />
         {activity.startTime} – {activity.endTime}
       </div>
-      <p className="text-sm font-medium text-gray-900 leading-tight">
+      <p className="text-sm font-medium text-foreground leading-tight">
         {activity.title}
       </p>
       {activity.description && (
-        <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+        <p className="text-xs text-muted mt-1 line-clamp-2">
           {activity.description}
         </p>
       )}
@@ -558,13 +558,13 @@ function ActivityCard({
       )}
       <div className="flex flex-wrap items-center gap-2 mt-2">
         {activity.staffName && (
-          <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+          <span className="inline-flex items-center gap-1 text-xs text-muted">
             <User className="w-3 h-3" />
             {activity.staffName}
           </span>
         )}
         {activity.location && (
-          <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+          <span className="inline-flex items-center gap-1 text-xs text-muted">
             <MapPin className="w-3 h-3" />
             {activity.location}
           </span>
@@ -647,12 +647,12 @@ function ActivityModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+      <div className="bg-card rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             {isEditing ? "Edit Activity" : prefillTemplate ? "Add Activity (from Library)" : "Add Activity"}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-muted hover:text-muted">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -660,13 +660,13 @@ function ActivityModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-foreground/80 mb-1">
                 Day
               </label>
               <select
                 value={day}
                 onChange={(e) => setDay(e.target.value as (typeof DAYS)[number])}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               >
                 {DAYS.map((d) => (
                   <option key={d} value={d}>
@@ -676,31 +676,31 @@ function ActivityModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-foreground/80 mb-1">
                 Start
               </label>
               <input
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-foreground/80 mb-1">
                 End
               </label>
               <input
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-foreground/80 mb-1">
               Title *
             </label>
             <input
@@ -709,12 +709,12 @@ function ActivityModal({
               onChange={(e) => setTitle(e.target.value)}
               required
               placeholder="e.g. Arts & Crafts"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-foreground/80 mb-1">
               Description
             </label>
             <textarea
@@ -722,13 +722,13 @@ function ActivityModal({
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               placeholder="Activity details..."
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand resize-none"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand resize-none"
             />
           </div>
 
           {/* MTOP Outcomes */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-medium text-foreground/80 mb-2">
               MTOP Learning Outcomes
             </label>
             <div className="flex flex-wrap gap-2">
@@ -741,7 +741,7 @@ function ActivityModal({
                     "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border transition-colors",
                     selectedOutcomes.includes(o.id)
                       ? `${o.color} text-white border-transparent`
-                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300",
+                      : "bg-card text-muted border-border hover:border-border",
                   )}
                 >
                   {o.short}: {o.label}
@@ -752,7 +752,7 @@ function ActivityModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-foreground/80 mb-1">
                 Staff Member
               </label>
               <input
@@ -760,11 +760,11 @@ function ActivityModal({
                 value={staffName}
                 onChange={(e) => setStaffName(e.target.value)}
                 placeholder="e.g. Sarah"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-foreground/80 mb-1">
                 Location
               </label>
               <input
@@ -772,7 +772,7 @@ function ActivityModal({
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g. Hall A"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
               />
             </div>
           </div>
@@ -781,7 +781,7 @@ function ActivityModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-2 text-sm font-medium text-foreground/80 bg-surface rounded-lg hover:bg-border transition-colors"
             >
               Cancel
             </button>
@@ -831,7 +831,7 @@ const PICKER_CATEGORY_COLORS: Record<string, string> = {
   quran_iqra: "bg-indigo-100 text-indigo-700",
   homework_help: "bg-yellow-100 text-yellow-700",
   stem_science: "bg-cyan-100 text-cyan-700",
-  other: "bg-gray-100 text-gray-700",
+  other: "bg-surface text-foreground/80",
 };
 
 function ActivityLibraryPickerModal({
@@ -855,34 +855,34 @@ function ActivityLibraryPickerModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div
-        className="bg-white rounded-xl shadow-xl w-full max-w-3xl mx-4 max-h-[80vh] flex flex-col"
+        className="bg-card rounded-xl shadow-xl w-full max-w-3xl mx-4 max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+        <div className="flex items-center justify-between p-5 border-b border-border/50">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <Library className="w-5 h-5 text-brand" />
             Browse Activity Library
           </h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100">
-            <X className="w-5 h-5 text-gray-400" />
+          <button onClick={onClose} className="p-1 rounded hover:bg-surface">
+            <X className="w-5 h-5 text-muted" />
           </button>
         </div>
 
-        <div className="flex items-center gap-3 p-4 border-b border-gray-50">
+        <div className="flex items-center gap-3 p-4 border-b border-border/30">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
             <input
               type="text"
               placeholder="Search templates..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+              className="w-full pl-10 pr-4 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
             />
           </div>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+            className="px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
           >
             <option value="">All Categories</option>
             {PICKER_CATEGORIES.map((c) => (
@@ -897,7 +897,7 @@ function ActivityLibraryPickerModal({
               <Loader2 className="w-6 h-6 text-brand animate-spin" />
             </div>
           ) : !data?.templates.length ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-muted">
               <Library className="w-10 h-10 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No templates found</p>
             </div>
@@ -907,13 +907,13 @@ function ActivityLibraryPickerModal({
                 <button
                   key={t.id}
                   onClick={() => onSelect(t)}
-                  className="text-left p-3 rounded-lg border border-gray-200 hover:border-brand hover:shadow-sm transition-all"
+                  className="text-left p-3 rounded-lg border border-border hover:border-brand hover:shadow-sm transition-all"
                 >
                   <div className="flex items-start justify-between mb-1">
                     <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", PICKER_CATEGORY_COLORS[t.category] || PICKER_CATEGORY_COLORS.other)}>
                       {PICKER_CATEGORIES.find((c) => c.value === t.category)?.label || t.category}
                     </span>
-                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <div className="flex items-center gap-2 text-xs text-muted">
                       {t.durationMinutes && <span>{t.durationMinutes}min</span>}
                       {t.files.length > 0 && (
                         <span className="flex items-center gap-0.5">
@@ -923,9 +923,9 @@ function ActivityLibraryPickerModal({
                       )}
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-gray-900">{t.title}</p>
+                  <p className="text-sm font-medium text-foreground">{t.title}</p>
                   {t.description && (
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{t.description}</p>
+                    <p className="text-xs text-muted mt-1 line-clamp-2">{t.description}</p>
                   )}
                 </button>
               ))}
@@ -1066,28 +1066,28 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
       {/* Summary Stats */}
       {summary && (
         <div className="grid grid-cols-4 gap-3">
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <p className="text-lg font-bold text-gray-900">{summary.capturedThisWeek}</p>
-            <p className="text-xs text-gray-500">This Week</p>
+          <div className="bg-surface/50 rounded-lg p-3 text-center">
+            <p className="text-lg font-bold text-foreground">{summary.capturedThisWeek}</p>
+            <p className="text-xs text-muted">This Week</p>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <p className="text-lg font-bold text-gray-900">{summary.capturedThisMonth}</p>
-            <p className="text-xs text-gray-500">This Month</p>
+          <div className="bg-surface/50 rounded-lg p-3 text-center">
+            <p className="text-lg font-bold text-foreground">{summary.capturedThisMonth}</p>
+            <p className="text-xs text-muted">This Month</p>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
-            <p className="text-lg font-bold text-gray-900">{summary.actionedPercentage}%</p>
-            <p className="text-xs text-gray-500">Actioned</p>
+          <div className="bg-surface/50 rounded-lg p-3 text-center">
+            <p className="text-lg font-bold text-foreground">{summary.actionedPercentage}%</p>
+            <p className="text-xs text-muted">Actioned</p>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <div className="bg-surface/50 rounded-lg p-3 text-center">
             <p className="text-lg font-bold text-amber-600">{summary.totalUnactioned}</p>
-            <p className="text-xs text-gray-500">Pending</p>
+            <p className="text-xs text-muted">Pending</p>
           </div>
         </div>
       )}
 
       {/* Add Interest */}
       <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-500">Unactioned interests awaiting programme linkage</p>
+        <p className="text-xs text-muted">Unactioned interests awaiting programme linkage</p>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
@@ -1109,7 +1109,7 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
               source: newSource,
             });
           }}
-          className="bg-gray-50 rounded-lg p-3 space-y-3"
+          className="bg-surface/50 rounded-lg p-3 space-y-3"
         >
           <div className="grid grid-cols-2 gap-3">
             <input
@@ -1118,21 +1118,21 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
               value={newTopic}
               onChange={(e) => setNewTopic(e.target.value)}
               required
-              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
             <input
               type="text"
               placeholder="Child name (optional)"
               value={newChildName}
               onChange={(e) => setNewChildName(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <select
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               <option value="">Category (optional)</option>
               {INTEREST_CATEGORIES.map((c) => (
@@ -1142,7 +1142,7 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
             <select
               value={newSource}
               onChange={(e) => setNewSource(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              className="px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
             >
               {Object.entries(INTEREST_SOURCES_LABELS).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
@@ -1150,7 +1150,7 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
             </select>
           </div>
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setShowAddForm(false)} className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800">
+            <button type="button" onClick={() => setShowAddForm(false)} className="px-3 py-1.5 text-xs text-muted hover:text-foreground">
               Cancel
             </button>
             <button
@@ -1172,7 +1172,7 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
       ) : interests && interests.length > 0 ? (
         <div className="space-y-2">
           {interests.slice(0, 10).map((i) => (
-            <div key={i.id} className="p-2.5 bg-gray-50 rounded-lg">
+            <div key={i.id} className="p-2.5 bg-surface/50 rounded-lg">
               {editingId === i.id ? (
                 <form
                   onSubmit={(e) => {
@@ -1197,21 +1197,21 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
                       onChange={(e) => setEditTopic(e.target.value)}
                       required
                       placeholder="Interest topic *"
-                      className="px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                      className="px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                     />
                     <input
                       type="text"
                       value={editChildName}
                       onChange={(e) => setEditChildName(e.target.value)}
                       placeholder="Child name"
-                      className="px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                      className="px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <select
                       value={editCategory}
                       onChange={(e) => setEditCategory(e.target.value)}
-                      className="px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                      className="px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                     >
                       <option value="">Category</option>
                       {INTEREST_CATEGORIES.map((c) => (
@@ -1221,7 +1221,7 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
                     <select
                       value={editSource}
                       onChange={(e) => setEditSource(e.target.value)}
-                      className="px-2 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                      className="px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                     >
                       {Object.entries(INTEREST_SOURCES_LABELS).map(([k, v]) => (
                         <option key={k} value={k}>{v}</option>
@@ -1229,7 +1229,7 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
                     </select>
                   </div>
                   <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => setEditingId(null)} className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700">Cancel</button>
+                    <button type="button" onClick={() => setEditingId(null)} className="px-2 py-1 text-xs text-muted hover:text-foreground/80">Cancel</button>
                     <button type="submit" disabled={updateInterestMutation.isPending} className="px-3 py-1 text-xs font-medium text-white bg-brand rounded-md hover:bg-brand-hover disabled:opacity-50">
                       {updateInterestMutation.isPending ? "Saving..." : "Save"}
                     </button>
@@ -1238,14 +1238,14 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
               ) : (
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{i.interestTopic}</p>
+                    <p className="text-sm font-medium text-foreground">{i.interestTopic}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      {i.childName && <span className="text-xs text-gray-500">{i.childName}</span>}
+                      {i.childName && <span className="text-xs text-muted">{i.childName}</span>}
                       {i.interestCategory && (
-                        <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">{i.interestCategory}</span>
+                        <span className="text-xs bg-border text-muted px-1.5 py-0.5 rounded">{i.interestCategory}</span>
                       )}
-                      <span className="text-xs text-gray-400">{INTEREST_SOURCES_LABELS[i.source] || i.source}</span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-muted">{INTEREST_SOURCES_LABELS[i.source] || i.source}</span>
+                      <span className="text-xs text-muted">
                         {new Date(i.capturedDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                       </span>
                     </div>
@@ -1253,14 +1253,14 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
                   <div className="flex items-center gap-1.5 shrink-0 ml-3">
                     <button
                       onClick={() => startEditing(i)}
-                      className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+                      className="p-1 text-muted hover:text-muted rounded transition-colors"
                       title="Edit"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => setInterestDeleteId(i.id)}
-                      className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                      className="p-1 text-muted hover:text-red-500 rounded transition-colors"
                       title="Delete"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -1279,7 +1279,7 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
           ))}
         </div>
       ) : (
-        <p className="text-center text-xs text-gray-400 py-4">No unactioned interests. Capture children&apos;s voices to inform programming.</p>
+        <p className="text-center text-xs text-muted py-4">No unactioned interests. Capture children&apos;s voices to inform programming.</p>
       )}
 
       <ConfirmDialog

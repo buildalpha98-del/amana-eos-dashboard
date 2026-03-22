@@ -76,7 +76,7 @@ export function ServiceOverviewTab({
     <div className="space-y-6">
       {/* Status */}
       <div>
-        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+        <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
           Status
         </label>
         <div className="flex gap-1">
@@ -90,7 +90,7 @@ export function ServiceOverviewTab({
                 "flex-1 py-1.5 text-xs font-medium rounded-md border transition-colors",
                 service.status === s.key
                   ? s.color
-                  : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
+                  : "bg-card border-border text-muted hover:border-border"
               )}
             >
               {s.label}
@@ -102,7 +102,7 @@ export function ServiceOverviewTab({
       {/* Contact Details */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <label className="text-xs font-medium text-muted uppercase tracking-wider">
             Contact Details
           </label>
           {!editingDetails && (
@@ -122,7 +122,7 @@ export function ServiceOverviewTab({
                 });
                 setEditingDetails(true);
               }}
-              className="text-gray-400 hover:text-brand"
+              className="text-muted hover:text-brand"
             >
               <Edit3 className="w-3.5 h-3.5" />
             </button>
@@ -132,110 +132,110 @@ export function ServiceOverviewTab({
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">Service Name</label>
+                <label className="text-[10px] text-muted block mb-0.5">Service Name</label>
                 <input
                   autoFocus
                   type="text"
                   value={detailsForm.name}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, name: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Service name"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">Code</label>
+                <label className="text-[10px] text-muted block mb-0.5">Code</label>
                 <input
                   type="text"
                   value={detailsForm.code}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, code: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Service code"
                 />
               </div>
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-0.5">Address</label>
+              <label className="text-[10px] text-muted block mb-0.5">Address</label>
               <input
                 type="text"
                 value={detailsForm.address}
                 onChange={(e) => setDetailsForm((f) => ({ ...f, address: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                 placeholder="Street address"
               />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">Suburb</label>
+                <label className="text-[10px] text-muted block mb-0.5">Suburb</label>
                 <input
                   type="text"
                   value={detailsForm.suburb}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, suburb: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Suburb"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">State</label>
+                <label className="text-[10px] text-muted block mb-0.5">State</label>
                 <input
                   type="text"
                   value={detailsForm.state}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, state: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="State"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">Postcode</label>
+                <label className="text-[10px] text-muted block mb-0.5">Postcode</label>
                 <input
                   type="text"
                   value={detailsForm.postcode}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, postcode: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Postcode"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">Phone</label>
+                <label className="text-[10px] text-muted block mb-0.5">Phone</label>
                 <input
                   type="text"
                   value={detailsForm.phone}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, phone: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Phone number"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">Email</label>
+                <label className="text-[10px] text-muted block mb-0.5">Email</label>
                 <input
                   type="text"
                   value={detailsForm.email}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, email: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Email address"
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">Capacity</label>
+                <label className="text-[10px] text-muted block mb-0.5">Capacity</label>
                 <input
                   type="number"
                   min={0}
                   value={detailsForm.capacity}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, capacity: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="Max children"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-gray-400 block mb-0.5">Operating Days</label>
+                <label className="text-[10px] text-muted block mb-0.5">Operating Days</label>
                 <input
                   type="text"
                   value={detailsForm.operatingDays}
                   onChange={(e) => setDetailsForm((f) => ({ ...f, operatingDays: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
                   placeholder="e.g. Mon-Fri"
                 />
               </div>
@@ -267,7 +267,7 @@ export function ServiceOverviewTab({
               </button>
               <button
                 onClick={() => setEditingDetails(false)}
-                className="text-xs px-3 py-1 text-gray-500"
+                className="text-xs px-3 py-1 text-muted"
               >
                 Cancel
               </button>
@@ -276,16 +276,16 @@ export function ServiceOverviewTab({
         ) : (
           <>
             {service.name && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2 text-sm text-muted">
                 <span className="font-medium">{service.name}</span>
                 {service.code && (
-                  <span className="text-xs text-gray-400">({service.code})</span>
+                  <span className="text-xs text-muted">({service.code})</span>
                 )}
               </div>
             )}
             {service.address && (
-              <div className="flex items-start gap-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+              <div className="flex items-start gap-2 text-sm text-muted">
+                <MapPin className="w-4 h-4 text-muted mt-0.5" />
                 <span>
                   {service.address}
                   {service.suburb && `, ${service.suburb}`}
@@ -295,8 +295,8 @@ export function ServiceOverviewTab({
               </div>
             )}
             {service.phone && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Phone className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <Phone className="w-4 h-4 text-muted" />
                 <a
                   href={`tel:${service.phone}`}
                   className="text-brand hover:underline"
@@ -306,8 +306,8 @@ export function ServiceOverviewTab({
               </div>
             )}
             {service.email && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Mail className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <Mail className="w-4 h-4 text-muted" />
                 <a
                   href={`mailto:${service.email}`}
                   className="text-brand hover:underline"
@@ -317,14 +317,14 @@ export function ServiceOverviewTab({
               </div>
             )}
             {service.capacity && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Users className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <Users className="w-4 h-4 text-muted" />
                 <span>Capacity: {service.capacity} children</span>
               </div>
             )}
             {service.operatingDays && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar className="w-4 h-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <Calendar className="w-4 h-4 text-muted" />
                 <span>{service.operatingDays}</span>
               </div>
             )}
@@ -334,7 +334,7 @@ export function ServiceOverviewTab({
 
       {/* Centre Manager */}
       <div>
-        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+        <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-1">
           Centre Manager
         </label>
         <select
@@ -345,7 +345,7 @@ export function ServiceOverviewTab({
               managerId: e.target.value || null,
             })
           }
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+          className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">Unassigned</option>
           {users.map((u) => (
@@ -359,7 +359,7 @@ export function ServiceOverviewTab({
       {/* Notes */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <label className="text-xs font-medium text-muted uppercase tracking-wider">
             Notes
           </label>
           {!editing && (
@@ -368,7 +368,7 @@ export function ServiceOverviewTab({
                 setNotes(service.notes || "");
                 setEditing(true);
               }}
-              className="text-gray-400 hover:text-brand"
+              className="text-muted hover:text-brand"
             >
               <Edit3 className="w-3.5 h-3.5" />
             </button>
@@ -381,7 +381,7 @@ export function ServiceOverviewTab({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
             />
             <div className="flex gap-2">
               <button
@@ -395,14 +395,14 @@ export function ServiceOverviewTab({
               </button>
               <button
                 onClick={() => setEditing(false)}
-                className="text-xs px-3 py-1 text-gray-500"
+                className="text-xs px-3 py-1 text-muted"
               >
                 Cancel
               </button>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted">
             {service.notes || "No notes yet."}
           </p>
         )}
@@ -410,13 +410,13 @@ export function ServiceOverviewTab({
 
       {/* Daily Rates */}
       <div>
-        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+        <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
           <DollarSign className="w-3.5 h-3.5 inline mr-1" />
           Daily Rates (per child per day)
         </label>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <label className="text-[10px] text-gray-400 block mb-0.5">BSC</label>
+            <label className="text-[10px] text-muted block mb-0.5">BSC</label>
             <input
               type="number"
               min={0}
@@ -429,12 +429,12 @@ export function ServiceOverviewTab({
                   bscDailyRate: isNaN(val) ? null : val,
                 });
               }}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-full px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               placeholder="$0"
             />
           </div>
           <div>
-            <label className="text-[10px] text-gray-400 block mb-0.5">ASC</label>
+            <label className="text-[10px] text-muted block mb-0.5">ASC</label>
             <input
               type="number"
               min={0}
@@ -447,12 +447,12 @@ export function ServiceOverviewTab({
                   ascDailyRate: isNaN(val) ? null : val,
                 });
               }}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-full px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               placeholder="$0"
             />
           </div>
           <div>
-            <label className="text-[10px] text-gray-400 block mb-0.5">VC</label>
+            <label className="text-[10px] text-muted block mb-0.5">VC</label>
             <input
               type="number"
               min={0}
@@ -465,7 +465,7 @@ export function ServiceOverviewTab({
                   vcDailyRate: isNaN(val) ? null : val,
                 });
               }}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-full px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               placeholder="$0"
             />
           </div>
@@ -474,13 +474,13 @@ export function ServiceOverviewTab({
 
       {/* Casual Rates */}
       <div>
-        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+        <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
           <DollarSign className="w-3.5 h-3.5 inline mr-1" />
           Casual Rates (per child per session)
         </label>
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[10px] text-gray-400 block mb-0.5">BSC Casual</label>
+            <label className="text-[10px] text-muted block mb-0.5">BSC Casual</label>
             <input
               type="number"
               min={0}
@@ -493,12 +493,12 @@ export function ServiceOverviewTab({
                   bscCasualRate: isNaN(val) ? 0 : val,
                 });
               }}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-full px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               placeholder="$0"
             />
           </div>
           <div>
-            <label className="text-[10px] text-gray-400 block mb-0.5">ASC Casual</label>
+            <label className="text-[10px] text-muted block mb-0.5">ASC Casual</label>
             <input
               type="number"
               min={0}
@@ -511,7 +511,7 @@ export function ServiceOverviewTab({
                   ascCasualRate: isNaN(val) ? 0 : val,
                 });
               }}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-full px-2 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               placeholder="$0"
             />
           </div>
@@ -523,17 +523,17 @@ export function ServiceOverviewTab({
 
       {/* Summary Stats */}
       <div>
-        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+        <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
           Summary
         </label>
         <div className="grid grid-cols-2 gap-2">
           <div className="flex items-center gap-2 px-3 py-2.5 bg-brand/5 rounded-lg">
             <Target className="w-4 h-4 text-brand" />
             <div>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-semibold text-foreground">
                 {service._count?.rocks ?? 0}
               </p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+              <p className="text-[10px] text-muted uppercase tracking-wider">
                 Active Rocks
               </p>
             </div>
@@ -541,10 +541,10 @@ export function ServiceOverviewTab({
           <div className="flex items-center gap-2 px-3 py-2.5 bg-brand/5 rounded-lg">
             <AlertCircle className="w-4 h-4 text-brand" />
             <div>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-semibold text-foreground">
                 {service._count?.issues ?? 0}
               </p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+              <p className="text-[10px] text-muted uppercase tracking-wider">
                 Open Issues
               </p>
             </div>
@@ -552,10 +552,10 @@ export function ServiceOverviewTab({
           <div className="flex items-center gap-2 px-3 py-2.5 bg-brand/5 rounded-lg">
             <CheckSquare className="w-4 h-4 text-brand" />
             <div>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-semibold text-foreground">
                 {service._count?.todos ?? 0}
               </p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+              <p className="text-[10px] text-muted uppercase tracking-wider">
                 Pending Todos
               </p>
             </div>
@@ -563,10 +563,10 @@ export function ServiceOverviewTab({
           <div className="flex items-center gap-2 px-3 py-2.5 bg-brand/5 rounded-lg">
             <FolderKanban className="w-4 h-4 text-brand" />
             <div>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-lg font-semibold text-foreground">
                 {service._count?.projects ?? 0}
               </p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+              <p className="text-[10px] text-muted uppercase tracking-wider">
                 Active Projects
               </p>
             </div>
@@ -577,7 +577,7 @@ export function ServiceOverviewTab({
       {/* Active Projects */}
       {service.projects && service.projects.length > 0 && (
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+          <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
             <FolderKanban className="w-3.5 h-3.5 inline mr-1" />
             Active Projects ({service.projects.length})
           </label>
@@ -613,7 +613,7 @@ export function ServiceOverviewTab({
                   >
                     {project.status.replace(/_/g, " ")}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-muted">
                     {project.owner?.name || "Unassigned"}
                   </span>
                 </button>
@@ -638,7 +638,7 @@ export function ServiceOverviewTab({
           </p>
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-card border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Delete Centre
@@ -673,12 +673,12 @@ function StaffingForecast({ serviceId }: { serviceId: string }) {
   if (isLoading) {
     return (
       <div>
-        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+        <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
           <Users className="w-3.5 h-3.5 inline mr-1" />
           Staffing Forecast
         </label>
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="w-4 h-4 text-gray-300 animate-spin" />
+          <Loader2 className="w-4 h-4 text-muted/50 animate-spin" />
         </div>
       </div>
     );
@@ -691,7 +691,7 @@ function StaffingForecast({ serviceId }: { serviceId: string }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <label className="text-xs font-medium text-muted uppercase tracking-wider">
           <Users className="w-3.5 h-3.5 inline mr-1" />
           Staffing — This Week
         </label>
@@ -711,7 +711,7 @@ function StaffingForecast({ serviceId }: { serviceId: string }) {
 
           return (
             <div key={day.date} className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-400 w-7 text-right font-medium">
+              <span className="text-[10px] text-muted w-7 text-right font-medium">
                 {label}
               </span>
               <div className="flex-1 flex gap-1">
@@ -852,12 +852,12 @@ function SchoolPartnershipSection({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Handshake className="w-4 h-4 text-brand" />
-          <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <label className="text-xs font-medium text-muted uppercase tracking-wider">
             School Partnership
           </label>
         </div>
         {!editing ? (
-          <button onClick={startEdit} className="text-gray-400 hover:text-brand">
+          <button onClick={startEdit} className="text-muted hover:text-brand">
             <Edit3 className="w-3.5 h-3.5" />
           </button>
         ) : (
@@ -865,7 +865,7 @@ function SchoolPartnershipSection({
             <button onClick={handleSave} className="text-emerald-600 hover:text-emerald-700">
               <Save className="w-3.5 h-3.5" />
             </button>
-            <button onClick={() => setEditing(false)} className="text-gray-400 hover:text-red-500">
+            <button onClick={() => setEditing(false)} className="text-muted hover:text-red-500">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -873,64 +873,64 @@ function SchoolPartnershipSection({
       </div>
 
       {editing ? (
-        <div className="space-y-3 p-4 border border-gray-200 rounded-xl bg-gray-50/50">
+        <div className="space-y-3 p-4 border border-border rounded-xl bg-surface/30">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] text-gray-400 block mb-0.5">Contract Start</label>
-              <input type="date" value={form.contractStartDate} onChange={(e) => setForm((f) => ({ ...f, contractStartDate: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
+              <label className="text-[10px] text-muted block mb-0.5">Contract Start</label>
+              <input type="date" value={form.contractStartDate} onChange={(e) => setForm((f) => ({ ...f, contractStartDate: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-0.5">Contract End</label>
-              <input type="date" value={form.contractEndDate} onChange={(e) => setForm((f) => ({ ...f, contractEndDate: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
+              <label className="text-[10px] text-muted block mb-0.5">Contract End</label>
+              <input type="date" value={form.contractEndDate} onChange={(e) => setForm((f) => ({ ...f, contractEndDate: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] text-gray-400 block mb-0.5">Licence Fee (Annual)</label>
-              <input type="number" step="0.01" value={form.licenceFeeAnnual} onChange={(e) => setForm((f) => ({ ...f, licenceFeeAnnual: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" placeholder="$0.00" />
+              <label className="text-[10px] text-muted block mb-0.5">Licence Fee (Annual)</label>
+              <input type="number" step="0.01" value={form.licenceFeeAnnual} onChange={(e) => setForm((f) => ({ ...f, licenceFeeAnnual: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" placeholder="$0.00" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-0.5">Last Principal Visit</label>
-              <input type="date" value={form.lastPrincipalVisit} onChange={(e) => setForm((f) => ({ ...f, lastPrincipalVisit: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] text-gray-400 block mb-0.5">Principal Name</label>
-              <input type="text" value={form.schoolPrincipalName} onChange={(e) => setForm((f) => ({ ...f, schoolPrincipalName: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
-            </div>
-            <div>
-              <label className="text-[10px] text-gray-400 block mb-0.5">Principal Email</label>
-              <input type="email" value={form.schoolPrincipalEmail} onChange={(e) => setForm((f) => ({ ...f, schoolPrincipalEmail: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
+              <label className="text-[10px] text-muted block mb-0.5">Last Principal Visit</label>
+              <input type="date" value={form.lastPrincipalVisit} onChange={(e) => setForm((f) => ({ ...f, lastPrincipalVisit: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] text-gray-400 block mb-0.5">Business Manager</label>
-              <input type="text" value={form.schoolBusinessManagerName} onChange={(e) => setForm((f) => ({ ...f, schoolBusinessManagerName: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
+              <label className="text-[10px] text-muted block mb-0.5">Principal Name</label>
+              <input type="text" value={form.schoolPrincipalName} onChange={(e) => setForm((f) => ({ ...f, schoolPrincipalName: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
             <div>
-              <label className="text-[10px] text-gray-400 block mb-0.5">Business Manager Email</label>
-              <input type="email" value={form.schoolBusinessManagerEmail} onChange={(e) => setForm((f) => ({ ...f, schoolBusinessManagerEmail: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
+              <label className="text-[10px] text-muted block mb-0.5">Principal Email</label>
+              <input type="email" value={form.schoolPrincipalEmail} onChange={(e) => setForm((f) => ({ ...f, schoolPrincipalEmail: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] text-muted block mb-0.5">Business Manager</label>
+              <input type="text" value={form.schoolBusinessManagerName} onChange={(e) => setForm((f) => ({ ...f, schoolBusinessManagerName: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted block mb-0.5">Business Manager Email</label>
+              <input type="email" value={form.schoolBusinessManagerEmail} onChange={(e) => setForm((f) => ({ ...f, schoolBusinessManagerEmail: e.target.value }))} className="w-full px-2 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand" />
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" checked={form.buildAlphaKidsActive} onChange={(e) => setForm((f) => ({ ...f, buildAlphaKidsActive: e.target.checked }))} className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand" />
-            <span className="text-gray-700">Build Alpha Kids Active</span>
+            <input type="checkbox" checked={form.buildAlphaKidsActive} onChange={(e) => setForm((f) => ({ ...f, buildAlphaKidsActive: e.target.checked }))} className="w-4 h-4 rounded border-border text-brand focus:ring-brand" />
+            <span className="text-foreground/80">Build Alpha Kids Active</span>
           </label>
         </div>
       ) : (
-        <div className="p-4 border border-gray-200 rounded-xl bg-white space-y-3">
+        <div className="p-4 border border-border rounded-xl bg-card space-y-3">
           {/* Contract row */}
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <div>
-              <span className="text-[10px] text-gray-400 block">Contract Start</span>
-              <span className="text-gray-900">{service.contractStartDate ? new Date(service.contractStartDate).toLocaleDateString("en-AU") : "—"}</span>
+              <span className="text-[10px] text-muted block">Contract Start</span>
+              <span className="text-foreground">{service.contractStartDate ? new Date(service.contractStartDate).toLocaleDateString("en-AU") : "—"}</span>
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 block">Contract End</span>
+              <span className="text-[10px] text-muted block">Contract End</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-gray-900">{service.contractEndDate ? new Date(service.contractEndDate).toLocaleDateString("en-AU") : "—"}</span>
+                <span className="text-foreground">{service.contractEndDate ? new Date(service.contractEndDate).toLocaleDateString("en-AU") : "—"}</span>
                 {daysUntilRenewal !== null && (
                   <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", daysUntilRenewal <= 0 ? "bg-red-100 text-red-700" : daysUntilRenewal <= 180 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700")}>
                     {daysUntilRenewal <= 0 ? "Expired" : `${daysUntilRenewal}d`}
@@ -941,13 +941,13 @@ function SchoolPartnershipSection({
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <div>
-              <span className="text-[10px] text-gray-400 block">Licence Fee</span>
-              <span className="text-gray-900">{service.licenceFeeAnnual ? `$${Number(service.licenceFeeAnnual).toLocaleString()}/yr` : "—"}</span>
+              <span className="text-[10px] text-muted block">Licence Fee</span>
+              <span className="text-foreground">{service.licenceFeeAnnual ? `$${Number(service.licenceFeeAnnual).toLocaleString()}/yr` : "—"}</span>
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 block">Last Principal Visit</span>
+              <span className="text-[10px] text-muted block">Last Principal Visit</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-gray-900">{service.lastPrincipalVisit ? new Date(service.lastPrincipalVisit).toLocaleDateString("en-AU") : "—"}</span>
+                <span className="text-foreground">{service.lastPrincipalVisit ? new Date(service.lastPrincipalVisit).toLocaleDateString("en-AU") : "—"}</span>
                 {daysSinceVisit !== null && (
                   <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", daysSinceVisit > 90 ? "bg-red-100 text-red-700" : daysSinceVisit > 60 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700")}>
                     {daysSinceVisit}d ago
@@ -958,19 +958,19 @@ function SchoolPartnershipSection({
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
             <div>
-              <span className="text-[10px] text-gray-400 block">Principal</span>
-              <span className="text-gray-900">{service.schoolPrincipalName || "—"}</span>
-              {service.schoolPrincipalEmail && <span className="text-[10px] text-gray-400 block">{service.schoolPrincipalEmail}</span>}
+              <span className="text-[10px] text-muted block">Principal</span>
+              <span className="text-foreground">{service.schoolPrincipalName || "—"}</span>
+              {service.schoolPrincipalEmail && <span className="text-[10px] text-muted block">{service.schoolPrincipalEmail}</span>}
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 block">Business Manager</span>
-              <span className="text-gray-900">{service.schoolBusinessManagerName || "—"}</span>
-              {service.schoolBusinessManagerEmail && <span className="text-[10px] text-gray-400 block">{service.schoolBusinessManagerEmail}</span>}
+              <span className="text-[10px] text-muted block">Business Manager</span>
+              <span className="text-foreground">{service.schoolBusinessManagerName || "—"}</span>
+              {service.schoolBusinessManagerEmail && <span className="text-[10px] text-muted block">{service.schoolBusinessManagerEmail}</span>}
             </div>
           </div>
           <div className="flex items-center gap-2 text-sm">
-            <span className={cn("w-2 h-2 rounded-full", service.buildAlphaKidsActive ? "bg-emerald-500" : "bg-gray-300")} />
-            <span className="text-gray-600">Build Alpha Kids: {service.buildAlphaKidsActive ? "Active" : "Inactive"}</span>
+            <span className={cn("w-2 h-2 rounded-full", service.buildAlphaKidsActive ? "bg-emerald-500" : "bg-border")} />
+            <span className="text-muted">Build Alpha Kids: {service.buildAlphaKidsActive ? "Active" : "Inactive"}</span>
           </div>
         </div>
       )}
@@ -1007,14 +1007,14 @@ function ParentFeedbackSection({ serviceId }: { serviceId: string }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+        <label className="text-xs font-medium text-muted uppercase tracking-wider flex items-center gap-1">
           <Smile className="w-3.5 h-3.5" />
           Parent Feedback
         </label>
         <div className="flex items-center gap-1">
           <button
             onClick={copyLink}
-            className="text-[10px] text-gray-500 hover:text-gray-700 flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-gray-200 hover:border-gray-300"
+            className="text-[10px] text-muted hover:text-foreground/80 flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border hover:border-border"
             title="Copy survey link"
           >
             {copied ? "Copied!" : <><Copy className="w-3 h-3" /> Survey Link</>}
@@ -1023,7 +1023,7 @@ function ParentFeedbackSection({ serviceId }: { serviceId: string }) {
             href={surveyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[10px] text-gray-500 hover:text-gray-700 flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-gray-200 hover:border-gray-300"
+            className="text-[10px] text-muted hover:text-foreground/80 flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-border hover:border-border"
           >
             <ExternalLink className="w-3 h-3" /> Preview
           </a>
@@ -1032,40 +1032,40 @@ function ParentFeedbackSection({ serviceId }: { serviceId: string }) {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-4 h-4 text-gray-300 animate-spin" />
+          <Loader2 className="w-4 h-4 text-muted/50 animate-spin" />
         </div>
       ) : !data || data.totalResponses === 0 ? (
-        <div className="bg-gray-50 rounded-xl p-4 text-center">
-          <p className="text-sm text-gray-500">No feedback received yet.</p>
-          <p className="text-xs text-gray-400 mt-1">
+        <div className="bg-surface/50 rounded-xl p-4 text-center">
+          <p className="text-sm text-muted">No feedback received yet.</p>
+          <p className="text-xs text-muted mt-1">
             Share the survey link with parents via WhatsApp or email.
           </p>
         </div>
       ) : (
-        <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+        <div className="bg-surface/50 rounded-xl p-4 space-y-3">
           {/* Summary row */}
           <div className="flex items-center gap-4">
             <div className="text-center">
               <span className="text-3xl">
                 {SCORE_EMOJI[Math.round(data.overallAverage)] || "😐"}
               </span>
-              <p className="text-lg font-bold text-gray-900">
+              <p className="text-lg font-bold text-foreground">
                 {data.overallAverage}
-                <span className="text-xs font-normal text-gray-400">/5</span>
+                <span className="text-xs font-normal text-muted">/5</span>
               </p>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-foreground/80">
                 {data.totalResponses} responses
               </p>
-              <p className="text-xs text-gray-500">Last 8 weeks</p>
+              <p className="text-xs text-muted">Last 8 weeks</p>
             </div>
           </div>
 
           {/* Weekly trend (sparkline using bars) */}
           {data.weeklyData?.length > 1 && (
             <div>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+              <p className="text-[10px] text-muted uppercase tracking-wider mb-1">
                 Weekly Trend
               </p>
               <div className="flex items-end gap-1 h-8">

@@ -311,7 +311,7 @@ export function RockDetailPanel({
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
         <SheetContent>
           <SheetTitle className="sr-only">Rock Details</SheetTitle>
-          <p className="text-gray-500 text-center py-12">Rock not found</p>
+          <p className="text-muted text-center py-12">Rock not found</p>
         </SheetContent>
       </Sheet>
     );
@@ -356,7 +356,7 @@ export function RockDetailPanel({
       <SheetContent>
         <SheetTitle className="sr-only">Rock Details</SheetTitle>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-border">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             {editing ? (
@@ -364,11 +364,11 @@ export function RockDetailPanel({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full text-lg font-semibold text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand"
+                className="w-full text-lg font-semibold text-foreground border border-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand"
               />
             ) : (
               <h2
-                className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-brand"
+                className="text-lg font-semibold text-foreground cursor-pointer hover:text-brand"
                 onClick={() => {
                   setTitle(rock.title);
                   setDescription(rock.description || "");
@@ -379,10 +379,10 @@ export function RockDetailPanel({
               </h2>
             )}
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-gray-400">{rock.quarter}</span>
+              <span className="text-xs text-muted">{rock.quarter}</span>
               {rock.oneYearGoal && (
                 <>
-                  <span className="text-gray-300">·</span>
+                  <span className="text-border">·</span>
                   <span className="text-xs text-brand">
                     {rock.oneYearGoal.title}
                   </span>
@@ -392,7 +392,7 @@ export function RockDetailPanel({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-surface"
           >
             <X className="w-5 h-5" />
           </button>
@@ -410,7 +410,7 @@ export function RockDetailPanel({
             </button>
             <button
               onClick={() => setEditing(false)}
-              className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+              className="px-3 py-1.5 text-sm text-muted hover:bg-surface rounded-lg"
             >
               Cancel
             </button>
@@ -423,7 +423,7 @@ export function RockDetailPanel({
         {/* Status + Priority Row */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
               Status
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -435,7 +435,7 @@ export function RockDetailPanel({
                     "px-2.5 py-1 text-xs font-medium rounded-md border transition-colors",
                     rock.status === opt.value
                       ? "text-white border-transparent"
-                      : "text-gray-600 border-gray-200 hover:border-gray-300"
+                      : "text-muted border-border hover:border-border"
                   )}
                   style={
                     rock.status === opt.value
@@ -450,7 +450,7 @@ export function RockDetailPanel({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
               Priority
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -464,7 +464,7 @@ export function RockDetailPanel({
                     "px-2.5 py-1 text-xs font-medium rounded-md border transition-colors",
                     rock.priority === opt.value
                       ? "text-white border-transparent"
-                      : "text-gray-600 border-gray-200 hover:border-gray-300"
+                      : "text-muted border-border hover:border-border"
                   )}
                   style={
                     rock.priority === opt.value
@@ -481,7 +481,7 @@ export function RockDetailPanel({
 
         {/* Progress Slider */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+          <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
             Progress — {rock.percentComplete}%
           </label>
           <input
@@ -491,13 +491,13 @@ export function RockDetailPanel({
             step={5}
             value={rock.percentComplete}
             onChange={(e) => handleProgressChange(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-brand"
+            className="w-full h-2 bg-surface rounded-full appearance-none cursor-pointer accent-brand"
           />
         </div>
 
         {/* Owner */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+          <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
             <User className="w-3.5 h-3.5 inline mr-1" />
             Owner
           </label>
@@ -506,7 +506,7 @@ export function RockDetailPanel({
             onChange={(e) =>
               updateRock.mutate({ id: rock.id, ownerId: e.target.value })
             }
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+            className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
           >
             {users?.map((u) => (
               <option key={u.id} value={u.id}>
@@ -518,7 +518,7 @@ export function RockDetailPanel({
 
         {/* Rock Type */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+          <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
             Rock Type
           </label>
           <div className="flex gap-2">
@@ -528,7 +528,7 @@ export function RockDetailPanel({
                 "flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors",
                 rock.rockType === "company"
                   ? "bg-brand text-white border-brand"
-                  : "text-gray-600 border-gray-200 hover:border-gray-300"
+                  : "text-muted border-border hover:border-border"
               )}
             >
               Company Rock
@@ -539,7 +539,7 @@ export function RockDetailPanel({
                 "flex-1 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors",
                 rock.rockType === "personal"
                   ? "bg-brand text-white border-brand"
-                  : "text-gray-600 border-gray-200 hover:border-gray-300"
+                  : "text-muted border-border hover:border-border"
               )}
             >
               Personal Rock
@@ -549,7 +549,7 @@ export function RockDetailPanel({
 
         {/* Description */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+          <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
             Description
           </label>
           {editing ? (
@@ -557,12 +557,12 @@ export function RockDetailPanel({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand resize-none"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand resize-none"
               placeholder="Describe the Rock in detail..."
             />
           ) : (
             <p
-              className="text-sm text-gray-600 whitespace-pre-wrap cursor-pointer hover:bg-gray-50 rounded-lg p-2 -mx-2"
+              className="text-sm text-muted whitespace-pre-wrap cursor-pointer hover:bg-surface rounded-lg p-2 -mx-2"
               onClick={() => {
                 setTitle(rock.title);
                 setDescription(rock.description || "");
@@ -570,7 +570,7 @@ export function RockDetailPanel({
               }}
             >
               {rock.description || (
-                <span className="text-gray-400 italic">
+                <span className="text-muted italic">
                   Click to add a description...
                 </span>
               )}
@@ -581,7 +581,7 @@ export function RockDetailPanel({
         {/* Milestones */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider">
               <Flag className="w-3.5 h-3.5 inline mr-1" />
               Milestones ({rock.milestones?.length || 0})
             </label>
@@ -595,21 +595,21 @@ export function RockDetailPanel({
           </div>
 
           {showAddMilestone && (
-            <div className="flex items-end gap-2 mb-3 p-2 bg-gray-50 rounded-lg">
+            <div className="flex items-end gap-2 mb-3 p-2 bg-surface/50 rounded-lg">
               <div className="flex-1">
                 <input
                   type="text"
                   value={newMilestoneTitle}
                   onChange={(e) => setNewMilestoneTitle(e.target.value)}
                   placeholder="Milestone title..."
-                  className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
               <input
                 type="date"
                 value={newMilestoneDue}
                 onChange={(e) => setNewMilestoneDue(e.target.value)}
-                className="px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+                className="px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               />
               <button
                 onClick={() => {
@@ -635,7 +635,7 @@ export function RockDetailPanel({
                 }) => (
                   <div
                     key={m.id}
-                    className="flex items-center gap-3 py-1.5 px-2 rounded-md hover:bg-gray-50 group"
+                    className="flex items-center gap-3 py-1.5 px-2 rounded-md hover:bg-surface group"
                   >
                     <button
                       onClick={() => toggleMilestone.mutate({ id: m.id, completed: !m.completed })}
@@ -643,7 +643,7 @@ export function RockDetailPanel({
                         "w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
                         m.completed
                           ? "border-brand bg-brand"
-                          : "border-gray-300 hover:border-brand"
+                          : "border-border hover:border-brand"
                       )}
                     >
                       {m.completed && (
@@ -655,18 +655,18 @@ export function RockDetailPanel({
                     <span
                       className={cn(
                         "text-sm flex-1",
-                        m.completed ? "text-gray-400 line-through" : "text-gray-700"
+                        m.completed ? "text-muted line-through" : "text-foreground/80"
                       )}
                     >
                       {m.title}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted">
                       {formatDateAU(m.dueDate)}
                     </span>
                     <button
                       onClick={() => deleteMilestone.mutate(m.id)}
                       disabled={deleteMilestone.isPending}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all disabled:opacity-50"
+                      className="md:opacity-0 md:group-hover:opacity-100 opacity-60 p-0.5 text-muted/50 hover:text-red-500 transition-all disabled:opacity-50"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -676,7 +676,7 @@ export function RockDetailPanel({
             </div>
           ) : (
             !showAddMilestone && (
-              <p className="text-sm text-gray-400 italic">
+              <p className="text-sm text-muted italic">
                 No milestones yet — add milestones to track progress
               </p>
             )
@@ -686,7 +686,7 @@ export function RockDetailPanel({
         {/* ── Linked To-Dos ── */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider">
               <CheckSquare className="w-3.5 h-3.5 inline mr-1" />
               Linked To-Dos ({rock.todos?.length || 0})
             </label>
@@ -705,19 +705,19 @@ export function RockDetailPanel({
           </div>
 
           {showAddTodo && (
-            <div className="space-y-2 mb-3 p-3 bg-gray-50 rounded-lg">
+            <div className="space-y-2 mb-3 p-3 bg-surface/50 rounded-lg">
               <input
                 type="text"
                 value={newTodoTitle}
                 onChange={(e) => setNewTodoTitle(e.target.value)}
                 placeholder="To-do title..."
-                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+                className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               />
               <div className="flex gap-2">
                 <select
                   value={newTodoAssignee}
                   onChange={(e) => setNewTodoAssignee(e.target.value)}
-                  className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="flex-1 px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                 >
                   <option value="">Assignee...</option>
                   {users?.map((u) => (
@@ -730,7 +730,7 @@ export function RockDetailPanel({
                   type="date"
                   value={newTodoDue || getDefaultDueDate()}
                   onChange={(e) => setNewTodoDue(e.target.value)}
-                  className="px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                 />
               </div>
               <div className="flex gap-2">
@@ -756,7 +756,7 @@ export function RockDetailPanel({
                 </button>
                 <button
                   onClick={() => setShowAddTodo(false)}
-                  className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-md"
+                  className="px-3 py-1.5 text-sm text-muted hover:bg-surface rounded-md"
                 >
                   Cancel
                 </button>
@@ -775,7 +775,7 @@ export function RockDetailPanel({
                 }) => (
                   <div
                     key={todo.id}
-                    className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-gray-50 group"
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-surface group"
                   >
                     <button
                       onClick={() =>
@@ -788,7 +788,7 @@ export function RockDetailPanel({
                         "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors",
                         todo.status === "complete"
                           ? "border-brand bg-brand"
-                          : "border-gray-300 hover:border-brand"
+                          : "border-border hover:border-brand"
                       )}
                     >
                       {todo.status === "complete" && (
@@ -809,20 +809,20 @@ export function RockDetailPanel({
                       className={cn(
                         "text-sm flex-1",
                         todo.status === "complete"
-                          ? "text-gray-400 line-through"
-                          : "text-gray-700"
+                          ? "text-muted line-through"
+                          : "text-foreground/80"
                       )}
                     >
                       {todo.title}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted">
                       {todo.assignee?.name ?? "Unassigned"}
                     </span>
                     <button
                       onClick={() => unlinkTodo.mutate(todo.id)}
                       disabled={unlinkTodo.isPending}
                       title="Unlink from rock"
-                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all disabled:opacity-50"
+                      className="md:opacity-0 md:group-hover:opacity-100 opacity-60 p-0.5 text-muted/50 hover:text-red-500 transition-all disabled:opacity-50"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -832,7 +832,7 @@ export function RockDetailPanel({
             </div>
           ) : (
             !showAddTodo && (
-              <p className="text-sm text-gray-400 italic">
+              <p className="text-sm text-muted italic">
                 No linked To-Dos yet — add to-dos to break this rock down
               </p>
             )
@@ -842,7 +842,7 @@ export function RockDetailPanel({
         {/* ── Linked Issues ── */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <label className="block text-xs font-medium text-muted uppercase tracking-wider">
               <AlertCircle className="w-3.5 h-3.5 inline mr-1" />
               Linked Issues ({rock.issues?.length || 0})
             </label>
@@ -873,9 +873,9 @@ export function RockDetailPanel({
 
           {/* Link Existing Issue search */}
           {showLinkIssue && (
-            <div ref={issueSearchRef} className="mb-3 p-3 bg-gray-50 rounded-lg">
+            <div ref={issueSearchRef} className="mb-3 p-3 bg-surface/50 rounded-lg">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
                 <input
                   type="text"
                   value={issueSearchQuery}
@@ -885,14 +885,14 @@ export function RockDetailPanel({
                   }}
                   onFocus={() => setIssueDropdownOpen(true)}
                   placeholder="Search unlinked issues..."
-                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                   autoFocus
                 />
               </div>
               {issueDropdownOpen && (
-                <div className="mt-1 max-h-48 overflow-y-auto border border-gray-200 rounded-md bg-white shadow-sm">
+                <div className="mt-1 max-h-48 overflow-y-auto border border-border rounded-md bg-card shadow-sm">
                   {isLoadingUnlinked ? (
-                    <div className="px-3 py-2 text-sm text-gray-400 text-center">
+                    <div className="px-3 py-2 text-sm text-muted text-center">
                       Searching...
                     </div>
                   ) : unlinkedIssues && unlinkedIssues.filter(i => !issueSearchQuery || i.title.toLowerCase().includes(issueSearchQuery.toLowerCase())).length > 0 ? (
@@ -901,7 +901,7 @@ export function RockDetailPanel({
                         key={issue.id}
                         onClick={() => linkExistingIssue.mutate(issue.id)}
                         disabled={linkExistingIssue.isPending}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-brand/5 flex items-center gap-2 border-b border-gray-100 last:border-0 disabled:opacity-50"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-brand/5 flex items-center gap-2 border-b border-border/50 last:border-0 disabled:opacity-50"
                       >
                         <div
                           className={cn(
@@ -912,19 +912,19 @@ export function RockDetailPanel({
                               ? "bg-amber-500"
                               : issue.priority === "medium"
                               ? "bg-blue-500"
-                              : "bg-gray-400"
+                              : "bg-muted"
                           )}
                         />
-                        <span className="flex-1 truncate text-gray-700">
+                        <span className="flex-1 truncate text-foreground/80">
                           {issue.title}
                         </span>
-                        <span className="text-xs text-gray-400 flex-shrink-0">
+                        <span className="text-xs text-muted flex-shrink-0">
                           {issue.status.replace("_", " ")}
                         </span>
                       </button>
                     ))
                   ) : (
-                    <div className="px-3 py-2 text-sm text-gray-400 text-center">
+                    <div className="px-3 py-2 text-sm text-muted text-center">
                       {issueSearchQuery
                         ? "No unlinked issues match your search"
                         : "No unlinked open issues available"}
@@ -939,7 +939,7 @@ export function RockDetailPanel({
                     setIssueSearchQuery("");
                     setIssueDropdownOpen(false);
                   }}
-                  className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-md"
+                  className="px-3 py-1.5 text-sm text-muted hover:bg-surface rounded-md"
                 >
                   Cancel
                 </button>
@@ -948,19 +948,19 @@ export function RockDetailPanel({
           )}
 
           {showAddIssue && (
-            <div className="space-y-2 mb-3 p-3 bg-gray-50 rounded-lg">
+            <div className="space-y-2 mb-3 p-3 bg-surface/50 rounded-lg">
               <input
                 type="text"
                 value={newIssueTitle}
                 onChange={(e) => setNewIssueTitle(e.target.value)}
                 placeholder="Issue title..."
-                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+                className="w-full px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
               />
               <div className="flex gap-2">
                 <select
                   value={newIssuePriority}
                   onChange={(e) => setNewIssuePriority(e.target.value as typeof newIssuePriority)}
-                  className="flex-1 px-2.5 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
+                  className="flex-1 px-2.5 py-1.5 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-brand"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -984,7 +984,7 @@ export function RockDetailPanel({
                 </button>
                 <button
                   onClick={() => setShowAddIssue(false)}
-                  className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-md"
+                  className="px-3 py-1.5 text-sm text-muted hover:bg-surface rounded-md"
                 >
                   Cancel
                 </button>
@@ -1003,7 +1003,7 @@ export function RockDetailPanel({
                 }) => (
                   <div
                     key={issue.id}
-                    className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-gray-50 group"
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-surface group"
                   >
                     <div
                       className={cn(
@@ -1015,7 +1015,7 @@ export function RockDetailPanel({
                           : "bg-blue-500"
                       )}
                     />
-                    <span className="text-sm text-gray-700 flex-1">
+                    <span className="text-sm text-foreground/80 flex-1">
                       {issue.title}
                     </span>
                     <span
@@ -1023,7 +1023,7 @@ export function RockDetailPanel({
                         "text-xs px-1.5 py-0.5 rounded",
                         issue.status === "solved"
                           ? "bg-green-50 text-green-600"
-                          : "bg-gray-100 text-gray-500"
+                          : "bg-surface text-muted"
                       )}
                     >
                       {issue.status.replace("_", " ")}
@@ -1032,7 +1032,7 @@ export function RockDetailPanel({
                       onClick={() => unlinkIssue.mutate(issue.id)}
                       disabled={unlinkIssue.isPending}
                       title="Unlink from rock"
-                      className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-300 hover:text-red-500 transition-all disabled:opacity-50"
+                      className="md:opacity-0 md:group-hover:opacity-100 opacity-60 p-0.5 text-muted/50 hover:text-red-500 transition-all disabled:opacity-50"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -1042,7 +1042,7 @@ export function RockDetailPanel({
             </div>
           ) : (
             !showAddIssue && !showLinkIssue && (
-              <p className="text-sm text-gray-400 italic">
+              <p className="text-sm text-muted italic">
                 No linked Issues yet — report issues blocking this rock
               </p>
             )
@@ -1050,10 +1050,10 @@ export function RockDetailPanel({
         </div>
 
         {/* Delete */}
-        <div className="pt-4 border-t border-gray-200">
+        <div className="pt-4 border-t border-border">
           <button
             onClick={() => setConfirmDelete(true)}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-600 transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-red-600 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Delete Rock

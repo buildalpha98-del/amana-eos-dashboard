@@ -79,10 +79,10 @@ export function CreateRockModal({
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent size="lg">
         <div className="mb-6">
-          <DialogTitle className="text-lg font-semibold text-gray-900">
+          <DialogTitle className="text-lg font-semibold text-foreground">
             Create New Rock
           </DialogTitle>
-          <p className="text-sm text-gray-500 mt-0.5">{quarter.replace("-", " ")}</p>
+          <p className="text-sm text-muted mt-0.5">{quarter.replace("-", " ")}</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -103,7 +103,7 @@ export function CreateRockModal({
           </FormField>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-foreground/80 mb-1.5">
               Rock Type
             </label>
             <div className="flex gap-2">
@@ -113,7 +113,7 @@ export function CreateRockModal({
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   rockType === "company"
                     ? "bg-brand text-white border-brand"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "border-border text-foreground/80 hover:bg-surface"
                 }`}
               >
                 Company Rock
@@ -124,7 +124,7 @@ export function CreateRockModal({
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   rockType === "personal"
                     ? "bg-brand text-white border-brand"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "border-border text-foreground/80 hover:bg-surface"
                 }`}
               >
                 Personal Rock
@@ -160,7 +160,7 @@ export function CreateRockModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface transition-colors"
             >
               Cancel
             </button>

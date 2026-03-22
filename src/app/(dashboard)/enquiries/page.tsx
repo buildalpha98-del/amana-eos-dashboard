@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { UserPlus } from "lucide-react";
-import { ExportButton } from "@/components/ui/ExportButton";
+import { UserPlus, Download } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { ServiceFilter } from "@/components/marketing/ServiceFilter";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { EnquiryKanban } from "@/components/enquiries/EnquiryKanban";
 import { EnquiryStatsBar } from "@/components/enquiries/EnquiryStatsBar";
 import { NewEnquiryModal } from "@/components/enquiries/NewEnquiryModal";
@@ -45,22 +45,15 @@ export default function EnquiriesPage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-            Parent Enquiry Pipeline
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Track parent enquiries from first contact through to retention
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <ServiceFilter
-            value={selectedServiceId}
-            onChange={setSelectedServiceId}
-          />
-          <ExportButton
-            onClick={() =>
+      <PageHeader
+        title="Parent Enquiry Pipeline"
+        description="Track parent enquiries from first contact through to retention"
+        primaryAction={{ label: "New Enquiry", icon: UserPlus, onClick: () => setShowNewEnquiry(true) }}
+        secondaryActions={[
+          {
+            label: "Export CSV",
+            icon: Download,
+            onClick: () =>
               exportToCsv(
                 `amana-enquiries-${new Date().toISOString().slice(0, 10)}`,
                 allEnquiries,
@@ -75,32 +68,28 @@ export default function EnquiriesPage() {
                   { header: "Source", accessor: (e) => e.source ?? "" },
                   { header: "Created", accessor: (e) => e.createdAt ? new Date(e.createdAt).toLocaleDateString("en-AU") : "" },
                 ],
-              )
-            }
-            disabled={allEnquiries.length === 0}
-          />
-          <button
-            onClick={() => setShowNewEnquiry(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
-          >
-            <UserPlus className="h-4 w-4" />
-            New Enquiry
-          </button>
-        </div>
-      </div>
+              ),
+          },
+        ]}
+      >
+        <ServiceFilter
+          value={selectedServiceId}
+          onChange={setSelectedServiceId}
+        />
+      </PageHeader>
 
       {/* Stats bar */}
       <EnquiryStatsBar serviceId={selectedServiceId} refreshKey={refreshKey} />
 
       {/* Sentiment Summary */}
       {sentimentSummary && sentimentSummary.total > 0 && (
-        <div className="flex items-center gap-4 mb-4 px-4 py-2 bg-gray-50 rounded-lg text-sm">
-          <span className="text-gray-500 font-medium">This Week&apos;s Sentiment:</span>
+        <div className="flex items-center gap-4 mb-4 px-4 py-2 bg-surface/50 rounded-lg text-sm">
+          <span className="text-muted font-medium">This Week&apos;s Sentiment:</span>
           <span className="text-emerald-600">{sentimentSummary.positive} positive</span>
-          <span className="text-gray-500">{sentimentSummary.neutral} neutral</span>
+          <span className="text-muted">{sentimentSummary.neutral} neutral</span>
           <span className="text-red-500">{sentimentSummary.negative} negative</span>
           {sentimentSummary.avgScore !== null && (
-            <span className="text-gray-400 text-xs">
+            <span className="text-muted text-xs">
               (avg: {sentimentSummary.avgScore.toFixed(2)})
             </span>
           )}

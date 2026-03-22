@@ -137,7 +137,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                         isActive
                           ? "bg-white/[0.08] text-white border-l-2 border-[#FECE00] ml-0.5"
-                          : "text-white/60 hover:bg-white/[0.05] hover:text-white/90 border-l-2 border-transparent ml-0.5"
+                          : "text-white/70 hover:bg-white/[0.05] hover:text-white/90 border-l-2 border-transparent ml-0.5"
                       )}
                       title={item.tooltip ?? undefined}
                     >
@@ -230,7 +230,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                             "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                             isActive
                               ? "bg-white/[0.08] text-white border-l-2 border-[#FECE00] ml-0.5"
-                              : "text-white/60 hover:bg-white/[0.05] hover:text-white/90 border-l-2 border-transparent ml-0.5"
+                              : "text-white/70 hover:bg-white/[0.05] hover:text-white/90 border-l-2 border-transparent ml-0.5"
                           )}
                           title={
                             collapsed

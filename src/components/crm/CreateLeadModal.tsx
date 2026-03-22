@@ -69,17 +69,17 @@ export function CreateLeadModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">Create Lead</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
-            <X className="w-5 h-5 text-gray-500" />
+          <h2 className="text-lg font-bold text-foreground">Create Lead</h2>
+          <button onClick={onClose} className="p-1 hover:bg-surface rounded">
+            <X className="w-5 h-5 text-muted" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               School Name *
             </label>
             <input
@@ -94,7 +94,7 @@ export function CreateLeadModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Source
               </label>
               <select
@@ -107,7 +107,7 @@ export function CreateLeadModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Est. Capacity
               </label>
               <input
@@ -123,7 +123,7 @@ export function CreateLeadModal({
           {source === "tender" && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Tender Ref
                 </label>
                 <input
@@ -134,7 +134,7 @@ export function CreateLeadModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
                   Tender URL
                 </label>
                 <input
@@ -148,10 +148,10 @@ export function CreateLeadModal({
           )}
 
           <div className="border-t pt-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Contact</h3>
+            <h3 className="text-sm font-semibold text-foreground/80 mb-3">Contact</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Name</label>
+                <label className="block text-xs text-muted mb-1">Name</label>
                 <input
                   type="text"
                   value={contactName}
@@ -160,7 +160,7 @@ export function CreateLeadModal({
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Email</label>
+                <label className="block text-xs text-muted mb-1">Email</label>
                 <input
                   type="email"
                   value={contactEmail}
@@ -169,7 +169,7 @@ export function CreateLeadModal({
                 />
               </div>
               <div className="col-span-2">
-                <label className="block text-xs text-gray-600 mb-1">Phone</label>
+                <label className="block text-xs text-muted mb-1">Phone</label>
                 <input
                   type="tel"
                   value={contactPhone}
@@ -181,7 +181,7 @@ export function CreateLeadModal({
           </div>
 
           <div className="border-t pt-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Location</h3>
+            <h3 className="text-sm font-semibold text-foreground/80 mb-3">Location</h3>
             <div className="space-y-3">
               <input
                 type="text"
@@ -222,7 +222,7 @@ export function CreateLeadModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Notes
             </label>
             <textarea
@@ -237,7 +237,7 @@ export function CreateLeadModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+              className="px-4 py-2 text-sm text-muted hover:bg-surface rounded-lg"
             >
               Cancel
             </button>

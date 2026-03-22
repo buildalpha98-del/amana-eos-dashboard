@@ -37,7 +37,7 @@ const MONTHS = [
 
 function StatusBadge({ status }: { status: "draft" | "final" | "sent" }) {
   const config = {
-    draft: { label: "Draft", bg: "bg-gray-100", text: "text-gray-600" },
+    draft: { label: "Draft", bg: "bg-surface", text: "text-muted" },
     final: { label: "Final", bg: "bg-blue-50", text: "text-blue-700" },
     sent: { label: "Sent", bg: "bg-green-50", text: "text-green-700" },
   }[status];
@@ -53,9 +53,9 @@ function StatusBadge({ status }: { status: "draft" | "final" | "sent" }) {
 
 function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+    <div className="bg-card rounded-xl border border-border p-4 text-center">
       <p className="text-2xl font-bold tabular-nums" style={{ color }}>{value}</p>
-      <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">{label}</p>
+      <p className="text-xs text-muted mt-1 uppercase tracking-wider">{label}</p>
     </div>
   );
 }
@@ -163,19 +163,19 @@ export default function BoardReportsPage() {
     if (reportLoading || !report) {
       return (
         <div className="space-y-6">
-          <div className="h-8 w-32 bg-gray-100 rounded animate-pulse" />
+          <div className="h-8 w-32 bg-surface rounded animate-pulse" />
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
-                <div className="h-8 w-20 bg-gray-100 rounded mx-auto mb-2" />
-                <div className="h-3 w-16 bg-gray-100 rounded mx-auto" />
+              <div key={i} className="bg-card rounded-xl border border-border p-4 animate-pulse">
+                <div className="h-8 w-20 bg-surface rounded mx-auto mb-2" />
+                <div className="h-3 w-16 bg-surface rounded mx-auto" />
               </div>
             ))}
           </div>
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
-              <div className="h-5 w-40 bg-gray-100 rounded mb-3" />
-              <div className="h-20 bg-gray-100 rounded" />
+            <div key={i} className="bg-card rounded-xl border border-border p-5 animate-pulse">
+              <div className="h-5 w-40 bg-surface rounded mb-3" />
+              <div className="h-20 bg-surface rounded" />
             </div>
           ))}
         </div>
@@ -193,15 +193,15 @@ export default function BoardReportsPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSelectedReportId(null)}
-              className="no-print p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+              className="no-print p-1.5 rounded-lg hover:bg-surface text-muted"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">{monthLabel} Board Report</h2>
+              <h2 className="text-xl font-bold text-foreground">{monthLabel} Board Report</h2>
               <div className="flex items-center gap-2 mt-1">
                 <StatusBadge status={report.status as "draft" | "final" | "sent"} />
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted">
                   Generated {new Date(report.generatedAt).toLocaleDateString("en-AU")}
                 </span>
               </div>
@@ -222,7 +222,7 @@ export default function BoardReportsPage() {
             </button>
             <button
               onClick={handleExportPdf}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-border text-foreground/80 bg-card hover:bg-surface"
             >
               <Download className="w-4 h-4" /> Export PDF
             </button>
@@ -264,7 +264,7 @@ export default function BoardReportsPage() {
           onAiGenerate={() => handleAiGenerate("executive", "executiveSummary")}
           aiGenerating={aiGenerating === "executive"}
         >
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             High-level overview of {monthLabel} performance.
           </p>
         </ReportSection>
@@ -282,21 +282,21 @@ export default function BoardReportsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-gray-400 uppercase tracking-wider">
+                  <tr className="text-left text-xs text-muted uppercase tracking-wider">
                     <th className="pb-2">Centre</th>
                     <th className="pb-2 text-right">Revenue</th>
                     <th className="pb-2 text-right">Costs</th>
                     <th className="pb-2 text-right">Margin</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-border/50">
                   {d.financial.revenueByService.map((s) => (
                     <tr key={s.serviceName}>
-                      <td className="py-2 text-gray-700 font-medium">{s.serviceName}</td>
-                      <td className="py-2 text-right text-gray-600 tabular-nums">
+                      <td className="py-2 text-foreground/80 font-medium">{s.serviceName}</td>
+                      <td className="py-2 text-right text-muted tabular-nums">
                         {fmtCurrency(s.revenue)}
                       </td>
-                      <td className="py-2 text-right text-gray-600 tabular-nums">
+                      <td className="py-2 text-right text-muted tabular-nums">
                         {fmtCurrency(s.costs)}
                       </td>
                       <td className="py-2 text-right font-semibold tabular-nums" style={{
@@ -308,7 +308,7 @@ export default function BoardReportsPage() {
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 border-gray-200 font-semibold text-gray-800">
+                  <tr className="border-t-2 border-border font-semibold text-foreground">
                     <td className="pt-2">Total</td>
                     <td className="pt-2 text-right tabular-nums">{fmtCurrency(d.financial.totalRevenue)}</td>
                     <td className="pt-2 text-right tabular-nums">{fmtCurrency(d.financial.totalCosts)}</td>
@@ -322,10 +322,10 @@ export default function BoardReportsPage() {
               </table>
             </div>
           ) : (
-            <p className="text-sm text-gray-400 italic">No financial data for this period.</p>
+            <p className="text-sm text-muted italic">No financial data for this period.</p>
           )}
           {d.financial.revenueTrend != null && (
-            <p className="text-xs text-gray-500 mt-3">
+            <p className="text-xs text-muted mt-3">
               vs. prior month:{" "}
               <span className={d.financial.revenueTrend >= 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
                 {d.financial.revenueTrend >= 0 ? "+" : ""}{Math.round(d.financial.revenueTrend)}%
@@ -344,29 +344,29 @@ export default function BoardReportsPage() {
           aiGenerating={aiGenerating === "operations"}
         >
           <div className="grid grid-cols-2 gap-4 mb-3">
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <div className="text-center p-3 bg-surface rounded-lg">
               <p className="text-lg font-bold text-[#3B82F6] tabular-nums">{d.operations.avgBscOccupancy}%</p>
-              <p className="text-xs text-gray-500">BSC Occupancy</p>
+              <p className="text-xs text-muted">BSC Occupancy</p>
             </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <div className="text-center p-3 bg-surface rounded-lg">
               <p className="text-lg font-bold text-[#8B5CF6] tabular-nums">{d.operations.avgAscOccupancy}%</p>
-              <p className="text-xs text-gray-500">ASC Occupancy</p>
+              <p className="text-xs text-muted">ASC Occupancy</p>
             </div>
           </div>
           {d.operations.occupancyByService.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-gray-400 uppercase tracking-wider">
+                  <tr className="text-left text-xs text-muted uppercase tracking-wider">
                     <th className="pb-2">Centre</th>
                     <th className="pb-2 text-right">BSC %</th>
                     <th className="pb-2 text-right">ASC %</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-border/50">
                   {d.operations.occupancyByService.map((s) => (
                     <tr key={s.serviceName}>
-                      <td className="py-1.5 text-gray-700">{s.serviceName}</td>
+                      <td className="py-1.5 text-foreground/80">{s.serviceName}</td>
                       <td className="py-1.5 text-right tabular-nums font-medium" style={{
                         color: s.bsc >= 75 ? "#10B981" : s.bsc >= 50 ? "#F59E0B" : "#EF4444",
                       }}>{s.bsc}%</td>
@@ -391,17 +391,17 @@ export default function BoardReportsPage() {
           aiGenerating={aiGenerating === "compliance"}
         >
           <div className="grid grid-cols-3 gap-3 mb-3">
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <p className="text-lg font-bold text-gray-700 tabular-nums">{d.compliance.totalCerts}</p>
-              <p className="text-xs text-gray-500">Total</p>
+            <div className="text-center p-3 bg-surface rounded-lg">
+              <p className="text-lg font-bold text-foreground/80 tabular-nums">{d.compliance.totalCerts}</p>
+              <p className="text-xs text-muted">Total</p>
             </div>
             <div className="text-center p-3 bg-amber-50 rounded-lg">
               <p className="text-lg font-bold text-amber-600 tabular-nums">{d.compliance.expiringSoon}</p>
-              <p className="text-xs text-gray-500">Expiring Soon</p>
+              <p className="text-xs text-muted">Expiring Soon</p>
             </div>
             <div className="text-center p-3 bg-red-50 rounded-lg">
               <p className="text-lg font-bold text-red-600 tabular-nums">{d.compliance.expired}</p>
-              <p className="text-xs text-gray-500">Expired</p>
+              <p className="text-xs text-muted">Expired</p>
             </div>
           </div>
         </ReportSection>
@@ -416,21 +416,21 @@ export default function BoardReportsPage() {
           aiGenerating={aiGenerating === "growth"}
         >
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <p className="text-lg font-bold text-gray-700 tabular-nums">{d.growth.totalLeads}</p>
-              <p className="text-xs text-gray-500">Total Leads</p>
+            <div className="text-center p-3 bg-surface rounded-lg">
+              <p className="text-lg font-bold text-foreground/80 tabular-nums">{d.growth.totalLeads}</p>
+              <p className="text-xs text-muted">Total Leads</p>
             </div>
             <div className="text-center p-3 bg-blue-50 rounded-lg">
               <p className="text-lg font-bold text-blue-600 tabular-nums">{d.growth.newThisMonth}</p>
-              <p className="text-xs text-gray-500">New</p>
+              <p className="text-xs text-muted">New</p>
             </div>
             <div className="text-center p-3 bg-green-50 rounded-lg">
               <p className="text-lg font-bold text-green-600 tabular-nums">{d.growth.wonThisMonth}</p>
-              <p className="text-xs text-gray-500">Won</p>
+              <p className="text-xs text-muted">Won</p>
             </div>
             <div className="text-center p-3 bg-red-50 rounded-lg">
               <p className="text-lg font-bold text-red-600 tabular-nums">{d.growth.lostThisMonth}</p>
-              <p className="text-xs text-gray-500">Lost</p>
+              <p className="text-xs text-muted">Lost</p>
             </div>
           </div>
         </ReportSection>
@@ -446,17 +446,17 @@ export default function BoardReportsPage() {
         >
           <div className="flex items-center gap-6">
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-800 tabular-nums">{d.people.activeStaff}</p>
-              <p className="text-xs text-gray-500">Active Staff</p>
+              <p className="text-2xl font-bold text-foreground tabular-nums">{d.people.activeStaff}</p>
+              <p className="text-xs text-muted">Active Staff</p>
             </div>
             {Object.keys(d.people.contractBreakdown).length > 0 && (
               <div className="flex-1">
-                <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wider">Contract Types</p>
+                <p className="text-xs text-muted mb-1.5 uppercase tracking-wider">Contract Types</p>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(d.people.contractBreakdown).map(([type, count]) => (
                     <span
                       key={type}
-                      className="px-2 py-1 bg-gray-50 border border-gray-100 rounded text-xs text-gray-600"
+                      className="px-2 py-1 bg-surface border border-border/50 rounded text-xs text-muted"
                     >
                       {type.replace("ct_", "").replace(/_/g, " ")}: {count}
                     </span>
@@ -481,35 +481,35 @@ export default function BoardReportsPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                 <div className="text-center p-2 bg-green-50 rounded-lg">
                   <p className="text-lg font-bold text-green-600 tabular-nums">{d.rocks.onTrack}</p>
-                  <p className="text-xs text-gray-500">On Track</p>
+                  <p className="text-xs text-muted">On Track</p>
                 </div>
                 <div className="text-center p-2 bg-red-50 rounded-lg">
                   <p className="text-lg font-bold text-red-600 tabular-nums">{d.rocks.offTrack}</p>
-                  <p className="text-xs text-gray-500">Off Track</p>
+                  <p className="text-xs text-muted">Off Track</p>
                 </div>
                 <div className="text-center p-2 bg-blue-50 rounded-lg">
                   <p className="text-lg font-bold text-blue-600 tabular-nums">{d.rocks.complete}</p>
-                  <p className="text-xs text-gray-500">Complete</p>
+                  <p className="text-xs text-muted">Complete</p>
                 </div>
-                <div className="text-center p-2 bg-gray-50 rounded-lg">
-                  <p className="text-lg font-bold text-gray-500 tabular-nums">{d.rocks.avgCompletion}%</p>
-                  <p className="text-xs text-gray-500">Avg</p>
+                <div className="text-center p-2 bg-surface rounded-lg">
+                  <p className="text-lg font-bold text-muted tabular-nums">{d.rocks.avgCompletion}%</p>
+                  <p className="text-xs text-muted">Avg</p>
                 </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-xs text-gray-400 uppercase tracking-wider">
+                    <tr className="text-left text-xs text-muted uppercase tracking-wider">
                       <th className="pb-2">Rock</th>
                       <th className="pb-2">Owner</th>
                       <th className="pb-2 text-right">Progress</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-border/50">
                     {d.rocks.rockList.map((r, idx) => (
                       <tr key={`${r.title}-${r.owner}-${idx}`}>
-                        <td className="py-1.5 text-gray-700">{r.title}</td>
-                        <td className="py-1.5 text-gray-500">{r.owner}</td>
+                        <td className="py-1.5 text-foreground/80">{r.title}</td>
+                        <td className="py-1.5 text-muted">{r.owner}</td>
                         <td className="py-1.5 text-right">
                           <span className="tabular-nums font-medium" style={{
                             color: r.status === "complete" ? "#10B981" : r.status === "on_track" ? "#3B82F6" : "#EF4444",
@@ -524,7 +524,7 @@ export default function BoardReportsPage() {
               </div>
             </>
           ) : (
-            <p className="text-sm text-gray-400 italic">No rocks for {d.rocks.quarter}.</p>
+            <p className="text-sm text-muted italic">No rocks for {d.rocks.quarter}.</p>
           )}
         </ReportSection>
       </div>
@@ -545,8 +545,8 @@ export default function BoardReportsPage() {
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Board Reports</h2>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Board Reports</h2>
+              <p className="text-sm text-muted mt-0.5">
                 Monthly board & investor report generator
               </p>
             </div>
@@ -573,8 +573,8 @@ export default function BoardReportsPage() {
             <FileSpreadsheet className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Board Reports</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Board Reports</h2>
+            <p className="text-sm text-muted mt-0.5">
               Monthly board & investor report generator
             </p>
           </div>
@@ -582,37 +582,37 @@ export default function BoardReportsPage() {
       </div>
 
       {/* Generate Controls */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h3 className="text-sm font-semibold text-gray-800 mb-3">Generate Report</h3>
+      <div className="bg-card rounded-xl border border-border p-5">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Generate Report</h3>
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Month</label>
+            <label className="text-xs text-muted mb-1 block">Month</label>
             <div className="relative">
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                className="appearance-none bg-card border border-border rounded-lg px-3 py-2 pr-8 text-sm text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand/20"
               >
                 {MONTHS.map((m, i) => (
                   <option key={m} value={i + 1}>{m}</option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-muted absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Year</label>
+            <label className="text-xs text-muted mb-1 block">Year</label>
             <div className="relative">
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-3 py-2 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand/20"
+                className="appearance-none bg-card border border-border rounded-lg px-3 py-2 pr-8 text-sm text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand/20"
               >
                 {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-muted absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
           <button
@@ -631,21 +631,21 @@ export default function BoardReportsPage() {
       </div>
 
       {/* History Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-800">Report History</h3>
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="px-5 py-4 border-b border-border/50">
+          <h3 className="text-sm font-semibold text-foreground">Report History</h3>
         </div>
         {listLoading ? (
           <div className="p-5 space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
+              <div key={i} className="h-10 bg-surface rounded animate-pulse" />
             ))}
           </div>
         ) : reports && reports.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-gray-400 uppercase tracking-wider bg-gray-50">
+                <tr className="text-left text-xs text-muted uppercase tracking-wider bg-surface">
                   <th className="px-5 py-3">Period</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Generated</th>
@@ -653,19 +653,19 @@ export default function BoardReportsPage() {
                   <th className="px-5 py-3">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border/50">
                 {reports.map((r) => (
-                  <tr key={r.id} className="hover:bg-gray-50">
-                    <td className="px-5 py-3 font-medium text-gray-700">
+                  <tr key={r.id} className="hover:bg-surface">
+                    <td className="px-5 py-3 font-medium text-foreground/80">
                       {MONTHS[r.month - 1]} {r.year}
                     </td>
                     <td className="px-5 py-3">
                       <StatusBadge status={r.status} />
                     </td>
-                    <td className="px-5 py-3 text-gray-500 tabular-nums">
+                    <td className="px-5 py-3 text-muted tabular-nums">
                       {new Date(r.generatedAt).toLocaleDateString("en-AU")}
                     </td>
-                    <td className="px-5 py-3 text-gray-500 tabular-nums">
+                    <td className="px-5 py-3 text-muted tabular-nums">
                       {r.sentAt ? new Date(r.sentAt).toLocaleDateString("en-AU") : "—"}
                     </td>
                     <td className="px-5 py-3">
@@ -683,9 +683,9 @@ export default function BoardReportsPage() {
           </div>
         ) : (
           <div className="px-5 py-12 text-center">
-            <FileSpreadsheet className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">No reports generated yet.</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <FileSpreadsheet className="w-10 h-10 text-muted/50 mx-auto mb-3" />
+            <p className="text-sm text-muted">No reports generated yet.</p>
+            <p className="text-xs text-muted mt-1">
               Select a month and year above, then click Generate Report.
             </p>
           </div>

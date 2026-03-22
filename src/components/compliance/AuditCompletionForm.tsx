@@ -35,7 +35,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
   in_progress: { label: "In Progress", color: "bg-amber-100 text-amber-700 border-amber-300", icon: Play },
   completed: { label: "Completed", color: "bg-emerald-100 text-emerald-700 border-emerald-300", icon: CheckCircle2 },
   overdue: { label: "Overdue", color: "bg-red-100 text-red-700 border-red-300", icon: AlertTriangle },
-  skipped: { label: "Skipped", color: "bg-gray-100 text-gray-500 border-gray-300", icon: SkipForward },
+  skipped: { label: "Skipped", color: "bg-surface text-muted border-border", icon: SkipForward },
 };
 
 const qaLabels: Record<number, string> = {
@@ -74,8 +74,8 @@ function YesNoInput({
                   ? "bg-emerald-100 text-emerald-700 border-emerald-300 ring-2 ring-emerald-400"
                   : val === "no"
                   ? "bg-red-100 text-red-700 border-red-300 ring-2 ring-red-400"
-                  : "bg-gray-100 text-gray-600 border-gray-300 ring-2 ring-gray-400"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  : "bg-surface text-muted border-border ring-2 ring-gray-400"
+                : "bg-card text-muted border-border hover:bg-surface"
             )}
           >
             {val === "na" ? "N/A" : val.toUpperCase()}
@@ -128,7 +128,7 @@ function RatingInput({
                   : val === 3
                   ? "bg-amber-100 text-amber-700 border-amber-300 ring-2 ring-amber-400"
                   : "bg-emerald-100 text-emerald-700 border-emerald-300 ring-2 ring-emerald-400"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                : "bg-card text-muted border-border hover:bg-surface"
             )}
           >
             {val}
@@ -175,8 +175,8 @@ function CompliantInput({
                   ? "bg-emerald-100 text-emerald-700 border-emerald-300 ring-2 ring-emerald-400"
                   : val === "no"
                   ? "bg-red-100 text-red-700 border-red-300 ring-2 ring-red-400"
-                  : "bg-gray-100 text-gray-600 border-gray-300 ring-2 ring-gray-400"
-                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  : "bg-surface text-muted border-border ring-2 ring-gray-400"
+                : "bg-card text-muted border-border hover:bg-surface"
             )}
           >
             {val === "yes" ? "Compliant" : val === "no" ? "Non-Compliant" : "N/A"}
@@ -184,14 +184,14 @@ function CompliantInput({
         ))}
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-foreground/80 mb-1">
           Evidence Sighted
         </label>
         <input
           type="text"
           value={response.evidenceSighted || ""}
           onChange={(e) => onChange(response.id, { evidenceSighted: e.target.value } as Partial<AuditItemResponseData>)}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           placeholder="Describe evidence reviewed..."
         />
       </div>
@@ -230,7 +230,7 @@ function ReverseYesNoInput({
             "px-4 py-2 text-sm font-medium rounded-lg border transition-all",
             result === "yes"
               ? "bg-red-100 text-red-700 border-red-300 ring-2 ring-red-400"
-              : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              : "bg-card text-muted border-border hover:bg-surface"
           )}
         >
           YES (Hazard Found)
@@ -241,7 +241,7 @@ function ReverseYesNoInput({
             "px-4 py-2 text-sm font-medium rounded-lg border transition-all",
             result === "no"
               ? "bg-emerald-100 text-emerald-700 border-emerald-300 ring-2 ring-emerald-400"
-              : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              : "bg-card text-muted border-border hover:bg-surface"
           )}
         >
           NO (Compliant)
@@ -251,8 +251,8 @@ function ReverseYesNoInput({
           className={cn(
             "px-4 py-2 text-sm font-medium rounded-lg border transition-all",
             result === "na"
-              ? "bg-gray-100 text-gray-600 border-gray-300 ring-2 ring-gray-400"
-              : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              ? "bg-surface text-muted border-border ring-2 ring-gray-400"
+              : "bg-card text-muted border-border hover:bg-surface"
           )}
         >
           N/A
@@ -268,7 +268,7 @@ function ReverseYesNoInput({
             value={response.actionRequired || ""}
             onChange={(e) => onChange(response.id, { actionRequired: e.target.value } as Partial<AuditItemResponseData>)}
             rows={2}
-            className="w-full px-3 py-2 text-sm border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none bg-white"
+            className="w-full px-3 py-2 text-sm border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none bg-card"
             placeholder="Describe required corrective action..."
           />
         </div>
@@ -287,7 +287,7 @@ function ReviewDateInput({
   return (
     <div className="space-y-3">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-foreground/80 mb-1">
           Date of Review
         </label>
         <input
@@ -299,18 +299,18 @@ function ReviewDateInput({
               result: e.target.value ? "yes" : "pending",
             } as Partial<AuditItemResponseData>)
           }
-          className="w-full max-w-xs px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="w-full max-w-xs px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-foreground/80 mb-1">
           Action Required
         </label>
         <textarea
           value={response.actionRequired || ""}
           onChange={(e) => onChange(response.id, { actionRequired: e.target.value } as Partial<AuditItemResponseData>)}
           rows={2}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+          className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
           placeholder="Any actions required from review..."
         />
       </div>
@@ -515,9 +515,9 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
   if (!audit) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <ClipboardList className="w-16 h-16 text-gray-300 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">Audit Not Found</h2>
-        <p className="text-gray-500 text-sm mb-6">This audit may have been deleted.</p>
+        <ClipboardList className="w-16 h-16 text-muted/50 mb-4" />
+        <h2 className="text-xl font-semibold text-foreground mb-1">Audit Not Found</h2>
+        <p className="text-muted text-sm mb-6">This audit may have been deleted.</p>
         <button
           onClick={() => router.push("/compliance")}
           className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
@@ -542,14 +542,14 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
       {/* Back link */}
       <button
         onClick={() => router.back()}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-brand transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Back
       </button>
 
       {/* Header */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <div className="bg-card rounded-xl border border-border shadow-sm p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
@@ -557,19 +557,19 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
                 <ShieldCheck className="w-5 h-5 text-brand" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{audit.template.name}</h1>
+                <h1 className="text-xl font-bold text-foreground">{audit.template.name}</h1>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-xs font-mono font-medium bg-brand/10 text-brand px-2 py-0.5 rounded">
                     QA{audit.template.qualityArea}
                   </span>
-                  <span className="text-xs text-gray-500">{audit.template.nqsReference}</span>
-                  <span className="text-xs text-gray-500">|</span>
-                  <span className="text-xs text-gray-500">{audit.service.name}</span>
+                  <span className="text-xs text-muted">{audit.template.nqsReference}</span>
+                  <span className="text-xs text-muted">|</span>
+                  <span className="text-xs text-muted">{audit.service.name}</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 mt-4 text-sm text-gray-600">
+            <div className="flex items-center gap-4 mt-4 text-sm text-muted">
               <span>
                 Due: {new Date(audit.dueDate).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}
               </span>
@@ -601,7 +601,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
 
         {/* Action buttons for scheduled/overdue */}
         {canStart && (
-          <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3">
+          <div className="mt-4 pt-4 border-t border-border/50 flex items-center gap-3">
             <button
               onClick={handleStart}
               disabled={updateAudit.isPending}
@@ -613,7 +613,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
             <button
               onClick={handleSkip}
               disabled={updateAudit.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-muted text-sm font-medium rounded-lg border border-border hover:bg-surface transition-colors disabled:opacity-50"
             >
               <SkipForward className="w-4 h-4" />
               Skip
@@ -624,10 +624,10 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
 
       {/* Empty state for templates with no items */}
       {!hasItems && isEditable && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
-          <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">No Checklist Items</h3>
-          <p className="text-sm text-gray-500 mb-4">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-8 text-center">
+          <FileText className="w-12 h-12 text-muted/50 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-foreground mb-1">No Checklist Items</h3>
+          <p className="text-sm text-muted mb-4">
             This audit template has no checklist items yet. You can still complete it with summary notes.
           </p>
         </div>
@@ -635,14 +635,14 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
 
       {/* Progress bar */}
       {isEditable && hasItems && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Progress</span>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm font-medium text-foreground/80">Progress</span>
+            <span className="text-sm text-muted">
               {answeredItems} / {totalItems} items ({progressPercent}%)
             </span>
           </div>
-          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
             <div
               className={cn(
                 "h-full rounded-full transition-all duration-500",
@@ -663,43 +663,43 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
             const sectionAnswered = items.filter((r) => r.result && r.result !== "pending").length;
 
             return (
-              <div key={section} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div key={section} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
                 <button
                   onClick={() => toggleSection(section)}
-                  className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-between p-4 hover:bg-surface transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     {isCollapsed ? (
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                      <ChevronRight className="w-5 h-5 text-muted" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                      <ChevronDown className="w-5 h-5 text-muted" />
                     )}
-                    <h3 className="text-sm font-semibold text-gray-900">{section}</h3>
+                    <h3 className="text-sm font-semibold text-foreground">{section}</h3>
                   </div>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted">
                     {sectionAnswered}/{items.length} complete
                   </span>
                 </button>
 
                 {!isCollapsed && (
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-border/50">
                     {items.map((response, idx) => {
                       const itemFormat = response.templateItem.responseFormat || responseFormat;
                       return (
                         <div key={response.id} className="p-4 pl-12">
                           <div className="flex items-start gap-3 mb-3">
-                            <span className="text-xs font-mono text-gray-400 mt-0.5 w-6 text-right shrink-0">
+                            <span className="text-xs font-mono text-muted mt-0.5 w-6 text-right shrink-0">
                               {idx + 1}.
                             </span>
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900">
+                              <p className="text-sm font-medium text-foreground">
                                 {response.templateItem.question}
                                 {response.templateItem.isRequired && (
                                   <span className="text-red-500 ml-1">*</span>
                                 )}
                               </p>
                               {response.templateItem.guidance && (
-                                <p className="text-xs text-gray-500 mt-1">{response.templateItem.guidance}</p>
+                                <p className="text-xs text-muted mt-1">{response.templateItem.guidance}</p>
                               )}
                             </div>
                           </div>
@@ -729,7 +729,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
                                   onChange={(e) =>
                                     handleResponseChange(response.id, { notes: e.target.value } as Partial<AuditItemResponseData>)
                                   }
-                                  className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand text-gray-600"
+                                  className="w-full px-3 py-1.5 text-xs border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-brand text-muted"
                                   placeholder="Notes (optional)"
                                 />
                               </div>
@@ -740,7 +740,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
                           {isComplete && (
                             <div className="ml-9 text-sm">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-700">Result:</span>
+                                <span className="font-medium text-foreground/80">Result:</span>
                                 <span
                                   className={cn(
                                     "px-2 py-0.5 text-xs font-medium rounded",
@@ -748,20 +748,20 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
                                       ? "bg-emerald-100 text-emerald-700"
                                       : response.result === "no"
                                       ? "bg-red-100 text-red-700"
-                                      : "bg-gray-100 text-gray-600"
+                                      : "bg-surface text-muted"
                                   )}
                                 >
                                   {response.result === "na" ? "N/A" : response.result?.toUpperCase()}
                                 </span>
                                 {response.ratingValue != null && (
-                                  <span className="text-gray-500">Rating: {response.ratingValue}/5</span>
+                                  <span className="text-muted">Rating: {response.ratingValue}/5</span>
                                 )}
                               </div>
                               {response.actionRequired && (
                                 <p className="text-xs text-red-600 mt-1">Action: {response.actionRequired}</p>
                               )}
                               {response.notes && (
-                                <p className="text-xs text-gray-500 mt-1">Notes: {response.notes}</p>
+                                <p className="text-xs text-muted mt-1">Notes: {response.notes}</p>
                               )}
                             </div>
                           )}
@@ -778,53 +778,53 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
 
       {/* Summary section */}
       {(isEditable || isComplete) && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <FileText className="w-4 h-4 text-brand" />
             Audit Summary
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Strengths</label>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Strengths</label>
               <textarea
                 value={summaryFields.strengths}
                 onChange={(e) => setSummaryFields((f) => ({ ...f, strengths: e.target.value }))}
                 disabled={!isEditable}
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-surface/50 disabled:text-muted"
                 placeholder="What was done well..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Areas for Improvement</label>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Areas for Improvement</label>
               <textarea
                 value={summaryFields.areasForImprovement}
                 onChange={(e) => setSummaryFields((f) => ({ ...f, areasForImprovement: e.target.value }))}
                 disabled={!isEditable}
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-surface/50 disabled:text-muted"
                 placeholder="What needs attention..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Action Plan</label>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Action Plan</label>
               <textarea
                 value={summaryFields.actionPlan}
                 onChange={(e) => setSummaryFields((f) => ({ ...f, actionPlan: e.target.value }))}
                 disabled={!isEditable}
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-surface/50 disabled:text-muted"
                 placeholder="Steps to address issues..."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Comments</label>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Comments</label>
               <textarea
                 value={summaryFields.comments}
                 onChange={(e) => setSummaryFields((f) => ({ ...f, comments: e.target.value }))}
                 disabled={!isEditable}
                 rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none disabled:bg-surface/50 disabled:text-muted"
                 placeholder="Additional notes..."
               />
             </div>
@@ -845,9 +845,9 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
 
       {/* Sticky action bar */}
       {isEditable && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-50">
+        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg p-4 z-50">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted">
               {answeredItems}/{totalItems} items answered
               {Object.keys(localResponses).length > 0 && (
                 <span className="text-amber-600 ml-2">
@@ -859,7 +859,7 @@ export function AuditCompletionForm({ auditId }: { auditId: string }) {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 {saving ? "Saving..." : "Save Progress"}

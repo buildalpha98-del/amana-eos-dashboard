@@ -131,7 +131,7 @@ const statusBadgeStyles: Record<string, string> = {
   onboarding: "bg-blue-100 text-blue-700 border-blue-300",
   pipeline: "bg-purple-100 text-purple-700 border-purple-300",
   closing: "bg-amber-100 text-amber-700 border-amber-300",
-  closed: "bg-gray-100 text-gray-500 border-gray-300",
+  closed: "bg-surface text-muted border-border",
 };
 
 export default function ServiceDetailPage() {
@@ -224,11 +224,11 @@ export default function ServiceDetailPage() {
   if (isError || !service) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <Building2 className="w-16 h-16 text-gray-300 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">
+        <Building2 className="w-16 h-16 text-muted/50 mb-4" />
+        <h2 className="text-xl font-semibold text-foreground mb-1">
           Service Not Found
         </h2>
-        <p className="text-gray-500 text-sm mb-6">
+        <p className="text-muted text-sm mb-6">
           The service centre you are looking for does not exist or has been
           removed.
         </p>
@@ -263,15 +263,15 @@ export default function ServiceDetailPage() {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
                 {service.name}
               </h1>
-              <span className="px-2 py-0.5 text-xs font-mono font-medium bg-gray-100 text-gray-600 rounded-md border border-gray-200 shrink-0">
+              <span className="px-2 py-0.5 text-xs font-mono font-medium bg-surface text-muted rounded-md border border-border shrink-0">
                 {service.code}
               </span>
             </div>
             {service.suburb && (
-              <p className="text-sm text-gray-500 mt-0.5">
+              <p className="text-sm text-muted mt-0.5">
                 {service.suburb}
                 {service.state ? `, ${service.state}` : ""}
               </p>
@@ -295,7 +295,7 @@ export default function ServiceDetailPage() {
       <div className="sm:hidden relative">
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900"
+          className="w-full flex items-center justify-between px-4 py-3 bg-card border border-border rounded-xl text-sm font-medium text-foreground"
         >
           <div className="flex items-center gap-2">
             {(() => {
@@ -311,13 +311,13 @@ export default function ServiceDetailPage() {
           </div>
           <ChevronDown
             className={cn(
-              "w-4 h-4 text-gray-400 transition-transform",
+              "w-4 h-4 text-muted transition-transform",
               mobileMenuOpen && "rotate-180"
             )}
           />
         </button>
         {mobileMenuOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-20 py-1">
             {visibleGroups.map((g) => {
               const Icon = g.icon;
               const badge = getBadge(g.key);
@@ -329,7 +329,7 @@ export default function ServiceDetailPage() {
                     "w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
                     activeGroup === g.key
                       ? "text-brand bg-brand/5"
-                      : "text-gray-600 hover:bg-gray-50"
+                      : "text-muted hover:bg-surface/50"
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -347,7 +347,7 @@ export default function ServiceDetailPage() {
       </div>
 
       {/* ── Desktop Tab Bar (≥ sm) ───────────────────────────── */}
-      <div className="hidden sm:block border-b border-gray-200">
+      <div className="hidden sm:block border-b border-border">
         <nav className="flex gap-0 -mb-px">
           {visibleGroups.map((g) => {
             const Icon = g.icon;
@@ -361,7 +361,7 @@ export default function ServiceDetailPage() {
                   "flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors",
                   isActive
                     ? "border-brand text-brand"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent text-muted hover:text-foreground/80 hover:border-border"
                 )}
               >
                 <Icon className="w-4 h-4" />
@@ -391,7 +391,7 @@ export default function ServiceDetailPage() {
                   "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border transition-colors",
                   isActive
                     ? "bg-brand text-white border-brand"
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                    : "bg-card text-muted border-border hover:bg-surface/50"
                 )}
               >
                 <SubIcon className="w-3.5 h-3.5" />
@@ -473,10 +473,10 @@ export default function ServiceDetailPage() {
             <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center mb-4">
               <DollarSign className="w-6 h-6 text-brand" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+            <h3 className="text-lg font-semibold text-foreground mb-1">
               Financial Dashboard
             </h3>
-            <p className="text-sm text-gray-500 max-w-md">
+            <p className="text-sm text-muted max-w-md">
               Financial summary for {service.name} is available on the Financial
               Dashboard page filtered to this centre.
             </p>

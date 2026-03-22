@@ -202,7 +202,7 @@ export function NotificationDropdown() {
                         {/* Dismiss button */}
                         <button
                           onClick={(e) => handleDismiss(e, notification.id)}
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-300 hover:text-gray-600 hover:bg-gray-200 transition-all flex-shrink-0 self-center"
+                          className="md:opacity-0 md:group-hover:opacity-100 opacity-60 p-1 rounded text-muted/50 hover:text-foreground hover:bg-surface transition-all flex-shrink-0 self-center"
                           title="Dismiss"
                         >
                           <X className="w-3.5 h-3.5" />

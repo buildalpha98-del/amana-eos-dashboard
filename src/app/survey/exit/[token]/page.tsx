@@ -114,10 +114,10 @@ export default function ExitSurveyPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#004E64] via-[#005f77] to-[#00768a]">
         <div className="max-w-md w-full mx-4 bg-white rounded-2xl shadow-2xl p-8 text-center">
           <div className="text-5xl mb-4">⏰</div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">
+          <h1 className="text-xl font-bold text-foreground mb-2">
             Survey Expired
           </h1>
-          <p className="text-gray-600 text-sm">
+          <p className="text-muted text-sm">
             This exit survey link has expired or is no longer valid. Please
             contact your centre if you&apos;d like to provide feedback.
           </p>
@@ -131,15 +131,15 @@ export default function ExitSurveyPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#004E64] via-[#005f77] to-[#00768a]">
         <div className="max-w-md w-full mx-4 bg-white rounded-2xl shadow-2xl p-8 text-center">
           <div className="text-5xl mb-4">🙏</div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">
+          <h1 className="text-xl font-bold text-foreground mb-2">
             Thank You for Your Feedback
           </h1>
-          <p className="text-gray-600 text-sm">
+          <p className="text-muted text-sm">
             We appreciate you taking the time to share your experience. Your
             feedback helps us improve our service for all families.
           </p>
           <div className="mt-6 pt-4 border-t">
-            <p className="text-xs text-gray-400">Amana OSHC</p>
+            <p className="text-xs text-muted">Amana OSHC</p>
           </div>
         </div>
       </div>
@@ -159,7 +159,7 @@ export default function ExitSurveyPage() {
 
         <div className="p-6 space-y-6">
           <div className="text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted">
               We&apos;re sorry to see{" "}
               <strong>{survey?.childName}</strong> go. Your feedback is
               invaluable in helping us improve.
@@ -168,13 +168,13 @@ export default function ExitSurveyPage() {
 
           {/* Q1: Reason */}
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
+            <label className="block text-sm font-semibold text-foreground mb-2">
               1. What is the main reason for leaving? *
             </label>
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
             >
               <option value="">Select a reason...</option>
               {REASONS.map((r) => (
@@ -188,7 +188,7 @@ export default function ExitSurveyPage() {
                 rows={2}
                 value={reasonDetail}
                 onChange={(e) => setReasonDetail(e.target.value)}
-                className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+                className="w-full mt-2 px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
                 placeholder="Any additional details? (optional)"
               />
             )}
@@ -196,7 +196,7 @@ export default function ExitSurveyPage() {
 
           {/* Q2: Satisfaction */}
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
+            <label className="block text-sm font-semibold text-foreground mb-2">
               2. Overall, how satisfied were you with our service? *
             </label>
             <div className="flex justify-center gap-3">
@@ -207,11 +207,11 @@ export default function ExitSurveyPage() {
                   className={`flex flex-col items-center gap-1 p-2.5 rounded-xl transition-all ${
                     satisfaction === s.score
                       ? SELECTED_BG[s.score]
-                      : "bg-gray-50 hover:bg-gray-100"
+                      : "bg-surface/50 hover:bg-surface"
                   }`}
                 >
                   <span className="text-3xl">{s.emoji}</span>
-                  <span className="text-[9px] text-gray-500">{s.label}</span>
+                  <span className="text-[9px] text-muted">{s.label}</span>
                 </button>
               ))}
             </div>
@@ -219,35 +219,35 @@ export default function ExitSurveyPage() {
 
           {/* Q3: Enjoyed most */}
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
+            <label className="block text-sm font-semibold text-foreground mb-2">
               3. What did your child enjoy most?
             </label>
             <textarea
               rows={2}
               value={enjoyedMost}
               onChange={(e) => setEnjoyedMost(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
               placeholder="Activities, friendships, educators..."
             />
           </div>
 
           {/* Q4: Could improve */}
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
+            <label className="block text-sm font-semibold text-foreground mb-2">
               4. What could we have done better?
             </label>
             <textarea
               rows={2}
               value={couldImprove}
               onChange={(e) => setCouldImprove(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-[#004E64] focus:border-[#004E64]"
               placeholder="Communication, programs, facilities..."
             />
           </div>
 
           {/* Q5: Would return */}
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
+            <label className="block text-sm font-semibold text-foreground mb-2">
               5. Would you consider returning to Amana OSHC? *
             </label>
             <div className="flex gap-3">
@@ -258,7 +258,7 @@ export default function ExitSurveyPage() {
                   className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all border ${
                     wouldReturn === opt
                       ? "bg-[#004E64] text-white border-[#004E64]"
-                      : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100"
+                      : "bg-surface/50 text-foreground/80 border-border hover:bg-surface"
                   }`}
                 >
                   {opt.charAt(0).toUpperCase() + opt.slice(1)}
@@ -279,7 +279,7 @@ export default function ExitSurveyPage() {
             {submitting ? "Submitting..." : "Submit Feedback"}
           </button>
 
-          <p className="text-center text-xs text-gray-400">
+          <p className="text-center text-xs text-muted">
             Your feedback is confidential and helps us improve.
           </p>
         </div>

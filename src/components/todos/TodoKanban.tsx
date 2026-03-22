@@ -73,7 +73,7 @@ function DroppableColumn({
         ref={setNodeRef}
         className={cn(
           "space-y-2 min-h-[200px] p-2 mt-2 rounded-xl transition-colors duration-200",
-          isOver ? "bg-brand/5 ring-2 ring-brand/20" : "bg-gray-50/30"
+          isOver ? "bg-brand/5 ring-2 ring-brand/20" : "bg-surface/30"
         )}
       >
         <SortableContext
@@ -90,7 +90,7 @@ function DroppableColumn({
         </SortableContext>
 
         {todos.length === 0 && (
-          <div className="flex items-center justify-center h-[120px] text-sm text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+          <div className="flex items-center justify-center h-[120px] text-sm text-muted border-2 border-dashed border-border rounded-lg">
             Drop to-dos here
           </div>
         )}
@@ -147,15 +147,15 @@ function TodoKanbanCard({
     <div
       onClick={onClick}
       className={cn(
-        "bg-white border border-gray-200 rounded-lg p-3 cursor-pointer hover:shadow-sm transition-shadow",
+        "bg-card border border-border rounded-lg p-3 cursor-pointer hover:shadow-sm transition-shadow",
         isDragging && "opacity-50 shadow-lg ring-2 ring-brand/30"
       )}
     >
-      <p className="text-sm font-medium text-gray-900 line-clamp-2">
+      <p className="text-sm font-medium text-foreground line-clamp-2">
         {todo.title}
       </p>
 
-      <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+      <div className="flex items-center gap-2 mt-2 text-xs text-muted">
         {todo.assignee && (
           <span className="truncate max-w-[120px]">
             {todo.assignee?.name ?? "Unassigned"}

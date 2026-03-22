@@ -86,10 +86,10 @@ export function CreateIssueModal({
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent size="lg">
         <div className="mb-6">
-          <DialogTitle className="text-lg font-semibold text-gray-900">
+          <DialogTitle className="text-lg font-semibold text-foreground">
             Raise an Issue
           </DialogTitle>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-sm text-muted mt-0.5">
             Identify an issue for the IDS process
           </p>
         </div>
@@ -148,7 +148,7 @@ export function CreateIssueModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-border text-foreground/80 font-medium rounded-lg hover:bg-surface transition-colors"
             >
               Cancel
             </button>

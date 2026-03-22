@@ -31,8 +31,8 @@ function getPriorityConfig(priority: string) {
       };
     default:
       return {
-        bg: "bg-gray-100",
-        text: "text-gray-600",
+        bg: "bg-surface",
+        text: "text-muted",
         icon: Info,
         label: "Normal",
       };
@@ -59,23 +59,23 @@ export function DashboardAnnouncements() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 h-48 animate-pulse" />
+      <div className="bg-card rounded-xl border border-border h-48 animate-pulse" />
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200">
+    <div className="bg-card rounded-xl border border-border">
       {/* Header */}
-      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+      <div className="px-5 py-3.5 border-b border-border/50 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
             <Bell className="w-4 h-4 text-brand" />
           </div>
-          <h3 className="text-sm font-semibold text-gray-900">
+          <h3 className="text-sm font-semibold text-foreground">
             Announcements
           </h3>
           {latest.length > 0 && (
-            <span className="text-xs text-gray-400 ml-1">
+            <span className="text-xs text-muted ml-1">
               ({latest.length})
             </span>
           )}
@@ -85,11 +85,11 @@ export function DashboardAnnouncements() {
       {/* Announcements list */}
       {latest.length === 0 ? (
         <div className="px-5 py-8 text-center">
-          <Megaphone className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-          <p className="text-sm text-gray-400">No announcements yet</p>
+          <Megaphone className="w-8 h-8 text-muted/50 mx-auto mb-2" />
+          <p className="text-sm text-muted">No announcements yet</p>
         </div>
       ) : (
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-border/30">
           {latest.map((announcement: any) => {
             const priority = getPriorityConfig(announcement.priority);
             const PriorityIcon = priority.icon;
@@ -110,7 +110,7 @@ export function DashboardAnnouncements() {
               <div
                 key={announcement.id}
                 className={cn(
-                  "px-5 py-3.5 hover:bg-gray-50 transition-colors",
+                  "px-5 py-3.5 hover:bg-surface transition-colors",
                   announcement.priority === "urgent" && "bg-red-50/30",
                   announcement.priority === "important" && "bg-amber-50/30"
                 )}
@@ -120,7 +120,7 @@ export function DashboardAnnouncements() {
                   {announcement.pinned && (
                     <Pin className="w-3 h-3 text-brand flex-shrink-0" />
                   )}
-                  <h4 className="text-sm font-medium text-gray-900 truncate flex-1">
+                  <h4 className="text-sm font-medium text-foreground truncate flex-1">
                     {announcement.title}
                   </h4>
                   <span
@@ -136,12 +136,12 @@ export function DashboardAnnouncements() {
                 </div>
 
                 {/* Snippet */}
-                <p className="text-xs text-gray-500 line-clamp-2 mb-1.5">
+                <p className="text-xs text-muted line-clamp-2 mb-1.5">
                   {snippet}
                 </p>
 
                 {/* Footer: author + date */}
-                <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                <div className="flex items-center gap-2 text-[11px] text-muted">
                   {announcement.author?.avatar ? (
                     <img
                       src={announcement.author.avatar}
@@ -153,7 +153,7 @@ export function DashboardAnnouncements() {
                       {announcement.author?.name?.charAt(0) || "?"}
                     </div>
                   )}
-                  <span className="font-medium text-gray-500">
+                  <span className="font-medium text-muted">
                     {announcement.author?.name || "Unknown"}
                   </span>
                   <span>&middot;</span>
@@ -166,7 +166,7 @@ export function DashboardAnnouncements() {
       )}
 
       {/* Footer link */}
-      <div className="px-5 py-2.5 border-t border-gray-100">
+      <div className="px-5 py-2.5 border-t border-border/50">
         <Link
           href="/communication"
           className="flex items-center justify-center gap-1 text-xs font-medium text-brand hover:text-brand-hover transition-colors"

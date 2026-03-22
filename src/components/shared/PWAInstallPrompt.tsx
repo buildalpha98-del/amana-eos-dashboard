@@ -84,14 +84,14 @@ export function PWAInstallPrompt() {
   return (
     <div
       className={`fixed bottom-4 left-4 right-4 z-50 md:left-auto md:max-w-sm
-        bg-white shadow-lg rounded-xl border border-gray-200 p-4
+        bg-card shadow-lg rounded-xl border border-border p-4
         transition-all duration-300 ease-out
         ${visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
     >
       <button
         onClick={handleDismiss}
         aria-label="Dismiss install prompt"
-        className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
+        className="absolute top-3 right-3 text-muted hover:text-foreground transition-colors"
       >
         <X className="h-4 w-4" />
       </button>
@@ -102,7 +102,7 @@ export function PWAInstallPrompt() {
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-foreground">
             Install Amana OSHC for a faster experience
           </p>
 
@@ -115,7 +115,7 @@ export function PWAInstallPrompt() {
             </button>
             <button
               onClick={handleDismiss}
-              className="px-3 py-1.5 text-sm font-medium rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium rounded-lg text-muted hover:text-foreground transition-colors"
             >
               Dismiss
             </button>

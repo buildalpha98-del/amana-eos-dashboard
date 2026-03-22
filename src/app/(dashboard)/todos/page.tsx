@@ -38,9 +38,9 @@ import { TemplateManagerModal } from "@/components/todos/TemplateManagerModal";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FilterPresets } from "@/components/ui/FilterPresets";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface UserOption {
   id: string;
@@ -255,145 +255,72 @@ function TodosPageContent() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">
-            To-Dos <HelpTooltip id="todos-heading" content="7-day action items. Every to-do should be completable within one week. If it takes longer, it's probably a Rock." />
-          </h2>
-          <p className="text-sm text-gray-500">
-            {showAll
-              ? "All active action items across every week"
-              : "Weekly action items for the L10 meeting rhythm"}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* View Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-            <button
-              onClick={() => setMultiParams({ view: "", groupBy: "" })}
-              className={cn(
-                "p-1.5 rounded-md transition-colors",
-                viewMode === "list" && groupBy === "person"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
-              )}
-              title="Group by person"
-            >
-              <Users className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setMultiParams({ view: "", groupBy: "flat" })}
-              className={cn(
-                "p-1.5 rounded-md transition-colors",
-                viewMode === "list" && groupBy === "flat"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
-              )}
-              title="Flat list"
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("board")}
-              className={cn(
-                "p-1.5 rounded-md transition-colors",
-                viewMode === "board"
-                  ? "bg-white text-brand shadow-sm"
-                  : "text-gray-400 hover:text-gray-600"
-              )}
-              title="Board view"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Archive Toggle */}
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className={cn(
-              "p-2 rounded-lg border transition-colors",
-              showArchived
-                ? "border-brand bg-brand/5 text-brand"
-                : "border-gray-200 text-gray-400 hover:text-gray-600"
-            )}
-            title={showArchived ? "Hide completed" : "Show completed"}
-          >
-            <Archive className="w-4 h-4" />
-          </button>
-
-          {/* Filter Toggle */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={cn(
-              "p-2 rounded-lg border transition-colors",
-              hasActiveFilters
-                ? "border-brand bg-brand/5 text-brand"
-                : "border-gray-200 text-gray-400 hover:text-gray-600"
-            )}
-            title="Filters"
-          >
-            <Filter className="w-4 h-4" />
-          </button>
-
-          {/* Export CSV */}
-          <button
-            onClick={() =>
+      <PageHeader
+        title="To-Dos"
+        description={showAll ? "All active action items across every week" : "Weekly action items for the L10 meeting rhythm"}
+        helpTooltipId="todos-heading"
+        helpTooltipContent="7-day action items. Every to-do should be completable within one week. If it takes longer, it's probably a Rock."
+        primaryAction={{ label: "Add To-Do", icon: Plus, onClick: () => setShowCreate(true) }}
+        toggles={[{
+          options: [
+            { icon: Users, label: "Group by person", value: "person" },
+            { icon: List, label: "Flat list", value: "flat" },
+            { icon: LayoutGrid, label: "Board view", value: "board" },
+          ],
+          value: viewMode === "board" ? "board" : groupBy,
+          onChange: (v) => {
+            if (v === "board") setMultiParams({ view: "board", groupBy: "" });
+            else setMultiParams({ view: "", groupBy: v === "person" ? "" : v });
+          },
+        }]}
+        secondaryActions={[
+          {
+            label: showArchived ? "Hide Completed" : "Show Completed",
+            icon: Archive,
+            onClick: () => setShowArchived(!showArchived),
+            active: showArchived,
+          },
+          {
+            label: "Filters",
+            icon: Filter,
+            onClick: () => setShowFilters(!showFilters),
+            active: !!hasActiveFilters,
+          },
+          {
+            label: "Export CSV",
+            icon: Download,
+            onClick: () =>
               exportToCsv("todos", filteredTodos, [
                 { header: "Title", accessor: (t) => t.title },
                 { header: "Assignee", accessor: (t) => t.assignee?.name ?? "Unassigned" },
                 { header: "Due Date", accessor: (t) => new Date(t.dueDate).toLocaleDateString("en-AU") },
                 { header: "Status", accessor: (t) => t.status },
                 { header: "Rock", accessor: (t) => t.rock?.title ?? "" },
-              ])
-            }
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
-            title="Export to CSV"
-          >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export</span>
-          </button>
-
-          {/* Bulk Create */}
-          <button
-            onClick={() => setShowBulkCreate(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-            title="Bulk create to-dos"
-          >
-            <ListPlus className="w-4 h-4" />
-            Bulk
-          </button>
-
-          {/* Templates */}
-          <button
-            onClick={() => setShowTemplates(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
-            title="Manage recurring templates"
-          >
-            <Repeat className="w-4 h-4" />
-            Templates
-          </button>
-
-          {/* Add To-Do */}
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add To-Do
-          </button>
-        </div>
-      </div>
+              ]),
+          },
+          {
+            label: "Bulk Create",
+            icon: ListPlus,
+            onClick: () => setShowBulkCreate(true),
+          },
+          {
+            label: "Templates",
+            icon: Repeat,
+            onClick: () => setShowTemplates(true),
+          },
+        ]}
+      />
 
       {/* Week Selector with All toggle */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+        <div className="flex items-center bg-surface rounded-lg p-0.5">
           <button
             onClick={() => setShowAll(true)}
             className={cn(
               "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
               showAll
-                ? "bg-white text-brand shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-card text-brand shadow-sm"
+                : "text-muted hover:text-foreground"
             )}
           >
             All
@@ -403,8 +330,8 @@ function TodosPageContent() {
             className={cn(
               "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
               !showAll
-                ? "bg-white text-brand shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-card text-brand shadow-sm"
+                : "text-muted hover:text-foreground"
             )}
           >
             Weekly
@@ -415,11 +342,11 @@ function TodosPageContent() {
 
       {/* Filters */}
       {showFilters && (
-        <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3 p-3 bg-white rounded-lg border border-gray-200">
+        <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3 p-3 bg-card rounded-lg border border-border">
           <select
             value={filterAssignee}
             onChange={(e) => setFilterAssignee(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All People</option>
             {users?.map((u) => (
@@ -432,7 +359,7 @@ function TodosPageContent() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="px-3 py-1.5 text-sm border border-border rounded-lg text-foreground/80 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
@@ -444,7 +371,7 @@ function TodosPageContent() {
           {hasActiveFilters && (
             <button
               onClick={() => setMultiParams({ assignee: "", status: "" })}
-              className="text-xs text-gray-500 hover:text-gray-700 underline"
+              className="text-xs text-muted hover:text-foreground underline"
             >
               Clear filters
             </button>
@@ -515,13 +442,13 @@ function TodosPageContent() {
               {carryForwardTodos.map((todo) => (
                 <div
                   key={todo.id}
-                  className="flex items-center gap-3 px-3 py-2 bg-white rounded-lg border border-amber-100"
+                  className="flex items-center gap-3 px-3 py-2 bg-card rounded-lg border border-amber-100"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {todo.title}
                     </p>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted">
                       {todo.assignee?.name ?? "Unassigned"}
                     </span>
                   </div>
@@ -562,31 +489,31 @@ function TodosPageContent() {
                 if (allSelected || someSelected) clearSelection();
                 else selectAll();
               }}
-              className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand/30 cursor-pointer"
+              className="h-4 w-4 rounded border-border text-brand focus:ring-brand/30 cursor-pointer"
             />
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-muted">
               {allSelected ? "Deselect all" : "Select all"}
             </span>
           </label>
-          <span className="text-gray-300 hidden sm:inline">|</span>
-          <span className="text-sm text-gray-500">
-            <span className="font-semibold text-gray-900">{stats.total}</span>{" "}
+          <span className="text-border hidden sm:inline">|</span>
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-foreground">{stats.total}</span>{" "}
             To-Dos
           </span>
-          <span className="text-gray-300 hidden sm:inline">|</span>
-          <span className="text-sm text-emerald-600">
+          <span className="text-border hidden sm:inline">|</span>
+          <span className="text-sm text-success">
             {stats.complete} complete
           </span>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted">
             {stats.pending} pending
           </span>
           {stats.overdue > 0 && (
-            <span className="text-sm text-red-600">
+            <span className="text-sm text-danger">
               {stats.overdue} overdue
             </span>
           )}
           {stats.total > 0 && (
-            <span className="text-sm text-gray-400 sm:ml-auto">
+            <span className="text-sm text-muted sm:ml-auto">
               {Math.round((stats.complete / stats.total) * 100)}% done
             </span>
           )}
@@ -621,10 +548,10 @@ function TodosPageContent() {
                 value={quickAddTitle}
                 onChange={(e) => setQuickAddTitle(e.target.value)}
                 placeholder="Quick add a to-do... (press Enter)"
-                className="w-full rounded-lg border border-gray-200 pl-3 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand placeholder:text-gray-400"
+                className="w-full rounded-lg border border-border pl-3 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand placeholder:text-muted"
               />
               {createTodo.isPending && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted" />
               )}
             </div>
           </form>
@@ -635,7 +562,7 @@ function TodosPageContent() {
       {error ? null : isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 px-4 py-3">
+            <div key={i} className="flex items-center gap-3 bg-card rounded-lg border border-border px-4 py-3">
               <Skeleton className="h-5 w-5 rounded" />
               <Skeleton className="h-4 flex-1 max-w-xs" />
               <Skeleton className="h-6 w-6 rounded-full" />

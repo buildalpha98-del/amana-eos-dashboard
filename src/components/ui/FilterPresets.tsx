@@ -112,7 +112,7 @@ export function FilterPresets({ pageKey, currentFilters, onLoadPreset }: FilterP
                   toast({ description: `Preset "${preset.name}" deleted.` });
                 }
               }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5"
+              className="md:opacity-0 md:group-hover:opacity-100 opacity-60 transition-opacity ml-0.5"
               aria-label={`Delete preset ${preset.name}`}
             >
               <X className="w-3 h-3" />

@@ -126,7 +126,7 @@ function CircularProgress({
           className="transition-all duration-700 ease-out"
         />
       </svg>
-      <span className="absolute text-sm font-bold text-gray-900">
+      <span className="absolute text-sm font-bold text-foreground">
         {pct}%
       </span>
     </div>
@@ -137,7 +137,7 @@ function CircularProgress({
 
 function ProgressBar({ pct, color }: { pct: number; color: string }) {
   return (
-    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+    <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
       <div
         className="h-full rounded-full transition-all duration-500 ease-out"
         style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: color }}
@@ -158,8 +158,8 @@ function StatCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-3 shadow-sm">
-      <div className="flex items-center gap-2 text-gray-500">
+    <div className="bg-card rounded-xl border border-border p-5 flex flex-col gap-3 shadow-sm">
+      <div className="flex items-center gap-2 text-muted">
         {icon}
         <span className="text-xs font-medium uppercase tracking-wide">
           {label}
@@ -193,9 +193,9 @@ function CertBadge({ status }: { status: CertData["status"] }) {
       label: "Expired",
     },
     missing: {
-      bg: "bg-gray-50",
-      text: "text-gray-500",
-      border: "border-gray-200",
+      bg: "bg-surface/50",
+      text: "text-muted",
+      border: "border-border",
       label: "Missing",
     },
   };
@@ -217,18 +217,18 @@ function CertCard({ cert }: { cert: CertData }) {
     valid: "border-green-300",
     expiring: "border-amber-300",
     expired: "border-red-300",
-    missing: "border-dashed border-gray-300",
+    missing: "border-dashed border-border",
   };
 
   return (
     <div
-      className={`rounded-lg border-2 p-4 bg-white ${borderColor[cert.status]}`}
+      className={`rounded-lg border-2 p-4 bg-card ${borderColor[cert.status]}`}
     >
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-sm font-semibold text-gray-900">{cert.label}</h4>
+        <h4 className="text-sm font-semibold text-foreground">{cert.label}</h4>
         <CertBadge status={cert.status} />
       </div>
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-muted">
         {cert.expiryDate
           ? `Expires: ${formatDateAU(cert.expiryDate)}`
           : "No certificate on file"}
@@ -278,7 +278,7 @@ function TodoRow({ todo }: { todo: TodoItem }) {
       <button
         onClick={handleToggle}
         disabled={updateTodo.isPending}
-        className="flex-shrink-0 text-gray-400 hover:text-brand transition-colors disabled:opacity-50"
+        className="flex-shrink-0 text-muted hover:text-brand transition-colors disabled:opacity-50"
         aria-label={isComplete ? "Mark incomplete" : "Mark complete"}
       >
         {isComplete ? (
@@ -291,8 +291,8 @@ function TodoRow({ todo }: { todo: TodoItem }) {
         <p
           className={`text-sm truncate ${
             isComplete
-              ? "line-through text-gray-400"
-              : "text-gray-900"
+              ? "line-through text-muted"
+              : "text-foreground"
           }`}
         >
           {todo.title}
@@ -300,7 +300,7 @@ function TodoRow({ todo }: { todo: TodoItem }) {
       </div>
       <span
         className={`flex-shrink-0 text-xs ${
-          isOverdue ? "text-red-500 font-medium" : "text-gray-400"
+          isOverdue ? "text-red-500 font-medium" : "text-muted"
         }`}
       >
         {formatDateAU(todo.dueDate)}
@@ -354,7 +354,7 @@ export function StaffDashboard() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 text-brand animate-spin" />
-          <span className="ml-3 text-gray-500">
+          <span className="ml-3 text-muted">
             Loading your dashboard...
           </span>
         </div>
@@ -384,8 +384,8 @@ export function StaffDashboard() {
       {/* ── Welcome Header ─────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">My Hub</h2>
-          <p className="text-gray-500 mt-1">
+          <h2 className="text-2xl font-bold text-foreground">My Hub</h2>
+          <p className="text-muted mt-1">
             Welcome back, {session?.user?.name?.split(" ")[0] || "there"}{" "}
             &mdash; here is your personal overview.
           </p>
@@ -431,7 +431,7 @@ export function StaffDashboard() {
                     <Link
                       key={i}
                       href={a.href}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/70 text-xs font-medium text-amber-700 hover:bg-white transition-colors border border-amber-200"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-card/70 text-xs font-medium text-amber-700 hover:bg-card transition-colors border border-amber-200"
                     >
                       {a.icon}
                       {a.label}
@@ -454,14 +454,14 @@ export function StaffDashboard() {
           <div className="flex items-center gap-4">
             <CircularProgress pct={data.compliance.overallPct} />
             <div>
-              <p className="text-lg font-bold text-gray-900">
+              <p className="text-lg font-bold text-foreground">
                 {data.compliance.certs.filter(
                   (c) => c.status === "valid" || c.status === "expiring"
                 ).length}
                 /
                 {data.compliance.certs.length}
               </p>
-              <p className="text-xs text-gray-500">certs valid</p>
+              <p className="text-xs text-muted">certs valid</p>
             </div>
           </div>
         </StatCard>
@@ -472,9 +472,9 @@ export function StaffDashboard() {
           label="Weekly To-Dos"
         >
           <div>
-            <p className="text-lg font-bold text-gray-900">
+            <p className="text-lg font-bold text-foreground">
               {data.todos.complete}/{data.todos.total}{" "}
-              <span className="text-sm font-normal text-gray-500">
+              <span className="text-sm font-normal text-muted">
                 complete
               </span>
             </p>
@@ -496,9 +496,9 @@ export function StaffDashboard() {
           label="Training"
         >
           <div>
-            <p className="text-lg font-bold text-gray-900">
+            <p className="text-lg font-bold text-foreground">
               {data.training.completed}/{data.training.total}{" "}
-              <span className="text-sm font-normal text-gray-500">
+              <span className="text-sm font-normal text-muted">
                 courses
               </span>
             </p>
@@ -528,10 +528,10 @@ export function StaffDashboard() {
               )}
             </div>
             <div>
-              <p className="text-lg font-bold text-gray-900">
+              <p className="text-lg font-bold text-foreground">
                 {data.unreadAnnouncements.length}
               </p>
-              <p className="text-xs text-gray-500">unread</p>
+              <p className="text-xs text-muted">unread</p>
             </div>
           </div>
         </StatCard>
@@ -539,57 +539,57 @@ export function StaffDashboard() {
 
       {/* ── Quick Links ──────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <Link href="/compliance" className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
+        <Link href="/compliance" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
           <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
             <ShieldCheck className="w-4.5 h-4.5 text-brand" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900">My Compliance</p>
-            <p className="text-[10px] text-gray-500">Upload certificates</p>
+            <p className="text-sm font-medium text-foreground">My Compliance</p>
+            <p className="text-[10px] text-muted">Upload certificates</p>
           </div>
         </Link>
-        <Link href="/leave" className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
+        <Link href="/leave" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
           <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
             <Calendar className="w-4.5 h-4.5 text-brand" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900">Leave</p>
-            <p className="text-[10px] text-gray-500">Request time off</p>
+            <p className="text-sm font-medium text-foreground">Leave</p>
+            <p className="text-[10px] text-muted">Request time off</p>
           </div>
         </Link>
-        <Link href="/my-portal" className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
+        <Link href="/my-portal" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
           <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
             <UserCircle className="w-4.5 h-4.5 text-brand" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900">My Portal</p>
-            <p className="text-[10px] text-gray-500">Profile & payslips</p>
+            <p className="text-sm font-medium text-foreground">My Portal</p>
+            <p className="text-[10px] text-muted">Profile & payslips</p>
           </div>
         </Link>
-        <Link href="/onboarding" className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
+        <Link href="/onboarding" className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-brand/30 hover:shadow-sm transition-all group">
           <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center group-hover:bg-brand/20 transition-colors">
             <GraduationCap className="w-4.5 h-4.5 text-brand" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900">Training</p>
-            <p className="text-[10px] text-gray-500">Courses & modules</p>
+            <p className="text-sm font-medium text-foreground">Training</p>
+            <p className="text-[10px] text-muted">Courses & modules</p>
           </div>
         </Link>
-        <button onClick={() => setShowReportModal(true)} className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 p-4 hover:border-amber-300 hover:shadow-sm transition-all group text-left">
+        <button onClick={() => setShowReportModal(true)} className="flex items-center gap-3 bg-card rounded-xl border border-border p-4 hover:border-amber-300 hover:shadow-sm transition-all group text-left">
           <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
             <Send className="w-4.5 h-4.5 text-amber-600" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900">Report Issue</p>
-            <p className="text-[10px] text-gray-500">Contact Head Office</p>
+            <p className="text-sm font-medium text-foreground">Report Issue</p>
+            <p className="text-[10px] text-muted">Contact Head Office</p>
           </div>
         </button>
       </div>
 
       {/* ── Compliance Detail ──────────────────────────── */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+      <div className="bg-card rounded-xl border border-border shadow-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-brand" />
             Compliance Detail
           </h3>
@@ -610,9 +610,9 @@ export function StaffDashboard() {
       {/* ── Two-Column: Todos + Upcoming ───────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* My To-Dos This Week */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+        <div className="bg-card rounded-xl border border-border shadow-sm">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <CheckSquare className="w-4 h-4 text-brand" />
               My To-Dos This Week
             </h3>
@@ -623,10 +623,10 @@ export function StaffDashboard() {
               View all <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-          <div className="px-5 py-2 divide-y divide-gray-100">
+          <div className="px-5 py-2 divide-y divide-border/50">
             {todos.length === 0 ? (
-              <div className="py-8 text-center text-gray-400 text-sm">
-                <Check className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+              <div className="py-8 text-center text-muted text-sm">
+                <Check className="w-8 h-8 mx-auto mb-2 text-muted/50" />
                 No to-dos this week. You are all caught up!
               </div>
             ) : (
@@ -640,9 +640,9 @@ export function StaffDashboard() {
         {/* Upcoming */}
         <div className="space-y-6">
           {/* Upcoming Meetings */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <div className="bg-card rounded-xl border border-border shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-brand" />
                 Upcoming Meetings
               </h3>
@@ -655,12 +655,12 @@ export function StaffDashboard() {
             </div>
             <div className="px-5 py-2">
               {data.upcomingMeetings.length === 0 ? (
-                <div className="py-6 text-center text-gray-400 text-sm">
-                  <Calendar className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <div className="py-6 text-center text-muted text-sm">
+                  <Calendar className="w-8 h-8 mx-auto mb-2 text-muted/50" />
                   No upcoming meetings
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-border/50">
                   {data.upcomingMeetings.map((meeting) => (
                     <div
                       key={meeting.id}
@@ -670,10 +670,10 @@ export function StaffDashboard() {
                         <Calendar className="w-4 h-4 text-brand" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-foreground truncate">
                           {meeting.title}
                         </p>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <p className="text-xs text-muted flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {formatDateAU(meeting.date)}
                         </p>
@@ -686,31 +686,31 @@ export function StaffDashboard() {
           </div>
 
           {/* My Next Shifts */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <div className="bg-card rounded-xl border border-border shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <Clock className="w-4 h-4 text-brand" />
                 My Next Shifts
               </h3>
             </div>
             <div className="px-5 py-2">
               {(!data.upcomingShifts || data.upcomingShifts.length === 0) ? (
-                <div className="py-6 text-center text-gray-400 text-sm">
-                  <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <div className="py-6 text-center text-muted text-sm">
+                  <Clock className="w-8 h-8 mx-auto mb-2 text-muted/50" />
                   No upcoming shifts
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-border/50">
                   {data.upcomingShifts.map((shift) => (
                     <div key={shift.id} className="flex items-center gap-3 py-3">
                       <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center">
                         <Clock className="w-4 h-4 text-brand" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-foreground">
                           {shift.sessionType === "before_school" ? "BSC" : shift.sessionType === "after_school" ? "ASC" : shift.sessionType === "vacation" ? "VAC" : shift.sessionType} — {shift.shiftStart}–{shift.shiftEnd}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted">
                           {formatDateAU(shift.date)} · {shift.serviceName}
                         </p>
                       </div>
@@ -722,9 +722,9 @@ export function StaffDashboard() {
           </div>
 
           {/* Unread Announcements */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <div className="bg-card rounded-xl border border-border shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <Megaphone className="w-4 h-4 text-brand" />
                 Unread Announcements
               </h3>
@@ -737,21 +737,21 @@ export function StaffDashboard() {
             </div>
             <div className="px-5 py-2">
               {data.unreadAnnouncements.length === 0 ? (
-                <div className="py-6 text-center text-gray-400 text-sm">
-                  <Megaphone className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                <div className="py-6 text-center text-muted text-sm">
+                  <Megaphone className="w-8 h-8 mx-auto mb-2 text-muted/50" />
                   All caught up!
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-border/50">
                   {data.unreadAnnouncements.slice(0, 3).map((ann) => (
                     <div key={ann.id} className="py-3">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-foreground">
                         {ann.title}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                      <p className="text-xs text-muted mt-0.5 line-clamp-2">
                         {ann.content}
                       </p>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-muted mt-1">
                         {formatDateAU(ann.createdAt)}
                       </p>
                     </div>

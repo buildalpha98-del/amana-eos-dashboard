@@ -146,12 +146,12 @@ function QuickAddToDoModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-white w-full sm:max-w-lg sm:rounded-lg rounded-t-lg p-6 space-y-4">
+      <div className="bg-card w-full sm:max-w-lg sm:rounded-lg rounded-t-lg p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Quick Add To-Do</h3>
+          <h3 className="text-lg font-semibold text-foreground">Quick Add To-Do</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -171,7 +171,7 @@ function QuickAddToDoModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Title *
             </label>
             <input
@@ -179,7 +179,7 @@ function QuickAddToDoModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What needs to be done?"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
               autoFocus
               required
             />
@@ -187,13 +187,13 @@ function QuickAddToDoModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Assignee *
               </label>
               <select
                 value={assigneeId}
                 onChange={(e) => setAssigneeId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
                 required
               >
                 <option value="">Select assignee...</option>
@@ -203,21 +203,21 @@ function QuickAddToDoModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground/80 mb-1">
                 Due Date *
               </label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Description
             </label>
             <textarea
@@ -225,7 +225,7 @@ function QuickAddToDoModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Additional notes..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
             />
           </div>
 
@@ -233,7 +233,7 @@ function QuickAddToDoModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="flex-1 px-4 py-2 text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors font-medium"
             >
               Cancel
             </button>
@@ -326,12 +326,12 @@ function QuickAddIssueModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-white w-full sm:max-w-lg sm:rounded-lg rounded-t-lg p-6 space-y-4">
+      <div className="bg-card w-full sm:max-w-lg sm:rounded-lg rounded-t-lg p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Quick Report Issue</h3>
+          <h3 className="text-lg font-semibold text-foreground">Quick Report Issue</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -351,7 +351,7 @@ function QuickAddIssueModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Title *
             </label>
             <input
@@ -359,20 +359,20 @@ function QuickAddIssueModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What's the issue?"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
               autoFocus
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Priority
             </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as typeof priority)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -382,7 +382,7 @@ function QuickAddIssueModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Description
             </label>
             <textarea
@@ -390,7 +390,7 @@ function QuickAddIssueModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the issue..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
             />
           </div>
 
@@ -398,7 +398,7 @@ function QuickAddIssueModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="flex-1 px-4 py-2 text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors font-medium"
             >
               Cancel
             </button>
@@ -502,12 +502,12 @@ function QuickAddRockModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-      <div className="bg-white w-full sm:max-w-lg sm:rounded-lg rounded-t-lg p-6 space-y-4">
+      <div className="bg-card w-full sm:max-w-lg sm:rounded-lg rounded-t-lg p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Quick Add Rock</h3>
+          <h3 className="text-lg font-semibold text-foreground">Quick Add Rock</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-muted hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -527,7 +527,7 @@ function QuickAddRockModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Title *
             </label>
             <input
@@ -535,14 +535,14 @@ function QuickAddRockModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="What's your rock goal?"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
               autoFocus
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Rock Type
             </label>
             <div className="flex gap-2">
@@ -552,7 +552,7 @@ function QuickAddRockModal({
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   rockType === "company"
                     ? "bg-brand text-white border-brand"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "border-border text-foreground/80 hover:bg-surface"
                 }`}
               >
                 Company
@@ -563,7 +563,7 @@ function QuickAddRockModal({
                 className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                   rockType === "personal"
                     ? "bg-brand text-white border-brand"
-                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                    : "border-border text-foreground/80 hover:bg-surface"
                 }`}
               >
                 Personal
@@ -572,13 +572,13 @@ function QuickAddRockModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Priority
             </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as typeof priority)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
             >
               <option value="medium">Medium</option>
               <option value="high">High</option>
@@ -587,7 +587,7 @@ function QuickAddRockModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Description
             </label>
             <textarea
@@ -595,7 +595,7 @@ function QuickAddRockModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Details and context..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand/50"
             />
           </div>
 
@@ -603,7 +603,7 @@ function QuickAddRockModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="flex-1 px-4 py-2 text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors font-medium"
             >
               Cancel
             </button>

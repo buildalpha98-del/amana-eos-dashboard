@@ -106,7 +106,7 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
     return (
       <div className="space-y-3">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+          <div key={i} className="bg-card rounded-xl border border-border p-4 space-y-2">
             <div className="flex items-center gap-3">
               <Skeleton className="w-8 h-8 rounded-full" />
               <Skeleton className="h-4 w-36" />
@@ -123,9 +123,9 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
   if (feedItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <Megaphone className="w-12 h-12 text-gray-300 mb-3" />
-        <p className="text-gray-500 text-base font-medium">No communications yet</p>
-        <p className="text-gray-400 text-sm mt-1">
+        <Megaphone className="w-12 h-12 text-muted/50 mb-3" />
+        <p className="text-muted text-base font-medium">No communications yet</p>
+        <p className="text-muted text-sm mt-1">
           Announcements and cascade messages will appear here
         </p>
       </div>
@@ -134,7 +134,7 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-muted">
         Recent announcements and cascade messages relevant to this centre
       </p>
 
@@ -150,7 +150,7 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
             <div
               key={`a-${a.id}`}
               className={cn(
-                "rounded-xl border bg-white p-4",
+                "rounded-xl border bg-card p-4",
                 a.priority === "urgent" && "border-red-200",
                 a.priority === "important" && "border-amber-200"
               )}
@@ -168,20 +168,20 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
                     Pinned
                   </span>
                 )}
-                <span className="ml-auto text-xs text-gray-400">{timeAgo(a.publishedAt || a.createdAt)}</span>
+                <span className="ml-auto text-xs text-muted">{timeAgo(a.publishedAt || a.createdAt)}</span>
               </div>
-              <h4 className="text-sm font-semibold text-gray-900">{a.title}</h4>
-              <p className="text-sm text-gray-600 line-clamp-2 mt-1">{a.body}</p>
+              <h4 className="text-sm font-semibold text-foreground">{a.title}</h4>
+              <p className="text-sm text-muted line-clamp-2 mt-1">{a.body}</p>
               <div className="mt-3 flex items-center gap-3">
-                <span className="text-xs text-gray-400 flex items-center gap-1">
+                <span className="text-xs text-muted flex items-center gap-1">
                   <Eye className="h-3 w-3" /> {readCount} read
                 </span>
-                <span className="text-xs text-gray-400">by {a.author?.name}</span>
+                <span className="text-xs text-muted">by {a.author?.name}</span>
                 {!isRead && (
                   <button
                     onClick={() => handleMarkRead(a.id)}
                     disabled={markRead.isPending}
-                    className="ml-auto inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    className="ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-muted hover:bg-surface/50 disabled:opacity-50"
                   >
                     <CheckCircle2 className="h-3 w-3" />
                     Mark Read
@@ -206,24 +206,24 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
             <div
               key={`c-${c.id}`}
               className={cn(
-                "rounded-xl border bg-white p-4",
-                hasAcked ? "border-emerald-200" : "border-gray-200"
+                "rounded-xl border bg-card p-4",
+                hasAcked ? "border-emerald-200" : "border-border"
               )}
             >
               <div className="flex items-center gap-2 mb-2">
                 <ArrowDownCircle className="w-3.5 h-3.5 text-brand" />
                 <span className="text-xs font-medium text-brand">Cascade Message</span>
                 {c.meeting && (
-                  <span className="flex items-center gap-1 text-xs text-gray-500">
+                  <span className="flex items-center gap-1 text-xs text-muted">
                     <CalendarDays className="h-3 w-3" />
                     {c.meeting.title}
                   </span>
                 )}
-                <span className="ml-auto text-xs text-gray-400">{timeAgo(c.publishedAt)}</span>
+                <span className="ml-auto text-xs text-muted">{timeAgo(c.publishedAt)}</span>
               </div>
-              <p className="text-sm text-gray-800 whitespace-pre-wrap">{c.message}</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{c.message}</p>
               <div className="mt-3 flex items-center gap-3">
-                <span className="text-xs text-gray-400 flex items-center gap-1">
+                <span className="text-xs text-muted flex items-center gap-1">
                   <Users className="h-3 w-3" /> {ackCount} acknowledged
                 </span>
                 {hasAcked ? (

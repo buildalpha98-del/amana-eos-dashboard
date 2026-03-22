@@ -225,7 +225,7 @@ export function LeadDetailDrawer({
     return (
       <>
         <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-        <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 z-50 flex items-center justify-center">
+        <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-card shadow-2xl border-l border-border z-50 flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full" />
         </div>
       </>
@@ -239,21 +239,21 @@ export function LeadDetailDrawer({
   return (
     <>
       <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-      <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-white shadow-2xl border-l border-gray-200 z-50 flex flex-col overflow-hidden">
+      <div className="fixed inset-y-0 right-0 w-full max-w-xl bg-card shadow-2xl border-l border-border z-50 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-base font-semibold text-gray-900">Lead Details</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h3 className="text-base font-semibold text-foreground">Lead Details</h3>
           <div className="flex items-center gap-2">
             {!editing && (
               <button
                 onClick={startEditing}
-                className="p-1.5 rounded-md text-gray-400 hover:text-brand hover:bg-brand/10 transition-colors"
+                className="p-1.5 rounded-md text-muted hover:text-brand hover:bg-brand/10 transition-colors"
                 title="Edit lead"
               >
                 <Pencil className="w-4 h-4" />
               </button>
             )}
-            <button onClick={onClose} className="p-1 rounded-md text-gray-400 hover:text-gray-600">
+            <button onClick={onClose} className="p-1 rounded-md text-muted hover:text-foreground">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -275,7 +275,7 @@ export function LeadDetailDrawer({
                 </button>
                 <button
                   onClick={() => setEditing(false)}
-                  className="px-4 py-2 text-xs font-medium text-gray-500 border rounded-lg hover:text-gray-700 transition-colors"
+                  className="px-4 py-2 text-xs font-medium text-muted border rounded-lg hover:text-foreground/80 transition-colors"
                 >
                   Cancel
                 </button>
@@ -283,7 +283,7 @@ export function LeadDetailDrawer({
 
               {/* School / Source / Capacity */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">School Name *</label>
+                <label className="block text-xs font-medium text-muted mb-1">School Name *</label>
                 <input
                   value={editForm.schoolName}
                   onChange={(e) => setEditForm((f) => ({ ...f, schoolName: e.target.value }))}
@@ -292,7 +292,7 @@ export function LeadDetailDrawer({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Source</label>
+                  <label className="block text-xs font-medium text-muted mb-1">Source</label>
                   <select
                     value={editForm.source}
                     onChange={(e) => setEditForm((f) => ({ ...f, source: e.target.value }))}
@@ -306,7 +306,7 @@ export function LeadDetailDrawer({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Est. Capacity</label>
+                  <label className="block text-xs font-medium text-muted mb-1">Est. Capacity</label>
                   <input
                     type="number"
                     value={editForm.estimatedCapacity}
@@ -319,10 +319,10 @@ export function LeadDetailDrawer({
 
               {/* Contact */}
               <div className="border-t pt-4">
-                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Contact</h4>
+                <h4 className="text-xs font-medium text-muted uppercase tracking-wider mb-3">Contact</h4>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Contact Name</label>
+                    <label className="block text-xs font-medium text-muted mb-1">Contact Name</label>
                     <input
                       value={editForm.contactName}
                       onChange={(e) => setEditForm((f) => ({ ...f, contactName: e.target.value }))}
@@ -330,7 +330,7 @@ export function LeadDetailDrawer({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                    <label className="block text-xs font-medium text-muted mb-1">Email</label>
                     <input
                       type="email"
                       value={editForm.contactEmail}
@@ -339,7 +339,7 @@ export function LeadDetailDrawer({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                    <label className="block text-xs font-medium text-muted mb-1">Phone</label>
                     <input
                       value={editForm.contactPhone}
                       onChange={(e) => setEditForm((f) => ({ ...f, contactPhone: e.target.value }))}
@@ -351,10 +351,10 @@ export function LeadDetailDrawer({
 
               {/* Location */}
               <div className="border-t pt-4">
-                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Location</h4>
+                <h4 className="text-xs font-medium text-muted uppercase tracking-wider mb-3">Location</h4>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">Address</label>
+                    <label className="block text-xs font-medium text-muted mb-1">Address</label>
                     <input
                       value={editForm.address}
                       onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
@@ -363,7 +363,7 @@ export function LeadDetailDrawer({
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Suburb</label>
+                      <label className="block text-xs font-medium text-muted mb-1">Suburb</label>
                       <input
                         value={editForm.suburb}
                         onChange={(e) => setEditForm((f) => ({ ...f, suburb: e.target.value }))}
@@ -371,7 +371,7 @@ export function LeadDetailDrawer({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">State</label>
+                      <label className="block text-xs font-medium text-muted mb-1">State</label>
                       <select
                         value={editForm.state}
                         onChange={(e) => setEditForm((f) => ({ ...f, state: e.target.value }))}
@@ -384,7 +384,7 @@ export function LeadDetailDrawer({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Postcode</label>
+                      <label className="block text-xs font-medium text-muted mb-1">Postcode</label>
                       <input
                         value={editForm.postcode}
                         onChange={(e) => setEditForm((f) => ({ ...f, postcode: e.target.value }))}
@@ -398,10 +398,10 @@ export function LeadDetailDrawer({
               {/* Tender (shown when source is tender) */}
               {editForm.source === "tender" && (
                 <div className="border-t pt-4">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Tender</h4>
+                  <h4 className="text-xs font-medium text-muted uppercase tracking-wider mb-3">Tender</h4>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Tender Ref</label>
+                      <label className="block text-xs font-medium text-muted mb-1">Tender Ref</label>
                       <input
                         value={editForm.tenderRef}
                         onChange={(e) => setEditForm((f) => ({ ...f, tenderRef: e.target.value }))}
@@ -409,7 +409,7 @@ export function LeadDetailDrawer({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Close Date</label>
+                      <label className="block text-xs font-medium text-muted mb-1">Close Date</label>
                       <input
                         type="date"
                         value={editForm.tenderCloseDate}
@@ -418,7 +418,7 @@ export function LeadDetailDrawer({
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">Tender URL</label>
+                      <label className="block text-xs font-medium text-muted mb-1">Tender URL</label>
                       <input
                         type="url"
                         value={editForm.tenderUrl}
@@ -433,7 +433,7 @@ export function LeadDetailDrawer({
 
               {/* Next Touchpoint */}
               <div className="border-t pt-4">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Next Touchpoint</label>
+                <label className="block text-xs font-medium text-muted mb-1">Next Touchpoint</label>
                 <input
                   type="date"
                   value={editForm.nextTouchpointAt}
@@ -444,7 +444,7 @@ export function LeadDetailDrawer({
 
               {/* Notes */}
               <div className="border-t pt-4">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+                <label className="block text-xs font-medium text-muted mb-1">Notes</label>
                 <textarea
                   value={editForm.notes}
                   onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
@@ -458,7 +458,7 @@ export function LeadDetailDrawer({
             <>
               {/* School Name */}
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">{lead.schoolName}</h2>
+                <h2 className="text-lg font-semibold text-foreground">{lead.schoolName}</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <span
                     className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -469,9 +469,9 @@ export function LeadDetailDrawer({
                   >
                     {lead.source}
                   </span>
-                  <span className="text-xs text-gray-400">{daysInStage}d in stage</span>
+                  <span className="text-xs text-muted">{daysInStage}d in stage</span>
                   {lead.estimatedCapacity && (
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted">
                       Est. {lead.estimatedCapacity} places
                     </span>
                   )}
@@ -480,7 +480,7 @@ export function LeadDetailDrawer({
 
               {/* Stage */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-2">
                   Pipeline Stage
                 </label>
                 <div className="flex gap-1 flex-wrap">
@@ -491,8 +491,8 @@ export function LeadDetailDrawer({
                       className={cn(
                         "px-2 py-1 text-[10px] font-medium rounded-md border transition-colors",
                         lead.pipelineStage === s.key
-                          ? stageColors[s.key] || "bg-gray-100 text-gray-600 border-gray-300"
-                          : "bg-white border-gray-200 text-gray-400 hover:border-gray-300"
+                          ? stageColors[s.key] || "bg-surface text-muted border-border"
+                          : "bg-card border-border text-muted hover:border-border"
                       )}
                     >
                       {s.label}
@@ -503,7 +503,7 @@ export function LeadDetailDrawer({
 
               {/* Assignee */}
               <div>
-                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-medium text-muted uppercase tracking-wider mb-1">
                   Assignee
                 </label>
                 <select
@@ -525,7 +525,7 @@ export function LeadDetailDrawer({
               {/* AI Score */}
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <h4 className="text-xs font-medium text-muted uppercase tracking-wider">
                     AI Score
                   </h4>
                   <button
@@ -575,7 +575,7 @@ export function LeadDetailDrawer({
                       >
                         {lead.aiScore}
                       </span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-muted">
                         {lead.aiScoredAt &&
                           `Scored ${new Date(lead.aiScoredAt).toLocaleDateString("en-AU", {
                             day: "numeric",
@@ -584,14 +584,14 @@ export function LeadDetailDrawer({
                       </span>
                     </div>
                     {lead.aiScoreSummary && (
-                      <p className="text-xs text-gray-600">{lead.aiScoreSummary}</p>
+                      <p className="text-xs text-muted">{lead.aiScoreSummary}</p>
                     )}
                     {scoreFactors.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-1">
                         {scoreFactors.map((factor, i) => (
                           <span
                             key={i}
-                            className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-surface text-muted"
                           >
                             {factor}
                           </span>
@@ -602,7 +602,7 @@ export function LeadDetailDrawer({
                 )}
 
                 {lead.aiScore == null && !scoreLead.isPending && (
-                  <p className="text-xs text-gray-400">Not scored yet</p>
+                  <p className="text-xs text-muted">Not scored yet</p>
                 )}
               </div>
 
@@ -610,7 +610,7 @@ export function LeadDetailDrawer({
               {(lead.source === "tender" || lead.estimatedCapacity) && (
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <h4 className="text-xs font-medium text-muted uppercase tracking-wider">
                       Acquisition Analysis
                     </h4>
                     <AiButton
@@ -654,7 +654,7 @@ export function LeadDetailDrawer({
                         {showAcquisition ? "Hide Analysis" : "Show Analysis"}
                       </button>
                       {showAcquisition && (
-                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
                           {acquisitionResult}
                         </div>
                       )}
@@ -665,19 +665,19 @@ export function LeadDetailDrawer({
 
               {/* Contact Info */}
               <div className="border-t pt-4">
-                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                <h4 className="text-xs font-medium text-muted uppercase tracking-wider mb-3">
                   Contact
                 </h4>
                 <div className="space-y-2">
                   {lead.contactName && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <User className="w-4 h-4 text-gray-400" />
+                    <div className="flex items-center gap-2 text-sm text-muted">
+                      <User className="w-4 h-4 text-muted" />
                       <span>{lead.contactName}</span>
                     </div>
                   )}
                   {lead.contactEmail && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Mail className="w-4 h-4 text-gray-400" />
+                    <div className="flex items-center gap-2 text-sm text-muted">
+                      <Mail className="w-4 h-4 text-muted" />
                       <a
                         href={`mailto:${lead.contactEmail}`}
                         className="text-brand hover:underline"
@@ -687,8 +687,8 @@ export function LeadDetailDrawer({
                     </div>
                   )}
                   {lead.contactPhone && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Phone className="w-4 h-4 text-gray-400" />
+                    <div className="flex items-center gap-2 text-sm text-muted">
+                      <Phone className="w-4 h-4 text-muted" />
                       <span>{lead.contactPhone}</span>
                     </div>
                   )}
@@ -698,11 +698,11 @@ export function LeadDetailDrawer({
               {/* Location */}
               {(lead.address || lead.suburb || lead.state) && (
                 <div className="border-t pt-4">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  <h4 className="text-xs font-medium text-muted uppercase tracking-wider mb-3">
                     Location
                   </h4>
-                  <div className="flex items-start gap-2 text-sm text-gray-600">
-                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                  <div className="flex items-start gap-2 text-sm text-muted">
+                    <MapPin className="w-4 h-4 text-muted mt-0.5" />
                     <div>
                       {lead.address && <p>{lead.address}</p>}
                       <p>
@@ -716,10 +716,10 @@ export function LeadDetailDrawer({
               {/* Tender Info */}
               {lead.source === "tender" && (lead.tenderRef || lead.tenderUrl) && (
                 <div className="border-t pt-4">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  <h4 className="text-xs font-medium text-muted uppercase tracking-wider mb-3">
                     Tender
                   </h4>
-                  <div className="space-y-1 text-sm text-gray-600">
+                  <div className="space-y-1 text-sm text-muted">
                     {lead.tenderRef && <p>Ref: {lead.tenderRef}</p>}
                     {lead.tenderCloseDate && (
                       <p>
@@ -748,11 +748,11 @@ export function LeadDetailDrawer({
               {/* Won — linked Service */}
               {lead.service && (
                 <div className="border-t pt-4">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">
+                  <h4 className="text-xs font-medium text-muted uppercase tracking-wider mb-3">
                     Linked Service
                   </h4>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Building2 className="w-4 h-4 text-gray-400" />
+                  <div className="flex items-center gap-2 text-sm text-muted">
+                    <Building2 className="w-4 h-4 text-muted" />
                     <a
                       href={`/services/${lead.service.id}`}
                       className="text-brand hover:underline font-medium"
@@ -766,10 +766,10 @@ export function LeadDetailDrawer({
               {/* Next Touchpoint */}
               {lead.nextTouchpointAt && (
                 <div className="border-t pt-4">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                  <h4 className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
                     Next Touchpoint
                   </h4>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted">
                     {new Date(lead.nextTouchpointAt).toLocaleDateString("en-AU", {
                       day: "numeric",
                       month: "short",
@@ -782,10 +782,10 @@ export function LeadDetailDrawer({
               {/* Notes */}
               {lead.notes && (
                 <div className="border-t pt-4">
-                  <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+                  <h4 className="text-xs font-medium text-muted uppercase tracking-wider mb-2">
                     Notes
                   </h4>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{lead.notes}</p>
+                  <p className="text-sm text-muted whitespace-pre-wrap">{lead.notes}</p>
                 </div>
               )}
             </>
@@ -806,7 +806,7 @@ export function LeadDetailDrawer({
           {/* Touchpoint Timeline */}
           <div className="border-t pt-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <h4 className="text-xs font-medium text-muted uppercase tracking-wider">
                 Touchpoints ({touchpoints?.length || 0})
               </h4>
               <button
@@ -859,7 +859,7 @@ export function LeadDetailDrawer({
                   <button
                     type="button"
                     onClick={() => setShowAddTouchpoint(false)}
-                    className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700"
+                    className="px-3 py-1.5 text-xs text-muted hover:text-foreground/80"
                   >
                     Cancel
                   </button>
@@ -873,15 +873,15 @@ export function LeadDetailDrawer({
                   const Icon = touchpointIcons[tp.type] || MessageSquare;
                   return (
                     <div key={tp.id} className="flex gap-3">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                        <Icon className="w-4 h-4 text-gray-500" />
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-surface flex items-center justify-center">
+                        <Icon className="w-4 h-4 text-muted" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-700 capitalize">
+                          <span className="text-xs font-medium text-foreground/80 capitalize">
                             {tp.type.replace(/_/g, " ")}
                           </span>
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-[10px] text-muted">
                             {new Date(tp.sentAt).toLocaleDateString("en-AU", {
                               day: "numeric",
                               month: "short",
@@ -891,17 +891,17 @@ export function LeadDetailDrawer({
                           </span>
                         </div>
                         {tp.subject && (
-                          <p className="text-sm text-gray-700 font-medium mt-0.5">
+                          <p className="text-sm text-foreground/80 font-medium mt-0.5">
                             {tp.subject}
                           </p>
                         )}
                         {tp.body && (
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                          <p className="text-xs text-muted mt-0.5 line-clamp-2">
                             {tp.body}
                           </p>
                         )}
                         {tp.sentBy && (
-                          <p className="text-[10px] text-gray-400 mt-0.5">
+                          <p className="text-[10px] text-muted mt-0.5">
                             by {tp.sentBy.name}
                           </p>
                         )}
@@ -911,20 +911,20 @@ export function LeadDetailDrawer({
                 })}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 text-center py-4">No touchpoints yet</p>
+              <p className="text-xs text-muted text-center py-4">No touchpoints yet</p>
             )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 px-6 py-3 flex justify-between">
+        <div className="border-t border-border px-6 py-3 flex justify-between">
           <button
             onClick={() => setShowDelete(true)}
-            className="text-gray-400 hover:text-red-500 transition-colors"
+            className="text-muted hover:text-danger transition-colors"
           >
             <Trash2 className="w-4 h-4" />
           </button>
-          <p className="text-[10px] text-gray-400">
+          <p className="text-[10px] text-muted">
             Created{" "}
             {new Date(lead.createdAt).toLocaleDateString("en-AU", {
               day: "numeric",

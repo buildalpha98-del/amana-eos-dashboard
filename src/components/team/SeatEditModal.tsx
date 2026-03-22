@@ -114,15 +114,15 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className="bg-card rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-xl z-10">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card rounded-t-xl z-10">
+          <h2 className="text-lg font-semibold text-foreground">
             {isNew ? "Add New Seat" : `Edit "${seat.title}"`}
           </h2>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+            className="p-1 text-muted hover:text-foreground rounded"
           >
             <X className="w-5 h-5" />
           </button>
@@ -131,7 +131,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
         <div className="px-6 py-4 space-y-5">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Seat Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -139,19 +139,19 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Marketing, Operations, State Manager"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
 
           {/* Parent Seat */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Reports To
             </label>
             <select
               value={selectedParentId || ""}
               onChange={(e) => setSelectedParentId(e.target.value || null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent bg-white"
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent bg-card"
             >
               <option value="">None (Top Level)</option>
               {parentOptions.map((s) => (
@@ -167,23 +167,23 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
 
           {/* Assignees */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               People in this Seat
             </label>
-            <div className="border border-gray-300 rounded-lg max-h-40 overflow-y-auto">
+            <div className="border border-border rounded-lg max-h-40 overflow-y-auto">
               {users.length === 0 ? (
-                <p className="px-3 py-2 text-sm text-gray-400">Loading users...</p>
+                <p className="px-3 py-2 text-sm text-muted">Loading users...</p>
               ) : (
                 users.map((u) => (
                   <label
                     key={u.id}
-                    className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    className="flex items-center gap-3 px-3 py-2 hover:bg-surface cursor-pointer border-b border-border/50 last:border-b-0"
                   >
                     <input
                       type="checkbox"
                       checked={assigneeIds.includes(u.id)}
                       onChange={() => toggleAssignee(u.id)}
-                      className="w-4 h-4 rounded border-gray-300 text-brand focus:ring-brand"
+                      className="w-4 h-4 rounded border-border text-brand focus:ring-brand"
                     />
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
@@ -196,8 +196,8 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
                         </span>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm text-gray-800 truncate">{u.name}</p>
-                        <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                        <p className="text-sm text-foreground truncate">{u.name}</p>
+                        <p className="text-xs text-muted truncate">{u.email}</p>
                       </div>
                     </div>
                   </label>
@@ -205,7 +205,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
               )}
             </div>
             {assigneeIds.length > 0 && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted mt-1">
                 {assigneeIds.length} person(s) selected
               </p>
             )}
@@ -213,7 +213,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
 
           {/* Responsibilities */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground/80 mb-1">
               Responsibilities
             </label>
             <div className="space-y-2">
@@ -224,7 +224,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
                     value={r}
                     onChange={(e) => updateResponsibility(i, e.target.value)}
                     placeholder="e.g. LMA, Revenue & GP, Compliance..."
-                    className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="flex-1 px-3 py-1.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
@@ -235,7 +235,7 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
                   {responsibilities.length > 1 && (
                     <button
                       onClick={() => removeResponsibility(i)}
-                      className="p-1 text-gray-400 hover:text-red-500"
+                      className="p-1 text-muted hover:text-danger"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -254,10 +254,10 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 sticky bottom-0 bg-white rounded-b-xl">
+        <div className="px-6 py-4 border-t border-border flex justify-end gap-3 sticky bottom-0 bg-card rounded-b-xl">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="px-4 py-2 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface"
           >
             Cancel
           </button>

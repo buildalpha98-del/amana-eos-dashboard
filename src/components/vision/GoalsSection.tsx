@@ -56,9 +56,9 @@ export function GoalsSection({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50/50">
-        <h3 className="text-sm font-semibold text-gray-700">
+    <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border/50 bg-surface/50">
+        <h3 className="text-sm font-semibold text-foreground/80">
           1-Year Goals ({goals.length})
         </h3>
         <button
@@ -70,7 +70,7 @@ export function GoalsSection({
         </button>
       </div>
 
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-border/50">
         {/* Add form */}
         {showAdd && (
           <div className="px-5 py-4 bg-brand/[0.02] space-y-3">
@@ -79,7 +79,7 @@ export function GoalsSection({
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Goal title..."
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleCreate();
               }}
@@ -89,7 +89,7 @@ export function GoalsSection({
               onChange={(e) => setNewDesc(e.target.value)}
               placeholder="Description (optional)..."
               rows={2}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
+              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand resize-none"
             />
             <div className="flex gap-2">
               <button
@@ -101,7 +101,7 @@ export function GoalsSection({
               </button>
               <button
                 onClick={() => setShowAdd(false)}
-                className="text-xs px-3 py-1.5 text-gray-500"
+                className="text-xs px-3 py-1.5 text-muted"
               >
                 Cancel
               </button>
@@ -116,8 +116,8 @@ export function GoalsSection({
           ))
         ) : (
           <div className="px-5 py-8 text-center">
-            <Target className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">
+            <Target className="w-8 h-8 text-muted/50 mx-auto mb-2" />
+            <p className="text-sm text-muted">
               No 1-year goals set — add one above
             </p>
           </div>
@@ -142,10 +142,10 @@ function GoalRow({
 
   return (
     <div className="group">
-      <div className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 transition-colors">
+      <div className="flex items-center gap-3 px-5 py-3 hover:bg-surface/50 transition-colors">
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-gray-400"
+          className="text-muted"
         >
           {expanded ? (
             <ChevronDown className="w-4 h-4" />
@@ -157,7 +157,7 @@ function GoalRow({
         <Target className="w-4 h-4 text-brand flex-shrink-0" />
 
         <div className="flex-1 min-w-0">
-          <span className="text-sm font-medium text-gray-900">{goal.title}</span>
+          <span className="text-sm font-medium text-foreground">{goal.title}</span>
         </div>
 
         {/* Status picker */}
@@ -183,7 +183,7 @@ function GoalRow({
         {goal.rocks.length > 0 && (
           <span className={cn(
             "inline-flex items-center gap-1 text-xs",
-            goal.rocks.some((r) => r.status === "off_track") ? "text-red-500" : "text-gray-400"
+            goal.rocks.some((r) => r.status === "off_track") ? "text-red-500" : "text-muted"
           )}>
             {goal.rocks.some((r) => r.status === "off_track") && (
               <AlertTriangle className="w-3 h-3" />
@@ -205,7 +205,7 @@ function GoalRow({
             </button>
             <button
               onClick={() => setShowDeleteConfirm(false)}
-              className="p-0.5 text-gray-400"
+              className="p-0.5 text-muted"
             >
               <X className="w-3 h-3" />
             </button>
@@ -213,7 +213,7 @@ function GoalRow({
         ) : (
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="opacity-0 group-hover:opacity-100 p-1 text-gray-300 hover:text-red-500 transition-all"
+            className="md:opacity-0 md:group-hover:opacity-100 opacity-60 p-1 text-muted/50 hover:text-danger transition-all"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -224,7 +224,7 @@ function GoalRow({
       {expanded && (
         <div className="px-12 pb-3 space-y-2">
           {goal.description && (
-            <p className="text-xs text-gray-500 leading-relaxed">
+            <p className="text-xs text-muted leading-relaxed">
               {goal.description}
             </p>
           )}
@@ -236,7 +236,7 @@ function GoalRow({
                   Linked rocks are off-track — consider updating goal status
                 </div>
               )}
-              <p className="text-[10px] uppercase tracking-wider text-gray-400 font-medium">
+              <p className="text-[10px] uppercase tracking-wider text-muted font-medium">
                 Linked Rocks
               </p>
               {goal.rocks.map((rock) => (
@@ -248,7 +248,7 @@ function GoalRow({
                   )}
                 >
                   <Mountain className={cn("w-3 h-3", rock.status === "off_track" ? "text-red-500" : "text-brand")} />
-                  <span className="text-xs text-gray-700 flex-1">
+                  <span className="text-xs text-foreground/80 flex-1">
                     {rock.title}
                   </span>
                   <span className={cn(
@@ -256,7 +256,7 @@ function GoalRow({
                     rock.status === "on_track" ? "bg-emerald-100 text-emerald-700" :
                     rock.status === "off_track" ? "bg-red-100 text-red-700" :
                     rock.status === "complete" ? "bg-blue-100 text-blue-700" :
-                    "bg-gray-100 text-gray-600"
+                    "bg-surface text-muted"
                   )}>
                     {rock.percentComplete}%
                   </span>
@@ -265,7 +265,7 @@ function GoalRow({
             </div>
           )}
           {goal.targetDate && (
-            <p className="text-[10px] text-gray-400">
+            <p className="text-[10px] text-muted">
               Target:{" "}
               {new Date(goal.targetDate).toLocaleDateString("en-AU", {
                 day: "numeric",

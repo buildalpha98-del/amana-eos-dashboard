@@ -161,13 +161,13 @@ export function TeamOnboardingTracker() {
             <div
               key={card.label}
               className={cn(
-                "rounded-xl border border-gray-200 p-4",
+                "rounded-xl border border-border p-4",
                 card.bg,
               )}
             >
               <div className="flex items-center gap-2 mb-1">
                 <Icon className={cn("w-4 h-4", card.color)} />
-                <span className="text-xs font-medium text-gray-500">
+                <span className="text-xs font-medium text-muted">
                   {card.label}
                 </span>
               </div>
@@ -195,7 +195,7 @@ export function TeamOnboardingTracker() {
               return (
                 <div
                   key={user.id}
-                  className="bg-white rounded-xl border border-gray-200 p-4"
+                  className="bg-card rounded-xl border border-border p-4"
                 >
                   <div className="flex items-center gap-3 mb-3">
                     {user.avatar ? (
@@ -210,7 +210,7 @@ export function TeamOnboardingTracker() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 text-sm truncate">
+                      <p className="font-medium text-foreground text-sm truncate">
                         {user.name}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -234,7 +234,7 @@ export function TeamOnboardingTracker() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-surface rounded-full overflow-hidden">
                       <div
                         className={cn(
                           "h-full rounded-full",
@@ -247,7 +247,7 @@ export function TeamOnboardingTracker() {
                         style={{ width: `${user.percentage}%` }}
                       />
                     </div>
-                    <span className="text-xs text-gray-500 tabular-nums whitespace-nowrap">
+                    <span className="text-xs text-muted tabular-nums whitespace-nowrap">
                       {user.completedCount}/{user.totalCount}
                     </span>
                     {user.percentage < 100 && (
@@ -266,25 +266,25 @@ export function TeamOnboardingTracker() {
       </div>
 
       {/* Desktop table */}
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-card rounded-xl border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[600px] text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-4 py-3 font-medium text-gray-500">Name</th>
-                <th className="px-4 py-3 font-medium text-gray-500">Role</th>
-                <th className="px-4 py-3 font-medium text-gray-500">
+              <tr className="bg-surface text-left">
+                <th className="px-4 py-3 font-medium text-muted">Name</th>
+                <th className="px-4 py-3 font-medium text-muted">Role</th>
+                <th className="px-4 py-3 font-medium text-muted">
                   Progress
                 </th>
-                <th className="px-4 py-3 font-medium text-gray-500 text-center">
+                <th className="px-4 py-3 font-medium text-muted text-center">
                   Status
                 </th>
-                <th className="px-4 py-3 font-medium text-gray-500 text-right">
+                <th className="px-4 py-3 font-medium text-muted text-right">
                   Action
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border/50">
               {isLoading
                 ? Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i}>
@@ -316,7 +316,7 @@ export function TeamOnboardingTracker() {
                       roleBadge[user.role] ?? roleBadge.member;
                     const status = getStatusLabel(user.percentage);
                     return (
-                      <tr key={user.id} className="hover:bg-gray-50/50">
+                      <tr key={user.id} className="hover:bg-surface/50">
                         {/* Name + avatar */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
@@ -332,10 +332,10 @@ export function TeamOnboardingTracker() {
                               </div>
                             )}
                             <div>
-                              <p className="font-medium text-gray-900 text-sm">
+                              <p className="font-medium text-foreground text-sm">
                                 {user.name}
                               </p>
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs text-muted">
                                 {user.email}
                               </p>
                             </div>
@@ -357,7 +357,7 @@ export function TeamOnboardingTracker() {
                         {/* Progress bar */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="flex-1 h-2 bg-surface rounded-full overflow-hidden">
                               <div
                                 className={cn(
                                   "h-full rounded-full transition-all",
@@ -372,7 +372,7 @@ export function TeamOnboardingTracker() {
                                 }}
                               />
                             </div>
-                            <span className="text-xs text-gray-500 w-16 text-right tabular-nums">
+                            <span className="text-xs text-muted w-16 text-right tabular-nums">
                               {user.completedCount}/{user.totalCount} (
                               {user.percentage}%)
                             </span>

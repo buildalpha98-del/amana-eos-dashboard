@@ -28,7 +28,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   in_progress: { label: "In Progress", color: "bg-amber-100 text-amber-700" },
   completed: { label: "Completed", color: "bg-emerald-100 text-emerald-700" },
   overdue: { label: "Overdue", color: "bg-red-100 text-red-700" },
-  skipped: { label: "Skipped", color: "bg-gray-100 text-gray-500" },
+  skipped: { label: "Skipped", color: "bg-surface text-muted" },
 };
 
 interface ServiceOption {
@@ -43,7 +43,7 @@ function formatDate(d: string | null) {
 }
 
 function scoreColor(score: number | null) {
-  if (score == null) return "text-gray-400";
+  if (score == null) return "text-muted";
   if (score >= 80) return "text-emerald-600";
   if (score >= 60) return "text-amber-600";
   return "text-red-600";
@@ -141,34 +141,34 @@ export function AuditResultsTab() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setYear((y) => y - 1)}
-            className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
+            className="p-1.5 rounded-lg border border-border hover:bg-surface"
           >
-            <ChevronLeft className="w-4 h-4 text-gray-600" />
+            <ChevronLeft className="w-4 h-4 text-muted" />
           </button>
-          <span className="text-sm font-semibold text-gray-900 min-w-[4rem] text-center">{year}</span>
+          <span className="text-sm font-semibold text-foreground min-w-[4rem] text-center">{year}</span>
           <button
             onClick={() => setYear((y) => y + 1)}
-            className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
+            className="p-1.5 rounded-lg border border-border hover:bg-surface"
           >
-            <ChevronRight className="w-4 h-4 text-gray-600" />
+            <ChevronRight className="w-4 h-4 text-muted" />
           </button>
         </div>
 
         <div className="relative flex-1 max-w-xs">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search audits..."
-            className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="w-full pl-9 pr-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
 
         <select
           value={serviceFilter}
           onChange={(e) => setServiceFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+          className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All Centres</option>
           {services.map((s) => (
@@ -179,7 +179,7 @@ export function AuditResultsTab() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+          className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All Statuses</option>
           <option value="scheduled">Scheduled</option>
@@ -192,7 +192,7 @@ export function AuditResultsTab() {
         <select
           value={qaFilter}
           onChange={(e) => setQaFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+          className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
         >
           <option value="">All QAs</option>
           {[1, 2, 3, 4, 5, 6, 7].map((qa) => (
@@ -203,7 +203,7 @@ export function AuditResultsTab() {
         <button
           onClick={handleExport}
           disabled={filteredInstances.length === 0}
-          className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 ml-auto"
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors disabled:opacity-50 ml-auto"
         >
           <Download className="w-4 h-4" />
           Export CSV
@@ -216,44 +216,44 @@ export function AuditResultsTab() {
           <Loader2 className="w-8 h-8 text-brand animate-spin" />
         </div>
       ) : filteredInstances.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted">
           <p className="text-sm">No audit results found</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Audit</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Centre</th>
-                  <th className="text-center px-4 py-3 font-semibold text-gray-700">QA</th>
-                  <th className="text-center px-4 py-3 font-semibold text-gray-700">Month</th>
-                  <th className="text-center px-4 py-3 font-semibold text-gray-700">Status</th>
-                  <th className="text-center px-4 py-3 font-semibold text-gray-700">Score</th>
-                  <th className="text-center px-4 py-3 font-semibold text-gray-700">Y / N / NA</th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-700">Auditor</th>
+                <tr className="bg-surface/50 border-b border-border">
+                  <th className="text-left px-4 py-3 font-semibold text-foreground/80">Audit</th>
+                  <th className="text-left px-4 py-3 font-semibold text-foreground/80">Centre</th>
+                  <th className="text-center px-4 py-3 font-semibold text-foreground/80">QA</th>
+                  <th className="text-center px-4 py-3 font-semibold text-foreground/80">Month</th>
+                  <th className="text-center px-4 py-3 font-semibold text-foreground/80">Status</th>
+                  <th className="text-center px-4 py-3 font-semibold text-foreground/80">Score</th>
+                  <th className="text-center px-4 py-3 font-semibold text-foreground/80">Y / N / NA</th>
+                  <th className="text-left px-4 py-3 font-semibold text-foreground/80">Auditor</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-border/50">
                 {filteredInstances.map((inst) => {
                   const cfg = statusConfig[inst.status] || statusConfig.scheduled;
                   return (
-                    <tr key={inst.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={inst.id} className="hover:bg-surface transition-colors">
                       <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900 truncate max-w-[200px]">
+                        <p className="font-medium text-foreground truncate max-w-[200px]">
                           {inst.template.name}
                         </p>
-                        <p className="text-xs text-gray-500">{inst.template.nqsReference}</p>
+                        <p className="text-xs text-muted">{inst.template.nqsReference}</p>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{inst.service.code}</td>
+                      <td className="px-4 py-3 text-muted">{inst.service.code}</td>
                       <td className="px-4 py-3 text-center">
                         <span className="text-xs font-mono font-medium bg-brand/10 text-brand px-2 py-0.5 rounded">
                           QA{inst.template.qualityArea}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center text-gray-600">
+                      <td className="px-4 py-3 text-center text-muted">
                         {inst.scheduledMonth}/{inst.scheduledYear}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -264,14 +264,14 @@ export function AuditResultsTab() {
                       <td className={cn("px-4 py-3 text-center font-bold", scoreColor(inst.complianceScore))}>
                         {inst.complianceScore != null ? `${inst.complianceScore}%` : "—"}
                       </td>
-                      <td className="px-4 py-3 text-center text-xs text-gray-600">
+                      <td className="px-4 py-3 text-center text-xs text-muted">
                         <span className="text-emerald-600">{inst.yesCount}</span>
                         {" / "}
                         <span className="text-red-600">{inst.noCount}</span>
                         {" / "}
-                        <span className="text-gray-400">{inst.naCount}</span>
+                        <span className="text-muted">{inst.naCount}</span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 truncate max-w-[120px]">
+                      <td className="px-4 py-3 text-muted truncate max-w-[120px]">
                         {inst.auditorName || "—"}
                       </td>
                       <td className="px-4 py-3">

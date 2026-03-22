@@ -124,7 +124,7 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
     return (
       <div className="space-y-3">
         {[...Array(7)].map((_, i) => (
-          <div key={i} className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3">
+          <div key={i} className="bg-card rounded-lg border border-border p-4 flex items-center gap-3">
             <Skeleton className="w-10 h-10 rounded-lg" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-4 w-48" />
@@ -143,10 +143,10 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
         <div className="w-12 h-12 rounded-full bg-brand/10 flex items-center justify-center mb-4">
           <ClipboardCheck className="w-6 h-6 text-brand" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+        <h3 className="text-lg font-semibold text-foreground mb-1">
           No QIP Found
         </h3>
-        <p className="text-sm text-gray-500 max-w-md mb-4">
+        <p className="text-sm text-muted max-w-md mb-4">
           Create a Quality Improvement Plan to track NQS quality areas, strengths,
           and improvement strategies for this service.
         </p>
@@ -172,15 +172,15 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-6">
       {/* QIP Header */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="bg-card rounded-xl border border-border p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center">
               <ClipboardCheck className="w-5 h-5 text-brand" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">Quality Improvement Plan</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="font-semibold text-foreground">Quality Improvement Plan</h3>
+              <p className="text-sm text-muted">
                 {qip.documentType === "qip" ? "QIP" : "SAT"} •{" "}
                 {qip.lastReviewDate
                   ? `Last reviewed ${new Date(qip.lastReviewDate).toLocaleDateString()}`
@@ -217,16 +217,16 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
             const ratingClass = RATING_COLORS[area.rating || "not_assessed"] || RATING_COLORS.not_assessed;
 
             return (
-              <div key={area.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div key={area.id} className="bg-card rounded-xl border border-border overflow-hidden">
                 <button
                   onClick={() => setExpandedArea(isExpanded ? null : area.id)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition"
+                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-surface/50 transition"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-bold text-brand bg-brand/10 px-2 py-1 rounded">
                       {label}
                     </span>
-                    <span className="font-medium text-gray-900 text-sm">
+                    <span className="font-medium text-foreground text-sm">
                       {area.qualityArea}
                     </span>
                   </div>
@@ -237,15 +237,15 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                       </span>
                     )}
                     {isExpanded ? (
-                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                      <ChevronDown className="w-4 h-4 text-muted" />
                     ) : (
-                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                      <ChevronRight className="w-4 h-4 text-muted" />
                     )}
                   </div>
                 </button>
 
                 {isExpanded && (
-                  <div className="px-5 pb-5 border-t border-gray-100">
+                  <div className="px-5 pb-5 border-t border-border/50">
                     {isEditing ? (
                       <div className="space-y-4 pt-4">
                         {[
@@ -259,14 +259,14 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                           { key: "progressNotes", label: "Progress Notes", type: "textarea" },
                         ].map((field) => (
                           <div key={field.key}>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground/80 mb-1">
                               {field.label}
                             </label>
                             {field.type === "select" ? (
                               <select
                                 value={(editForm as Record<string, string>)[field.key] || ""}
                                 onChange={(e) => setEditForm({ ...editForm, [field.key]: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
                               >
                                 {field.options?.map((opt) => (
                                   <option key={opt} value={opt}>
@@ -279,14 +279,14 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                                 value={(editForm as Record<string, string>)[field.key] || ""}
                                 onChange={(e) => setEditForm({ ...editForm, [field.key]: e.target.value })}
                                 rows={3}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
                               />
                             ) : (
                               <input
                                 type="text"
                                 value={(editForm as Record<string, string>)[field.key] || ""}
                                 onChange={(e) => setEditForm({ ...editForm, [field.key]: e.target.value })}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                className="w-full border border-border rounded-lg px-3 py-2 text-sm"
                               />
                             )}
                           </div>
@@ -294,7 +294,7 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                         <div className="flex justify-end gap-2 pt-2">
                           <button
                             onClick={() => { setEditingArea(null); setEditForm({}); }}
-                            className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+                            className="px-3 py-1.5 text-sm text-muted hover:text-foreground"
                           >
                             Cancel
                           </button>
@@ -319,11 +319,11 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
                           { label: "Progress Notes", value: area.progressNotes },
                         ].map((field) => (
                           <div key={field.label}>
-                            <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                            <dt className="text-xs font-medium text-muted uppercase tracking-wide">
                               {field.label}
                             </dt>
-                            <dd className="text-sm text-gray-900 mt-0.5 whitespace-pre-wrap">
-                              {field.value || <span className="text-gray-400 italic">Not set</span>}
+                            <dd className="text-sm text-foreground mt-0.5 whitespace-pre-wrap">
+                              {field.value || <span className="text-muted italic">Not set</span>}
                             </dd>
                           </div>
                         ))}

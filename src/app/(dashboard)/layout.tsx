@@ -15,6 +15,8 @@ import { PWAInstallPrompt } from "@/components/shared/PWAInstallPrompt";
 import { OnboardingTourWrapper } from "@/components/shared/OnboardingTourWrapper";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
+import { NavigationProgress } from "@/components/layout/NavigationProgress";
+import { MobileTabBar } from "@/components/layout/MobileTabBar";
 import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
@@ -39,6 +41,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen">
+      <NavigationProgress />
       {/* Skip to main content — visible only on keyboard focus */}
       <a
         href="#main-content"
@@ -69,7 +72,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
             height={28}
             className="invert"
           />
-          <span className="text-sm font-heading font-semibold text-gray-900">Amana OSHC</span>
+          <span className="text-sm font-heading font-semibold text-foreground">Amana OSHC</span>
         </div>
         <div className="w-9" /> {/* Spacer for centering */}
       </div>
@@ -81,7 +84,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         )}
       >
         <TopBar />
-        <main id="main-content" className="p-4 md:p-8 animate-slide-up">
+        <main id="main-content" className="p-4 md:p-8 pb-20 md:pb-8 animate-slide-up">
           <SystemBannerBar />
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
@@ -91,6 +94,7 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
         <OnboardingTourWrapper />
         <KeyboardShortcuts />
       </div>
+      <MobileTabBar onMorePress={() => setMobileNavOpen(true)} />
     </div>
   );
 }

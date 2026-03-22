@@ -252,7 +252,7 @@ function TemplateCard({
           {getCategoryLabel(template.category)}
         </span>
         {isAdmin && (
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex gap-1 md:opacity-0 md:group-hover:opacity-100 opacity-60 transition-opacity">
             <button
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
               className="p-1 rounded hover:bg-gray-100"
