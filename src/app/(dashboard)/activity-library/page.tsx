@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 import { hasMinRole } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
@@ -112,49 +113,44 @@ export default function ActivityLibraryPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Library className="w-7 h-7 text-brand" />
-          Activity Library
-        </h1>
-        <p className="text-sm text-muted mt-1 line-clamp-2">
-          Reusable activity templates for weekly programming. Browse, search, and use templates to pre-fill your program.
-        </p>
-      </div>
-
-      {/* Action bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-          <input
-            type="text"
-            placeholder="Search activities..."
-            aria-label="Search activities"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-10 pr-4 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
-          />
-        </div>
-        <select
-          value={categoryFilter}
-          onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
-        >
-          <option value="">All Categories</option>
-          {CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </select>
-        {isAdmin && (
-          <button
-            onClick={() => { setEditingTemplate(null); setModalOpen(true); }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover transition-colors"
+      <PageHeader
+        title="Activity Library"
+        description="Reusable activity templates for weekly programming. Browse, search, and use templates to pre-fill your program."
+        primaryAction={
+          isAdmin
+            ? {
+                label: "Add Template",
+                icon: Plus,
+                onClick: () => { setEditingTemplate(null); setModalOpen(true); },
+              }
+            : undefined
+        }
+      >
+        {/* Action bar */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+            <input
+              type="text"
+              placeholder="Search activities..."
+              aria-label="Search activities"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="w-full pl-10 pr-4 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
+            />
+          </div>
+          <select
+            value={categoryFilter}
+            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+            className="px-3 py-2 text-sm border border-border rounded-lg focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
           >
-            <Plus className="w-4 h-4" />
-            Add Template
-          </button>
-        )}
-      </div>
+            <option value="">All Categories</option>
+            {CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+      </PageHeader>
 
       {/* Grid */}
       {error ? (

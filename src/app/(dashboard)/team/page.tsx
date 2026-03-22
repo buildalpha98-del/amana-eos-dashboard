@@ -17,6 +17,8 @@ import { exportToCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Download } from "lucide-react";
 
 export default function TeamPage() {
   const { data: members, isLoading: teamLoading, error, refetch } = useTeam();
@@ -37,21 +39,16 @@ export default function TeamPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header with view toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-            {viewMode === "chart" ? "Accountability Chart" : "Performance List"}
-          </h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            {viewMode === "chart"
-              ? "Organisational structure and seat assignments"
-              : "Team performance metrics and individual stats"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <ExportButton
-            onClick={() =>
+      <PageHeader
+        title={viewMode === "chart" ? "Accountability Chart" : "Performance List"}
+        description={viewMode === "chart"
+          ? "Organisational structure and seat assignments"
+          : "Team performance metrics and individual stats"}
+        secondaryActions={[
+          {
+            label: "Export CSV",
+            icon: Download,
+            onClick: () =>
               exportToCsv(
                 `amana-team-${new Date().toISOString().slice(0, 10)}`,
                 members || [],
@@ -67,38 +64,20 @@ export default function TeamPage() {
                   { header: "Open Issues", accessor: (m) => m.openIssues },
                   { header: "Managed Services", accessor: (m) => m.managedServices },
                 ],
-              )
-            }
-            disabled={!members || members.length === 0}
-          />
-          <div className="flex items-center gap-1 bg-surface rounded-lg p-1">
-            <button
-              onClick={() => setViewMode("chart")}
-              className={cn(
-                "p-2 rounded-md transition-colors",
-                viewMode === "chart"
-                  ? "bg-card text-brand shadow-sm"
-                  : "text-muted hover:text-foreground"
-              )}
-              title="Accountability Chart"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={cn(
-                "p-2 rounded-md transition-colors",
-                viewMode === "list"
-                  ? "bg-card text-brand shadow-sm"
-                  : "text-muted hover:text-foreground"
-              )}
-              title="Performance List"
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
+              ),
+          },
+        ]}
+        toggles={[
+          {
+            options: [
+              { icon: LayoutGrid, label: "Accountability Chart", value: "chart" },
+              { icon: List, label: "Performance List", value: "list" },
+            ],
+            value: viewMode,
+            onChange: (v) => setViewMode(v as "chart" | "list"),
+          },
+        ]}
+      />
 
       {/* Stats cards — only show on list view */}
       {viewMode === "list" && (

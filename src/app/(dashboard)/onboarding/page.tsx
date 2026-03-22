@@ -56,6 +56,7 @@ import {
   Download,
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { cn } from "@/lib/utils";
 import { hasMinRole } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
@@ -513,76 +514,57 @@ export default function OnboardingPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Onboarding & Training</h2>
-          <p className="text-muted mt-1">
-            {isStaff
-              ? "Complete your onboarding tasks and training modules."
-              : "Manage onboarding packs and LMS courses for staff."}
-          </p>
-        </div>
-        {isAdmin && (
-          <div className="flex items-center gap-3">
-            {isOwner && (
-              <button
-                onClick={activeTab === "onboarding" ? handleSeedPacks : handleSeedCourses}
-                disabled={seedingPacks || seedingCourses}
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-amber-300 bg-amber-50 text-amber-700 text-sm font-medium rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
-              >
-                {(seedingPacks || seedingCourses) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {activeTab === "onboarding" ? "Seed Packs" : "Seed Training Courses"}
-              </button>
-            )}
-            <button
-              onClick={() => {
-                if (activeTab === "onboarding") {
-                  exportToCsv("onboarding-assignments", assignments, [
-                    { header: "Staff Member", accessor: (a) => a.user.name },
-                    { header: "Email", accessor: (a) => a.user.email },
-                    { header: "Pack", accessor: (a) => a.pack.name },
-                    { header: "Service", accessor: (a) => a.pack.service?.name ?? "" },
-                    { header: "Status", accessor: (a) => a.status },
-                    { header: "Tasks Total", accessor: (a) => a.pack._count.tasks },
-                    { header: "Tasks Completed", accessor: (a) => a.progress.filter((p) => p.completed).length },
-                    { header: "Due Date", accessor: (a) => a.dueDate ? new Date(a.dueDate).toLocaleDateString("en-AU") : "" },
-                  ]);
-                } else if (activeTab === "lms") {
-                  exportToCsv("lms-courses", courses, [
-                    { header: "Title", accessor: (c) => c.title },
-                    { header: "Category", accessor: (c) => c.category ?? "" },
-                    { header: "Status", accessor: (c) => c.status },
-                    { header: "Required", accessor: (c) => c.isRequired ? "Yes" : "No" },
-                    { header: "Modules", accessor: (c) => c._count?.modules ?? 0 },
-                    { header: "Enrollments", accessor: (c) => c._count?.enrollments ?? 0 },
-                  ]);
-                }
-              }}
-              disabled={activeTab === "exit-surveys"}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
-              title="Export to CSV"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Export</span>
-            </button>
-            <button
-              onClick={() => setShowAssign(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
-            >
-              <Users className="w-4 h-4" />
-              Assign Pack
-            </button>
-            <button
-              onClick={() => activeTab === "onboarding" ? setShowCreatePack(true) : setShowCreateCourse(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              {activeTab === "onboarding" ? "Create Pack" : "Create Course"}
-            </button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title="Onboarding & Training"
+        description={isStaff
+          ? "Complete your onboarding tasks and training modules."
+          : "Manage onboarding packs and LMS courses for staff."}
+        primaryAction={isAdmin ? {
+          label: activeTab === "onboarding" ? "Create Pack" : "Create Course",
+          icon: Plus,
+          onClick: () => activeTab === "onboarding" ? setShowCreatePack(true) : setShowCreateCourse(true),
+        } : undefined}
+        secondaryActions={isAdmin ? [
+          {
+            label: "Assign Pack",
+            icon: Users,
+            onClick: () => setShowAssign(true),
+          },
+          {
+            label: "Export",
+            icon: Download,
+            onClick: () => {
+              if (activeTab === "onboarding") {
+                exportToCsv("onboarding-assignments", assignments, [
+                  { header: "Staff Member", accessor: (a) => a.user.name },
+                  { header: "Email", accessor: (a) => a.user.email },
+                  { header: "Pack", accessor: (a) => a.pack.name },
+                  { header: "Service", accessor: (a) => a.pack.service?.name ?? "" },
+                  { header: "Status", accessor: (a) => a.status },
+                  { header: "Tasks Total", accessor: (a) => a.pack._count.tasks },
+                  { header: "Tasks Completed", accessor: (a) => a.progress.filter((p) => p.completed).length },
+                  { header: "Due Date", accessor: (a) => a.dueDate ? new Date(a.dueDate).toLocaleDateString("en-AU") : "" },
+                ]);
+              } else if (activeTab === "lms") {
+                exportToCsv("lms-courses", courses, [
+                  { header: "Title", accessor: (c) => c.title },
+                  { header: "Category", accessor: (c) => c.category ?? "" },
+                  { header: "Status", accessor: (c) => c.status },
+                  { header: "Required", accessor: (c) => c.isRequired ? "Yes" : "No" },
+                  { header: "Modules", accessor: (c) => c._count?.modules ?? 0 },
+                  { header: "Enrollments", accessor: (c) => c._count?.enrollments ?? 0 },
+                ]);
+              }
+            },
+          },
+          ...(isOwner ? [{
+            label: activeTab === "onboarding" ? "Seed Packs" : "Seed Training Courses",
+            icon: Sparkles,
+            onClick: activeTab === "onboarding" ? handleSeedPacks : handleSeedCourses,
+            loading: seedingPacks || seedingCourses,
+          }] : []),
+        ] : undefined}
+      />
 
       {/* Tabs */}
       <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit">

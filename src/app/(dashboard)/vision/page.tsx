@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
+import { PageHeader } from "@/components/layout/PageHeader";
 import Link from "next/link";
 
 export default function VisionPage() {
@@ -43,27 +44,12 @@ export default function VisionPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">
-            Vision / Traction Organiser <HelpTooltip id="vto-heading" content="Your Vision/Traction Organizer defines where you're going and how you'll get there. Review quarterly to stay aligned." />
-          </h2>
-          <p className="text-sm text-muted">
-            Your strategic compass — click any section to edit
-          </p>
-        </div>
-        {vto?.updatedBy && (
-          <p className="text-xs text-muted">
-            Last updated by {vto.updatedBy.name} on{" "}
-            {new Date(vto.updatedAt).toLocaleDateString("en-AU", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
-          </p>
-        )}
-      </div>
+      <PageHeader
+        title="Vision / Traction Organiser"
+        description="Your strategic compass — click any section to edit"
+        helpTooltipId="vto-heading"
+        helpTooltipContent="Your Vision/Traction Organizer defines where you're going and how you'll get there. Review quarterly to stay aligned."
+      />
 
       {/* Content */}
       {isLoading ? (

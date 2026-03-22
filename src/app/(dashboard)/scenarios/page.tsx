@@ -15,6 +15,7 @@ import { ScenarioComparisonView } from "@/components/scenarios/ScenarioCompariso
 import { SavedScenariosView } from "@/components/scenarios/SavedScenariosView";
 import { SaveScenarioDialog } from "@/components/scenarios/SaveScenarioDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 
@@ -53,23 +54,10 @@ export default function ScenariosPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-1">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: "#004E6415", color: "#004E64" }}
-            >
-              <Calculator className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Scenario Modelling</h2>
-              <p className="text-sm text-muted mt-0.5">
-                What-if analysis — adjust inputs and see real-time financial projections
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          title="Scenario Modelling"
+          description="What-if analysis — adjust inputs and see real-time financial projections"
+        />
         <ErrorState
           title="Failed to load scenarios"
           error={error as Error}
@@ -81,23 +69,10 @@ export default function ScenariosPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: "#004E6415", color: "#004E64" }}
-          >
-            <Calculator className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Scenario Modelling</h2>
-            <p className="text-sm text-muted mt-0.5">
-              What-if analysis — adjust inputs and see real-time financial projections
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Scenario Modelling"
+        description="What-if analysis — adjust inputs and see real-time financial projections"
+      />
 
       {/* Tab Toggle */}
       <div className="mb-6">

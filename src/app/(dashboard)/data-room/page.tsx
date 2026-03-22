@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { FolderLock } from "lucide-react";
+import { FolderLock, Download } from "lucide-react";
 import { useDataRoom } from "@/hooks/useDataRoom";
 import { DATA_ROOM_SECTIONS } from "@/lib/data-room-config";
 import { ExitReadinessScore } from "@/components/data-room/ExitReadinessScore";
@@ -11,6 +11,7 @@ import { exportToCSV, type LegacyCsvColumn } from "@/lib/csv-export";
 import { toast } from "@/hooks/useToast";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export default function DataRoomPage() {
   const { data, isLoading, error, refetch } = useDataRoom();
@@ -38,23 +39,10 @@ export default function DataRoomPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: "#004E6415", color: "#004E64" }}
-            >
-              <FolderLock className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Due Diligence Data Room</h2>
-              <p className="text-sm text-muted mt-0.5">
-                Investor-ready document tracking and exit readiness scoring
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          title="Due Diligence Data Room"
+          description="Investor-ready document tracking and exit readiness scoring"
+        />
         <ErrorState
           title="Failed to load data room"
           error={error as Error}
@@ -92,32 +80,14 @@ export default function DataRoomPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: "#004E6415", color: "#004E64" }}
-          >
-            <FolderLock className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Due Diligence Data Room</h2>
-            <p className="text-sm text-muted mt-0.5">
-              Investor-ready document tracking and exit readiness scoring
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={allExpanded ? collapseAll : expandAll}
-            className="text-sm text-brand hover:underline font-medium"
-          >
-            {allExpanded ? "Collapse All" : "Expand All"}
-          </button>
-          <ExportButton onClick={handleExport} label="Export Index" disabled={!data} />
-        </div>
-      </div>
+      <PageHeader
+        title="Due Diligence Data Room"
+        description="Investor-ready document tracking and exit readiness scoring"
+        secondaryActions={[
+          { label: allExpanded ? "Collapse All" : "Expand All", icon: FolderLock, onClick: allExpanded ? collapseAll : expandAll },
+          { label: "Export Index", icon: Download, onClick: handleExport },
+        ]}
+      />
 
       {/* Exit Readiness Score */}
       <ExitReadinessScore

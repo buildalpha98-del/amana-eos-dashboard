@@ -6,6 +6,7 @@ import { Bell, MessageCircle, HeartPulse } from "lucide-react";
 import { AnnouncementsTab } from "@/components/communication/AnnouncementsTab";
 import { CascadeBoardTab } from "@/components/communication/CascadeBoardTab";
 import { WeeklyPulseTab } from "@/components/communication/WeeklyPulseTab";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const tabs = [
   { key: "announcements", label: "Announcements", icon: Bell },
@@ -20,15 +21,10 @@ export default function CommunicationPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Communication</h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            Stay aligned with announcements, cascade messages, and team pulse check-ins
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Communication"
+        description="Stay aligned with announcements, cascade messages, and team pulse check-ins"
+      />
 
       {/* Tab Bar */}
       <div className="border-b border-border">

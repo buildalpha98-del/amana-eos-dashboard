@@ -21,6 +21,7 @@ import { exportToCsv } from "@/lib/csv-export";
 import type { Role } from "@prisma/client";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 import {
   usePolicies,
@@ -94,98 +95,65 @@ export default function PoliciesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Shield className="h-6 w-6 text-brand" />
-            Policies
-          </h1>
-          <p className="text-sm text-foreground/50 mt-1">
-            Manage and track policy compliance
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isAdmin && (
-            <>
-              {/* Main tab pills */}
-              <div className="flex gap-1 bg-surface rounded-xl p-1">
-                <button
-                  onClick={() => setMainTab("policies")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    mainTab === "policies"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-foreground/50 hover:text-foreground"
-                  }`}
-                >
-                  Policies
-                </button>
-                <button
-                  onClick={() => setMainTab("compliance")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    mainTab === "compliance"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-foreground/50 hover:text-foreground"
-                  }`}
-                >
-                  Compliance
-                </button>
-              </div>
-            </>
-          )}
-
-          <button
-            onClick={() =>
+      <PageHeader
+        title="Policies"
+        description="Manage and track policy compliance"
+        primaryAction={
+          isAdmin
+            ? { label: "New Policy", icon: Plus, onClick: () => setShowCreate(true) }
+            : undefined
+        }
+        secondaryActions={[
+          {
+            label: "Export",
+            icon: Download,
+            onClick: () =>
               exportToCsv("policies", filtered, [
                 { header: "Title", accessor: (p) => p.title },
                 { header: "Version", accessor: (p) => p.version },
                 { header: "Status", accessor: (p) => p.status },
                 { header: "Category", accessor: (p) => p.category ?? "" },
                 { header: "Acknowledgements", accessor: (p) => p._count?.acknowledgements ?? 0 },
-              ])
+              ]),
+          },
+          ...(role === "owner"
+            ? [
+                {
+                  label: "Seed Policies",
+                  icon: Sparkles,
+                  loading: seeding,
+                  onClick: async () => {
+                    setSeeding(true);
+                    try {
+                      const res = await fetch("/api/policies/seed", { method: "POST" });
+                      const data = await res.json();
+                      toast({ description: data.message || "Policies seeded!" });
+                      queryClient.invalidateQueries({ queryKey: ["policies"] });
+                    } catch {
+                      toast({ description: "Failed to seed policies", variant: "destructive" });
+                    } finally {
+                      setSeeding(false);
+                    }
+                  },
+                },
+              ]
+            : []),
+        ]}
+        {...(isAdmin
+          ? {
+              toggles: [
+                {
+                  options: [
+                    { icon: Shield, label: "Policies", value: "policies" },
+                    { icon: Users, label: "Compliance", value: "compliance" },
+                  ],
+                  value: mainTab,
+                  onChange: (v: string) => setMainTab(v as "policies" | "compliance"),
+                },
+              ],
             }
-            disabled={filtered.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
-            title="Export to CSV"
-          >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export</span>
-          </button>
-
-          {role === "owner" && (
-            <button
-              onClick={async () => {
-                setSeeding(true);
-                try {
-                  const res = await fetch("/api/policies/seed", { method: "POST" });
-                  const data = await res.json();
-                  toast({ description: data.message || "Policies seeded!" });
-                  queryClient.invalidateQueries({ queryKey: ["policies"] });
-                } catch {
-                  toast({ description: "Failed to seed policies", variant: "destructive" });
-                } finally {
-                  setSeeding(false);
-                }
-              }}
-              disabled={seeding}
-              className="inline-flex items-center gap-1.5 px-3 py-2 border border-amber-300 bg-amber-50 text-amber-700 text-sm font-medium rounded-xl hover:bg-amber-100 transition-colors disabled:opacity-50"
-            >
-              {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              <span className="hidden sm:inline">Seed Policies</span>
-            </button>
-          )}
-
-          {isAdmin && (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-brand rounded-xl hover:bg-brand-hover transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">New Policy</span>
-            </button>
-          )}
-        </div>
-      </div>
+          : {})}
+      />
 
       {/* Tab content */}
       {mainTab === "policies" ? (

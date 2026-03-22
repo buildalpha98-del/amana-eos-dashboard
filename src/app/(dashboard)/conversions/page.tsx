@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
   Repeat,
@@ -320,14 +321,10 @@ export default function ConversionsPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">
-            Casual &rarr; Regular Conversions
-          </h2>
-          <p className="text-muted mt-1 line-clamp-2">
-            Identify and convert repeat casual families to regular bookings
-          </p>
-        </div>
+        <PageHeader
+          title="Casual → Regular Conversions"
+          description="Identify and convert repeat casual families to regular bookings"
+        />
         <ErrorState
           title="Failed to load conversions"
           error={error as Error}
@@ -339,15 +336,10 @@ export default function ConversionsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">
-          Casual → Regular Conversions
-        </h2>
-        <p className="text-muted mt-1 line-clamp-2">
-          Identify and convert repeat casual families to regular bookings
-        </p>
-      </div>
+      <PageHeader
+        title="Casual → Regular Conversions"
+        description="Identify and convert repeat casual families to regular bookings"
+      />
 
       {/* Stats */}
       {stats && (

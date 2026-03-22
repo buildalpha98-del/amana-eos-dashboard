@@ -18,6 +18,7 @@ import {
   LayoutGrid,
   List,
 } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const statusTabs = [
   { key: "", label: "All" },
@@ -62,12 +63,10 @@ export default function ProjectsPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Projects</h2>
-          <p className="text-muted mt-1 line-clamp-2">
-            Track project progress across your centres
-          </p>
-        </div>
+        <PageHeader
+          title="Projects"
+          description="Track project progress across your centres"
+        />
         <ErrorState
           title="Failed to load projects"
           error={error as Error}
@@ -80,30 +79,22 @@ export default function ProjectsPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Projects</h2>
-          <p className="text-muted mt-1 line-clamp-2">
-            Track project progress across your centres
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowLaunch(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 border-2 border-brand text-brand text-sm font-medium rounded-lg hover:bg-brand/5 transition-colors"
-          >
-            <Rocket className="w-4 h-4" />
-            Launch from Template
-          </button>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Project
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Projects"
+        description="Track project progress across your centres"
+        primaryAction={{
+          label: "New Project",
+          icon: Plus,
+          onClick: () => setShowCreate(true),
+        }}
+        secondaryActions={[
+          {
+            label: "Launch from Template",
+            icon: Rocket,
+            onClick: () => setShowLaunch(true),
+          },
+        ]}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">

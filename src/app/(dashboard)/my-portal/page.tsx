@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
 import { SessionManagement } from "@/components/settings/SessionManagement";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -515,11 +516,8 @@ export default function MyPortalPage() {
       {/* ============================================================ */}
       {/* 1. WELCOME HEADER                                            */}
       {/* ============================================================ */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-          Welcome back, {firstName}
-        </h1>
-        <div className="flex flex-wrap items-center gap-2 mt-2">
+      <PageHeader title={`Welcome back, ${firstName}`}>
+        <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-brand/10 text-brand capitalize">
             <UserCircle className="w-3.5 h-3.5" />
             {profile.role}
@@ -537,7 +535,7 @@ export default function MyPortalPage() {
             </span>
           )}
         </div>
-      </div>
+      </PageHeader>
 
       {/* ============================================================ */}
       {/* 2. QUICK ACTIONS BANNER                                      */}

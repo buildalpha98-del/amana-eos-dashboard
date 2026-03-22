@@ -46,6 +46,7 @@ import { CreatePostModal } from "@/components/marketing/CreatePostModal";
 import { CreateCampaignModal } from "@/components/marketing/CreateCampaignModal";
 import { CreateTaskModal } from "@/components/marketing/CreateTaskModal";
 import { SequencesTab } from "@/components/marketing/SequencesTab";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 /* ------------------------------------------------------------------ */
 /* Tab definitions — consolidated from 16 → 8 primary tabs            */
@@ -80,14 +81,13 @@ export default function MarketingPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Marketing</h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            Manage campaigns, posts, and content across all platforms
-          </p>
-        </div>
+      <PageHeader
+        title="Marketing"
+        description="Manage campaigns, posts, and content across all platforms"
+        secondaryActions={[
+          { label: "Import Calendar", icon: Upload, onClick: () => setShowImport(true) },
+        ]}
+      >
         <div className="flex items-center gap-3">
           <ServiceFilter
             value={selectedServiceId}
@@ -100,15 +100,8 @@ export default function MarketingPage() {
             <Mail className="h-4 w-4" />
             Compose Email
           </Link>
-          <button
-            onClick={() => setShowImport(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand hover:bg-brand hover:text-white transition-colors"
-          >
-            <Upload className="h-4 w-4" />
-            Import Calendar
-          </button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Tabs */}
       <MarketingTabs tabs={tabs} active={activeTab} onChange={setActiveTab} />

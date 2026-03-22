@@ -10,6 +10,7 @@ import { NewVacancyModal } from "@/components/recruitment/NewVacancyModal";
 import { VacancyTable } from "@/components/recruitment/VacancyTable";
 import { VacancyDetailPanel } from "@/components/recruitment/VacancyDetailPanel";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 
 export default function RecruitmentPage() {
@@ -56,15 +57,15 @@ export default function RecruitmentPage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-            Recruitment Pipeline
-          </h2>
-          <p className="text-sm text-muted mt-1">
-            Track vacancies, candidates, and staff referrals
-          </p>
-        </div>
+      <PageHeader
+        title="Recruitment Pipeline"
+        description="Track vacancies, candidates, and staff referrals"
+        primaryAction={{
+          label: "New Vacancy",
+          icon: Plus,
+          onClick: () => setShowNewVacancy(true),
+        }}
+      >
         <div className="flex flex-wrap items-center gap-3">
           <ServiceFilter value={selectedServiceId} onChange={setSelectedServiceId} />
           <select
@@ -109,15 +110,8 @@ export default function RecruitmentPage() {
             }
             disabled={vacancies.length === 0}
           />
-          <button
-            onClick={() => setShowNewVacancy(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-brand text-white text-sm font-medium hover:bg-brand-hover transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            New Vacancy
-          </button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">

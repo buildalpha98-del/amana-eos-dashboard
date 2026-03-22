@@ -35,6 +35,8 @@ import { LayoutGrid, ListOrdered, BarChart3 } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AiButton } from "@/components/ui/AiButton";
 import { TrendInsightsWidget } from "@/components/trends/TrendInsightsWidget";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Download } from "lucide-react";
 
 type ViewMode = "centres" | "leaderboard" | "compare";
 
@@ -138,12 +140,10 @@ export default function PerformancePage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Centre Performance</h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            Rankings, KPIs, and operational health across all centres
-          </p>
-        </div>
+        <PageHeader
+          title="Centre Performance"
+          description="Rankings, KPIs, and operational health across all centres"
+        />
         <ErrorState
           title="Failed to load performance"
           error={error as Error}
@@ -155,71 +155,42 @@ export default function PerformancePage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Centre Performance</h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            Rankings, KPIs, and operational health across all centres
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 bg-surface rounded-lg p-0.5">
-            <button
-              onClick={() => { setViewMode("centres"); setStateFilter(null); }}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                viewMode === "centres"
-                  ? "bg-card text-brand shadow-sm"
-                  : "text-muted hover:text-foreground"
-              )}
-            >
-              <LayoutGrid className="w-4 h-4" />
-              <span className="hidden sm:inline">Centres</span>
-            </button>
-            <button
-              onClick={() => setViewMode("leaderboard")}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                viewMode === "leaderboard"
-                  ? "bg-card text-brand shadow-sm"
-                  : "text-muted hover:text-foreground"
-              )}
-            >
-              <ListOrdered className="w-4 h-4" />
-              <span className="hidden sm:inline">Leaderboard</span>
-            </button>
-            <button
-              onClick={() => { setViewMode("compare"); setStateFilter(null); }}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
-                viewMode === "compare"
-                  ? "bg-card text-brand shadow-sm"
-                  : "text-muted hover:text-foreground"
-              )}
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Compare</span>
-            </button>
-          </div>
-          <AiButton
-            templateSlug="performance/digest"
-            variables={{
-              centreScores: centres?.slice(0, 15).map((c: any) => `${c.name}: ${c.score}/100`).join(", ") || "No data",
-              topPerformers: centres?.slice(0, 3).map((c: any) => `${c.name} (${c.score})`).join(", ") || "None",
-              bottomPerformers: centres?.slice(-3).map((c: any) => `${c.name} (${c.score})`).join(", ") || "None",
-              trends: "Current period data",
-            }}
-            onResult={(text) => setAiDigest(text)}
-            label="AI Digest"
-            size="sm"
-            section="performance"
-            disabled={!centres || centres.length === 0}
-          />
-          <ExportButton onClick={handleExport} disabled={!centres || centres.length === 0} />
-        </div>
-      </div>
+      <PageHeader
+        title="Centre Performance"
+        description="Rankings, KPIs, and operational health across all centres"
+        secondaryActions={[
+          { label: "Export CSV", icon: Download, onClick: handleExport },
+        ]}
+        toggles={[
+          {
+            options: [
+              { icon: LayoutGrid, label: "Centres", value: "centres" },
+              { icon: ListOrdered, label: "Leaderboard", value: "leaderboard" },
+              { icon: BarChart3, label: "Compare", value: "compare" },
+            ],
+            value: viewMode,
+            onChange: (v) => {
+              setViewMode(v as ViewMode);
+              if (v !== "leaderboard") setStateFilter(null);
+            },
+          },
+        ]}
+      >
+        <AiButton
+          templateSlug="performance/digest"
+          variables={{
+            centreScores: centres?.slice(0, 15).map((c: any) => `${c.name}: ${c.score}/100`).join(", ") || "No data",
+            topPerformers: centres?.slice(0, 3).map((c: any) => `${c.name} (${c.score})`).join(", ") || "None",
+            bottomPerformers: centres?.slice(-3).map((c: any) => `${c.name} (${c.score})`).join(", ") || "None",
+            trends: "Current period data",
+          }}
+          onResult={(text) => setAiDigest(text)}
+          label="AI Digest"
+          size="sm"
+          section="performance"
+          disabled={!centres || centres.length === 0}
+        />
+      </PageHeader>
 
       {/* AI Performance Digest */}
       {aiDigest && (

@@ -34,6 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { hasMinRole } from "@/lib/permissions";
 import type { Role } from "@prisma/client";
 
@@ -894,22 +895,11 @@ export default function ContractsPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Contracts</h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            Manage employment contracts, versions and staff acknowledgements
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New Contract
-        </button>
-      </div>
+      <PageHeader
+        title="Contracts"
+        description="Manage employment contracts, versions and staff acknowledgements"
+        primaryAction={{ label: "New Contract", icon: Plus, onClick: () => setShowCreate(true) }}
+      />
 
       {/* Filter Bar */}
       <div className="flex flex-wrap items-center gap-3 mb-6">

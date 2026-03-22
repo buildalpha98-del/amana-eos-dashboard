@@ -31,6 +31,7 @@ import {
   type IncidentRecord,
 } from "@/hooks/useIncidents";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { FilterPresets } from "@/components/ui/FilterPresets";
@@ -163,6 +164,19 @@ function IncidentsPageContent() {
     [filterService, filterType, filterSeverity, filterFrom, filterTo],
   );
 
+  const handleSeedProtocols = useCallback(async () => {
+    setSeedingProtocols(true);
+    try {
+      const res = await fetch("/api/incidents/seed", { method: "POST" });
+      const data = await res.json();
+      toast({ description: data.message || "Protocols seeded!" });
+    } catch {
+      toast({ description: "Failed to seed protocols", variant: "destructive" });
+    } finally {
+      setSeedingProtocols(false);
+    }
+  }, []);
+
   const { data: summary, isLoading: summaryLoading } = useIncidentSummary(filters);
   const { data: trends } = useIncidentTrends(8);
 
@@ -171,48 +185,14 @@ function IncidentsPageContent() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <AlertTriangle className="h-6 w-6 text-brand" />
-            Incidents
-          </h1>
-          <p className="text-sm text-foreground/50 mt-1">
-            Track and analyse safety incidents across services
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {session?.user?.role === "owner" && (
-            <button
-              onClick={async () => {
-                setSeedingProtocols(true);
-                try {
-                  const res = await fetch("/api/incidents/seed", { method: "POST" });
-                  const data = await res.json();
-                  toast({ description: data.message || "Protocols seeded!" });
-                } catch {
-                  toast({ description: "Failed to seed protocols", variant: "destructive" });
-                } finally {
-                  setSeedingProtocols(false);
-                }
-              }}
-              disabled={seedingProtocols}
-              className="inline-flex items-center gap-1.5 px-3 py-2 border border-amber-300 bg-amber-50 text-amber-700 text-sm font-medium rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
-            >
-              {seedingProtocols ? <SeedLoader className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              <span className="hidden sm:inline">Seed Protocols</span>
-            </button>
-          )}
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-hover transition-colors text-sm font-medium"
-          >
-            <Plus className="h-4 w-4" />
-            Report Incident
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Incidents"
+        description="Track and analyse safety incidents across services"
+        primaryAction={{ label: "Report Incident", icon: Plus, onClick: () => setShowCreate(true) }}
+        secondaryActions={[
+          { label: "Seed Protocols", icon: Sparkles, onClick: handleSeedProtocols, loading: seedingProtocols, hidden: session?.user?.role !== "owner" },
+        ]}
+      />
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

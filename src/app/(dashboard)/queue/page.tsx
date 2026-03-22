@@ -38,6 +38,7 @@ import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { FilterPresets } from "@/components/ui/FilterPresets";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const SEATS = [
   "marketing",
@@ -278,91 +279,54 @@ export default function QueuePage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-            {queueView === "all" ? (
-              <Users className="w-5 h-5 text-brand" />
-            ) : (
-              <Inbox className="w-5 h-5 text-brand" />
-            )}
-            {queueView === "all" ? "All Queues" : "My Queue"}
-          </h1>
-          <p className="text-sm text-muted mt-0.5">
-            {queueView === "all"
-              ? "All reports and tasks across the team"
-              : "Reports and tasks assigned to you from automation"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isAdmin && (
-            <div className="inline-flex items-center rounded-lg border border-border bg-surface/50 p-0.5">
-              <button
-                onClick={() => setQueueView("mine")}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                  queueView === "mine"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted hover:text-foreground"
-                )}
-              >
-                <Inbox className="w-3.5 h-3.5" />
-                My Queue
-              </button>
-              <button
-                onClick={() => setQueueView("all")}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
-                  queueView === "all"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted hover:text-foreground"
-                )}
-              >
-                <Users className="w-3.5 h-3.5" />
-                All Queues
-              </button>
-            </div>
-          )}
-          <ExportButton
-            onClick={() =>
-              exportToCsv(
-                `amana-queue-${new Date().toISOString().slice(0, 10)}`,
-                reports,
-                [
-                  { header: "ID", accessor: (r) => r.id },
-                  { header: "Title", accessor: (r) => r.title },
-                  { header: "Seat", accessor: (r) => r.seat },
-                  { header: "Report Type", accessor: (r) => r.reportType },
-                  { header: "Status", accessor: (r) => r.status },
-                  { header: "Centre", accessor: (r) => r.service?.name ?? "" },
-                  { header: "Assigned To", accessor: (r) => r.assignedTo?.name ?? "Unassigned" },
-                  { header: "Created", accessor: (r) => new Date(r.createdAt).toLocaleDateString("en-AU") },
-                  { header: "Reviewed At", accessor: (r) => r.reviewedAt ? new Date(r.reviewedAt).toLocaleDateString("en-AU") : "" },
-                ],
-              )
+      <PageHeader
+        title={queueView === "all" ? "All Queues" : "My Queue"}
+        description={
+          queueView === "all"
+            ? "All reports and tasks across the team"
+            : "Reports and tasks assigned to you from automation"
+        }
+        primaryAction={{
+          label: showFilters ? "Hide Filters" : "Filter",
+          icon: Filter,
+          onClick: () => setShowFilters(!showFilters),
+        }}
+        {...(isAdmin
+          ? {
+              toggles: [
+                {
+                  options: [
+                    { icon: Inbox, label: "My Queue", value: "mine" },
+                    { icon: Users, label: "All Queues", value: "all" },
+                  ],
+                  value: queueView,
+                  onChange: (v: string) => setQueueView(v as "mine" | "all"),
+                },
+              ],
             }
-            disabled={reports.length === 0}
-          />
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border transition-colors",
-              showFilters
-                ? "bg-brand/5 border-brand/20 text-brand"
-                : "bg-card border-border text-foreground/80 hover:bg-surface"
-            )}
-          >
-            <Filter className="w-4 h-4" />
-            Filter
-            <ChevronDown
-              className={cn(
-                "w-3.5 h-3.5 transition-transform",
-                showFilters && "rotate-180"
-              )}
-            />
-          </button>
-        </div>
-      </div>
+          : {})}
+      >
+        <ExportButton
+          onClick={() =>
+            exportToCsv(
+              `amana-queue-${new Date().toISOString().slice(0, 10)}`,
+              reports,
+              [
+                { header: "ID", accessor: (r) => r.id },
+                { header: "Title", accessor: (r) => r.title },
+                { header: "Seat", accessor: (r) => r.seat },
+                { header: "Report Type", accessor: (r) => r.reportType },
+                { header: "Status", accessor: (r) => r.status },
+                { header: "Centre", accessor: (r) => r.service?.name ?? "" },
+                { header: "Assigned To", accessor: (r) => r.assignedTo?.name ?? "Unassigned" },
+                { header: "Created", accessor: (r) => new Date(r.createdAt).toLocaleDateString("en-AU") },
+                { header: "Reviewed At", accessor: (r) => r.reviewedAt ? new Date(r.reviewedAt).toLocaleDateString("en-AU") : "" },
+              ],
+            )
+          }
+          disabled={reports.length === 0}
+        />
+      </PageHeader>
 
       {/* Filters */}
       {showFilters && (

@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Download } from "lucide-react";
 
 const AU_STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 
@@ -99,18 +101,15 @@ export default function CrmPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">CRM</h2>
-          <p className="text-muted mt-1 line-clamp-2">
-            Sales pipeline & lead management
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <ScraperStatusWidget />
-          <ExportButton
-            onClick={() =>
+      <PageHeader
+        title="CRM"
+        description="Sales pipeline & lead management"
+        primaryAction={{ label: "New Lead", icon: Plus, onClick: () => setShowCreate(true) }}
+        secondaryActions={[
+          {
+            label: "Export CSV",
+            icon: Download,
+            onClick: () =>
               exportToCsv(
                 `amana-crm-leads-${new Date().toISOString().slice(0, 10)}`,
                 leads || [],
@@ -129,19 +128,12 @@ export default function CrmPage() {
                   { header: "Created", accessor: (l) => new Date(l.createdAt).toLocaleDateString("en-AU") },
                   { header: "Notes", accessor: (l) => l.notes ?? "" },
                 ],
-              )
-            }
-            disabled={!leads || leads.length === 0}
-          />
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Lead
-          </button>
-        </div>
-      </div>
+              ),
+          },
+        ]}
+      >
+        <ScraperStatusWidget />
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

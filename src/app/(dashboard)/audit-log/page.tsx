@@ -15,6 +15,7 @@ import {
   Filter,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 /* ── Types ────────────────────────────────────────────────────── */
 
@@ -167,40 +168,14 @@ export default function AuditLogPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand/10 text-brand">
-            <Shield className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Security Audit Log
-            </h1>
-            <p className="text-sm text-muted">
-              Track all security-related events across the platform
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-surface"
-          >
-            <Filter className="h-4 w-4" />
-            Filters
-          </button>
-          <button
-            onClick={handleExportCSV}
-            disabled={!filteredEntries.length}
-            className="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Security Audit Log"
+        description="Track all security-related events across the platform"
+        primaryAction={{ label: "Export CSV", icon: Download, onClick: handleExportCSV }}
+        secondaryActions={[
+          { label: "Filters", icon: Filter, onClick: () => setShowFilters(!showFilters) },
+        ]}
+      />
 
       {/* Filters */}
       {showFilters && (

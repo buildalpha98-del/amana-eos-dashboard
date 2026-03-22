@@ -29,6 +29,7 @@ import { useXeroStatus, useXeroSync } from "@/hooks/useXero";
 import dynamic from "next/dynamic";
 import { ImportOWNAModal } from "@/components/financials/ImportOWNAModal";
 import { AiButton } from "@/components/ui/AiButton";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const RevenueVsCostsChart = dynamic(() => import("@/components/charts/RevenueVsCostsChart").then((m) => m.RevenueVsCostsChart), { loading: () => <Skeleton className="h-64 w-full" /> });
 const MarginComparisonChart = dynamic(() => import("@/components/charts/MarginComparisonChart").then((m) => m.MarginComparisonChart), { loading: () => <Skeleton className="h-64 w-full" /> });
@@ -296,10 +297,10 @@ export default function FinancialsPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Financial Dashboard</h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">Revenue, costs, and profitability across all centres</p>
-        </div>
+        <PageHeader
+          title="Financial Dashboard"
+          description="Revenue, costs, and profitability across all centres"
+        />
         <ErrorState
           title="Failed to load financials"
           error={error as Error}
@@ -311,33 +312,17 @@ export default function FinancialsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Financial Dashboard</h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">Revenue, costs, and profitability across all centres</p>
-          <div className="mt-2">
-            <XeroSyncBadge />
-          </div>
-        </div>
+      <PageHeader
+        title="Financial Dashboard"
+        description="Revenue, costs, and profitability across all centres"
+        primaryAction={{ label: "Enter Data", icon: Plus, onClick: () => setShowEnterData(true) }}
+        secondaryActions={[
+          { label: "Import from OWNA", icon: FileSpreadsheet, onClick: () => setShowImportOWNA(true) },
+        ]}
+      >
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <XeroSyncBadge />
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowImportOWNA(true)}
-              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 border border-brand text-brand text-sm font-medium rounded-lg hover:bg-brand/5 transition-colors"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-              <span className="hidden sm:inline">Import from OWNA</span>
-              <span className="sm:hidden">Import</span>
-            </button>
-            <button
-              onClick={() => setShowEnterData(true)}
-              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Enter Data</span>
-              <span className="sm:hidden">Add</span>
-            </button>
             <AiButton
               templateSlug="financials/commentary"
               variables={{
@@ -395,7 +380,7 @@ export default function FinancialsPage() {
           ))}
           </div>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -75,6 +75,7 @@ import {
 import { AUSTRALIAN_STATES } from "@/lib/service-scope";
 import { AdoptionDashboard } from "@/components/admin/AdoptionDashboard";
 import { BannerManagementSection } from "@/components/settings/BannerManagementSection";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface UserData {
   id: string;
@@ -2791,6 +2792,8 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
+      <PageHeader title="Settings" description="Organisation settings, integrations, and user management" />
+
       {/* Organisation Settings (owner only) */}
       {isOwner && <OrgSettingsSection isOwner={isOwner} />}
 

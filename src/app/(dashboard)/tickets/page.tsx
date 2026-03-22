@@ -33,7 +33,9 @@ import {
   XCircle,
   BarChart3,
   FileText,
+  Download,
 } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface UserOption {
   id: string;
@@ -178,87 +180,27 @@ export default function TicketsPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Support Tickets</h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            Manage parent enquiries and WhatsApp conversations
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {/* Export */}
-          <ExportButton onClick={handleExport} disabled={!tickets || tickets.length === 0} />
-
-          {/* View Toggle */}
-          <div className="flex items-center bg-surface rounded-lg p-0.5">
-            <button
-              onClick={() => setViewMode("board")}
-              className={cn(
-                "p-2 rounded-md transition-colors",
-                viewMode === "board"
-                  ? "bg-card text-brand shadow-sm"
-                  : "text-muted hover:text-foreground"
-              )}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("list")}
-              className={cn(
-                "p-2 rounded-md transition-colors",
-                viewMode === "list"
-                  ? "bg-card text-brand shadow-sm"
-                  : "text-muted hover:text-foreground"
-              )}
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("analytics")}
-              className={cn(
-                "p-2 rounded-md transition-colors",
-                viewMode === "analytics"
-                  ? "bg-card text-brand shadow-sm"
-                  : "text-muted hover:text-foreground"
-              )}
-            >
-              <BarChart3 className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Filters Toggle */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={cn(
-              "p-2 rounded-lg border transition-colors",
-              showFilters || hasActiveFilters
-                ? "bg-brand text-white border-brand"
-                : "bg-card text-muted border-border hover:bg-surface"
-            )}
-          >
-            <Filter className="w-4 h-4" />
-          </button>
-
-          {/* Templates */}
-          <button
-            onClick={() => setShowTemplates(true)}
-            className="inline-flex items-center gap-2 px-3 py-2.5 border border-border text-sm font-medium text-foreground/80 rounded-lg hover:bg-surface transition-colors"
-          >
-            <FileText className="w-4 h-4" />
-            <span className="hidden sm:inline">Templates</span>
-          </button>
-
-          {/* Create */}
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Ticket
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Support Tickets"
+        description="Manage parent enquiries and WhatsApp conversations"
+        primaryAction={{ label: "New Ticket", icon: Plus, onClick: () => setShowCreate(true) }}
+        secondaryActions={[
+          { label: "Export CSV", icon: Download, onClick: handleExport },
+          { label: "Templates", icon: FileText, onClick: () => setShowTemplates(true) },
+          { label: showFilters ? "Hide Filters" : "Filters", icon: Filter, onClick: () => setShowFilters(!showFilters), active: showFilters || !!hasActiveFilters },
+        ]}
+        toggles={[
+          {
+            options: [
+              { icon: LayoutGrid, label: "Board", value: "board" },
+              { icon: List, label: "List", value: "list" },
+              { icon: BarChart3, label: "Analytics", value: "analytics" },
+            ],
+            value: viewMode,
+            onChange: (v) => setViewMode(v as "board" | "list" | "analytics"),
+          },
+        ]}
+      />
 
       {/* Search Bar */}
       {viewMode !== "analytics" && (

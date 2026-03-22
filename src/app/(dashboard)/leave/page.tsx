@@ -17,6 +17,7 @@ import { hasMinRole } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/layout/PageHeader";
 import type { Role } from "@prisma/client";
 import {
   CalendarDays,
@@ -39,9 +40,9 @@ import {
   Ban,
   MessageSquare,
   Sparkles,
+  Download,
 } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
-import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 
 /* ------------------------------------------------------------------ */
@@ -1129,21 +1130,37 @@ export default function LeavePage() {
     return requests.filter((r) => r.status === "leave_pending").length;
   }, [requests, isAdmin]);
 
+  const handleExport = useCallback(() => {
+    exportToCsv(
+      `amana-leave-${new Date().toISOString().slice(0, 10)}`,
+      filteredRequests,
+      [
+        { header: "ID", accessor: (r: LeaveRequestData) => r.id },
+        { header: "Staff", accessor: (r: LeaveRequestData) => r.user?.name ?? "" },
+        { header: "Email", accessor: (r: LeaveRequestData) => r.user?.email ?? "" },
+        { header: "Type", accessor: (r: LeaveRequestData) => leaveTypeLabels[r.leaveType] || r.leaveType },
+        { header: "Start Date", accessor: (r: LeaveRequestData) => new Date(r.startDate).toLocaleDateString("en-AU") },
+        { header: "End Date", accessor: (r: LeaveRequestData) => new Date(r.endDate).toLocaleDateString("en-AU") },
+        { header: "Days", accessor: (r: LeaveRequestData) => r.totalDays },
+        { header: "Half Day", accessor: (r: LeaveRequestData) => r.isHalfDay ? "Yes" : "No" },
+        { header: "Status", accessor: (r: LeaveRequestData) => r.status.replace("leave_", "") },
+        { header: "Centre", accessor: (r: LeaveRequestData) => r.service?.name ?? "" },
+        { header: "Reason", accessor: (r: LeaveRequestData) => r.reason ?? "" },
+      ],
+    );
+  }, [filteredRequests]);
+
   const hasActiveFilters = statusFilter || serviceFilter || typeFilter;
 
   if (requestsError) {
     return (
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-            Leave Management
-          </h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            {isAdmin
-              ? "Review, approve, and track team leave across all centres"
-              : "View your leave balances and submit leave requests"}
-          </p>
-        </div>
+        <PageHeader
+          title="Leave Management"
+          description={isAdmin
+            ? "Review, approve, and track team leave across all centres"
+            : "View your leave balances and submit leave requests"}
+        />
         <ErrorState
           title="Failed to load leave"
           error={requestsErrorObj as Error}
@@ -1155,50 +1172,16 @@ export default function LeavePage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-            Leave Management
-          </h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            {isAdmin
-              ? "Review, approve, and track team leave across all centres"
-              : "View your leave balances and submit leave requests"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ExportButton
-            onClick={() =>
-              exportToCsv(
-                `amana-leave-${new Date().toISOString().slice(0, 10)}`,
-                filteredRequests,
-                [
-                  { header: "ID", accessor: (r) => r.id },
-                  { header: "Staff", accessor: (r) => r.user?.name ?? "" },
-                  { header: "Email", accessor: (r) => r.user?.email ?? "" },
-                  { header: "Type", accessor: (r) => leaveTypeLabels[r.leaveType] || r.leaveType },
-                  { header: "Start Date", accessor: (r) => new Date(r.startDate).toLocaleDateString("en-AU") },
-                  { header: "End Date", accessor: (r) => new Date(r.endDate).toLocaleDateString("en-AU") },
-                  { header: "Days", accessor: (r) => r.totalDays },
-                  { header: "Half Day", accessor: (r) => r.isHalfDay ? "Yes" : "No" },
-                  { header: "Status", accessor: (r) => r.status.replace("leave_", "") },
-                  { header: "Centre", accessor: (r) => r.service?.name ?? "" },
-                  { header: "Reason", accessor: (r) => r.reason ?? "" },
-                ],
-              )
-            }
-            disabled={filteredRequests.length === 0}
-          />
-          <button
-            onClick={() => setShowRequestModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Request Leave
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Leave Management"
+        description={isAdmin
+          ? "Review, approve, and track team leave across all centres"
+          : "View your leave balances and submit leave requests"}
+        primaryAction={{ label: "Request Leave", icon: Plus, onClick: () => setShowRequestModal(true) }}
+        secondaryActions={[
+          { label: "Export", icon: Download, onClick: handleExport },
+        ]}
+      />
 
       {/* Leave Balance Cards */}
       {balancesLoading ? (

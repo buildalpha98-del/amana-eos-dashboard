@@ -45,6 +45,7 @@ import { StickyTable } from "@/components/ui/StickyTable";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { PageHeader } from "@/components/layout/PageHeader";
 /* xlsx (~800KB) is dynamically imported at point of use in parseFile() */
 
 /* ------------------------------------------------------------------ */
@@ -1371,12 +1372,10 @@ export default function TimesheetsPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Timesheets</h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            Manage staff timesheets, import from OWNA, and export to Xero
-          </p>
-        </div>
+        <PageHeader
+          title="Timesheets"
+          description="Manage staff timesheets, import from OWNA, and export to Xero"
+        />
         <ErrorState
           title="Failed to load timesheets"
           error={error as Error}
@@ -1389,39 +1388,38 @@ export default function TimesheetsPage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Timesheets</h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            Manage staff timesheets, import from OWNA, and export to Xero
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Filter Toggle */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={cn(
-              "p-2 rounded-lg border transition-colors",
-              hasActiveFilters
-                ? "border-brand bg-brand/5 text-brand"
-                : "border-border text-muted hover:text-foreground"
-            )}
-            title="Filters"
-          >
-            <Filter className="w-4 h-4" />
-          </button>
-
-          <ExportButton
-            onClick={() =>
-              exportToCsv(
-                `amana-timesheets-${new Date().toISOString().slice(0, 10)}`,
-                timesheets || [],
-                [
-                  { header: "ID", accessor: (t) => t.id },
-                  { header: "Centre", accessor: (t) => t.service?.name ?? "" },
-                  { header: "Week Ending", accessor: (t) => new Date(t.weekEnding).toLocaleDateString("en-AU") },
-                  { header: "Status", accessor: (t) => t.status },
-                  { header: "Entries", accessor: (t) => t._count?.entries ?? 0 },
+      <PageHeader
+        title="Timesheets"
+        description="Manage staff timesheets, import from OWNA, and export to Xero"
+        primaryAction={{
+          label: "New Timesheet",
+          icon: Plus,
+          onClick: () => setShowCreate(true),
+        }}
+        secondaryActions={[
+          {
+            label: "Filter",
+            icon: Filter,
+            onClick: () => setShowFilters(!showFilters),
+          },
+          {
+            label: "Import from OWNA",
+            icon: Upload,
+            onClick: () => setShowImport(true),
+          },
+        ]}
+      >
+        <ExportButton
+          onClick={() =>
+            exportToCsv(
+              `amana-timesheets-${new Date().toISOString().slice(0, 10)}`,
+              timesheets || [],
+              [
+                { header: "ID", accessor: (t) => t.id },
+                { header: "Centre", accessor: (t) => t.service?.name ?? "" },
+                { header: "Week Ending", accessor: (t) => new Date(t.weekEnding).toLocaleDateString("en-AU") },
+                { header: "Status", accessor: (t) => t.status },
+                { header: "Entries", accessor: (t) => t._count?.entries ?? 0 },
                   { header: "Import Source", accessor: (t) => t.importSource ?? "" },
                   { header: "Submitted At", accessor: (t) => t.submittedAt ? new Date(t.submittedAt).toLocaleDateString("en-AU") : "" },
                   { header: "Approved At", accessor: (t) => t.approvedAt ? new Date(t.approvedAt).toLocaleDateString("en-AU") : "" },
@@ -1431,22 +1429,7 @@ export default function TimesheetsPage() {
             }
             disabled={!timesheets || timesheets.length === 0}
           />
-          <button
-            onClick={() => setShowImport(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            Import from OWNA
-          </button>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Timesheet
-          </button>
-        </div>
-      </div>
+      </PageHeader>
 
       {/* Filter Bar */}
       {showFilters && (

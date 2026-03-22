@@ -14,6 +14,7 @@ import { EnrolmentDetailPanel } from "@/components/enrolments/EnrolmentDetailPan
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -60,16 +61,10 @@ export default function EnrolmentsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <ClipboardList className="h-6 w-6 text-brand" />
-            Enrolments
-          </h1>
-          <p className="text-sm text-foreground/50 mt-1">
-            Review and process parent enrolment submissions
-          </p>
-        </div>
+      <PageHeader
+        title="Enrolments"
+        description="Review and process parent enrolment submissions"
+      >
         <ExportButton
           onClick={() =>
             exportToCsv(
@@ -90,7 +85,7 @@ export default function EnrolmentsPage() {
           }
           disabled={filtered.length === 0}
         />
-      </div>
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

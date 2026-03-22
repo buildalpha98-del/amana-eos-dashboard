@@ -37,6 +37,7 @@ import ComplianceMatrixView from "@/components/compliance/ComplianceMatrixView";
 import { AuditCalendarTab } from "@/components/compliance/AuditCalendarTab";
 import { AuditResultsTab } from "@/components/compliance/AuditResultsTab";
 import { QualificationRatiosTab } from "@/components/compliance/QualificationRatiosTab";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   CalendarDays,
   BarChart3,
@@ -267,14 +268,10 @@ function StaffComplianceView() {
         onChange={onFileSelected}
       />
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">My Compliance Documents</h2>
-          <p className="text-sm text-muted mt-1 line-clamp-2">
-            Upload and manage your required compliance certificates
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="My Compliance Documents"
+        description="Upload and manage your required compliance certificates"
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {certTypes.filter((t) => t !== "other").map((type) => {
@@ -409,13 +406,10 @@ export default function CompliancePage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Page header */}
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground">Compliance</h2>
-        <p className="text-sm text-muted mt-1">
-          Staff certificates, NQS audits, qualification ratios & compliance tracking
-        </p>
-      </div>
+      <PageHeader
+        title="Compliance"
+        description="Staff certificates, NQS audits, qualification ratios & compliance tracking"
+      />
 
       {/* Tab bar */}
       <div className="border-b border-border -mb-px overflow-x-auto">

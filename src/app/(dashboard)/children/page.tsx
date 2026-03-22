@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useChildren, type ChildRecord } from "@/hooks/useChildren";
 import { ChildDetailPanel } from "@/components/children/ChildDetailPanel";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 const STATUS_TABS = [
@@ -50,18 +51,10 @@ export default function ChildrenPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Baby className="h-6 w-6 text-brand" />
-            Children Directory
-          </h1>
-          <p className="text-sm text-foreground/50 mt-1">
-            All enrolled children across your services
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Children Directory"
+        description="All enrolled children across your services"
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

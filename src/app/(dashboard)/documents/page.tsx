@@ -15,7 +15,6 @@ import {
   DocumentFolder,
 } from "@/hooks/useDocuments";
 import { useQuery } from "@tanstack/react-query";
-import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCSV, formatDateCSV } from "@/lib/csv-export";
 import {
   FileText,
@@ -40,12 +39,14 @@ import {
   Loader2,
   Pencil,
   Files,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StickyTable } from "@/components/ui/StickyTable";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { BulkUploadModal } from "@/components/documents/BulkUploadModal";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
@@ -329,37 +330,16 @@ export default function DocumentsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Document Library</h2>
-            <p className="text-sm text-muted mt-1 line-clamp-2">Manage and organize your policies, procedures, templates, and more.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <ExportButton onClick={handleExport} disabled={documents.length === 0} />
-            <button
-              onClick={() => setShowNewFolder(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
-            >
-              <FolderPlus className="w-4 h-4" />
-              New Folder
-            </button>
-            <button
-              onClick={() => setShowBulkUpload(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-surface transition-colors"
-            >
-              <Files className="w-4 h-4" />
-              Bulk Upload
-            </button>
-            <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Upload Document
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          title="Document Library"
+          description="Manage and organize your policies, procedures, templates, and more."
+          primaryAction={{ label: "Upload Document", icon: Plus, onClick: () => setShowModal(true) }}
+          secondaryActions={[
+            { label: "Export", icon: Download, onClick: handleExport },
+            { label: "New Folder", icon: FolderPlus, onClick: () => setShowNewFolder(true) },
+            { label: "Bulk Upload", icon: Files, onClick: () => setShowBulkUpload(true) },
+          ]}
+        />
 
         {/* Breadcrumbs */}
         <div className="flex items-center gap-1.5 text-sm">
