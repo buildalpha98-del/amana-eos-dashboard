@@ -965,7 +965,7 @@ export default function OnboardingPage() {
                     <p className="text-sm text-muted line-clamp-2 mb-2">{course.description}</p>
                   )}
                   {course.category && (
-                    <span className="inline-block text-xs bg-surface text-muted px-2 py-0.5 rounded-full mb-2">{course.category}</span>
+                    <span className="inline-block text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full mb-2">{course.category}</span>
                   )}
                   <div className="flex items-center gap-4 text-xs text-muted mt-3">
                     <span>{course._count.modules} modules</span>
@@ -1035,7 +1035,7 @@ export default function OnboardingPage() {
 
                   <div className="flex items-center gap-4 text-sm text-muted">
                     {selectedCourseData.category && (
-                      <span className="inline-block text-xs bg-surface text-muted px-2 py-0.5 rounded-full">{selectedCourseData.category}</span>
+                      <span className="inline-block text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{selectedCourseData.category}</span>
                     )}
                     <span className="flex items-center gap-1">
                       <Users className="w-3.5 h-3.5" />

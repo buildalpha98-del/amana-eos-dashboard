@@ -212,8 +212,8 @@ export function TopBar() {
         </div>
       </header>
 
-      {/* Mobile sub-header — sticky below the fixed mobile header */}
-      <div className="md:hidden flex items-center justify-between px-4 py-2 bg-background border-b border-border sticky top-14 z-20">
+      {/* Mobile sub-header — scrolls with content (not sticky, reduces chrome) */}
+      <div className="md:hidden flex items-center justify-between px-4 py-2 bg-background border-b border-border">
         <div className="flex items-center gap-2 min-w-0">
           {breadcrumbItems ? (
             <Breadcrumb items={breadcrumbItems} />

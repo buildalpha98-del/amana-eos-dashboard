@@ -8,20 +8,20 @@ const variantStyles = {
   primary:
     "bg-brand text-white hover:bg-brand-hover focus-visible:ring-brand/50 shadow-[var(--shadow-warm-sm)] hover:shadow-[var(--shadow-warm)] active:scale-[0.98] transition-all duration-200",
   secondary:
-    "border border-border text-foreground bg-white hover:bg-surface focus-visible:ring-gray-300",
+    "border border-border text-foreground bg-card hover:bg-surface focus-visible:ring-border",
   outline:
-    "border border-brand text-brand bg-white hover:bg-brand/8 hover:shadow-[var(--shadow-warm-sm)] focus-visible:ring-brand/50",
+    "border border-brand text-brand bg-card hover:bg-brand/8 hover:shadow-[var(--shadow-warm-sm)] focus-visible:ring-brand/50",
   ghost:
-    "text-muted hover:bg-surface hover:text-foreground focus-visible:ring-gray-300",
+    "text-muted hover:bg-surface hover:text-foreground focus-visible:ring-border",
   destructive:
     "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500/50 shadow-sm hover:shadow-md",
 } as const;
 
 const sizeStyles = {
-  xs: "px-2 py-1 text-xs gap-1",
-  sm: "px-3 py-1.5 text-sm gap-1.5",
-  md: "px-4 py-2 text-sm gap-2",
-  lg: "px-4 py-2.5 text-sm gap-2",
+  xs: "px-2.5 py-1.5 text-xs gap-1",
+  sm: "px-3.5 py-2 text-sm gap-1.5 min-h-[36px]",
+  md: "px-4 py-2.5 text-sm gap-2 min-h-[44px]",
+  lg: "px-5 py-3 text-sm gap-2 min-h-[48px]",
 } as const;
 
 // ─── Props ──────────────────────────────────────────────────

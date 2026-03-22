@@ -47,7 +47,20 @@ export function EmptyState({
   }
 
   return (
-    <div className="relative flex flex-col items-center justify-center py-20 text-center bg-card rounded-2xl border border-border shadow-[var(--shadow-warm)] overflow-hidden">
+    <div className="relative flex flex-col items-center justify-center py-20 text-center bg-card rounded-2xl border border-border shadow-[var(--shadow-warm)] overflow-hidden animate-widget-in">
+      {/* Decorative background pattern */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <svg className="absolute -top-16 -right-16 w-64 h-64 opacity-[0.03]" viewBox="0 0 200 200" fill="none">
+          <circle cx="100" cy="100" r="80" stroke={iconColor} strokeWidth="1.5" />
+          <circle cx="100" cy="100" r="60" stroke={iconColor} strokeWidth="1" />
+          <circle cx="100" cy="100" r="40" stroke={iconColor} strokeWidth="0.5" />
+        </svg>
+        <svg className="absolute -bottom-12 -left-12 w-48 h-48 opacity-[0.03]" viewBox="0 0 200 200" fill="none">
+          <rect x="20" y="20" width="160" height="160" rx="30" stroke={iconColor} strokeWidth="1.5" />
+          <rect x="50" y="50" width="100" height="100" rx="20" stroke={iconColor} strokeWidth="1" />
+        </svg>
+      </div>
+
       <div
         className="w-20 h-20 rounded-3xl flex items-center justify-center mb-4 ring-1"
         style={{
