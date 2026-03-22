@@ -59,7 +59,7 @@ const ACTION_OPTIONS = [
 
 const ACTION_COLORS: Record<string, string> = {
   "user.login": "bg-blue-100 text-blue-700",
-  "user.logout": "bg-surface text-foreground/80",
+  "user.logout": "bg-gray-100 text-gray-700",
   "user.password_reset": "bg-amber-100 text-amber-700",
   "user.role_change": "bg-purple-100 text-purple-700",
   "user.created": "bg-teal-100 text-teal-700",

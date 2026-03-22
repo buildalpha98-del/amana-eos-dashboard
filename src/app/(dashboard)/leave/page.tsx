@@ -82,7 +82,7 @@ const leaveTypeBadgeColors: Record<string, string> = {
   annual: "bg-blue-100 text-blue-700",
   sick: "bg-red-100 text-red-700",
   personal: "bg-purple-100 text-purple-700",
-  unpaid: "bg-surface text-foreground/80",
+  unpaid: "bg-gray-100 text-gray-700",
   long_service: "bg-teal-100 text-teal-700",
   parental: "bg-pink-100 text-pink-700",
   compassionate: "bg-amber-100 text-amber-700",
@@ -136,13 +136,13 @@ function statusBadge(status: string) {
     case "leave_cancelled":
       return {
         label: "Cancelled",
-        className: "bg-surface text-muted",
+        className: "bg-gray-100 text-gray-500",
         icon: Ban,
       };
     default:
       return {
         label: status,
-        className: "bg-surface text-muted",
+        className: "bg-gray-100 text-gray-500",
         icon: AlertCircle,
       };
   }
@@ -191,7 +191,7 @@ function LeaveTypeBadge({ type }: { type: string }) {
     <span
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-        leaveTypeBadgeColors[type] || "bg-surface text-foreground/80"
+        leaveTypeBadgeColors[type] || "bg-gray-100 text-gray-700"
       )}
     >
       {leaveTypeLabels[type] || type}
