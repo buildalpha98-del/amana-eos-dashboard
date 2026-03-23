@@ -11,31 +11,29 @@ import { checkRateLimit } from "@/lib/rate-limit";
  * Includes rate limiting on failed authentication attempts (10 req/15min per IP).
  */
 export async function authenticateCowork(request: NextRequest): Promise<NextResponse | null> {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
-
-  // Check rate limit before processing auth
-  const rl = await checkRateLimit(`cowork-auth:${ip}`, 10, 15 * 60 * 1000);
-  if (rl.limited) {
-    return NextResponse.json(
-      { error: "Too many requests" },
-      { status: 429 },
-    );
-  }
-
   const authHeader = request.headers.get("Authorization");
   const token = authHeader?.replace("Bearer ", "");
 
   if (!token || token !== process.env.COWORK_API_KEY) {
+    // Rate limit ONLY failed auth attempts to prevent brute-force (10/15min per IP)
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+    const rl = await checkRateLimit(`cowork-auth-fail:${ip}`, 10, 15 * 60 * 1000);
+    if (rl.limited) {
+      return NextResponse.json(
+        { error: "Too many failed authentication attempts" },
+        { status: 429 },
+      );
+    }
     return NextResponse.json(
       { error: "Unauthorized" },
       { status: 401 },
     );
   }
 
-  return null; // Auth passed
+  return null; // Auth passed — no rate limit on valid requests
 }
 
 // ---------------------------------------------------------------------------
