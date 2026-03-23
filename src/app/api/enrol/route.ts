@@ -407,13 +407,30 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       select: { name: true, email: true },
     });
     if (service?.email) {
-      const { subject: schoolSubject, html: schoolHtml } = schoolEnrolmentNotificationEmail(
-        service.name,
-        `${primaryParent.firstName} ${primaryParent.surname}`,
-        childNames,
-        primaryParent.email,
-        primaryParent.mobile,
-      );
+      // Build per-child details with medical info and action plan filenames
+      const schoolChildren = enrichedChildren.map((child, i) => {
+        const actionPlans: string[] = [];
+        const medFiles = medicalFiles.filter((f) => f.childIndex === i);
+        for (const f of medFiles) {
+          actionPlans.push(f.filename);
+        }
+        return {
+          firstName: child.firstName,
+          surname: child.surname,
+          yearLevel: child.yearLevel,
+          schoolName: child.schoolName,
+          medical: child.medical,
+          actionPlans,
+        };
+      });
+
+      const { subject: schoolSubject, html: schoolHtml } = schoolEnrolmentNotificationEmail({
+        serviceName: service.name,
+        parentName: `${primaryParent.firstName} ${primaryParent.surname}`,
+        parentEmail: primaryParent.email,
+        parentPhone: primaryParent.mobile,
+        children: schoolChildren,
+      });
       sendEmail({
         from: FROM_EMAIL,
         to: service.email,
