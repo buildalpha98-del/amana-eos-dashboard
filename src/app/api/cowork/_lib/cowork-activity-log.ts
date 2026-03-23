@@ -28,7 +28,7 @@ export function logCoworkActivity(opts: {
           action: opts.action,
           entityType: opts.entityType,
           entityId: opts.entityId,
-          details: opts.details ?? null,
+          details: opts.details,
         },
       });
     })
