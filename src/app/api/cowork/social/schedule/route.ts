@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
 import {
   decryptToken,
   publishFacebookPost,
@@ -85,10 +86,8 @@ export const POST = withApiHandler(async (req) => {
   }
 
   // Validate account has required page/IG IDs
-  const needsFacebook =
-    platform === "facebook" || platform === "both";
-  const needsInstagram =
-    platform === "instagram" || platform === "both";
+  const needsFacebook = platform === "facebook" || platform === "both";
+  const needsInstagram = platform === "instagram" || platform === "both";
 
   if (needsFacebook && !account.facebookPageId) {
     return NextResponse.json(
@@ -147,8 +146,8 @@ export const POST = withApiHandler(async (req) => {
 
     // Validate schedule time (10min – 75 days in future)
     const now = Math.floor(Date.now() / 1000);
-    const minTime = now + 10 * 60; // 10 minutes
-    const maxTime = now + 75 * 24 * 60 * 60; // 75 days
+    const minTime = now + 10 * 60;
+    const maxTime = now + 75 * 24 * 60 * 60;
 
     if (scheduledTime < minTime || scheduledTime > maxTime) {
       errors.push(
@@ -184,7 +183,6 @@ export const POST = withApiHandler(async (req) => {
     // Instagram
     if (needsInstagram && post.imageUrl) {
       try {
-        // Step 1: Create container
         const container = await createInstagramContainer({
           igUserId: account.instagramAccountId!,
           accessToken,
@@ -192,7 +190,6 @@ export const POST = withApiHandler(async (req) => {
           imageUrl: post.imageUrl,
         });
 
-        // Step 2: Publish
         const igResult = await publishInstagramMedia({
           igUserId: account.instagramAccountId!,
           accessToken,
@@ -232,7 +229,7 @@ export const POST = withApiHandler(async (req) => {
         serviceCode,
         messageType: `social_${result.platform}`,
         externalId: result.postId,
-        recipientCount: 0, // social posts don't have direct recipient count
+        recipientCount: 0,
         status: result.status,
         payload: {
           platform: result.platform,
@@ -243,22 +240,11 @@ export const POST = withApiHandler(async (req) => {
   }
 
   // 8. Activity log
-  await prisma.activityLog.create({
-    data: {
-      userId: "cowork",
-      action: "api_import",
-      entityType: "DeliveryLog",
-      entityId: results[0].postId,
-      details: {
-        channel: "social",
-        serviceCode,
-        platform,
-        postsScheduled: results.length,
-        postsFailed: errors.length,
-        via: "api_key",
-        keyName: "Cowork Automation",
-      },
-    },
+  logCoworkActivity({
+    action: "api_import",
+    entityType: "DeliveryLog",
+    entityId: results[0].postId,
+    details: { channel: "social", serviceCode, platform, postsScheduled: results.length, postsFailed: errors.length, via: "api_key", keyName: "Cowork Automation" },
   });
 
   return NextResponse.json({
