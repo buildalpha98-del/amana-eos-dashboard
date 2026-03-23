@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
 
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -96,18 +97,15 @@ export const POST = withApiHandler(async (req) => {
       }
     }
 
-    await prisma.activityLog.create({
-      data: {
-        userId: "cowork",
-        action: "api_import",
-        entityType: "MarketingTask",
-        entityId: results[0]?.id || "batch",
-        details: {
-          tasksCreated: results.length,
-          tasksFailed: errors.length,
-          via: "cowork_api",
-          keyName: "Cowork Automation",
-        },
+    logCoworkActivity({
+      action: "api_import",
+      entityType: "MarketingTask",
+      entityId: results[0]?.id || "batch",
+      details: {
+        tasksCreated: results.length,
+        tasksFailed: errors.length,
+        via: "cowork_api",
+        keyName: "Cowork Automation",
       },
     });
 
