@@ -49,22 +49,22 @@ describe("authenticateCowork", () => {
     expect(result!.status).toBe(401);
   });
 
-  it("returns 429 when rate limited", async () => {
+  it("returns 429 when rate limited on failed auth", async () => {
     vi.mocked(checkRateLimit).mockResolvedValueOnce({
       limited: true,
       remaining: 0,
       resetIn: 900000,
     } as ReturnType<typeof checkRateLimit> extends Promise<infer T> ? T : never);
 
-    const result = await authenticateCowork(makeRequest("test-cowork-key"));
+    const result = await authenticateCowork(makeRequest("wrong-key"));
     expect(result).not.toBeNull();
     expect(result!.status).toBe(429);
   });
 
-  it("rate limits by IP from x-forwarded-for", async () => {
-    await authenticateCowork(makeRequest("test-cowork-key"));
+  it("rate limits by IP from x-forwarded-for on failed auth", async () => {
+    await authenticateCowork(makeRequest("wrong-key"));
     expect(checkRateLimit).toHaveBeenCalledWith(
-      "cowork-auth:1.2.3.4",
+      "cowork-auth-fail:1.2.3.4",
       10,
       15 * 60 * 1000,
     );

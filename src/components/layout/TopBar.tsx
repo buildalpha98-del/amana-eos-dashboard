@@ -77,6 +77,7 @@ const pageTitles: Record<string, string> = {
   "/tools/amana-way-one-pager": "Amana Way One Pager",
   "/tools/employee-handbook": "Employee Handbook",
   "/compliance/templates": "Audit Templates",
+  "/automations": "Automations",
   "/audit-log": "Audit Log",
   "/getting-started": "Getting Started",
   "/guides": "Quick-Start Guides",

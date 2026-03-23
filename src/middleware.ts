@@ -123,6 +123,7 @@ export const config = {
     "/recruitment/:path*",
     "/holiday-quest/:path*",
     "/tools/:path*",
+    "/automations/:path*",
     "/audit-log/:path*",
     "/guides/:path*",
     "/help/:path*",
