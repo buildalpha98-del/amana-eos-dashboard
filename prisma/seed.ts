@@ -1850,7 +1850,7 @@ The Amana OSHC Team 💛`,
     {
       slug: "enquiries/follow-up-email",
       name: "Enquiry Follow-Up Email",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 1024,
       variables: JSON.stringify(["parentName", "childName", "sessionInterest", "serviceName", "conversationNotes", "serviceDetails"]),
       promptTemplate: `Write a warm, personalised follow-up email from Amana OSHC to a parent who enquired about our service.
@@ -1874,7 +1874,7 @@ The email should:
     {
       slug: "marketing/post-writer",
       name: "Social Media Post Writer",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 512,
       variables: JSON.stringify(["platform", "pillar", "topic", "serviceName", "campaignContext"]),
       promptTemplate: `Write a social media post for Amana OSHC.
@@ -1896,7 +1896,7 @@ Guidelines:
     {
       slug: "services/menu-planner",
       name: "Weekly Menu Planner",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 1500,
       variables: JSON.stringify(["serviceName", "existingMenus", "dietaryNotes", "budget"]),
       promptTemplate: `Generate a weekly OSHC menu plan (Monday–Friday) for Amana OSHC.
@@ -1924,7 +1924,7 @@ Format as a markdown table with columns: Day | Morning Tea | Lunch | Afternoon T
     {
       slug: "services/allergen-check",
       name: "Menu Allergen & Dietary Check",
-      model: "claude-haiku-3.5-20241022",
+      model: "claude-haiku-3-5-20241022",
       maxTokens: 800,
       variables: JSON.stringify(["menuItems", "allergenOptions"]),
       promptTemplate: `You are a food safety assistant for Amana OSHC (Out of School Hours Care). Review this week's menu for allergen and dietary compliance.
@@ -1951,7 +1951,7 @@ Be concise. Only flag genuine issues.`,
     {
       slug: "services/activity-suggester",
       name: "Program Activity Suggester",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 1024,
       variables: JSON.stringify(["serviceName", "weekTheme", "ageGroup", "category", "existingActivities", "learningOutcomes"]),
       promptTemplate: `Suggest 3 engaging OSHC program activities for Amana OSHC.
@@ -1976,7 +1976,7 @@ Activities should be practical for an OSHC setting (limited space, mixed ages, m
     {
       slug: "todos/from-meeting-notes",
       name: "Extract Todos from Meeting Notes",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 1024,
       variables: JSON.stringify(["meetingNotes", "attendees"]),
       promptTemplate: `Extract action items from these meeting notes and format them as a structured todo list.
@@ -2004,7 +2004,7 @@ Rules:
     {
       slug: "compliance/risk-report",
       name: "Compliance Risk Report",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 1500,
       variables: JSON.stringify(["expiringCerts", "overdueAudits", "qualificationGaps", "servicesData"]),
       promptTemplate: `Generate a weekly compliance risk report for Amana OSHC management.
@@ -2034,7 +2034,7 @@ Use markdown formatting. Flag critical items with bold.`,
     {
       slug: "financials/commentary",
       name: "Financial Commentary Generator",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 1024,
       variables: JSON.stringify(["period", "totalRevenue", "totalCosts", "margin", "centreBreakdown", "priorPeriod"]),
       promptTemplate: `Write a financial commentary for Amana OSHC.
@@ -2057,7 +2057,7 @@ Keep it professional, data-driven, and suitable for a leadership team review. Re
     {
       slug: "financials/revenue-optimisation",
       name: "Revenue Optimisation Insights",
-      model: "claude-3-5-haiku-latest",
+      model: "claude-haiku-3-5-20241022",
       maxTokens: 1024,
       variables: JSON.stringify(["financialData"]),
       promptTemplate: `Analyze the financial and operational data for Amana OSHC centres and provide revenue optimisation recommendations.
@@ -2077,7 +2077,7 @@ Base recommendations on Australian OSHC market norms. Be specific with dollar am
     {
       slug: "performance/digest",
       name: "Centre Performance Digest",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 1024,
       variables: JSON.stringify(["centreScores", "topPerformers", "bottomPerformers", "trends"]),
       promptTemplate: `Generate a performance digest for Amana OSHC centres.
@@ -2099,7 +2099,7 @@ Keep it concise and actionable. Reference specific centre names and scores.`,
     {
       slug: "board-reports/auto-draft",
       name: "Board Report Auto-Draft",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 2048,
       variables: JSON.stringify(["month", "year", "financialData", "operationsData", "complianceData", "growthData", "peopleData", "rocksData"]),
       promptTemplate: `Generate a complete monthly board report for Amana OSHC.
@@ -2128,7 +2128,7 @@ Use flowing prose, not bullet points (except section 8). Vary paragraph openings
     {
       slug: "tickets/response-drafter",
       name: "Ticket Response Drafter",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 512,
       variables: JSON.stringify(["ticketSubject", "messageHistory", "ticketPriority", "serviceName"]),
       promptTemplate: `Draft a professional support response for this parent/staff ticket at Amana OSHC.
@@ -2149,7 +2149,7 @@ Write a helpful, empathetic response that:
     {
       slug: "recruitment/job-ad",
       name: "Job Ad Generator",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 1024,
       variables: JSON.stringify(["roleTitle", "serviceLocation", "employmentType", "qualifications", "serviceName"]),
       promptTemplate: `Write a job advertisement for Amana OSHC.
@@ -2172,7 +2172,7 @@ Tone: Professional but warm, reflecting our values of quality care and community
     {
       slug: "hr/leave-impact",
       name: "Leave Impact Analysis",
-      model: "claude-haiku-3.5-20241022",
+      model: "claude-haiku-3-5-20241022",
       maxTokens: 600,
       variables: JSON.stringify(["staffName", "leaveType", "startDate", "endDate", "totalDays", "centreName", "reason"]),
       promptTemplate: `You are a staffing operations assistant for Amana OSHC. Analyse the impact of this leave request on centre operations.
@@ -2195,7 +2195,7 @@ Keep it concise (under 150 words). Use bullet points.`,
     {
       slug: "holiday-quest/day-planner",
       name: "Vacation Care Day Planner",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 1024,
       variables: JSON.stringify(["weekTheme", "dayOfWeek", "serviceName", "existingDays", "ageRange", "budget"]),
       promptTemplate: `Plan a vacation care day for Amana OSHC.
@@ -2221,7 +2221,7 @@ Make it exciting and age-appropriate. Avoid repeating activities from other plan
     {
       slug: "meetings/l10-prep",
       name: "L10 Meeting Prep Agent",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 1500,
       variables: JSON.stringify(["overdueTodos", "offTrackRocks", "scorecardMisses", "openIssues", "recentUpdates"]),
       promptTemplate: `Generate an L10 meeting pre-read document for Amana OSHC leadership.
@@ -2253,7 +2253,7 @@ Keep it scannable with bullet points. This should take <5 minutes to read.`,
     {
       slug: "scorecard/narrative",
       name: "Scorecard Narrative Generator",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 512,
       variables: JSON.stringify(["measurables", "weekNumber", "trends"]),
       promptTemplate: `Generate a brief scorecard narrative summary for the Amana OSHC leadership team.
@@ -2276,7 +2276,7 @@ Keep it factual and under 150 words.`,
     {
       slug: "queue/report-summary",
       name: "Queue Report Summariser",
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-haiku-3-5-20241022",
       maxTokens: 256,
       variables: JSON.stringify(["reportTitle", "reportContent", "reportAlerts", "reportMetrics"]),
       promptTemplate: `Generate a TL;DR summary (2-3 sentences) for this automation report.
@@ -2291,7 +2291,7 @@ Focus on: what happened, what needs attention, and any recommended actions. Be e
     {
       slug: "assistant/tool-calling",
       name: "AI Assistant System Prompt",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 2048,
       variables: JSON.stringify(["dashboardContext"]),
       promptTemplate: `You have access to live Amana OSHC dashboard data. Use it to answer questions accurately.
@@ -2304,7 +2304,7 @@ Answer the user's question using this data. If the data doesn't contain what the
     {
       slug: "communication/parent-draft",
       name: "Parent Communication Drafter",
-      model: "claude-sonnet-4-5-20250514",
+      model: "claude-sonnet-4-20250514",
       maxTokens: 1024,
       variables: JSON.stringify(["commType", "details", "tone", "centreName"]),
       promptTemplate: `Draft a professional parent communication for Amana OSHC.
@@ -2327,7 +2327,7 @@ Draft the communication ready to send:`,
     {
       slug: "issues/smart-prioritize",
       name: "Smart Issue Prioritizer",
-      model: "claude-haiku-3.5-20241022",
+      model: "claude-haiku-3-5-20241022",
       maxTokens: 1024,
       variables: JSON.stringify(["issueList"]),
       promptTemplate: `You are helping prioritize issues for an Amana OSHC L10 meeting's IDS (Identify-Discuss-Solve) section.
@@ -2354,7 +2354,7 @@ Keep it concise — this is for a 60-minute IDS block.`,
     {
       slug: "crm/lead-scoring",
       name: "Lead Scoring",
-      model: "claude-3-5-haiku-latest",
+      model: "claude-haiku-3-5-20241022",
       maxTokens: 512,
       variables: JSON.stringify(["leadData"]),
       promptTemplate: `Score this lead from 0-100 based on data completeness, engagement signals, and conversion likelihood.
@@ -2380,7 +2380,7 @@ Scoring criteria:
     {
       slug: "compliance/qip-action-plan",
       name: "QIP Action Plan Generator",
-      model: "claude-3-5-haiku-latest",
+      model: "claude-haiku-3-5-20241022",
       maxTokens: 1024,
       variables: JSON.stringify(["qipArea", "findings", "centreContext"]),
       promptTemplate: `Generate a Quality Improvement Plan (QIP) action plan for this Amana OSHC centre.
@@ -2401,7 +2401,7 @@ Keep actions practical and achievable for an OSHC setting. Focus on continuous i
     {
       slug: "services/demand-forecast",
       name: "Enrolment Demand Forecast",
-      model: "claude-3-5-haiku-latest",
+      model: "claude-haiku-3-5-20241022",
       maxTokens: 1200,
       variables: JSON.stringify(["centreName", "capacity", "attendanceTrend", "enquiryTrend", "enrolmentSnapshot"]),
       promptTemplate: `Analyze the attendance and enquiry data for this Amana OSHC centre and forecast demand for the next 4 weeks.
@@ -2430,7 +2430,7 @@ Keep it concise and actionable for a centre director.`,
     {
       slug: "compliance/regulatory-monitor",
       name: "Regulatory Change Monitor",
-      model: "claude-3-5-haiku-latest",
+      model: "claude-haiku-3-5-20241022",
       maxTokens: 1500,
       variables: JSON.stringify([]),
       promptTemplate: `You are monitoring Australian OSHC (Out of School Hours Care) regulatory changes for Amana OSHC, which operates centres in NSW and VIC.
@@ -2455,7 +2455,7 @@ If no significant changes are identified, state that clearly. Focus on changes f
     {
       slug: "crm/acquisition-analysis",
       name: "Acquisition Analysis",
-      model: "claude-3-5-haiku-latest",
+      model: "claude-haiku-3-5-20241022",
       maxTokens: 1200,
       variables: JSON.stringify(["leadData"]),
       promptTemplate: `Analyze this potential OSHC centre acquisition for Amana OSHC.
@@ -2476,7 +2476,7 @@ Keep analysis practical and specific to Australian OSHC market dynamics.`,
     {
       slug: "hr/roster-suggestions",
       name: "Smart Roster Suggestions",
-      model: "claude-3-5-haiku-latest",
+      model: "claude-haiku-3-5-20241022",
       maxTokens: 1200,
       variables: JSON.stringify(["centreName", "attendanceData", "staffData", "regulations"]),
       promptTemplate: `Suggest an optimal staff roster for this Amana OSHC centre based on attendance patterns and regulatory requirements.

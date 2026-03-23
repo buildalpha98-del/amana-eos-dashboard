@@ -116,7 +116,7 @@ export type NarrativeSection =
 /**
  * Generate an AI narrative for a specific board report section.
  *
- * Uses Claude claude-sonnet-4-5-20250514 via the Anthropic SDK.
+ * Uses Claude claude-sonnet-4-20250514 via the Anthropic SDK.
  */
 export async function generateSectionNarrative(
   section: NarrativeSection,
@@ -135,7 +135,7 @@ export async function generateSectionNarrative(
   }
 
   const response = await ai.messages.create({
-    model: "claude-sonnet-4-5-20250514",
+    model: "claude-sonnet-4-20250514",
     max_tokens: 300,
     system:
       "You are a professional board report writer for Amana OSHC, an Australian Outside School Hours Care (OSHC) organisation. " +
