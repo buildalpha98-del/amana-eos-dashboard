@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
@@ -91,18 +92,11 @@ export const POST = withApiHandler(async (req) => {
       },
     });
 
-    await prisma.activityLog.create({
-      data: {
-        userId: "cowork",
-        action: "api_import",
-        entityType: "MarketingCampaign",
-        entityId: campaign.id,
-        details: {
-          campaignName: campaign.name,
-          via: "cowork_api",
-          keyName: "Cowork Automation",
-        },
-      },
+    logCoworkActivity({
+      action: "api_import",
+      entityType: "MarketingCampaign",
+      entityId: campaign.id,
+      details: { campaignName: campaign.name, via: "cowork_api", keyName: "Cowork Automation" },
     });
 
     return NextResponse.json({ success: true, campaign: result }, { status: 201 });
