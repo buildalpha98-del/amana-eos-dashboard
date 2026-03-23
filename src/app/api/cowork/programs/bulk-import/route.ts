@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
 import { resolveServicesByCode } from "../../_lib/resolve-service";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
@@ -46,8 +47,6 @@ export const POST = withApiHandler(async (req) => {
   // 1. Authenticate
   const authError = await authenticateCowork(req);
   if (authError) return authError;
-
-  // 2. Rate limit
 
   try {
     // 3. Validate body
@@ -109,22 +108,11 @@ export const POST = withApiHandler(async (req) => {
         });
 
         // Log per service
-        await prisma.activityLog.create({
-          data: {
-            userId: "cowork",
-            action: "api_import",
-            entityType: "ProgramActivity",
-            entityId: service.id,
-            details: {
-              serviceCode,
-              serviceName: service.name,
-              weekStart,
-              count: activities.length,
-              via: "api_key",
-              keyName: "Cowork Automation",
-              bulk: true,
-            },
-          },
+        logCoworkActivity({
+          action: "api_import",
+          entityType: "ProgramActivity",
+          entityId: service.id,
+          details: { serviceCode, serviceName: service.name, weekStart, count: activities.length, via: "api_key", keyName: "Cowork Automation", bulk: true },
         });
 
         results.push({
