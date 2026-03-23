@@ -74,6 +74,8 @@ const pageTitles: Record<string, string> = {
   "/recruitment": "Recruitment",
   "/tools/ccs-calculator": "CCS Calculator",
   "/tools/the-amana-way": "The Amana Way",
+  "/tools/amana-way-one-pager": "Amana Way One Pager",
+  "/tools/employee-handbook": "Employee Handbook",
   "/compliance/templates": "Audit Templates",
   "/audit-log": "Audit Log",
   "/getting-started": "Getting Started",

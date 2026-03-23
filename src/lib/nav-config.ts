@@ -33,6 +33,7 @@ import {
   Bot,
   Wrench,
   Briefcase,
+  BookOpen,
   BookOpenCheck,
   HelpCircle,
   Rocket,
@@ -111,6 +112,8 @@ export const navItems: NavItem[] = [
   { href: "/audit-log", label: "Audit Log", icon: ScrollText, section: "Admin", tooltip: "Security audit trail — who did what and when" },
   { href: "/tools/ccs-calculator", label: "CCS Calculator", icon: Wrench, section: "Admin", tooltip: "Child Care Subsidy cost estimator" },
   { href: "/tools/the-amana-way", label: "The Amana Way", icon: BookOpenCheck, section: "Admin", tooltip: "Interactive educator induction handbook" },
+  { href: "/tools/amana-way-one-pager", label: "Amana Way One Pager", icon: FileText, section: "Admin", tooltip: "The Amana Way at a glance — printable one-pager" },
+  { href: "/tools/employee-handbook", label: "Employee Handbook", icon: BookOpen, section: "Admin", tooltip: "Full employee induction handbook with policies and procedures" },
 ];
 
 /**
