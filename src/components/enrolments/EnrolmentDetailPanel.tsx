@@ -29,7 +29,7 @@ interface Props {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   submitted: { label: "Submitted", color: "text-blue-700", bg: "bg-blue-50" },
-  reviewing: { label: "Reviewing", color: "text-amber-700", bg: "bg-amber-50" },
+  under_review: { label: "Reviewing", color: "text-amber-700", bg: "bg-amber-50" },
   processed: { label: "Confirmed", color: "text-green-700", bg: "bg-green-50" },
   needs_info: { label: "Needs Info", color: "text-orange-700", bg: "bg-orange-50" },
 };
@@ -159,7 +159,7 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
           </a>
           {e.status === "submitted" && (
             <button
-              onClick={() => handleStatusChange("reviewing")}
+              onClick={() => handleStatusChange("under_review")}
               disabled={updateMutation.isPending}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
             >
@@ -167,7 +167,7 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
               Mark Reviewing
             </button>
           )}
-          {(e.status === "submitted" || e.status === "reviewing") && (
+          {(e.status === "submitted" || e.status === "under_review") && (
             <button
               onClick={() => handleStatusChange("processed")}
               disabled={updateMutation.isPending}

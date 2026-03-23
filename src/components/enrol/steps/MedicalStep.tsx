@@ -46,31 +46,36 @@ function YesNo({
   label,
   value,
   onChange,
+  positiveIsGood = false,
 }: {
   label: string;
   value: boolean | null;
   onChange: (v: boolean) => void;
+  positiveIsGood?: boolean;
 }) {
   return (
     <div>
       <label className="block text-sm font-medium text-foreground/80 mb-2">{label}</label>
       <div className="flex gap-3">
-        {[true, false].map((opt) => (
-          <button
-            key={String(opt)}
-            type="button"
-            onClick={() => onChange(opt)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
-              value === opt
-                ? opt
-                  ? "bg-red-50 border-red-300 text-red-700"
-                  : "bg-green-50 border-green-300 text-green-700"
-                : "bg-surface/50 border-border text-muted hover:bg-surface"
-            }`}
-          >
-            {opt ? "Yes" : "No"}
-          </button>
-        ))}
+        {[true, false].map((opt) => {
+          const isGood = positiveIsGood ? opt : !opt;
+          return (
+            <button
+              key={String(opt)}
+              type="button"
+              onClick={() => onChange(opt)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                value === opt
+                  ? isGood
+                    ? "bg-green-50 border-green-300 text-green-700"
+                    : "bg-red-50 border-red-300 text-red-700"
+                  : "bg-surface/50 border-border text-muted hover:bg-surface"
+              }`}
+            >
+              {opt ? "Yes" : "No"}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -199,7 +204,7 @@ export function MedicalStep({ data, updateData }: Props) {
       </div>
 
       <div className="space-y-4 mt-6">
-        <YesNo label="Immunisation up to date?" value={medical.immunisationUpToDate} onChange={(v) => updateMedical("immunisationUpToDate", v)} />
+        <YesNo label="Immunisation up to date?" value={medical.immunisationUpToDate} onChange={(v) => updateMedical("immunisationUpToDate", v)} positiveIsGood />
         {medical.immunisationUpToDate === false && (
           <div>
             <label className="block text-sm font-medium text-foreground/80 mb-1">Details</label>

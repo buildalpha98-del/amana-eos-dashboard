@@ -3,7 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { sendTeamsNotification } from "@/lib/teams-notify";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
-import { enrolmentConfirmationEmail } from "@/lib/email-templates";
+import { enrolmentConfirmationEmail, schoolEnrolmentNotificationEmail } from "@/lib/email-templates";
+import { encryptField } from "@/lib/field-encryption";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withApiHandler } from "@/lib/api-handler";
 import { ApiError } from "@/lib/api-error";
@@ -24,7 +25,7 @@ const childSchema = z.object({
   culturalBackground: z.array(z.string()).default([]),
   schoolName: z.string().default(""),
   yearLevel: z.string().default(""),
-  crn: z.string().default(""),
+  crn: z.string().min(1, "Child CRN is required"),
 });
 
 const parentSchema = z.object({
@@ -251,6 +252,32 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     };
   }
 
+  // Store encrypted full payment details for OWNA porting
+  let encryptedPaymentRaw: string | null = null;
+  if (payment.method === "credit_card") {
+    encryptedPaymentRaw = encryptField(JSON.stringify({
+      method: "credit_card",
+      cardName: payment.cardName,
+      cardNumber: payment.cardNumber,
+      expiryMonth: payment.cardExpiryMonth,
+      expiryYear: payment.cardExpiryYear,
+      ccv: payment.cardCcv,
+    }));
+  } else if (payment.method === "bank_account") {
+    encryptedPaymentRaw = encryptField(JSON.stringify({
+      method: "bank_account",
+      accountName: payment.bankAccountName,
+      bsb: payment.bankBsb,
+      accountNumber: payment.bankAccountNumber,
+    }));
+  }
+
+  const paymentData = {
+    ...maskedPayment,
+    // Encrypted full details for OWNA porting — decrypt with decryptField()
+    ...(encryptedPaymentRaw ? { raw: encryptedPaymentRaw } : {}),
+  };
+
   // Merge medical + booking into children array for storage
   const enrichedChildren = children.map((child, i) => ({
     ...child,
@@ -287,7 +314,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       authorisedPickup: authorisedPickup.length > 0 ? authorisedPickup : undefined,
       consents,
       paymentMethod,
-      paymentDetails: maskedPayment ?? undefined,
+      paymentDetails: Object.keys(paymentData).length > 0 ? paymentData : undefined,
       referralSource,
       signature,
       termsAccepted: true,
@@ -371,6 +398,29 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       subject,
       html,
     }).catch(() => {});
+  }
+
+  // Send notification to school (fire and forget)
+  if (serviceId) {
+    const service = await prisma.service.findUnique({
+      where: { id: serviceId },
+      select: { name: true, email: true },
+    });
+    if (service?.email) {
+      const { subject: schoolSubject, html: schoolHtml } = schoolEnrolmentNotificationEmail(
+        service.name,
+        `${primaryParent.firstName} ${primaryParent.surname}`,
+        childNames,
+        primaryParent.email,
+        primaryParent.mobile,
+      );
+      sendEmail({
+        from: FROM_EMAIL,
+        to: service.email,
+        subject: schoolSubject,
+        html: schoolHtml,
+      }).catch(() => {});
+    }
   }
 
   return NextResponse.json({

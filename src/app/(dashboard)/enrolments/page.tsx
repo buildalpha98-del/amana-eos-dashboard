@@ -19,14 +19,14 @@ import { PageHeader } from "@/components/layout/PageHeader";
 const STATUS_TABS = [
   { key: "all", label: "All" },
   { key: "submitted", label: "Submitted" },
-  { key: "reviewing", label: "Reviewing" },
+  { key: "under_review", label: "Reviewing" },
   { key: "processed", label: "Confirmed" },
   { key: "needs_info", label: "Needs Info" },
 ];
 
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
   submitted: { label: "Submitted", color: "bg-blue-50 text-blue-700" },
-  reviewing: { label: "Reviewing", color: "bg-amber-50 text-amber-700" },
+  under_review: { label: "Reviewing", color: "bg-amber-50 text-amber-700" },
   processed: { label: "Confirmed", color: "bg-green-50 text-green-700" },
   needs_info: { label: "Needs Info", color: "bg-orange-50 text-orange-700" },
 };
@@ -53,7 +53,7 @@ export default function EnrolmentsPage() {
   const counts = {
     all: data?.total || 0,
     submitted: submissions.filter((s) => s.status === "submitted").length,
-    reviewing: submissions.filter((s) => s.status === "reviewing").length,
+    under_review: submissions.filter((s) => s.status === "under_review").length,
     processed: submissions.filter((s) => s.status === "processed").length,
     needs_info: submissions.filter((s) => s.status === "needs_info").length,
   };
@@ -92,7 +92,7 @@ export default function EnrolmentsPage() {
         {[
           { label: "Total", count: counts.all, color: "text-brand" },
           { label: "Pending Review", count: counts.submitted, color: "text-blue-600" },
-          { label: "In Review", count: counts.reviewing, color: "text-amber-600" },
+          { label: "In Review", count: counts.under_review, color: "text-amber-600" },
           { label: "Confirmed", count: counts.processed, color: "text-green-600" },
         ].map((stat) => (
           <div key={stat.label} className="bg-background border border-border rounded-xl p-4">

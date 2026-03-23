@@ -303,6 +303,11 @@ export function validateStep(step: number, data: EnrolmentFormData): string[] {
       if (!data.primaryParent.suburb.trim()) errors.push("Primary parent suburb is required");
       if (!data.primaryParent.state) errors.push("Primary parent state is required");
       if (!data.primaryParent.postcode.trim()) errors.push("Primary parent postcode is required");
+      // Validate child CRNs
+      data.children.forEach((child, i) => {
+        const label = data.children.length > 1 ? ` (Child ${i + 1})` : "";
+        if (!child.crn.trim()) errors.push(`Child CRN is required${label}`);
+      });
       // If secondary parent has any field filled, require key fields
       const sp = data.secondaryParent;
       const hasSecondary = sp.firstName || sp.surname || sp.email || sp.mobile;

@@ -34,6 +34,7 @@ function Input({
   required,
   type = "text",
   placeholder,
+  maxLength,
 }: {
   label: string;
   value: string;
@@ -41,6 +42,7 @@ function Input({
   required?: boolean;
   type?: string;
   placeholder?: string;
+  maxLength?: number;
 }) {
   return (
     <div>
@@ -50,6 +52,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        maxLength={maxLength}
         className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
       />
     </div>
@@ -147,12 +150,14 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
                 label="Postcode"
                 value={child.postcode}
                 onChange={(v) => {
-                  updateChild(i, "postcode", v);
-                  if (v.length === 4) {
-                    const state = stateFromPostcode(v);
+                  const digits = v.replace(/\D/g, "").slice(0, 4);
+                  updateChild(i, "postcode", digits);
+                  if (digits.length === 4) {
+                    const state = stateFromPostcode(digits);
                     if (state) updateChild(i, "state", state);
                   }
                 }}
+                maxLength={4}
               />
             </div>
           </div>

@@ -17,6 +17,7 @@ function Input({
   required,
   type = "text",
   placeholder,
+  maxLength,
 }: {
   label: string;
   value: string;
@@ -24,6 +25,7 @@ function Input({
   required?: boolean;
   type?: string;
   placeholder?: string;
+  maxLength?: number;
 }) {
   return (
     <div>
@@ -36,6 +38,7 @@ function Input({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        maxLength={maxLength}
         className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
       />
     </div>
@@ -49,6 +52,7 @@ function ParentSection({
   required,
   childAddress,
   onCopyChildAddress,
+  copyAddressLabel,
 }: {
   title: string;
   parent: ParentDetails;
@@ -56,6 +60,7 @@ function ParentSection({
   required?: boolean;
   childAddress?: { street: string; suburb: string; state: string; postcode: string };
   onCopyChildAddress?: () => void;
+  copyAddressLabel?: string;
 }) {
   return (
     <div>
@@ -77,7 +82,7 @@ function ParentSection({
             onClick={onCopyChildAddress}
             className="text-xs text-brand hover:underline"
           >
-            Same as child's address
+            {copyAddressLabel || "Same as child's address"}
           </button>
         )}
       </div>
@@ -104,12 +109,14 @@ function ParentSection({
             label="Postcode"
             value={parent.postcode}
             onChange={(v) => {
-              onChange("postcode", v);
-              if (v.length === 4) {
-                const state = stateFromPostcode(v);
+              const digits = v.replace(/\D/g, "").slice(0, 4);
+              onChange("postcode", digits);
+              if (digits.length === 4) {
+                const state = stateFromPostcode(digits);
                 if (state) onChange("state", state);
               }
             }}
+            maxLength={4}
           />
         </div>
       </div>
@@ -158,6 +165,7 @@ export function ParentDetailsStep({ data, updateData }: Props) {
         required
         childAddress={data.children[0]}
         onCopyChildAddress={copyChildAddress}
+        copyAddressLabel="Same as child's address"
       />
 
       {/* Child CRNs */}
@@ -170,7 +178,7 @@ export function ParentDetailsStep({ data, updateData }: Props) {
             {data.children.map((child, i) => (
               <div key={i}>
                 <label className="block text-sm font-medium text-foreground/80 mb-1">
-                  {child.firstName || `Child ${i + 1}`}
+                  {child.firstName || `Child ${i + 1}`} <span className="text-red-500 ml-0.5">*</span>
                 </label>
                 <input
                   value={child.crn}
@@ -204,6 +212,18 @@ export function ParentDetailsStep({ data, updateData }: Props) {
             title="Secondary Parent / Guardian"
             parent={data.secondaryParent}
             onChange={updateSecondary}
+            onCopyChildAddress={() => {
+              updateData({
+                secondaryParent: {
+                  ...data.secondaryParent,
+                  street: data.primaryParent.street,
+                  suburb: data.primaryParent.suburb,
+                  state: data.primaryParent.state,
+                  postcode: data.primaryParent.postcode,
+                },
+              });
+            }}
+            copyAddressLabel="Same as primary parent"
           />
 
           <div className="mt-6">
