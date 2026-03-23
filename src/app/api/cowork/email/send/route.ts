@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
+import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
 import { resolveServiceByCode } from "../../_lib/resolve-service";
 import {
   isBrevoConfigured,
@@ -179,22 +180,11 @@ export const POST = withApiHandler(async (req) => {
     });
 
     // 9. Activity log
-    await prisma.activityLog.create({
-      data: {
-        userId: "cowork",
-        action: "api_import",
-        entityType: "DeliveryLog",
-        entityId: messageId,
-        details: {
-          channel: "email",
-          subject,
-          serviceCode,
-          recipientCount: recipients.length,
-          status,
-          via: "api_key",
-          keyName: "Cowork Automation",
-        },
-      },
+    logCoworkActivity({
+      action: "api_import",
+      entityType: "DeliveryLog",
+      entityId: messageId,
+      details: { channel: "email", subject, serviceCode, recipientCount: recipients.length, status, via: "api_key", keyName: "Cowork Automation" },
     });
 
     return NextResponse.json({
