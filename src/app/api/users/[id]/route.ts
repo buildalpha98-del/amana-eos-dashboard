@@ -219,9 +219,31 @@ const { id } = await context!.params!;
 
       // Nullify additional FK references
       await tx.coworkReport.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } });
+      await tx.coworkReport.updateMany({ where: { reviewedById: id }, data: { reviewedById: null } });
       await tx.enrolmentSubmission.updateMany({ where: { processedById: id }, data: { processedById: null } });
       await tx.visionTractionOrganiser.updateMany({ where: { updatedById: id }, data: { updatedById: null } });
       await tx.timesheet.updateMany({ where: { approvedById: id }, data: { approvedById: null } });
+      await tx.budgetItem.updateMany({ where: { createdById: id }, data: { createdById: null } });
+      await tx.programActivity.updateMany({ where: { createdById: id }, data: { createdById: null } });
+      await tx.menuWeek.updateMany({ where: { createdById: id }, data: { createdById: null } });
+      await tx.activityTemplate.updateMany({ where: { createdById: id }, data: { createdById: null } });
+      await tx.activityTemplateFile.updateMany({ where: { uploadedById: id }, data: { uploadedById: null } });
+      await tx.todoTemplate.updateMany({ where: { createdById: id }, data: { createdById: null } });
+      await tx.termCalendarEntry.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
+      await tx.coworkTodo.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } });
+      await tx.parentEnquiry.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
+      await tx.recruitmentVacancy.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } });
+      await tx.overdueFeeRecord.updateMany({ where: { assigneeId: id }, data: { assigneeId: null } });
+      await tx.eBITDAAdjustment.updateMany({ where: { createdById: id }, data: { createdById: null } });
+      await tx.qualityImprovementPlan.updateMany({ where: { reviewedById: id }, data: { reviewedById: null } });
+      await tx.incidentRecord.updateMany({ where: { createdById: id }, data: { createdById: null } });
+      await tx.emailTemplate.updateMany({ where: { createdById: id }, data: { createdById: null } });
+      await tx.infoSnippet.updateMany({ where: { createdById: id }, data: { createdById: null } });
+
+      // Delete owned records with required FK (no onDelete cascade)
+      await tx.internalFeedback.deleteMany({ where: { authorId: id } });
+      await tx.marketingPostRevision.deleteMany({ where: { userId: id } });
+      await tx.scenario.deleteMany({ where: { createdById: id } });
 
       // Finally delete the user
       await tx.user.delete({ where: { id } });
