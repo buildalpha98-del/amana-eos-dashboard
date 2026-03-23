@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { authenticateCowork, setVersionHeaders } from "@/app/api/_lib/auth";
+import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
 import { resolveServiceByCode } from "../../_lib/resolve-service";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
@@ -69,21 +70,11 @@ export const POST = withApiHandler(async (req) => {
     });
 
     // 6. Activity log
-    await prisma.activityLog.create({
-      data: {
-        userId: "cowork",
-        action: "api_import",
-        entityType: "Announcement",
-        entityId: announcement.id,
-        details: {
-          title,
-          audience,
-          priority,
-          serviceCode: serviceCode || null,
-          via: "api_key",
-          keyName: "Cowork Automation",
-        },
-      },
+    logCoworkActivity({
+      action: "api_import",
+      entityType: "Announcement",
+      entityId: announcement.id,
+      details: { title, audience, priority, serviceCode: serviceCode || null, via: "api_key", keyName: "Cowork Automation" },
     });
 
     return setVersionHeaders(NextResponse.json(announcement, { status: 201 }), 2);
