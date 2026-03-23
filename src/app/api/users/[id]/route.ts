@@ -207,6 +207,22 @@ const { id } = await context!.params!;
       // API keys
       await tx.apiKey.deleteMany({ where: { createdById: id } });
 
+      // Models added after initial delete handler
+      await tx.aiUsage.deleteMany({ where: { userId: id } });
+      await tx.calendarIntegration.deleteMany({ where: { userId: id } });
+      await tx.employmentContract.deleteMany({ where: { userId: id } });
+      await tx.staffOffboarding.deleteMany({ where: { userId: id } });
+      await tx.staffPulseSurvey.deleteMany({ where: { userId: id } });
+      await tx.systemBannerDismissal.deleteMany({ where: { userId: id } });
+      await tx.snippetAck.deleteMany({ where: { userId: id } });
+      await tx.staffReferral.deleteMany({ where: { referrerUserId: id } });
+
+      // Nullify additional FK references
+      await tx.coworkReport.updateMany({ where: { assignedToId: id }, data: { assignedToId: null } });
+      await tx.enrolmentSubmission.updateMany({ where: { processedById: id }, data: { processedById: null } });
+      await tx.visionTractionOrganiser.updateMany({ where: { updatedById: id }, data: { updatedById: null } });
+      await tx.timesheet.updateMany({ where: { approvedById: id }, data: { approvedById: null } });
+
       // Finally delete the user
       await tx.user.delete({ where: { id } });
     });
