@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, Fragment } from "react";
+import { useMemo, useState, Fragment } from "react";
 import type { ScorecardData, MeasurableEntry } from "@/hooks/useScorecard";
 import { DataEntryCell } from "./DataEntryCell";
 import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Minus, Building2, Pencil, Trash2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Building2, Pencil, Trash2, GripVertical } from "lucide-react";
 import { ScrollableTable } from "@/components/ui/ScrollableTable";
 import { StickyTable } from "@/components/ui/StickyTable";
-import { Sparkline } from "@/components/ui/Sparkline";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { mutateApi } from "@/lib/fetch-api";
 
 function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goalDirection: "above" | "below" | "exact" }) {
   // values are newest-first; find the two most recent non-null values
@@ -51,8 +52,8 @@ function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goal
 function getTrailing13Weeks(): Date[] {
   const weeks: Date[] = [];
   const current = getWeekStart();
-  // Newest first — current week at index 0
-  for (let i = 0; i <= 12; i++) {
+  // Start from previous week (index 0 = last week), going back 13 weeks
+  for (let i = 1; i <= 13; i++) {
     const d = new Date(current);
     d.setDate(d.getDate() - i * 7);
     weeks.push(d);
@@ -60,13 +61,21 @@ function getTrailing13Weeks(): Date[] {
   return weeks;
 }
 
-function formatWeekShort(date: Date): string {
-  return date.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
-}
+function formatWeekRange(weekStart: Date): string {
+  const endDate = new Date(weekStart);
+  endDate.setDate(endDate.getDate() + 6);
 
-function isCurrentWeek(date: Date): boolean {
-  const current = getWeekStart();
-  return date.getTime() === current.getTime();
+  const startDay = weekStart.getDate();
+  const endDay = endDate.getDate();
+  const startMonth = weekStart.toLocaleDateString("en-AU", { month: "short" });
+  const endMonth = endDate.toLocaleDateString("en-AU", { month: "short" });
+
+  // Same month: "Mar 16-22"
+  if (startMonth === endMonth) {
+    return `${startMonth} ${startDay}-${endDay}`;
+  }
+  // Cross month: "Mar 30-Apr 5"
+  return `${startMonth} ${startDay}-${endMonth} ${endDay}`;
 }
 
 export function ScorecardGrid({
@@ -81,6 +90,16 @@ export function ScorecardGrid({
   onDelete?: (measurable: ScorecardData["measurables"][number]) => void;
 }) {
   const weeks = useMemo(() => getTrailing13Weeks(), []);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const reorderMutation = useMutation({
+    mutationFn: (orderedIds: string[]) =>
+      mutateApi("/api/measurables/reorder", { method: "PUT", body: { orderedIds } }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["scorecard"] }),
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ["scorecard"] });
+    },
+  });
 
   // Group measurables by owner or service
   const grouped = useMemo(() => {
@@ -225,30 +244,14 @@ export function ScorecardGrid({
               <th className="px-2 py-3 text-center text-xs font-semibold text-brand uppercase tracking-wider w-[70px] bg-brand/5">
                 13wk Avg
               </th>
-              <th className="px-1 py-3 text-center text-[10px] font-medium text-muted uppercase tracking-wider w-[72px]">
-                Trend
-              </th>
-              {weeks.map((week) => {
-                const isCurrent = isCurrentWeek(week);
-                return (
-                  <th
-                    key={week.toISOString()}
-                    className={cn(
-                      "px-1 py-3 text-center text-[10px] font-medium w-[70px]",
-                      isCurrent
-                        ? "text-brand bg-brand/5 font-semibold"
-                        : "text-muted"
-                    )}
-                  >
-                    {formatWeekShort(week)}
-                    {isCurrent && (
-                      <div className="text-[8px] text-brand font-bold mt-0.5">
-                        THIS WEEK
-                      </div>
-                    )}
-                  </th>
-                );
-              })}
+              {weeks.map((week) => (
+                <th
+                  key={week.toISOString()}
+                  className="px-1 py-3 text-center text-[10px] font-medium w-[70px] text-muted"
+                >
+                  {formatWeekRange(week)}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -257,7 +260,7 @@ export function ScorecardGrid({
                 {/* Group divider */}
                 <tr>
                   <td
-                    colSpan={weeks.length + 4}
+                    colSpan={weeks.length + 3}
                     className="sticky left-0 z-10 bg-surface/50 px-4 py-2"
                   >
                     <div className="flex items-center gap-2">
@@ -305,10 +308,29 @@ export function ScorecardGrid({
                   <tr
                     key={m.id}
                     className="group/row border-b border-border/50 hover:bg-surface/50"
+                    draggable
+                    onDragStart={() => setDragId(m.id)}
+                    onDragEnd={() => setDragId(null)}
+                    onDragOver={(e) => { e.preventDefault(); }}
+                    onDrop={() => {
+                      if (!dragId || dragId === m.id) return;
+                      const ids = group.measurables.map((x) => x.id);
+                      const fromIdx = ids.indexOf(dragId);
+                      const toIdx = ids.indexOf(m.id);
+                      if (fromIdx === -1 || toIdx === -1) return;
+                      const newIds = [...ids];
+                      const [moved] = newIds.splice(fromIdx, 1);
+                      newIds.splice(toIdx, 0, moved);
+                      const allIds = grouped.flatMap((g) =>
+                        g.key === group.key ? newIds : g.measurables.map((x) => x.id)
+                      );
+                      reorderMutation.mutate(allIds);
+                    }}
                   >
                     {/* Title */}
                     <td className="sticky left-0 z-10 bg-card group-hover/row:bg-surface/30 px-4 py-2">
                       <div className="flex items-center gap-1.5">
+                        <GripVertical className="w-3.5 h-3.5 text-muted/50 cursor-grab shrink-0 md:opacity-0 md:group-hover/row:opacity-100 opacity-60" />
                         <div className="text-sm font-medium text-foreground truncate max-w-[130px]" title={m.title}>
                           {m.title}
                         </div>
@@ -383,17 +405,6 @@ export function ScorecardGrid({
                       <span className="text-xs font-semibold">
                         {avg !== null && avg !== undefined ? fmtVal(avg) : "—"}
                       </span>
-                    </td>
-
-                    {/* Sparkline */}
-                    <td className="px-1 py-2 text-center">
-                      <Sparkline
-                        values={weeks.map((w) => {
-                          const e = entryLookup[m.id]?.[w.toISOString().split("T")[0]];
-                          return e ? e.value : null;
-                        })}
-                        goalValue={m.goalValue}
-                      />
                     </td>
 
                     {/* Week cells */}

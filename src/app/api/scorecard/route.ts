@@ -31,7 +31,7 @@ const scope = getServiceScope(session);
             },
           },
         },
-        orderBy: [{ ownerId: "asc" }, { title: "asc" }],
+        orderBy: [{ sortOrder: "asc" }, { ownerId: "asc" }, { title: "asc" }],
       },
     },
   });

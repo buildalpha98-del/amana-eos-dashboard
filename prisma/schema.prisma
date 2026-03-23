@@ -753,6 +753,7 @@ model Measurable {
   goalDirection GoalDirection       @default(above)
   unit          String?
   frequency     MeasurableFrequency @default(weekly)
+  sortOrder     Int                 @default(0)
   rockId        String?
   rock          Rock?               @relation(fields: [rockId], references: [id], onDelete: SetNull)
   scorecardId   String

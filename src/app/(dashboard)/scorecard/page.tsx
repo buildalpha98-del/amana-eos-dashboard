@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useScorecard } from "@/hooks/useScorecard";
 import type { MeasurableData } from "@/hooks/useScorecard";
@@ -23,6 +23,7 @@ export default function ScorecardPage() {
   const [deletingMeasurable, setDeletingMeasurable] = useState<MeasurableData | null>(null);
   const [groupBy, setGroupBy] = useState<"person" | "service">("person");
   const [aiNarrative, setAiNarrative] = useState("");
+  const [tab, setTab] = useState<"all" | "leadership">("all");
   const queryClient = useQueryClient();
 
   const deleteMeasurable = useMutation({
@@ -84,6 +85,15 @@ export default function ScorecardPage() {
 
     exportToCSV(rows, "scorecard-export", columns);
   };
+
+  // Leadership team = org-level measurables (no serviceId)
+  const filteredScorecard = useMemo(() => {
+    if (!scorecard || tab === "all") return scorecard;
+    return {
+      ...scorecard,
+      measurables: scorecard.measurables.filter((m) => !m.serviceId),
+    };
+  }, [scorecard, tab]);
 
   return (
     <div className="max-w-full mx-auto">
@@ -150,6 +160,28 @@ export default function ScorecardPage() {
         </div>
       )}
 
+      {/* Sub-tabs */}
+      <div className="flex items-center gap-1 bg-surface rounded-lg p-0.5 mb-4">
+        <button
+          onClick={() => setTab("all")}
+          className={cn(
+            "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+            tab === "all" ? "bg-card text-brand shadow-sm" : "text-muted hover:text-foreground"
+          )}
+        >
+          All Measurables
+        </button>
+        <button
+          onClick={() => setTab("leadership")}
+          className={cn(
+            "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+            tab === "leadership" ? "bg-card text-brand shadow-sm" : "text-muted hover:text-foreground"
+          )}
+        >
+          Leadership Team
+        </button>
+      </div>
+
       {/* Content */}
       {isLoading ? (
         <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -176,16 +208,19 @@ export default function ScorecardPage() {
           error={error as Error}
           onRetry={refetch}
         />
-      ) : scorecard && scorecard.measurables.length === 0 ? (
+      ) : filteredScorecard && filteredScorecard.measurables.length === 0 ? (
         <EmptyState
           icon={BarChart3}
-          title="No Measurables Yet"
-          description="Your Scorecard tracks weekly KPIs that tell you if the business is on track. Add your first measurable to start monitoring what matters."
-          action={{ label: "Add Your First Measurable", onClick: () => setShowAddMeasurable(true) }}
+          title={tab === "leadership" ? "No Leadership Measurables" : "No Measurables Yet"}
+          description={tab === "leadership"
+            ? "No org-level measurables found. Leadership measurables are those not tied to a specific service."
+            : "Your Scorecard tracks weekly KPIs that tell you if the business is on track. Add your first measurable to start monitoring what matters."
+          }
+          action={tab === "all" ? { label: "Add Your First Measurable", onClick: () => setShowAddMeasurable(true) } : undefined}
         />
-      ) : scorecard ? (
+      ) : filteredScorecard ? (
         <ScorecardGrid
-          scorecard={scorecard}
+          scorecard={filteredScorecard}
           groupBy={groupBy}
           onEdit={(m) => {
             setEditingMeasurable(m);

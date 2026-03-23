@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
+
 const entrySchema = z.object({
   weekOf: z.string().min(1, "Week is required"),
   value: z.number(),
@@ -11,7 +13,7 @@ const entrySchema = z.object({
 // POST /api/measurables/[id]/entries — create or update an entry
 export const POST = withApiAuth(async (req, session, context) => {
 const { id: measurableId } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = entrySchema.safeParse(body);
 
   if (!parsed.success) {
@@ -46,6 +48,8 @@ const { id: measurableId } = await context!.params!;
   }
 
   const weekOf = new Date(parsed.data.weekOf);
+  // Normalize to UTC midnight to prevent timezone drift on upsert
+  weekOf.setUTCHours(0, 0, 0, 0);
 
   // Upsert — allows re-entering data for the same week
   const entry = await prisma.measurableEntry.upsert({
