@@ -13,8 +13,10 @@ import { Redis } from "@upstash/redis";
 // 1. Upstash Redis rate limiter (production)
 // ---------------------------------------------------------------------------
 
-let ratelimit: Ratelimit | null = null;
 let sharedRedis: Redis | null = null;
+
+/** Rate limiter cache — keyed by "max:windowMs" to reuse instances with same config */
+const rateLimiters = new Map<string, Ratelimit>();
 
 /** Get or create the shared Redis client (reused across rate limiter and reset) */
 function getSharedRedis(): Redis | null {
@@ -26,21 +28,32 @@ function getSharedRedis(): Redis | null {
   return sharedRedis;
 }
 
-function getUpstashRatelimit(): Ratelimit | null {
-  if (ratelimit) return ratelimit;
-
+/**
+ * Get or create an Upstash rate limiter for the given max/window config.
+ * Each unique config gets its own Ratelimit instance with a distinct prefix.
+ */
+function getUpstashRatelimit(maxAttempts: number, windowMs: number): Ratelimit | null {
   const redis = getSharedRedis();
   if (!redis) return null;
 
-  ratelimit = new Ratelimit({
+  const cacheKey = `${maxAttempts}:${windowMs}`;
+  const existing = rateLimiters.get(cacheKey);
+  if (existing) return existing;
+
+  const windowSeconds = Math.ceil(windowMs / 1000);
+  const windowDuration = windowSeconds >= 60
+    ? (`${Math.ceil(windowSeconds / 60)} m` as const)
+    : (`${windowSeconds} s` as const);
+
+  const rl = new Ratelimit({
     redis,
-    // 5 requests per 15-minute sliding window (matches original behaviour)
-    limiter: Ratelimit.slidingWindow(5, "15 m"),
+    limiter: Ratelimit.slidingWindow(maxAttempts, windowDuration as `${number} ${"ms" | "s" | "m" | "h" | "d"}`),
     analytics: true,
-    prefix: "ratelimit:login",
+    prefix: `ratelimit:${maxAttempts}:${windowSeconds}`,
   });
 
-  return ratelimit;
+  rateLimiters.set(cacheKey, rl);
+  return rl;
 }
 
 // ---------------------------------------------------------------------------
@@ -117,7 +130,7 @@ export async function checkRateLimit(
   maxAttempts = 5,
   windowMs = 15 * 60 * 1000,
 ): Promise<{ limited: boolean; remaining: number; resetIn: number }> {
-  const upstash = getUpstashRatelimit();
+  const upstash = getUpstashRatelimit(maxAttempts, windowMs);
 
   if (upstash) {
     const { success, remaining, reset } = await upstash.limit(key);
@@ -136,43 +149,13 @@ export async function checkRateLimit(
 // 4. API key rate limiter (100 req / 1 min per key)
 // ---------------------------------------------------------------------------
 
-let apiKeyRatelimit: Ratelimit | null = null;
-
-function getApiKeyRatelimit(): Ratelimit | null {
-  if (apiKeyRatelimit) return apiKeyRatelimit;
-
-  const redis = getSharedRedis();
-  if (!redis) return null;
-
-  apiKeyRatelimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(100, "1 m"),
-    analytics: true,
-    prefix: "ratelimit:apikey",
-  });
-
-  return apiKeyRatelimit;
-}
-
 /**
  * Check if an API key has exceeded its rate limit (100 req / min).
  */
 export async function checkApiKeyRateLimit(
   keyId: string,
 ): Promise<{ limited: boolean; remaining: number; resetIn: number }> {
-  const upstash = getApiKeyRatelimit();
-
-  if (upstash) {
-    const { success, remaining, reset } = await upstash.limit(`apikey:${keyId}`);
-    return {
-      limited: !success,
-      remaining,
-      resetIn: Math.max(0, reset - Date.now()),
-    };
-  }
-
-  // Fallback: in-memory (dev only) — 100 requests per 60 seconds
-  return checkMemory(`apikey:${keyId}`, 100, 60_000);
+  return checkRateLimit(`apikey:${keyId}`, 100, 60_000);
 }
 
 // ---------------------------------------------------------------------------
