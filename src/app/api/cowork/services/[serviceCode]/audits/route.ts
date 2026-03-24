@@ -73,9 +73,9 @@ export const POST = withApiHandler(async (req, context) => {
     responses,
   } = parsed.data;
 
-  // Find the audit template by name
-  const template = await prisma.auditTemplate.findUnique({
-    where: { name: templateName },
+  // Find the audit template by name (case-insensitive to prevent sync mismatches)
+  const template = await prisma.auditTemplate.findFirst({
+    where: { name: { equals: templateName, mode: "insensitive" } },
     include: { items: { orderBy: { sortOrder: "asc" } } },
   });
 

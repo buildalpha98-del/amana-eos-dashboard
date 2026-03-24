@@ -183,7 +183,7 @@ function UploadCalendarDialog({
                   <input
                     ref={fileRef}
                     type="file"
-                    accept=".docx,.doc"
+                    accept=".docx,.doc,.csv"
                     className="hidden"
                     onChange={handleFileSelect}
                   />
@@ -199,9 +199,9 @@ function UploadCalendarDialog({
                     <>
                       <Upload className="w-8 h-8 text-muted mx-auto mb-2" />
                       <p className="text-sm text-muted">
-                        Click to upload a <strong>.docx</strong> compliance calendar
+                        Click to upload a <strong>.docx</strong> or <strong>.csv</strong> compliance calendar
                       </p>
-                      <p className="text-xs text-muted mt-1">Max 10 MB</p>
+                      <p className="text-xs text-muted mt-1">Max 10 MB — CSV recommended for most reliable results</p>
                     </>
                   )}
                 </div>

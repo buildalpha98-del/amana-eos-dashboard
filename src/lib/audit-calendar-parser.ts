@@ -246,6 +246,26 @@ function extractMonthlySchedules(tables: Element[]): Map<string, Set<number>> {
 
     if (colToMonth.size === 0) continue;
 
+    // Detect column ratio mismatch: header may have fewer cells than data rows.
+    // E.g., header has 3 cells (Jan, Feb, Mar) but data rows have 12 cells
+    // (each month uses 2 columns: audit name + empty spacer).
+    // Expand colToMonth to cover the actual data row column count.
+    const firstDataRow = rows.length > 2 ? rows[2] : rows[1];
+    if (firstDataRow) {
+      const dataCellCount = Array.from(firstDataRow.querySelectorAll("th, td")).length;
+      const monthCount = colToMonth.size;
+      if (dataCellCount > monthCount && monthCount > 0) {
+        const colsPerMonth = Math.round(dataCellCount / monthCount);
+        const sortedEntries = [...colToMonth.entries()].sort((a, b) => a[0] - b[0]);
+        colToMonth.clear();
+        sortedEntries.forEach(([, monthNum], idx) => {
+          for (let c = idx * colsPerMonth; c < (idx + 1) * colsPerMonth; c++) {
+            colToMonth.set(c, monthNum);
+          }
+        });
+      }
+    }
+
     // Now extract audit names from data rows
     // In the calendar tables, audit names appear in cells under each month
     for (let r = 1; r < rows.length; r++) {
@@ -403,4 +423,134 @@ export async function parseComplianceCalendar(
       qualityAreas,
     },
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* CSV Calendar Parser                                                  */
+/* ------------------------------------------------------------------ */
+
+const MONTH_HEADERS = [
+  "jan", "feb", "mar", "apr", "may", "jun",
+  "jul", "aug", "sep", "oct", "nov", "dec",
+];
+
+/**
+ * Parse a CSV compliance calendar.
+ *
+ * Expected format:
+ *   Template Name, Frequency, NQS, QA, Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
+ *   Assessment and Planning Cycle Audit, Monthly, 1.3.1, 1, x, x, x, x, x, x, x, x, x, x, x, x
+ *   Bathroom Safety Audit, Half Yearly, 2.1.3, 2, x, , , , , , x, , , , , ,
+ *
+ * Month columns can use "x", "1", "yes", "✓" to indicate scheduled.
+ */
+export function parseCalendarCsv(csvContent: string): ParsedCalendarResult {
+  const lines = csvContent.split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length < 2) {
+    return { templates: [], metadata: { totalTemplates: 0, qualityAreas: [] } };
+  }
+
+  // Parse header to find month column indices
+  const headerCells = parseCSVLine(lines[0]);
+  const monthColMap = new Map<number, number>(); // colIndex → monthNumber (1-12)
+
+  for (let i = 0; i < headerCells.length; i++) {
+    const h = headerCells[i].toLowerCase().trim();
+    const monthIdx = MONTH_HEADERS.findIndex((m) => h.startsWith(m));
+    if (monthIdx !== -1) {
+      monthColMap.set(i, monthIdx + 1);
+    }
+  }
+
+  // Find name, frequency, NQS, QA columns by header text
+  const nameCol = headerCells.findIndex((h) =>
+    /name|template|audit/i.test(h),
+  );
+  const freqCol = headerCells.findIndex((h) => /freq/i.test(h));
+  const nqsCol = headerCells.findIndex((h) => /nqs|reference/i.test(h));
+  const qaCol = headerCells.findIndex((h) => /qa|quality/i.test(h));
+
+  if (nameCol === -1 || monthColMap.size === 0) {
+    return { templates: [], metadata: { totalTemplates: 0, qualityAreas: [] } };
+  }
+
+  const templates: CalendarTemplateEntry[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const cells = parseCSVLine(lines[i]);
+    const name = cells[nameCol]?.trim();
+    if (!name || name.length < 3) continue;
+
+    const scheduledMonths: number[] = [];
+    for (const [colIdx, monthNum] of monthColMap) {
+      const val = (cells[colIdx] || "").trim().toLowerCase();
+      if (val === "x" || val === "1" || val === "yes" || val === "✓" || val === "true") {
+        scheduledMonths.push(monthNum);
+      }
+    }
+
+    const freqRaw = (cells[freqCol] || "").trim().toLowerCase();
+    let frequency: "monthly" | "half_yearly" | "yearly" = "yearly";
+    if (/month/i.test(freqRaw)) frequency = "monthly";
+    else if (/half|bi|semi/i.test(freqRaw)) frequency = "half_yearly";
+
+    // If no months were marked, infer from frequency
+    if (scheduledMonths.length === 0) {
+      if (frequency === "monthly") {
+        scheduledMonths.push(...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+      } else if (frequency === "half_yearly") {
+        scheduledMonths.push(1, 7);
+      } else {
+        scheduledMonths.push(1);
+      }
+    }
+
+    const qa = parseInt(cells[qaCol] || "0", 10) || 0;
+    const nqs = (cells[nqsCol] || "").trim();
+
+    templates.push({
+      name,
+      description: "",
+      frequency,
+      qualityArea: qa,
+      nqsReference: nqs,
+      scheduledMonths: scheduledMonths.sort((a, b) => a - b),
+    });
+  }
+
+  const qualityAreas = [...new Set(templates.map((t) => t.qualityArea))].sort();
+
+  return {
+    templates,
+    metadata: {
+      totalTemplates: templates.length,
+      qualityAreas,
+    },
+  };
+}
+
+/** Simple CSV line parser handling quoted fields */
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (ch === "," && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current);
+  return result;
 }

@@ -11,7 +11,7 @@ vi.mock("@/lib/prisma", () => {
     },
     dailyChecklistItem: { createMany: fn(), deleteMany: fn(), update: fn() },
     schoolComm: { create: fn(), findMany: fn() },
-    auditTemplate: { findUnique: fn() },
+    auditTemplate: { findUnique: fn(), findFirst: fn() },
     auditInstance: { upsert: fn() },
     auditItemResponse: { upsert: fn() },
     holidayQuestDay: { upsert: fn(), findMany: fn() },
@@ -197,7 +197,7 @@ describe("POST /api/cowork/services/[serviceCode]/audits", () => {
 
   it("returns 404 for unknown template", async () => {
     (prisma.service.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(SERVICE);
-    (prisma.auditTemplate.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (prisma.auditTemplate.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
     const { POST } = await import(
       "@/app/api/cowork/services/[serviceCode]/audits/route"
@@ -215,7 +215,7 @@ describe("POST /api/cowork/services/[serviceCode]/audits", () => {
 
   it("creates audit instance with compliance score", async () => {
     (prisma.service.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(SERVICE);
-    (prisma.auditTemplate.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+    (prisma.auditTemplate.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "tmpl-1",
       name: "Safety Audit",
       items: [

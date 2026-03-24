@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { parseComplianceCalendar } from "@/lib/audit-calendar-parser";
+import { parseComplianceCalendar, parseCalendarCsv } from "@/lib/audit-calendar-parser";
 import type { AuditFrequency } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
@@ -10,6 +10,8 @@ const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/msword",
+  "text/csv",
+  "application/csv",
 ];
 
 /**
@@ -37,13 +39,16 @@ export const POST = withApiAuth(async (req, session) => {
     return NextResponse.json({ error: "file is required" }, { status: 400 });
   }
 
+  const isCSV = file.name.endsWith(".csv") || file.type === "text/csv" || file.type === "application/csv";
+
   if (
+    !isCSV &&
     !ALLOWED_TYPES.includes(file.type) &&
     !file.name.endsWith(".docx") &&
     !file.name.endsWith(".doc")
   ) {
     return NextResponse.json(
-      { error: "Only .docx and .doc files are supported" },
+      { error: "Only .docx, .doc, and .csv files are supported" },
       { status: 400 },
     );
   }
@@ -56,7 +61,7 @@ export const POST = withApiAuth(async (req, session) => {
   }
 
   const arrayBuf = await file.arrayBuffer();
-  if (!validateFileContent(arrayBuf, file.type)) {
+  if (!isCSV && !validateFileContent(arrayBuf, file.type)) {
     return NextResponse.json(
       { error: "File content does not match declared type" },
       { status: 400 },
@@ -65,7 +70,9 @@ export const POST = withApiAuth(async (req, session) => {
 
   try {
     const buffer = Buffer.from(arrayBuf);
-    const parsed = await parseComplianceCalendar(buffer);
+    const parsed = isCSV
+      ? parseCalendarCsv(buffer.toString("utf-8"))
+      : await parseComplianceCalendar(buffer);
 
     if (parsed.templates.length === 0) {
       return NextResponse.json(
