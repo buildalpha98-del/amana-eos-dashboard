@@ -456,6 +456,49 @@ export function useBulkParseAudit() {
   });
 }
 
+// ── Bulk Save Items ─────────────────────────────────────
+
+export interface BulkSaveItemsPayload {
+  templates: Array<{
+    templateId: string;
+    responseFormat: string;
+    items: Array<{
+      section: string | null;
+      question: string;
+      guidance: string | null;
+      responseFormat: string;
+    }>;
+  }>;
+}
+
+export interface BulkSaveItemsResult {
+  message: string;
+  results: Array<{
+    templateId: string;
+    templateName: string;
+    itemsCreated: number;
+  }>;
+}
+
+export function useBulkSaveAuditItems() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: BulkSaveItemsPayload): Promise<BulkSaveItemsResult> => {
+      return mutateApi<BulkSaveItemsResult>("/api/audits/templates/bulk-save-items", {
+        method: "POST",
+        body: payload,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-template-detail"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
 // ── Calendar Import ─────────────────────────────────────
 
 export interface CalendarTemplatePreview {
