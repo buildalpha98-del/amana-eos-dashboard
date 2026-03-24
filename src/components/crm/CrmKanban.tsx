@@ -146,10 +146,23 @@ export function CrmKanban({
     if (!over) return;
 
     const leadId = active.id as string;
-    const targetStage = over.id as PipelineStage;
+    const overId = over.id as string;
 
-    // Only accept drops on valid column targets
-    if (!columns.some((c) => c.id === targetStage)) return;
+    // Resolve the target stage: over.id could be a column ID or another card's ID
+    let targetStage: PipelineStage | undefined;
+
+    if (columns.some((c) => c.id === overId)) {
+      // Dropped directly on a column droppable zone
+      targetStage = overId as PipelineStage;
+    } else {
+      // Dropped on another card — find which column that card belongs to
+      const targetLead = leads.find((l) => l.id === overId);
+      if (targetLead) {
+        targetStage = targetLead.pipelineStage;
+      }
+    }
+
+    if (!targetStage) return;
 
     const lead = leads.find((l) => l.id === leadId);
     if (lead && lead.pipelineStage !== targetStage) {

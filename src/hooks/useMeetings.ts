@@ -62,9 +62,10 @@ export function useMeetings(filters?: { status?: string; limit?: number }) {
   const query = params.toString();
 
   return useQuery<MeetingData[]>({
-    queryKey: ["meetings", filters],
+    queryKey: ["meetings", filters?.status, filters?.limit],
     queryFn: () => fetchApi<MeetingData[]>(`/api/meetings${query ? `?${query}` : ""}`),
     retry: 2,
+    staleTime: 30_000,
   });
 }
 
@@ -74,6 +75,7 @@ export function useMeeting(id: string) {
     queryFn: () => fetchApi<MeetingData>(`/api/meetings/${id}`),
     enabled: !!id,
     retry: 2,
+    staleTime: 30_000,
   });
 }
 

@@ -17,12 +17,13 @@ import type { TodoData } from "@/hooks/useTodos";
 import type { IssueData } from "@/hooks/useIssues";
 import type { ScorecardData, MeasurableData } from "@/hooks/useScorecard";
 import { useServices } from "@/hooks/useServices";
-import type { ServiceSummary } from "@/hooks/useServices";
 import { cn, formatDateAU, getWeekStart, getCurrentQuarter } from "@/lib/utils";
+import { fetchApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { AiButton } from "@/components/ui/AiButton";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   Presentation,
   Play,
@@ -134,6 +135,55 @@ function MeetingListView({
 
   const activeMeeting = meetings.find((m) => m.status === "in_progress");
 
+  // Data hooks for AI Prep variables
+  const weekStart = getWeekStart();
+  const { data: allTodos } = useTodos({ weekOf: weekStart.toISOString() });
+  const { data: allRocks } = useRocks(getCurrentQuarter());
+  const { data: scorecard } = useScorecard();
+  const { data: allIssues } = useIssues({ status: "open,in_discussion" });
+
+  // Format AI Prep variables
+  const aiPrepVariables = useMemo(() => {
+    const overdueTodos = (allTodos ?? [])
+      .filter((t) => t.status !== "complete" && new Date(t.dueDate) < new Date())
+      .map((t) => `- ${t.title} (due ${formatDateAU(new Date(t.dueDate))}, assigned to ${t.assignee?.name ?? "unassigned"})`)
+      .join("\n") || "None";
+
+    const offTrackRocks = (allRocks ?? [])
+      .filter((r) => r.status === "off_track")
+      .map((r) => `- ${r.title} (${r.status.replace(/_/g, " ")}, ${r.percentComplete}% complete, owner: ${r.owner?.name ?? "unassigned"})`)
+      .join("\n") || "None";
+
+    const scorecardMisses = (scorecard?.measurables ?? [])
+      .filter((m) => {
+        const latest = m.entries?.[0];
+        if (!latest) return true; // no entry = miss
+        return !latest.onTrack;
+      })
+      .map((m) => {
+        const latest = m.entries?.[0];
+        const val = latest ? `${latest.value}` : "no entry";
+        return `- ${m.title}: ${val} (goal: ${m.goalDirection === "above" ? "≥" : m.goalDirection === "below" ? "≤" : "="} ${m.goalValue}${m.unit ? ` ${m.unit}` : ""})`;
+      })
+      .join("\n") || "None";
+
+    const openIssues = (allIssues ?? [])
+      .slice(0, 15)
+      .map((i) => `- ${i.title} (priority: ${i.priority}, raised by ${i.raisedBy?.name ?? "unknown"})`)
+      .join("\n") || "None";
+
+    const completedMeetings = meetings.filter((m) => m.status === "completed");
+    const lastMeeting = completedMeetings[0];
+    const recentUpdates = [
+      `Total meetings completed: ${completedMeetings.length}`,
+      lastMeeting ? `Last meeting: ${formatDateAU(new Date(lastMeeting.date))}${lastMeeting.rating ? ` (rated ${lastMeeting.rating}/10)` : ""}` : null,
+      `Current quarter rocks: ${(allRocks ?? []).length} total, ${(allRocks ?? []).filter((r) => r.status === "complete").length} complete`,
+      `Open todos this week: ${(allTodos ?? []).filter((t) => t.status !== "complete").length}`,
+    ].filter(Boolean).join("\n");
+
+    return { overdueTodos, offTrackRocks, scorecardMisses, openIssues, recentUpdates };
+  }, [allTodos, allRocks, scorecard, allIssues, meetings]);
+
   // Stats from completed meetings
   const stats = useMemo(() => {
     const completed = meetings.filter((m) => m.status === "completed");
@@ -187,40 +237,26 @@ function MeetingListView({
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">L10 Meetings <HelpTooltip id="l10-heading" content="The Level 10 Meeting is a weekly 90-minute meeting that keeps your team aligned. Follow the agenda: Segue, Scorecard, Rock Review, To-Do Review, IDS, Conclude." /></h2>
-          <p className="text-sm text-muted">
-            Run your weekly Level 10 leadership meetings
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <AiButton
-            templateSlug="meetings/l10-prep"
-            variables={{
-              lastMeetingDate: meetings.find((m) => m.status === "completed")?.date
-                ? formatDateAU(new Date(meetings.find((m) => m.status === "completed")!.date))
-                : "none",
-              lastMeetingRating: String(meetings.find((m) => m.status === "completed")?.rating ?? "N/A"),
-              openTodos: String(meetings.filter((m) => m.status === "completed").length),
-              avgRating: String(stats.avgRating ?? "N/A"),
-              streak: String(stats.streak),
-            }}
-            onResult={(text) => setAiPrep(text)}
-            label="AI Prep"
-            size="sm"
-            section="meetings"
-          />
-          <button
-            onClick={onStartNew}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand text-white text-sm font-medium rounded-lg hover:bg-brand-hover transition-colors shadow-sm"
-          >
-            <Play className="w-4 h-4" />
-            Start New Meeting
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="L10 Meetings"
+        description="Run your weekly Level 10 leadership meetings"
+        helpTooltipId="l10-heading"
+        helpTooltipContent="The Level 10 Meeting is a weekly 90-minute meeting that keeps your team aligned. Follow the agenda: Segue, Scorecard, Rock Review, To-Do Review, IDS, Conclude."
+        primaryAction={{
+          label: "Start New Meeting",
+          icon: Play,
+          onClick: onStartNew,
+        }}
+      >
+        <AiButton
+          templateSlug="meetings/l10-prep"
+          variables={aiPrepVariables}
+          onResult={(text) => setAiPrep(text)}
+          label="AI Prep"
+          size="sm"
+          section="meetings"
+        />
+      </PageHeader>
 
       {/* AI Meeting Prep */}
       {aiPrep && (
@@ -399,7 +435,7 @@ function MeetingListView({
                             ? "text-accent fill-accent"
                             : meeting.rating >= 5
                             ? "text-amber-400 fill-amber-400"
-                            : "text-muted/50 fill-gray-300"
+                            : "text-muted/50 fill-muted/30"
                         )}
                       />
                       <span
@@ -571,7 +607,7 @@ function ScorecardSection({
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+              <div className="w-2.5 h-2.5 rounded-full bg-border" />
               <span className="text-xs text-muted">
                 {noDataCount} no data
               </span>
@@ -1086,7 +1122,7 @@ function IDSSection({
                     ? "bg-amber-500"
                     : issue.priority === "medium"
                     ? "bg-blue-400"
-                    : "bg-gray-300"
+                    : "bg-border"
                 )}
               />
               <div className="flex-1 min-w-0">
@@ -1570,11 +1606,9 @@ function ActiveMeetingView({
   const { data: services } = useServices("active");
   const { data: users } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["users-list"],
-    queryFn: async () => {
-      const res = await fetch("/api/users");
-      if (!res.ok) return [];
-      return res.json();
-    },
+    queryFn: () => fetchApi<{ id: string; name: string }[]>("/api/users"),
+    retry: 2,
+    staleTime: 60_000,
   });
 
   // Service-level scoping: filter data by meeting's serviceIds
@@ -1685,7 +1719,7 @@ function ActiveMeetingView({
       },
       {
         onError: (err: Error) => {
-          alert(`Failed to end meeting: ${err.message}`);
+          toast({ variant: "destructive", description: err.message || "Failed to end meeting" });
         },
       }
     );
@@ -1890,7 +1924,7 @@ function ActiveMeetingView({
                 </div>
                 {/* Tooltip on hover */}
                 <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
-                  <div className="bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                  <div className="bg-foreground text-card text-xs px-2 py-1 rounded whitespace-nowrap">
                     {s.label} ({s.duration}m)
                   </div>
                 </div>
@@ -2058,7 +2092,7 @@ function ActiveMeetingView({
                 Agenda
               </h3>
             </div>
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-border/30">
               {L10_SECTIONS.map((s, idx) => {
                 const Icon = s.icon;
                 const isActive = idx === currentSection;
@@ -2140,7 +2174,7 @@ function ActiveMeetingView({
                   {meeting.attendees.filter((a) => a.status === "present").length}/{meeting.attendees.length} present
                 </span>
               </div>
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-border/30">
                 {meeting.attendees.map((attendee) => (
                   <div
                     key={attendee.id}
@@ -2289,11 +2323,9 @@ function StartMeetingDialog({
 
   const { data: allUsers } = useQuery<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>({
     queryKey: ["users-list-full"],
-    queryFn: async () => {
-      const res = await fetch("/api/users");
-      if (!res.ok) return [];
-      return res.json();
-    },
+    queryFn: () => fetchApi<{ id: string; name: string; email: string; role: string; serviceId?: string | null }[]>("/api/users"),
+    retry: 2,
+    staleTime: 60_000,
   });
 
   const toggleService = (id: string) => {

@@ -10,6 +10,9 @@ function canAccess(role: string, pathname: string): boolean {
   );
 }
 
+// Public API routes that bypass auth middleware (they handle their own auth or are intentionally public)
+const PUBLIC_API_ROUTES = ["/api/services/public-list"];
+
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
@@ -31,6 +34,15 @@ export default withAuth(
     return NextResponse.next();
   },
   {
+    callbacks: {
+      authorized: ({ token, req }) => {
+        // Allow public API routes through without authentication
+        if (PUBLIC_API_ROUTES.some((route) => req.nextUrl.pathname === route)) {
+          return true;
+        }
+        return !!token;
+      },
+    },
     pages: {
       signIn: "/login",
     },

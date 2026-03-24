@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   X,
   ChevronDown,
@@ -18,9 +18,13 @@ import {
   CreditCard,
   Calendar,
   AlertCircle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useEnrolment, useUpdateEnrolment, type EnrolmentSubmission } from "@/hooks/useEnrolments";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { toast } from "@/hooks/useToast";
 
 interface Props {
   enrolmentId: string;
@@ -78,11 +82,129 @@ function Field({ label, value }: { label: string; value?: string | boolean | nul
   );
 }
 
+interface DecryptedPayment {
+  method: string;
+  // Credit card fields
+  cardName?: string;
+  cardNumber?: string;
+  expiryMonth?: string;
+  expiryYear?: string;
+  ccv?: string;
+  // Bank account fields
+  accountName?: string;
+  bsb?: string;
+  accountNumber?: string;
+}
+
+function PaymentReveal({ enrolmentId }: { enrolmentId: string }) {
+  const [payment, setPayment] = useState<DecryptedPayment | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  // Auto-hide after 30 seconds
+  useEffect(() => {
+    if (revealed) {
+      clearTimer();
+      timerRef.current = setTimeout(() => {
+        setRevealed(false);
+        setPayment(null);
+      }, 30_000);
+    }
+    return clearTimer;
+  }, [revealed, clearTimer]);
+
+  const handleReveal = async () => {
+    if (revealed) {
+      setRevealed(false);
+      setPayment(null);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/enrolments/${enrolmentId}/payment`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "Failed to decrypt payment details" }));
+        throw new Error(body.error || `Error ${res.status}`);
+      }
+      const data: DecryptedPayment = await res.json();
+      setPayment(data);
+      setRevealed(true);
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "Failed to reveal payment details",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mt-2 border-t border-border pt-2">
+      <button
+        onClick={handleReveal}
+        disabled={loading}
+        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-50"
+      >
+        {loading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : revealed ? (
+          <EyeOff className="h-3.5 w-3.5" />
+        ) : (
+          <Eye className="h-3.5 w-3.5" />
+        )}
+        {loading ? "Decrypting..." : revealed ? "Hide Details" : "Reveal Full Details"}
+      </button>
+
+      {revealed && payment && (
+        <div className="mt-2 space-y-1.5 bg-amber-50/50 border border-amber-200 rounded-lg p-3">
+          <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide">
+            Decrypted — auto-hides in 30s
+          </p>
+          {payment.method === "credit_card" ? (
+            <>
+              <Field label="Name on Card" value={payment.cardName} />
+              <Field label="Card Number" value={payment.cardNumber} />
+              <Field
+                label="Expiry"
+                value={
+                  payment.expiryMonth && payment.expiryYear
+                    ? `${payment.expiryMonth}/${payment.expiryYear}`
+                    : undefined
+                }
+              />
+              <Field label="CCV" value={payment.ccv} />
+            </>
+          ) : (
+            <>
+              <Field label="Account Name" value={payment.accountName} />
+              <Field label="BSB" value={payment.bsb} />
+              <Field label="Account No." value={payment.accountNumber} />
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
+  const { data: session } = useSession();
   const { data: enrolment, isLoading } = useEnrolment(enrolmentId);
   const updateMutation = useUpdateEnrolment();
   const [notes, setNotes] = useState("");
   const [showNotes, setShowNotes] = useState(false);
+  const canViewPayment = session?.user?.role === "owner" || session?.user?.role === "head_office";
 
   if (isLoading) {
     return (
@@ -338,6 +460,7 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
               </>
             )}
             <Field label="Direct Debit" value={e.debitAgreement} />
+            {canViewPayment && <PaymentReveal enrolmentId={e.id} />}
           </Section>
 
           {/* Notes */}
