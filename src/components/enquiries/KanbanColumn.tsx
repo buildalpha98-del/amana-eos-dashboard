@@ -7,9 +7,11 @@ import { EnquiryCard } from "./EnquiryCard";
 function DraggableCard({
   enquiry,
   onSelect,
+  waitlistPosition,
 }: {
   enquiry: any;
   onSelect: () => void;
+  waitlistPosition?: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: enquiry.id });
@@ -23,7 +25,11 @@ function DraggableCard({
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <EnquiryCard enquiry={enquiry} onClick={onSelect} />
+      <EnquiryCard
+        enquiry={enquiry}
+        onClick={onSelect}
+        waitlistPosition={waitlistPosition}
+      />
     </div>
   );
 }
@@ -42,6 +48,20 @@ export function KanbanColumn({
   onSelectEnquiry,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
+  const isWaitlisted = id === "waitlisted";
+
+  // Sort waitlisted enquiries by position (or by stageChangedAt as fallback)
+  const sorted = isWaitlisted
+    ? [...enquiries].sort((a, b) => {
+        if (a.waitlistPosition != null && b.waitlistPosition != null) {
+          return a.waitlistPosition - b.waitlistPosition;
+        }
+        return (
+          new Date(a.stageChangedAt).getTime() -
+          new Date(b.stageChangedAt).getTime()
+        );
+      })
+    : enquiries;
 
   const stuckCount = enquiries.filter((e) => {
     const days =
@@ -59,23 +79,35 @@ export function KanbanColumn({
     >
       <div className="p-3 border-b border-border">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground/80">{label}</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-sm font-semibold text-foreground/80">
+              {label}
+            </h3>
+            {isWaitlisted && (
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+            )}
+          </div>
           <span className="text-xs text-muted bg-border px-1.5 py-0.5 rounded-full">
             {enquiries.length}
           </span>
         </div>
-        {stuckCount > 0 && (
+        {stuckCount > 0 && !isWaitlisted && (
           <span className="text-[10px] text-red-600 font-medium">
             {stuckCount} stuck
           </span>
         )}
       </div>
       <div className="p-2 space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto">
-        {enquiries.map((enquiry) => (
+        {sorted.map((enquiry, index) => (
           <DraggableCard
             key={enquiry.id}
             enquiry={enquiry}
             onSelect={() => onSelectEnquiry(enquiry.id)}
+            waitlistPosition={
+              isWaitlisted
+                ? enquiry.waitlistPosition ?? index + 1
+                : undefined
+            }
           />
         ))}
         {enquiries.length === 0 && (

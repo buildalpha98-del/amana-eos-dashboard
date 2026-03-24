@@ -5,6 +5,8 @@ import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
+import { sendEmail, FROM_EMAIL } from "@/lib/email";
+import { waitlistConfirmationEmail } from "@/lib/email-templates";
 
 const childSchema = z.object({
   name: z.string(),
@@ -72,7 +74,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     if (data.stage) {
       const existing = await prisma.parentEnquiry.findUnique({
         where: { id },
-        select: { stage: true, stageChangedAt: true },
+        select: { stage: true, stageChangedAt: true, serviceId: true, parentName: true, parentEmail: true },
       });
 
       if (existing && existing.stage !== data.stage) {
@@ -88,6 +90,48 @@ export const PATCH = withApiAuth(async (req, session, context) => {
         scheduleNurtureFromStageChange(id, data.stage).catch((err) =>
           logger.error("Enquiry: Nurture scheduling failed", { err }),
         );
+
+        // ── Waitlist: moving TO "waitlisted" ──────────────────────
+        if (data.stage === "waitlisted") {
+          const serviceId = existing.serviceId;
+
+          // Find the current max position for this service
+          const maxResult = await prisma.parentEnquiry.aggregate({
+            where: { waitlistServiceId: serviceId, stage: "waitlisted" },
+            _max: { waitlistPosition: true },
+          });
+          const newPosition = (maxResult._max.waitlistPosition ?? 0) + 1;
+
+          updateData.waitlistPosition = newPosition;
+          updateData.waitlistJoinedAt = new Date();
+          updateData.waitlistServiceId = serviceId;
+
+          // Send waitlist confirmation email (fire-and-forget)
+          if (existing.parentEmail) {
+            const service = await prisma.service.findUnique({
+              where: { id: serviceId },
+              select: { name: true },
+            });
+            const serviceName = service?.name ?? "our service";
+            const { subject, html } = waitlistConfirmationEmail(
+              existing.parentName,
+              serviceName,
+              newPosition,
+            );
+            sendEmail({ from: FROM_EMAIL, to: existing.parentEmail, subject, html }).catch((err) =>
+              logger.error("Waitlist: confirmation email failed", { err, enquiryId: id }),
+            );
+          }
+        }
+
+        // ── Waitlist: moving FROM "waitlisted" to something else ──
+        if (existing.stage === "waitlisted" && data.stage !== "waitlisted") {
+          updateData.waitlistPosition = null;
+          updateData.waitlistJoinedAt = null;
+          updateData.waitlistOfferedAt = null;
+          updateData.waitlistExpiresAt = null;
+          updateData.waitlistServiceId = null;
+        }
       }
     }
 

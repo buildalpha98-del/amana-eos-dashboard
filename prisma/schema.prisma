@@ -1277,6 +1277,9 @@ model Service {
   managerId             String?
   manager               User?         @relation("ServiceManager", fields: [managerId], references: [id])
   capacity              Int?
+  capacityBsc           Int?
+  capacityAsc           Int?
+  capacityVc            Int?
   operatingDays         String?
   notes                 String?       @db.Text
   bscDailyRate          Float?
@@ -3449,6 +3452,14 @@ model ParentEnquiry {
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   lastEmailSentAt  DateTime?
+
+  // Waitlist fields
+  waitlistPosition  Int?
+  waitlistJoinedAt  DateTime?
+  waitlistOfferedAt DateTime?
+  waitlistExpiresAt DateTime?
+  waitlistServiceId String?
+
   touchpoints      ParentEnquiryTouchpoint[]
   nurtureSteps     ParentNurtureStep[]
 
@@ -3459,6 +3470,7 @@ model ParentEnquiry {
   @@index([stageChangedAt])
   @@index([stage, createdAt])
   @@index([serviceId, stage])
+  @@index([waitlistServiceId, waitlistPosition])
 }
 
 model ParentEnquiryTouchpoint {

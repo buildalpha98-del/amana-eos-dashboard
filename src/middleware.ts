@@ -123,6 +123,7 @@ export const config = {
     "/queue/:path*",
     "/api/queue/:path*",
     "/api/enrolments/:path*",
+    "/api/waitlist/:path*",
     "/enrolments/:path*",
     "/api/children/:path*",
     "/children/:path*",

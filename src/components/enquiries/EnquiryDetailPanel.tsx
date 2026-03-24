@@ -41,6 +41,7 @@ interface QuickActionModalState {
 const STAGE_LABELS: Record<string, string> = {
   new_enquiry: "New Enquiry",
   info_sent: "Info Sent",
+  waitlisted: "Waitlisted",
   nurturing: "Nurturing",
   form_started: "Form Started",
   enrolled: "Enrolled",

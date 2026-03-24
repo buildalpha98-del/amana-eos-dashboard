@@ -212,6 +212,10 @@
     {
       "path": "/api/cron/cert-expiry-alert",
       "schedule": "15 22 * * 0"
+    },
+    {
+      "path": "/api/cron/waitlist-expiry",
+      "schedule": "0 * * * *"
     }
   ]
 }

@@ -80,7 +80,7 @@ function mapEnquiryStage(status: string | null): string {
   const lower = status.toLowerCase().trim();
   if (lower === "tour booked" || lower === "tour completed") return "nurturing";
   if (lower === "enrolled") return "enrolled";
-  if (lower === "waitlisted" || lower === "waitlist") return "info_sent";
+  if (lower === "waitlisted" || lower === "waitlist") return "waitlisted";
   return "new_enquiry";
 }
 

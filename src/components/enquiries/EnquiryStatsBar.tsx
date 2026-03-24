@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, AlertTriangle, UserPlus, CheckCircle } from "lucide-react";
+import { Users, AlertTriangle, UserPlus, CheckCircle, Clock } from "lucide-react";
 
 interface StatsData {
   totalActive: number;
   stuckCount: number;
   newThisWeek: number;
   enrolledThisMonth: number;
+  waitlistedCount: number;
 }
 
 export function EnquiryStatsBar({
@@ -38,6 +39,7 @@ export function EnquiryStatsBar({
             (data.countByStage?.enrolled || 0) +
             (data.countByStage?.first_session || 0) +
             (data.countByStage?.retained || 0),
+          waitlistedCount: data.countByStage?.waitlisted || 0,
         });
       })
       .catch(console.error);
@@ -68,6 +70,15 @@ export function EnquiryStatsBar({
       colour: "text-emerald-600 bg-emerald-50",
     },
     {
+      label: "Waitlisted",
+      value: stats.waitlistedCount,
+      icon: Clock,
+      colour:
+        stats.waitlistedCount > 0
+          ? "text-amber-600 bg-amber-50"
+          : "text-muted bg-surface/50",
+    },
+    {
       label: "Enrolled / Retained",
       value: stats.enrolledThisMonth,
       icon: CheckCircle,
@@ -76,7 +87,7 @@ export function EnquiryStatsBar({
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
       {statCards.map((card) => (
         <div
           key={card.label}

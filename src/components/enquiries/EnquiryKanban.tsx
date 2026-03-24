@@ -17,6 +17,7 @@ import { EnquiryCard } from "./EnquiryCard";
 const COLUMNS = [
   { id: "new_enquiry", label: "New Enquiry" },
   { id: "info_sent", label: "Info Sent" },
+  { id: "waitlisted", label: "Waitlisted" },
   { id: "nurturing", label: "Nurturing" },
   { id: "form_started", label: "Form Started" },
   { id: "enrolled", label: "Enrolled" },
