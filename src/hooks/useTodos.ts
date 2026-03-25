@@ -30,6 +30,8 @@ export interface TodoData {
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  aiDraftId: string | null;
+  aiDraftStatus: string | null;
 }
 
 export function useTodos(filters?: {

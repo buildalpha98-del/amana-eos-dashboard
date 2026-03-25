@@ -216,6 +216,10 @@
     {
       "path": "/api/cron/waitlist-expiry",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/ai-task-agent",
+      "schedule": "0 * * * *"
     }
   ]
 }

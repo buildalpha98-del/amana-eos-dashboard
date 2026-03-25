@@ -532,7 +532,8 @@ model User {
   checkedItems        DailyChecklistItem[] @relation("ChecklistItemCheckedBy")
 
   // ── AI Usage ───────────────────────────────────────
-  aiUsageLogs AiUsage[] @relation("AiUsageLogs")
+  aiUsageLogs    AiUsage[]      @relation("AiUsageLogs")
+  reviewedDrafts AiTaskDraft[]  @relation("DraftReviewer")
 
   // ── Email Templates ──────────────────────────────
   emailTemplates EmailTemplate[] @relation("EmailTemplateCreator")
@@ -673,6 +674,7 @@ model Todo {
   updatedAt   DateTime   @updatedAt
 
   assignees TodoAssignee[] @relation("TodoAssignees")
+  aiDrafts  AiTaskDraft[]  @relation("TodoAiDraft")
 
   @@index([assigneeId])
   @@index([rockId])
@@ -723,6 +725,7 @@ model Issue {
 
   spawnedTodos Todo[]
   attachments  Attachment[]
+  aiDrafts     AiTaskDraft[] @relation("IssueAiDraft")
 
   @@index([priority])
   @@index([status])
@@ -1209,6 +1212,8 @@ model MarketingTask {
   deleted     Boolean               @default(false)
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
+
+  aiDrafts AiTaskDraft[] @relation("MarketingTaskAiDraft")
 
   @@index([status])
   @@index([assigneeId])
@@ -1793,6 +1798,7 @@ model SupportTicket {
 
   messages TicketMessage[]
   emails   TicketEmail[]   @relation("TicketEmails")
+  aiDrafts AiTaskDraft[]   @relation("TicketAiDraft")
 
   @@index([status])
   @@index([priority])
@@ -2918,6 +2924,8 @@ model CoworkTodo {
   completedBy  String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  aiDrafts AiTaskDraft[] @relation("CoworkTodoAiDraft")
 
   @@index([centreId, date])
   @@index([assignedToId])
@@ -4063,6 +4071,46 @@ model AiUsage {
   @@index([userId])
   @@index([templateSlug])
   @@index([section])
+  @@index([createdAt])
+}
+
+model AiTaskDraft {
+  id            String   @id @default(cuid())
+
+  // Polymorphic source — one of these will be set
+  todoId        String?
+  todo          Todo?    @relation("TodoAiDraft", fields: [todoId], references: [id], onDelete: Cascade)
+  marketingTaskId String?
+  marketingTask MarketingTask? @relation("MarketingTaskAiDraft", fields: [marketingTaskId], references: [id], onDelete: Cascade)
+  coworkTodoId  String?
+  coworkTodo    CoworkTodo? @relation("CoworkTodoAiDraft", fields: [coworkTodoId], references: [id], onDelete: Cascade)
+  ticketId      String?
+  ticket        SupportTicket? @relation("TicketAiDraft", fields: [ticketId], references: [id], onDelete: Cascade)
+  issueId       String?
+  issue         Issue?   @relation("IssueAiDraft", fields: [issueId], references: [id], onDelete: Cascade)
+
+  taskType      String   // "communication" | "research" | "document" | "admin"
+  title         String   // Human-readable draft title
+  content       String   @db.Text // The AI-generated draft content (markdown)
+  metadata      Json?    // Extra context (email recipients, template used, etc.)
+
+  status        String   @default("ready") // "ready" | "accepted" | "edited" | "dismissed"
+  reviewedAt    DateTime?
+  reviewedById  String?
+  reviewedBy    User?    @relation("DraftReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  tokensUsed    Int      @default(0)
+  model         String   @default("claude-haiku-3-5-20241022")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([todoId])
+  @@index([marketingTaskId])
+  @@index([coworkTodoId])
+  @@index([ticketId])
+  @@index([issueId])
+  @@index([status])
   @@index([createdAt])
 }
 

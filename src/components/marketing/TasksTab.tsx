@@ -23,6 +23,9 @@ import {
 import type { MarketingTaskData } from "@/hooks/useMarketing";
 import { CreateTaskModal } from "./CreateTaskModal";
 import { TaskTemplatePickerModal } from "./TaskTemplatePickerModal";
+import { AiDraftBadge } from "@/components/ai/AiDraftBadge";
+import { AiDraftReviewPanel } from "@/components/ai/AiDraftReviewPanel";
+import { useAiDrafts } from "@/hooks/useAiDrafts";
 
 interface TasksTabProps {
   serviceId?: string;
@@ -118,6 +121,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
   const [quickAddTitle, setQuickAddTitle] = useState("");
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [draftPanelTaskId, setDraftPanelTaskId] = useState<string | null>(null);
 
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
@@ -130,6 +134,7 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
   });
   const updateTask = useUpdateMarketingTask();
   const createTask = useCreateMarketingTask();
+  const { data: aiDrafts } = useAiDrafts("ready");
 
   const handleDragStart = useCallback(
     (e: React.DragEvent, taskId: string) => {
@@ -395,9 +400,16 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
-                            {task.title}
-                          </p>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
+                              {task.title}
+                            </p>
+                            {task.aiDraftStatus === "ready" && task.aiDraftId && (
+                              <div className="mt-1">
+                                <AiDraftBadge onClick={() => setDraftPanelTaskId(task.id)} />
+                              </div>
+                            )}
+                          </div>
                           <span
                             className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
                               PRIORITY_COLORS[task.priority]
@@ -464,7 +476,12 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
                         className="cursor-pointer hover:bg-surface transition-colors"
                       >
                         <td className="px-4 py-3 font-medium text-foreground">
-                          {task.title}
+                          <div className="flex items-center gap-1.5">
+                            <span>{task.title}</span>
+                            {task.aiDraftStatus === "ready" && task.aiDraftId && (
+                              <AiDraftBadge onClick={() => setDraftPanelTaskId(task.id)} />
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -518,6 +535,21 @@ export function TasksTab({ serviceId, onSelectTask }: TasksTabProps) {
         open={showTemplates}
         onClose={() => setShowTemplates(false)}
       />
+
+      {/* AI Draft Review Panel */}
+      {draftPanelTaskId && (() => {
+        const task = tasks?.find((t) => t.id === draftPanelTaskId);
+        const draft = task?.aiDraftId
+          ? aiDrafts?.find((d) => d.id === task.aiDraftId)
+          : undefined;
+        if (!draft) return null;
+        return (
+          <AiDraftReviewPanel
+            draft={draft}
+            onClose={() => setDraftPanelTaskId(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

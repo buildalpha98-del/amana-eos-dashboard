@@ -38,6 +38,7 @@ import { DashboardRecentActivity } from "@/components/dashboard/DashboardRecentA
 import { DashboardStateKPI } from "@/components/dashboard/DashboardStateKPI";
 import { WidgetErrorBoundary } from "@/components/dashboard/WidgetErrorBoundary";
 import { MobileQuickActions } from "@/components/dashboard/MobileQuickActions";
+import { AiDraftsWidget } from "@/components/dashboard/AiDraftsWidget";
 
 // Role-specific widgets
 import { CentrePerformanceOverview } from "@/components/dashboard/CentrePerformanceOverview";
@@ -316,6 +317,11 @@ function CommandCentreDashboard({
         )}
 
         <QuickActionButtons />
+
+        {/* AI Drafts Ready Widget */}
+        <WidgetErrorBoundary widgetName="AI Drafts">
+          <AiDraftsWidget />
+        </WidgetErrorBoundary>
       </div>
 
       {/* Welcome Hero Section */}

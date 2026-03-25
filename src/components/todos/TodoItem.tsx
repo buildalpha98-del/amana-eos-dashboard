@@ -2,9 +2,12 @@
 
 import type { TodoData } from "@/hooks/useTodos";
 import { useUpdateTodo, useDeleteTodo } from "@/hooks/useTodos";
+import { useAiDrafts } from "@/hooks/useAiDrafts";
 import { cn } from "@/lib/utils";
 import { Mountain, AlertCircle, Trash2, Lock, Check } from "lucide-react";
 import { useState, useRef, useCallback } from "react";
+import { AiDraftBadge } from "@/components/ai/AiDraftBadge";
+import { AiDraftReviewPanel } from "@/components/ai/AiDraftReviewPanel";
 
 export function TodoItem({
   todo,
@@ -22,6 +25,14 @@ export function TodoItem({
   const updateTodo = useUpdateTodo();
   const deleteTodo = useDeleteTodo();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showDraftPanel, setShowDraftPanel] = useState(false);
+
+  // Only fetch drafts when this todo has a ready draft
+  const hasReadyDraft = todo.aiDraftStatus === "ready" && todo.aiDraftId;
+  const { data: aiDrafts } = useAiDrafts("ready");
+  const matchingDraft = hasReadyDraft
+    ? aiDrafts?.find((d) => d.id === todo.aiDraftId)
+    : undefined;
 
   const isComplete = todo.status === "complete";
   const isCancelled = todo.status === "cancelled";
@@ -180,6 +191,9 @@ export function TodoItem({
           {todo.isPrivate && (
             <Lock className="w-3 h-3 text-amber-500 shrink-0" />
           )}
+          {hasReadyDraft && (
+            <AiDraftBadge onClick={() => setShowDraftPanel(true)} />
+          )}
         </div>
 
         {/* Meta row */}
@@ -244,6 +258,14 @@ export function TodoItem({
         </button>
       )}
       </div>
+
+      {/* AI Draft Review Panel */}
+      {showDraftPanel && matchingDraft && (
+        <AiDraftReviewPanel
+          draft={matchingDraft}
+          onClose={() => setShowDraftPanel(false)}
+        />
+      )}
     </div>
   );
 }

@@ -906,6 +906,8 @@ export interface MarketingTaskData {
   subtasks: { text: string; done: boolean }[] | null;
   createdAt: string;
   updatedAt: string;
+  aiDraftId?: string | null;
+  aiDraftStatus?: string | null;
 }
 
 export function useMarketingTasks(filters?: {
