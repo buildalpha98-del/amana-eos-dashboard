@@ -9,7 +9,7 @@ import { logAuditEvent } from "@/lib/audit-log";
 import { withApiAuth } from "@/lib/server-auth";
 
 const bulkUserSchema = z.object({
-  email: z.string().email("Valid email is required"),
+  email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
   name: z.string().min(1, "Name is required"),
   role: z
     .enum([

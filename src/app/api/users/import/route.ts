@@ -177,7 +177,7 @@ const formData = await req.formData();
       await prisma.user.create({
         data: {
           name: user.name,
-          email: user.email,
+          email: user.email.toLowerCase().trim(),
           passwordHash: hash,
           role: user.role as "owner" | "admin" | "member" | "staff",
           serviceId: user.serviceId,
