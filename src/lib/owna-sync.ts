@@ -13,21 +13,31 @@ import { logger } from "@/lib/logger";
 
 // ── Helpers ───────────────────────────────────────────────────
 
+/** Timezone-safe AEST/AEDT date string (YYYY-MM-DD) using Intl formatter. */
+function todayAEST(): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(new Date()); // Returns "YYYY-MM-DD"
+}
+
 export function todayISO(): string {
-  const now = new Date();
-  const aest = new Date(
-    now.toLocaleString("en-US", { timeZone: "Australia/Sydney" }),
-  );
-  return aest.toISOString().split("T")[0];
+  return todayAEST();
 }
 
 export function daysAgoISO(days: number): string {
   const now = new Date();
-  const aest = new Date(
-    now.toLocaleString("en-US", { timeZone: "Australia/Sydney" }),
-  );
-  aest.setDate(aest.getDate() - days);
-  return aest.toISOString().split("T")[0];
+  now.setDate(now.getDate() - days);
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Sydney",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(now); // Returns "YYYY-MM-DD"
 }
 
 /** Parse OWNA dob string to Date or null. */

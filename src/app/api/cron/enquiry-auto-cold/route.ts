@@ -41,7 +41,7 @@ export const GET = withApiHandler(async (req) => {
 
   if (toCold.length > 0) {
     await prisma.parentEnquiry.updateMany({
-      where: { id: { in: toCold.map((eq) => eq.id) } },
+      where: { id: { in: toCold.map((eq) => eq.id) }, stage: "nurturing" },
       data: {
         stage: "cold",
         stageChangedAt: now,

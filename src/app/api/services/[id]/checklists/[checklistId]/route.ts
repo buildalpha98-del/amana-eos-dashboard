@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { ApiError } from "@/lib/api-error";
 import { z } from "zod";
 
 const patchSchema = z.object({
@@ -42,79 +43,86 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   }
   const { itemId, checked, notes, status } = parsed.data;
 
-  // Toggle a specific item
-  if (itemId) {
-    const item = checklist.items.find((i) => i.id === itemId);
-    if (!item) {
-      return NextResponse.json(
-        { error: "Checklist item not found" },
-        { status: 404 }
-      );
+  // Wrap toggle + auto-complete in a transaction to prevent race conditions
+  const updated = await prisma.$transaction(async (tx) => {
+    // Toggle a specific item
+    if (itemId) {
+      const item = checklist.items.find((i) => i.id === itemId);
+      if (!item) {
+        throw ApiError.notFound("Checklist item not found");
+      }
+
+      await tx.dailyChecklistItem.update({
+        where: { id: itemId },
+        data: {
+          checked: checked ?? !item.checked,
+          checkedAt: checked !== false ? new Date() : null,
+          checkedById: checked !== false ? userId : null,
+          notes: notes !== undefined ? notes : undefined,
+        },
+      });
     }
 
-    await prisma.dailyChecklistItem.update({
-      where: { id: itemId },
-      data: {
-        checked: checked ?? !item.checked,
-        checkedAt: checked !== false ? new Date() : null,
-        checkedById: checked !== false ? userId : null,
-        notes: notes !== undefined ? notes : undefined,
-      },
-    });
-  }
-
-  // Update checklist-level fields
-  if (notes !== undefined && !itemId) {
-    await prisma.dailyChecklist.update({
-      where: { id: checklistId },
-      data: { notes },
-    });
-  }
-
-  if (status) {
-    const updateData: Record<string, unknown> = { status };
-    if (status === "completed") {
-      updateData.completedAt = new Date();
-      updateData.completedById = userId;
+    // Update checklist-level fields
+    if (notes !== undefined && !itemId) {
+      await tx.dailyChecklist.update({
+        where: { id: checklistId },
+        data: { notes },
+      });
     }
-    await prisma.dailyChecklist.update({
-      where: { id: checklistId },
-      data: updateData,
-    });
-  }
 
-  // Auto-complete checklist if all required items are checked
-  if (itemId) {
-    const updatedChecklist = await prisma.dailyChecklist.findUnique({
-      where: { id: checklistId },
-      include: { items: true },
-    });
+    if (status) {
+      const updateData: Record<string, unknown> = { status };
+      if (status === "completed") {
+        updateData.completedAt = new Date();
+        updateData.completedById = userId;
+      }
+      await tx.dailyChecklist.update({
+        where: { id: checklistId },
+        data: updateData,
+      });
+    }
 
-    if (updatedChecklist) {
-      const requiredItems = updatedChecklist.items.filter((i) => i.isRequired);
-      const allChecked = requiredItems.every((i) => i.checked);
+    // Auto-complete checklist if all required items are checked
+    if (itemId) {
+      const updatedChecklist = await tx.dailyChecklist.findUnique({
+        where: { id: checklistId },
+        include: { items: true },
+      });
 
-      if (allChecked && updatedChecklist.status === "pending") {
-        await prisma.dailyChecklist.update({
-          where: { id: checklistId },
-          data: {
-            status: "completed",
-            completedAt: new Date(),
-            completedById: userId,
-          },
-        });
+      if (updatedChecklist) {
+        const requiredItems = updatedChecklist.items.filter((i) => i.isRequired);
+        const allChecked = requiredItems.every((i) => i.checked);
+
+        if (allChecked && updatedChecklist.status === "pending") {
+          await tx.dailyChecklist.update({
+            where: { id: checklistId },
+            data: {
+              status: "completed",
+              completedAt: new Date(),
+              completedById: userId,
+            },
+          });
+        }
       }
     }
-  }
 
-  // Return updated checklist
-  const updated = await prisma.dailyChecklist.findUnique({
-    where: { id: checklistId },
-    include: {
-      items: { orderBy: { sortOrder: "asc" } },
-      completedBy: { select: { id: true, name: true } },
-    },
+    // Return updated checklist
+    return tx.dailyChecklist.findUnique({
+      where: { id: checklistId },
+      include: {
+        items: { orderBy: { sortOrder: "asc" } },
+        completedBy: { select: { id: true, name: true } },
+      },
+    });
   });
+
+  if (!updated) {
+    return NextResponse.json(
+      { error: "Checklist item not found" },
+      { status: 404 }
+    );
+  }
 
   return NextResponse.json({ checklist: updated });
 });

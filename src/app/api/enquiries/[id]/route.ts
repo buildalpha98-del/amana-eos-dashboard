@@ -95,12 +95,15 @@ export const PATCH = withApiAuth(async (req, session, context) => {
         if (data.stage === "waitlisted") {
           const serviceId = existing.serviceId;
 
-          // Find the current max position for this service
-          const maxResult = await prisma.parentEnquiry.aggregate({
-            where: { waitlistServiceId: serviceId, stage: "waitlisted" },
-            _max: { waitlistPosition: true },
-          });
-          const newPosition = (maxResult._max.waitlistPosition ?? 0) + 1;
+          // Atomic position assignment — FOR UPDATE prevents race condition
+          const result = await prisma.$queryRaw<[{ pos: bigint }]>`
+            SELECT COALESCE(MAX("waitlistPosition"), 0) + 1 as pos
+            FROM "ParentEnquiry"
+            WHERE "waitlistServiceId" = ${serviceId}
+            AND "stage" = 'waitlisted'
+            FOR UPDATE
+          `;
+          const newPosition = Number(result[0].pos);
 
           updateData.waitlistPosition = newPosition;
           updateData.waitlistJoinedAt = new Date();

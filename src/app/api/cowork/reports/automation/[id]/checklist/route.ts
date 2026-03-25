@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { parseJsonField, reportChecklistSchema } from "@/lib/schemas/json-fields";
 import { withApiAuth } from "@/lib/server-auth";
+import { ApiError } from "@/lib/api-error";
 
 const patchBodySchema = z.object({
   itemId: z.string().min(1),
@@ -25,17 +26,22 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   }
   const { itemId, completed } = parsed.data;
 
-  const report = await prisma.coworkReport.findUnique({ where: { id } });
-  if (!report) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  // Use a transaction to read-modify-write atomically (prevents last-write-wins race)
+  const checklist = await prisma.$transaction(async (tx) => {
+    const report = await tx.coworkReport.findUnique({ where: { id } });
+    if (!report) {
+      throw ApiError.notFound("Report not found");
+    }
 
-  const checklist = parseJsonField(report.checklist, reportChecklistSchema, {});
-  checklist[itemId] = completed;
+    const current = parseJsonField(report.checklist, reportChecklistSchema, {});
+    current[itemId] = completed;
 
-  await prisma.coworkReport.update({
-    where: { id },
-    data: { checklist },
+    await tx.coworkReport.update({
+      where: { id },
+      data: { checklist: current },
+    });
+
+    return current;
   });
 
   return NextResponse.json({ success: true, checklist });

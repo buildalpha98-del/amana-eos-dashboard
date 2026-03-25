@@ -25,7 +25,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-type CronPeriod = "daily" | "weekly" | "monthly";
+type CronPeriod = "2hourly" | "daily" | "weekly" | "monthly";
 
 interface CronGuard {
   acquired: boolean;
@@ -39,11 +39,18 @@ interface CronGuard {
 /**
  * Get the period key for the current date.
  *
- * - daily  → "2025-03-05"
- * - weekly → "2025-W10"
+ * - 2hourly → "2025-03-05T14" (floored to nearest even hour)
+ * - daily   → "2025-03-05"
+ * - weekly  → "2025-W10"
  */
 function getPeriodKey(type: CronPeriod): string {
   const now = new Date();
+
+  if (type === "2hourly") {
+    const date = now.toISOString().split("T")[0];
+    const hour = Math.floor(now.getUTCHours() / 2) * 2;
+    return `${date}T${String(hour).padStart(2, "0")}`; // "YYYY-MM-DDTHH"
+  }
 
   if (type === "daily") {
     return now.toISOString().split("T")[0]; // "YYYY-MM-DD"

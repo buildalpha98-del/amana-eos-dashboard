@@ -98,29 +98,41 @@ export const PUT = withApiAuth(async (req, session, context) => {
   }
   const { name, triggerStage, isActive, steps } = parsed.data;
 
-  // If steps provided, delete existing and recreate
-  if (steps) {
-    await prisma.sequenceStep.deleteMany({ where: { sequenceId: id } });
-    await prisma.sequenceStep.createMany({
-      data: steps.map((s, i) => ({
-        sequenceId: id,
-        stepNumber: i + 1,
-        name: s.name,
-        delayHours: s.delayHours,
-        templateKey: s.templateKey,
-        emailTemplateId: s.emailTemplateId || null,
-      })),
-    });
-  }
+  const sequence = await prisma.$transaction(async (tx) => {
+    // If steps provided, cancel pending executions then delete and recreate
+    if (steps) {
+      const pendingExecs = await tx.sequenceStepExecution.count({
+        where: { step: { sequenceId: id }, status: "pending" },
+      });
+      if (pendingExecs > 0) {
+        await tx.sequenceStepExecution.updateMany({
+          where: { step: { sequenceId: id }, status: "pending" },
+          data: { status: "cancelled" },
+        });
+      }
 
-  const sequence = await prisma.sequence.update({
-    where: { id },
-    data: {
-      ...(name !== undefined ? { name } : {}),
-      ...(triggerStage !== undefined ? { triggerStage } : {}),
-      ...(isActive !== undefined ? { isActive } : {}),
-    },
-    include: sequenceInclude,
+      await tx.sequenceStep.deleteMany({ where: { sequenceId: id } });
+      await tx.sequenceStep.createMany({
+        data: steps.map((s, i) => ({
+          sequenceId: id,
+          stepNumber: i + 1,
+          name: s.name,
+          delayHours: s.delayHours,
+          templateKey: s.templateKey,
+          emailTemplateId: s.emailTemplateId || null,
+        })),
+      });
+    }
+
+    return tx.sequence.update({
+      where: { id },
+      data: {
+        ...(name !== undefined ? { name } : {}),
+        ...(triggerStage !== undefined ? { triggerStage } : {}),
+        ...(isActive !== undefined ? { isActive } : {}),
+      },
+      include: sequenceInclude,
+    });
   });
 
   return NextResponse.json(sequence);

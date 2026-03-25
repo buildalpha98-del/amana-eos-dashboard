@@ -46,18 +46,23 @@ const { id } = await context!.params!;
     updateData.processedAt = new Date();
   }
 
-  const updated = await prisma.enrolmentSubmission.update({
-    where: { id },
-    data: updateData,
-  });
-
-  // When confirmed (processed), activate all Child records
-  if (parsed.data.status === "processed") {
-    await prisma.child.updateMany({
-      where: { enrolmentId: id, status: "pending" },
-      data: { status: "active" },
+  // Wrap enrolment update + child activation in a transaction for atomicity
+  const updated = await prisma.$transaction(async (tx) => {
+    const enrolment = await tx.enrolmentSubmission.update({
+      where: { id },
+      data: updateData,
     });
-  }
+
+    // When confirmed (processed), activate all Child records
+    if (parsed.data.status === "processed") {
+      await tx.child.updateMany({
+        where: { enrolmentId: id, status: "pending" },
+        data: { status: "active" },
+      });
+    }
+
+    return enrolment;
+  });
 
   return NextResponse.json(updated);
 });

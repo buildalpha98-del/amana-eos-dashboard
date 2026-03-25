@@ -18,40 +18,50 @@ export const POST = withApiAuth(async (req: NextRequest) => {
   const body = await parseJsonBody(req);
   const { serviceId } = offerSpotSchema.parse(body);
 
-  // Find the next waitlisted enquiry that hasn't been offered
-  const next = await prisma.parentEnquiry.findFirst({
-    where: {
-      stage: "waitlisted",
-      waitlistServiceId: serviceId,
-      waitlistOfferedAt: null,
-      deleted: false,
-    },
-    orderBy: { waitlistPosition: "asc" },
-    include: {
-      service: { select: { id: true, name: true } },
-    },
+  // Atomic find-and-offer to prevent double-offer race condition
+  const result = await prisma.$transaction(async (tx) => {
+    const next = await tx.parentEnquiry.findFirst({
+      where: {
+        stage: "waitlisted",
+        waitlistServiceId: serviceId,
+        waitlistOfferedAt: null,
+        deleted: false,
+      },
+      orderBy: { waitlistPosition: "asc" },
+      include: {
+        service: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!next) return null;
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours
+
+    // Conditional update: only succeeds if still not offered (prevents double-offer)
+    const updated = await tx.parentEnquiry.update({
+      where: { id: next.id, waitlistOfferedAt: null },
+      data: {
+        waitlistOfferedAt: now,
+        waitlistExpiresAt: expiresAt,
+      },
+      include: {
+        service: { select: { id: true, name: true } },
+      },
+    });
+
+    return updated;
   });
 
-  if (!next) {
+  if (!result) {
     return NextResponse.json(
       { error: "No families on the waitlist for this service" },
       { status: 404 },
     );
   }
 
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours
-
-  const updated = await prisma.parentEnquiry.update({
-    where: { id: next.id },
-    data: {
-      waitlistOfferedAt: now,
-      waitlistExpiresAt: expiresAt,
-    },
-    include: {
-      service: { select: { id: true, name: true } },
-    },
-  });
+  const next = result;
+  const updated = result;
 
   // Send email (fire and forget)
   if (next.parentEmail) {

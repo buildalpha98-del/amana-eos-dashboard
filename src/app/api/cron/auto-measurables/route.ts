@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
+import { acquireCronLock } from "@/lib/cron-guard";
 import { logger } from "@/lib/logger";
 
 /**
@@ -23,6 +24,12 @@ export const GET = withApiHandler(async (req) => {
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Idempotency guard — prevent double population on retry
+  const guard = await acquireCronLock("auto-measurables", "weekly");
+  if (!guard.acquired) {
+    return NextResponse.json({ message: guard.reason, skipped: true });
   }
 
   try {

@@ -184,7 +184,7 @@ export function useBulkTodoAction() {
       }
     },
     onError: (err: Error) => {
-      toast({ description: err.message });
+      toast({ variant: "destructive", description: err.message || "Bulk action failed" });
     },
   });
 }

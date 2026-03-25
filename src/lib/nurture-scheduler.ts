@@ -141,27 +141,28 @@ async function createSequenceEnrolment(
     const now = new Date();
 
     for (const seq of sequences) {
-      // Skip if already enrolled
-      const existing = await prisma.sequenceEnrolment.findFirst({
-        where: { sequenceId: seq.id, contactId },
-      });
-      if (existing) continue;
-
       const anchorDate = stage === "first_session" && enquiry.firstSessionDate
         ? enquiry.firstSessionDate
         : now;
 
-      const enrolment = await prisma.sequenceEnrolment.create({
-        data: {
-          sequenceId: seq.id,
-          contactId,
-          enquiryId: enquiry.id,
-          serviceId: enquiry.serviceId,
-          status: "active",
-          currentStepNumber: 1,
-          anchorDate,
-        },
-      });
+      let enrolment;
+      try {
+        enrolment = await prisma.sequenceEnrolment.create({
+          data: {
+            sequenceId: seq.id,
+            contactId,
+            enquiryId: enquiry.id,
+            serviceId: enquiry.serviceId,
+            status: "active",
+            currentStepNumber: 1,
+            anchorDate,
+          },
+        });
+      } catch (err: unknown) {
+        // Unique constraint violation = already enrolled, safe to skip
+        if (err && typeof err === "object" && "code" in err && err.code === "P2002") continue;
+        throw err;
+      }
 
       // Create execution records for each step
       for (const step of seq.steps) {

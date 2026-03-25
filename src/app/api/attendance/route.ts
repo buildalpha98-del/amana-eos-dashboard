@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { SessionType } from "@prisma/client";
 import { propagateEnrolledCounts } from "./propagate/route";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { logger } from "@/lib/logger";
 
 // ── GET: List attendance records ────────────────────────────
 
@@ -172,7 +173,9 @@ export const PUT = withApiAuth(async (req, session) => {
 
   const serviceId = items[0]?.serviceId;
   if (serviceId) {
-    propagateEnrolledCounts(serviceId, 8).catch(() => {});
+    propagateEnrolledCounts(serviceId, 8).catch((err) => {
+      logger.error("Failed to propagate enrolled counts", { serviceId, err });
+    });
   }
 
   return NextResponse.json({ updated: results.length });

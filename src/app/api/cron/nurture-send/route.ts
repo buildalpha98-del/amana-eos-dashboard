@@ -21,6 +21,7 @@ import {
   nurtureSessionReminderEmail,
 } from "@/lib/email-templates";
 import { withApiHandler } from "@/lib/api-handler";
+import { acquireCronLock } from "@/lib/cron-guard";
 import { logger } from "@/lib/logger";
 
 // LEGACY: Hardcoded template map for ParentNurtureStep records.
@@ -61,18 +62,32 @@ export const POST = withApiHandler(async (req) => {
   const authResult = verifyCronSecret(req);
   if (authResult) return authResult.error;
 
+  // Idempotency guard — prevent double-sends on concurrent invocations
+  const guard = await acquireCronLock("nurture-send", "2hourly");
+  if (!guard.acquired) {
+    return NextResponse.json({ skipped: true, reason: guard.reason });
+  }
+
   const resend = getResend();
   if (!resend) {
+    await guard.fail(new Error("Resend not configured"));
     return NextResponse.json({ error: "Resend not configured" }, { status: 503 });
   }
 
+  try {
+
   const now = new Date();
 
-  // Find pending steps ready to send
+  // Atomically claim pending legacy steps to prevent double-processing
+  await prisma.parentNurtureStep.updateMany({
+    where: { status: "pending", scheduledFor: { lte: now } },
+    data: { status: "sending" },
+  });
+
+  // Find claimed steps ready to process
   const pendingSteps = await prisma.parentNurtureStep.findMany({
     where: {
-      status: "pending",
-      scheduledFor: { lte: now },
+      status: "sending",
     },
     include: {
       contact: { select: { email: true, firstName: true, subscribed: true } },
@@ -85,6 +100,7 @@ export const POST = withApiHandler(async (req) => {
   if (pendingSteps.length === 0) {
     // Still process sequence executions even if no legacy steps
     const seqResult = await processSequenceExecutions(resend, now);
+    await guard.complete({ legacy: { sent: 0, skipped: 0, failed: 0 }, sequences: seqResult });
     return NextResponse.json({
       sent: seqResult.sent,
       skipped: seqResult.skipped,
@@ -98,7 +114,7 @@ export const POST = withApiHandler(async (req) => {
   let skipped = 0;
   let failed = 0;
 
-  /** Process a single legacy ParentNurtureStep */
+  /** Process a single legacy ParentNurtureStep (already claimed with status="sending") */
   async function processLegacyStep(step: (typeof pendingSteps)[number]): Promise<"sent" | "skipped" | "failed"> {
     // Skip unsubscribed contacts
     if (!step.contact.subscribed) {
@@ -178,13 +194,13 @@ export const POST = withApiHandler(async (req) => {
         else if (result.value === "skipped") skipped++;
         else if (result.value === "failed") failed++;
       } else {
-        // Promise rejected — log failure and update DB
+        // Promise rejected — log failure and revert to pending for retry
         const step = batch[j];
         logger.error("nurture-send: Failed to send step", { stepId: step.id, err: result.reason });
         try {
           await prisma.parentNurtureStep.update({
             where: { id: step.id },
-            data: { status: "failed" },
+            data: { status: "pending" },
           });
           await prisma.deliveryLog.create({
             data: {
@@ -207,13 +223,20 @@ export const POST = withApiHandler(async (req) => {
   // ── Also process SequenceStepExecution records (new system) ──
   const seqResult = await processSequenceExecutions(resend, now);
 
-  return NextResponse.json({
+  const result = {
     sent: sent + seqResult.sent,
     skipped: skipped + seqResult.skipped,
     failed: failed + seqResult.failed,
     legacy: { sent, skipped, failed },
     sequences: seqResult,
-  });
+  };
+  await guard.complete(result);
+  return NextResponse.json(result);
+
+  } catch (err) {
+    await guard.fail(err);
+    throw err;
+  }
 });
 
 /**
@@ -228,10 +251,15 @@ async function processSequenceExecutions(
 ) {
   if (!resend) return { sent: 0, skipped: 0, failed: 0 };
 
+  // Atomically claim pending sequence executions to prevent double-processing
+  await prisma.sequenceStepExecution.updateMany({
+    where: { status: "pending", scheduledFor: { lte: now } },
+    data: { status: "sending" },
+  });
+
   const pending = await prisma.sequenceStepExecution.findMany({
     where: {
-      status: "pending",
-      scheduledFor: { lte: now },
+      status: "sending",
     },
     include: {
       step: {
@@ -363,7 +391,7 @@ async function processSequenceExecutions(
         try {
           await prisma.sequenceStepExecution.update({
             where: { id: exec.id },
-            data: { status: "failed", error: result.reason instanceof Error ? result.reason.message : String(result.reason) },
+            data: { status: "pending", error: result.reason instanceof Error ? result.reason.message : String(result.reason) },
           });
         } catch (dbErr) {
           logger.error("nurture-send: Failed to record failure for exec", { execId: exec.id, err: dbErr });
@@ -377,7 +405,7 @@ async function processSequenceExecutions(
   const activeEnrolments = [...new Set(pending.map((e) => e.enrolmentId))];
   for (const enrolmentId of activeEnrolments) {
     const remaining = await prisma.sequenceStepExecution.count({
-      where: { enrolmentId, status: "pending" },
+      where: { enrolmentId, status: { in: ["pending", "sending"] } },
     });
     if (remaining === 0) {
       await prisma.sequenceEnrolment.update({

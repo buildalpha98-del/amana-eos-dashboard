@@ -222,7 +222,7 @@ describe("scheduleNurtureFromStageChange", () => {
     expect(prismaMock.sequenceStepExecution.create).toHaveBeenCalledTimes(2);
   });
 
-  it("skips sequence enrolment if already enrolled", async () => {
+  it("skips sequence enrolment if already enrolled (P2002 unique constraint)", async () => {
     prismaMock.parentEnquiry.findUnique.mockResolvedValue({
       id: "enq-1",
       serviceId: "svc-1",
@@ -234,11 +234,13 @@ describe("scheduleNurtureFromStageChange", () => {
     prismaMock.sequence.findMany.mockResolvedValue([
       { id: "seq-1", steps: [{ id: "step-1", stepNumber: 1, delayHours: 24 }] },
     ]);
-    prismaMock.sequenceEnrolment.findFirst.mockResolvedValue({ id: "existing-enrol" });
+    // Simulate unique constraint violation (already enrolled)
+    const p2002Error = new Error("Unique constraint failed");
+    (p2002Error as unknown as Record<string, unknown>).code = "P2002";
+    prismaMock.sequenceEnrolment.create.mockRejectedValue(p2002Error);
 
+    // Should not throw — P2002 is silently caught
     await scheduleNurtureFromStageChange("enq-1", "info_sent");
-
-    expect(prismaMock.sequenceEnrolment.create).not.toHaveBeenCalled();
   });
 
   it("logs error but does not throw if sequence creation fails", async () => {

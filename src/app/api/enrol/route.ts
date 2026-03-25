@@ -302,68 +302,72 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     serviceId = bookingPrefs[0].serviceId;
   }
 
-  // Create submission
-  const submission = await prisma.enrolmentSubmission.create({
-    data: {
-      enquiryId,
-      serviceId,
-      primaryParent,
-      secondaryParent: secondaryParent?.firstName ? secondaryParent : undefined,
-      children: enrichedChildren,
-      emergencyContacts: emergencyContacts.filter((c) => c.name),
-      authorisedPickup: authorisedPickup.length > 0 ? authorisedPickup : undefined,
-      consents,
-      paymentMethod,
-      paymentDetails: Object.keys(paymentData).length > 0 ? paymentData : undefined,
-      referralSource,
-      signature,
-      termsAccepted: true,
-      privacyAccepted: true,
-      debitAgreement: true,
-      courtOrders,
-      courtOrderFiles: courtOrderFiles.length > 0 ? courtOrderFiles : undefined,
-      medicalFiles: medicalFiles.length > 0 ? medicalFiles : undefined,
-      documentUploads: documentUploads.length > 0 ? documentUploads : undefined,
-    },
-  });
-
-  // Create structured Child records
-  for (const child of enrichedChildren) {
-    await prisma.child.create({
+  // Atomic transaction: create submission + child records + update enquiry
+  const submission = await prisma.$transaction(async (tx) => {
+    const sub = await tx.enrolmentSubmission.create({
       data: {
-        enrolmentId: submission.id,
+        enquiryId,
         serviceId,
-        firstName: child.firstName,
-        surname: child.surname,
-        dob: child.dob ? new Date(child.dob) : undefined,
-        gender: child.gender || undefined,
-        address: child.street
-          ? { street: child.street, suburb: child.suburb, state: child.state, postcode: child.postcode }
-          : undefined,
-        culturalBackground: child.culturalBackground,
-        schoolName: child.schoolName || undefined,
-        yearLevel: child.yearLevel || undefined,
-        crn: child.crn || undefined,
-        medical: child.medical || undefined,
-        dietary: child.medical?.dietaryRequirements
-          ? { details: child.medical.dietaryDetails }
-          : undefined,
-        bookingPrefs: child.bookingPrefs || undefined,
+        primaryParent,
+        secondaryParent: secondaryParent?.firstName ? secondaryParent : undefined,
+        children: enrichedChildren,
+        emergencyContacts: emergencyContacts.filter((c) => c.name),
+        authorisedPickup: authorisedPickup.length > 0 ? authorisedPickup : undefined,
+        consents,
+        paymentMethod,
+        paymentDetails: Object.keys(paymentData).length > 0 ? paymentData : undefined,
+        referralSource,
+        signature,
+        termsAccepted: true,
+        privacyAccepted: true,
+        debitAgreement: true,
+        courtOrders,
+        courtOrderFiles: courtOrderFiles.length > 0 ? courtOrderFiles : undefined,
+        medicalFiles: medicalFiles.length > 0 ? medicalFiles : undefined,
+        documentUploads: documentUploads.length > 0 ? documentUploads : undefined,
       },
     });
-  }
 
-  // Update enquiry stage if linked
-  if (enquiryId) {
-    await prisma.parentEnquiry.update({
-      where: { id: enquiryId },
-      data: {
-        stage: "enrolled",
-        formCompleted: true,
-        stageChangedAt: new Date(),
-      },
-    });
-  }
+    // Create structured Child records
+    for (const child of enrichedChildren) {
+      await tx.child.create({
+        data: {
+          enrolmentId: sub.id,
+          serviceId,
+          firstName: child.firstName,
+          surname: child.surname,
+          dob: child.dob ? new Date(child.dob) : undefined,
+          gender: child.gender || undefined,
+          address: child.street
+            ? { street: child.street, suburb: child.suburb, state: child.state, postcode: child.postcode }
+            : undefined,
+          culturalBackground: child.culturalBackground,
+          schoolName: child.schoolName || undefined,
+          yearLevel: child.yearLevel || undefined,
+          crn: child.crn || undefined,
+          medical: child.medical || undefined,
+          dietary: child.medical?.dietaryRequirements
+            ? { details: child.medical.dietaryDetails }
+            : undefined,
+          bookingPrefs: child.bookingPrefs || undefined,
+        },
+      });
+    }
+
+    // Update enquiry stage if linked
+    if (enquiryId) {
+      await tx.parentEnquiry.update({
+        where: { id: enquiryId },
+        data: {
+          stage: "enrolled",
+          formCompleted: true,
+          stageChangedAt: new Date(),
+        },
+      });
+    }
+
+    return sub;
+  });
 
   // Teams notification (fire and forget)
   const childNames = children

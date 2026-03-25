@@ -58,15 +58,16 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   if (parentId !== undefined) updateData.parentId = parentId;
   if (order !== undefined) updateData.order = order;
 
-  // Handle assignee changes
+  // Handle assignee changes — atomic delete+create in a transaction
   if (assigneeIds !== undefined) {
-    // Delete old assignments and create new ones
-    await prisma.accountabilitySeatAssignment.deleteMany({ where: { seatId: id } });
-    if (Array.isArray(assigneeIds) && assigneeIds.length > 0) {
-      await prisma.accountabilitySeatAssignment.createMany({
-        data: (assigneeIds as string[]).map((userId: string) => ({ seatId: id, userId })),
-      });
-    }
+    await prisma.$transaction(async (tx) => {
+      await tx.accountabilitySeatAssignment.deleteMany({ where: { seatId: id } });
+      if (Array.isArray(assigneeIds) && assigneeIds.length > 0) {
+        await tx.accountabilitySeatAssignment.createMany({
+          data: (assigneeIds as string[]).map((userId: string) => ({ seatId: id, userId })),
+        });
+      }
+    });
   }
 
   const seat = await prisma.accountabilitySeat.update({
@@ -97,17 +98,18 @@ export const DELETE = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: "Seat not found" }, { status: 404 });
   }
 
-  // Reparent children to the deleted seat's parent (not cascade delete)
-  if (existing.children.length > 0) {
-    await prisma.accountabilitySeat.updateMany({
-      where: { parentId: id },
-      data: { parentId: existing.parentId },
-    });
-  }
+  // Atomic: reparent children, delete assignments, delete seat
+  await prisma.$transaction(async (tx) => {
+    if (existing.children.length > 0) {
+      await tx.accountabilitySeat.updateMany({
+        where: { parentId: id },
+        data: { parentId: existing.parentId },
+      });
+    }
 
-  // Delete assignments + seat
-  await prisma.accountabilitySeatAssignment.deleteMany({ where: { seatId: id } });
-  await prisma.accountabilitySeat.delete({ where: { id } });
+    await tx.accountabilitySeatAssignment.deleteMany({ where: { seatId: id } });
+    await tx.accountabilitySeat.delete({ where: { id } });
+  });
 
   return NextResponse.json({ success: true });
 }, { roles: ["owner", "head_office", "admin"] });

@@ -41,12 +41,15 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     const serviceId = enquiry.waitlistServiceId;
     if (!serviceId) continue;
 
-    // Find current max position for this service to move expired to end
-    const maxResult = await prisma.parentEnquiry.aggregate({
-      where: { waitlistServiceId: serviceId, stage: "waitlisted" },
-      _max: { waitlistPosition: true },
-    });
-    const endPosition = (maxResult._max.waitlistPosition ?? 0) + 1;
+    // Atomic position assignment — FOR UPDATE prevents race condition
+    const maxResult = await prisma.$queryRaw<[{ pos: bigint }]>`
+      SELECT COALESCE(MAX("waitlistPosition"), 0) + 1 as pos
+      FROM "ParentEnquiry"
+      WHERE "waitlistServiceId" = ${serviceId}
+      AND "stage" = 'waitlisted'
+      FOR UPDATE
+    `;
+    const endPosition = Number(maxResult[0].pos);
 
     // Clear offer and move to end of waitlist
     await prisma.parentEnquiry.update({

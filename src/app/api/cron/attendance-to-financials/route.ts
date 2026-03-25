@@ -17,20 +17,28 @@ export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
-  // Calculate last week's Monday-Friday range
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sun
-  const lastMonday = new Date(now);
-  lastMonday.setDate(now.getDate() - dayOfWeek - 6); // Previous Monday
-  lastMonday.setHours(0, 0, 0, 0);
+  // Calculate last week's Monday-Friday range using AEST-safe arithmetic
+  const nowAEST = new Date(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Australia/Sydney",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date()),
+  );
+  const dayOfWeek = nowAEST.getUTCDay(); // 0=Sun, 1=Mon
+  const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // days since Monday
+  const lastMonday = new Date(nowAEST);
+  lastMonday.setUTCDate(lastMonday.getUTCDate() - daysBack - 7);
+  lastMonday.setUTCHours(0, 0, 0, 0);
 
   const lastFriday = new Date(lastMonday);
-  lastFriday.setDate(lastMonday.getDate() + 4);
-  lastFriday.setHours(23, 59, 59, 999);
+  lastFriday.setUTCDate(lastMonday.getUTCDate() + 4);
+  lastFriday.setUTCHours(23, 59, 59, 999);
 
   const lastSunday = new Date(lastMonday);
-  lastSunday.setDate(lastMonday.getDate() + 6);
-  lastSunday.setHours(23, 59, 59, 999);
+  lastSunday.setUTCDate(lastMonday.getUTCDate() + 6);
+  lastSunday.setUTCHours(23, 59, 59, 999);
 
   // Get all active services with rates
   const services = await prisma.service.findMany({
