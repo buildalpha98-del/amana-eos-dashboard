@@ -1,0 +1,2 @@
+date,decision,reasoning,expected_outcome,review_date,status
+2026-03-26,Migrate to magic link auth for parent portal,"Reduces friction for non-technical parents, no password to remember",40% reduction in coordinator phone support calls,2026-04-25,ACTIVE
