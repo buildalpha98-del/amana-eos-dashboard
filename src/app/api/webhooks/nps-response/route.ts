@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 const npsSchema = z.object({
   email: z.string().email(),
@@ -37,7 +43,10 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   const querySecret = url.searchParams.get("secret");
   const headerSecret = req.headers.get("x-webhook-secret");
 
-  if (querySecret !== secret && headerSecret !== secret) {
+  const queryMatch = querySecret !== null && constantTimeEqual(querySecret, secret);
+  const headerMatch = headerSecret !== null && constantTimeEqual(headerSecret, secret);
+
+  if (!queryMatch && !headerMatch) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
 

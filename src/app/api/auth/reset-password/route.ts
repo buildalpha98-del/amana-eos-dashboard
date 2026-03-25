@@ -6,6 +6,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { checkPasswordBreach } from "@/lib/password-breach-check";
 import { logAuditEvent } from "@/lib/audit-log";
 import { withApiHandler } from "@/lib/api-handler";
+import { parseJsonBody } from "@/lib/api-error";
 
 export const POST = withApiHandler(async (req) => {
     // Rate limit: 5 attempts per 15 minutes per IP
@@ -18,7 +19,8 @@ export const POST = withApiHandler(async (req) => {
       );
     }
 
-    const { token, password } = await req.json();
+    const body = await parseJsonBody(req);
+    const { token, password } = body as { token: string; password: string };
 
     if (!token || typeof token !== "string") {
       return NextResponse.json(
@@ -77,7 +79,7 @@ export const POST = withApiHandler(async (req) => {
     await prisma.$transaction([
       prisma.user.update({
         where: { id: resetToken.userId },
-        data: { passwordHash },
+        data: { passwordHash, tokenVersion: { increment: 1 } },
       }),
       prisma.passwordResetToken.update({
         where: { id: resetToken.id },

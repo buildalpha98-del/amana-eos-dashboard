@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseJsonField, primaryParentSchema } from "@/lib/schemas/json-fields";
 import { withApiHandler } from "@/lib/api-handler";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const GET = withApiHandler(async (_req, context) => {
+  const ip = _req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const rl = await checkRateLimit(`enrol-status:${ip}`, 10, 15 * 60 * 1000);
+  if (rl.limited) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const { token } = await context!.params!;
 
   const submission = await prisma.enrolmentSubmission.findUnique({

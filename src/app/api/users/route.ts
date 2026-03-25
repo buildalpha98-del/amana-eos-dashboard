@@ -53,7 +53,7 @@ export const GET = withApiAuth(async (req, session) => {
   });
 
   return NextResponse.json(users);
-});
+}, { minRole: "coordinator" });
 
 // POST /api/users — create a new user (owner + admin)
 export const POST = withApiAuth(async (req, session) => {

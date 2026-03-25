@@ -59,7 +59,7 @@ export const POST = withApiAuth(async (req, session) => {
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash },
+    data: { passwordHash, tokenVersion: { increment: 1 } },
   });
 
   logAuditEvent(

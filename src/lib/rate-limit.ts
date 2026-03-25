@@ -169,10 +169,15 @@ export async function resetRateLimit(key: string): Promise<void> {
   const redis = getSharedRedis();
 
   if (redis) {
-    // Remove all sliding-window keys for this identifier
-    const keys = await redis.keys(`ratelimit:login:${key}*`);
-    if (keys.length > 0) {
-      await redis.del(...keys);
+    // Remove all sliding-window keys for this identifier.
+    // Keys are stored as "ratelimit:{max}:{windowSec}:{key}" by the factory.
+    // Also check legacy "ratelimit:login:{key}" pattern for backwards compat.
+    const patterns = [`ratelimit:*:${key}*`, `ratelimit:login:${key}*`];
+    for (const pattern of patterns) {
+      const keys = await redis.keys(pattern);
+      if (keys.length > 0) {
+        await redis.del(...keys);
+      }
     }
     return;
   }

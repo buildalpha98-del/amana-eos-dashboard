@@ -39,16 +39,32 @@ export const POST = withApiHandler(async (req) => {
   // or ParentEnquiry
   let parentName: string | null = null;
 
+  // Check ParentEnquiry first to narrow enrolment search by serviceId
+  const enquiry = await prisma.parentEnquiry.findFirst({
+    where: {
+      parentEmail: { equals: emailLower, mode: "insensitive" },
+      deleted: false,
+    },
+    select: { parentName: true, serviceId: true },
+  });
+
+  if (enquiry?.parentName) {
+    parentName = enquiry.parentName;
+  }
+
   // Check EnrolmentSubmission — primaryParent.email or secondaryParent.email
+  // Narrow by serviceId from enquiry when possible, fallback with .take(100) limit
   const enrolments = await prisma.enrolmentSubmission.findMany({
     where: {
       status: { not: "draft" },
+      ...(enquiry?.serviceId ? { serviceId: enquiry.serviceId } : {}),
     },
     select: {
       id: true,
       primaryParent: true,
       secondaryParent: true,
     },
+    take: 100,
   });
 
   const matchingEnrolmentIds: string[] = [];
@@ -75,20 +91,6 @@ export const POST = withApiHandler(async (req) => {
       if (!parentName && secondary.firstName) {
         parentName = `${secondary.firstName}${secondary.surname ? ` ${secondary.surname}` : ""}`;
       }
-    }
-  }
-
-  // Also check ParentEnquiry
-  if (!parentName) {
-    const enquiry = await prisma.parentEnquiry.findFirst({
-      where: {
-        parentEmail: { equals: emailLower, mode: "insensitive" },
-        deleted: false,
-      },
-      select: { parentName: true },
-    });
-    if (enquiry) {
-      parentName = enquiry.parentName;
     }
   }
 

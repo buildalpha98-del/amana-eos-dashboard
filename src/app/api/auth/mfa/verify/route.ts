@@ -20,8 +20,8 @@ const bodySchema = z.object({
  */
 export const POST = withApiHandler(async (req) => {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const rl = await checkRateLimit(`mfa-verify:${ip}`, 10, 15 * 60 * 1000);
-  if (rl.limited) {
+  const ipRl = await checkRateLimit(`mfa-verify:${ip}`, 10, 15 * 60 * 1000);
+  if (ipRl.limited) {
     return NextResponse.json(
       { error: "Too many attempts. Please try again later." },
       { status: 429 },
@@ -38,14 +38,25 @@ export const POST = withApiHandler(async (req) => {
   }
   const { userId, code } = parsed.data;
 
+  // Rate limit per userId to prevent brute-force enumeration
+  const userRl = await checkRateLimit(`mfa-verify:${userId}`, 10, 15 * 60 * 1000);
+  if (userRl.limited) {
+    return NextResponse.json(
+      { error: "Too many attempts. Please try again later." },
+      { status: 429 },
+    );
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { mfaSecret: true, mfaEnabledAt: true, mfaBackupCodes: true },
   });
 
+  // Return same error for user-not-found, MFA-not-enabled, and invalid code
+  // to prevent user ID enumeration
   if (!user || !user.mfaEnabledAt || !user.mfaSecret) {
     return NextResponse.json(
-      { error: "MFA is not enabled for this user" },
+      { error: "Invalid verification code" },
       { status: 400 },
     );
   }
@@ -76,7 +87,7 @@ export const POST = withApiHandler(async (req) => {
   }
 
   return NextResponse.json(
-    { error: "Invalid code. Please try again." },
+    { error: "Invalid verification code" },
     { status: 400 },
   );
 });

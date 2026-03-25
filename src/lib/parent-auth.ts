@@ -10,6 +10,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { ApiError } from "@/lib/api-error";
 import { handleApiError } from "@/lib/api-handler";
 import { logger, generateRequestId } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // ---------------------------------------------------------------------------
 // JWT payload shape
@@ -128,6 +130,20 @@ export function withParentAuth(
           path: req.nextUrl.pathname,
         });
         throw ApiError.unauthorized("Invalid or expired parent session");
+      }
+
+      // Verify enrolmentIds still exist and belong to this parent
+      const validEnrolments = await prisma.enrolmentSubmission.findMany({
+        where: { id: { in: parent.enrolmentIds }, status: { not: "draft" } },
+        select: { id: true },
+      });
+      parent.enrolmentIds = validEnrolments.map(e => e.id);
+
+      // Rate limit: 60 req/min per parent per endpoint
+      const endpoint = new URL(req.url).pathname;
+      const rl = await checkRateLimit(`parent:${parent.email}:${endpoint}`, 60, 60_000);
+      if (rl.limited) {
+        return NextResponse.json({ error: "Too many requests" }, { status: 429 });
       }
 
       const ctx = { ...routeContext, parent } as RouteContext & {

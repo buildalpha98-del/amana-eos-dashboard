@@ -4,7 +4,7 @@ import { getResend, FROM_EMAIL } from "@/lib/email";
 import { passwordResetEmail } from "@/lib/email-templates";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withApiHandler } from "@/lib/api-handler";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 import crypto from "crypto";
 import { z } from "zod";
 
@@ -13,7 +13,7 @@ const bodySchema = z.object({
 });
 
 export const POST = withApiHandler(async (req: NextRequest) => {
-  const raw = await req.json();
+  const raw = await parseJsonBody(req);
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
     throw ApiError.badRequest("Email is required");

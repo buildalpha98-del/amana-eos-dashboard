@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 // ---------------------------------------------------------------------------
@@ -14,7 +15,12 @@ export async function authenticateCowork(request: NextRequest): Promise<NextResp
   const authHeader = request.headers.get("Authorization");
   const token = authHeader?.replace("Bearer ", "");
 
-  if (!token || token !== process.env.COWORK_API_KEY) {
+  const expected = process.env.COWORK_API_KEY || "";
+  const isValid = token !== undefined && token.length > 0 && expected.length > 0 &&
+    token.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected));
+
+  if (!token || !isValid) {
     // Rate limit ONLY failed auth attempts to prevent brute-force (10/15min per IP)
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||

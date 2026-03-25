@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 
 export const GET = withApiHandler(async (_req, context) => {
   try {
+    const ip = _req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    const rl = await checkRateLimit(`enrol-prefill:${ip}`, 10, 15 * 60 * 1000);
+    if (rl.limited) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const { token } = await context!.params!;
 
     // Look up the enquiry by ID (token = enquiry ID)
