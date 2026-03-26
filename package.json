@@ -69,6 +69,7 @@
     "next": "16.1.6",
     "next-auth": "^4.24.13",
     "otpauth": "^9.5.0",
+    "pdf-parse": "^2.4.5",
     "prisma": "^5.22.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
