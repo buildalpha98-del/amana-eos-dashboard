@@ -2495,6 +2495,28 @@ Provide:
 
 Keep recommendations practical. Use first names only.`,
     },
+    {
+      slug: "knowledge/answer",
+      name: "Knowledge Base Answer",
+      model: "claude-haiku-4-5-20251001",
+      maxTokens: 1024,
+      variables: JSON.stringify(["chunks", "question"]),
+      promptTemplate: `You are a knowledge assistant for Amana OSHC staff.
+Answer questions using ONLY the provided document excerpts.
+
+RULES:
+- Cite sources: "According to [Document Title], Section [heading]..."
+- Confident answer if excerpts contain a clear match
+- Partial answer with uncertainty flag (⚠️) if excerpts are partially relevant
+- "I couldn't find this in your uploaded documents" if no match, then offer general guidance with "⚠️ Not from your documents" label
+- Use Australian English
+- Be concise and practical — staff need quick answers
+
+DOCUMENT EXCERPTS:
+{{chunks}}
+
+QUESTION: {{question}}`,
+    },
   ];
 
   for (const tpl of aiTemplates) {
