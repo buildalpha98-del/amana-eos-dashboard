@@ -80,6 +80,7 @@ export const navItems: NavItem[] = [
   { href: "/policies", label: "Policies", icon: Shield, section: "Operations", tooltip: "Policy management & compliance" },
   { href: "/incidents", label: "Incidents", icon: AlertTriangle, section: "Operations", tooltip: "Safety incident tracking" },
   { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator" },
+  { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents" },
 
   // ── Growth — pipeline, parents & outreach ─────────────────
   { href: "/enquiries", label: "Enquiries", icon: UserPlus, section: "Growth", tooltip: "Parent enquiry pipeline — track from first contact to retention" },
