@@ -124,8 +124,8 @@ export const GET = withApiAuth(
         seat: true,
         reportType: true,
         title: true,
-        content: true,
         metrics: true,
+        status: true,
         createdAt: true,
       },
       orderBy: { createdAt: "asc" },
@@ -139,7 +139,7 @@ export const GET = withApiAuth(
         reportType: string;
         runs: Date[];
         lastTitle: string | null;
-        lastContent: string | null;
+        lastStatus: string | null;
         lastMetrics: unknown;
       }
     >();
@@ -153,7 +153,7 @@ export const GET = withApiAuth(
           reportType: r.reportType,
           runs: [],
           lastTitle: null,
-          lastContent: null,
+          lastStatus: null,
           lastMetrics: null,
         };
         taskMap.set(key, entry);
@@ -161,7 +161,7 @@ export const GET = withApiAuth(
       entry.runs.push(r.createdAt);
       // Always update to latest (runs are sorted asc)
       entry.lastTitle = r.title;
-      entry.lastContent = r.content;
+      entry.lastStatus = r.status;
       entry.lastMetrics = r.metrics;
     }
 
@@ -172,7 +172,7 @@ export const GET = withApiAuth(
       const expectedInterval = medianIntervalHours(entry.runs);
       const health = calculateHealth(lastRunAt, expectedInterval);
       const lastStatus =
-        entry.lastContent && entry.lastContent.length > 0
+        entry.lastStatus === "actioned" || entry.lastStatus === "reviewed"
           ? "success"
           : "failed";
 

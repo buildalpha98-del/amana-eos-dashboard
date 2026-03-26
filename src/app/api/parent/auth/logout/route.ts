@@ -8,7 +8,14 @@ export const POST = withApiHandler(async () => {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 0, // Expire immediately
+    maxAge: 0,
+  });
+  response.cookies.set("parent-active", "", {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
   });
   return response;
 });

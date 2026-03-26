@@ -7,7 +7,6 @@ import { toast } from "@/hooks/useToast";
 // ── Types ────────────────────────────────────────────────
 
 export interface ParentProfile {
-  id: string;
   firstName: string;
   lastName: string;
   email: string;

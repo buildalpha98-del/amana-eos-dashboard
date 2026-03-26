@@ -40,19 +40,21 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = getCookie("parent-session");
-    setIsAuthenticated(!!token);
+    // Check the non-httpOnly flag cookie (the actual JWT is httpOnly and
+    // inaccessible to JS — this companion cookie just signals "logged in")
+    const active = getCookie("parent-active");
+    setIsAuthenticated(!!active);
     setIsLoading(false);
 
-    if (!token && pathname !== "/parent/login") {
+    if (!active && pathname !== "/parent/login") {
       router.replace("/parent/login");
     }
   }, [pathname, router]);
 
   const logout = () => {
-    // Clear cookie
+    // Clear the flag cookie (httpOnly session cookie is cleared server-side via /api/parent/auth/logout)
     document.cookie =
-      "parent-session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      "parent-active=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     setIsAuthenticated(false);
     router.replace("/parent/login");
   };

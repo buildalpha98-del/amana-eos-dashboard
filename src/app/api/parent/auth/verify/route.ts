@@ -105,14 +105,27 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     enrolmentCount: matchingEnrolmentIds.length,
   });
 
-  // Set cookie and redirect
+  // Set cookies and redirect
   const response = NextResponse.redirect(`${baseUrl}/parent`);
+  const cookieMaxAge = 7 * 24 * 60 * 60; // 7 days
+
+  // httpOnly session cookie (not readable by JS — secure)
   response.cookies.set("parent-session", jwt, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: cookieMaxAge,
+  });
+
+  // Non-httpOnly flag cookie for client-side auth check
+  // (the actual JWT is still protected; this just signals "logged in")
+  response.cookies.set("parent-active", "1", {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: cookieMaxAge,
   });
 
   return response;

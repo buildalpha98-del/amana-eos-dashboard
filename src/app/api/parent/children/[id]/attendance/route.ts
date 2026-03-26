@@ -28,7 +28,7 @@ export const GET = withParentAuth(
       throw ApiError.notFound("Child not found");
     }
 
-    // Date filters
+    // Date range (default: last 30 days)
     const fromParam = req.nextUrl.searchParams.get("from");
     const toParam = req.nextUrl.searchParams.get("to");
 
@@ -45,21 +45,11 @@ export const GET = withParentAuth(
     }
 
     if (!child.serviceId) {
-      return NextResponse.json({
-        child: {
-          id: child.id,
-          firstName: child.firstName,
-          surname: child.surname,
-          serviceName: child.service?.name ?? null,
-        },
-        attendance: [],
-        from: from.toISOString(),
-        to: to.toISOString(),
-      });
+      return NextResponse.json([]);
     }
 
-    // Get attendance records for the child's service in the date range
-    const attendance = await prisma.dailyAttendance.findMany({
+    // Get service-level attendance records
+    const records = await prisma.dailyAttendance.findMany({
       where: {
         serviceId: child.serviceId,
         date: { gte: from, lte: to },
@@ -70,28 +60,61 @@ export const GET = withParentAuth(
         attended: true,
         absent: true,
         enrolled: true,
-        capacity: true,
       },
       orderBy: { date: "desc" },
     });
 
-    return NextResponse.json({
-      child: {
-        id: child.id,
-        firstName: child.firstName,
-        surname: child.surname,
-        serviceName: child.service?.name ?? null,
-      },
-      attendance: attendance.map((a) => ({
-        date: a.date.toISOString(),
-        sessionType: a.sessionType,
-        attended: a.attended,
-        absent: a.absent,
-        enrolled: a.enrolled,
-        capacity: a.capacity,
-      })),
-      from: from.toISOString(),
-      to: to.toISOString(),
-    });
+    // Convert service-level data to per-day AttendanceDay format
+    // Group by date (a service may have BSC + ASC on the same day)
+    const dayMap = new Map<string, { date: string; status: "present" | "absent" | "no_session"; signInTime: string | null; signOutTime: string | null }>();
+
+    for (const rec of records) {
+      const dateKey = rec.date.toISOString().split("T")[0];
+      const existing = dayMap.get(dateKey);
+
+      // If any session on this day has attendees, mark as present
+      // (service-level approximation — we don't have per-child data)
+      const hasActivity = rec.attended > 0 || rec.enrolled > 0;
+      const status: "present" | "absent" | "no_session" = hasActivity
+        ? "present"
+        : "no_session";
+
+      if (!existing) {
+        dayMap.set(dateKey, {
+          date: rec.date.toISOString(),
+          status,
+          signInTime: null,
+          signOutTime: null,
+        });
+      } else if (status === "present" && existing.status !== "present") {
+        // Upgrade to present if any session was active
+        existing.status = "present";
+      }
+    }
+
+    // Fill in missing weekdays as "no_session"
+    const cursor = new Date(from);
+    while (cursor <= to) {
+      const dow = cursor.getDay();
+      if (dow !== 0 && dow !== 6) {
+        const dateKey = cursor.toISOString().split("T")[0];
+        if (!dayMap.has(dateKey)) {
+          dayMap.set(dateKey, {
+            date: new Date(dateKey + "T00:00:00.000Z").toISOString(),
+            status: "no_session",
+            signInTime: null,
+            signOutTime: null,
+          });
+        }
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    // Sort descending by date and return as flat array
+    const days = Array.from(dayMap.values()).sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+
+    return NextResponse.json(days);
   },
 );
