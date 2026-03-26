@@ -113,7 +113,7 @@ export async function generateDraft(
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-haiku-3-5-20241022",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 2000,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: userPrompt }],
@@ -121,8 +121,10 @@ export async function generateDraft(
     });
 
     if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
       logger.error("AI draft generation failed", {
         status: response.status,
+        body: errorBody.slice(0, 500),
         sourceType: ctx.sourceType,
         sourceId: ctx.sourceId,
       });
@@ -178,7 +180,7 @@ export async function saveDraft(
       title: `AI Draft: ${ctx.title}`,
       content,
       tokensUsed,
-      model: "claude-haiku-3-5-20241022",
+      model: "claude-haiku-4-5-20251001",
       metadata: {
         sourceType: ctx.sourceType,
         assigneeName: ctx.assigneeName,
@@ -197,7 +199,7 @@ export async function saveDraft(
         inputTokens: Math.round(tokensUsed * 0.7), // approximate split
         outputTokens: Math.round(tokensUsed * 0.3),
         durationMs: 0,
-        model: "claude-haiku-3-5-20241022",
+        model: "claude-haiku-4-5-20251001",
         section: "agent",
       },
     })
