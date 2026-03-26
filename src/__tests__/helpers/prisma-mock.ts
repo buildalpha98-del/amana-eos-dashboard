@@ -23,12 +23,16 @@ function createPrismaMock() {
     return arg;
   });
 
+  // Support prisma.$queryRawUnsafe(...) — raw SQL queries
+  const $queryRawUnsafe = vi.fn();
+
   const proxy = new Proxy(
-    { $transaction } as Record<string, unknown>,
+    { $transaction, $queryRawUnsafe } as Record<string, unknown>,
     {
       get(target, model: string) {
-        // Return $transaction directly for top-level callable methods
+        // Return top-level callable methods directly
         if (model === "$transaction") return target.$transaction;
+        if (model === "$queryRawUnsafe") return target.$queryRawUnsafe;
 
         if (!cache[model]) {
           cache[model] = new Proxy(
