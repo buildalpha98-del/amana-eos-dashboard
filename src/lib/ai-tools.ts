@@ -110,6 +110,22 @@ export const ASSISTANT_TOOLS: Anthropic.Messages.Tool[] = [
       required: [],
     },
   },
+  {
+    name: "search_knowledge_base",
+    description:
+      "Search uploaded policies, procedures, SOPs, and guides. Use when staff ask about company policies, procedures, compliance requirements, or operational guidelines.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "Search keywords rephrased from the user's question about policies or procedures",
+        },
+      },
+      required: ["query"],
+    },
+  },
 ];
 
 // ── Tool Execution ──────────────────────────────────────────
@@ -132,6 +148,20 @@ export async function executeToolCall(
         return await lookupRecentTodos(input.status as string | undefined, input.limit as number | undefined);
       case "lookup_enquiry_pipeline":
         return await lookupEnquiryPipeline(input.stage as string | undefined);
+      case "search_knowledge_base": {
+        const { searchChunks, formatChunksForPrompt } = await import(
+          "@/lib/document-indexer"
+        );
+        const results = await searchChunks(input.query as string, 8);
+        if (results.length === 0) {
+          return JSON.stringify({
+            message: "No matching documents found for this query.",
+            suggestion:
+              "The knowledge base may not have documents covering this topic yet.",
+          });
+        }
+        return formatChunksForPrompt(results);
+      }
       default:
         return JSON.stringify({ error: `Unknown tool: ${name}` });
     }

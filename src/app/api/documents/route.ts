@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { logger } from "@/lib/logger";
+import { indexDocument } from "@/lib/document-indexer";
 const createDocumentSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -114,6 +116,10 @@ const body = await req.json();
       centre: { select: { id: true, name: true, code: true } },
       folder: { select: { id: true, name: true } },
     },
+  });
+
+  indexDocument(document.id).catch((err) => {
+    logger.warn("Auto-index failed", { documentId: document.id, error: err });
   });
 
   return NextResponse.json(document, { status: 201 });
