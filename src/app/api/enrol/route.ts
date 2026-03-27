@@ -8,6 +8,7 @@ import { encryptField } from "@/lib/field-encryption";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withApiHandler } from "@/lib/api-handler";
 import { ApiError } from "@/lib/api-error";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // Zod schemas — mirrors src/components/enrol/types.ts
@@ -253,23 +254,31 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   }
 
   // Store encrypted full payment details for OWNA porting
+  // Gracefully degrade if FIELD_ENCRYPTION_KEY is not configured — masked
+  // payment data is always stored; encrypted raw is a bonus for OWNA porting.
   let encryptedPaymentRaw: string | null = null;
-  if (payment.method === "credit_card") {
-    encryptedPaymentRaw = encryptField(JSON.stringify({
-      method: "credit_card",
-      cardName: payment.cardName,
-      cardNumber: payment.cardNumber,
-      expiryMonth: payment.cardExpiryMonth,
-      expiryYear: payment.cardExpiryYear,
-      ccv: payment.cardCcv,
-    }));
-  } else if (payment.method === "bank_account") {
-    encryptedPaymentRaw = encryptField(JSON.stringify({
-      method: "bank_account",
-      accountName: payment.bankAccountName,
-      bsb: payment.bankBsb,
-      accountNumber: payment.bankAccountNumber,
-    }));
+  try {
+    if (payment.method === "credit_card") {
+      encryptedPaymentRaw = encryptField(JSON.stringify({
+        method: "credit_card",
+        cardName: payment.cardName,
+        cardNumber: payment.cardNumber,
+        expiryMonth: payment.cardExpiryMonth,
+        expiryYear: payment.cardExpiryYear,
+        ccv: payment.cardCcv,
+      }));
+    } else if (payment.method === "bank_account") {
+      encryptedPaymentRaw = encryptField(JSON.stringify({
+        method: "bank_account",
+        accountName: payment.bankAccountName,
+        bsb: payment.bankBsb,
+        accountNumber: payment.bankAccountNumber,
+      }));
+    }
+  } catch (encErr) {
+    logger.warn("Payment encryption failed — storing masked data only", {
+      error: encErr instanceof Error ? encErr.message : String(encErr),
+    });
   }
 
   const paymentData = {
