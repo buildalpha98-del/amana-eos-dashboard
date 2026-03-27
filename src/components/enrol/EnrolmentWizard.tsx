@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { AlertCircle, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, FileText, Loader2, Mail, Phone } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { AlertCircle, Check, CheckCircle, ChevronLeft, ChevronRight, Clock, FileText, Loader2, Mail, Phone, RotateCcw } from "lucide-react";
 import {
   EnrolmentFormData,
   INITIAL_FORM_DATA,
@@ -39,30 +39,62 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
   } | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showResumeBanner, setShowResumeBanner] = useState(false);
+  const savedProgressRef = useRef<{ data: EnrolmentFormData; step: number } | null>(null);
 
-  // Load from localStorage or prefill from token
+  // Load from localStorage — merge with prefill if both exist
   useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    let savedData: { data: EnrolmentFormData; step: number } | null = null;
+    if (saved) {
+      try {
+        savedData = JSON.parse(saved);
+      } catch {
+        // ignore corrupt data
+      }
+    }
+
     if (prefillToken) {
       fetch(`/api/enrol/${prefillToken}`)
         .then((r) => (r.ok ? r.json() : null))
         .then((prefill) => {
-          if (prefill) {
+          if (prefill && savedData) {
+            // Both saved progress and prefill exist — check if saved has real data
+            const hasFilledFields = savedData.data.primaryParent?.firstName ||
+              savedData.data.children?.[0]?.firstName;
+            if (hasFilledFields) {
+              // Show resume banner — let parent choose
+              savedProgressRef.current = savedData;
+              setData((prev) => ({ ...prev, ...prefill }));
+              setShowResumeBanner(true);
+            } else {
+              setData((prev) => ({ ...prev, ...prefill }));
+            }
+          } else if (prefill) {
             setData((prev) => ({ ...prev, ...prefill }));
+          } else if (savedData) {
+            setData((prev) => ({ ...prev, ...savedData!.data }));
+            setStep(savedData.step || 0);
           }
           setLoaded(true);
         })
-        .catch(() => setLoaded(true));
-    } else {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          setData((prev) => ({ ...prev, ...parsed.data }));
-          setStep(parsed.step || 0);
-        } catch {
-          // ignore corrupt data
-        }
+        .catch(() => {
+          if (savedData) {
+            setData((prev) => ({ ...prev, ...savedData!.data }));
+            setStep(savedData.step || 0);
+          }
+          setLoaded(true);
+        });
+    } else if (savedData) {
+      const hasFilledFields = savedData.data.primaryParent?.firstName ||
+        savedData.data.children?.[0]?.firstName;
+      if (hasFilledFields && savedData.step > 0) {
+        setShowResumeBanner(true);
       }
+      setData((prev) => ({ ...prev, ...savedData!.data }));
+      setStep(savedData.step || 0);
+      setLoaded(true);
+    } else {
       setLoaded(true);
     }
   }, [prefillToken]);
@@ -73,6 +105,31 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ data, step }));
     }
   }, [data, step, loaded, submitted]);
+
+  // Warn before closing tab if form has progress
+  useEffect(() => {
+    const hasProgress = step > 0 || data.primaryParent.firstName || data.children[0]?.firstName;
+    if (!hasProgress || submitted) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [step, data.primaryParent.firstName, data.children, submitted]);
+
+  const handleResumeProgress = () => {
+    if (savedProgressRef.current) {
+      setData((prev) => ({ ...prev, ...savedProgressRef.current!.data }));
+      setStep(savedProgressRef.current.step || 0);
+    }
+    setShowResumeBanner(false);
+  };
+
+  const handleStartFresh = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    savedProgressRef.current = null;
+    setShowResumeBanner(false);
+  };
 
   // Clear validation errors when data changes
   useEffect(() => {
@@ -360,6 +417,35 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
           />
         </div>
       </div>
+
+      {/* Resume banner */}
+      {showResumeBanner && (
+        <div className="mb-4 p-4 bg-[#FECE00]/10 backdrop-blur border border-[#FECE00]/30 rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <RotateCcw className="h-5 w-5 text-[#FECE00] shrink-0 mt-0.5 sm:mt-0" />
+          <div className="flex-1">
+            <p className="text-white text-sm font-medium">
+              You have saved progress from a previous session
+            </p>
+            <p className="text-white/60 text-xs mt-0.5">
+              Would you like to continue where you left off?
+            </p>
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <button
+              onClick={handleResumeProgress}
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-lg bg-[#FECE00] text-[#002E3D] text-sm font-semibold hover:bg-[#e5b900] transition-colors"
+            >
+              Resume
+            </button>
+            <button
+              onClick={handleStartFresh}
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-lg bg-card/20 text-white text-sm font-medium hover:bg-card/30 transition-colors"
+            >
+              Start Fresh
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Step heading */}
       <div className="mb-4">
