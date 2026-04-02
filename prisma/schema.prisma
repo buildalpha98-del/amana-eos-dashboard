@@ -88,6 +88,26 @@ enum SessionType {
   vc
 }
 
+enum BookingStatus {
+  requested
+  confirmed
+  waitlisted
+  cancelled
+  absent_notified
+}
+
+enum BookingType {
+  permanent
+  casual
+  vacation_care
+}
+
+enum StatementStatus {
+  paid
+  unpaid
+  overdue
+}
+
 enum WeekDay {
   monday
   tuesday
@@ -1406,6 +1426,11 @@ model Service {
   parentFeedback   ParentFeedback[]   @relation("ServiceParentFeedback")
   parentExperience ParentExperience[] @relation("ServiceParentExperience")
   childRecords     Child[]            @relation("ServiceChildren")
+
+  // ── Parent Portal Relations ──────────────────────
+  bookings   Booking[]   @relation("ServiceBookings_Portal")
+  absences   Absence[]   @relation("ServiceAbsences")
+  statements Statement[] @relation("ServiceStatements")
 
   // ── Cowork Reports ──────────────────────────────
   coworkReports CoworkReport[] @relation("CoworkReportService")
@@ -3092,6 +3117,8 @@ model CentreContact {
   referralsMade       Referral[]            @relation("ReferrerContact")
   exitSurveys         ExitSurvey[]          @relation("ContactExitSurveys")
   sequenceEnrolments  SequenceEnrolment[]   @relation("ContactSequenceEnrolments")
+  statements          Statement[]           @relation("ContactStatements")
+  documents           ParentDocument[]      @relation("ContactDocuments")
 
   @@unique([email, serviceId])
   @@index([serviceId])
@@ -4469,6 +4496,11 @@ model Child {
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
+  bookings          Booking[]          @relation("ChildBookings")
+  absences          Absence[]          @relation("ChildAbsences")
+  documents         ParentDocument[]   @relation("ChildDocuments")
+  authorisedPickups AuthorisedPickup[] @relation("ChildPickups")
+
   @@index([enrolmentId])
   @@index([serviceId])
   @@index([status])
@@ -4571,4 +4603,108 @@ model ParentMagicLink {
 
   @@index([email])
   @@index([tokenHash])
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  childId     String
+  child       Child         @relation("ChildBookings", fields: [childId], references: [id], onDelete: Cascade)
+  serviceId   String
+  service     Service       @relation("ServiceBookings_Portal", fields: [serviceId], references: [id], onDelete: Cascade)
+  date        DateTime      @db.Date
+  sessionType SessionType
+  status      BookingStatus @default(requested)
+  type        BookingType   @default(casual)
+  fee         Float?
+  ccsApplied  Float?        // CCS subsidy amount applied
+  gapFee      Float?        // Fee after CCS applied
+  notes       String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([childId, serviceId, date, sessionType])
+  @@index([childId])
+  @@index([serviceId])
+  @@index([date])
+  @@index([status])
+  @@index([serviceId, date])
+  @@index([childId, status])
+  @@index([date, status])
+}
+
+model Absence {
+  id                    String      @id @default(cuid())
+  childId               String
+  child                 Child       @relation("ChildAbsences", fields: [childId], references: [id], onDelete: Cascade)
+  serviceId             String
+  service               Service     @relation("ServiceAbsences", fields: [serviceId], references: [id], onDelete: Cascade)
+  date                  DateTime    @db.Date
+  sessionType           SessionType
+  isIllness             Boolean     @default(false)
+  medicalCertificateUrl String?
+  notifiedAt            DateTime    @default(now())
+  notes                 String?     @db.Text
+  createdAt             DateTime    @default(now())
+
+  @@unique([childId, serviceId, date, sessionType])
+  @@index([childId, date])
+  @@index([serviceId, date])
+  @@index([childId])
+}
+
+model Statement {
+  id              String          @id @default(cuid())
+  contactId       String
+  contact         CentreContact   @relation("ContactStatements", fields: [contactId], references: [id], onDelete: Cascade)
+  serviceId       String
+  service         Service         @relation("ServiceStatements", fields: [serviceId], references: [id], onDelete: Cascade)
+  periodStart     DateTime        @db.Date
+  periodEnd       DateTime        @db.Date
+  totalFees       Float
+  totalCcs        Float           @default(0)
+  gapFee          Float           @default(0)
+  status          StatementStatus @default(unpaid)
+  pdfUrl          String?
+  dueDate         DateTime?       @db.Date
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([contactId, periodStart, periodEnd])
+  @@index([contactId])
+  @@index([serviceId, periodStart])
+  @@index([status])
+}
+
+model ParentDocument {
+  id          String        @id @default(cuid())
+  childId     String
+  child       Child         @relation("ChildDocuments", fields: [childId], references: [id], onDelete: Cascade)
+  contactId   String
+  contact     CentreContact @relation("ContactDocuments", fields: [contactId], references: [id], onDelete: Cascade)
+  docType     String        // immunisation, medical_action_plan, birth_certificate, custody_order, other
+  fileName    String
+  fileUrl     String
+  uploadedAt  DateTime      @default(now())
+  expiryDate  DateTime?     @db.Date
+  notes       String?       @db.Text
+
+  @@index([childId])
+  @@index([contactId])
+}
+
+model AuthorisedPickup {
+  id           String   @id @default(cuid())
+  childId      String
+  child        Child    @relation("ChildPickups", fields: [childId], references: [id], onDelete: Cascade)
+  name         String
+  relationship String
+  phone        String
+  photoUrl     String?
+  hasPassword  Boolean  @default(false)
+  passwordHash String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([childId])
 }

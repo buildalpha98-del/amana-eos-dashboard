@@ -5,6 +5,7 @@ import {
   ChevronRight,
   AlertCircle,
   Calendar,
+  Plus,
 } from "lucide-react";
 import { useParentChildren, type ParentChild } from "@/hooks/useParentPortal";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -14,13 +15,23 @@ export default function ChildrenListPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
-          Your Children
-        </h1>
-        <p className="text-sm text-[#7c7c8a] mt-1">
-          Tap a child to see attendance, medical info, and emergency contacts.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
+            Your Children
+          </h1>
+          <p className="text-sm text-[#7c7c8a] mt-1">
+            Tap a child to see attendance, medical info, and emergency contacts.
+          </p>
+        </div>
+        <Link
+          href="/parent/children/new"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] hover:bg-[#003D52] text-white text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] min-h-[44px] shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">Enrol Sibling</span>
+          <span className="sm:hidden">Enrol</span>
+        </Link>
       </div>
 
       {isLoading ? (

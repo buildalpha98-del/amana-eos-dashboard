@@ -24,9 +24,23 @@ const STORAGE_KEY = "amana-enrolment-form";
 
 interface EnrolmentWizardProps {
   prefillToken?: string;
+  /** Pre-fill and lock primary parent fields (portal sibling enrolment) */
+  parentPrefill?: import("./types").ParentDetails;
+  /** Step indices to skip (e.g. [1] to skip Parent step) */
+  skipSteps?: number[];
+  /** Called on successful submission instead of showing the success screen */
+  onComplete?: (result: { token: string; childNames: string }) => void;
+  /** Visual variant: "standalone" = dark bg (default), "portal" = neutral bg */
+  variant?: "standalone" | "portal";
 }
 
-export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
+export function EnrolmentWizard({
+  prefillToken,
+  parentPrefill,
+  skipSteps = [],
+  onComplete,
+  variant = "standalone",
+}: EnrolmentWizardProps) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<EnrolmentFormData>(INITIAL_FORM_DATA);
   const [loaded, setLoaded] = useState(false);
@@ -98,6 +112,17 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
       setLoaded(true);
     }
   }, [prefillToken]);
+
+  // Inject parentPrefill into form data when provided (portal sibling enrolment)
+  useEffect(() => {
+    if (parentPrefill && loaded) {
+      setData((prev) => ({
+        ...prev,
+        primaryParent: { ...prev.primaryParent, ...parentPrefill },
+      }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parentPrefill, loaded]);
 
   // Persist to localStorage on change
   useEffect(() => {
@@ -187,7 +212,11 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
       return;
     }
     setValidationErrors([]);
-    setStep((s) => Math.min(STEPS.length - 1, s + 1));
+    let nextStep = step + 1;
+    while (nextStep < STEPS.length && skipSteps.includes(nextStep)) {
+      nextStep++;
+    }
+    setStep(Math.min(STEPS.length - 1, nextStep));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -205,6 +234,10 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
         throw new Error(result.error || "Submission failed");
       }
       localStorage.removeItem(STORAGE_KEY);
+      if (onComplete) {
+        onComplete({ token: result.token, childNames: result.childNames });
+        return;
+      }
       setSubmitResult({
         token: result.token,
         childNames: result.childNames,
@@ -491,7 +524,11 @@ export function EnrolmentWizard({ prefillToken }: EnrolmentWizardProps) {
           <button
             onClick={() => {
               setValidationErrors([]);
-              setStep((s) => Math.max(0, s - 1));
+              let prevStep = step - 1;
+              while (prevStep >= 0 && skipSteps.includes(prevStep)) {
+                prevStep--;
+              }
+              setStep(Math.max(0, prevStep));
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             disabled={step === 0}

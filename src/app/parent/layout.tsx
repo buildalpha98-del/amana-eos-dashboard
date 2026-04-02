@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, Users, Calendar, Settings, LogOut } from "lucide-react";
+import { Home, Users, Calendar, DollarSign, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ParentAuthProvider, useParentAuth } from "@/components/parent/ParentAuthProvider";
 
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/parent", label: "Home", icon: Home },
   { href: "/parent/children", label: "Children", icon: Users },
   { href: "/parent/bookings", label: "Bookings", icon: Calendar },
+  { href: "/parent/billing", label: "Billing", icon: DollarSign },
   { href: "/parent/account", label: "Account", icon: Settings },
 ] as const;
 
