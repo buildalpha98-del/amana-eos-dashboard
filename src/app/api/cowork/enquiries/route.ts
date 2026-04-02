@@ -5,6 +5,7 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
 import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 
 const createEnquirySchema = z.object({
   serviceId: z.string().min(1),
@@ -111,6 +112,11 @@ export const POST = withApiHandler(async (req) => {
       entityId: enquiry.id,
       details: { via: "cowork_api", keyName: "Cowork Automation" },
     });
+
+    // Trigger welcome nurture email for new enquiries
+    scheduleNurtureFromStageChange(enquiry.id, "new").catch((err) =>
+      logger.error("Failed to schedule welcome nurture", { enquiryId: enquiry.id, err }),
+    );
 
     return NextResponse.json({ success: true, enquiry }, { status: 201 });
   } catch (err) {

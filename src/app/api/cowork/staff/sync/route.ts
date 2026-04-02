@@ -117,12 +117,18 @@ export const POST = withApiHandler(async (req) => {
       const existing = await prisma.user.findUnique({ where: { email } });
 
       if (existing) {
+        // Never downgrade owner or head_office roles via sync —
+        // those are set manually in the dashboard and the registry
+        // shouldn't be able to override them.
+        const privileged = existing.role === "owner" || existing.role === "head_office";
+        const newRole = entry.role && !privileged ? (role as any) : existing.role;
+
         // Update existing user
         await prisma.user.update({
           where: { email },
           data: {
             name: entry.name,
-            role: role as any,
+            role: newRole,
             state: entry.state ?? existing.state,
             serviceId: serviceId ?? existing.serviceId,
             phone: entry.phone ?? existing.phone,

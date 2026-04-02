@@ -1,0 +1,152 @@
+<h2>Design Section 3: /knowledge Page UI</h2>
+<p class="subtitle">Purpose-built Q&A page for policy and procedure questions</p>
+
+<div class="section">
+  <h3>Page Layout</h3>
+  <div class="mockup">
+    <div class="mockup-header">Desktop — /knowledge</div>
+    <div class="mockup-body" style="background: #f8fafc; padding: 0;">
+      <!-- Page Header -->
+      <div style="padding: 1.5rem 2rem; border-bottom: 1px solid #e2e8f0;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h2 style="margin: 0; font-size: 1.25rem;">Knowledge Base</h2>
+            <p style="margin: 0.25rem 0 0; color: #64748b; font-size: 0.85rem;">Ask questions about policies, procedures & SOPs</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span style="font-size: 0.75rem; color: #94a3b8;">42 documents indexed</span>
+            <span style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600;">READY</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Area -->
+      <div style="padding: 2rem; max-width: 720px; margin: 0 auto;">
+        <!-- Suggested Questions -->
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem;">
+          <div style="padding: 0.5rem 1rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.8rem; color: #475569; cursor: pointer;">What's our anaphylaxis procedure?</div>
+          <div style="padding: 0.5rem 1rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.8rem; color: #475569; cursor: pointer;">Sun safety requirements</div>
+          <div style="padding: 0.5rem 1rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.8rem; color: #475569; cursor: pointer;">Sign-in/out procedure for parents</div>
+          <div style="padding: 0.5rem 1rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.8rem; color: #475569; cursor: pointer;">Staff-to-child ratios</div>
+        </div>
+
+        <!-- Previous Q&A -->
+        <div style="margin-bottom: 1.5rem;">
+          <!-- User question -->
+          <div style="display: flex; justify-content: flex-end; margin-bottom: 0.75rem;">
+            <div style="background: #6366f1; color: white; padding: 0.75rem 1rem; border-radius: 12px 12px 4px 12px; max-width: 80%; font-size: 0.9rem;">
+              What's our medication administration procedure?
+            </div>
+          </div>
+          <!-- Agent answer -->
+          <div style="display: flex; justify-content: flex-start; margin-bottom: 0.5rem;">
+            <div style="background: white; border: 1px solid #e2e8f0; padding: 1rem 1.25rem; border-radius: 12px 12px 12px 4px; max-width: 85%; font-size: 0.9rem; line-height: 1.7;">
+              <p style="margin-top: 0;">According to your <strong>Medication Administration Procedure</strong> (Section 2):</p>
+              <ul style="margin-bottom: 0.75rem;">
+                <li>All medication must be in original packaging with pharmacy label</li>
+                <li>Written authorisation from parent/guardian is required</li>
+                <li>Two educators must witness administration and sign the log</li>
+                <li>Medication stored in locked cabinet (or fridge if required)</li>
+              </ul>
+              <div style="padding: 0.5rem 0.75rem; background: #f1f5f9; border-radius: 6px; border-left: 3px solid #6366f1; font-size: 0.8rem; color: #64748b;">
+                📄 Medication Administration Procedure (v2, uploaded 15 Feb 2026)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input -->
+        <div style="position: relative; margin-top: 1.5rem;">
+          <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+            <div style="flex: 1; border: 2px solid #e2e8f0; border-radius: 12px; padding: 0.75rem 1rem; background: white; font-size: 0.9rem; color: #94a3b8;">
+              Ask about any policy or procedure...
+            </div>
+            <div style="width: 40px; height: 40px; background: #6366f1; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.1rem; cursor: pointer;">→</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Mobile Layout</h3>
+  <div class="mockup" style="max-width: 375px;">
+    <div class="mockup-header">Mobile — /knowledge</div>
+    <div class="mockup-body" style="background: #f8fafc; padding: 0;">
+      <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+        <h2 style="margin: 0; font-size: 1.1rem;">Knowledge Base</h2>
+        <p style="margin: 0.25rem 0 0; color: #64748b; font-size: 0.8rem;">42 docs indexed · <span style="color: #16a34a;">Ready</span></p>
+      </div>
+      <div style="padding: 1rem;">
+        <!-- Horizontal scroll chips -->
+        <div style="display: flex; gap: 0.5rem; overflow-x: auto; margin-bottom: 1.5rem; padding-bottom: 0.25rem;">
+          <div style="padding: 0.4rem 0.75rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; color: #475569; white-space: nowrap;">Anaphylaxis procedure</div>
+          <div style="padding: 0.4rem 0.75rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; color: #475569; white-space: nowrap;">Sun safety</div>
+          <div style="padding: 0.4rem 0.75rem; background: white; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.75rem; color: #475569; white-space: nowrap;">Staff ratios</div>
+        </div>
+        <!-- Compact Q&A -->
+        <div style="margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
+            <div style="background: #6366f1; color: white; padding: 0.6rem 0.8rem; border-radius: 10px 10px 4px 10px; font-size: 0.85rem;">
+              Medication procedure?
+            </div>
+          </div>
+          <div style="display: flex; justify-content: flex-start;">
+            <div style="background: white; border: 1px solid #e2e8f0; padding: 0.75rem; border-radius: 10px 10px 10px 4px; font-size: 0.85rem; line-height: 1.6;">
+              <p style="margin: 0 0 0.5rem;">Per your <strong>Medication Administration Procedure</strong>:</p>
+              <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.8rem;">
+                <li>Original packaging with pharmacy label</li>
+                <li>Written parent authorisation required</li>
+                <li>Two educators witness + sign</li>
+              </ul>
+              <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #64748b;">📄 Medication Procedure v2</div>
+            </div>
+          </div>
+        </div>
+        <!-- Fixed bottom input -->
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+          <div style="flex: 1; border: 2px solid #e2e8f0; border-radius: 10px; padding: 0.6rem 0.8rem; background: white; font-size: 0.85rem; color: #94a3b8;">Ask about a policy...</div>
+          <div style="width: 36px; height: 36px; background: #6366f1; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white;">→</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Key UI Features</h3>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+    <div style="padding: 1rem; background: rgba(99, 102, 241, 0.06); border-radius: 10px;">
+      <strong>Suggested Questions</strong>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0;">Pre-populated from commonly asked topics. Clickable chips that fill the input.</p>
+    </div>
+    <div style="padding: 1rem; background: rgba(99, 102, 241, 0.06); border-radius: 10px;">
+      <strong>Source Citations</strong>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0;">Every answer shows which document + section it came from. Clickable link to the document in /documents.</p>
+    </div>
+    <div style="padding: 1rem; background: rgba(99, 102, 241, 0.06); border-radius: 10px;">
+      <strong>Confidence Indicator</strong>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0;">Purple border = from your docs. Amber border + ⚠️ = general knowledge, not from your documents.</p>
+    </div>
+    <div style="padding: 1rem; background: rgba(99, 102, 241, 0.06); border-radius: 10px;">
+      <strong>Streaming Responses</strong>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0;">SSE streaming like the existing assistant. Typing indicator while generating.</p>
+    </div>
+    <div style="padding: 1rem; background: rgba(99, 102, 241, 0.06); border-radius: 10px;">
+      <strong>Session History</strong>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0;">Q&A pairs persist in-session (like existing assistant). Clear button to reset.</p>
+    </div>
+    <div style="padding: 1rem; background: rgba(99, 102, 241, 0.06); border-radius: 10px;">
+      <strong>Index Status Badge</strong>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0;">Shows "42 documents indexed" + green Ready badge. Amber if indexing in progress.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Navigation</h3>
+  <div style="padding: 1rem; background: rgba(234, 179, 8, 0.08); border-radius: 12px; border-left: 4px solid #eab308;">
+    <p style="margin: 0;">Add to <code>nav-config.ts</code> under the <strong>Operations</strong> section, between existing items. Icon: <code>BookOpen</code> from lucide-react. Available to all roles (all staff should be able to look up policies).</p>
+  </div>
+</div>

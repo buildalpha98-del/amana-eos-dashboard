@@ -18,6 +18,8 @@ function Input({
   type = "text",
   placeholder,
   maxLength,
+  inputMode,
+  pattern,
 }: {
   label: string;
   value: string;
@@ -26,6 +28,8 @@ function Input({
   type?: string;
   placeholder?: string;
   maxLength?: number;
+  inputMode?: "numeric" | "tel" | "text";
+  pattern?: string;
 }) {
   return (
     <div>
@@ -39,6 +43,8 @@ function Input({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
+        inputMode={inputMode}
+        pattern={pattern}
         className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
       />
     </div>
@@ -116,7 +122,9 @@ function ParentSection({
                 if (state) onChange("state", state);
               }
             }}
-            maxLength={4}
+            maxLength={5}
+            inputMode="numeric"
+            pattern="[0-9]*"
           />
         </div>
       </div>

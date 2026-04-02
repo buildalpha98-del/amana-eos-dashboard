@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
+import { logger } from "@/lib/logger";
 const childSchema = z.object({
   name: z.string().min(1),
   age: z.number().int().min(3).max(16).optional().nullable(),
@@ -113,6 +115,11 @@ export const POST = withApiAuth(async (req) => {
       service: { select: { id: true, name: true, code: true } },
     },
   });
+
+  // Trigger welcome nurture email for new enquiries
+  scheduleNurtureFromStageChange(enquiry.id, "new").catch((err) =>
+    logger.error("Failed to schedule welcome nurture", { enquiryId: enquiry.id, err }),
+  );
 
   return NextResponse.json(enquiry, { status: 201 });
 }, { roles: ["owner", "head_office", "admin"] });

@@ -29,6 +29,7 @@ import {
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { TicketStatus, TicketPriority } from "@prisma/client";
 import { AiButton } from "@/components/ui/AiButton";
+import { toast } from "@/hooks/useToast";
 
 interface UserOption {
   id: string;
@@ -157,7 +158,14 @@ export function TicketDetailPanel({
       { ticketId, body: replyText.trim() },
       {
         onSuccess: () => setReplyText(""),
-        onError: (err: Error) => alert(err.message),
+        onError: (err: Error) => {
+          const msg = err.message?.includes("does not exist")
+            ? "WhatsApp is not configured correctly. Please check the Phone Number ID in settings."
+            : err.message?.includes("24-hour")
+              ? "The 24-hour messaging window has expired. The customer must message first."
+              : err.message || "Failed to send message";
+          toast({ variant: "destructive", description: msg });
+        },
       }
     );
   };

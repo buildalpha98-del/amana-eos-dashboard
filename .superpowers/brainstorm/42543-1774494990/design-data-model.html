@@ -1,0 +1,79 @@
+<h2>Design Section 1: Data Model & Indexing Pipeline</h2>
+<p class="subtitle">How documents get chunked, indexed, and searched</p>
+
+<div class="section">
+  <h3>New Prisma Model: DocumentChunk</h3>
+  <div class="mockup">
+    <div class="mockup-header">prisma/schema.prisma</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.6; white-space: pre; background: #1e1e2e; color: #cdd6f4; padding: 1.5rem; overflow-x: auto;">model DocumentChunk {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId],
+                        references: [id], onDelete: Cascade)
+  chunkIndex  Int      // ordering within the document
+  content     String   // raw text of this chunk (~500 tokens)
+  heading     String?  // nearest heading above this chunk
+  pageNumber  Int?     // for PDFs
+  tokenCount  Int      // approx token count for context budgeting
+  searchVector Unsupported("tsvector")? // PG full-text search
+  // Future: embedding Float[] for pgvector
+  createdAt   DateTime @default(now())
+
+  @@index([documentId])
+  @@index([searchVector], type: Gin) // GIN index for fast FTS
+  @@unique([documentId, chunkIndex])
+}</div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Indexing Pipeline (on document upload)</h3>
+  <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 200px; padding: 1rem; background: rgba(99, 102, 241, 0.08); border-radius: 12px; text-align: center;">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">📄</div>
+      <strong>1. Extract Text</strong>
+      <p style="font-size: 0.85rem; color: #888;">PDF → pdf-parse<br>DOCX → mammoth (already installed)<br>TXT/MD → raw read</p>
+    </div>
+    <div style="flex: 1; min-width: 200px; padding: 1rem; background: rgba(99, 102, 241, 0.08); border-radius: 12px; text-align: center;">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">✂️</div>
+      <strong>2. Chunk</strong>
+      <p style="font-size: 0.85rem; color: #888;">Split into ~500 token chunks<br>Respect heading boundaries<br>Overlap 50 tokens between chunks</p>
+    </div>
+    <div style="flex: 1; min-width: 200px; padding: 1rem; background: rgba(99, 102, 241, 0.08); border-radius: 12px; text-align: center;">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+      <strong>3. Index</strong>
+      <p style="font-size: 0.85rem; color: #888;">Generate tsvector per chunk<br>Store in DocumentChunk table<br>GIN index for fast search</p>
+    </div>
+    <div style="flex: 1; min-width: 200px; padding: 1rem; background: rgba(99, 102, 241, 0.08); border-radius: 12px; text-align: center;">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+      <strong>4. Mark Ready</strong>
+      <p style="font-size: 0.85rem; color: #888;">Set Document.indexed = true<br>Store indexedAt timestamp<br>Ready for search</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Search Flow (at query time)</h3>
+  <div class="mockup">
+    <div class="mockup-header">Query: "What's our procedure for administering medication?"</div>
+    <div class="mockup-body" style="font-size: 0.9rem; line-height: 1.8;">
+      <strong>Step 1:</strong> Convert query to tsquery → <code>'procedure' & 'administer' & 'medication'</code><br>
+      <strong>Step 2:</strong> Search DocumentChunk with <code>ts_rank()</code> scoring, return top 8 chunks<br>
+      <strong>Step 3:</strong> Group chunks by document, include heading + document title as context<br>
+      <strong>Step 4:</strong> Stuff into Claude prompt as grounding material (~4000 tokens)<br>
+      <strong>Step 5:</strong> Claude answers with citations: <em>"According to your Medication Administration Procedure (Section 3)..."</em>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Changes to Document Model</h3>
+  <div style="padding: 1rem; background: rgba(234, 179, 8, 0.08); border-radius: 12px; border-left: 4px solid #eab308;">
+    <p style="margin: 0;">Add 3 fields to existing <code>Document</code> model:</p>
+    <ul style="margin-bottom: 0;">
+      <li><code>indexed Boolean @default(false)</code> — has this doc been chunked?</li>
+      <li><code>indexedAt DateTime?</code> — when was it last indexed?</li>
+      <li><code>indexError String?</code> — if extraction failed, store the reason</li>
+    </ul>
+  </div>
+</div>

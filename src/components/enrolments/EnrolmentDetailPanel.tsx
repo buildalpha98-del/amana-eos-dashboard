@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
+  Archive,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEnrolment, useUpdateEnrolment, type EnrolmentSubmission } from "@/hooks/useEnrolments";
@@ -36,6 +37,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   under_review: { label: "Reviewing", color: "text-amber-700", bg: "bg-amber-50" },
   processed: { label: "Confirmed", color: "text-green-700", bg: "bg-green-50" },
   needs_info: { label: "Needs Info", color: "text-orange-700", bg: "bg-orange-50" },
+  archived: { label: "Archived", color: "text-gray-500", bg: "bg-gray-50" },
 };
 
 function Section({
@@ -309,6 +311,16 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
             <FileText className="h-3.5 w-3.5" />
             Notes
           </button>
+          {e.status === "processed" && (
+            <button
+              onClick={() => handleStatusChange("archived")}
+              disabled={updateMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+            >
+              <Archive className="h-3.5 w-3.5" />
+              Archive
+            </button>
+          )}
         </div>
 
         {/* Notes editor */}

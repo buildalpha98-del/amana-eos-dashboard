@@ -21,7 +21,7 @@ const updateMedicalSchema = z.object({
 
 export const PATCH = withParentAuth(async (req, ctx) => {
   const params = await ctx.params;
-  const childId = params?.childId;
+  const childId = params?.id;
   if (!childId) throw ApiError.badRequest("childId is required");
 
   const body = await parseJsonBody(req);

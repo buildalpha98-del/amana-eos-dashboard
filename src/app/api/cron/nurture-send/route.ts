@@ -19,6 +19,10 @@ import {
   nurtureWeek2FeedbackEmail,
   nurtureMonth1ReferralEmail,
   nurtureSessionReminderEmail,
+  retentionCasualReengageEmail,
+  retentionDayChangeReminderEmail,
+  retentionWithdrawalInterceptEmail,
+  nurtureFormAbandonmentEmail,
 } from "@/lib/email-templates";
 import { withApiHandler } from "@/lib/api-handler";
 import { acquireCronLock } from "@/lib/cron-guard";
@@ -43,6 +47,10 @@ const TEMPLATE_MAP: Record<string, (firstName: string, centreName: string) => { 
   day3_checkin: nurtureDay3CheckinEmail,
   week2_feedback: nurtureWeek2FeedbackEmail,
   month1_referral: nurtureMonth1ReferralEmail,
+  casual_reengage: retentionCasualReengageEmail,
+  day_change_reminder: retentionDayChangeReminderEmail,
+  withdrawal_intercept: retentionWithdrawalInterceptEmail,
+  form_abandonment: nurtureFormAbandonmentEmail,
 };
 
 const BATCH_SIZE = 15;

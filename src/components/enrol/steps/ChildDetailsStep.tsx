@@ -35,6 +35,8 @@ function Input({
   type = "text",
   placeholder,
   maxLength,
+  inputMode,
+  pattern,
 }: {
   label: string;
   value: string;
@@ -43,6 +45,8 @@ function Input({
   type?: string;
   placeholder?: string;
   maxLength?: number;
+  inputMode?: "numeric" | "tel" | "text";
+  pattern?: string;
 }) {
   return (
     <div>
@@ -53,6 +57,8 @@ function Input({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
+        inputMode={inputMode}
+        pattern={pattern}
         className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-colors"
       />
     </div>
@@ -157,7 +163,9 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
                     if (state) updateChild(i, "state", state);
                   }
                 }}
-                maxLength={4}
+                maxLength={5}
+                inputMode="numeric"
+                pattern="[0-9]*"
               />
             </div>
           </div>
@@ -257,6 +265,7 @@ function DocumentUploadRow({
   updateData: (d: Partial<EnrolmentFormData>) => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const existing = data.documentUploads.filter(
     (d) => d.childIndex === childIndex && d.type === docType
@@ -265,29 +274,49 @@ function DocumentUploadRow({
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setError(null);
+
+    // Client-side size check (10 MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setError("File is too large. Maximum size is 10 MB.");
+      return;
+    }
+
     setUploading(true);
     try {
       const reader = new FileReader();
+      reader.onerror = () => {
+        setError("Could not read the file. Please try again.");
+        setUploading(false);
+      };
       reader.onload = async () => {
-        const base64 = (reader.result as string).split(",")[1];
-        const res = await fetch("/api/upload/enrolment-file", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ file: base64, filename: file.name, contentType: file.type }),
-        });
-        if (res.ok) {
-          const { fileUrl, fileName } = await res.json();
-          updateData({
-            documentUploads: [
-              ...data.documentUploads,
-              { childIndex, type: docType, filename: fileName, url: fileUrl },
-            ],
+        try {
+          const base64 = (reader.result as string).split(",")[1];
+          const res = await fetch("/api/upload/enrolment-file", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file: base64, filename: file.name, contentType: file.type }),
           });
+          if (res.ok) {
+            const { fileUrl, fileName } = await res.json();
+            updateData({
+              documentUploads: [
+                ...data.documentUploads,
+                { childIndex, type: docType, filename: fileName, url: fileUrl },
+              ],
+            });
+          } else {
+            const body = await res.json().catch(() => null);
+            setError(body?.error || "Upload failed. Please try again.");
+          }
+        } catch {
+          setError("Upload failed. Please check your connection and try again.");
         }
         setUploading(false);
       };
       reader.readAsDataURL(file);
     } catch {
+      setError("Could not process the file. Please try a different file.");
       setUploading(false);
     }
   };
@@ -320,6 +349,11 @@ function DocumentUploadRow({
           </button>
         </div>
       ))}
+      {error && (
+        <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-2">
+          {error}
+        </div>
+      )}
       {existing.length === 0 && (
         <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-border rounded-lg text-sm text-muted hover:border-brand hover:text-brand cursor-pointer transition-colors">
           <Upload className="h-4 w-4" />

@@ -1,0 +1,108 @@
+<h2>Design Section 2: AI Integration Layer</h2>
+<p class="subtitle">How questions become answers with document citations</p>
+
+<div class="section">
+  <h3>Two Access Points</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">1. Existing Assistant — New Tool</div>
+      <div class="mockup-body" style="font-size: 0.9rem; line-height: 1.7;">
+        <p>Add <code>search_knowledge_base</code> to the 6 existing assistant tools in <code>ai-tools.ts</code></p>
+        <p>When a user asks a policy/procedure question in the assistant chat, Claude decides to call this tool automatically — just like it calls <code>lookup_financial_period</code> for finance questions.</p>
+        <p style="color: #888; font-style: italic;">No UI changes needed. The assistant just gets smarter.</p>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">2. Dedicated /knowledge Page</div>
+      <div class="mockup-body" style="font-size: 0.9rem; line-height: 1.7;">
+        <p>Simple Q&A interface — type a question, get an answer with source citations.</p>
+        <p>Uses a dedicated <code>POST /api/knowledge/ask</code> route that does the search + Claude call in one step (no tool-use loop needed).</p>
+        <p style="color: #888; font-style: italic;">Simpler, faster, purpose-built for "what does our policy say about X?"</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>New AI Prompt Template: <code>knowledge/answer</code></h3>
+  <div class="mockup">
+    <div class="mockup-header">Prompt Structure</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap; background: #1e1e2e; color: #cdd6f4; padding: 1.5rem;">You are a knowledge assistant for Amana OSHC staff.
+Answer questions using ONLY the provided document excerpts.
+
+RULES:
+- Cite your sources: "According to [Document Title], Section [heading]..."
+- If the excerpts contain a clear answer, provide it confidently
+- If the excerpts are partially relevant, answer what you can
+  and flag what's uncertain with ⚠️
+- If no excerpts are relevant, say: "I couldn't find this in
+  your uploaded documents" and suggest general guidance
+  with a clear "⚠️ Not from your documents" label
+- Use Australian English
+- Be concise and practical — staff need quick answers
+
+DOCUMENT EXCERPTS:
+{{chunks}}
+
+QUESTION: {{question}}</div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Response Format</h3>
+  <div class="mockup">
+    <div class="mockup-header">Example: "What's our sun safety policy?"</div>
+    <div class="mockup-body" style="font-size: 0.9rem; line-height: 1.8;">
+      <div style="padding: 1rem; background: rgba(99, 102, 241, 0.06); border-radius: 8px; margin-bottom: 1rem;">
+        <p style="margin-top: 0;">According to your <strong>Sun Safety Policy</strong> (Section 2 — Outdoor Play Requirements):</p>
+        <ul>
+          <li>Children must wear SPF 50+ sunscreen, applied 20 minutes before outdoor play</li>
+          <li>Broad-brimmed hats are required — no caps or visors</li>
+          <li>Outdoor activities are restricted between 11am–3pm from September to April</li>
+          <li>Educators must model sun-safe behaviour</li>
+        </ul>
+      </div>
+      <div style="padding: 0.75rem; background: rgba(99, 102, 241, 0.04); border-radius: 8px; border-left: 3px solid #6366f1; font-size: 0.85rem; color: #888;">
+        📄 Sources: Sun Safety Policy (uploaded 12 Mar 2026) — chunks 3, 4
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup" style="margin-top: 1rem;">
+    <div class="mockup-header">Example: Low confidence — "Do we accept crypto payments?"</div>
+    <div class="mockup-body" style="font-size: 0.9rem; line-height: 1.8;">
+      <div style="padding: 1rem; background: rgba(234, 179, 8, 0.08); border-radius: 8px; margin-bottom: 1rem;">
+        <p style="margin-top: 0;">I couldn't find information about cryptocurrency payments in your uploaded documents.</p>
+        <p style="margin-bottom: 0;">⚠️ <strong>Not from your documents:</strong> Most Australian OSHC services accept direct debit, EFTPOS, and CCS subsidy payments. For payment method queries, check with your accounts team or refer to your Fee Schedule.</p>
+      </div>
+      <div style="padding: 0.75rem; background: rgba(99, 102, 241, 0.04); border-radius: 8px; border-left: 3px solid #eab308; font-size: 0.85rem; color: #888;">
+        ⚠️ No matching documents found
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>New Assistant Tool Definition</h3>
+  <div class="mockup">
+    <div class="mockup-header">Added to ai-tools.ts</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap; background: #1e1e2e; color: #cdd6f4; padding: 1.5rem;">{
+  name: "search_knowledge_base",
+  description: "Search uploaded policies, procedures,
+    SOPs, and guides. Use when staff ask about
+    company policies, procedures, compliance
+    requirements, or operational guidelines.",
+  input_schema: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "The search query — rephrase
+          the user's question as search keywords"
+      }
+    },
+    required: ["query"]
+  }
+}</div>
+  </div>
+</div>

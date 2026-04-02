@@ -236,20 +236,20 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     throw ApiError.badRequest("Payment method is required");
   }
 
-  // Mask payment details — only store last 4 digits
+  // Mask payment details — store only non-sensitive identifiers.
+  // Full cardholder name and account name are ONLY in the encrypted raw field,
+  // accessible via the /api/enrolments/[id]/payment decrypt endpoint.
   let maskedPayment = null;
   const paymentMethod = payment.method || null;
   if (payment.method === "credit_card" && payment.cardNumber) {
     maskedPayment = {
       lastFour: payment.cardNumber.slice(-4),
       cardType: detectCardType(payment.cardNumber),
-      nameOnCard: payment.cardName,
     };
   } else if (payment.method === "bank_account" && payment.bankAccountNumber) {
     maskedPayment = {
       bsbLastThree: payment.bankBsb.slice(-3),
       accountLastFour: payment.bankAccountNumber.slice(-4),
-      accountName: payment.bankAccountName,
     };
   }
 
@@ -308,7 +308,18 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     }
   }
   if (!serviceId && bookingPrefs[0]?.serviceId) {
-    serviceId = bookingPrefs[0].serviceId;
+    // Validate the service ID actually exists before using it
+    const svc = await prisma.service.findUnique({
+      where: { id: bookingPrefs[0].serviceId },
+      select: { id: true },
+    });
+    if (svc) {
+      serviceId = svc.id;
+    } else {
+      logger.warn("Enrolment: invalid serviceId in bookingPrefs", {
+        serviceId: bookingPrefs[0].serviceId,
+      });
+    }
   }
 
   // Atomic transaction: create submission + child records + update enquiry

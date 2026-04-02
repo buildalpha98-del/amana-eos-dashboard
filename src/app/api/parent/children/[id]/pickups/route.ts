@@ -33,7 +33,7 @@ async function verifyChildAccess(childId: string, enrolmentIds: string[]) {
 
 export const GET = withParentAuth(async (_req, ctx) => {
   const params = await ctx.params;
-  const childId = params?.childId;
+  const childId = params?.id;
   if (!childId) throw ApiError.badRequest("childId is required");
 
   await verifyChildAccess(childId, ctx.parent.enrolmentIds);
@@ -48,7 +48,7 @@ export const GET = withParentAuth(async (_req, ctx) => {
 
 export const POST = withParentAuth(async (req, ctx) => {
   const params = await ctx.params;
-  const childId = params?.childId;
+  const childId = params?.id;
   if (!childId) throw ApiError.badRequest("childId is required");
 
   await verifyChildAccess(childId, ctx.parent.enrolmentIds);
@@ -71,7 +71,7 @@ export const POST = withParentAuth(async (req, ctx) => {
 
 export const PATCH = withParentAuth(async (req, ctx) => {
   const params = await ctx.params;
-  const childId = params?.childId;
+  const childId = params?.id;
   if (!childId) throw ApiError.badRequest("childId is required");
 
   await verifyChildAccess(childId, ctx.parent.enrolmentIds);

@@ -212,11 +212,9 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
   const pd = submission.paymentDetails as Record<string, unknown> | null;
   if (pd) {
     if (submission.paymentMethod === "credit_card") {
-      row("Name on Card", pd.nameOnCard as string);
       row("Card Type", pd.cardType as string);
       row("Last 4 Digits", pd.lastFour as string);
     } else {
-      row("Account Name", pd.accountName as string);
       row("BSB (last 3)", pd.bsbLastThree as string);
       row("Account (last 4)", pd.accountLastFour as string);
     }

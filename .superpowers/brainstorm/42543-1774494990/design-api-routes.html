@@ -1,0 +1,145 @@
+<h2>Design Section 4: API Routes & File Processing</h2>
+<p class="subtitle">New endpoints, indexing logic, and integration with existing document system</p>
+
+<div class="section">
+  <h3>New API Routes</h3>
+  <div style="display: flex; flex-direction: column; gap: 1rem;">
+    <div class="mockup">
+      <div class="mockup-header" style="background: #16a34a; color: white;">POST /api/knowledge/ask</div>
+      <div class="mockup-body" style="font-size: 0.9rem; line-height: 1.7;">
+        <strong>Purpose:</strong> Main Q&A endpoint for the /knowledge page<br>
+        <strong>Auth:</strong> <code>withApiAuth</code> — all roles<br>
+        <strong>Body:</strong> <code>{ question: string }</code> (Zod validated)<br>
+        <strong>Flow:</strong> search chunks → build prompt → stream Claude response via SSE<br>
+        <strong>Response:</strong> SSE stream with text deltas + final source metadata<br>
+        <strong>Rate limit:</strong> 30 req/min (AI calls are expensive)
+      </div>
+    </div>
+
+    <div class="mockup">
+      <div class="mockup-header" style="background: #2563eb; color: white;">POST /api/knowledge/index</div>
+      <div class="mockup-body" style="font-size: 0.9rem; line-height: 1.7;">
+        <strong>Purpose:</strong> Index a single document (called after upload)<br>
+        <strong>Auth:</strong> <code>withApiAuth</code> — admin/owner/head_office<br>
+        <strong>Body:</strong> <code>{ documentId: string }</code><br>
+        <strong>Flow:</strong> download file from Vercel Blob → extract text → chunk → upsert DocumentChunks → update tsvector → set indexed=true<br>
+        <strong>Response:</strong> <code>{ chunksCreated: number, tokenCount: number }</code>
+      </div>
+    </div>
+
+    <div class="mockup">
+      <div class="mockup-header" style="background: #2563eb; color: white;">POST /api/knowledge/reindex</div>
+      <div class="mockup-body" style="font-size: 0.9rem; line-height: 1.7;">
+        <strong>Purpose:</strong> Reindex all documents (admin utility)<br>
+        <strong>Auth:</strong> <code>withApiAuth</code> — owner only<br>
+        <strong>Body:</strong> none<br>
+        <strong>Flow:</strong> fetch all non-deleted documents → delete existing chunks → re-extract and chunk all → update indexed flags<br>
+        <strong>Response:</strong> <code>{ documentsProcessed: number, totalChunks: number, errors: string[] }</code>
+      </div>
+    </div>
+
+    <div class="mockup">
+      <div class="mockup-header" style="background: #7c3aed; color: white;">GET /api/knowledge/status</div>
+      <div class="mockup-body" style="font-size: 0.9rem; line-height: 1.7;">
+        <strong>Purpose:</strong> Index status for the UI badge<br>
+        <strong>Auth:</strong> <code>withApiAuth</code> — all roles<br>
+        <strong>Response:</strong> <code>{ totalDocuments, indexedDocuments, totalChunks, lastIndexedAt, errors: { documentId, title, error }[] }</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>File Processing Library</h3>
+  <div class="mockup">
+    <div class="mockup-header">src/lib/document-indexer.ts</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap; background: #1e1e2e; color: #cdd6f4; padding: 1.5rem;">// Core functions:
+
+extractText(fileUrl, mimeType)
+  → PDF:  pdf-parse (new dep)
+  → DOCX: mammoth (already installed)
+  → TXT/MD/CSV: fetch + read as text
+  → Other: skip, set indexError
+
+chunkText(text, options?)
+  → Split on headings (# / ## / bold lines)
+  → Target ~500 tokens per chunk
+  → 50-token overlap between chunks
+  → Track heading context per chunk
+  → Return: { content, heading, chunkIndex,
+              pageNumber?, tokenCount }[]
+
+indexDocument(documentId)
+  → Fetch Document from DB
+  → Download file from Vercel Blob
+  → extractText() → chunkText()
+  → Delete old chunks (if re-indexing)
+  → Insert new DocumentChunks in transaction
+  → Raw SQL to set tsvector:
+    UPDATE "DocumentChunk"
+    SET "searchVector" = to_tsvector('english', content)
+    WHERE "documentId" = $1
+  → Set document.indexed = true
+
+searchChunks(query, limit = 8)
+  → Raw SQL with ts_rank:
+    SELECT dc.*, d.title, d."fileName",
+      ts_rank(dc."searchVector",
+        plainto_tsquery('english', $1)) AS rank
+    FROM "DocumentChunk" dc
+    JOIN "Document" d ON d.id = dc."documentId"
+    WHERE dc."searchVector" @@
+      plainto_tsquery('english', $1)
+    AND d.deleted = false
+    ORDER BY rank DESC
+    LIMIT $2
+  → Return chunks grouped by document</div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Integration with Existing Upload Flow</h3>
+  <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 280px; padding: 1.25rem; background: rgba(99, 102, 241, 0.06); border-radius: 12px;">
+      <strong>Single Upload</strong> (<code>POST /api/documents</code>)
+      <p style="font-size: 0.85rem; color: #64748b;">After creating the Document record, fire-and-forget call to <code>indexDocument(id)</code>. The upload returns immediately — indexing happens async.</p>
+    </div>
+    <div style="flex: 1; min-width: 280px; padding: 1.25rem; background: rgba(99, 102, 241, 0.06); border-radius: 12px;">
+      <strong>Bulk Upload</strong> (<code>POST /api/documents/bulk</code>)
+      <p style="font-size: 0.85rem; color: #64748b;">After bulk creation, loop through created docs and call <code>indexDocument(id)</code> for each. Still fire-and-forget — bulk upload response doesn't wait.</p>
+    </div>
+    <div style="flex: 1; min-width: 280px; padding: 1.25rem; background: rgba(234, 179, 8, 0.08); border-radius: 12px; border-left: 4px solid #eab308;">
+      <strong>Document Update/Delete</strong>
+      <p style="font-size: 0.85rem; color: #64748b;">On update: re-index if fileUrl changed. On soft-delete: chunks remain but excluded from search (WHERE d.deleted = false). No orphan cleanup needed.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>New Dependencies</h3>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+    <div style="padding: 1rem; background: rgba(99, 102, 241, 0.06); border-radius: 10px;">
+      <strong style="font-family: monospace;">pdf-parse</strong>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0;">Extract text from PDFs. Lightweight, zero native deps, 500k weekly downloads.</p>
+    </div>
+    <div style="padding: 1rem; background: rgba(16, 185, 129, 0.06); border-radius: 10px;">
+      <strong style="font-family: monospace;">mammoth</strong>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 0;">Already installed. Extract text from DOCX files.</p>
+    </div>
+  </div>
+  <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.75rem;">That's it — one new package. Everything else uses Prisma raw SQL for tsvector operations.</p>
+</div>
+
+<div class="section">
+  <h3>Token Budget</h3>
+  <div style="padding: 1rem; background: rgba(99, 102, 241, 0.08); border-radius: 12px; border-left: 4px solid #6366f1;">
+    <p style="margin-top: 0;"><strong>Per question cost estimate:</strong></p>
+    <ul style="margin-bottom: 0;">
+      <li>System prompt: ~300 tokens</li>
+      <li>8 retrieved chunks × ~500 tokens = ~4,000 tokens input</li>
+      <li>Response: ~500 tokens output</li>
+      <li><strong>Total: ~4,800 tokens/question ≈ $0.02 on Haiku, $0.08 on Sonnet</strong></li>
+      <li>Model: <code>claude-haiku-4-5-20251001</code> (fast + cheap for retrieval Q&A)</li>
+    </ul>
+  </div>
+</div>

@@ -22,6 +22,7 @@ const STATUS_TABS = [
   { key: "under_review", label: "Reviewing" },
   { key: "processed", label: "Confirmed" },
   { key: "needs_info", label: "Needs Info" },
+  { key: "archived", label: "Archived" },
 ];
 
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
@@ -29,6 +30,7 @@ const STATUS_BADGE: Record<string, { label: string; color: string }> = {
   under_review: { label: "Reviewing", color: "bg-amber-50 text-amber-700" },
   processed: { label: "Confirmed", color: "bg-green-50 text-green-700" },
   needs_info: { label: "Needs Info", color: "bg-orange-50 text-orange-700" },
+  archived: { label: "Archived", color: "bg-gray-50 text-gray-500" },
 };
 
 export default function EnrolmentsPage() {
@@ -56,6 +58,7 @@ export default function EnrolmentsPage() {
     under_review: submissions.filter((s) => s.status === "under_review").length,
     processed: submissions.filter((s) => s.status === "processed").length,
     needs_info: submissions.filter((s) => s.status === "needs_info").length,
+    archived: submissions.filter((s) => s.status === "archived").length,
   };
 
   return (

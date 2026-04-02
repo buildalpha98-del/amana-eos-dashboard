@@ -24,22 +24,47 @@ export async function scheduleNurtureFromStageChange(
       id: true,
       serviceId: true,
       parentEmail: true,
+      parentName: true,
       firstSessionDate: true,
     },
   });
 
   if (!enquiry) return;
 
-  // We need a contactId for ParentNurtureStep — try to find one based on email
-  // If no matching contact exists, skip nurture scheduling
+  // We need a contactId for ParentNurtureStep — find or create one based on email
   if (!enquiry.parentEmail) return;
 
-  const contact = await prisma.centreContact.findFirst({
+  let contact = await prisma.centreContact.findFirst({
     where: { email: enquiry.parentEmail, serviceId: enquiry.serviceId },
     select: { id: true },
   });
 
-  if (!contact) return;
+  // Auto-create CentreContact if one doesn't exist yet (common for new enquiries).
+  // Without this, the welcome email and all subsequent nurture emails would silently
+  // never be scheduled because the scheduler requires a contact record.
+  if (!contact) {
+    try {
+      const firstName = enquiry.parentName?.split(" ")[0] || null;
+      contact = await prisma.centreContact.create({
+        data: {
+          email: enquiry.parentEmail,
+          serviceId: enquiry.serviceId,
+          firstName,
+          subscribed: true,
+        },
+        select: { id: true },
+      });
+    } catch (err: unknown) {
+      // Unique constraint (P2002) means a concurrent request created the contact — re-fetch
+      if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
+        contact = await prisma.centreContact.findFirst({
+          where: { email: enquiry.parentEmail, serviceId: enquiry.serviceId },
+          select: { id: true },
+        });
+      }
+      if (!contact) return;
+    }
+  }
 
   const now = new Date();
   const stepsToCreate: Array<{
@@ -49,46 +74,80 @@ export async function scheduleNurtureFromStageChange(
   }> = [];
 
   switch (newStage) {
+    case "new":
+      stepsToCreate.push(
+        { templateKey: "welcome", scheduledFor: now, stepNumber: 1 },
+      );
+      break;
+
     case "info_sent":
       stepsToCreate.push(
-        { templateKey: "ccs_assist", scheduledFor: addHours(now, 24), stepNumber: 6 },
-        { templateKey: "nudge_1", scheduledFor: addDays(now, 3), stepNumber: 7 },
+        { templateKey: "ccs_assist", scheduledFor: addHours(now, 24), stepNumber: 2 },
+        { templateKey: "how_to_enrol", scheduledFor: addHours(now, 48), stepNumber: 3 },
+        { templateKey: "nudge_1", scheduledFor: addDays(now, 3), stepNumber: 4 },
       );
       break;
 
     case "nurturing":
       stepsToCreate.push(
-        { templateKey: "nudge_2", scheduledFor: addDays(now, 5), stepNumber: 8 },
-        { templateKey: "final_nudge", scheduledFor: addDays(now, 12), stepNumber: 9 },
+        { templateKey: "nudge_2", scheduledFor: addDays(now, 5), stepNumber: 5 },
+        { templateKey: "final_nudge", scheduledFor: addDays(now, 12), stepNumber: 6 },
       );
       break;
 
     case "form_started":
       stepsToCreate.push(
-        { templateKey: "form_support", scheduledFor: addHours(now, 4), stepNumber: 10 },
+        { templateKey: "form_support", scheduledFor: addHours(now, 4), stepNumber: 7 },
+        { templateKey: "form_abandonment", scheduledFor: addDays(now, 3), stepNumber: 8 },
       );
       break;
 
     case "first_session": {
       const sessionDate = enquiry.firstSessionDate ?? now;
-      // Send "See you tomorrow!" reminder the day before first session
+      // Day before: "See you tomorrow!" reminder
       const reminderDate = addDays(sessionDate, -1);
       if (reminderDate > now) {
         stepsToCreate.push(
-          { templateKey: "session_reminder", scheduledFor: reminderDate, stepNumber: 10 },
+          { templateKey: "session_reminder", scheduledFor: reminderDate, stepNumber: 9 },
         );
       }
       stepsToCreate.push(
+        { templateKey: "what_to_bring", scheduledFor: sessionDate, stepNumber: 10 },
         { templateKey: "day1_checkin", scheduledFor: addDays(sessionDate, 1), stepNumber: 11 },
         { templateKey: "day3_checkin", scheduledFor: addDays(sessionDate, 3), stepNumber: 12 },
-        { templateKey: "week2_feedback", scheduledFor: addDays(sessionDate, 14), stepNumber: 13 },
-        { templateKey: "month1_referral", scheduledFor: addDays(sessionDate, 30), stepNumber: 14 },
+        { templateKey: "app_setup", scheduledFor: addDays(sessionDate, 5), stepNumber: 13 },
+        { templateKey: "first_week", scheduledFor: addDays(sessionDate, 7), stepNumber: 14 },
+        { templateKey: "week2_feedback", scheduledFor: addDays(sessionDate, 14), stepNumber: 15 },
+        { templateKey: "nps_survey", scheduledFor: addDays(sessionDate, 30), stepNumber: 16 },
+        { templateKey: "month1_referral", scheduledFor: addDays(sessionDate, 45), stepNumber: 17 },
       );
       break;
     }
   }
 
   if (stepsToCreate.length === 0) return;
+
+  // Cancel any pending steps from previous stages that no longer apply.
+  // e.g., form_abandonment should NOT send if the family already enrolled.
+  // e.g., nudge emails should stop once the form is started.
+  const cancelMap: Record<string, string[]> = {
+    form_started: ["nudge_1", "nudge_2", "final_nudge"],
+    first_session: ["form_support", "form_abandonment", "nudge_1", "nudge_2", "final_nudge"],
+    enrolled: ["form_support", "form_abandonment", "nudge_1", "nudge_2", "final_nudge"],
+    withdrawn: ["form_support", "form_abandonment", "nudge_1", "nudge_2", "final_nudge"],
+  };
+  const toCancel = cancelMap[newStage];
+  if (toCancel && toCancel.length > 0) {
+    await prisma.parentNurtureStep.updateMany({
+      where: {
+        contactId: contact.id,
+        enquiryId: enquiry.id,
+        templateKey: { in: toCancel },
+        status: "pending",
+      },
+      data: { status: "cancelled" },
+    });
+  }
 
   // LEGACY: Create ParentNurtureStep records. These run in parallel with the new
   // SequenceStepExecution system. Safe to remove once no pending legacy steps remain.

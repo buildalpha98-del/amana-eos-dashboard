@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { logger } from "@/lib/logger";
 
 const WHATSAPP_ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN!;
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID!;
@@ -24,9 +25,22 @@ export async function sendTextMessage(to: string, body: string) {
   );
   const responseText = await res.text();
   if (!res.ok) {
-    let errDetail = responseText;
-    try { errDetail = JSON.stringify(JSON.parse(responseText)); } catch {}
-    throw new Error(`WhatsApp API error (${res.status}): ${errDetail}`);
+    let userMessage = "Failed to send WhatsApp message";
+    try {
+      const parsed = JSON.parse(responseText);
+      const metaMsg = parsed?.error?.message || "";
+      if (metaMsg.includes("does not exist") || metaMsg.includes("missing permissions")) {
+        userMessage = "WhatsApp phone number is not configured correctly. Please update the Phone Number ID in your environment settings.";
+      } else if (res.status === 401 || metaMsg.includes("access token")) {
+        userMessage = "WhatsApp access token is invalid or expired. Please regenerate it in Meta Business Suite.";
+      } else {
+        userMessage = `WhatsApp error: ${metaMsg || responseText}`;
+      }
+    } catch {
+      // Non-JSON response
+    }
+    logger.error("WhatsApp API error", { status: res.status, response: responseText });
+    throw new Error(userMessage);
   }
   if (!responseText) {
     throw new Error("WhatsApp API returned empty response");

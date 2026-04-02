@@ -1,0 +1,90 @@
+<h2>Knowledge Agent — Architecture Approach</h2>
+<p class="subtitle">How should we store and search document content? ~100 documents (policies, SOPs, procedures, guides)</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Claude Context Stuffing (Recommended)</h3>
+      <p>Extract text from uploaded docs, store as chunks in Prisma. At query time, do keyword/fuzzy search to find relevant chunks, stuff them into Claude's context window as grounding material.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>No new infrastructure — Prisma + Anthropic SDK only</li>
+            <li>~100 docs = ~500 chunks easily searchable with PostgreSQL full-text search</li>
+            <li>Zero additional cost (no embedding API calls)</li>
+            <li>Simple to debug — you can see exactly what chunks were retrieved</li>
+            <li>Ships in 1-2 days</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Keyword search can miss semantic matches ("sick child" won't match "illness management")</li>
+            <li>May need to tune chunk sizes for best results</li>
+            <li>Won't scale well past ~500 documents</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Vector Embeddings (RAG)</h3>
+      <p>Generate vector embeddings for each chunk using Voyage/OpenAI, store in pgvector extension. At query time, embed the question and do cosine similarity search for semantically relevant chunks.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Semantic search — "sick kid pickup" finds "Illness Management Policy"</li>
+            <li>Industry-standard RAG pattern</li>
+            <li>Scales to thousands of documents</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Needs pgvector extension on Railway PostgreSQL</li>
+            <li>Adds embedding API dependency (Voyage ~$0.01/100 docs)</li>
+            <li>More complex to debug and maintain</li>
+            <li>Extra 2-3 days of work for marginal benefit at 100 docs</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Hybrid: Full-Text Now, Vectors Later</h3>
+      <p>Start with PostgreSQL full-text search (tsvector). Design the chunking/storage layer so vector embeddings can be added later as a drop-in upgrade when the doc count grows.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Ships fast like option A, with a clear upgrade path</li>
+            <li>PostgreSQL tsvector is more powerful than basic keyword search (stemming, ranking, phrases)</li>
+            <li>DocumentChunk table designed to accept an embedding column later</li>
+            <li>Best of both worlds — speed now, sophistication later</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Slightly more upfront schema design than pure option A</li>
+            <li>Still no semantic search until vectors are added</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem; padding: 1.5rem; background: rgba(99, 102, 241, 0.08); border-radius: 12px; border-left: 4px solid #6366f1;">
+  <h3 style="margin-top: 0;">My Recommendation: Option C (Hybrid)</h3>
+  <p style="margin-bottom: 0;">At 100 documents, PostgreSQL full-text search with <code>tsvector</code> will handle 95% of queries well. It supports stemming ("managing" matches "management"), phrase search, and relevance ranking. The schema is designed so adding pgvector later is just adding a column + a search function swap — no rewrite needed. Ships in 2 days, upgradeable in 1 day later.</p>
+</div>
