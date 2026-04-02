@@ -14,6 +14,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
       primaryParent: true,
       secondaryParent: true,
       emergencyContacts: true,
+      authorisedPickup: true,
       children: true,
       serviceId: true,
       childRecords: {
@@ -211,6 +212,54 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     if (child.serviceId && !child.serviceName) {
       child.serviceName = servicesMap.get(child.serviceId) ?? null;
     }
+  }
+
+  // ── Sync authorised pickups from enrolment (idempotent, one-time) ──
+  // Copies enrolment's authorisedPickup JSON to the AuthorisedPickup table
+  // for each child that has zero pickups. Runs on every /me call but only
+  // creates records once per child.
+  try {
+    const childIdsWithRecords = children
+      .filter((c) => !c.id.includes("_")) // Skip JSON-based pseudo-IDs
+      .map((c) => c.id);
+
+    if (childIdsWithRecords.length > 0) {
+      // Check which children already have authorised pickups
+      const existingPickups = await prisma.authorisedPickup.groupBy({
+        by: ["childId"],
+        where: { childId: { in: childIdsWithRecords } },
+      });
+      const childrenWithPickups = new Set(existingPickups.map((p) => p.childId));
+
+      // For children without pickups, sync from enrolment data
+      for (const enrolment of enrolments) {
+        const pickupData = enrolment.authorisedPickup as Array<Record<string, unknown>> | null;
+        if (!Array.isArray(pickupData) || pickupData.length === 0) continue;
+
+        for (const child of enrolment.childRecords) {
+          if (childrenWithPickups.has(child.id)) continue; // Already has pickups
+
+          const pickupsToCreate = pickupData
+            .filter((p) => p.name && typeof p.name === "string")
+            .map((p) => ({
+              childId: child.id,
+              name: (p.name as string).trim(),
+              relationship: ((p.relationship as string) || "").trim(),
+              phone: ((p.phone as string) || "").trim(),
+              active: true,
+            }));
+
+          if (pickupsToCreate.length > 0) {
+            await prisma.authorisedPickup.createMany({
+              data: pickupsToCreate,
+              skipDuplicates: true,
+            });
+          }
+        }
+      }
+    }
+  } catch {
+    // Non-critical — don't break the /me response if sync fails
   }
 
   return NextResponse.json({
