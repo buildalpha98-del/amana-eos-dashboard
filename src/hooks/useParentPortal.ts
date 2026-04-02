@@ -319,3 +319,110 @@ export function useUpdateChildMedical() {
     },
   });
 }
+
+// ── Messaging Types ─────────────────────────────────────
+
+export interface ConversationSummary {
+  id: string;
+  ticketNumber: number;
+  subject: string | null;
+  status: string;
+  service: { id: string; name: string } | null;
+  lastMessage: {
+    preview: string;
+    direction: "inbound" | "outbound";
+    createdAt: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ConversationDetail {
+  id: string;
+  ticketNumber: number;
+  subject: string | null;
+  status: string;
+  service: { id: string; name: string } | null;
+  messages: ConversationMessage[];
+}
+
+export interface ConversationMessage {
+  id: string;
+  direction: "inbound" | "outbound";
+  senderName: string | null;
+  body: string;
+  mediaUrl: string | null;
+  mediaType: string | null;
+  createdAt: string;
+}
+
+export interface CreateConversationPayload {
+  subject: string;
+  message: string;
+  serviceId?: string;
+}
+
+// ── Messaging Hooks ─────────────────────────────────────
+
+export function useParentConversations() {
+  return useQuery<ConversationSummary[]>({
+    queryKey: ["parent", "messages"],
+    queryFn: () => fetchApi<ConversationSummary[]>("/api/parent/messages"),
+    retry: 2,
+    staleTime: 30_000,
+  });
+}
+
+export function useConversationDetail(ticketId: string) {
+  return useQuery<ConversationDetail>({
+    queryKey: ["parent", "messages", ticketId],
+    queryFn: () => fetchApi<ConversationDetail>(`/api/parent/messages/${ticketId}`),
+    retry: 2,
+    staleTime: 15_000,
+    enabled: !!ticketId,
+  });
+}
+
+export function useCreateConversation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateConversationPayload) =>
+      mutateApi("/api/parent/messages", {
+        method: "POST",
+        body: payload,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parent", "messages"] });
+      toast({ description: "Message sent" });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Something went wrong",
+      });
+    },
+  });
+}
+
+export function useSendReply() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ ticketId, message }: { ticketId: string; message: string }) =>
+      mutateApi(`/api/parent/messages/${ticketId}`, {
+        method: "POST",
+        body: { message },
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["parent", "messages", variables.ticketId] });
+      queryClient.invalidateQueries({ queryKey: ["parent", "messages"] });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Something went wrong",
+      });
+    },
+  });
+}
