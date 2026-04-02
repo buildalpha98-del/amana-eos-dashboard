@@ -7,9 +7,17 @@ import {
   FileEdit,
   CalendarDays,
   Phone,
+  MessageCircle,
+  Calendar,
 } from "lucide-react";
-import { useParentProfile, type ParentChild } from "@/hooks/useParentPortal";
+import {
+  useParentProfile,
+  useParentBookings,
+  useParentConversations,
+  type ParentChild,
+} from "@/hooks/useParentPortal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { cn } from "@/lib/utils";
 
 export default function ParentDashboard() {
   const { data: profile, isLoading, error } = useParentProfile();
@@ -59,6 +67,12 @@ export default function ParentDashboard() {
         )}
       </section>
 
+      {/* Upcoming Sessions */}
+      <UpcomingSessionsWidget />
+
+      {/* Recent Messages */}
+      <RecentMessagesWidget />
+
       {/* Quick actions */}
       <section aria-label="Quick actions">
         <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
@@ -75,7 +89,7 @@ export default function ParentDashboard() {
             icon={CalendarDays}
             label="View Attendance"
           />
-          <QuickAction href="/parent/bookings" icon={Phone} label="Contact Us" />
+          <QuickAction href="/parent/messages" icon={MessageCircle} label="Messages" />
         </div>
       </section>
     </div>
@@ -160,6 +174,117 @@ function QuickAction({
         {label}
       </span>
     </Link>
+  );
+}
+
+// ── Upcoming Sessions Widget ────────────────────────────
+
+const SESSION_LABELS: Record<string, string> = {
+  bsc: "BSC",
+  asc: "ASC",
+  vc: "VC",
+};
+
+function UpcomingSessionsWidget() {
+  const { data } = useParentBookings("upcoming");
+  const bookings = (data?.bookings ?? [])
+    .filter((b) => b.status === "confirmed" || b.status === "requested")
+    .slice(0, 3);
+
+  if (bookings.length === 0) return null;
+
+  return (
+    <section aria-label="Upcoming sessions">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider">
+          Upcoming Sessions
+        </h2>
+        <Link href="/parent/bookings" className="text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] min-h-[44px] flex items-center">
+          View all
+        </Link>
+      </div>
+      <div className="space-y-2">
+        {bookings.map((b) => {
+          const d = new Date(b.date);
+          const dayName = d.toLocaleDateString("en-AU", { weekday: "short" });
+          const dateNum = d.getDate();
+          const month = d.toLocaleDateString("en-AU", { month: "short" });
+
+          return (
+            <div key={b.id} className="flex items-center gap-3 bg-white rounded-xl p-3 shadow-sm border border-[#e8e4df]">
+              <div className="w-11 h-11 rounded-lg bg-[#004E64]/10 flex flex-col items-center justify-center shrink-0">
+                <span className="text-[10px] font-semibold text-[#004E64] uppercase">{dayName}</span>
+                <span className="text-sm font-bold text-[#004E64] leading-none">{dateNum}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[#1a1a2e] truncate">
+                  {b.child.firstName} — {SESSION_LABELS[b.sessionType] ?? b.sessionType.toUpperCase()}
+                </p>
+                <p className="text-xs text-[#7c7c8a] truncate">{b.service.name} · {month}</p>
+              </div>
+              <span className={cn(
+                "text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0",
+                b.status === "confirmed" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+              )}>
+                {b.status === "confirmed" ? "Confirmed" : "Requested"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ── Recent Messages Widget ──────────────────────────────
+
+function RecentMessagesWidget() {
+  const { data } = useParentConversations();
+  const conversations = (data ?? []).slice(0, 2);
+
+  if (conversations.length === 0) return null;
+
+  return (
+    <section aria-label="Recent messages">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider">
+          Recent Messages
+        </h2>
+        <Link href="/parent/messages" className="text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] min-h-[44px] flex items-center">
+          View all
+        </Link>
+      </div>
+      <div className="space-y-2">
+        {conversations.map((conv) => {
+          const isUnread = conv.lastMessage?.direction === "outbound" &&
+            (conv.status === "open" || conv.status === "new");
+
+          return (
+            <Link
+              key={conv.id}
+              href={`/parent/messages/${conv.id}`}
+              className={cn(
+                "block bg-white rounded-xl p-3 shadow-sm border transition-all hover:shadow-md active:scale-[0.99]",
+                isUnread ? "border-[#004E64]/30" : "border-[#e8e4df]"
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className={cn("text-sm truncate", isUnread ? "font-bold text-[#1a1a2e]" : "font-medium text-[#1a1a2e]")}>
+                  {conv.subject ?? "No subject"}
+                </p>
+                {isUnread && <span className="w-2 h-2 rounded-full bg-[#004E64] shrink-0" />}
+              </div>
+              {conv.lastMessage && (
+                <p className="text-xs text-[#7c7c8a] mt-0.5 truncate">
+                  {conv.lastMessage.direction === "inbound" ? "You: " : "Centre: "}
+                  {conv.lastMessage.preview}
+                </p>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

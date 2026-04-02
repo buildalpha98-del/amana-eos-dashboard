@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Home, Users, Calendar, MessageCircle, DollarSign, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ParentAuthProvider, useParentAuth } from "@/components/parent/ParentAuthProvider";
+import { useParentConversations } from "@/hooks/useParentPortal";
 
 const NAV_ITEMS = [
   { href: "/parent", label: "Home", icon: Home },
@@ -31,6 +32,10 @@ export default function ParentLayout({
 function ParentLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isAuthenticated, isLoading, logout } = useParentAuth();
+  const { data: conversations } = useParentConversations();
+  const unreadCount = (conversations ?? []).filter(
+    (c) => c.lastMessage?.direction === "outbound" && (c.status === "open" || c.status === "new")
+  ).length;
 
   // On the login page, render children directly without shell
   if (pathname === "/parent/login") {
@@ -75,12 +80,13 @@ function ParentLayoutInner({ children }: { children: React.ReactNode }) {
               item.href === "/parent"
                 ? pathname === "/parent"
                 : pathname.startsWith(item.href);
+            const showBadge = item.href === "/parent/messages" && unreadCount > 0;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                  "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                   isActive
                     ? "bg-white/15 text-[#FECE00]"
                     : "text-white/70 hover:text-white hover:bg-white/10"
@@ -88,6 +94,11 @@ function ParentLayoutInner({ children }: { children: React.ReactNode }) {
               >
                 <item.icon className="w-4 h-4" />
                 {item.label}
+                {showBadge && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -118,17 +129,23 @@ function ParentLayoutInner({ children }: { children: React.ReactNode }) {
             item.href === "/parent"
               ? pathname === "/parent"
               : pathname.startsWith(item.href);
+          const showBadge = item.href === "/parent/messages" && unreadCount > 0;
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors min-h-[44px]",
+                "relative flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors min-h-[44px]",
                 isActive ? "text-[#FECE00]" : "text-white/60"
               )}
             >
               <item.icon className="w-5 h-5" />
               <span className="text-[10px] font-medium">{item.label}</span>
+              {showBadge && (
+                <span className="absolute top-1 right-[calc(50%-2px)] translate-x-3 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </Link>
           );
         })}
