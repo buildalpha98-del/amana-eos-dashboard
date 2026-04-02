@@ -3123,6 +3123,7 @@ model CentreContact {
   statements          Statement[]           @relation("ContactStatements")
   documents           ParentDocument[]      @relation("ContactDocuments")
   supportTickets      SupportTicket[]       @relation("ParentTickets")
+  onboardingProgress  Json?                 // { profile, medical, documents, pickups, installed }
 
   @@unique([email, serviceId])
   @@index([serviceId])

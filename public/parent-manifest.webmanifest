@@ -1,0 +1,29 @@
+{
+  "name": "Amana OSHC Parent Portal",
+  "short_name": "Amana Parents",
+  "description": "Parent Portal for Amana Out of School Hours Care",
+  "start_url": "/parent",
+  "scope": "/parent",
+  "display": "standalone",
+  "background_color": "#FFFAE6",
+  "theme_color": "#004E64",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

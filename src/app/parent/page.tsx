@@ -14,6 +14,7 @@ import {
   useParentProfile,
   useParentBookings,
   useParentConversations,
+  useParentOnboarding,
   type ParentChild,
 } from "@/hooks/useParentPortal";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -45,6 +46,9 @@ export default function ParentDashboard() {
           Here&apos;s an overview of your family.
         </p>
       </div>
+
+      {/* Onboarding banner */}
+      <OnboardingBanner />
 
       {/* Children cards */}
       <section aria-label="Your children">
@@ -285,6 +289,43 @@ function RecentMessagesWidget() {
         })}
       </div>
     </section>
+  );
+}
+
+// ── Onboarding Banner ───────────────────────────────────
+
+function OnboardingBanner() {
+  const { data: onboarding } = useParentOnboarding();
+  if (!onboarding) return null;
+
+  const { completedCount, totalCount } = onboarding;
+  if (completedCount >= totalCount) return null; // All done, hide banner
+
+  const pct = Math.round((completedCount / totalCount) * 100);
+
+  return (
+    <Link
+      href="/parent/getting-started"
+      className="block bg-gradient-to-r from-[#004E64] to-[#006B87] rounded-xl p-4 shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
+    >
+      <div className="flex items-center justify-between text-white">
+        <div>
+          <p className="text-sm font-semibold">
+            Get set up — {completedCount} of {totalCount} steps done
+          </p>
+          <p className="text-xs text-white/70 mt-0.5">
+            Complete your setup to get the most out of the app.
+          </p>
+        </div>
+        <ChevronRight className="w-5 h-5 text-white/70 shrink-0" />
+      </div>
+      <div className="mt-3 h-1.5 bg-white/20 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-[#FECE00] rounded-full transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </Link>
   );
 }
 

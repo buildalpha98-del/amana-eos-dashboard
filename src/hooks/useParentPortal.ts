@@ -426,3 +426,49 @@ export function useSendReply() {
     },
   });
 }
+
+// ── Onboarding Types & Hooks ────────────────────────────
+
+export interface OnboardingProgress {
+  profile: boolean;
+  medical: boolean;
+  documents: boolean;
+  pickups: boolean;
+  installed: boolean;
+}
+
+export interface OnboardingResponse {
+  progress: OnboardingProgress;
+  completedCount: number;
+  totalCount: number;
+}
+
+export function useParentOnboarding() {
+  return useQuery<OnboardingResponse>({
+    queryKey: ["parent", "onboarding"],
+    queryFn: () => fetchApi<OnboardingResponse>("/api/parent/onboarding"),
+    retry: 2,
+    staleTime: 30_000,
+  });
+}
+
+export function useMarkOnboardingStep() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: { installed: boolean }) =>
+      mutateApi("/api/parent/onboarding", {
+        method: "PATCH",
+        body: payload,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parent", "onboarding"] });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Something went wrong",
+      });
+    },
+  });
+}

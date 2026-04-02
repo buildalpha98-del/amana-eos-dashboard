@@ -57,6 +57,12 @@ function ParentLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
+    <>
+    {/* Override manifest for parent portal PWA */}
+    <head>
+      <link rel="manifest" href="/parent-manifest.webmanifest" />
+      <meta name="apple-mobile-web-app-title" content="Amana Parents" />
+    </head>
     <div className="min-h-screen bg-[#FFFAE6]">
       {/* ─── Header ─────────────────────────────────────────── */}
       <header className="fixed top-0 inset-x-0 h-14 bg-[#004E64] z-30 flex items-center justify-between px-4 shadow-md">
@@ -151,5 +157,6 @@ function ParentLayoutInner({ children }: { children: React.ReactNode }) {
         })}
       </nav>
     </div>
+    </>
   );
 }
