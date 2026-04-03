@@ -7,6 +7,7 @@ import { Home, Users, Calendar, MessageCircle, DollarSign, Settings, LogOut } fr
 import { cn } from "@/lib/utils";
 import { ParentAuthProvider, useParentAuth } from "@/components/parent/ParentAuthProvider";
 import { useParentConversations } from "@/hooks/useParentPortal";
+import { NotificationBell } from "@/components/parent/NotificationBell";
 
 const NAV_ITEMS = [
   { href: "/parent", label: "Home", icon: Home },
@@ -110,14 +111,17 @@ function ParentLayoutInner({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <button
-          onClick={logout}
-          className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm transition-colors"
-          aria-label="Log out"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">Log out</span>
-        </button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm transition-colors"
+            aria-label="Log out"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Log out</span>
+          </button>
+        </div>
       </header>
 
       {/* ─── Main content ───────────────────────────────────── */}

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import {
   Calendar,
+  CalendarDays,
+  List,
   Plus,
   AlertTriangle,
   XCircle,
@@ -10,10 +12,12 @@ import {
 } from "lucide-react";
 import {
   useParentBookings,
+  useParentChildren,
   useMarkAbsent,
   useCancelBooking,
   type BookingRecord,
 } from "@/hooks/useParentPortal";
+import { BookingCalendar } from "@/components/parent/BookingCalendar";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { RequestBookingDialog } from "@/components/parent/RequestBookingDialog";
 import {
@@ -50,6 +54,8 @@ export default function BookingsPage() {
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [absentBooking, setAbsentBooking] = useState<BookingRecord | null>(null);
   const [cancelTarget, setCancelTarget] = useState<BookingRecord | null>(null);
+  const [view, setView] = useState<"list" | "calendar">("list");
+  const { data: children } = useParentChildren();
 
   const handleMarkAbsent = (isIllness: boolean) => {
     if (!absentBooking) return;
@@ -122,8 +128,47 @@ export default function BookingsPage() {
         ))}
       </div>
 
-      {/* Content */}
-      {isLoading ? (
+      {/* View toggle */}
+      <div className="flex items-center justify-end gap-1">
+        <button
+          onClick={() => setView("list")}
+          className={cn(
+            "p-2 rounded-lg transition-colors",
+            view === "list" ? "bg-[#004E64] text-white" : "text-[#7c7c8a] hover:bg-[#F2EDE8]",
+          )}
+          aria-label="List view"
+        >
+          <List className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => setView("calendar")}
+          className={cn(
+            "p-2 rounded-lg transition-colors",
+            view === "calendar" ? "bg-[#004E64] text-white" : "text-[#7c7c8a] hover:bg-[#F2EDE8]",
+          )}
+          aria-label="Calendar view"
+        >
+          <CalendarDays className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Calendar View */}
+      {view === "calendar" && children && children.length > 0 && (
+        <BookingCalendar
+          childId={children[0].id}
+          serviceId={children[0].serviceId ?? ""}
+          bookings={bookings.map((b) => ({
+            id: b.id,
+            date: b.date,
+            sessionType: b.sessionType,
+            status: b.status,
+            type: b.type ?? "casual",
+          }))}
+        />
+      )}
+
+      {/* List Content */}
+      {view === "list" && (isLoading ? (
         <BookingsSkeleton />
       ) : bookings.length === 0 ? (
         <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
@@ -162,7 +207,7 @@ export default function BookingsPage() {
             </div>
           ))}
         </div>
-      )}
+      ))}
 
       {/* Dialogs */}
       <RequestBookingDialog

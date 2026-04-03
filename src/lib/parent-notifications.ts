@@ -14,7 +14,24 @@ import {
   bookingCancelledEmail,
   newStatementEmail,
   newMessageReplyEmail,
+  newChildPostEmail,
 } from "@/lib/email-templates/parent-notifications";
+
+// ── In-App Notification Helper ─────────────────────────
+
+async function createInAppNotification(data: {
+  parentEmail: string;
+  type: string;
+  title: string;
+  body: string;
+  link: string;
+}) {
+  try {
+    await prisma.parentNotification.create({ data });
+  } catch (err) {
+    logger.error("Failed to create in-app notification", { ...data, err });
+  }
+}
 
 // ── Booking Confirmed ───────────────────────────────────
 
@@ -50,6 +67,13 @@ export async function notifyBookingConfirmed(bookingId: string) {
     });
 
     await sendEmail({ to: email, ...template });
+    await createInAppNotification({
+      parentEmail: email,
+      type: "booking",
+      title: "Booking Confirmed",
+      body: `${booking.child.firstName}'s booking has been confirmed.`,
+      link: "/parent/bookings",
+    });
   } catch (err) {
     logger.error("Failed to send booking confirmed notification", { bookingId, err });
   }
@@ -89,6 +113,13 @@ export async function notifyBookingCancelled(bookingId: string) {
     });
 
     await sendEmail({ to: email, ...template });
+    await createInAppNotification({
+      parentEmail: email,
+      type: "booking",
+      title: "Booking Cancelled",
+      body: `${booking.child.firstName}'s booking has been cancelled.`,
+      link: "/parent/bookings",
+    });
   } catch (err) {
     logger.error("Failed to send booking cancelled notification", { bookingId, err });
   }
@@ -142,7 +173,78 @@ export async function notifyMessageReply(ticketId: string, messageBody: string, 
     });
 
     await sendEmail({ to: ticket.parentContact.email, ...template });
+    await createInAppNotification({
+      parentEmail: ticket.parentContact.email,
+      type: "message",
+      title: `Reply: ${ticket.subject ?? "Conversation"}`,
+      body: `${staffName} replied to your message.`,
+      link: `/parent/messages/${ticket.id}`,
+    });
   } catch (err) {
     logger.error("Failed to send message reply notification", { ticketId, err });
+  }
+}
+
+// ── New Child Post (observation/announcement) ──────────
+
+export async function notifyParentNewPost(
+  postId: string,
+  postTitle: string,
+  postType: string,
+  childIds: string[],
+) {
+  try {
+    if (childIds.length === 0) return;
+
+    // Find parent emails for all tagged children
+    const children = await prisma.child.findMany({
+      where: { id: { in: childIds } },
+      select: {
+        firstName: true,
+        enrolment: { select: { primaryParent: true } },
+      },
+    });
+
+    // Deduplicate by email (parent with multiple tagged children gets one email)
+    const parentMap = new Map<string, { name: string; childNames: string[] }>();
+
+    for (const child of children) {
+      const pp = child.enrolment?.primaryParent as Record<string, unknown> | null;
+      const email = pp?.email as string | undefined;
+      const name = pp?.firstName as string | undefined;
+      if (!email) continue;
+
+      const existing = parentMap.get(email);
+      if (existing) {
+        existing.childNames.push(child.firstName);
+      } else {
+        parentMap.set(email, { name: name ?? "Parent", childNames: [child.firstName] });
+      }
+    }
+
+    const typeLabel = postType === "announcement" ? "Announcement" : postType === "reminder" ? "Reminder" : "Observation";
+
+    for (const [email, { name, childNames }] of parentMap) {
+      const template = newChildPostEmail({
+        parentName: name,
+        childNames,
+        postTitle,
+        postType: typeLabel,
+      });
+
+      await sendEmail({ to: email, ...template }).catch((err) =>
+        logger.error("Failed to send post notification email", { email, err }),
+      );
+
+      await createInAppNotification({
+        parentEmail: email,
+        type: "post",
+        title: `New ${typeLabel}`,
+        body: postTitle,
+        link: "/parent",
+      });
+    }
+  } catch (err) {
+    logger.error("Failed to send post notifications", { postId, err });
   }
 }

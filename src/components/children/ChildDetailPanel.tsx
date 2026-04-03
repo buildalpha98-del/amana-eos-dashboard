@@ -207,10 +207,32 @@ export function ChildDetailPanel({ childId, onClose }: Props) {
             <Field label="Code" value={child.service?.code} />
             {bp && (
               <>
-                <Field label="Sessions" value={(bp.sessionTypes as string[])?.join(", ")?.toUpperCase()} />
-                <Field label="Type" value={bp.bookingType as string} />
+                <Field label="Type" value={(bp.bookingType as string)?.replace("_", " ") || "Not set"} />
                 <Field label="Start Date" value={bp.startDate as string} />
-                <Field label="Requirements" value={bp.requirements as string} />
+                {/* Enrolled days — styled pills per session type */}
+                <div className="py-1.5">
+                  <p className="text-xs text-muted/70 mb-1">Enrolled Days</p>
+                  {bp.days && typeof bp.days === "object" ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(bp.days as Record<string, string[]>).map(([session, days]) => {
+                        if (!Array.isArray(days) || days.length === 0) return null;
+                        const dayMap: Record<string, string> = { monday: "Mon", tuesday: "Tue", wednesday: "Wed", thursday: "Thu", friday: "Fri" };
+                        return (
+                          <span
+                            key={session}
+                            className="inline-flex items-center gap-1 text-xs font-medium bg-brand/10 text-brand px-2 py-1 rounded-md"
+                          >
+                            <span className="font-semibold">{session.toUpperCase()}:</span>
+                            {days.map((d) => dayMap[d] ?? d).join(", ")}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted">Not configured</p>
+                  )}
+                </div>
+                {bp.requirements && <Field label="Requirements" value={bp.requirements as string} />}
               </>
             )}
           </Section>

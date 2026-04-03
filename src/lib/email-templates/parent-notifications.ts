@@ -149,3 +149,26 @@ export function newMessageReplyEmail(data: {
 
   return { subject: emailSubject, html };
 }
+
+// ── New Child Post (observation/announcement) ──────────
+
+export function newChildPostEmail(data: {
+  parentName: string;
+  childNames: string[];
+  postTitle: string;
+  postType: string;
+}) {
+  const childList = data.childNames.join(" & ");
+  const subject = `New ${data.postType} about ${childList}`;
+  const html = baseLayout(`
+    <h2 style="color: #004E64; margin: 0 0 16px;">New ${data.postType}</h2>
+    <p>Hi ${data.parentName},</p>
+    <p>A new ${data.postType.toLowerCase()} has been posted about <strong>${childList}</strong>:</p>
+    <div style="background: #f8f5f2; border-radius: 8px; padding: 16px; margin: 16px 0; border-left: 3px solid #004E64;">
+      <p style="margin: 0; color: #1a1a2e; font-weight: 600;">${data.postTitle}</p>
+    </div>
+    ${buttonHtml("View in App", `${PORTAL_URL}/parent`)}
+  `);
+
+  return { subject, html };
+}

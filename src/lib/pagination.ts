@@ -26,6 +26,16 @@ export function parsePagination(searchParams: URLSearchParams) {
 }
 
 /**
+ * Parse and clamp a numeric query param for cursor-based pagination.
+ * Protects against NaN (e.g. `?limit=abc`), negative numbers, and Infinity.
+ */
+export function safeLimit(raw: string | null, fallback: number, max: number): number {
+  const n = Number(raw ?? fallback);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.min(n, max);
+}
+
+/**
  * Standard paginated response envelope.
  */
 export function paginatedResponse<T>(

@@ -32,6 +32,7 @@ import {
   BookOpen,
   Target,
   ChevronDown,
+  Users,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
@@ -48,6 +49,9 @@ import { ServiceMenuTab } from "@/components/services/ServiceMenuTab";
 import { ServiceAuditsTab } from "@/components/services/ServiceAuditsTab";
 import { ServiceQIPTab } from "@/components/services/ServiceQIPTab";
 import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab";
+import { ServiceRollCallTab } from "@/components/services/ServiceRollCallTab";
+import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
+import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
 import { ServiceTodayPanel } from "@/components/services/ServiceTodayPanel";
 
 /* ------------------------------------------------------------------ */
@@ -80,6 +84,9 @@ const tabGroups: TabGroup[] = [
     icon: Activity,
     subTabs: [
       { key: "attendance", label: "Attendance", icon: ClipboardList },
+      { key: "roll-call", label: "Roll Call", icon: ClipboardCheck },
+      { key: "children", label: "Children", icon: Users },
+      { key: "roster", label: "Weekly Roster", icon: CalendarDays },
       { key: "checklists", label: "Checklists", icon: ClipboardCheck },
     ],
   },
@@ -415,6 +422,15 @@ export default function ServiceDetailPage() {
             serviceId={service.id}
             serviceName={service.name}
           />
+        )}
+        {activeGroup === "daily" && currentSubKey === "roll-call" && (
+          <ServiceRollCallTab serviceId={service.id} serviceName={service.name} />
+        )}
+        {activeGroup === "daily" && currentSubKey === "children" && (
+          <ServiceChildrenTab serviceId={service.id} serviceName={service.name} />
+        )}
+        {activeGroup === "daily" && currentSubKey === "roster" && (
+          <ServiceWeeklyRosterTab serviceId={service.id} serviceName={service.name} />
         )}
         {activeGroup === "daily" && currentSubKey === "checklists" && (
           <ServiceChecklistsTab serviceId={service.id} serviceName={service.name} />

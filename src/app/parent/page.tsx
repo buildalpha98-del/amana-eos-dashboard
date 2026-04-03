@@ -17,6 +17,8 @@ import {
   useParentOnboarding,
   type ParentChild,
 } from "@/hooks/useParentPortal";
+import { DailyInfoWidgets } from "@/components/parent/DailyInfoWidgets";
+import { TimelineWidget } from "@/components/parent/TimelineWidget";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
@@ -71,11 +73,17 @@ export default function ParentDashboard() {
         )}
       </section>
 
+      {/* Today's Menu & Program */}
+      <DailyInfoWidgets />
+
       {/* Upcoming Sessions */}
       <UpcomingSessionsWidget />
 
       {/* Recent Messages */}
       <RecentMessagesWidget />
+
+      {/* Timeline Feed */}
+      <TimelineWidget />
 
       {/* Quick actions */}
       <section aria-label="Quick actions">

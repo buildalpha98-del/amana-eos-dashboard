@@ -8,12 +8,12 @@ import { put, del } from "@vercel/blob";
 export async function uploadFile(
   file: Buffer,
   filename: string,
-  options?: { contentType?: string; folder?: string },
+  options?: { contentType?: string; folder?: string; access?: "public" | "private" },
 ): Promise<{ url: string; size: number }> {
   const path = options?.folder ? `${options.folder}/${filename}` : filename;
 
   const blob = await put(path, file, {
-    access: "private",
+    access: options?.access ?? "private",
     contentType: options?.contentType,
     addRandomSuffix: true,
   });

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { generateBookings } from "@/lib/booking-generator";
+import { logger } from "@/lib/logger";
 const patchEnrolmentSchema = z.object({
   status: z.enum(["submitted", "under_review", "processed", "rejected", "archived"], {
     error: "Invalid status. Must be one of: submitted, under_review, processed, rejected, archived",
@@ -53,12 +55,35 @@ const { id } = await context!.params!;
       data: updateData,
     });
 
-    // When confirmed (processed), activate all Child records
+    // When confirmed (processed), activate all Child records + generate bookings
     if (parsed.data.status === "processed") {
       await tx.child.updateMany({
         where: { enrolmentId: id, status: "pending" },
         data: { status: "active" },
       });
+
+      // Auto-generate permanent bookings from bookingPrefs
+      const children = await tx.child.findMany({
+        where: { enrolmentId: id, status: "active" },
+        select: { id: true, serviceId: true, bookingPrefs: true },
+      });
+
+      const allBookings = children.flatMap((child) => {
+        if (!child.serviceId || !child.bookingPrefs) return [];
+        return generateBookings(child.id, child.serviceId, child.bookingPrefs);
+      });
+
+      if (allBookings.length > 0) {
+        const result = await tx.booking.createMany({
+          data: allBookings,
+          skipDuplicates: true,
+        });
+        logger.info("Auto-generated bookings on enrolment approval", {
+          enrolmentId: id,
+          childCount: children.length,
+          bookingsCreated: result.count,
+        });
+      }
     }
 
     return enrolment;

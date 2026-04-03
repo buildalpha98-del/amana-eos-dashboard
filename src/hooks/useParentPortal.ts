@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
@@ -470,5 +470,77 @@ export function useMarkOnboardingStep() {
         description: err.message || "Something went wrong",
       });
     },
+  });
+}
+
+// ── Timeline ────────────────────────────────────────────
+
+export interface TimelinePost {
+  id: string;
+  serviceId: string;
+  title: string;
+  content: string;
+  type: string;
+  mediaUrls: string[];
+  author: { id: string; name: string | null; avatar: string | null } | null;
+  isCommunity: boolean;
+  createdAt: string;
+  tags: Array<{
+    id: string;
+    child: { id: string; firstName: string; surname: string };
+  }>;
+}
+
+interface TimelineResponse {
+  items: TimelinePost[];
+  nextCursor?: string;
+}
+
+export function useParentTimeline() {
+  return useInfiniteQuery<TimelineResponse>({
+    queryKey: ["parent-timeline"],
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams();
+      if (pageParam) params.set("cursor", pageParam as string);
+      params.set("limit", "10");
+      return fetchApi<TimelineResponse>(`/api/parent/timeline?${params}`);
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    staleTime: 30_000,
+    retry: 2,
+  });
+}
+
+// ── Daily Info (Menu + Program) ─────────────────────────
+
+export interface DailyMenuItem {
+  slot: string;
+  description: string;
+  allergens: string[];
+}
+
+export interface DailyProgram {
+  id: string;
+  title: string;
+  description: string | null;
+  startTime: string;
+  endTime: string;
+  location: string | null;
+  staffName: string | null;
+  programmeBrand: string | null;
+}
+
+export interface DailyInfoResponse {
+  todayMenu: { items: DailyMenuItem[] } | null;
+  todayProgram: DailyProgram[];
+}
+
+export function useParentDailyInfo() {
+  return useQuery<DailyInfoResponse>({
+    queryKey: ["parent-daily-info"],
+    queryFn: () => fetchApi<DailyInfoResponse>("/api/parent/daily-info"),
+    staleTime: 5 * 60_000, // 5 min — menu/program changes rarely
+    retry: 2,
   });
 }

@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -120,6 +120,12 @@ enum MealSlot {
   morning_tea
   lunch
   afternoon_tea
+}
+
+enum ParentPostType {
+  observation
+  announcement
+  reminder
 }
 
 enum ActivityCategory {
@@ -450,6 +456,8 @@ model User {
   lmsEnrollments                LMSEnrollment[]                @relation("LMSStudent")
   certificates                  ComplianceCertificate[]        @relation("UserCertificates")
   recordedAttendance            DailyAttendance[]              @relation("AttendanceRecorder")
+  signedInRecords               AttendanceRecord[]             @relation("SignInRecorder")
+  signedOutRecords              AttendanceRecord[]             @relation("SignOutRecorder")
   budgetItemsCreated            BudgetItem[]                   @relation("BudgetItemCreator")
   programActivitiesCreated      ProgramActivity[]              @relation("ProgramCreator")
   menuWeeksCreated              MenuWeek[]                     @relation("MenuCreator")
@@ -552,8 +560,8 @@ model User {
   checkedItems        DailyChecklistItem[] @relation("ChecklistItemCheckedBy")
 
   // ── AI Usage ───────────────────────────────────────
-  aiUsageLogs    AiUsage[]      @relation("AiUsageLogs")
-  reviewedDrafts AiTaskDraft[]  @relation("DraftReviewer")
+  aiUsageLogs    AiUsage[]     @relation("AiUsageLogs")
+  reviewedDrafts AiTaskDraft[] @relation("DraftReviewer")
 
   // ── Email Templates ──────────────────────────────
   emailTemplates EmailTemplate[] @relation("EmailTemplateCreator")
@@ -561,6 +569,9 @@ model User {
   // ── Info Snippets ────────────────────────────────
   infoSnippets InfoSnippet[] @relation("SnippetCreator")
   snippetAcks  SnippetAck[]  @relation("UserSnippetAcks")
+
+  // ── Parent Portal Posts ──────────────────────────
+  parentPostsAuthored ParentPost[] @relation("PostAuthor")
 
   @@index([serviceId])
 }
@@ -734,7 +745,7 @@ model Issue {
   service      Service?      @relation("ServiceIssues", fields: [serviceId], references: [id], onDelete: SetNull)
   priority     IssuePriority @default(medium)
   status       IssueStatus   @default(open)
-  category     String?       // "short_term" | "long_term"
+  category     String? // "short_term" | "long_term"
   identifiedAt DateTime      @default(now())
   discussedAt  DateTime?
   solvedAt     DateTime?
@@ -1148,23 +1159,23 @@ model SchoolRelationship {
 // ============================================================
 
 model Partnership {
-  id                   String   @id @default(cuid())
-  serviceCode          String   @unique
+  id                   String    @id @default(cuid())
+  serviceCode          String    @unique
   schoolName           String
   principalName        String?
   principalEmail       String?
   relationshipScore    Int?
-  status               String   @default("active")
+  status               String    @default("active")
   contractStart        DateTime?
   contractEnd          DateTime?
   facilityAccess       Json?
   lastPrincipalMeeting DateTime?
   lastSchoolEvent      DateTime?
-  newsletterInclusion  Boolean  @default(false)
-  notes                String?  @db.Text
-  actionPlan           String?  @db.Text
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  newsletterInclusion  Boolean   @default(false)
+  notes                String?   @db.Text
+  actionPlan           String?   @db.Text
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@index([status])
 }
@@ -1363,6 +1374,7 @@ model Service {
   lmsCourses            LMSCourse[]                    @relation("ServiceCourses")
   certificates          ComplianceCertificate[]        @relation("ServiceCertificates")
   attendance            DailyAttendance[]              @relation("ServiceAttendance")
+  individualAttendance  AttendanceRecord[]             @relation("ServiceIndividualAttendance")
   budgetItems           BudgetItem[]                   @relation("ServiceBudgetItems")
   programActivities     ProgramActivity[]              @relation("ServicePrograms")
   menuWeeks             MenuWeek[]                     @relation("ServiceMenus")
@@ -1428,9 +1440,10 @@ model Service {
   childRecords     Child[]            @relation("ServiceChildren")
 
   // ── Parent Portal Relations ──────────────────────
-  bookings   Booking[]   @relation("ServiceBookings_Portal")
-  absences   Absence[]   @relation("ServiceAbsences")
-  statements Statement[] @relation("ServiceStatements")
+  bookings    Booking[]    @relation("ServiceBookings_Portal")
+  absences    Absence[]    @relation("ServiceAbsences")
+  statements  Statement[]  @relation("ServiceStatements")
+  parentPosts ParentPost[] @relation("ServiceParentPosts")
 
   // ── Cowork Reports ──────────────────────────────
   coworkReports CoworkReport[] @relation("CoworkReportService")
@@ -1595,8 +1608,8 @@ model Document {
   folder       DocumentFolder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
   deleted      Boolean          @default(false)
   indexed      Boolean          @default(false)
-  indexedAt     DateTime?
-  indexError    String?
+  indexedAt    DateTime?
+  indexError   String?
   chunks       DocumentChunk[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
@@ -1621,19 +1634,19 @@ model DocumentFolder {
 }
 
 model DocumentChunk {
-  id           String                  @id @default(cuid())
+  id           String                   @id @default(cuid())
   documentId   String
-  document     Document                @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document     Document                 @relation(fields: [documentId], references: [id], onDelete: Cascade)
   chunkIndex   Int
-  content      String                  @db.Text
+  content      String                   @db.Text
   heading      String?
   pageNumber   Int?
   tokenCount   Int
   searchVector Unsupported("tsvector")?
-  createdAt    DateTime                @default(now())
+  createdAt    DateTime                 @default(now())
 
-  @@index([documentId])
   @@unique([documentId, chunkIndex])
+  @@index([documentId])
 }
 
 model Attachment {
@@ -1827,7 +1840,7 @@ model SupportTicket {
   contact         WhatsAppContact @relation(fields: [contactId], references: [id])
   parentContactId String?
   parentContact   CentreContact?  @relation("ParentTickets", fields: [parentContactId], references: [id], onDelete: SetNull)
-  source          String?         // "whatsapp" | "portal" | "email" | null (legacy)
+  source          String? // "whatsapp" | "portal" | "email" | null (legacy)
   subject         String?
   status          TicketStatus    @default(new)
   priority        TicketPriority  @default(normal)
@@ -1860,13 +1873,13 @@ model TicketEmail {
   id          String        @id @default(cuid())
   ticketId    String
   ticket      SupportTicket @relation("TicketEmails", fields: [ticketId], references: [id], onDelete: Cascade)
-  messageId   String?       // Email message-id header for dedup
+  messageId   String? // Email message-id header for dedup
   from        String
   to          String
   subject     String
   bodyPreview String        @db.Text
   receivedAt  DateTime
-  linkedBy    String?       // "auto" or userId who manually linked
+  linkedBy    String? // "auto" or userId who manually linked
   createdAt   DateTime      @default(now())
 
   @@unique([messageId])
@@ -2366,6 +2379,31 @@ model DailyAttendance {
   @@index([serviceId])
   @@index([date])
   @@index([serviceId, date])
+}
+
+model AttendanceRecord {
+  id            String      @id @default(cuid())
+  childId       String
+  child         Child       @relation("ChildAttendance", fields: [childId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service     @relation("ServiceIndividualAttendance", fields: [serviceId], references: [id], onDelete: Cascade)
+  date          DateTime    @db.Date
+  sessionType   SessionType
+  status        String      @default("booked") // booked, present, absent
+  signInTime    DateTime?
+  signOutTime   DateTime?
+  signedInById  String?
+  signedOutById String?
+  signedInBy    User?       @relation("SignInRecorder", fields: [signedInById], references: [id], onDelete: SetNull)
+  signedOutBy   User?       @relation("SignOutRecorder", fields: [signedOutById], references: [id], onDelete: SetNull)
+  absenceReason String?
+  notes         String?     @db.Text
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([childId, serviceId, date, sessionType])
+  @@index([serviceId, date, sessionType])
+  @@index([childId])
 }
 
 // ── Budget Items ────────────────────────────────────────────
@@ -3043,9 +3081,9 @@ model Lead {
   updatedAt            DateTime      @updatedAt
 
   // AI Lead Scoring
-  aiScore              Int?          // 0-100 score
-  aiScoreSummary       String?       @db.Text
-  aiScoredAt           DateTime?
+  aiScore        Int? // 0-100 score
+  aiScoreSummary String?   @db.Text
+  aiScoredAt     DateTime?
 
   touchpoints        TouchpointLog[]
   sequenceEnrolments SequenceEnrolment[] @relation("LeadSequenceEnrolments")
@@ -3115,15 +3153,15 @@ model CentreContact {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  nurtureSteps        ParentNurtureStep[]   @relation("ContactNurtureSteps")
-  npsResponses        NpsSurveyResponse[]   @relation("ContactNpsResponses")
-  referralsMade       Referral[]            @relation("ReferrerContact")
-  exitSurveys         ExitSurvey[]          @relation("ContactExitSurveys")
-  sequenceEnrolments  SequenceEnrolment[]   @relation("ContactSequenceEnrolments")
-  statements          Statement[]           @relation("ContactStatements")
-  documents           ParentDocument[]      @relation("ContactDocuments")
-  supportTickets      SupportTicket[]       @relation("ParentTickets")
-  onboardingProgress  Json?                 // { profile, medical, documents, pickups, installed }
+  nurtureSteps       ParentNurtureStep[] @relation("ContactNurtureSteps")
+  npsResponses       NpsSurveyResponse[] @relation("ContactNpsResponses")
+  referralsMade      Referral[]          @relation("ReferrerContact")
+  exitSurveys        ExitSurvey[]        @relation("ContactExitSurveys")
+  sequenceEnrolments SequenceEnrolment[] @relation("ContactSequenceEnrolments")
+  statements         Statement[]         @relation("ContactStatements")
+  documents          ParentDocument[]    @relation("ContactDocuments")
+  supportTickets     SupportTicket[]     @relation("ParentTickets")
+  onboardingProgress Json? // { profile, medical, documents, pickups, installed }
 
   @@unique([email, serviceId])
   @@index([serviceId])
@@ -3484,9 +3522,9 @@ model AuditItemResponse {
 // ============================================================
 
 model ParentEnquiry {
-  id               String                    @id @default(cuid())
+  id               String    @id @default(cuid())
   serviceId        String
-  service          Service                   @relation(fields: [serviceId], references: [id])
+  service          Service   @relation(fields: [serviceId], references: [id])
   parentName       String
   parentEmail      String?
   parentPhone      String?
@@ -3495,22 +3533,22 @@ model ParentEnquiry {
   childrenDetails  Json? // Array of {name, age} for multiple children
   channel          String // phone, email, whatsapp, walkin, referral, website
   parentDriver     String? // homework, quran, enrichment, working_parent, traffic, sports
-  stage            String                    @default("new_enquiry") // new_enquiry, info_sent, nurturing, form_started, enrolled, first_session, day3, week2, month1, retained, cold
-  stageChangedAt   DateTime                  @default(now())
+  stage            String    @default("new_enquiry") // new_enquiry, info_sent, nurturing, form_started, enrolled, first_session, day3, week2, month1, retained, cold
+  stageChangedAt   DateTime  @default(now())
   nextActionDue    DateTime?
-  ccsEducated      Boolean                   @default(false)
-  formStarted      Boolean                   @default(false)
-  formCompleted    Boolean                   @default(false)
+  ccsEducated      Boolean   @default(false)
+  formStarted      Boolean   @default(false)
+  formCompleted    Boolean   @default(false)
   firstSessionDate DateTime?
   referralId       String?
-  referral         Referral?                 @relation(fields: [referralId], references: [id])
+  referral         Referral? @relation(fields: [referralId], references: [id])
   assigneeId       String?
-  assignee         User?                     @relation("EnquiryAssignee", fields: [assigneeId], references: [id])
-  notes            String?                   @db.Text
-  deleted          Boolean                   @default(false)
-  ownaEnquiryId    String?                   @unique
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
+  assignee         User?     @relation("EnquiryAssignee", fields: [assigneeId], references: [id])
+  notes            String?   @db.Text
+  deleted          Boolean   @default(false)
+  ownaEnquiryId    String?   @unique
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   lastEmailSentAt  DateTime?
 
   // Waitlist fields
@@ -3520,8 +3558,8 @@ model ParentEnquiry {
   waitlistExpiresAt DateTime?
   waitlistServiceId String?
 
-  touchpoints      ParentEnquiryTouchpoint[]
-  nurtureSteps     ParentNurtureStep[]
+  touchpoints  ParentEnquiryTouchpoint[]
+  nurtureSteps ParentNurtureStep[]
 
   @@index([serviceId])
   @@index([stage])
@@ -4001,7 +4039,7 @@ model KnowledgeBaseArticle {
   slug          String   @unique
   sortOrder     Int      @default(0)
   published     Boolean  @default(true)
-  videoUrl      String?  // Optional Loom/YouTube embed URL
+  videoUrl      String? // Optional Loom/YouTube embed URL
   audienceRoles String[] // empty = all roles
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -4127,35 +4165,35 @@ model AiUsage {
 }
 
 model AiTaskDraft {
-  id            String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Polymorphic source — one of these will be set
-  todoId        String?
-  todo          Todo?    @relation("TodoAiDraft", fields: [todoId], references: [id], onDelete: Cascade)
+  todoId          String?
+  todo            Todo?          @relation("TodoAiDraft", fields: [todoId], references: [id], onDelete: Cascade)
   marketingTaskId String?
-  marketingTask MarketingTask? @relation("MarketingTaskAiDraft", fields: [marketingTaskId], references: [id], onDelete: Cascade)
-  coworkTodoId  String?
-  coworkTodo    CoworkTodo? @relation("CoworkTodoAiDraft", fields: [coworkTodoId], references: [id], onDelete: Cascade)
-  ticketId      String?
-  ticket        SupportTicket? @relation("TicketAiDraft", fields: [ticketId], references: [id], onDelete: Cascade)
-  issueId       String?
-  issue         Issue?   @relation("IssueAiDraft", fields: [issueId], references: [id], onDelete: Cascade)
+  marketingTask   MarketingTask? @relation("MarketingTaskAiDraft", fields: [marketingTaskId], references: [id], onDelete: Cascade)
+  coworkTodoId    String?
+  coworkTodo      CoworkTodo?    @relation("CoworkTodoAiDraft", fields: [coworkTodoId], references: [id], onDelete: Cascade)
+  ticketId        String?
+  ticket          SupportTicket? @relation("TicketAiDraft", fields: [ticketId], references: [id], onDelete: Cascade)
+  issueId         String?
+  issue           Issue?         @relation("IssueAiDraft", fields: [issueId], references: [id], onDelete: Cascade)
 
-  taskType      String   // "communication" | "research" | "document" | "admin"
-  title         String   // Human-readable draft title
-  content       String   @db.Text // The AI-generated draft content (markdown)
-  metadata      Json?    // Extra context (email recipients, template used, etc.)
+  taskType String // "communication" | "research" | "document" | "admin"
+  title    String // Human-readable draft title
+  content  String @db.Text // The AI-generated draft content (markdown)
+  metadata Json? // Extra context (email recipients, template used, etc.)
 
-  status        String   @default("ready") // "ready" | "accepted" | "edited" | "dismissed"
-  reviewedAt    DateTime?
-  reviewedById  String?
-  reviewedBy    User?    @relation("DraftReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  status       String    @default("ready") // "ready" | "accepted" | "edited" | "dismissed"
+  reviewedAt   DateTime?
+  reviewedById String?
+  reviewedBy   User?     @relation("DraftReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
-  tokensUsed    Int      @default(0)
-  model         String   @default("claude-haiku-3-5-20241022")
+  tokensUsed Int    @default(0)
+  model      String @default("claude-haiku-3-5-20241022")
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([todoId])
   @@index([marketingTaskId])
@@ -4379,17 +4417,17 @@ model ParentExperience {
 // ── Info Snippets (Acknowledge New Information) ──────────────
 
 model InfoSnippet {
-  id            String    @id @default(cuid())
-  title         String
-  summary       String    @db.Text
-  category      String?   // e.g. "policy", "update", "safety", "general"
-  priority      String    @default("normal") // low, normal, high
-  active        Boolean   @default(true)
-  expiresAt     DateTime?
-  createdById   String?
-  createdBy     User?     @relation("SnippetCreator", fields: [createdById], references: [id])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  title       String
+  summary     String    @db.Text
+  category    String? // e.g. "policy", "update", "safety", "general"
+  priority    String    @default("normal") // low, normal, high
+  active      Boolean   @default(true)
+  expiresAt   DateTime?
+  createdById String?
+  createdBy   User?     @relation("SnippetCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   acknowledgements SnippetAck[] @relation("SnippetAcknowledgements")
 
@@ -4415,55 +4453,55 @@ model SnippetAck {
 // ============================================================
 
 model EnrolmentSubmission {
-  id               String    @id @default(cuid())
-  token            String    @unique @default(cuid())
-  enquiryId        String?
-  serviceId        String?
+  id        String  @id @default(cuid())
+  token     String  @unique @default(cuid())
+  enquiryId String?
+  serviceId String?
 
   // Phase 1+2: Family data
-  primaryParent    Json // { firstName, surname, dob, email, mobile, address, relationship, occupation, workplace, workPhone, crn }
-  secondaryParent  Json? // same structure
-  children         Json // [{ firstName, surname, dob, gender, address, cultural, school, yearLevel, crn, medical, dietary, bookingPrefs }]
+  primaryParent   Json // { firstName, surname, dob, email, mobile, address, relationship, occupation, workplace, workPhone, crn }
+  secondaryParent Json? // same structure
+  children        Json // [{ firstName, surname, dob, gender, address, cultural, school, yearLevel, crn, medical, dietary, bookingPrefs }]
 
   // Phase 4: Emergency & authorised persons
   emergencyContacts Json // [{ name, relationship, phone, email }]
   authorisedPickup  Json? // [{ name, relationship }]
 
   // Phase 5: Consents
-  consents          Json // { firstAid, medication, ambulance, transport, excursions, photos, sunscreen }
+  consents Json // { firstAid, medication, ambulance, transport, excursions, photos, sunscreen }
 
   // Phase 7: Payment (masked for security)
-  paymentMethod     String? // "credit_card" or "bank_account"
-  paymentDetails    Json? // { lastFour, cardType } or { bsbLastThree, accountLastFour } — MASKED
+  paymentMethod  String? // "credit_card" or "bank_account"
+  paymentDetails Json? // { lastFour, cardType } or { bsbLastThree, accountLastFour } — MASKED
 
   // Phase 8: Submission
-  referralSource    String?
-  signature         String?  @db.Text
-  termsAccepted     Boolean  @default(false)
-  privacyAccepted   Boolean  @default(false)
-  debitAgreement    Boolean  @default(false)
+  referralSource  String?
+  signature       String? @db.Text
+  termsAccepted   Boolean @default(false)
+  privacyAccepted Boolean @default(false)
+  debitAgreement  Boolean @default(false)
 
   // Court orders
-  courtOrders       Boolean  @default(false)
-  courtOrderFiles   Json? // [{ filename, url }]
+  courtOrders     Boolean @default(false)
+  courtOrderFiles Json? // [{ filename, url }]
 
   // Medical uploads
-  medicalFiles      Json? // [{ childIndex, type, filename, url }]
+  medicalFiles Json? // [{ childIndex, type, filename, url }]
 
   // Document uploads (child photos, birth certificates, immunisation records)
-  documentUploads   Json? // [{ childIndex, type, filename, url }]
+  documentUploads Json? // [{ childIndex, type, filename, url }]
 
   // Status
-  status            String   @default("submitted")
-  processedById     String?
-  processedAt       DateTime?
-  pdfUrl            String?
-  notes             String?  @db.Text
+  status        String    @default("submitted")
+  processedById String?
+  processedAt   DateTime?
+  pdfUrl        String?
+  notes         String?   @db.Text
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  childRecords      Child[]
+  childRecords Child[]
 
   @@index([status])
   @@index([enquiryId])
@@ -4475,9 +4513,9 @@ model EnrolmentSubmission {
 // ============================================================
 
 model Child {
-  id                 String              @id @default(cuid())
+  id                 String               @id @default(cuid())
   enrolmentId        String?
-  enrolment          EnrolmentSubmission?  @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  enrolment          EnrolmentSubmission? @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
   serviceId          String?
   service            Service?             @relation("ServiceChildren", fields: [serviceId], references: [id])
   firstName          String
@@ -4501,10 +4539,12 @@ model Child {
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
-  bookings          Booking[]          @relation("ChildBookings")
-  absences          Absence[]          @relation("ChildAbsences")
-  documents         ParentDocument[]   @relation("ChildDocuments")
-  authorisedPickups AuthorisedPickup[] @relation("ChildPickups")
+  bookings          Booking[]            @relation("ChildBookings")
+  absences          Absence[]            @relation("ChildAbsences")
+  documents         ParentDocument[]     @relation("ChildDocuments")
+  authorisedPickups AuthorisedPickup[]   @relation("ChildPickups")
+  postTags          ParentPostChildTag[] @relation("ChildPostTags")
+  attendanceRecords AttendanceRecord[]   @relation("ChildAttendance")
 
   @@index([enrolmentId])
   @@index([serviceId])
@@ -4523,13 +4563,13 @@ model Sequence {
   id           String       @id @default(cuid())
   name         String
   type         SequenceType
-  triggerStage String?      // enquiry stage (info_sent, nurturing, etc.) or PipelineStage (new_lead, etc.)
+  triggerStage String? // enquiry stage (info_sent, nurturing, etc.) or PipelineStage (new_lead, etc.)
   isActive     Boolean      @default(true)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  steps       SequenceStep[]
-  enrolments  SequenceEnrolment[]
+  steps      SequenceStep[]
+  enrolments SequenceEnrolment[]
 
   @@unique([name, type])
   @@index([type])
@@ -4537,17 +4577,17 @@ model Sequence {
 }
 
 model SequenceStep {
-  id              String    @id @default(cuid())
+  id              String         @id @default(cuid())
   sequenceId      String
-  sequence        Sequence  @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  sequence        Sequence       @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
   stepNumber      Int
   name            String
-  delayHours      Int       // hours after anchor date (negative = before)
-  templateKey     String    // backward-compat key (e.g. "nudge_1", "ccs_assist")
-  emailTemplateId String?   // FK to EmailTemplate for visual template override
+  delayHours      Int // hours after anchor date (negative = before)
+  templateKey     String // backward-compat key (e.g. "nudge_1", "ccs_assist")
+  emailTemplateId String? // FK to EmailTemplate for visual template override
   emailTemplate   EmailTemplate? @relation("StepEmailTemplate", fields: [emailTemplateId], references: [id])
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   executions SequenceStepExecution[]
 
@@ -4556,19 +4596,19 @@ model SequenceStep {
 }
 
 model SequenceEnrolment {
-  id                String    @id @default(cuid())
+  id                String         @id @default(cuid())
   sequenceId        String
-  sequence          Sequence  @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
-  contactId         String?   // for parent nurture
+  sequence          Sequence       @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  contactId         String? // for parent nurture
   contact           CentreContact? @relation("ContactSequenceEnrolments", fields: [contactId], references: [id])
-  leadId            String?   // for CRM outreach
-  lead              Lead?     @relation("LeadSequenceEnrolments", fields: [leadId], references: [id])
+  leadId            String? // for CRM outreach
+  lead              Lead?          @relation("LeadSequenceEnrolments", fields: [leadId], references: [id])
   enquiryId         String?
   serviceId         String?
-  status            String    @default("active") // active, paused, completed, cancelled
-  currentStepNumber Int       @default(1)
-  anchorDate        DateTime  @default(now())
-  enrolledAt        DateTime  @default(now())
+  status            String         @default("active") // active, paused, completed, cancelled
+  currentStepNumber Int            @default(1)
+  anchorDate        DateTime       @default(now())
+  enrolledAt        DateTime       @default(now())
   completedAt       DateTime?
   pausedAt          DateTime?
 
@@ -4581,16 +4621,16 @@ model SequenceEnrolment {
 }
 
 model SequenceStepExecution {
-  id           String             @id @default(cuid())
+  id           String            @id @default(cuid())
   enrolmentId  String
-  enrolment    SequenceEnrolment  @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  enrolment    SequenceEnrolment @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
   stepId       String
-  step         SequenceStep       @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  step         SequenceStep      @relation(fields: [stepId], references: [id], onDelete: Cascade)
   scheduledFor DateTime
   sentAt       DateTime?
-  status       String             @default("pending") // pending, sent, failed, cancelled
+  status       String            @default("pending") // pending, sent, failed, cancelled
   error        String?
-  createdAt    DateTime           @default(now())
+  createdAt    DateTime          @default(now())
 
   @@index([status, scheduledFor])
   @@index([enrolmentId])
@@ -4621,8 +4661,8 @@ model Booking {
   status      BookingStatus @default(requested)
   type        BookingType   @default(casual)
   fee         Float?
-  ccsApplied  Float?        // CCS subsidy amount applied
-  gapFee      Float?        // Fee after CCS applied
+  ccsApplied  Float? // CCS subsidy amount applied
+  gapFee      Float? // Fee after CCS applied
   notes       String?       @db.Text
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -4658,21 +4698,21 @@ model Absence {
 }
 
 model Statement {
-  id              String          @id @default(cuid())
-  contactId       String
-  contact         CentreContact   @relation("ContactStatements", fields: [contactId], references: [id], onDelete: Cascade)
-  serviceId       String
-  service         Service         @relation("ServiceStatements", fields: [serviceId], references: [id], onDelete: Cascade)
-  periodStart     DateTime        @db.Date
-  periodEnd       DateTime        @db.Date
-  totalFees       Float
-  totalCcs        Float           @default(0)
-  gapFee          Float           @default(0)
-  status          StatementStatus @default(unpaid)
-  pdfUrl          String?
-  dueDate         DateTime?       @db.Date
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id          String          @id @default(cuid())
+  contactId   String
+  contact     CentreContact   @relation("ContactStatements", fields: [contactId], references: [id], onDelete: Cascade)
+  serviceId   String
+  service     Service         @relation("ServiceStatements", fields: [serviceId], references: [id], onDelete: Cascade)
+  periodStart DateTime        @db.Date
+  periodEnd   DateTime        @db.Date
+  totalFees   Float
+  totalCcs    Float           @default(0)
+  gapFee      Float           @default(0)
+  status      StatementStatus @default(unpaid)
+  pdfUrl      String?
+  dueDate     DateTime?       @db.Date
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   @@unique([contactId, periodStart, periodEnd])
   @@index([contactId])
@@ -4681,17 +4721,17 @@ model Statement {
 }
 
 model ParentDocument {
-  id          String        @id @default(cuid())
-  childId     String
-  child       Child         @relation("ChildDocuments", fields: [childId], references: [id], onDelete: Cascade)
-  contactId   String
-  contact     CentreContact @relation("ContactDocuments", fields: [contactId], references: [id], onDelete: Cascade)
-  docType     String        // immunisation, medical_action_plan, birth_certificate, custody_order, other
-  fileName    String
-  fileUrl     String
-  uploadedAt  DateTime      @default(now())
-  expiryDate  DateTime?     @db.Date
-  notes       String?       @db.Text
+  id         String        @id @default(cuid())
+  childId    String
+  child      Child         @relation("ChildDocuments", fields: [childId], references: [id], onDelete: Cascade)
+  contactId  String
+  contact    CentreContact @relation("ContactDocuments", fields: [contactId], references: [id], onDelete: Cascade)
+  docType    String // immunisation, medical_action_plan, birth_certificate, custody_order, other
+  fileName   String
+  fileUrl    String
+  uploadedAt DateTime      @default(now())
+  expiryDate DateTime?     @db.Date
+  notes      String?       @db.Text
 
   @@index([childId])
   @@index([contactId])
@@ -4712,4 +4752,53 @@ model AuthorisedPickup {
   updatedAt    DateTime @updatedAt
 
   @@index([childId])
+}
+
+// ── Parent Posts (Staff-to-Parent Timeline) ─────────────────
+
+model ParentPost {
+  id          String         @id @default(cuid())
+  serviceId   String
+  service     Service        @relation("ServiceParentPosts", fields: [serviceId], references: [id], onDelete: Cascade)
+  title       String
+  content     String         @db.Text
+  type        ParentPostType @default(observation)
+  mediaUrls   String[] // Array of image/video URLs
+  authorId    String?
+  author      User?          @relation("PostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  isCommunity Boolean        @default(false) // If true, visible to all parents at the service. If false, only tagged children's parents.
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  tags ParentPostChildTag[]
+
+  @@index([serviceId])
+  @@index([createdAt])
+}
+
+model ParentPostChildTag {
+  id      String     @id @default(cuid())
+  postId  String
+  post    ParentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  childId String
+  child   Child      @relation("ChildPostTags", fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, childId])
+  @@index([childId])
+}
+
+// ── Parent Notifications (In-App Bell) ──────────────────
+
+model ParentNotification {
+  id          String   @id @default(cuid())
+  parentEmail String
+  type        String // post, booking, message, attendance
+  title       String
+  body        String
+  link        String // deep link path e.g. "/parent/messages/abc123"
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([parentEmail, read])
+  @@index([parentEmail, createdAt])
 }

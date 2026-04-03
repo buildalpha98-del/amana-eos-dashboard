@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
+import { generateBookings } from "@/lib/booking-generator";
+import { logger } from "@/lib/logger";
 
 const patchSchema = z.object({
   status: z.string().optional(),
   serviceId: z.string().optional(),
   schoolName: z.string().optional(),
   yearLevel: z.string().optional(),
+  generateBookings: z.boolean().optional(),
 });
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
@@ -57,10 +60,27 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     if (value !== undefined) updateData[key] = value;
   }
 
+  const { generateBookings: shouldGenerate, ...rest } = updateData;
+
   const updated = await prisma.child.update({
     where: { id },
-    data: updateData,
+    data: rest,
   });
+
+  // Manually trigger booking generation for this child
+  if (shouldGenerate && updated.serviceId && updated.bookingPrefs) {
+    const bookings = generateBookings(updated.id, updated.serviceId, updated.bookingPrefs);
+    if (bookings.length > 0) {
+      const result = await prisma.booking.createMany({
+        data: bookings,
+        skipDuplicates: true,
+      });
+      logger.info("Manual booking generation", {
+        childId: updated.id,
+        bookingsCreated: result.count,
+      });
+    }
+  }
 
   return NextResponse.json(updated);
 });

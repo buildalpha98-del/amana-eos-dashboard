@@ -19,6 +19,8 @@ import {
   UserCheck,
   Plus,
   Trash2,
+  Camera,
+  X,
 } from "lucide-react";
 import {
   useParentChildren,
@@ -28,6 +30,8 @@ import {
   type AttendanceDay,
   type UpdateChildMedicalPayload,
 } from "@/hooks/useParentPortal";
+import { useChildAttendanceDetail } from "@/hooks/useChildAttendanceDetail";
+import { useChildGallery, type GalleryImage } from "@/hooks/useChildGallery";
 import {
   Dialog,
   DialogContent,
@@ -39,10 +43,11 @@ import { cn } from "@/lib/utils";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
 import { toast } from "@/hooks/useToast";
 
-type Tab = "attendance" | "medical" | "documents" | "pickups" | "contacts";
+type Tab = "attendance" | "gallery" | "medical" | "documents" | "pickups" | "contacts";
 
 const TABS: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "attendance", label: "Attendance", icon: CalendarDays },
+  { key: "gallery", label: "Gallery", icon: Camera },
   { key: "medical", label: "Medical", icon: Stethoscope },
   { key: "documents", label: "Docs", icon: FileText },
   { key: "pickups", label: "Pickups", icon: UserCheck },
@@ -128,10 +133,12 @@ export default function ChildDetailPage() {
       {/* Tab content */}
       {activeTab === "attendance" && (
         <AttendanceTab
+          childId={child.id}
           attendance={attendance ?? []}
           loading={attendanceLoading}
         />
       )}
+      {activeTab === "gallery" && <GalleryTab childId={child.id} />}
       {activeTab === "medical" && <MedicalTab child={child} />}
       {activeTab === "documents" && <DocumentsTab childId={child.id} />}
       {activeTab === "pickups" && <PickupsTab childId={child.id} />}
@@ -142,79 +149,139 @@ export default function ChildDetailPage() {
 
 // ── Attendance Tab ───────────────────────────────────────
 
+const SESSION_LABELS_ATT: Record<string, string> = {
+  bsc: "Before School Care",
+  asc: "After School Care",
+  vc: "Vacation Care",
+};
+
+function formatAttTime(dt: string | null | undefined): string {
+  if (!dt) return "";
+  return new Date(dt).toLocaleTimeString("en-AU", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 function AttendanceTab({
+  childId,
   attendance,
   loading,
 }: {
+  childId: string;
   attendance: AttendanceDay[];
   loading: boolean;
 }) {
-  if (loading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-10 w-full rounded-lg" />
-        ))}
-      </div>
-    );
-  }
-
-  if (attendance.length === 0) {
-    return (
-      <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
-        <CalendarDays className="w-8 h-8 text-[#7c7c8a] mx-auto mb-2" />
-        <p className="text-[#7c7c8a] text-sm">
-          No attendance records found for the last 30 days.
-        </p>
-      </div>
-    );
-  }
-
-  const weeks = groupByWeek(attendance);
+  const todayStr = new Date().toISOString().split("T")[0];
+  const { data: todayDetail } = useChildAttendanceDetail(childId, todayStr);
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-[#7c7c8a]">Last 30 days</p>
-      <div className="grid grid-cols-5 gap-1 text-center">
-        {["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => (
-          <span key={d} className="text-[10px] font-semibold text-[#7c7c8a] uppercase">
-            {d}
-          </span>
-        ))}
-      </div>
-      {weeks.map((week, wi) => (
-        <div key={wi} className="grid grid-cols-5 gap-1">
-          {week.map((day, di) => (
-            <div
-              key={di}
-              className={cn(
-                "aspect-square rounded-lg flex flex-col items-center justify-center text-[10px]",
-                day === null
-                  ? "bg-transparent"
-                  : day.status === "present"
-                    ? "bg-green-100 text-green-700"
-                    : day.status === "absent"
-                      ? "bg-red-100 text-red-600"
-                      : "bg-[#F2EDE8] text-[#7c7c8a]"
-              )}
-            >
-              {day && (
-                <>
-                  <span className="font-medium">{new Date(day.date).getDate()}</span>
-                  <span className="text-[8px]">
-                    {day.status === "present" ? "Present" : day.status === "absent" ? "Absent" : "No session"}
-                  </span>
-                </>
-              )}
-            </div>
+      {/* Today's live status card */}
+      {todayDetail && todayDetail.source === "individual" && todayDetail.sessions.length > 0 && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
+          <h3 className="text-sm font-semibold text-[#1a1a2e] mb-3">Today</h3>
+          <div className="space-y-2.5">
+            {todayDetail.sessions.map((s) => (
+              <div key={s.sessionType} className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-[#7c7c8a]">
+                    {SESSION_LABELS_ATT[s.sessionType ?? ""] ?? s.sessionType}
+                  </p>
+                  {s.status === "present" && (
+                    <p className="text-sm text-[#1a1a2e] mt-0.5">
+                      Signed in {formatAttTime(s.signInTime)}
+                      {s.signedInBy && <span className="text-[#7c7c8a]"> by {s.signedInBy}</span>}
+                      {s.signOutTime && (
+                        <span className="text-[#7c7c8a]"> · Out {formatAttTime(s.signOutTime)}</span>
+                      )}
+                    </p>
+                  )}
+                  {s.status === "absent" && (
+                    <p className="text-sm text-red-600 mt-0.5">
+                      Absent{s.absenceReason && ` — ${s.absenceReason}`}
+                    </p>
+                  )}
+                  {s.status === "booked" && (
+                    <p className="text-sm text-amber-600 mt-0.5">Not yet arrived</p>
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    "text-[10px] font-semibold px-2 py-0.5 rounded-full",
+                    s.status === "present" ? "bg-green-100 text-green-700" :
+                    s.status === "absent" ? "bg-red-100 text-red-600" :
+                    "bg-amber-100 text-amber-700"
+                  )}
+                >
+                  {s.status === "present" ? "Present" : s.status === "absent" ? "Absent" : "Booked"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 30-day calendar grid */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-10 w-full rounded-lg" />
           ))}
         </div>
-      ))}
-      <div className="flex items-center gap-4 justify-center pt-2">
-        <LegendDot color="bg-green-500" label="Present" />
-        <LegendDot color="bg-red-500" label="Absent" />
-        <LegendDot color="bg-[#e8e4df]" label="No session" />
-      </div>
+      ) : attendance.length === 0 ? (
+        <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
+          <CalendarDays className="w-8 h-8 text-[#7c7c8a] mx-auto mb-2" />
+          <p className="text-[#7c7c8a] text-sm">
+            No attendance records found for the last 30 days.
+          </p>
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-[#7c7c8a]">Last 30 days</p>
+          <div className="grid grid-cols-5 gap-1 text-center">
+            {["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => (
+              <span key={d} className="text-[10px] font-semibold text-[#7c7c8a] uppercase">
+                {d}
+              </span>
+            ))}
+          </div>
+          {groupByWeek(attendance).map((week, wi) => (
+            <div key={wi} className="grid grid-cols-5 gap-1">
+              {week.map((day, di) => (
+                <div
+                  key={di}
+                  className={cn(
+                    "aspect-square rounded-lg flex flex-col items-center justify-center text-[10px]",
+                    day === null
+                      ? "bg-transparent"
+                      : day.status === "present"
+                        ? "bg-green-100 text-green-700"
+                        : day.status === "absent"
+                          ? "bg-red-100 text-red-600"
+                          : "bg-[#F2EDE8] text-[#7c7c8a]"
+                  )}
+                >
+                  {day && (
+                    <>
+                      <span className="font-medium">{new Date(day.date).getDate()}</span>
+                      <span className="text-[8px]">
+                        {day.status === "present" ? "Present" : day.status === "absent" ? "Absent" : "—"}
+                      </span>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+          <div className="flex items-center gap-4 justify-center pt-2">
+            <LegendDot color="bg-green-500" label="Present" />
+            <LegendDot color="bg-red-500" label="Absent" />
+            <LegendDot color="bg-[#e8e4df]" label="No session" />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -253,6 +320,93 @@ function groupByWeek(days: AttendanceDay[]): (AttendanceDay | null)[][] {
     weeks.push(currentWeek);
   }
   return weeks;
+}
+
+// ── Gallery Tab ─────────────────────────────────────────
+
+function GalleryTab({ childId }: { childId: string }) {
+  const { data: images, isLoading } = useChildGallery(childId);
+  const [lightbox, setLightbox] = useState<GalleryImage | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <Skeleton key={i} className="aspect-square rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!images || images.length === 0) {
+    return (
+      <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
+        <Camera className="w-8 h-8 text-[#7c7c8a] mx-auto mb-2" />
+        <p className="text-[#7c7c8a] text-sm">No photos yet.</p>
+        <p className="text-[#7c7c8a] text-xs mt-1">
+          Photos from staff observations will appear here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {images.map((img) => (
+          <button
+            key={img.id}
+            onClick={() => setLightbox(img)}
+            className="relative aspect-square rounded-xl overflow-hidden bg-[#F2EDE8] hover:opacity-90 transition-opacity active:scale-[0.98]"
+          >
+            <img
+              src={img.url}
+              alt={img.postTitle}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </button>
+        ))}
+      </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            onClick={() => setLightbox(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors z-10"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div
+            className="max-w-3xl max-h-[85vh] w-full flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={lightbox.url}
+              alt={lightbox.postTitle}
+              className="max-h-[70vh] w-auto rounded-xl object-contain"
+            />
+            <div className="mt-3 text-center text-white">
+              <p className="text-sm font-medium">{lightbox.postTitle}</p>
+              <p className="text-xs text-white/60 mt-0.5">
+                {lightbox.authorName} &middot;{" "}
+                {new Date(lightbox.createdAt).toLocaleDateString("en-AU", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
 // ── Medical Tab ──────────────────────────────────────────
