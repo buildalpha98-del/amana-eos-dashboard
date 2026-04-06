@@ -1,0 +1,388 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { useTickets } from "@/hooks/useTickets";
+import { useTicketAnalytics } from "@/hooks/useTicketAnalytics";
+import { useQuery } from "@tanstack/react-query";
+import { TicketCard } from "@/components/tickets/TicketCard";
+import { TicketDetailPanel } from "@/components/tickets/TicketDetailPanel";
+import { CreateTicketModal } from "@/components/tickets/CreateTicketModal";
+import { ResponseTemplateManager } from "@/components/tickets/ResponseTemplateManager";
+import { TicketAnalytics } from "@/components/tickets/TicketAnalytics";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/Skeleton";
+
+const TicketVolumeTrendChart = dynamic(() => import("@/components/charts/TicketVolumeTrendChart").then((m) => m.TicketVolumeTrendChart), { loading: () => <Skeleton className="h-64 w-full" /> });
+const TicketPriorityChart = dynamic(() => import("@/components/charts/TicketPriorityChart").then((m) => m.TicketPriorityChart), { loading: () => <Skeleton className="h-64 w-full" /> });
+const AgentWorkloadChart = dynamic(() => import("@/components/charts/AgentWorkloadChart").then((m) => m.AgentWorkloadChart), { loading: () => <Skeleton className="h-64 w-full" /> });
+import { exportToCSV, formatDateCSV } from "@/lib/csv-export";
+import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  MessageSquare,
+  Plus,
+  Filter,
+  LayoutGrid,
+  List,
+  Search,
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  XCircle,
+  BarChart3,
+  FileText,
+  Download,
+} from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+
+interface UserOption {
+  id: string;
+  name: string;
+}
+
+interface ServiceOption {
+  id: string;
+  name: string;
+  code: string;
+}
+
+const statusTabs = [
+  { key: "", label: "All", icon: null },
+  { key: "new", label: "New", icon: AlertTriangle, color: "text-blue-600" },
+  { key: "open", label: "Open", icon: Clock, color: "text-amber-600" },
+  { key: "pending_parent", label: "Pending", icon: Clock, color: "text-purple-600" },
+  { key: "resolved", label: "Resolved", icon: CheckCircle, color: "text-emerald-600" },
+  { key: "closed", label: "Closed", icon: XCircle, color: "text-muted" },
+] as const;
+
+export default function TicketsContent() {
+  const [showCreate, setShowCreate] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
+  const [assigneeFilter, setAssigneeFilter] = useState("");
+  const [serviceFilter, setServiceFilter] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<"board" | "list" | "analytics">("list");
+  const [analyticsDays, setAnalyticsDays] = useState(30);
+
+  const { data: tickets, isLoading, error, refetch } = useTickets({
+    ...(statusFilter ? { status: statusFilter } : {}),
+    ...(priorityFilter ? { priority: priorityFilter } : {}),
+    ...(assigneeFilter ? { assignedToId: assigneeFilter } : {}),
+    ...(serviceFilter ? { serviceId: serviceFilter } : {}),
+    ...(searchTerm ? { search: searchTerm } : {}),
+  });
+
+  const { data: users = [] } = useQuery<UserOption[]>({
+    queryKey: ["users-list"],
+    queryFn: async () => {
+      const res = await fetch("/api/users");
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const { data: services = [] } = useQuery<ServiceOption[]>({
+    queryKey: ["services"],
+    queryFn: async () => {
+      const res = await fetch("/api/services");
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const { data: analytics, isLoading: analyticsLoading } = useTicketAnalytics(
+    analyticsDays,
+    viewMode === "analytics"
+  );
+
+  const stats = useMemo(() => {
+    if (!tickets) return { total: 0, new: 0, open: 0, pending: 0, resolved: 0 };
+    return {
+      total: tickets.length,
+      new: tickets.filter((t) => t.status === "new").length,
+      open: tickets.filter((t) => t.status === "open").length,
+      pending: tickets.filter((t) => t.status === "pending_parent").length,
+      resolved: tickets.filter((t) => t.status === "resolved").length,
+    };
+  }, [tickets]);
+
+  const boardColumns = useMemo(() => {
+    if (!tickets) return { new: [], open: [], pending_parent: [], resolved: [], closed: [] };
+    return {
+      new: tickets.filter((t) => t.status === "new"),
+      open: tickets.filter((t) => t.status === "open"),
+      pending_parent: tickets.filter((t) => t.status === "pending_parent"),
+      resolved: tickets.filter((t) => t.status === "resolved"),
+      closed: tickets.filter((t) => t.status === "closed"),
+    };
+  }, [tickets]);
+
+  const hasActiveFilters = priorityFilter || assigneeFilter || serviceFilter;
+
+  const handleExport = () => {
+    if (!tickets || tickets.length === 0) return;
+    exportToCSV(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tickets.map((t: any) => ({
+        ticketNumber: t.ticketNumber,
+        subject: t.subject || "",
+        contact: t.contact?.parentName || t.contact?.name || t.contact?.phoneNumber || "",
+        status: t.status,
+        priority: t.priority,
+        assignedTo: t.assignedTo?.name || "Unassigned",
+        centre: t.service?.name || "",
+        created: t.createdAt,
+        firstResponse: t.firstResponseAt || "",
+        resolved: t.resolvedAt || "",
+      })),
+      "tickets-export",
+      [
+        { key: "ticketNumber", header: "Ticket #" },
+        { key: "subject", header: "Subject" },
+        { key: "contact", header: "Contact" },
+        { key: "status", header: "Status" },
+        { key: "priority", header: "Priority" },
+        { key: "assignedTo", header: "Assigned To" },
+        { key: "centre", header: "Centre" },
+        { key: "created", header: "Created", formatter: (v) => v ? formatDateCSV(v as string) : "" },
+        { key: "firstResponse", header: "First Response", formatter: (v) => v ? formatDateCSV(v as string) : "" },
+        { key: "resolved", header: "Resolved", formatter: (v) => v ? formatDateCSV(v as string) : "" },
+      ]
+    );
+  };
+
+  const boardConfig = [
+    { key: "new" as const, label: "New", color: "border-blue-400", icon: AlertTriangle, iconColor: "text-blue-500" },
+    { key: "open" as const, label: "Open", color: "border-amber-400", icon: Clock, iconColor: "text-amber-500" },
+    { key: "pending_parent" as const, label: "Pending Parent", color: "border-purple-400", icon: Clock, iconColor: "text-purple-500" },
+    { key: "resolved" as const, label: "Resolved", color: "border-emerald-400", icon: CheckCircle, iconColor: "text-emerald-500" },
+    { key: "closed" as const, label: "Closed", color: "border-border", icon: XCircle, iconColor: "text-muted" },
+  ];
+
+  if (error) {
+    return (
+      <ErrorState
+        title="Failed to load tickets"
+        error={error as Error}
+        onRetry={refetch}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <PageHeader
+        title="Support Tickets"
+        description="Manage parent enquiries and WhatsApp conversations"
+        primaryAction={{ label: "New Ticket", icon: Plus, onClick: () => setShowCreate(true) }}
+        secondaryActions={[
+          { label: "Export CSV", icon: Download, onClick: handleExport },
+          { label: "Templates", icon: FileText, onClick: () => setShowTemplates(true) },
+          { label: showFilters ? "Hide Filters" : "Filters", icon: Filter, onClick: () => setShowFilters(!showFilters), active: showFilters || !!hasActiveFilters },
+        ]}
+        toggles={[
+          {
+            options: [
+              { icon: LayoutGrid, label: "Board", value: "board" },
+              { icon: List, label: "List", value: "list" },
+              { icon: BarChart3, label: "Analytics", value: "analytics" },
+            ],
+            value: viewMode,
+            onChange: (v) => setViewMode(v as "board" | "list" | "analytics"),
+          },
+        ]}
+      />
+
+      {viewMode !== "analytics" && (
+        <div className="mb-4">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+            <input
+              type="text"
+              placeholder="Search tickets by subject or contact..."
+              aria-label="Search tickets"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            />
+          </div>
+        </div>
+      )}
+
+      {viewMode === "list" && (
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mb-4">
+          <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit">
+            {statusTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setStatusFilter(tab.key)}
+                  className={cn(
+                    "flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
+                    statusFilter === tab.key
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted hover:text-foreground"
+                  )}
+                >
+                  {Icon && <Icon className={cn("w-3.5 h-3.5", tab.color)} />}
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {showFilters && viewMode !== "analytics" && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 p-3 bg-card rounded-lg border border-border">
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          >
+            <option value="">All Priorities</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="normal">Normal</option>
+            <option value="low">Low</option>
+          </select>
+          <select
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          >
+            <option value="">All Assignees</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={serviceFilter}
+            onChange={(e) => setServiceFilter(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+          >
+            <option value="">All Centres</option>
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          {hasActiveFilters && (
+            <button
+              onClick={() => {
+                setPriorityFilter("");
+                setAssigneeFilter("");
+                setServiceFilter("");
+              }}
+              className="text-xs text-brand hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
+
+      {viewMode !== "analytics" && tickets && tickets.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mb-4 px-1">
+          <span className="text-sm text-muted">
+            <span className="font-semibold text-foreground">{stats.total}</span> tickets
+          </span>
+          {stats.new > 0 && (
+            <span className="text-sm text-blue-600">
+              <span className="font-semibold">{stats.new}</span> new
+            </span>
+          )}
+          {stats.open > 0 && (
+            <span className="text-sm text-amber-600">
+              <span className="font-semibold">{stats.open}</span> open
+            </span>
+          )}
+          {stats.pending > 0 && (
+            <span className="text-sm text-purple-600">
+              <span className="font-semibold">{stats.pending}</span> pending
+            </span>
+          )}
+        </div>
+      )}
+
+      {viewMode === "analytics" ? (
+        <TicketAnalytics />
+      ) : isLoading ? (
+        <div className="flex items-center justify-center py-24">
+          <div className="text-center">
+            <div className="w-10 h-10 border-4 border-border border-t-brand rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-muted">Loading tickets...</p>
+          </div>
+        </div>
+      ) : tickets && tickets.length > 0 ? (
+        viewMode === "board" ? (
+          <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 lg:grid-cols-5 sm:overflow-visible">
+            {boardConfig.map((col) => {
+              const Icon = col.icon;
+              const items = boardColumns[col.key];
+              return (
+                <div key={col.key} className="space-y-3 min-w-[260px] sm:min-w-0 flex-shrink-0 sm:flex-shrink">
+                  <div className={cn("flex items-center gap-2 pb-2 border-b-2", col.color)}>
+                    <Icon className={cn("w-4 h-4", col.iconColor)} />
+                    <h3 className="text-sm font-semibold text-foreground/80">{col.label}</h3>
+                    <span className="text-xs text-muted ml-auto bg-surface px-1.5 py-0.5 rounded-full">
+                      {items.length}
+                    </span>
+                  </div>
+                  {items.length === 0 ? (
+                    <p className="text-xs text-muted text-center py-8">No tickets</p>
+                  ) : (
+                    items.map((ticket) => (
+                      <TicketCard
+                        key={ticket.id}
+                        ticket={ticket}
+                        onClick={() => setSelectedId(ticket.id)}
+                      />
+                    ))
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {tickets.map((ticket) => (
+              <TicketCard
+                key={ticket.id}
+                ticket={ticket}
+                onClick={() => setSelectedId(ticket.id)}
+              />
+            ))}
+          </div>
+        )
+      ) : (
+        <EmptyState
+          icon={MessageSquare}
+          title="No support tickets"
+          description="When parents message you on WhatsApp, their conversations will appear here as support tickets. You can also create tickets manually."
+          iconColor="#3B82F6"
+          action={{ label: "Create First Ticket", onClick: () => setShowCreate(true) }}
+        />
+      )}
+
+      <CreateTicketModal open={showCreate} onClose={() => setShowCreate(false)} />
+      <ResponseTemplateManager open={showTemplates} onClose={() => setShowTemplates(false)} />
+
+      {selectedId && (
+        <TicketDetailPanel
+          ticketId={selectedId}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
+    </div>
+  );
+}

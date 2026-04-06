@@ -5115,3 +5115,37 @@ model ParentAuthToken {
 
   @@index([token])
 }
+
+// ============================================================
+// VAPI Call Tracking — AI phone call logs and follow-ups
+// ============================================================
+
+model VapiCall {
+  id                       String    @id @default(cuid())
+  vapiCallId               String?   @unique
+  callType                 String    // "new_enquiry" | "booking_change" | "billing_issue" | "escalation" | "holiday_quest" | "general_message"
+  urgency                  String    @default("routine") // "routine" | "urgent" | "critical"
+  status                   String    @default("new") // "new" | "in_progress" | "actioned" | "closed"
+  assignedTo               String?
+  parentName               String?
+  parentPhone              String?
+  parentEmail              String?
+  childName                String?
+  centreName               String?
+  callDetails              Json?
+  transcript               String?   @db.Text
+  recordingUrl             String?
+  callDurationSeconds      Int?
+  followUpEmailSent        Boolean   @default(false)
+  internalNotificationSent Boolean   @default(false)
+  notes                    String?   @db.Text
+  actionedAt               DateTime?
+  actionedBy               String?
+  calledAt                 DateTime  @default(now())
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@index([status, callType])
+  @@index([centreName, calledAt])
+  @@index([urgency, status])
+}

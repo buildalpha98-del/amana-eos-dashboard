@@ -89,7 +89,7 @@ export const navItems: NavItem[] = [
 
   // ── Growth — pipeline, parents & outreach ─────────────────
   { href: "/messaging", label: "Messages", icon: MessageSquare, section: "Growth", tooltip: "Send and receive messages with families" },
-  { href: "/enquiries", label: "Enquiries", icon: UserPlus, section: "Growth", tooltip: "Parent enquiry pipeline — track from first contact to retention" },
+  { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place" },
   { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions" },
   { href: "/children", label: "Children", icon: Users, section: "Growth", tooltip: "Browse all enrolled children across services" },
   { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management" },
@@ -115,7 +115,6 @@ export const navItems: NavItem[] = [
   { href: "/data-room", label: "Data Room", icon: FolderLock, section: "Admin", tooltip: "Due diligence document tracker & exit readiness scoring" },
   { href: "/reports/board", label: "Board Reports", icon: FileSpreadsheet, section: "Admin", tooltip: "Monthly board & investor report generator" },
   { href: "/assistant", label: "AI Assistant", icon: Bot, section: "Admin", tooltip: "Ask questions about your dashboard data" },
-  { href: "/tickets", label: "Tickets", icon: MessageSquare, section: "Admin" },
   { href: "/guides", label: "Quick-Start Guides", icon: BookOpenCheck, section: "Admin", tooltip: "Printable role-specific quick-start guides" },
   { href: "/help", label: "Help Centre", icon: HelpCircle, section: "Admin", tooltip: "FAQ and knowledge base — find answers to common questions" },
   { href: "/automations", label: "Automations", icon: Activity, section: "Admin", tooltip: "Monitor the health and cadence of all automated tasks" },

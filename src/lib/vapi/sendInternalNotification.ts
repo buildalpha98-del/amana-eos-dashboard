@@ -1,0 +1,146 @@
+/**
+ * Send internal team notifications when a VAPI call is received.
+ * Routes notifications to the appropriate staff based on call type and centre.
+ */
+
+import { prisma } from "@/lib/prisma";
+import { sendEmail } from "@/lib/email";
+import { baseLayout } from "@/lib/email-templates/base";
+import { logger } from "@/lib/logger";
+
+const COORDINATOR_EMAILS: Record<string, string> = {
+  "MFIS Greenacre": "coordinator.greenacre@amanaoshc.com.au",
+  "MFIS Hoxton Park": "MFIShp@amanaoshc.com.au",
+  "MFIS Beaumont Hills": "mfisbh@amanaoshc.com.au",
+  "Arkana College": "arkanacollege@amanaoshc.com.au",
+  "Unity Grammar": "unitygrammar@amanaoshc.com.au",
+  "Al-Taqwa College": "altaqwacollege@amanaoshc.com.au",
+  "Minaret Officer": "minaretofficer@amanaoshc.com.au",
+  "Minaret Springvale": "minaretspringvale@amanaoshc.com.au",
+  "Minaret Doveton": "minaretdoveton@amanaoshc.com.au",
+  "AIA KKCC": "Aiakkcc@amanaoshc.com.au",
+};
+
+const CALL_TYPE_LABELS: Record<string, string> = {
+  new_enquiry: "New Enquiry",
+  booking_change: "Booking Change",
+  billing_issue: "Billing Issue",
+  escalation: "Escalation",
+  holiday_quest: "Holiday Quest",
+  general_message: "General Message",
+};
+
+function humaniseKey(key: string): string {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/_/g, " ")
+    .replace(/^\w/, (c) => c.toUpperCase())
+    .trim();
+}
+
+function getRecipients(callType: string, urgency: string, centreName: string | null): string[] {
+  const coordinatorEmail = centreName ? COORDINATOR_EMAILS[centreName] : undefined;
+  const recipients: string[] = [];
+
+  switch (callType) {
+    case "new_enquiry":
+      recipients.push("akram@amanaoshc.com.au");
+      break;
+    case "booking_change":
+      recipients.push("akram@amanaoshc.com.au");
+      if (coordinatorEmail) recipients.push(coordinatorEmail);
+      break;
+    case "billing_issue":
+      recipients.push("akram@amanaoshc.com.au", "jayden@amanaoshc.com.au");
+      break;
+    case "escalation":
+      recipients.push("jayden@amanaoshc.com.au");
+      if (coordinatorEmail) recipients.push(coordinatorEmail);
+      if (urgency === "critical") recipients.push("akram@amanaoshc.com.au");
+      break;
+    case "holiday_quest":
+      recipients.push("akram@amanaoshc.com.au");
+      break;
+    case "general_message":
+    default:
+      recipients.push("akram@amanaoshc.com.au");
+      break;
+  }
+
+  return [...new Set(recipients)];
+}
+
+function buildDetailsHtml(details: Record<string, unknown>): string {
+  const rows = Object.entries(details)
+    .filter(([, v]) => v != null && v !== "")
+    .map(
+      ([k, v]) =>
+        `<tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-size:13px;white-space:nowrap;vertical-align:top;">${humaniseKey(k)}</td><td style="padding:4px 0;color:#374151;font-size:13px;">${String(v)}</td></tr>`,
+    )
+    .join("");
+
+  return rows
+    ? `<table style="width:100%;border-collapse:collapse;margin:12px 0;">${rows}</table>`
+    : "<p style='color:#9ca3af;font-size:13px;'>No additional details captured.</p>";
+}
+
+export async function sendInternalNotification(callId: string): Promise<void> {
+  const call = await prisma.vapiCall.findUnique({ where: { id: callId } });
+  if (!call) return;
+
+  const recipients = getRecipients(call.callType, call.urgency, call.centreName);
+  if (recipients.length === 0) return;
+
+  const callTypeLabel = CALL_TYPE_LABELS[call.callType] ?? call.callType;
+  const urgencyLabel = call.urgency.toUpperCase();
+  const parentName = call.parentName || "Unknown caller";
+  const centreName = call.centreName || "Unknown centre";
+  const details = (call.callDetails as Record<string, unknown>) ?? {};
+  const baseUrl = process.env.NEXTAUTH_URL || "https://amanaoshc.company";
+
+  const urgencyColor =
+    call.urgency === "critical" ? "#dc2626" : call.urgency === "urgent" ? "#d97706" : "#6b7280";
+
+  const subject = `[${urgencyLabel}] New ${callTypeLabel} — ${parentName} (${centreName})`;
+
+  const html = baseLayout(`
+    <div style="margin-bottom:16px;padding:12px 16px;background-color:${urgencyColor}10;border-left:4px solid ${urgencyColor};border-radius:4px;">
+      <p style="margin:0;font-size:14px;font-weight:600;color:${urgencyColor};">
+        ${urgencyLabel} — ${callTypeLabel}
+      </p>
+    </div>
+
+    <h2 style="margin:0 0 16px;color:#111827;font-size:18px;">New VAPI Call Received</h2>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+      <tr><td style="padding:6px 12px 6px 0;color:#6b7280;font-size:14px;">Parent</td><td style="padding:6px 0;color:#111827;font-size:14px;font-weight:500;">${parentName}</td></tr>
+      ${call.parentPhone ? `<tr><td style="padding:6px 12px 6px 0;color:#6b7280;font-size:14px;">Phone</td><td style="padding:6px 0;color:#111827;font-size:14px;"><a href="tel:${call.parentPhone}" style="color:#004E64;">${call.parentPhone}</a></td></tr>` : ""}
+      ${call.parentEmail ? `<tr><td style="padding:6px 12px 6px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:6px 0;color:#111827;font-size:14px;"><a href="mailto:${call.parentEmail}" style="color:#004E64;">${call.parentEmail}</a></td></tr>` : ""}
+      ${call.childName ? `<tr><td style="padding:6px 12px 6px 0;color:#6b7280;font-size:14px;">Child</td><td style="padding:6px 0;color:#111827;font-size:14px;">${call.childName}</td></tr>` : ""}
+      <tr><td style="padding:6px 12px 6px 0;color:#6b7280;font-size:14px;">Centre</td><td style="padding:6px 0;color:#111827;font-size:14px;">${centreName}</td></tr>
+      <tr><td style="padding:6px 12px 6px 0;color:#6b7280;font-size:14px;">Call Type</td><td style="padding:6px 0;color:#111827;font-size:14px;">${callTypeLabel}</td></tr>
+      <tr><td style="padding:6px 12px 6px 0;color:#6b7280;font-size:14px;">Urgency</td><td style="padding:6px 0;color:${urgencyColor};font-size:14px;font-weight:600;">${urgencyLabel}</td></tr>
+    </table>
+
+    <h3 style="margin:0 0 8px;color:#374151;font-size:14px;">Call Details</h3>
+    ${buildDetailsHtml(details)}
+
+    <div style="margin-top:24px;text-align:center;">
+      <a href="${baseUrl}/contact-centre?tab=calls&id=${callId}"
+         style="display:inline-block;padding:12px 32px;background-color:#004E64;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:8px;">
+        View in Contact Centre
+      </a>
+    </div>
+  `);
+
+  try {
+    await sendEmail({ to: recipients, subject, html });
+
+    await prisma.vapiCall.update({
+      where: { id: callId },
+      data: { internalNotificationSent: true },
+    });
+  } catch (err) {
+    logger.error("Failed to send VAPI internal notification", { callId, error: err });
+  }
+}
