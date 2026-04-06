@@ -20,6 +20,13 @@ export interface ChildRecord {
   medical: Record<string, unknown> | null;
   dietary: Record<string, unknown> | null;
   bookingPrefs: Record<string, unknown> | null;
+  // ── Expanded profile fields ──
+  medicalConditions: string[];
+  medicationDetails: string | null;
+  anaphylaxisActionPlan: boolean;
+  dietaryRequirements: string[];
+  additionalNeeds: string | null;
+  photo: string | null;
   status: string;
   createdAt: string;
   updatedAt: string;

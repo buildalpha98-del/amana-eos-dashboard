@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   ChevronDown,
@@ -15,14 +15,44 @@ import {
   CheckCircle,
   AlertCircle,
   ClipboardList,
+  Users,
+  FileText,
+  Pencil,
+  Plus,
+  Loader2,
+  AlertTriangle,
+  UtensilsCrossed,
+  Trash2,
 } from "lucide-react";
 import { useChild, useUpdateChild, type ChildRecord } from "@/hooks/useChildren";
+import {
+  useChildMedical,
+  useUpdateChildMedical,
+  useChildPickups,
+  useAddChildPickup,
+  useDeleteChildPickup,
+  type AuthorisedPickup,
+} from "@/hooks/useChildProfile";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
+import { ChildMedicalTab } from "./ChildMedicalTab";
+import { ChildPickupsTab } from "./ChildPickupsTab";
+import { ChildDocumentsTab } from "./ChildDocumentsTab";
+import { cn } from "@/lib/utils";
 
 interface Props {
   childId: string;
   onClose: () => void;
 }
+
+const PANEL_TABS = [
+  { key: "overview", label: "Overview", icon: User },
+  { key: "medical", label: "Medical & Dietary", icon: Heart },
+  { key: "pickups", label: "Pickups", icon: Users },
+  { key: "documents", label: "Documents", icon: FileText },
+] as const;
+
+type PanelTabKey = (typeof PANEL_TABS)[number]["key"];
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: "Pending", color: "text-amber-700", bg: "bg-amber-50" },
@@ -35,29 +65,32 @@ function Section({
   icon: Icon,
   children,
   defaultOpen = false,
+  action,
 }: {
   title: string;
   icon: React.ElementType;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  action?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border border-border rounded-xl overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-3.5 bg-surface/50 hover:bg-surface transition-colors"
-      >
-        <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+      <div className="flex items-center justify-between p-3.5 bg-surface/50">
+        <button
+          onClick={() => setOpen(!open)}
+          className="flex items-center gap-2 text-sm font-semibold text-foreground hover:text-brand transition-colors flex-1"
+        >
           <Icon className="h-4 w-4 text-brand" />
           {title}
-        </span>
-        {open ? (
-          <ChevronUp className="h-4 w-4 text-foreground/40" />
-        ) : (
-          <ChevronDown className="h-4 w-4 text-foreground/40" />
-        )}
-      </button>
+          {open ? (
+            <ChevronUp className="h-4 w-4 text-foreground/40 ml-auto" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-foreground/40 ml-auto" />
+          )}
+        </button>
+        {action && <div className="ml-2 shrink-0">{action}</div>}
+      </div>
       {open && <div className="p-3.5 text-sm space-y-1.5">{children}</div>}
     </div>
   );
@@ -77,6 +110,7 @@ function Field({ label, value }: { label: string; value?: string | boolean | nul
 export function ChildDetailPanel({ childId, onClose }: Props) {
   const { data: child, isLoading } = useChild(childId);
   const updateMutation = useUpdateChild();
+  const [panelTab, setPanelTab] = useState<PanelTabKey>("overview");
 
   if (isLoading) {
     return (
@@ -169,7 +203,47 @@ export function ChildDetailPanel({ childId, onClose }: Props) {
           )}
         </div>
 
-        {/* Scrollable content */}
+        {/* Tab pills */}
+        <div className="shrink-0 flex gap-1 px-4 py-2 border-b border-border overflow-x-auto">
+          {PANEL_TABS.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setPanelTab(tab.key)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
+                  panelTab === tab.key
+                    ? "bg-brand text-white"
+                    : "text-muted hover:bg-surface hover:text-foreground",
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab content */}
+        {panelTab === "medical" && (
+          <div className="flex-1 overflow-y-auto">
+            <ChildMedicalTab childId={childId} />
+          </div>
+        )}
+        {panelTab === "pickups" && (
+          <div className="flex-1 overflow-y-auto">
+            <ChildPickupsTab childId={childId} />
+          </div>
+        )}
+        {panelTab === "documents" && (
+          <div className="flex-1 overflow-y-auto">
+            <ChildDocumentsTab childId={childId} />
+          </div>
+        )}
+
+        {/* Overview tab — existing content */}
+        {panelTab === "overview" && (
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {/* Child Details */}
           <Section title="Child Details" icon={User} defaultOpen>
@@ -237,32 +311,8 @@ export function ChildDetailPanel({ childId, onClose }: Props) {
             )}
           </Section>
 
-          {/* Medical */}
-          <Section title="Medical Information" icon={Heart}>
-            {med ? (
-              <>
-                <Field label="Doctor" value={med.doctorName as string} />
-                <Field label="Practice" value={med.doctorPractice as string} />
-                <Field label="Doctor Phone" value={med.doctorPhone as string} />
-                <Field label="Medicare" value={med.medicareNumber as string} />
-                <Field label="Immunised" value={med.immunisationUpToDate as boolean} />
-                <Field label="Anaphylaxis" value={med.anaphylaxisRisk as boolean} />
-                <Field label="Allergies" value={med.allergies ? (med.allergyDetails as string) || "Yes" : "No"} />
-                <Field label="Asthma" value={med.asthma as boolean} />
-                <Field label="Conditions" value={med.otherConditions as string} />
-                <Field label="Medications" value={med.medications as string} />
-              </>
-            ) : (
-              <p className="text-xs text-foreground/40">No medical information recorded</p>
-            )}
-          </Section>
-
-          {/* Dietary */}
-          {child.dietary && (
-            <Section title="Dietary Requirements" icon={Shield}>
-              <Field label="Details" value={(child.dietary as Record<string, unknown>).details as string} />
-            </Section>
-          )}
+          {/* Medical & Dietary — expanded fields */}
+          <MedicalSection child={child} med={med} />
 
           {/* Emergency Contacts */}
           {child.enrolment && (
@@ -274,6 +324,9 @@ export function ChildDetailPanel({ childId, onClose }: Props) {
                 )) || <p className="text-xs text-foreground/40">No emergency contacts</p>}
             </Section>
           )}
+
+          {/* Authorised Pickups */}
+          <AuthorisedPickupsSection childId={child.id} />
 
           {/* Enrolment Info */}
           <Section title="Enrolment" icon={GraduationCap}>
@@ -307,8 +360,615 @@ export function ChildDetailPanel({ childId, onClose }: Props) {
             </Section>
           )}
         </div>
+        )}
       </div>
     </div>
+  );
+}
+
+// ── Constants ────────────────────────────────────────────────
+
+const COMMON_CONDITIONS = [
+  "Anaphylaxis",
+  "Asthma",
+  "Diabetes",
+  "Epilepsy",
+  "ADHD",
+  "Autism",
+  "Hearing Impairment",
+  "Vision Impairment",
+];
+
+const COMMON_DIETARY = [
+  "Halal",
+  "Vegetarian",
+  "Vegan",
+  "Nut Free",
+  "Dairy Free",
+  "Gluten Free",
+  "Egg Free",
+  "Shellfish Free",
+];
+
+// ── Medical Section ──────────────────────────────────────────
+
+function MedicalSection({
+  child,
+  med,
+}: {
+  child: ChildRecord;
+  med: Record<string, unknown> | null;
+}) {
+  const [showEdit, setShowEdit] = useState(false);
+
+  return (
+    <>
+      <Section
+        title="Medical Information"
+        icon={Heart}
+        action={
+          <button
+            onClick={() => setShowEdit(true)}
+            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-brand bg-brand/10 rounded-md hover:bg-brand/20 transition-colors"
+          >
+            <Pencil className="w-3 h-3" />
+            Edit
+          </button>
+        }
+      >
+        {/* Medical Conditions */}
+        <div className="space-y-1">
+          <p className="text-xs text-foreground/50 font-medium">Medical Conditions</p>
+          {child.medicalConditions && child.medicalConditions.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {child.medicalConditions.map((c) => (
+                <span
+                  key={c}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[11px] font-medium"
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  {c}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-foreground/40">None recorded</p>
+          )}
+        </div>
+
+        {/* Dietary Requirements */}
+        <div className="space-y-1 pt-1">
+          <p className="text-xs text-foreground/50 font-medium">Dietary Requirements</p>
+          {child.dietaryRequirements && child.dietaryRequirements.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {child.dietaryRequirements.map((d) => (
+                <span
+                  key={d}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[11px] font-medium"
+                >
+                  <UtensilsCrossed className="w-3 h-3" />
+                  {d}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-foreground/40">None recorded</p>
+          )}
+        </div>
+
+        {/* Anaphylaxis Action Plan */}
+        <div className="space-y-1 pt-1">
+          <p className="text-xs text-foreground/50 font-medium">Anaphylaxis Action Plan</p>
+          {child.anaphylaxisActionPlan ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-semibold">
+              <CheckCircle className="w-3 h-3" />
+              On File
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[11px] font-semibold">
+              <AlertCircle className="w-3 h-3" />
+              Not on File
+            </span>
+          )}
+        </div>
+
+        {/* Medication Details */}
+        <div className="space-y-1 pt-1">
+          <p className="text-xs text-foreground/50 font-medium">Medication Details</p>
+          <p className="text-xs text-foreground">
+            {child.medicationDetails || "None"}
+          </p>
+        </div>
+
+        {/* Additional Needs */}
+        <div className="space-y-1 pt-1">
+          <p className="text-xs text-foreground/50 font-medium">Additional Needs</p>
+          <p className="text-xs text-foreground">
+            {child.additionalNeeds || "None"}
+          </p>
+        </div>
+
+        {/* Legacy doctor/practice fields from enrolment JSON */}
+        {med && (
+          <div className="pt-2 mt-2 border-t border-border space-y-1.5">
+            <p className="text-[10px] text-foreground/40 uppercase tracking-wider font-semibold">GP Details</p>
+            <Field label="Doctor" value={med.doctorName as string} />
+            <Field label="Practice" value={med.doctorPractice as string} />
+            <Field label="Doctor Phone" value={med.doctorPhone as string} />
+            <Field label="Medicare" value={med.medicareNumber as string} />
+            <Field label="Immunised" value={med.immunisationUpToDate as boolean} />
+          </div>
+        )}
+      </Section>
+
+      {showEdit && (
+        <EditMedicalDialog childId={child.id} onClose={() => setShowEdit(false)} />
+      )}
+    </>
+  );
+}
+
+// ── Edit Medical Dialog ──────────────────────────────────────
+
+function EditMedicalDialog({
+  childId,
+  onClose,
+}: {
+  childId: string;
+  onClose: () => void;
+}) {
+  const { data } = useChildMedical(childId);
+  const updateMedical = useUpdateChildMedical();
+
+  const [conditions, setConditions] = useState<string[]>([]);
+  const [dietary, setDietary] = useState<string[]>([]);
+  const [anaphylaxisPlan, setAnaphylaxisPlan] = useState(false);
+  const [medicationDetails, setMedicationDetails] = useState("");
+  const [additionalNeeds, setAdditionalNeeds] = useState("");
+  const [customCondition, setCustomCondition] = useState("");
+  const [customDietary, setCustomDietary] = useState("");
+
+  useEffect(() => {
+    if (data) {
+      setConditions(data.medicalConditions);
+      setDietary(data.dietaryRequirements);
+      setAnaphylaxisPlan(data.anaphylaxisActionPlan);
+      setMedicationDetails(data.medicationDetails ?? "");
+      setAdditionalNeeds(data.additionalNeeds ?? "");
+    }
+  }, [data]);
+
+  const toggleItem = (
+    list: string[],
+    setList: React.Dispatch<React.SetStateAction<string[]>>,
+    value: string,
+  ) => {
+    setList(list.includes(value) ? list.filter((x) => x !== value) : [...list, value]);
+  };
+
+  const addCustom = (
+    value: string,
+    list: string[],
+    setList: React.Dispatch<React.SetStateAction<string[]>>,
+    setClear: React.Dispatch<React.SetStateAction<string>>,
+  ) => {
+    const trimmed = value.trim();
+    if (trimmed && !list.includes(trimmed)) {
+      setList([...list, trimmed]);
+    }
+    setClear("");
+  };
+
+  const handleSave = () => {
+    updateMedical.mutate(
+      {
+        childId,
+        medicalConditions: conditions,
+        dietaryRequirements: dietary,
+        anaphylaxisActionPlan: anaphylaxisPlan,
+        medicationDetails: medicationDetails.trim() || null,
+        additionalNeeds: additionalNeeds.trim() || null,
+      },
+      { onSuccess: () => onClose() },
+    );
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent size="lg" className="max-h-[85vh] overflow-y-auto">
+        <DialogTitle className="text-lg font-semibold text-foreground">
+          Edit Medical & Dietary Information
+        </DialogTitle>
+
+        <div className="space-y-5 mt-4">
+          {/* Medical Conditions */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+              <AlertTriangle className="w-4 h-4 text-red-500" />
+              Medical Conditions
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {COMMON_CONDITIONS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => toggleItem(conditions, setConditions, c)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded-full border transition-colors",
+                    conditions.includes(c)
+                      ? "bg-red-100 text-red-700 border-red-300"
+                      : "bg-card text-muted border-border hover:border-red-200 hover:bg-red-50",
+                  )}
+                >
+                  {c}
+                </button>
+              ))}
+              {/* Custom conditions that aren't in the common list */}
+              {conditions
+                .filter((c) => !COMMON_CONDITIONS.includes(c))
+                .map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => toggleItem(conditions, setConditions, c)}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border bg-red-100 text-red-700 border-red-300 transition-colors"
+                  >
+                    {c} ×
+                  </button>
+                ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customCondition}
+                onChange={(e) => setCustomCondition(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustom(customCondition, conditions, setConditions, setCustomCondition);
+                  }
+                }}
+                placeholder="Add custom condition..."
+                className="flex-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:ring-2 focus:ring-brand focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => addCustom(customCondition, conditions, setConditions, setCustomCondition)}
+                disabled={!customCondition.trim()}
+                className="px-3 py-1.5 text-xs font-medium bg-surface text-foreground rounded-lg hover:bg-surface/80 disabled:opacity-40 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          {/* Dietary Requirements */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+              <UtensilsCrossed className="w-4 h-4 text-amber-500" />
+              Dietary Requirements
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {COMMON_DIETARY.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => toggleItem(dietary, setDietary, d)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded-full border transition-colors",
+                    dietary.includes(d)
+                      ? "bg-amber-100 text-amber-700 border-amber-300"
+                      : "bg-card text-muted border-border hover:border-amber-200 hover:bg-amber-50",
+                  )}
+                >
+                  {d}
+                </button>
+              ))}
+              {dietary
+                .filter((d) => !COMMON_DIETARY.includes(d))
+                .map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => toggleItem(dietary, setDietary, d)}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border bg-amber-100 text-amber-700 border-amber-300 transition-colors"
+                  >
+                    {d} ×
+                  </button>
+                ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customDietary}
+                onChange={(e) => setCustomDietary(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustom(customDietary, dietary, setDietary, setCustomDietary);
+                  }
+                }}
+                placeholder="Add custom dietary requirement..."
+                className="flex-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:ring-2 focus:ring-brand focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => addCustom(customDietary, dietary, setDietary, setCustomDietary)}
+                disabled={!customDietary.trim()}
+                className="px-3 py-1.5 text-xs font-medium bg-surface text-foreground rounded-lg hover:bg-surface/80 disabled:opacity-40 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          {/* Anaphylaxis Action Plan */}
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={anaphylaxisPlan}
+              onChange={(e) => setAnaphylaxisPlan(e.target.checked)}
+              className="rounded border-border text-brand focus:ring-brand"
+            />
+            <span className="text-foreground">Anaphylaxis Action Plan on file</span>
+          </label>
+
+          {/* Medication Details */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Medication Details</label>
+            <textarea
+              value={medicationDetails}
+              onChange={(e) => setMedicationDetails(e.target.value)}
+              placeholder="Medications, dosage, and administration instructions..."
+              rows={3}
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+            />
+          </div>
+
+          {/* Additional Needs */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Additional Needs</label>
+            <textarea
+              value={additionalNeeds}
+              onChange={(e) => setAdditionalNeeds(e.target.value)}
+              placeholder="Any other care requirements..."
+              rows={3}
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 justify-end pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-surface transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={updateMedical.isPending}
+              className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg text-sm font-medium hover:bg-brand/90 disabled:opacity-50 transition-colors"
+            >
+              {updateMedical.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Save Changes
+            </button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Authorised Pickups Section ───────────────────────────────
+
+function AuthorisedPickupsSection({ childId }: { childId: string }) {
+  const { data, isLoading } = useChildPickups(childId);
+  const [showAdd, setShowAdd] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<AuthorisedPickup | null>(null);
+  const deletePickup = useDeleteChildPickup();
+
+  const pickups = data?.pickups ?? [];
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    deletePickup.mutate(
+      { childId, pickupId: deleteTarget.id },
+      { onSuccess: () => setDeleteTarget(null) },
+    );
+  };
+
+  return (
+    <>
+      <Section
+        title="Authorised Pickups"
+        icon={Users}
+        action={
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-brand bg-brand/10 rounded-md hover:bg-brand/20 transition-colors"
+          >
+            <Plus className="w-3 h-3" />
+            Add
+          </button>
+        }
+      >
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-lg" />
+          </div>
+        ) : pickups.length === 0 ? (
+          <p className="text-xs text-foreground/40">No authorised pickups</p>
+        ) : (
+          <div className="space-y-2">
+            {pickups.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between gap-2 rounded-lg bg-surface/50 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-foreground truncate">{p.name}</span>
+                    <span className="text-[10px] text-foreground/50">({p.relationship})</span>
+                    {p.isEmergencyContact && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[9px] font-semibold">
+                        <Shield className="w-2.5 h-2.5" />
+                        Emergency
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-foreground/50 flex items-center gap-1 mt-0.5">
+                    <Phone className="w-2.5 h-2.5" />
+                    {p.phone}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setDeleteTarget(p)}
+                  className="p-1 rounded-md text-muted hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                  title="Remove"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* Add Pickup Dialog */}
+      {showAdd && (
+        <OverviewAddPickupDialog childId={childId} onClose={() => setShowAdd(false)} />
+      )}
+
+      {/* Delete Confirmation */}
+      {deleteTarget && (
+        <Dialog open onOpenChange={() => setDeleteTarget(null)}>
+          <DialogContent size="sm">
+            <DialogTitle className="text-lg font-semibold text-foreground">
+              Remove Pickup
+            </DialogTitle>
+            <p className="text-sm text-muted mt-2">
+              Remove <strong>{deleteTarget.name}</strong> as an authorised pickup?
+            </p>
+            <div className="flex gap-2 mt-4 justify-end">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="px-3 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-surface transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deletePickup.isPending}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {deletePickup.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Remove
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
+  );
+}
+
+function OverviewAddPickupDialog({
+  childId,
+  onClose,
+}: {
+  childId: string;
+  onClose: () => void;
+}) {
+  const addPickup = useAddChildPickup();
+  const [name, setName] = useState("");
+  const [relationship, setRelationship] = useState("");
+  const [phone, setPhone] = useState("");
+  const [isEmergency, setIsEmergency] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    addPickup.mutate(
+      {
+        childId,
+        name: name.trim(),
+        relationship: relationship.trim(),
+        phone: phone.trim(),
+        isEmergencyContact: isEmergency,
+      },
+      { onSuccess: () => onClose() },
+    );
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent size="md">
+        <DialogTitle className="text-lg font-semibold text-foreground">
+          Add Authorised Pickup
+        </DialogTitle>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Full Name *</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-brand focus:border-transparent"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Relationship *</label>
+            <input
+              type="text"
+              value={relationship}
+              onChange={(e) => setRelationship(e.target.value)}
+              required
+              placeholder="e.g. Grandmother, Uncle"
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted focus:ring-2 focus:ring-brand focus:border-transparent"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Phone Number *</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-brand focus:border-transparent"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={isEmergency}
+              onChange={(e) => setIsEmergency(e.target.checked)}
+              className="rounded border-border text-brand focus:ring-brand"
+            />
+            <span className="text-foreground">Emergency contact</span>
+          </label>
+          <div className="flex gap-2 justify-end pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-surface transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={addPickup.isPending}
+              className="flex items-center gap-1.5 px-4 py-2 bg-brand text-white rounded-lg text-sm font-medium hover:bg-brand/90 disabled:opacity-50 transition-colors"
+            >
+              {addPickup.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Add Pickup
+            </button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

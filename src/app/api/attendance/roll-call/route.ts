@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { z } from "zod";
 import type { SessionType } from "@prisma/client";
+import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
 
 // ── GET: Fetch roll call list for a session ───────────────
 
@@ -39,8 +40,14 @@ export const GET = withApiAuth(async (req, session) => {
           id: true,
           firstName: true,
           surname: true,
+          photo: true,
+          medicalConditions: true,
+          dietaryRequirements: true,
+          anaphylaxisActionPlan: true,
+          medicationDetails: true,
           medical: true,
           dietary: true,
+          yearLevel: true,
         },
       },
     },
@@ -83,7 +90,11 @@ export const GET = withApiAuth(async (req, session) => {
       // Fetch child data separately for walk-ins
       const child = await prisma.child.findUnique({
         where: { id: record.childId },
-        select: { id: true, firstName: true, surname: true, medical: true, dietary: true },
+        select: {
+          id: true, firstName: true, surname: true, photo: true,
+          medicalConditions: true, dietaryRequirements: true, anaphylaxisActionPlan: true,
+          medicationDetails: true, medical: true, dietary: true, yearLevel: true,
+        },
       });
       if (child) {
         rollCall.push({
@@ -102,13 +113,24 @@ export const GET = withApiAuth(async (req, session) => {
     }
   }
 
-  // Sort alphabetically by surname, then first name
+  // Sort: present first, then booked/not marked, then absent
+  const statusOrder: Record<string, number> = { present: 0, booked: 1, absent: 2 };
   rollCall.sort((a, b) => {
+    const orderDiff = (statusOrder[a.status] ?? 1) - (statusOrder[b.status] ?? 1);
+    if (orderDiff !== 0) return orderDiff;
     const surnCmp = a.child.surname.localeCompare(b.child.surname);
     return surnCmp !== 0 ? surnCmp : a.child.firstName.localeCompare(b.child.firstName);
   });
 
-  return NextResponse.json(rollCall);
+  const total = rollCall.length;
+  const present = rollCall.filter((r) => r.status === "present").length;
+  const absent = rollCall.filter((r) => r.status === "absent").length;
+  const notMarked = rollCall.filter((r) => r.status === "booked").length;
+
+  return NextResponse.json({
+    records: rollCall,
+    summary: { total, present, absent, notMarked },
+  });
 });
 
 // ── POST: Update an individual child's attendance ─────────
@@ -144,12 +166,13 @@ export const POST = withApiAuth(async (req, session) => {
   let record;
 
   switch (action) {
-    case "sign_in":
+    case "sign_in": {
+      const signInTime = new Date();
       record = await prisma.attendanceRecord.upsert({
         where: uniqueKey,
         update: {
           status: "present",
-          signInTime: new Date(),
+          signInTime,
           signedInById: session.user.id,
           notes,
         },
@@ -159,18 +182,22 @@ export const POST = withApiAuth(async (req, session) => {
           date: dateObj,
           sessionType,
           status: "present",
-          signInTime: new Date(),
+          signInTime,
           signedInById: session.user.id,
           notes,
         },
       });
+      // Fire-and-forget — don't block the response
+      sendSignInNotification(childId, serviceId, signInTime).catch(() => {});
       break;
+    }
 
-    case "sign_out":
+    case "sign_out": {
+      const signOutTime = new Date();
       record = await prisma.attendanceRecord.upsert({
         where: uniqueKey,
         update: {
-          signOutTime: new Date(),
+          signOutTime,
           signedOutById: session.user.id,
         },
         create: {
@@ -179,13 +206,16 @@ export const POST = withApiAuth(async (req, session) => {
           date: dateObj,
           sessionType,
           status: "present",
-          signInTime: new Date(), // auto sign-in if missing
+          signInTime: signOutTime, // auto sign-in if missing
           signedInById: session.user.id,
-          signOutTime: new Date(),
+          signOutTime,
           signedOutById: session.user.id,
         },
       });
+      // Fire-and-forget
+      sendSignOutNotification(childId, serviceId, signOutTime).catch(() => {});
       break;
+    }
 
     case "mark_absent":
       record = await prisma.attendanceRecord.upsert({

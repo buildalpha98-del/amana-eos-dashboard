@@ -7,18 +7,19 @@ import {
   UserX,
   Undo2,
   Search,
-  AlertTriangle,
-  UtensilsCrossed,
   Users,
   UserCheck,
   Clock,
-  ChevronDown,
+  MoreVertical,
+  StickyNote,
+  Loader2,
 } from "lucide-react";
 import { useRollCall, useUpdateRollCall, type RollCallEntry } from "@/hooks/useRollCall";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Button } from "@/components/ui/Button";
+import { MedicalAlertBadge } from "@/components/children/MedicalAlertBadge";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 
 // ── Types & Constants ────────────────────────────────────
 
@@ -47,22 +48,22 @@ function todayDateString(): string {
   return now.toISOString().split("T")[0];
 }
 
-function hasMedical(child: RollCallEntry["child"]): boolean {
-  if (!child.medical) return false;
-  const m = child.medical as Record<string, unknown>;
-  const conditions = m.conditions ?? m.medicalConditions ?? [];
-  const allergies = m.allergies ?? [];
+function ChildAvatar({ child }: { child: RollCallEntry["child"] }) {
+  if (child.photo) {
+    return (
+      <img
+        src={child.photo}
+        alt={`${child.firstName} ${child.surname}`}
+        className="w-12 h-12 rounded-full object-cover shrink-0"
+      />
+    );
+  }
+  const initials = `${child.firstName[0] ?? ""}${child.surname[0] ?? ""}`.toUpperCase();
   return (
-    (Array.isArray(conditions) && conditions.length > 0) ||
-    (Array.isArray(allergies) && allergies.length > 0)
+    <div className="w-12 h-12 rounded-full bg-brand flex items-center justify-center text-white font-bold text-sm shrink-0">
+      {initials}
+    </div>
   );
-}
-
-function hasDietary(child: RollCallEntry["child"]): boolean {
-  if (!child.dietary) return false;
-  const d = child.dietary as Record<string, unknown>;
-  const restrictions = d.restrictions ?? d.dietaryRequirements ?? [];
-  return Array.isArray(restrictions) && restrictions.length > 0;
 }
 
 // ── Main Component ───────────────────────────────────────
@@ -72,12 +73,14 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
   const [sessionType, setSessionType] = useState("asc");
   const [search, setSearch] = useState("");
 
-  const { data: entries, isLoading, error } = useRollCall(serviceId, date, sessionType);
+  const { data, isLoading, error } = useRollCall(serviceId, date, sessionType);
   const updateRollCall = useUpdateRollCall();
+
+  const entries = data?.records ?? [];
+  const summary = data?.summary ?? { total: 0, present: 0, absent: 0, notMarked: 0 };
 
   // Filter by search
   const filtered = useMemo(() => {
-    if (!entries) return [];
     if (!search.trim()) return entries;
     const q = search.toLowerCase();
     return entries.filter(
@@ -87,19 +90,10 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
     );
   }, [entries, search]);
 
-  // Summary counts
-  const summary = useMemo(() => {
-    if (!entries) return { total: 0, signedIn: 0, absent: 0, toArrive: 0 };
-    const total = entries.length;
-    const signedIn = entries.filter((e) => e.status === "present").length;
-    const absent = entries.filter((e) => e.status === "absent").length;
-    const toArrive = entries.filter((e) => e.status === "booked").length;
-    return { total, signedIn, absent, toArrive };
-  }, [entries]);
-
   function handleAction(
     childId: string,
     action: "sign_in" | "sign_out" | "mark_absent" | "undo",
+    extra?: { absenceReason?: string; notes?: string },
   ) {
     updateRollCall.mutate({
       childId,
@@ -107,6 +101,7 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
       date,
       sessionType,
       action,
+      ...extra,
     });
   }
 
@@ -118,7 +113,7 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="px-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+          className="px-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
         />
 
         <div className="flex rounded-lg border border-border overflow-hidden">
@@ -126,7 +121,7 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
             <button
               key={st}
               onClick={() => setSessionType(st)}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${
+              className={`px-5 py-2.5 text-sm font-medium transition-colors min-h-[44px] ${
                 sessionType === st
                   ? "bg-brand text-white"
                   : "bg-card text-muted hover:bg-surface"
@@ -144,24 +139,24 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
             placeholder="Search by name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
           />
         </div>
       </div>
 
       {/* ── Summary Cards ──────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryCard icon={Users} label="Total Booked" value={summary.total} color="text-foreground" bgColor="bg-surface" />
-        <SummaryCard icon={UserCheck} label="Signed In" value={summary.signedIn} color="text-green-600" bgColor="bg-green-50" />
+        <SummaryCard icon={Users} label="Total Enrolled" value={summary.total} color="text-foreground" bgColor="bg-surface" />
+        <SummaryCard icon={UserCheck} label="Present" value={summary.present} color="text-green-600" bgColor="bg-green-50" />
         <SummaryCard icon={UserX} label="Absent" value={summary.absent} color="text-red-600" bgColor="bg-red-50" />
-        <SummaryCard icon={Clock} label="To Arrive" value={summary.toArrive} color="text-amber-600" bgColor="bg-amber-50" />
+        <SummaryCard icon={Clock} label="Not Yet Marked" value={summary.notMarked} color="text-amber-600" bgColor="bg-amber-50" />
       </div>
 
       {/* ── Roll Call List ─────────────────────────────── */}
       {isLoading ? (
         <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-xl" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-xl" />
           ))}
         </div>
       ) : error ? (
@@ -169,9 +164,9 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Users}
-          title={entries?.length === 0 ? "No bookings for this session" : "No matching children"}
+          title={entries.length === 0 ? "No children booked for this session" : "No matching children"}
           description={
-            entries?.length === 0
+            entries.length === 0
               ? "There are no confirmed bookings for this date and session type."
               : "Try a different search term."
           }
@@ -226,142 +221,239 @@ function RollCallRow({
   isPending,
 }: {
   entry: RollCallEntry;
-  onAction: (childId: string, action: "sign_in" | "sign_out" | "mark_absent" | "undo") => void;
+  onAction: (childId: string, action: "sign_in" | "sign_out" | "mark_absent" | "undo", extra?: { absenceReason?: string; notes?: string }) => void;
   isPending: boolean;
 }) {
   const [showMenu, setShowMenu] = useState(false);
-  const medical = hasMedical(entry.child);
-  const dietary = hasDietary(entry.child);
+  const [showAbsentDialog, setShowAbsentDialog] = useState(false);
+  const [showNoteDialog, setShowNoteDialog] = useState(false);
+  const [absenceReason, setAbsenceReason] = useState("");
+  const [note, setNote] = useState("");
+
+  const hasMedFlags =
+    entry.child.medicalConditions.length > 0 ||
+    entry.child.dietaryRequirements.length > 0 ||
+    entry.child.anaphylaxisActionPlan;
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-      {/* Child info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-semibold text-foreground">
-            {entry.child.firstName} {entry.child.surname}
-          </p>
-          {medical && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-semibold">
-              <AlertTriangle className="w-3 h-3" />
-              Medical
+    <>
+      <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+        {/* Avatar */}
+        <ChildAvatar child={entry.child} />
+
+        {/* Child info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-semibold text-foreground text-base">
+              {entry.child.firstName} {entry.child.surname}
+            </p>
+            {entry.bookingType === "casual" && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">
+                Casual
+              </span>
+            )}
+          </div>
+          {entry.child.yearLevel && (
+            <p className="text-xs text-muted">{entry.child.yearLevel}</p>
+          )}
+          {hasMedFlags && (
+            <div className="mt-1">
+              <MedicalAlertBadge child={entry.child} compact />
+            </div>
+          )}
+          {entry.child.anaphylaxisActionPlan && (
+            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold uppercase tracking-wide">
+              Anaphylaxis
             </span>
           )}
-          {dietary && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-semibold">
-              <UtensilsCrossed className="w-3 h-3" />
-              Dietary
-            </span>
+
+          {/* Time info */}
+          {entry.status === "present" && (
+            <p className="text-xs text-green-600 mt-1 font-medium">
+              Signed in {formatTime(entry.signInTime)}
+              {entry.signOutTime && (
+                <span className="text-muted font-normal"> → Signed out {formatTime(entry.signOutTime)}</span>
+              )}
+            </p>
           )}
-          {entry.bookingType === "casual" && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">
-              Casual
-            </span>
+          {entry.status === "absent" && entry.absenceReason && (
+            <p className="text-xs text-muted mt-1">Reason: {entry.absenceReason}</p>
           )}
         </div>
 
-        {/* Time info when signed in/out */}
-        {entry.status === "present" && (
-          <p className="text-xs text-muted mt-1">
-            Signed in {formatTime(entry.signInTime)}
-            {entry.signOutTime && ` · Out ${formatTime(entry.signOutTime)}`}
-          </p>
-        )}
-        {entry.status === "absent" && entry.absenceReason && (
-          <p className="text-xs text-muted mt-1">Reason: {entry.absenceReason}</p>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-2 shrink-0">
-        {entry.status === "booked" && (
-          <>
-            <Button
-              size="sm"
-              variant="primary"
-              iconLeft={<LogIn className="w-4 h-4" />}
+        {/* Action area */}
+        <div className="flex items-center gap-2 shrink-0">
+          {entry.status === "booked" && (
+            <button
               disabled={isPending}
               onClick={() => onAction(entry.childId, "sign_in")}
+              className="min-h-[44px] min-w-[120px] px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
+              <LogIn className="w-4 h-4" />
               Sign In
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              iconLeft={<UserX className="w-4 h-4" />}
-              disabled={isPending}
-              onClick={() => onAction(entry.childId, "mark_absent")}
-            >
-              Absent
-            </Button>
-          </>
-        )}
+            </button>
+          )}
 
-        {entry.status === "present" && !entry.signOutTime && (
-          <>
-            <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
-              {formatTime(entry.signInTime)}
-            </span>
-            <Button
-              size="sm"
-              variant="destructive"
-              iconLeft={<LogOut className="w-4 h-4" />}
+          {entry.status === "present" && !entry.signOutTime && (
+            <button
               disabled={isPending}
               onClick={() => onAction(entry.childId, "sign_out")}
+              className="min-h-[44px] min-w-[120px] px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
+              <LogOut className="w-4 h-4" />
               Sign Out
-            </Button>
-          </>
-        )}
+            </button>
+          )}
 
-        {entry.status === "present" && entry.signOutTime && (
-          <div className="flex items-center gap-2 text-xs text-muted">
-            <span className="bg-green-50 text-green-600 px-2 py-1 rounded-full font-medium">
-              In {formatTime(entry.signInTime)}
+          {entry.status === "present" && entry.signOutTime && (
+            <span className="text-xs text-muted italic">Complete</span>
+          )}
+
+          {entry.status === "absent" && (
+            <span className="min-h-[44px] px-4 py-2.5 text-xs font-semibold text-red-600 bg-red-50 rounded-xl flex items-center">
+              Absent
             </span>
-            <span className="bg-surface px-2 py-1 rounded-full font-medium">
-              Out {formatTime(entry.signOutTime)}
-            </span>
-          </div>
-        )}
+          )}
 
-        {entry.status === "absent" && (
-          <span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded-full">
-            Absent
-          </span>
-        )}
-
-        {/* Undo dropdown — only show if not in "booked" state */}
-        {entry.status !== "booked" && (
+          {/* Three-dot menu */}
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 rounded-lg text-muted hover:bg-surface hover:text-foreground transition-colors"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-muted hover:bg-surface hover:text-foreground transition-colors"
               aria-label="More actions"
             >
-              <ChevronDown className="w-4 h-4" />
+              <MoreVertical className="w-4 h-4" />
             </button>
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-                <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[140px]">
+                <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-xl shadow-lg py-1 min-w-[160px]">
+                  {entry.status === "booked" && (
+                    <button
+                      onClick={() => {
+                        setShowAbsentDialog(true);
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface flex items-center gap-2 min-h-[44px]"
+                    >
+                      <UserX className="w-3.5 h-3.5" />
+                      Mark Absent
+                    </button>
+                  )}
+                  {entry.status !== "booked" && (
+                    <button
+                      onClick={() => {
+                        onAction(entry.childId, "undo");
+                        setShowMenu(false);
+                      }}
+                      disabled={isPending}
+                      className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface flex items-center gap-2 min-h-[44px]"
+                    >
+                      <Undo2 className="w-3.5 h-3.5" />
+                      Undo
+                    </button>
+                  )}
                   <button
                     onClick={() => {
-                      onAction(entry.childId, "undo");
+                      setShowNoteDialog(true);
                       setShowMenu(false);
                     }}
-                    disabled={isPending}
-                    className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-surface flex items-center gap-2"
+                    className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-surface flex items-center gap-2 min-h-[44px]"
                   >
-                    <Undo2 className="w-3.5 h-3.5" />
-                    Undo
+                    <StickyNote className="w-3.5 h-3.5" />
+                    Add Note
                   </button>
                 </div>
               </>
             )}
           </div>
-        )}
+        </div>
       </div>
-    </div>
+
+      {/* Mark Absent Dialog */}
+      {showAbsentDialog && (
+        <Dialog open onOpenChange={() => setShowAbsentDialog(false)}>
+          <DialogContent size="sm">
+            <DialogTitle className="text-lg font-semibold text-foreground">
+              Mark {entry.child.firstName} as Absent
+            </DialogTitle>
+            <div className="space-y-3 mt-3">
+              <div>
+                <label className="text-sm font-medium text-foreground">Reason *</label>
+                <input
+                  type="text"
+                  value={absenceReason}
+                  onChange={(e) => setAbsenceReason(e.target.value)}
+                  placeholder="e.g. Sick, Family holiday"
+                  className="w-full mt-1 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setShowAbsentDialog(false)}
+                  className="px-3 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-surface transition-colors min-h-[44px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    onAction(entry.childId, "mark_absent", { absenceReason: absenceReason.trim() });
+                    setShowAbsentDialog(false);
+                    setAbsenceReason("");
+                  }}
+                  disabled={!absenceReason.trim()}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-colors min-h-[44px]"
+                >
+                  Mark Absent
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Add Note Dialog */}
+      {showNoteDialog && (
+        <Dialog open onOpenChange={() => setShowNoteDialog(false)}>
+          <DialogContent size="sm">
+            <DialogTitle className="text-lg font-semibold text-foreground">
+              Add Note for {entry.child.firstName}
+            </DialogTitle>
+            <div className="space-y-3 mt-3">
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Enter a note..."
+                rows={3}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+                autoFocus
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setShowNoteDialog(false)}
+                  className="px-3 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-surface transition-colors min-h-[44px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    // Re-submit current status with added note
+                    const action = entry.status === "absent" ? "mark_absent" : entry.status === "present" ? "sign_in" : "sign_in";
+                    onAction(entry.childId, action, { notes: note.trim() });
+                    setShowNoteDialog(false);
+                    setNote("");
+                  }}
+                  disabled={!note.trim()}
+                  className="px-4 py-2 bg-brand text-white rounded-lg text-sm font-medium hover:bg-brand/90 disabled:opacity-50 transition-colors min-h-[44px]"
+                >
+                  Save Note
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
