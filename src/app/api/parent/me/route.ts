@@ -247,6 +247,7 @@ export const GET = withParentAuth(async (_req, { parent }) => {
               relationship: ((p.relationship as string) || "").trim(),
               phone: ((p.phone as string) || "").trim(),
               active: true,
+              notes: typeof p.notes === "string" ? p.notes.trim() || null : null,
             }));
 
           if (pickupsToCreate.length > 0) {
