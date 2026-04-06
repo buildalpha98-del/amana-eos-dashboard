@@ -558,16 +558,25 @@ function MedicalFormField({ label, value, onChange, placeholder }: { label: stri
 
 // ── Documents Tab ───────────────────────────────────────
 
-interface ParentDoc {
+interface ChildDocForParent {
   id: string;
-  docType: string;
+  documentType: string;
   fileName: string;
   fileUrl: string;
-  uploadedAt: string;
-  expiryDate: string | null;
+  uploaderType: string | null;
+  expiresAt: string | null;
+  isVerified: boolean;
+  verifiedAt: string | null;
+  createdAt: string;
 }
 
 const DOC_TYPE_LABELS: Record<string, string> = {
+  ANAPHYLAXIS_PLAN: "Anaphylaxis Plan",
+  ASTHMA_PLAN: "Asthma Plan",
+  MEDICAL_CERTIFICATE: "Medical Certificate",
+  IMMUNISATION_RECORD: "Immunisation Record",
+  COURT_ORDER: "Court Order",
+  OTHER: "Other",
   immunisation: "Immunisation Record",
   medical_action_plan: "Medical Action Plan",
   birth_certificate: "Birth Certificate",
@@ -575,32 +584,52 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+const PARENT_DOC_TYPES = [
+  { value: "IMMUNISATION_RECORD", label: "Immunisation Record" },
+  { value: "MEDICAL_CERTIFICATE", label: "Medical Certificate" },
+  { value: "COURT_ORDER", label: "Court Order" },
+  { value: "ANAPHYLAXIS_PLAN", label: "Anaphylaxis/Asthma Plan" },
+  { value: "OTHER", label: "Other" },
+];
+
 function DocumentsTab({ childId }: { childId: string }) {
-  const [docs, setDocs] = useState<ParentDoc[]>([]);
+  const [docs, setDocs] = useState<ChildDocForParent[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [docType, setDocType] = useState("immunisation");
-  const [fileName, setFileName] = useState("");
+  const [docType, setDocType] = useState("IMMUNISATION_RECORD");
+  const [file, setFile] = useState<File | null>(null);
+  const [docName, setDocName] = useState("");
 
   useEffect(() => {
-    fetchApi<ParentDoc[]>(`/api/parent/children/${childId}/documents`)
-      .then(setDocs)
+    fetchApi<{ documents: ChildDocForParent[] }>(`/api/parent/children/${childId}/documents`)
+      .then((res) => setDocs(res.documents ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [childId]);
 
   const handleUpload = async () => {
-    if (!fileName) return;
+    if (!file) return;
     setUploading(true);
     try {
-      const doc = await mutateApi<ParentDoc>(`/api/parent/children/${childId}/documents`, {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("documentType", docType);
+      if (docName) formData.append("name", docName);
+
+      const res = await fetch(`/api/parent/children/${childId}/documents`, {
         method: "POST",
-        body: { docType, fileName, fileUrl: `/uploads/${fileName}` }, // TODO: S3 integration
+        body: formData,
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(err.error || "Upload failed");
+      }
+      const doc = await res.json() as ChildDocForParent;
       setDocs((prev) => [doc, ...prev]);
       setUploadOpen(false);
-      setFileName("");
+      setFile(null);
+      setDocName("");
       toast({ description: "Document uploaded" });
     } catch (e) {
       toast({ variant: "destructive", description: e instanceof Error ? e.message : "Upload failed" });
@@ -620,6 +649,10 @@ function DocumentsTab({ childId }: { childId: string }) {
         </button>
       </div>
 
+      <p className="text-xs text-[#7c7c8a] bg-[#F2EDE8] rounded-lg px-3 py-2">
+        Documents uploaded by parents are reviewed by your coordinator before being marked as verified.
+      </p>
+
       {docs.length === 0 ? (
         <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
           <FileText className="w-8 h-8 text-[#7c7c8a] mx-auto mb-2" />
@@ -631,9 +664,22 @@ function DocumentsTab({ childId }: { childId: string }) {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-semibold text-[#1a1a2e]">{doc.fileName}</p>
-                <p className="text-xs text-[#7c7c8a] mt-0.5">{DOC_TYPE_LABELS[doc.docType] ?? doc.docType}</p>
-                <p className="text-xs text-[#7c7c8a]">Uploaded {new Date(doc.uploadedAt).toLocaleDateString("en-AU")}</p>
-                {doc.expiryDate && <p className="text-xs text-amber-600">Expires {new Date(doc.expiryDate).toLocaleDateString("en-AU")}</p>}
+                <p className="text-xs text-[#7c7c8a] mt-0.5">{DOC_TYPE_LABELS[doc.documentType] ?? doc.documentType}</p>
+                <p className="text-xs text-[#7c7c8a]">
+                  Uploaded {new Date(doc.createdAt).toLocaleDateString("en-AU")}
+                  {doc.uploaderType && <span className="ml-1">by {doc.uploaderType === "parent" ? "you" : "staff"}</span>}
+                </p>
+                {doc.expiresAt && (
+                  <p className={cn("text-xs mt-0.5", new Date(doc.expiresAt) < new Date() ? "text-red-600" : "text-amber-600")}>
+                    {new Date(doc.expiresAt) < new Date() ? "Expired" : "Expires"} {new Date(doc.expiresAt).toLocaleDateString("en-AU")}
+                  </p>
+                )}
+                {doc.isVerified && (
+                  <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold text-green-600">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Verified
+                  </span>
+                )}
               </div>
               <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] min-h-[44px] flex items-center">
                 View
@@ -652,19 +698,28 @@ function DocumentsTab({ childId }: { childId: string }) {
             <div>
               <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">Document Type</label>
               <select value={docType} onChange={(e) => setDocType(e.target.value)} className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]">
-                {Object.entries(DOC_TYPE_LABELS).map(([val, label]) => (
-                  <option key={val} value={val}>{label}</option>
+                {PARENT_DOC_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">File</label>
-              <button type="button" onClick={() => setFileName(`${docType}-${Date.now()}.pdf`)} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed border-[#e8e4df] hover:border-[#004E64]/30 text-sm text-[#7c7c8a] hover:text-[#004E64] transition-colors w-full justify-center min-h-[44px]">
-                <Upload className="w-4 h-4" />
-                {fileName || "Select file (simulated)"}
-              </button>
+              <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">Document Name</label>
+              <input type="text" value={docName} onChange={(e) => setDocName(e.target.value)} placeholder="Optional — defaults to filename" className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#FAF8F5]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors min-h-[44px]" />
             </div>
-            <button onClick={handleUpload} disabled={!fileName || uploading} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]">
+            <div>
+              <label className="block text-xs font-medium text-[#1a1a2e]/70 mb-1">File (PDF or image, max 10MB)</label>
+              <input
+                type="file"
+                accept=".pdf,image/jpeg,image/png,image/webp"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className="w-full text-sm text-[#7c7c8a] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border file:border-[#e8e4df] file:text-sm file:font-medium file:bg-[#F2EDE8] file:text-[#1a1a2e] hover:file:bg-[#004E64]/10 hover:file:text-[#004E64] file:transition-colors file:cursor-pointer"
+              />
+            </div>
+            {file && file.size > 10 * 1024 * 1024 && (
+              <p className="text-xs text-red-600">File exceeds 10MB limit.</p>
+            )}
+            <button onClick={handleUpload} disabled={!file || uploading || (file && file.size > 10 * 1024 * 1024)} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]">
               {uploading ? (<><Loader2 className="w-4 h-4 animate-spin" />Uploading...</>) : "Upload"}
             </button>
           </div>
@@ -682,16 +737,20 @@ interface PickupPerson {
   relationship: string;
   phone: string;
   active: boolean;
+  notes: string | null;
+  photoUrl: string | null;
 }
 
 function PickupsTab({ childId }: { childId: string }) {
   const [pickups, setPickups] = useState<PickupPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [name, setName] = useState("");
-  const [relationship, setRelationship] = useState("");
-  const [phone, setPhone] = useState("");
+  const [editTarget, setEditTarget] = useState<PickupPerson | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formName, setFormName] = useState("");
+  const [formRelationship, setFormRelationship] = useState("");
+  const [formPhone, setFormPhone] = useState("");
+  const [formNotes, setFormNotes] = useState("");
 
   useEffect(() => {
     fetchApi<PickupPerson[]>(`/api/parent/children/${childId}/pickups`)
@@ -700,34 +759,45 @@ function PickupsTab({ childId }: { childId: string }) {
       .finally(() => setLoading(false));
   }, [childId]);
 
-  const handleAdd = async () => {
-    if (!name || !relationship || !phone) return;
-    setAdding(true);
-    try {
-      const pickup = await mutateApi<PickupPerson>(`/api/parent/children/${childId}/pickups`, {
-        method: "POST",
-        body: { name, relationship, phone },
-      });
-      setPickups((prev) => [pickup, ...prev]);
-      setAddOpen(false);
-      setName(""); setRelationship(""); setPhone("");
-      toast({ description: "Authorised person added" });
-    } catch (e) {
-      toast({ variant: "destructive", description: e instanceof Error ? e.message : "Failed to add" });
-    } finally {
-      setAdding(false);
-    }
+  const openAdd = () => {
+    setFormName(""); setFormRelationship(""); setFormPhone(""); setFormNotes("");
+    setEditTarget(null);
+    setAddOpen(true);
   };
 
-  const toggleActive = async (pickup: PickupPerson) => {
+  const openEdit = (pickup: PickupPerson) => {
+    setFormName(pickup.name);
+    setFormRelationship(pickup.relationship);
+    setFormPhone(pickup.phone);
+    setFormNotes(pickup.notes || "");
+    setEditTarget(pickup);
+    setAddOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!formName || !formRelationship || !formPhone) return;
+    setSaving(true);
     try {
-      await mutateApi(`/api/parent/children/${childId}/pickups`, {
-        method: "PATCH",
-        body: { pickupId: pickup.id, active: !pickup.active },
-      });
-      setPickups((prev) => prev.map((p) => (p.id === pickup.id ? { ...p, active: !p.active } : p)));
+      if (editTarget) {
+        const updated = await mutateApi<PickupPerson>(`/api/parent/children/${childId}/pickups/${editTarget.id}`, {
+          method: "PATCH",
+          body: { name: formName, relationship: formRelationship, phone: formPhone, notes: formNotes || null },
+        });
+        setPickups((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+        toast({ description: "Pickup person updated" });
+      } else {
+        const pickup = await mutateApi<PickupPerson>(`/api/parent/children/${childId}/pickups`, {
+          method: "POST",
+          body: { name: formName, relationship: formRelationship, phone: formPhone },
+        });
+        setPickups((prev) => [pickup, ...prev]);
+        toast({ description: "Authorised person added" });
+      }
+      setAddOpen(false);
     } catch (e) {
-      toast({ variant: "destructive", description: e instanceof Error ? e.message : "Update failed" });
+      toast({ variant: "destructive", description: e instanceof Error ? e.message : "Failed" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -736,11 +806,15 @@ function PickupsTab({ childId }: { childId: string }) {
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        <button onClick={() => setAddOpen(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] transition-colors min-h-[44px]">
+        <button onClick={openAdd} className="inline-flex items-center gap-1.5 text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] transition-colors min-h-[44px]">
           <Plus className="w-3.5 h-3.5" />
           Add Person
         </button>
       </div>
+
+      <p className="text-xs text-[#7c7c8a] bg-[#F2EDE8] rounded-lg px-3 py-2">
+        To remove an authorised pickup, please contact your centre coordinator.
+      </p>
 
       {pickups.length === 0 ? (
         <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
@@ -748,36 +822,47 @@ function PickupsTab({ childId }: { childId: string }) {
           <p className="text-[#7c7c8a] text-sm">No authorised pickup persons added yet.</p>
         </div>
       ) : (
-        pickups.map((pickup) => (
-          <div key={pickup.id} className={cn("bg-white rounded-xl p-4 shadow-sm border", pickup.active ? "border-[#e8e4df]" : "border-red-200 opacity-60")}>
+        pickups.filter((p) => p.active).map((pickup) => (
+          <div key={pickup.id} className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
             <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-semibold text-[#1a1a2e]">{pickup.name}</p>
-                <p className="text-xs text-[#7c7c8a] mt-0.5">{pickup.relationship}</p>
-                <a href={`tel:${pickup.phone}`} className="inline-flex items-center gap-1 mt-1 text-xs text-[#004E64] hover:text-[#0A7E9E] font-medium min-h-[44px]">
-                  <Phone className="w-3.5 h-3.5" />
-                  {pickup.phone}
-                </a>
+              <div className="flex items-start gap-3">
+                {pickup.photoUrl ? (
+                  <img src={pickup.photoUrl} alt={pickup.name} className="w-10 h-10 rounded-full object-cover border border-[#e8e4df]" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[#F2EDE8] flex items-center justify-center text-[#7c7c8a] text-sm font-semibold">
+                    {pickup.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-semibold text-[#1a1a2e]">{pickup.name}</p>
+                  <p className="text-xs text-[#7c7c8a] mt-0.5">{pickup.relationship}</p>
+                  <a href={`tel:${pickup.phone}`} className="inline-flex items-center gap-1 mt-1 text-xs text-[#004E64] hover:text-[#0A7E9E] font-medium min-h-[44px]">
+                    <Phone className="w-3.5 h-3.5" />
+                    {pickup.phone}
+                  </a>
+                  {pickup.notes && <p className="text-xs text-[#7c7c8a] italic mt-0.5">{pickup.notes}</p>}
+                </div>
               </div>
-              <button onClick={() => toggleActive(pickup)} className={cn("text-xs font-medium px-2.5 py-1 rounded-full min-h-[44px] flex items-center", pickup.active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600")}>
-                {pickup.active ? "Active" : "Inactive"}
+              <button onClick={() => openEdit(pickup)} className="text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] min-h-[44px] flex items-center">
+                Edit
               </button>
             </div>
           </div>
         ))
       )}
 
-      {/* Add Person Dialog */}
+      {/* Add / Edit Person Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
-          <DialogTitle>Add Authorised Person</DialogTitle>
-          <DialogDescription>Add someone authorised to collect your child.</DialogDescription>
+          <DialogTitle>{editTarget ? "Edit Authorised Person" : "Add Authorised Person"}</DialogTitle>
+          <DialogDescription>{editTarget ? "Update their details below." : "Add someone authorised to collect your child."}</DialogDescription>
           <div className="space-y-4 mt-4">
-            <MedicalFormField label="Full Name" value={name} onChange={setName} placeholder="Jane Smith" />
-            <MedicalFormField label="Relationship" value={relationship} onChange={setRelationship} placeholder="e.g. Grandmother" />
-            <MedicalFormField label="Phone" value={phone} onChange={setPhone} placeholder="0400 000 000" />
-            <button onClick={handleAdd} disabled={!name || !relationship || !phone || adding} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]">
-              {adding ? (<><Loader2 className="w-4 h-4 animate-spin" />Adding...</>) : "Add Person"}
+            <MedicalFormField label="Full Name" value={formName} onChange={setFormName} placeholder="Jane Smith" />
+            <MedicalFormField label="Relationship" value={formRelationship} onChange={setFormRelationship} placeholder="e.g. Grandmother" />
+            <MedicalFormField label="Phone" value={formPhone} onChange={setFormPhone} placeholder="0400 000 000" />
+            <MedicalFormField label="Notes (optional)" value={formNotes} onChange={setFormNotes} placeholder="Any additional notes" />
+            <button onClick={handleSave} disabled={!formName || !formRelationship || !formPhone || saving} className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]">
+              {saving ? (<><Loader2 className="w-4 h-4 animate-spin" />{editTarget ? "Saving..." : "Adding..."}</>) : (editTarget ? "Save Changes" : "Add Person")}
             </button>
           </div>
         </DialogContent>

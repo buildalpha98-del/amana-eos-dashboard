@@ -69,9 +69,11 @@ export interface AuthorisedPickup {
   name: string;
   relationship: string;
   phone: string;
+  photoUrl: string | null;
   photoId: string | null;
   isEmergencyContact: boolean;
   active: boolean;
+  notes: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -99,6 +101,7 @@ export function useAddChildPickup() {
       phone: string;
       photoId?: string | null;
       isEmergencyContact?: boolean;
+      notes?: string;
     }) => {
       return mutateApi<AuthorisedPickup>(`/api/children/${childId}/authorised-pickups`, {
         method: "POST",
@@ -108,6 +111,38 @@ export function useAddChildPickup() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["child-pickups", vars.childId] });
       toast({ description: "Authorised pickup added" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+export function useUpdateChildPickup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      childId,
+      pickupId,
+      ...data
+    }: {
+      childId: string;
+      pickupId: string;
+      name?: string;
+      relationship?: string;
+      phone?: string;
+      isEmergencyContact?: boolean;
+      active?: boolean;
+      notes?: string | null;
+    }) => {
+      return mutateApi<AuthorisedPickup>(`/api/children/${childId}/authorised-pickups/${pickupId}`, {
+        method: "PATCH",
+        body: data,
+      });
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["child-pickups", vars.childId] });
+      toast({ description: "Pickup updated" });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -141,6 +176,11 @@ export interface ChildDocument {
   documentType: string;
   fileName: string;
   fileUrl: string;
+  uploaderType: string | null;
+  expiresAt: string | null;
+  isVerified: boolean;
+  verifiedAt: string | null;
+  notes: string | null;
   uploadedBy: { id: string; name: string };
   createdAt: string;
 }
@@ -158,10 +198,27 @@ export function useChildDocuments(childId: string | null) {
 export function useUploadChildDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ childId, file, documentType }: { childId: string; file: File; documentType: string }) => {
+    mutationFn: async ({
+      childId,
+      file,
+      documentType,
+      name,
+      expiresAt,
+      notes,
+    }: {
+      childId: string;
+      file: File;
+      documentType: string;
+      name?: string;
+      expiresAt?: string;
+      notes?: string;
+    }) => {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("documentType", documentType);
+      if (name) formData.append("name", name);
+      if (expiresAt) formData.append("expiresAt", expiresAt);
+      if (notes) formData.append("notes", notes);
 
       const res = await fetch(`/api/children/${childId}/documents`, {
         method: "POST",
@@ -178,6 +235,61 @@ export function useUploadChildDocument() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["child-documents", vars.childId] });
       toast({ description: "Document uploaded" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+export function useVerifyChildDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      childId,
+      documentId,
+      isVerified,
+    }: {
+      childId: string;
+      documentId: string;
+      isVerified: boolean;
+    }) => {
+      return mutateApi<ChildDocument>(`/api/children/${childId}/documents/${documentId}`, {
+        method: "PATCH",
+        body: { isVerified },
+      });
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["child-documents", vars.childId] });
+      toast({ description: vars.isVerified ? "Document verified" : "Verification removed" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+export function useUpdateChildDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      childId,
+      documentId,
+      ...data
+    }: {
+      childId: string;
+      documentId: string;
+      expiresAt?: string | null;
+      notes?: string | null;
+    }) => {
+      return mutateApi<ChildDocument>(`/api/children/${childId}/documents/${documentId}`, {
+        method: "PATCH",
+        body: data,
+      });
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["child-documents", vars.childId] });
+      toast({ description: "Document updated" });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
