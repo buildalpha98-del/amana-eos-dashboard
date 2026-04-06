@@ -126,9 +126,13 @@ export interface StatementRecord {
   totalFees: number;
   totalCcs: number;
   gapFee: number;
-  status: "paid" | "unpaid" | "overdue";
+  amountPaid: number;
+  balance: number;
+  status: "issued" | "paid" | "unpaid" | "overdue";
   pdfUrl: string | null;
   dueDate: string | null;
+  issuedAt: string | null;
+  notes: string | null;
   createdAt: string;
   service: { id: string; name: string };
 }
@@ -290,6 +294,42 @@ export function useParentStatements() {
   return useQuery<StatementsResponse>({
     queryKey: ["parent", "statements"],
     queryFn: () => fetchApi<StatementsResponse>("/api/parent/statements"),
+    retry: 2,
+    staleTime: 30_000,
+  });
+}
+
+export interface StatementDetailResponse {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  totalFees: number;
+  totalCcs: number;
+  gapFee: number;
+  amountPaid: number;
+  balance: number;
+  status: string;
+  pdfUrl: string | null;
+  dueDate: string | null;
+  issuedAt: string | null;
+  service: { id: string; name: string };
+  lineItems: {
+    id: string;
+    date: string;
+    sessionType: string;
+    description: string;
+    grossFee: number;
+    ccsAmount: number;
+    gapAmount: number;
+    child: { id: string; firstName: string; surname: string | null };
+  }[];
+}
+
+export function useParentStatementDetail(id: string | null) {
+  return useQuery<StatementDetailResponse>({
+    queryKey: ["parent", "statements", id],
+    queryFn: () => fetchApi<StatementDetailResponse>(`/api/parent/statements/${id}`),
+    enabled: !!id,
     retry: 2,
     staleTime: 30_000,
   });

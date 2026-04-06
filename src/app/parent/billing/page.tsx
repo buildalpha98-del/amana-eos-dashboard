@@ -1,18 +1,27 @@
 "use client";
 
-import { CreditCard, Download, FileText, AlertCircle, Building2 } from "lucide-react";
-import { useParentStatements, type StatementRecord } from "@/hooks/useParentPortal";
+import { useState } from "react";
+import { CreditCard, Download, FileText, AlertCircle, Building2, ChevronDown, ChevronUp } from "lucide-react";
+import { useParentStatements, useParentStatementDetail, type StatementRecord, type StatementDetailResponse } from "@/hooks/useParentPortal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
+  issued: { bg: "bg-blue-100", text: "text-blue-700", label: "Issued" },
   paid: { bg: "bg-green-100", text: "text-green-700", label: "Paid" },
   unpaid: { bg: "bg-amber-100", text: "text-amber-700", label: "Unpaid" },
   overdue: { bg: "bg-red-100", text: "text-red-600", label: "Overdue" },
 };
 
+const SESSION_LABELS: Record<string, string> = {
+  bsc: "Before School Care",
+  asc: "After School Care",
+  vc: "Vacation Care",
+};
+
 export default function BillingPage() {
   const { data, isLoading } = useParentStatements();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (isLoading) return <BillingSkeleton />;
 
@@ -89,7 +98,14 @@ export default function BillingPage() {
         ) : (
           <div className="space-y-2">
             {statements.map((stmt) => (
-              <StatementCard key={stmt.id} statement={stmt} />
+              <StatementCard
+                key={stmt.id}
+                statement={stmt}
+                isExpanded={expandedId === stmt.id}
+                onToggle={() =>
+                  setExpandedId(expandedId === stmt.id ? null : stmt.id)
+                }
+              />
             ))}
           </div>
         )}
@@ -125,7 +141,15 @@ export default function BillingPage() {
 
 // ── Statement Card ──────────────────────────────────────
 
-function StatementCard({ statement }: { statement: StatementRecord }) {
+function StatementCard({
+  statement,
+  isExpanded,
+  onToggle,
+}: {
+  statement: StatementRecord;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
   const status = STATUS_STYLES[statement.status] ?? STATUS_STYLES.unpaid;
 
   const formatDate = (dateStr: string) => {
@@ -133,67 +157,205 @@ function StatementCard({ statement }: { statement: StatementRecord }) {
     return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
   };
 
+  const formatFullDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
   const periodLabel = `${formatDate(statement.periodStart)} – ${formatDate(statement.periodEnd)}`;
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-[#1a1a2e]">{periodLabel}</p>
-          <p className="text-xs text-[#7c7c8a] mt-0.5">
-            {statement.service.name}
-          </p>
+    <div className="bg-white rounded-xl shadow-sm border border-[#e8e4df]">
+      <button
+        type="button"
+        className="w-full p-4 text-left"
+        onClick={onToggle}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[#1a1a2e]">{periodLabel}</p>
+            <p className="text-xs text-[#7c7c8a] mt-0.5">
+              {statement.service.name}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span
+              className={cn(
+                "inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                status.bg,
+                status.text
+              )}
+            >
+              {status.label}
+            </span>
+            {isExpanded ? (
+              <ChevronUp className="w-4 h-4 text-[#7c7c8a]" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-[#7c7c8a]" />
+            )}
+          </div>
         </div>
-        <span
-          className={cn(
-            "inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0",
-            status.bg,
-            status.text
-          )}
-        >
-          {status.label}
-        </span>
-      </div>
 
-      <div className="grid grid-cols-3 gap-2 mt-3 text-center">
-        <div>
-          <p className="text-[10px] text-[#7c7c8a] uppercase">Fees</p>
-          <p className="text-sm font-semibold text-[#1a1a2e]">
-            ${statement.totalFees.toFixed(2)}
-          </p>
+        <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+          <div>
+            <p className="text-[10px] text-[#7c7c8a] uppercase">Fees</p>
+            <p className="text-sm font-semibold text-[#1a1a2e]">
+              ${statement.totalFees.toFixed(2)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] text-[#7c7c8a] uppercase">CCS</p>
+            <p className="text-sm font-semibold text-green-600">
+              -${statement.totalCcs.toFixed(2)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] text-[#7c7c8a] uppercase">Gap</p>
+            <p className="text-sm font-semibold text-[#1a1a2e]">
+              ${statement.gapFee.toFixed(2)}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-[10px] text-[#7c7c8a] uppercase">CCS</p>
-          <p className="text-sm font-semibold text-green-600">
-            -${statement.totalCcs.toFixed(2)}
-          </p>
+
+        {/* Paid / Balance row */}
+        <div className="grid grid-cols-2 gap-2 mt-2 text-center">
+          <div>
+            <p className="text-[10px] text-[#7c7c8a] uppercase">Paid</p>
+            <p className="text-sm font-semibold text-[#1a1a2e]">
+              ${statement.amountPaid.toFixed(2)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] text-[#7c7c8a] uppercase">Balance</p>
+            <p
+              className={cn(
+                "text-sm font-semibold",
+                statement.balance === 0 ? "text-green-600" : "text-red-600"
+              )}
+            >
+              ${statement.balance.toFixed(2)}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-[10px] text-[#7c7c8a] uppercase">Gap</p>
-          <p className="text-sm font-semibold text-[#1a1a2e]">
-            ${statement.gapFee.toFixed(2)}
+
+        {/* Overdue due date */}
+        {statement.status === "overdue" && statement.dueDate && (
+          <p className="text-xs text-red-600 font-medium mt-2">
+            Due: {formatFullDate(statement.dueDate)}
           </p>
-        </div>
-      </div>
+        )}
+      </button>
 
       {/* Download PDF */}
-      <div className="mt-3 pt-3 border-t border-[#e8e4df]">
-        {statement.pdfUrl ? (
-          <a
-            href={statement.pdfUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] transition-colors min-h-[44px]"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Download PDF
-          </a>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 text-xs text-[#7c7c8a] min-h-[44px]">
-            <Download className="w-3.5 h-3.5" />
-            PDF not yet available
-          </span>
-        )}
+      <div className="px-4 pb-3 pt-0 border-t border-[#e8e4df] mx-4 mt-0">
+        <div className="pt-3">
+          {statement.pdfUrl ? (
+            <a
+              href={statement.pdfUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] transition-colors min-h-[44px]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download PDF
+            </a>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-xs text-[#7c7c8a] min-h-[44px]">
+              <Download className="w-3.5 h-3.5" />
+              PDF not yet available
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Expanded detail */}
+      {isExpanded && (
+        <StatementDetail statementId={statement.id} />
+      )}
+    </div>
+  );
+}
+
+// ── Statement Detail (line items) ──────────────────────
+
+function StatementDetail({ statementId }: { statementId: string }) {
+  const { data, isLoading } = useParentStatementDetail(statementId);
+
+  if (isLoading) {
+    return (
+      <div className="px-4 pb-4 space-y-2">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-3/4" />
+      </div>
+    );
+  }
+
+  if (!data || data.lineItems.length === 0) {
+    return (
+      <div className="px-4 pb-4">
+        <p className="text-xs text-[#7c7c8a]">No line items available.</p>
+      </div>
+    );
+  }
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+  };
+
+  return (
+    <div className="px-4 pb-4 border-t border-[#e8e4df] mx-4">
+      <div className="pt-3">
+        <p className="text-xs font-semibold text-[#7c7c8a] uppercase tracking-wider mb-2">
+          Line Items
+        </p>
+        <div className="overflow-x-auto -mx-1">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-left text-[#7c7c8a] border-b border-[#e8e4df]">
+                <th className="pb-1.5 px-1 font-medium">Child</th>
+                <th className="pb-1.5 px-1 font-medium">Date</th>
+                <th className="pb-1.5 px-1 font-medium">Session</th>
+                <th className="pb-1.5 px-1 font-medium text-right">Gross</th>
+                <th className="pb-1.5 px-1 font-medium text-right">CCS</th>
+                <th className="pb-1.5 px-1 font-medium text-right">Gap</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.lineItems.map((item) => (
+                <tr
+                  key={item.id}
+                  className="border-b border-[#e8e4df] last:border-0"
+                >
+                  <td className="py-1.5 px-1 text-[#1a1a2e]">
+                    {item.child.firstName}
+                  </td>
+                  <td className="py-1.5 px-1 text-[#7c7c8a]">
+                    {formatDate(item.date)}
+                  </td>
+                  <td className="py-1.5 px-1 text-[#7c7c8a]">
+                    {SESSION_LABELS[item.sessionType] ?? item.sessionType}
+                  </td>
+                  <td className="py-1.5 px-1 text-right text-[#1a1a2e]">
+                    ${item.grossFee.toFixed(2)}
+                  </td>
+                  <td className="py-1.5 px-1 text-right text-green-600">
+                    -${item.ccsAmount.toFixed(2)}
+                  </td>
+                  <td className="py-1.5 px-1 text-right text-[#1a1a2e]">
+                    ${item.gapAmount.toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
