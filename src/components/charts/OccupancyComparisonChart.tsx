@@ -47,7 +47,7 @@ export function OccupancyComparisonChart({ centres }: OccupancyComparisonChartPr
             domain={[0, 100]}
           />
           <Tooltip
-            formatter={(value: number | string | undefined) => [`${Number(value ?? 0).toFixed(1)}%`, "ASC Occupancy"]}
+            formatter={(value) => [`${Number(value ?? 0).toFixed(1)}%`, "ASC Occupancy"]}
             labelFormatter={(_label, payload) => {
               if (payload && payload.length > 0) {
                 const item = payload[0].payload as { fullName: string };

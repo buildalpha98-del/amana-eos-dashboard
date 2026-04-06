@@ -50,7 +50,7 @@ export function ScoreDistributionChart({ centres }: ScoreDistributionChartProps)
             allowDecimals={false}
           />
           <Tooltip
-            formatter={(value: number | string | undefined) => [Number(value ?? 0), "Centres"]}
+            formatter={(value) => [Number(value ?? 0), "Centres"]}
             contentStyle={{
               borderRadius: "8px",
               border: "1px solid #E5E7EB",

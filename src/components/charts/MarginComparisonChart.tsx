@@ -51,7 +51,7 @@ export function MarginComparisonChart({ data }: MarginComparisonChartProps) {
             tickFormatter={(value: number) => `${value}%`}
           />
           <Tooltip
-            formatter={(value: number | string | undefined) => [`${Number(value ?? 0).toFixed(1)}%`, "Margin"]}
+            formatter={(value) => [`${Number(value ?? 0).toFixed(1)}%`, "Margin"]}
             labelFormatter={(_label, payload) => {
               if (payload && payload.length > 0) {
                 const item = payload[0].payload as { fullName: string };

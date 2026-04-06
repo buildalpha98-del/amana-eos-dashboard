@@ -75,6 +75,7 @@ export const navItems: NavItem[] = [
 
   // ── Operations — day-to-day running ───────────────────────
   { href: "/services", label: "Services", icon: Building2, section: "Operations" },
+  { href: "/roll-call", label: "Roll Call", icon: ClipboardList, section: "Operations", tooltip: "Daily attendance sign-in and sign-out" },
   { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents" },
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations" },
   { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families" },
@@ -107,6 +108,7 @@ export const navItems: NavItem[] = [
   { href: "/directory", label: "Staff Directory", icon: Contact, section: "People", tooltip: "Find and connect with your team" },
 
   // ── Admin — config, strategy & utilities ──────────────────
+  { href: "/reports", label: "Reports", icon: BarChart3, section: "Operations", tooltip: "Attendance, booking, revenue, enrolment, and medical reports" },
   { href: "/settings", label: "Settings", icon: Settings, section: "Admin" },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
   { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Admin", tooltip: "What-if scenario modelling & financial projections" },

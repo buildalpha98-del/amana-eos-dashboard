@@ -75,7 +75,9 @@ import {
 import { AUSTRALIAN_STATES } from "@/lib/service-scope";
 import { AdoptionDashboard } from "@/components/admin/AdoptionDashboard";
 import { BannerManagementSection } from "@/components/settings/BannerManagementSection";
+import { NotificationLogTab } from "@/components/settings/NotificationLogTab";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Mail } from "lucide-react";
 
 interface UserData {
   id: string;
@@ -2970,6 +2972,19 @@ export function SettingsContent({ userRole }: { userRole: Role }) {
 
       {/* Permissions overview (owner only) */}
       {isOwner && <PermissionsPanel />}
+
+      {/* Notification Log (coordinator+) */}
+      {(userRole === "owner" || userRole === "head_office" || userRole === "admin" || userRole === "coordinator") && (
+        <div className="bg-card rounded-xl border border-border p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Mail className="w-5 h-5 text-muted" />
+            <h3 className="text-lg font-semibold text-foreground">
+              Notification Log
+            </h3>
+          </div>
+          <NotificationLogTab />
+        </div>
+      )}
     </div>
   );
 }

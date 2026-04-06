@@ -3201,6 +3201,7 @@ model CentreContact {
   bookings           Booking[]           @relation("ContactBookings")
   conversations           Conversation[]
   enrolmentApplications   EnrolmentApplication[] @relation("ContactEnrolmentApplications")
+  authTokens              ParentAuthToken[]      @relation("ContactAuthTokens")
   onboardingProgress Json? // { profile, medical, documents, pickups, installed }
 
   @@unique([email, serviceId])
@@ -5058,4 +5059,59 @@ model EnrolmentApplication {
 
   @@index([serviceId, status])
   @@index([familyId, status])
+}
+
+// ============================================================
+// Notification Log — records every email sent by the system
+// ============================================================
+
+model NotificationLog {
+  id             String   @id @default(cuid())
+  type           String // e.g. "attendance_signin" | "booking_confirmed" | "statement_issued" etc.
+  recipientEmail String
+  recipientName  String?
+  subject        String
+  status         String   @default("sent") // "sent" | "failed"
+  errorMessage   String?
+  relatedId      String? // id of the related record (bookingId, statementId, etc.)
+  relatedType    String? // "Booking" | "Statement" | "Message" etc.
+  createdAt      DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([recipientEmail, createdAt])
+  @@index([relatedId, relatedType])
+}
+
+// ============================================================
+// Push Subscriptions — browser push notification endpoints
+// ============================================================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String? // Staff user
+  familyId  String? // Parent CentreContact
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+// ============================================================
+// Parent Auth Tokens — magic link verification tokens
+// ============================================================
+
+model ParentAuthToken {
+  id        String    @id @default(cuid())
+  familyId  String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  family    CentreContact @relation("ContactAuthTokens", fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@index([token])
 }

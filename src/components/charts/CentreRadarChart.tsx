@@ -103,7 +103,7 @@ export function CentreRadarChart({ centres }: CentreRadarChartProps) {
             strokeWidth={2}
           />
           <Tooltip
-            formatter={(value: number | string | undefined) => [`${Number(value ?? 0)}/100`, ""]}
+            formatter={(value) => [`${Number(value ?? 0)}/100`, ""]}
             contentStyle={{
               borderRadius: "8px",
               border: "1px solid #E5E7EB",

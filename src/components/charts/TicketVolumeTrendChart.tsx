@@ -47,7 +47,7 @@ export function TicketVolumeTrendChart({ data }: TicketVolumeTrendChartProps) {
             allowDecimals={false}
           />
           <Tooltip
-            formatter={(value: number | string | undefined) => [Number(value ?? 0), "Tickets"]}
+            formatter={(value) => [Number(value ?? 0), "Tickets"]}
             labelFormatter={(label: unknown) => String(label)}
             contentStyle={{
               borderRadius: "8px",

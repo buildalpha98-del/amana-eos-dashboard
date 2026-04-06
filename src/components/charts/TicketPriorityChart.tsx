@@ -77,7 +77,7 @@ export function TicketPriorityChart({ data }: TicketPriorityChartProps) {
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: string | number | undefined, name: string | undefined) => [Number(value ?? 0), name ?? ""]}
+            formatter={(value, name) => [Number(value ?? 0), name ?? ""]}
             contentStyle={{
               borderRadius: "8px",
               border: "1px solid #E5E7EB",
@@ -85,7 +85,7 @@ export function TicketPriorityChart({ data }: TicketPriorityChartProps) {
             }}
           />
           <Legend
-            formatter={(value: string) => (
+            formatter={(value) => (
               <span className="text-sm text-muted">{value}</span>
             )}
           />

@@ -1,11 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/email";
+import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
 import { parentEmailLayout, baseLayout, buttonHtml } from "@/lib/email-templates/base";
 import { logger } from "@/lib/logger";
 
 const PORTAL_URL = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
-
-// ── Coordinator lookup ─────────────────────────────────────
 
 async function getServiceCoordinatorEmail(
   serviceId: string,
@@ -23,21 +21,11 @@ async function getServiceCoordinatorEmail(
   });
 
   if (!service) return null;
-
-  // Prefer service manager, fall back to first coordinator
   if (service.manager) return service.manager;
   if (service.staffMembers.length > 0) return service.staffMembers[0];
   return null;
 }
 
-// ── New Message Notification ───────────────────────────────
-
-/**
- * Send an email notification when a new message is posted in a conversation.
- *
- * - Staff → parent: email the parent (CentreContact email)
- * - Parent → staff: email the service coordinator
- */
 export async function sendNewMessageNotification(
   messageId: string,
 ): Promise<void> {
@@ -64,7 +52,6 @@ export async function sendNewMessageNotification(
     const subject = conversation.subject;
 
     if (message.senderType === "staff") {
-      // Staff sent a message → notify the parent
       const parentEmail = conversation.family.email;
       if (!parentEmail) {
         logger.warn("sendNewMessageNotification: no parent email", { messageId });
@@ -75,31 +62,32 @@ export async function sendNewMessageNotification(
         .filter(Boolean)
         .join(" ") || "Parent";
 
-      const html = parentEmailLayout(`
-        <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-          Assalamu Alaikum ${parentName},
-        </p>
-        <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-          You have a new message from <strong>${serviceName}</strong> regarding
-          &ldquo;${subject}&rdquo;.
-        </p>
-        <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-          Log in to your parent portal to read and reply.
-        </p>
-        ${buttonHtml("View Message", `${PORTAL_URL}/parent/messages/${conversation.id}`)}
-        <p style="margin:24px 0 0;color:#1a1a2e;font-size:15px;line-height:1.6;">
-          Jazak Allahu Khairan,<br/>
-          The Amana OSHC Team
-        </p>
-      `);
-
-      await sendEmail({
+      await sendNotificationEmail({
         to: parentEmail,
+        toName: parentName,
         subject: `New message from ${serviceName} — ${subject}`,
-        html,
+        html: parentEmailLayout(`
+          <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+            Assalamu Alaikum ${parentName},
+          </p>
+          <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+            You have a new message from <strong>${serviceName}</strong> regarding
+            &ldquo;${subject}&rdquo;.
+          </p>
+          <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+            Log in to your parent portal to read and reply.
+          </p>
+          ${buttonHtml("View Message", `${PORTAL_URL}/parent/messages/${conversation.id}`)}
+          <p style="margin:24px 0 0;color:#1a1a2e;font-size:15px;line-height:1.6;">
+            Jazak Allahu Khairan,<br/>
+            The Amana OSHC Team
+          </p>
+        `),
+        type: "message_new",
+        relatedId: messageId,
+        relatedType: "Message",
       });
     } else {
-      // Parent sent a message → notify the coordinator
       const coordinator = await getServiceCoordinatorEmail(conversation.service.id);
       if (!coordinator) {
         logger.warn("sendNewMessageNotification: no coordinator found", {
@@ -113,24 +101,26 @@ export async function sendNewMessageNotification(
         .filter(Boolean)
         .join(" ") || "A parent";
 
-      const html = baseLayout(`
-        <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-          Hi ${coordinator.name},
-        </p>
-        <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-          <strong>${parentName}</strong> has sent a message regarding
-          &ldquo;${subject}&rdquo; for ${serviceName}.
-        </p>
-        <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-          Log in to the dashboard to read and reply.
-        </p>
-        ${buttonHtml("View Message", `${PORTAL_URL}/messaging`)}
-      `);
-
-      await sendEmail({
+      await sendNotificationEmail({
         to: coordinator.email,
+        toName: coordinator.name,
         subject: `New message from ${parentName} — ${subject}`,
-        html,
+        html: baseLayout(`
+          <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+            Hi ${coordinator.name},
+          </p>
+          <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+            <strong>${parentName}</strong> has sent a message regarding
+            &ldquo;${subject}&rdquo; for ${serviceName}.
+          </p>
+          <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+            Log in to the dashboard to read and reply.
+          </p>
+          ${buttonHtml("View Message", `${PORTAL_URL}/messaging`)}
+        `),
+        type: "message_new",
+        relatedId: messageId,
+        relatedType: "Message",
       });
     }
   } catch (err) {
@@ -138,12 +128,6 @@ export async function sendNewMessageNotification(
   }
 }
 
-// ── Broadcast Notification ─────────────────────────────────
-
-/**
- * Send an email to each family in the broadcast.
- * Uses Promise.allSettled for resilience — one failure won't block the rest.
- */
 export async function sendBroadcastNotification(
   broadcastId: string,
   familyIds: string[],
@@ -176,24 +160,26 @@ export async function sendBroadcastNotification(
           .filter(Boolean)
           .join(" ") || "Parent";
 
-        const html = parentEmailLayout(`
-          <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-            Assalamu Alaikum ${parentName},
-          </p>
-          <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-            ${broadcast.body}
-          </p>
-          ${buttonHtml("Open Parent Portal", `${PORTAL_URL}/parent`)}
-          <p style="margin:24px 0 0;color:#1a1a2e;font-size:15px;line-height:1.6;">
-            Jazak Allahu Khairan,<br/>
-            The Amana OSHC Team
-          </p>
-        `);
-
-        await sendEmail({
+        await sendNotificationEmail({
           to: family.email,
+          toName: parentName,
           subject: `Message from ${serviceName} — ${broadcast.subject}`,
-          html,
+          html: parentEmailLayout(`
+            <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+              Assalamu Alaikum ${parentName},
+            </p>
+            <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+              ${broadcast.body}
+            </p>
+            ${buttonHtml("Open Parent Portal", `${PORTAL_URL}/parent`)}
+            <p style="margin:24px 0 0;color:#1a1a2e;font-size:15px;line-height:1.6;">
+              Jazak Allahu Khairan,<br/>
+              The Amana OSHC Team
+            </p>
+          `),
+          type: "broadcast",
+          relatedId: broadcastId,
+          relatedType: "Broadcast",
         });
       }),
     );

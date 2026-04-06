@@ -55,7 +55,7 @@ export function RevenueVsCostsChart({ data }: RevenueVsCostsChartProps) {
             }
           />
           <Tooltip
-            formatter={(value: number | string | undefined, name: string | undefined) => [
+            formatter={(value, name) => [
               formatAUD(Number(value ?? 0)),
               name === "revenue" ? "Revenue" : "Costs",
             ]}
@@ -73,7 +73,7 @@ export function RevenueVsCostsChart({ data }: RevenueVsCostsChartProps) {
             }}
           />
           <Legend
-            formatter={(value: string) =>
+            formatter={(value) =>
               value === "revenue" ? "Revenue" : "Costs"
             }
           />

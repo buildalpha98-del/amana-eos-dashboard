@@ -59,7 +59,7 @@ export function AgentWorkloadChart({ data }: AgentWorkloadChartProps) {
             width={75}
           />
           <Tooltip
-            formatter={(value: number | string | undefined) => [Number(value ?? 0), "Tickets"]}
+            formatter={(value) => [Number(value ?? 0), "Tickets"]}
             labelFormatter={(label: unknown, payload) => {
               const labelStr = String(label);
               if (payload && payload.length > 0) {

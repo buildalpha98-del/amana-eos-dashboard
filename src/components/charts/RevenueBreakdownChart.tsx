@@ -95,7 +95,7 @@ export function RevenueBreakdownChart({ data }: RevenueBreakdownChartProps) {
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number | string | undefined) => [formatAUD(Number(value ?? 0)), "Revenue"]}
+            formatter={(value) => [formatAUD(Number(value ?? 0)), "Revenue"]}
             contentStyle={{
               borderRadius: "8px",
               border: "1px solid #E5E7EB",
@@ -104,7 +104,7 @@ export function RevenueBreakdownChart({ data }: RevenueBreakdownChartProps) {
           />
           <Legend
             verticalAlign="bottom"
-            formatter={(value: string) => (
+            formatter={(value) => (
               <span style={{ color: "#374151", fontSize: 13 }}>{value}</span>
             )}
           />

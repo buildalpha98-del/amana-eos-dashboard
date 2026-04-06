@@ -69,7 +69,7 @@ function SparklineCard({
                     borderRadius: 8,
                     border: "1px solid #e5e7eb",
                   }}
-                  formatter={(value: number | string | undefined) => [
+                  formatter={(value) => [
                     formatter(Number(value ?? 0)),
                     title,
                   ]}

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { sendEmail, FROM_EMAIL } from "@/lib/email";
+import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
 import { logger } from "@/lib/logger";
 
 const BRAND_COLOR = "#004E64";
@@ -22,11 +22,12 @@ function wrapEmail(content: string): string {
       <tr><td style="background:${BRAND_COLOR};padding:20px 32px;text-align:center;">
         <h1 style="margin:0;color:#fff;font-size:18px;font-weight:700;">Amana OSHC</h1>
       </td></tr>
+      <tr><td style="height:4px;background:#FECE00;"></td></tr>
       <tr><td style="padding:28px 32px;">
         ${content}
       </td></tr>
       <tr><td style="padding:16px 32px 24px;border-top:1px solid #e5e7eb;">
-        <p style="margin:0;color:#9ca3af;font-size:11px;text-align:center;">Amana OSHC — Nurturing Faith, Inspiring Growth</p>
+        <p style="margin:0;color:#9ca3af;font-size:11px;text-align:center;">Amana OSHC | Caring for your children with Islamic values</p>
       </td></tr>
     </table>
   </td></tr>
@@ -78,10 +79,10 @@ export async function sendSignInNotification(
 
     const time = formatTimeAEST(signInTime);
 
-    await sendEmail({
-      from: FROM_EMAIL,
+    await sendNotificationEmail({
       to: parent.email,
-      subject: `${child.firstName} has been signed in ✓`,
+      toName: parent.firstName,
+      subject: `${child.firstName} has been signed in`,
       html: wrapEmail(`
         <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">
           Assalamu Alaikum ${parent.firstName},
@@ -94,6 +95,9 @@ export async function sendSignInNotification(
           <strong>The Amana OSHC Team</strong>
         </p>
       `),
+      type: "attendance_signin",
+      relatedId: childId,
+      relatedType: "Child",
     });
   } catch (err) {
     logger.error("Failed to send sign-in notification", { childId, err });
@@ -120,9 +124,9 @@ export async function sendSignOutNotification(
 
     const time = formatTimeAEST(signOutTime);
 
-    await sendEmail({
-      from: FROM_EMAIL,
+    await sendNotificationEmail({
       to: parent.email,
+      toName: parent.firstName,
       subject: `${child.firstName} has been signed out`,
       html: wrapEmail(`
         <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">
@@ -137,6 +141,9 @@ export async function sendSignOutNotification(
           <strong>The Amana OSHC Team</strong>
         </p>
       `),
+      type: "attendance_signout",
+      relatedId: childId,
+      relatedType: "Child",
     });
   } catch (err) {
     logger.error("Failed to send sign-out notification", { childId, err });

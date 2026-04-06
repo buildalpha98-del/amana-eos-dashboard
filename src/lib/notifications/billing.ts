@@ -4,7 +4,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { sendEmail, FROM_EMAIL } from "@/lib/email";
+import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
 import { parentEmailLayout, buttonHtml } from "@/lib/email-templates/base";
 import { logger } from "@/lib/logger";
 
@@ -111,16 +111,14 @@ export async function sendStatementIssuedNotification(
     </p>
   `);
 
-    await sendEmail({
-      from: FROM_EMAIL,
+    await sendNotificationEmail({
       to: contact.email,
+      toName: name,
       subject: `Your Amana OSHC statement is ready — week of ${weekLabel}`,
       html,
-    });
-
-    logger.info("Billing notification: statement issued email sent", {
-      statementId,
-      contactEmail: contact.email,
+      type: "statement_issued",
+      relatedId: statementId,
+      relatedType: "Statement",
     });
   } catch (error) {
     logger.error("Billing notification: failed to send statement issued email", {
@@ -205,16 +203,14 @@ export async function sendPaymentReceivedNotification(
     </p>
   `);
 
-    await sendEmail({
-      from: FROM_EMAIL,
+    await sendNotificationEmail({
       to: contact.email,
+      toName: name,
       subject: `Payment received — ${formatCurrency(payment.amount)}`,
       html,
-    });
-
-    logger.info("Billing notification: payment received email sent", {
-      paymentId,
-      contactEmail: contact.email,
+      type: "payment_received",
+      relatedId: paymentId,
+      relatedType: "Payment",
     });
   } catch (error) {
     logger.error("Billing notification: failed to send payment received email", {
@@ -285,16 +281,14 @@ export async function sendOverdueStatementNotification(
     </p>
   `);
 
-    await sendEmail({
-      from: FROM_EMAIL,
+    await sendNotificationEmail({
       to: contact.email,
+      toName: name,
       subject: "Overdue balance — Amana OSHC",
       html,
-    });
-
-    logger.info("Billing notification: overdue statement email sent", {
-      statementId,
-      contactEmail: contact.email,
+      type: "statement_overdue",
+      relatedId: statementId,
+      relatedType: "Statement",
     });
   } catch (error) {
     logger.error(

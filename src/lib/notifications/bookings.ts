@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { sendEmail, FROM_EMAIL } from "@/lib/email";
+import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
 import { parentEmailLayout, buttonHtml } from "@/lib/email-templates/base";
 import { logger } from "@/lib/logger";
 
@@ -23,8 +23,6 @@ function formatDateAU(date: Date): string {
   });
 }
 
-// ── Coordinator lookup ─────────────────────────────────────
-
 async function getServiceCoordinatorEmail(serviceId: string): Promise<{ email: string; name: string } | null> {
   const service = await prisma.service.findUnique({
     where: { id: serviceId },
@@ -42,8 +40,6 @@ async function getServiceCoordinatorEmail(serviceId: string): Promise<{ email: s
   if (service?.staffMembers?.[0]) return service.staffMembers[0];
   return null;
 }
-
-// ── Parent lookup (from enrolment) ─────────────────────────
 
 async function getParentForBooking(bookingId: string): Promise<{
   email: string;
@@ -72,7 +68,6 @@ async function getParentForBooking(bookingId: string): Promise<{
 
   if (!booking) return null;
 
-  // Prefer requestedBy (CentreContact), fall back to enrolment primary parent
   let email: string | null = null;
   let firstName = "Parent";
 
@@ -130,9 +125,9 @@ export async function sendBookingRequestNotification(bookingId: string): Promise
       ? `${booking.requestedBy.firstName || ""} ${booking.requestedBy.lastName || ""}`.trim() || "A parent"
       : "A parent";
 
-    await sendEmail({
-      from: FROM_EMAIL,
+    await sendNotificationEmail({
       to: coordinator.email,
+      toName: coordinator.name,
       subject: `New casual booking request — ${childName} on ${formattedDate}`,
       html: parentEmailLayout(`
         <h2 style="color: #004E64; margin: 0 0 16px;">New Booking Request</h2>
@@ -146,6 +141,9 @@ export async function sendBookingRequestNotification(bookingId: string): Promise
         </p>
         ${buttonHtml("Review Booking Requests", `${PORTAL_URL}/bookings`)}
       `),
+      type: "booking_requested",
+      relatedId: bookingId,
+      relatedType: "Booking",
     });
   } catch (err) {
     logger.error("Failed to send booking request notification", { bookingId, err });
@@ -165,9 +163,9 @@ export async function sendBookingConfirmedNotification(bookingId: string): Promi
     const formattedDate = formatDateAU(data.date);
     const session = sessionLabel(data.sessionType);
 
-    await sendEmail({
-      from: FROM_EMAIL,
+    await sendNotificationEmail({
       to: data.email,
+      toName: data.firstName,
       subject: `Booking confirmed — ${data.childName} on ${formattedDate}`,
       html: parentEmailLayout(`
         <h2 style="color: #004E64; margin: 0 0 16px;">Booking Confirmed</h2>
@@ -184,6 +182,9 @@ export async function sendBookingConfirmedNotification(bookingId: string): Promi
         </p>
         ${buttonHtml("View Bookings", `${PORTAL_URL}/parent/bookings`)}
       `),
+      type: "booking_confirmed",
+      relatedId: bookingId,
+      relatedType: "Booking",
     });
   } catch (err) {
     logger.error("Failed to send booking confirmed notification", { bookingId, err });
@@ -206,9 +207,9 @@ export async function sendBookingDeclinedNotification(bookingId: string, reason?
       ? `<p style="margin: 0 0 12px; color: #374151; font-size: 15px;"><strong>Reason:</strong> ${reason}</p>`
       : "";
 
-    await sendEmail({
-      from: FROM_EMAIL,
+    await sendNotificationEmail({
       to: data.email,
+      toName: data.firstName,
       subject: `Booking update — ${data.childName} on ${formattedDate}`,
       html: parentEmailLayout(`
         <h2 style="color: #004E64; margin: 0 0 16px;">Booking Update</h2>
@@ -229,6 +230,9 @@ export async function sendBookingDeclinedNotification(bookingId: string, reason?
         </p>
         ${buttonHtml("View Bookings", `${PORTAL_URL}/parent/bookings`)}
       `),
+      type: "booking_declined",
+      relatedId: bookingId,
+      relatedType: "Booking",
     });
   } catch (err) {
     logger.error("Failed to send booking declined notification", { bookingId, err });
@@ -269,9 +273,9 @@ export async function sendAbsenceConfirmationNotification(absenceId: string): Pr
     const formattedDate = formatDateAU(absence.date);
     const session = sessionLabel(absence.sessionType);
 
-    await sendEmail({
-      from: FROM_EMAIL,
+    await sendNotificationEmail({
       to: email,
+      toName: firstName,
       subject: `Absence recorded — ${childName} on ${formattedDate}`,
       html: parentEmailLayout(`
         <h2 style="color: #004E64; margin: 0 0 16px;">Absence Recorded</h2>
@@ -290,6 +294,9 @@ export async function sendAbsenceConfirmationNotification(absenceId: string): Pr
           <strong>The Amana OSHC Team</strong>
         </p>
       `),
+      type: "absence_confirmed",
+      relatedId: absenceId,
+      relatedType: "Absence",
     });
   } catch (err) {
     logger.error("Failed to send absence confirmation notification", { absenceId, err });
