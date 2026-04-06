@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withApiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
+import { ApiError } from "@/lib/api-error";
 
 const subscribeSchema = z.object({
   subscription: z.object({
@@ -16,43 +18,46 @@ const subscribeSchema = z.object({
   familyId: z.string().optional(),
 });
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const parsed = subscribeSchema.safeParse(body);
+/**
+ * POST /api/push/subscribe
+ * Register a browser push notification subscription.
+ * Wrapped in withApiHandler for rate limiting and error handling.
+ * Requires either a userId (staff) or familyId (parent) to link the subscription.
+ */
+export const POST = withApiHandler(async (req: NextRequest) => {
+  const body = await req.json();
+  const parsed = subscribeSchema.safeParse(body);
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid subscription data" },
-        { status: 400 },
-      );
-    }
-
-    const { subscription, userType, userId, familyId } = parsed.data;
-
-    await prisma.pushSubscription.upsert({
-      where: { endpoint: subscription.endpoint },
-      create: {
-        endpoint: subscription.endpoint,
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
-        userId: userType === "staff" ? userId : null,
-        familyId: userType === "parent" ? familyId : null,
-      },
-      update: {
-        p256dh: subscription.keys.p256dh,
-        auth: subscription.keys.auth,
-        userId: userType === "staff" ? userId : null,
-        familyId: userType === "parent" ? familyId : null,
-      },
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    logger.error("Push subscribe failed", { err });
-    return NextResponse.json(
-      { error: "Failed to register push subscription" },
-      { status: 500 },
-    );
+  if (!parsed.success) {
+    throw ApiError.badRequest("Invalid subscription data");
   }
-}
+
+  const { subscription, userType, userId, familyId } = parsed.data;
+
+  // Must provide the matching ID for the user type
+  if (userType === "staff" && !userId) {
+    throw ApiError.badRequest("userId is required for staff subscriptions");
+  }
+  if (userType === "parent" && !familyId) {
+    throw ApiError.badRequest("familyId is required for parent subscriptions");
+  }
+
+  await prisma.pushSubscription.upsert({
+    where: { endpoint: subscription.endpoint },
+    create: {
+      endpoint: subscription.endpoint,
+      p256dh: subscription.keys.p256dh,
+      auth: subscription.keys.auth,
+      userId: userType === "staff" ? (userId ?? null) : null,
+      familyId: userType === "parent" ? (familyId ?? null) : null,
+    },
+    update: {
+      p256dh: subscription.keys.p256dh,
+      auth: subscription.keys.auth,
+      userId: userType === "staff" ? (userId ?? null) : null,
+      familyId: userType === "parent" ? (familyId ?? null) : null,
+    },
+  });
+
+  return NextResponse.json({ success: true });
+});

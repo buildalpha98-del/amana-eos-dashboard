@@ -13,7 +13,7 @@ async function handler(req: NextRequest) {
       OR: [
         { medicalConditions: { isEmpty: false } },
         { anaphylaxisActionPlan: true },
-        { medicationDetails: { not: "" } },
+        { AND: [{ medicationDetails: { not: null } }, { medicationDetails: { not: "" } }] },
       ],
     },
     select: {

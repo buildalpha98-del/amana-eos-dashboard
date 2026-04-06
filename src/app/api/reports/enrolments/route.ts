@@ -21,7 +21,7 @@ async function handler(req: NextRequest) {
     ...(serviceId ? { serviceId } : {}),
   };
 
-  const [total, byStatusRaw, approved, byServiceRaw] = await Promise.all([
+  const [total, byStatusRaw, approved, allApps] = await Promise.all([
     prisma.enrolmentApplication.count({ where }),
     prisma.enrolmentApplication.groupBy({ by: ["status"], where, _count: true }),
     prisma.enrolmentApplication.findMany({
@@ -30,7 +30,7 @@ async function handler(req: NextRequest) {
     }),
     prisma.enrolmentApplication.findMany({
       where,
-      select: { status: true, service: { select: { name: true } } },
+      select: { createdAt: true, status: true, service: { select: { name: true } } },
     }),
   ]);
 
@@ -56,40 +56,33 @@ async function handler(req: NextRequest) {
     averageApprovalTimeHours = Math.round((totalMs / approved.length / 3600000) * 10) / 10;
   }
 
-  // byService
+  // byService + byMonth — built from the single allApps query
   const serviceMap = new Map<string, { total: number; approved: number; declined: number; pending: number }>();
-  for (const a of byServiceRaw) {
+  const monthMap = new Map<string, { applications: number; approvals: number }>();
+
+  for (const a of allApps) {
+    // byService
     const name = a.service.name;
-    const e = serviceMap.get(name) || { total: 0, approved: 0, declined: 0, pending: 0 };
-    e.total++;
-    if (a.status === "approved") e.approved++;
-    if (a.status === "declined") e.declined++;
-    if (a.status === "pending") e.pending++;
-    serviceMap.set(name, e);
+    const svc = serviceMap.get(name) || { total: 0, approved: 0, declined: 0, pending: 0 };
+    svc.total++;
+    if (a.status === "approved") svc.approved++;
+    if (a.status === "declined") svc.declined++;
+    if (a.status === "pending") svc.pending++;
+    serviceMap.set(name, svc);
+
+    // byMonth
+    const monthKey = `${a.createdAt.getFullYear()}-${String(a.createdAt.getMonth() + 1).padStart(2, "0")}`;
+    const mon = monthMap.get(monthKey) || { applications: 0, approvals: 0 };
+    mon.applications++;
+    if (a.status === "approved") mon.approvals++;
+    monthMap.set(monthKey, mon);
   }
+
   const byService = Array.from(serviceMap.entries()).map(([serviceName, data]) => ({
     serviceName,
     ...data,
   }));
 
-  // byMonth
-  const monthMap = new Map<string, { applications: number; approvals: number }>();
-  for (const a of byServiceRaw) {
-    // We need createdAt to group — re-fetch or use a different approach
-    // For simplicity, we'll build from the raw data
-  }
-  // Build byMonth from a separate query
-  const allApps = await prisma.enrolmentApplication.findMany({
-    where,
-    select: { createdAt: true, status: true },
-  });
-  for (const a of allApps) {
-    const key = `${a.createdAt.getFullYear()}-${String(a.createdAt.getMonth() + 1).padStart(2, "0")}`;
-    const e = monthMap.get(key) || { applications: 0, approvals: 0 };
-    e.applications++;
-    if (a.status === "approved") e.approvals++;
-    monthMap.set(key, e);
-  }
   const byMonth = Array.from(monthMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, data]) => ({ month, ...data }));

@@ -25,14 +25,21 @@ export async function sendNotificationEmail({
   relatedType?: string;
 }): Promise<void> {
   try {
-    await resendEmail({
+    const result = await resendEmail({
       from: FROM_EMAIL,
       to,
       subject,
       html,
     });
 
-    // Log success — wrapped so logging failure never crashes the caller
+    // Determine actual status — if recipient was suppressed, no email was sent
+    const wasSuppressed = result.sent.length === 0 && result.suppressed.length > 0;
+    const status = wasSuppressed ? "failed" : "sent";
+    const errorMessage = wasSuppressed
+      ? `Recipient suppressed (bounce/complaint): ${to}`
+      : null;
+
+    // Log result — wrapped so logging failure never crashes the caller
     try {
       await prisma.notificationLog.create({
         data: {
@@ -40,16 +47,24 @@ export async function sendNotificationEmail({
           recipientEmail: to,
           recipientName: toName ?? null,
           subject,
-          status: "sent",
+          status,
+          errorMessage,
           relatedId: relatedId ?? null,
           relatedType: relatedType ?? null,
         },
       });
     } catch (logErr) {
-      logger.error("Failed to log notification success", { type, to, logErr });
+      logger.error("Failed to log notification result", { type, to, logErr });
     }
   } catch (sendErr) {
-    // Log failure
+    // Log failure — do NOT re-throw. All callers are fire-and-forget
+    // with their own try/catch. Re-throwing would cause double-logging.
+    logger.error("Notification email failed", {
+      type,
+      to,
+      error: sendErr instanceof Error ? sendErr.message : String(sendErr),
+    });
+
     try {
       await prisma.notificationLog.create({
         data: {
@@ -71,8 +86,5 @@ export async function sendNotificationEmail({
         logErr,
       });
     }
-
-    // Re-throw so the caller knows it failed
-    throw sendErr;
   }
 }
