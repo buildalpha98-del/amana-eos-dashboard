@@ -43,6 +43,7 @@ import {
   Shield,
   Activity,
   CalendarCheck,
+  Receipt,
 } from "lucide-react";
 
 export interface NavItem {
@@ -76,6 +77,7 @@ export const navItems: NavItem[] = [
   { href: "/services", label: "Services", icon: Building2, section: "Operations" },
   { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents" },
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations" },
+  { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families" },
   { href: "/performance", label: "Performance", icon: Trophy, section: "Operations" },
   { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations" },
   { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists" },
