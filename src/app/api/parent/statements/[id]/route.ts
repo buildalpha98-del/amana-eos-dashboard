@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api-error";
 type RouteContext = { params: Promise<{ id: string }> };
 
 export const GET = withParentAuth(async (_req, ctx) => {
-  const { id } = await (ctx as RouteContext).params;
+  const { id } = await (ctx as unknown as RouteContext).params;
   const { parent } = ctx;
 
   // Get parent's contact IDs (same pattern as list route)

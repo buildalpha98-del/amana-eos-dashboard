@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyCronSecret, acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { sendOverdueStatementNotification } from "@/lib/notifications/billing";
 
 /**
  * GET /api/cron/overdue-statements
@@ -37,7 +38,7 @@ export const GET = withApiHandler(async (req) => {
         where: { id: stmt.id },
         data: { status: "overdue" },
       });
-      // TODO: sendOverdueStatementNotification(stmt.id) — wire up once billing notifications module exists
+      void sendOverdueStatementNotification(stmt.id);
       updated++;
     }
 
