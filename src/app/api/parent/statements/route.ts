@@ -33,7 +33,10 @@ export const GET = withParentAuth(async (_req, { parent }) => {
   }
 
   const statements = await prisma.statement.findMany({
-    where: { contactId: { in: contactIds } },
+    where: {
+      contactId: { in: contactIds },
+      status: { notIn: ["draft", "void"] },
+    },
     include: {
       service: { select: { id: true, name: true } },
     },
@@ -41,8 +44,10 @@ export const GET = withParentAuth(async (_req, { parent }) => {
   });
 
   // Calculate summary
-  const unpaidStatements = statements.filter((s) => s.status === "unpaid" || s.status === "overdue");
-  const currentBalance = unpaidStatements.reduce((sum, s) => sum + s.gapFee, 0);
+  const outstandingStatements = statements.filter(
+    (s) => s.status === "issued" || s.status === "unpaid" || s.status === "overdue",
+  );
+  const currentBalance = outstandingStatements.reduce((sum, s) => sum + s.balance, 0);
   const overdueCount = statements.filter((s) => s.status === "overdue").length;
 
   return NextResponse.json({
