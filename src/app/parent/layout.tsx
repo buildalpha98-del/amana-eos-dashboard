@@ -34,9 +34,10 @@ function ParentLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { isAuthenticated, isLoading, logout } = useParentAuth();
   const { data: conversations } = useParentConversations();
-  const unreadCount = (conversations ?? []).filter(
-    (c) => c.lastMessage?.direction === "outbound" && (c.status === "open" || c.status === "new")
-  ).length;
+  const unreadCount = (conversations ?? []).reduce(
+    (sum, c) => sum + (c.unreadCount ?? 0),
+    0,
+  );
 
   // On the login page, render children directly without shell
   if (pathname === "/parent/login") {

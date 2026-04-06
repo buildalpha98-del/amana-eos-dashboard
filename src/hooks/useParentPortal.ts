@@ -364,23 +364,22 @@ export function useUpdateChildMedical() {
 
 export interface ConversationSummary {
   id: string;
-  ticketNumber: number;
-  subject: string | null;
+  subject: string;
   status: string;
   service: { id: string; name: string } | null;
   lastMessage: {
     preview: string;
-    direction: "inbound" | "outbound";
+    senderType: "staff" | "parent";
     createdAt: string;
   } | null;
+  unreadCount: number;
   createdAt: string;
-  updatedAt: string;
+  lastMessageAt: string;
 }
 
 export interface ConversationDetail {
   id: string;
-  ticketNumber: number;
-  subject: string | null;
+  subject: string;
   status: string;
   service: { id: string; name: string } | null;
   messages: ConversationMessage[];
@@ -388,11 +387,10 @@ export interface ConversationDetail {
 
 export interface ConversationMessage {
   id: string;
-  direction: "inbound" | "outbound";
-  senderName: string | null;
+  senderType: "staff" | "parent";
+  senderName: string;
   body: string;
-  mediaUrl: string | null;
-  mediaType: string | null;
+  isRead: boolean;
   createdAt: string;
 }
 
@@ -413,13 +411,14 @@ export function useParentConversations() {
   });
 }
 
-export function useConversationDetail(ticketId: string) {
+export function useConversationDetail(conversationId: string) {
   return useQuery<ConversationDetail>({
-    queryKey: ["parent", "messages", ticketId],
-    queryFn: () => fetchApi<ConversationDetail>(`/api/parent/messages/${ticketId}`),
+    queryKey: ["parent", "messages", conversationId],
+    queryFn: () => fetchApi<ConversationDetail>(`/api/parent/messages/${conversationId}`),
     retry: 2,
     staleTime: 15_000,
-    enabled: !!ticketId,
+    refetchInterval: 30_000,
+    enabled: !!conversationId,
   });
 }
 
@@ -449,13 +448,13 @@ export function useSendReply() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ ticketId, message }: { ticketId: string; message: string }) =>
-      mutateApi(`/api/parent/messages/${ticketId}`, {
+    mutationFn: ({ conversationId, body }: { conversationId: string; body: string }) =>
+      mutateApi(`/api/parent/messages/${conversationId}/reply`, {
         method: "POST",
-        body: { message },
+        body: { body },
       }),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["parent", "messages", variables.ticketId] });
+      queryClient.invalidateQueries({ queryKey: ["parent", "messages", variables.conversationId] });
       queryClient.invalidateQueries({ queryKey: ["parent", "messages"] });
     },
     onError: (err: Error) => {

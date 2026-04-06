@@ -18,8 +18,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
 export default function ConversationDetailPage() {
-  const { ticketId } = useParams<{ ticketId: string }>();
-  const { data: conversation, isLoading } = useConversationDetail(ticketId);
+  const { id } = useParams<{ id: string }>();
+  const { data: conversation, isLoading } = useConversationDetail(id);
   const sendReply = useSendReply();
 
   const [replyText, setReplyText] = useState("");
@@ -33,7 +33,7 @@ export default function ConversationDetailPage() {
   const handleSend = () => {
     if (!replyText.trim()) return;
     sendReply.mutate(
-      { ticketId, message: replyText.trim() },
+      { conversationId: id, body: replyText.trim() },
       { onSuccess: () => setReplyText("") }
     );
   };
@@ -64,7 +64,7 @@ export default function ConversationDetailPage() {
     );
   }
 
-  const isResolved = conversation.status === "resolved" || conversation.status === "closed";
+  const isResolved = conversation.status === "resolved" || conversation.status === "archived";
 
   return (
     <div className="flex flex-col" style={{ minHeight: "calc(100vh - 8rem)" }}>
@@ -79,7 +79,7 @@ export default function ConversationDetailPage() {
         </Link>
         <div>
           <h1 className="text-lg font-heading font-bold text-[#1a1a2e]">
-            {conversation.subject ?? "Conversation"}
+            {conversation.subject}
           </h1>
           <div className="flex items-center gap-2 mt-0.5">
             {conversation.service && (
@@ -113,13 +113,13 @@ export default function ConversationDetailPage() {
       </div>
 
       {/* Reply input */}
-      {isResolved ? (
-        <div className="bg-[#F2EDE8] rounded-xl p-4 text-center">
+      {isResolved && (
+        <div className="bg-[#F2EDE8] rounded-xl p-4 text-center mb-2">
           <p className="text-sm text-[#7c7c8a]">
-            This conversation has been resolved. Send a new message to reopen it.
+            This conversation has been resolved. Send a reply to reopen it.
           </p>
         </div>
-      ) : null}
+      )}
 
       <div className="sticky bottom-20 sm:bottom-4 bg-white rounded-xl border border-[#e8e4df] shadow-lg p-3">
         <div className="flex items-end gap-2">
@@ -152,7 +152,7 @@ export default function ConversationDetailPage() {
 // ── Message Bubble ──────────────────────────────────────
 
 function MessageBubble({ message: msg }: { message: ConversationMessage }) {
-  const isParent = msg.direction === "inbound";
+  const isParent = msg.senderType === "parent";
 
   return (
     <div className={cn("flex mb-2", isParent ? "justify-end" : "justify-start")}>

@@ -6,9 +6,6 @@ import {
   MessageCircle,
   Plus,
   Loader2,
-  Clock,
-  CheckCircle2,
-  CircleDot,
 } from "lucide-react";
 import {
   useParentConversations,
@@ -24,14 +21,6 @@ import {
 } from "@/components/ui/Dialog";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
-
-const STATUS_STYLES: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; label: string }> = {
-  new: { icon: CircleDot, color: "text-blue-500", label: "New" },
-  open: { icon: CircleDot, color: "text-amber-500", label: "Open" },
-  pending_parent: { icon: Clock, color: "text-amber-500", label: "Awaiting Reply" },
-  resolved: { icon: CheckCircle2, color: "text-green-500", label: "Resolved" },
-  closed: { icon: CheckCircle2, color: "text-[#7c7c8a]", label: "Closed" },
-};
 
 export default function MessagesPage() {
   const { data: conversations, isLoading } = useParentConversations();
@@ -91,9 +80,6 @@ export default function MessagesPage() {
 // ── Conversation Card ───────────────────────────────────
 
 function ConversationCard({ conversation: conv }: { conversation: ConversationSummary }) {
-  const statusInfo = STATUS_STYLES[conv.status] ?? STATUS_STYLES.open;
-  const StatusIcon = statusInfo.icon;
-
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     const now = new Date();
@@ -110,25 +96,23 @@ function ConversationCard({ conversation: conv }: { conversation: ConversationSu
     return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
   };
 
-  const isUnread =
-    conv.lastMessage?.direction === "outbound" &&
-    (conv.status === "open" || conv.status === "new");
+  const hasUnread = conv.unreadCount > 0;
 
   return (
     <Link
       href={`/parent/messages/${conv.id}`}
       className={cn(
         "block bg-white rounded-xl p-4 shadow-sm border transition-all duration-200 hover:shadow-md hover:border-[#004E64]/20 active:scale-[0.99]",
-        isUnread ? "border-[#004E64]/30 bg-[#004E64]/[0.02]" : "border-[#e8e4df]"
+        hasUnread ? "border-[#004E64]/30 bg-[#004E64]/[0.02]" : "border-[#e8e4df]"
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className={cn("text-sm truncate", isUnread ? "font-bold text-[#1a1a2e]" : "font-semibold text-[#1a1a2e]")}>
-              {conv.subject ?? "No subject"}
+            <p className={cn("text-sm truncate", hasUnread ? "font-bold text-[#1a1a2e]" : "font-semibold text-[#1a1a2e]")}>
+              {conv.subject}
             </p>
-            {isUnread && (
+            {hasUnread && (
               <span className="w-2 h-2 rounded-full bg-[#004E64] shrink-0" />
             )}
           </div>
@@ -137,7 +121,7 @@ function ConversationCard({ conversation: conv }: { conversation: ConversationSu
           )}
           {conv.lastMessage && (
             <p className="text-xs text-[#7c7c8a] mt-1 truncate">
-              {conv.lastMessage.direction === "inbound" ? "You: " : "Centre: "}
+              {conv.lastMessage.senderType === "parent" ? "You: " : "Centre: "}
               {conv.lastMessage.preview}
             </p>
           )}
@@ -146,9 +130,11 @@ function ConversationCard({ conversation: conv }: { conversation: ConversationSu
           <span className="text-[10px] text-[#7c7c8a]">
             {conv.lastMessage ? formatDate(conv.lastMessage.createdAt) : formatDate(conv.createdAt)}
           </span>
-          <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium", statusInfo.color)}>
-            <StatusIcon className="w-3 h-3" />
-            {statusInfo.label}
+          <span className={cn(
+            "inline-flex items-center gap-1 text-[10px] font-medium",
+            conv.status === "resolved" ? "text-green-500" : conv.status === "open" ? "text-amber-500" : "text-[#7c7c8a]"
+          )}>
+            {conv.status === "resolved" ? "Resolved" : conv.status === "open" ? "Open" : conv.status}
           </span>
         </div>
       </div>

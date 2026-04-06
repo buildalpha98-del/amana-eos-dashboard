@@ -18,6 +18,7 @@ import { canAccessPage } from "@/lib/permissions";
 import { navItems } from "@/lib/nav-config";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { useBookingRequestCount } from "@/hooks/useBookingRequests";
+import { useUnreadMessageCount } from "@/hooks/useMessaging";
 import type { Role } from "@prisma/client";
 
 interface SidebarProps {
@@ -30,6 +31,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const { data: session } = useSession();
   const { collapsed, toggleCollapsed, collapsedSections, toggleSection, favourites, toggleFavourite } = useSidebar();
   const { data: bookingRequestCount } = useBookingRequestCount();
+  const { data: unreadMessageCount } = useUnreadMessageCount();
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -256,6 +258,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                               {item.href === "/bookings" && bookingRequestCount != null && bookingRequestCount > 0 && (
                                 <span className="ml-auto flex-shrink-0 rounded-full bg-[#FECE00] px-1.5 py-0.5 text-[10px] font-bold text-[#004E64] leading-none min-w-[18px] text-center">
                                   {bookingRequestCount > 99 ? "99+" : bookingRequestCount}
+                                </span>
+                              )}
+                              {item.href === "/messaging" && unreadMessageCount != null && unreadMessageCount > 0 && (
+                                <span className="ml-auto flex-shrink-0 rounded-full bg-[#FECE00] px-1.5 py-0.5 text-[10px] font-bold text-[#004E64] leading-none min-w-[18px] text-center">
+                                  {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
                                 </span>
                               )}
                             </>

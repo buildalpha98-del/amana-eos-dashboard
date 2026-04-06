@@ -268,8 +268,7 @@ function RecentMessagesWidget() {
       </div>
       <div className="space-y-2">
         {conversations.map((conv) => {
-          const isUnread = conv.lastMessage?.direction === "outbound" &&
-            (conv.status === "open" || conv.status === "new");
+          const isUnread = (conv.unreadCount ?? 0) > 0;
 
           return (
             <Link
@@ -288,7 +287,7 @@ function RecentMessagesWidget() {
               </div>
               {conv.lastMessage && (
                 <p className="text-xs text-[#7c7c8a] mt-0.5 truncate">
-                  {conv.lastMessage.direction === "inbound" ? "You: " : "Centre: "}
+                  {conv.lastMessage.senderType === "parent" ? "You: " : "Centre: "}
                   {conv.lastMessage.preview}
                 </p>
               )}

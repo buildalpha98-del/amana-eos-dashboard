@@ -87,6 +87,7 @@ export const navItems: NavItem[] = [
   { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents" },
 
   // ── Growth — pipeline, parents & outreach ─────────────────
+  { href: "/messaging", label: "Messages", icon: MessageSquare, section: "Growth", tooltip: "Send and receive messages with families" },
   { href: "/enquiries", label: "Enquiries", icon: UserPlus, section: "Growth", tooltip: "Parent enquiry pipeline — track from first contact to retention" },
   { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions" },
   { href: "/children", label: "Children", icon: Users, section: "Growth", tooltip: "Browse all enrolled children across services" },

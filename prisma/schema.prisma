@@ -595,6 +595,9 @@ model User {
   // ── Billing ───────────────────────────────────────
   recordedPayments Payment[] @relation("PaymentRecordedBy")
 
+  // ── In-App Messaging ─────────────────────────────
+  sentBroadcasts Broadcast[] @relation("BroadcastSentBy")
+
   @@index([serviceId])
 }
 
@@ -1485,6 +1488,10 @@ model Service {
 
   // ── Finance Reports ─────────────────────────────
   financeReports FinanceReport[] @relation("ServiceFinanceReports")
+
+  // ── In-App Messaging ─────────────────────────────
+  conversations Conversation[]
+  broadcasts    Broadcast[]
 
   @@index([status])
   @@index([managerId])
@@ -3186,6 +3193,7 @@ model CentreContact {
   documents          ParentDocument[]    @relation("ContactDocuments")
   supportTickets     SupportTicket[]     @relation("ParentTickets")
   bookings           Booking[]           @relation("ContactBookings")
+  conversations      Conversation[]
   onboardingProgress Json? // { profile, medical, documents, pickups, installed }
 
   @@unique([email, serviceId])
@@ -4929,4 +4937,58 @@ model ParentNotification {
 
   @@index([parentEmail, read])
   @@index([parentEmail, createdAt])
+}
+
+// ── In-App Messaging ────────────────────────────────────
+
+model Conversation {
+  id            String    @id @default(cuid())
+  serviceId     String
+  familyId      String    // CentreContact id
+  subject       String
+  status        String    @default("open") // "open" | "resolved" | "archived"
+  lastMessageAt DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  service       Service        @relation(fields: [serviceId], references: [id])
+  family        CentreContact  @relation(fields: [familyId], references: [id])
+  messages      Message[]
+
+  @@index([serviceId, status, lastMessageAt])
+  @@index([familyId, lastMessageAt])
+}
+
+model Message {
+  id              String    @id @default(cuid())
+  conversationId  String
+  body            String    @db.Text
+  senderType      String    // "staff" | "parent"
+  senderId        String    // User.id or CentreContact.id depending on senderType
+  senderName      String    // Denormalised for display
+  isRead          Boolean   @default(false)
+  readAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, senderType])
+}
+
+model Broadcast {
+  id             String   @id @default(cuid())
+  serviceId      String
+  subject        String
+  body           String   @db.Text
+  sentById       String   // User.id
+  sentByName     String
+  recipientCount Int      @default(0)
+  sentAt         DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  service        Service  @relation(fields: [serviceId], references: [id])
+  sentBy         User     @relation("BroadcastSentBy", fields: [sentById], references: [id])
+
+  @@index([serviceId, sentAt])
 }
