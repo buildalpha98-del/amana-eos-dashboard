@@ -8,9 +8,12 @@ import {
   Baby,
   User,
   Calendar,
+  UserPlus,
 } from "lucide-react";
 import { useEnrolments, type EnrolmentSubmission } from "@/hooks/useEnrolments";
+import { useEnrolmentApplications } from "@/hooks/useEnrolmentApplications";
 import { EnrolmentDetailPanel } from "@/components/enrolments/EnrolmentDetailPanel";
+import { SiblingEnrolmentInbox } from "@/components/enrolments/SiblingEnrolmentInbox";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -34,10 +37,12 @@ const STATUS_BADGE: Record<string, { label: string; color: string }> = {
 };
 
 export default function EnrolmentsPage() {
+  const [view, setView] = useState<"submissions" | "sibling">("submissions");
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data, isLoading } = useEnrolments(activeTab);
+  const { data: siblingData } = useEnrolmentApplications("pending");
 
   const submissions = data?.submissions || [];
   const filtered = search
@@ -90,6 +95,41 @@ export default function EnrolmentsPage() {
         />
       </PageHeader>
 
+      {/* View Toggle */}
+      <div className="flex gap-1 bg-surface rounded-xl p-1 w-fit">
+        <button
+          onClick={() => setView("submissions")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            view === "submissions"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-foreground/50 hover:text-foreground"
+          }`}
+        >
+          <ClipboardList className="h-4 w-4" />
+          Submissions
+        </button>
+        <button
+          onClick={() => setView("sibling")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            view === "sibling"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-foreground/50 hover:text-foreground"
+          }`}
+        >
+          <UserPlus className="h-4 w-4" />
+          Sibling Applications
+          {(siblingData?.total ?? 0) > 0 && (
+            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">
+              {siblingData?.total}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {view === "sibling" ? (
+        <SiblingEnrolmentInbox />
+      ) : (
+      <>
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
@@ -180,6 +220,8 @@ export default function EnrolmentsPage() {
           enrolmentId={selectedId}
           onClose={() => setSelectedId(null)}
         />
+      )}
+      </>
       )}
     </div>
   );

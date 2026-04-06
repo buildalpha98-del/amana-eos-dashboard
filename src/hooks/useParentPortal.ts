@@ -583,3 +583,96 @@ export function useParentDailyInfo() {
     retry: 2,
   });
 }
+
+// ── Sibling Enrolment Applications ─────────────────────────
+
+export interface ParentEnrolmentApplication {
+  id: string;
+  childFirstName: string;
+  childLastName: string;
+  childDateOfBirth: string;
+  serviceId: string;
+  serviceName: string;
+  status: string;
+  type: string;
+  sessionTypes: string[];
+  startDate: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  declineReason: string | null;
+}
+
+export function useParentEnrolmentApplications() {
+  return useQuery<ParentEnrolmentApplication[]>({
+    queryKey: ["parent", "enrolment-applications"],
+    queryFn: () => fetchApi<ParentEnrolmentApplication[]>("/api/parent/enrolments"),
+    retry: 2,
+    staleTime: 30_000,
+  });
+}
+
+export interface CreateSiblingEnrolmentPayload {
+  serviceId: string;
+  childFirstName: string;
+  childLastName: string;
+  childDateOfBirth: string;
+  childGender?: string;
+  childSchool?: string;
+  childYear?: string;
+  sessionTypes: string[];
+  startDate?: string;
+  medicalConditions: string[];
+  dietaryRequirements: string[];
+  medicationDetails?: string;
+  anaphylaxisActionPlan?: string;
+  additionalNeeds?: string;
+  consentPhotography: boolean;
+  consentSunscreen: boolean;
+  consentFirstAid: boolean;
+  consentExcursions: boolean;
+  copyAuthorisedPickups: boolean;
+  copyEmergencyContacts: boolean;
+}
+
+export function useCreateSiblingEnrolment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateSiblingEnrolmentPayload) =>
+      mutateApi("/api/parent/enrolments", {
+        method: "POST",
+        body: payload,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parent", "enrolment-applications"] });
+      toast({ description: "Enrolment application submitted successfully" });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Failed to submit enrolment application",
+      });
+    },
+  });
+}
+
+export function useWithdrawSiblingEnrolment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      mutateApi(`/api/parent/enrolments/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parent", "enrolment-applications"] });
+      toast({ description: "Enrolment application withdrawn" });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Failed to withdraw application",
+      });
+    },
+  });
+}

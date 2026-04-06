@@ -598,6 +598,9 @@ model User {
   // ── In-App Messaging ─────────────────────────────
   sentBroadcasts Broadcast[] @relation("BroadcastSentBy")
 
+  // ── Sibling Enrolment Reviews ───────────────────
+  reviewedEnrolmentApplications EnrolmentApplication[] @relation("EnrolmentReviewedBy")
+
   @@index([serviceId])
 }
 
@@ -1492,6 +1495,9 @@ model Service {
   // ── In-App Messaging ─────────────────────────────
   conversations Conversation[]
   broadcasts    Broadcast[]
+
+  // ── Sibling Enrolment Applications ────────────────
+  enrolmentApplications EnrolmentApplication[] @relation("ServiceEnrolmentApplications")
 
   @@index([status])
   @@index([managerId])
@@ -3193,7 +3199,8 @@ model CentreContact {
   documents          ParentDocument[]    @relation("ContactDocuments")
   supportTickets     SupportTicket[]     @relation("ParentTickets")
   bookings           Booking[]           @relation("ContactBookings")
-  conversations      Conversation[]
+  conversations           Conversation[]
+  enrolmentApplications   EnrolmentApplication[] @relation("ContactEnrolmentApplications")
   onboardingProgress Json? // { profile, medical, documents, pickups, installed }
 
   @@unique([email, serviceId])
@@ -4991,4 +4998,64 @@ model Broadcast {
   sentBy         User     @relation("BroadcastSentBy", fields: [sentById], references: [id])
 
   @@index([serviceId, sentAt])
+}
+
+// ============================================================
+// Sibling Enrolment Applications
+// ============================================================
+
+model EnrolmentApplication {
+  id                String    @id @default(cuid())
+  serviceId         String
+  familyId          String    // CentreContact id (existing parent)
+  status            String    @default("pending") // "pending" | "approved" | "declined" | "withdrawn"
+  type              String    @default("sibling") // "new" | "sibling"
+
+  // Child details
+  childFirstName    String
+  childLastName     String
+  childDateOfBirth  DateTime  @db.Date
+  childGender       String?
+  childSchool       String?
+  childYear         String?
+
+  // Care requirements
+  sessionTypes      String[]  // ["BSC", "ASC", "VAC"]
+  startDate         DateTime? @db.Date
+
+  // Medical
+  medicalConditions     String[]
+  dietaryRequirements   String[]
+  medicationDetails     String?
+  anaphylaxisActionPlan String?
+  additionalNeeds       String?
+
+  // Consents
+  consentPhotography    Boolean @default(false)
+  consentSunscreen      Boolean @default(false)
+  consentFirstAid       Boolean @default(false)
+  consentExcursions     Boolean @default(false)
+
+  // Copy from sibling flag
+  copyAuthorisedPickups Boolean @default(true)
+  copyEmergencyContacts Boolean @default(true)
+
+  // Review
+  reviewedById      String?
+  reviewedAt        DateTime?
+  declineReason     String?
+  notes             String?
+
+  // If approved, the created child record
+  createdChildId    String?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  service           Service        @relation("ServiceEnrolmentApplications", fields: [serviceId], references: [id])
+  family            CentreContact  @relation("ContactEnrolmentApplications", fields: [familyId], references: [id])
+  reviewedBy        User?          @relation("EnrolmentReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([serviceId, status])
+  @@index([familyId, status])
 }

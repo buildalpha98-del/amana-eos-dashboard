@@ -9,12 +9,14 @@ import {
   Phone,
   MessageCircle,
   Calendar,
+  UserPlus,
 } from "lucide-react";
 import {
   useParentProfile,
   useParentBookings,
   useParentConversations,
   useParentOnboarding,
+  useParentEnrolmentApplications,
   type ParentChild,
 } from "@/hooks/useParentPortal";
 import { DailyInfoWidgets } from "@/components/parent/DailyInfoWidgets";
@@ -72,6 +74,30 @@ export default function ParentDashboard() {
           </div>
         )}
       </section>
+
+      {/* Enrol a Sibling CTA */}
+      {profile.children.length > 0 && (
+        <Link
+          href="/parent/enrolments/new"
+          className="flex items-center gap-3 bg-gradient-to-r from-[#004E64]/5 to-[#FECE00]/10 rounded-xl p-4 border border-[#004E64]/10 hover:shadow-md transition-all active:scale-[0.99]"
+        >
+          <div className="w-10 h-10 rounded-full bg-[#004E64]/10 flex items-center justify-center shrink-0">
+            <UserPlus className="w-5 h-5 text-[#004E64]" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-[#1a1a2e]">
+              Enrol a Sibling
+            </p>
+            <p className="text-xs text-[#7c7c8a]">
+              Simplified enrolment — family details are pre-filled
+            </p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[#7c7c8a] shrink-0" />
+        </Link>
+      )}
+
+      {/* Enrolment Applications */}
+      <EnrolmentApplicationsWidget />
 
       {/* Today's Menu & Program */}
       <DailyInfoWidgets />
@@ -333,6 +359,72 @@ function OnboardingBanner() {
         />
       </div>
     </Link>
+  );
+}
+
+// ── Enrolment Applications Widget ──────────────────────
+
+function EnrolmentApplicationsWidget() {
+  const { data: applications } = useParentEnrolmentApplications();
+
+  if (!applications || applications.length === 0) return null;
+
+  const pending = applications.filter((a) => a.status === "pending");
+  const recent = applications.slice(0, 3);
+
+  return (
+    <section aria-label="Enrolment applications">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider">
+          Enrolment Applications
+          {pending.length > 0 && (
+            <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">
+              {pending.length} pending
+            </span>
+          )}
+        </h2>
+        <Link
+          href="/parent/enrolments"
+          className="text-xs font-medium text-[#004E64] hover:text-[#0A7E9E] min-h-[44px] flex items-center"
+        >
+          View all
+        </Link>
+      </div>
+      <div className="space-y-2">
+        {recent.map((app) => {
+          const statusColor =
+            app.status === "pending"
+              ? "bg-amber-100 text-amber-700"
+              : app.status === "approved"
+                ? "bg-green-100 text-green-700"
+                : app.status === "declined"
+                  ? "bg-red-100 text-red-700"
+                  : "bg-gray-100 text-gray-500";
+
+          return (
+            <Link
+              key={app.id}
+              href="/parent/enrolments"
+              className="flex items-center justify-between gap-3 bg-white rounded-xl p-3 shadow-sm border border-[#e8e4df] hover:shadow-md transition-all active:scale-[0.99]"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[#1a1a2e] truncate">
+                  {app.childFirstName} {app.childLastName}
+                </p>
+                <p className="text-xs text-[#7c7c8a] truncate">
+                  {app.serviceName}
+                </p>
+              </div>
+              <span
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 capitalize ${statusColor}`}
+              >
+                {app.status}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
