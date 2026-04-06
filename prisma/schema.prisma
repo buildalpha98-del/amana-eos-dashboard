@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 enum Role {
@@ -91,6 +92,7 @@ enum SessionType {
 enum BookingStatus {
   requested
   confirmed
+  declined
   waitlisted
   cancelled
   absent_notified
@@ -572,6 +574,12 @@ model User {
 
   // ── Parent Portal Posts ──────────────────────────
   parentPostsAuthored ParentPost[] @relation("PostAuthor")
+
+  // ── Child Documents ───────────────────────────────
+  uploadedChildDocuments ChildDocument[] @relation("UploadedChildDocuments")
+
+  // ── Booking Management ──────────────────────────
+  reviewedBookings Booking[] @relation("BookingReviewedBy")
 
   @@index([serviceId])
 }
@@ -3161,6 +3169,7 @@ model CentreContact {
   statements         Statement[]         @relation("ContactStatements")
   documents          ParentDocument[]    @relation("ContactDocuments")
   supportTickets     SupportTicket[]     @relation("ParentTickets")
+  bookings           Booking[]           @relation("ContactBookings")
   onboardingProgress Json? // { profile, medical, documents, pickups, installed }
 
   @@unique([email, serviceId])
@@ -4527,9 +4536,16 @@ model Child {
   schoolName         String?
   yearLevel          String?
   crn                String?
-  medical            Json? // Full medical info
-  dietary            Json? // Dietary requirements
+  medical            Json? // Full medical info (legacy — from enrolment import)
+  dietary            Json? // Dietary requirements (legacy — from enrolment import)
   bookingPrefs       Json? // Session types, days, booking type
+  // ── Expanded profile fields ──
+  medicalConditions       String[] // e.g. ["Asthma", "Anaphylaxis"]
+  medicationDetails       String?  // Free text: medications, dosage, administration
+  anaphylaxisActionPlan   Boolean  @default(false) // Flag: action plan document exists
+  dietaryRequirements     String[] // e.g. ["Halal", "Nut Free", "Vegetarian"]
+  additionalNeeds         String?  // Free text: other care requirements
+  photo                   String?  // URL to profile photo (Vercel Blob)
   status             String               @default("pending") // pending, active, withdrawn
   // OWNA sync fields
   ownaChildId        String?              @unique
@@ -4542,6 +4558,7 @@ model Child {
   bookings          Booking[]            @relation("ChildBookings")
   absences          Absence[]            @relation("ChildAbsences")
   documents         ParentDocument[]     @relation("ChildDocuments")
+  childDocuments    ChildDocument[]      @relation("ChildProfileDocuments")
   authorisedPickups AuthorisedPickup[]   @relation("ChildPickups")
   postTags          ParentPostChildTag[] @relation("ChildPostTags")
   attendanceRecords AttendanceRecord[]   @relation("ChildAttendance")
@@ -4651,21 +4668,27 @@ model ParentMagicLink {
 }
 
 model Booking {
-  id          String        @id @default(cuid())
-  childId     String
-  child       Child         @relation("ChildBookings", fields: [childId], references: [id], onDelete: Cascade)
-  serviceId   String
-  service     Service       @relation("ServiceBookings_Portal", fields: [serviceId], references: [id], onDelete: Cascade)
-  date        DateTime      @db.Date
-  sessionType SessionType
-  status      BookingStatus @default(requested)
-  type        BookingType   @default(casual)
-  fee         Float?
-  ccsApplied  Float? // CCS subsidy amount applied
-  gapFee      Float? // Fee after CCS applied
-  notes       String?       @db.Text
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  childId       String
+  child         Child         @relation("ChildBookings", fields: [childId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service       @relation("ServiceBookings_Portal", fields: [serviceId], references: [id], onDelete: Cascade)
+  date          DateTime      @db.Date
+  sessionType   SessionType
+  status        BookingStatus @default(requested)
+  type          BookingType   @default(casual)
+  fee           Float?
+  ccsApplied    Float? // CCS subsidy amount applied
+  gapFee        Float? // Fee after CCS applied
+  requestedById String? // CentreContact who requested (parent)
+  requestedBy   CentreContact? @relation("ContactBookings", fields: [requestedById], references: [id])
+  reviewedById  String? // User (staff) who approved/declined
+  reviewedBy    User?         @relation("BookingReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  declineReason String?       @db.Text
+  notes         String?       @db.Text
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@unique([childId, serviceId, date, sessionType])
   @@index([childId])
@@ -4675,6 +4698,7 @@ model Booking {
   @@index([serviceId, date])
   @@index([childId, status])
   @@index([date, status])
+  @@index([status, serviceId])
 }
 
 model Absence {
@@ -4687,6 +4711,8 @@ model Absence {
   sessionType           SessionType
   isIllness             Boolean     @default(false)
   medicalCertificateUrl String?
+  reason                String? // "sick" | "holiday" | "other"
+  notifiedById          String? // CentreContact or User ID who submitted
   notifiedAt            DateTime    @default(now())
   notes                 String?     @db.Text
   createdAt             DateTime    @default(now())
@@ -4738,20 +4764,46 @@ model ParentDocument {
 }
 
 model AuthorisedPickup {
-  id           String   @id @default(cuid())
-  childId      String
-  child        Child    @relation("ChildPickups", fields: [childId], references: [id], onDelete: Cascade)
-  name         String
-  relationship String
-  phone        String
-  photoUrl     String?
-  hasPassword  Boolean  @default(false)
-  passwordHash String?
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  childId            String
+  child              Child    @relation("ChildPickups", fields: [childId], references: [id], onDelete: Cascade)
+  name               String
+  relationship       String
+  phone              String
+  photoUrl           String?
+  photoId            String?  // Description of ID they carry for verification
+  isEmergencyContact Boolean  @default(false)
+  hasPassword        Boolean  @default(false)
+  passwordHash       String?
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([childId])
+}
+
+enum ChildDocumentType {
+  ANAPHYLAXIS_PLAN
+  ASTHMA_PLAN
+  MEDICAL_CERTIFICATE
+  IMMUNISATION_RECORD
+  COURT_ORDER
+  OTHER
+}
+
+model ChildDocument {
+  id           String            @id @default(cuid())
+  childId      String
+  child        Child             @relation("ChildProfileDocuments", fields: [childId], references: [id], onDelete: Cascade)
+  documentType ChildDocumentType
+  fileName     String
+  fileUrl      String            // Vercel Blob URL
+  uploadedById String
+  uploadedBy   User              @relation("UploadedChildDocuments", fields: [uploadedById], references: [id])
+  createdAt    DateTime          @default(now())
+
+  @@index([childId])
+  @@index([uploadedById])
 }
 
 // ── Parent Posts (Staff-to-Parent Timeline) ─────────────────

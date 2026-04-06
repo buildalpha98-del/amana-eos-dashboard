@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { canAccessPage } from "@/lib/permissions";
 import { navItems } from "@/lib/nav-config";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { useBookingRequestCount } from "@/hooks/useBookingRequests";
 import type { Role } from "@prisma/client";
 
 interface SidebarProps {
@@ -28,6 +29,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { collapsed, toggleCollapsed, collapsedSections, toggleSection, favourites, toggleFavourite } = useSidebar();
+  const { data: bookingRequestCount } = useBookingRequestCount();
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -247,9 +249,16 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                             )}
                           />
                           {!collapsed && (
-                            <span className="truncate transition-transform duration-200 group-hover/nav:translate-x-0.5">
-                              {item.label}
-                            </span>
+                            <>
+                              <span className="truncate transition-transform duration-200 group-hover/nav:translate-x-0.5">
+                                {item.label}
+                              </span>
+                              {item.href === "/bookings" && bookingRequestCount != null && bookingRequestCount > 0 && (
+                                <span className="ml-auto flex-shrink-0 rounded-full bg-[#FECE00] px-1.5 py-0.5 text-[10px] font-bold text-[#004E64] leading-none min-w-[18px] text-center">
+                                  {bookingRequestCount > 99 ? "99+" : bookingRequestCount}
+                                </span>
+                              )}
+                            </>
                           )}
                         </Link>
                         {/* Star toggle — only when sidebar is expanded */}

@@ -2,6 +2,10 @@
   "buildCommand": "npx prisma generate && npx prisma db push --skip-generate --accept-data-loss && npx tsx prisma/seed.ts && next build",
   "crons": [
     {
+      "path": "/api/cron/unsigned-in-alert",
+      "schedule": "0 22 * * 1-5"
+    },
+    {
       "path": "/api/cron/attendance-alerts",
       "schedule": "0 20 * * *"
     },
@@ -224,6 +228,10 @@
     {
       "path": "/api/cron/booking-extend",
       "schedule": "0 9 * * 0"
+    },
+    {
+      "path": "/api/cron/unactioned-bookings",
+      "schedule": "0 23 * * *"
     }
   ]
 }

@@ -42,6 +42,7 @@ import {
   AlertTriangle,
   Shield,
   Activity,
+  CalendarCheck,
 } from "lucide-react";
 
 export interface NavItem {
@@ -73,6 +74,7 @@ export const navItems: NavItem[] = [
 
   // ── Operations — day-to-day running ───────────────────────
   { href: "/services", label: "Services", icon: Building2, section: "Operations" },
+  { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents" },
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations" },
   { href: "/performance", label: "Performance", icon: Trophy, section: "Operations" },
   { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations" },

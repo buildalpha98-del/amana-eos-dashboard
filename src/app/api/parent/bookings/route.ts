@@ -3,6 +3,7 @@ import { z } from "zod";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import { sendBookingRequestNotification } from "@/lib/notifications/bookings";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -135,6 +136,12 @@ export const POST = withParentAuth(async (req, { parent }) => {
     throw ApiError.conflict("A booking already exists for this child, date, and session");
   }
 
+  // Look up CentreContact for requestedById
+  const contact = await prisma.centreContact.findFirst({
+    where: { email: parent.email, serviceId },
+    select: { id: true },
+  });
+
   const booking = await prisma.booking.create({
     data: {
       childId,
@@ -144,12 +151,16 @@ export const POST = withParentAuth(async (req, { parent }) => {
       status: "requested",
       type: "casual",
       fee,
+      requestedById: contact?.id ?? null,
     },
     include: {
       child: { select: { id: true, firstName: true, surname: true } },
       service: { select: { id: true, name: true } },
     },
   });
+
+  // Fire and forget — notify coordinator
+  sendBookingRequestNotification(booking.id).catch(() => {});
 
   return NextResponse.json(booking, { status: 201 });
 });
