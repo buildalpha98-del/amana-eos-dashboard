@@ -105,9 +105,20 @@ enum BookingType {
 }
 
 enum StatementStatus {
+  draft
+  issued
   paid
   unpaid
   overdue
+  void
+}
+
+enum PaymentMethod {
+  bank_transfer
+  cash
+  card
+  direct_debit
+  other
 }
 
 enum WeekDay {
@@ -580,6 +591,9 @@ model User {
 
   // ── Booking Management ──────────────────────────
   reviewedBookings Booking[] @relation("BookingReviewedBy")
+
+  // ── Billing ───────────────────────────────────────
+  recordedPayments Payment[] @relation("PaymentRecordedBy")
 
   @@index([serviceId])
 }
@@ -1432,6 +1446,7 @@ model Service {
 
   // ── Billing ───────────────────────────────────────────
   overdueFees OverdueFeeRecord[] @relation("ServiceOverdueFees")
+  payments    Payment[]          @relation("ServicePayments")
 
   // ── Operations ────────────────────────────────────────
   qip       QualityImprovementPlan? @relation("ServiceQIP")
@@ -3167,6 +3182,7 @@ model CentreContact {
   exitSurveys        ExitSurvey[]        @relation("ContactExitSurveys")
   sequenceEnrolments SequenceEnrolment[] @relation("ContactSequenceEnrolments")
   statements         Statement[]         @relation("ContactStatements")
+  payments           Payment[]           @relation("ContactPayments")
   documents          ParentDocument[]    @relation("ContactDocuments")
   supportTickets     SupportTicket[]     @relation("ParentTickets")
   bookings           Booking[]           @relation("ContactBookings")
@@ -4561,7 +4577,8 @@ model Child {
   childDocuments    ChildDocument[]      @relation("ChildProfileDocuments")
   authorisedPickups AuthorisedPickup[]   @relation("ChildPickups")
   postTags          ParentPostChildTag[] @relation("ChildPostTags")
-  attendanceRecords AttendanceRecord[]   @relation("ChildAttendance")
+  attendanceRecords  AttendanceRecord[]   @relation("ChildAttendance")
+  statementLineItems StatementLineItem[]  @relation("ChildStatementLines")
 
   @@index([enrolmentId])
   @@index([serviceId])
@@ -4734,16 +4751,67 @@ model Statement {
   totalFees   Float
   totalCcs    Float           @default(0)
   gapFee      Float           @default(0)
-  status      StatementStatus @default(unpaid)
+  amountPaid  Float           @default(0)
+  balance     Float           @default(0)
+  issuedAt    DateTime?
+  notes       String?         @db.Text
+  status      StatementStatus @default(draft)
   pdfUrl      String?
   dueDate     DateTime?       @db.Date
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  @@unique([contactId, periodStart, periodEnd])
+  lineItems   StatementLineItem[]
+  payments    Payment[]
+
   @@index([contactId])
   @@index([serviceId, periodStart])
   @@index([status])
+  @@index([status, dueDate])
+}
+
+model StatementLineItem {
+  id          String      @id @default(cuid())
+  statementId String
+  childId     String
+  date        DateTime    @db.Date
+  sessionType SessionType
+  description String
+  grossFee    Float
+  ccsHours    Float       @default(0)
+  ccsRate     Float       @default(0)
+  ccsAmount   Float       @default(0)
+  gapAmount   Float
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  statement   Statement   @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  child       Child       @relation("ChildStatementLines", fields: [childId], references: [id])
+
+  @@index([statementId])
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  statementId  String?
+  contactId    String
+  serviceId    String
+  amount       Float
+  method       PaymentMethod
+  reference    String?
+  receivedAt   DateTime      @default(now())
+  recordedById String?
+  notes        String?       @db.Text
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  statement    Statement?    @relation(fields: [statementId], references: [id], onDelete: SetNull)
+  contact      CentreContact @relation("ContactPayments", fields: [contactId], references: [id])
+  service      Service       @relation("ServicePayments", fields: [serviceId], references: [id])
+  recordedBy   User?         @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
+
+  @@index([contactId, receivedAt])
+  @@index([statementId])
 }
 
 model ParentDocument {
