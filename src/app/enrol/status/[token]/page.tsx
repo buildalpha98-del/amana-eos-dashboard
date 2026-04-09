@@ -186,10 +186,10 @@ export default function EnrolmentStatusPage() {
         <p className="text-sm text-muted">
           Questions about your enrolment? Contact us at{" "}
           <a
-            href="mailto:info@amanaoshc.company"
+            href="mailto:info@amanaoshc.com.au"
             className="text-brand font-medium hover:underline"
           >
-            info@amanaoshc.company
+            info@amanaoshc.com.au
           </a>
         </p>
       </div>
