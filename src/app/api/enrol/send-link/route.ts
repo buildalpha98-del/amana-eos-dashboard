@@ -21,7 +21,7 @@ export const POST = withApiAuth(async (req, session) => {
   }
   const { parentName, parentEmail, enquiryId } = parsed.data;
 
-  const baseUrl = process.env.NEXTAUTH_URL || "https://app.amanaoshc.com.au";
+  const baseUrl = process.env.NEXTAUTH_URL || "https://amanaoshc.company";
   const enrolUrl = `${baseUrl}/enrol/${enquiryId}`;
 
   const firstName = (parentName || "").split(" ")[0] || "there";

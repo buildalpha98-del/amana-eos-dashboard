@@ -287,8 +287,8 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
       <div className="bg-brand/5 border border-brand/20 rounded-xl p-4 text-center">
         <p className="text-sm text-foreground/80">
           Have questions about your enrolment?{" "}
-          <a href="mailto:contact@amanaoshc.com.au" className="text-brand font-medium hover:underline">
-            contact@amanaoshc.com.au
+          <a href="mailto:contact@amanaoshc.company" className="text-brand font-medium hover:underline">
+            contact@amanaoshc.company
           </a>
         </p>
       </div>
