@@ -65,7 +65,7 @@ export function EmergencyStep({ data, updateData }: Props) {
   };
 
   const addPickup = () => {
-    updateData({ authorisedPickup: [...data.authorisedPickup, { name: "", relationship: "" }] });
+    updateData({ authorisedPickup: [...data.authorisedPickup, { name: "", relationship: "", phone: "" }] });
   };
 
   const removePickup = (index: number) => {
@@ -127,9 +127,10 @@ export function EmergencyStep({ data, updateData }: Props) {
         </p>
 
         {data.authorisedPickup.map((person, i) => (
-          <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3 items-end">
+          <div key={i} className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-3 items-end">
             <Input label="Full Name" value={person.name} onChange={(v) => updatePickup(i, "name", v)} />
             <Input label="Relationship" value={person.relationship} onChange={(v) => updatePickup(i, "relationship", v)} />
+            <Input label="Phone" value={person.phone} onChange={(v) => updatePickup(i, "phone", v)} type="tel" />
             <button
               type="button"
               onClick={() => removePickup(i)}

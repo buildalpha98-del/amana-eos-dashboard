@@ -14,6 +14,12 @@ const bodySchema = z.object({
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_EXTENSIONS = new Set([".pdf", ".jpg", ".jpeg", ".png"]);
+const EXTENSION_TO_MIME: Record<string, string> = {
+  ".pdf": "application/pdf",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+};
 
 // Simple in-memory rate limiter for this public endpoint
 const uploadAttempts = new Map<string, { count: number; resetAt: number }>();
@@ -64,7 +70,8 @@ export const POST = withApiHandler(async (req) => {
     }
 
     // Validate magic bytes match declared content type
-    const declaredMime = contentType || "application/octet-stream";
+    // Infer MIME from extension when browser doesn't provide contentType
+    const declaredMime = contentType || EXTENSION_TO_MIME[ext] || "application/octet-stream";
     if (!validateFileContent(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength), declaredMime)) {
       return NextResponse.json(
         { error: "File content does not match declared type" },

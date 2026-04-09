@@ -66,6 +66,7 @@ export interface EmergencyContact {
 export interface AuthorisedPerson {
   name: string;
   relationship: string;
+  phone: string;
 }
 
 export interface Consents {

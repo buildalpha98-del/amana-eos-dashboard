@@ -55,6 +55,7 @@ function ParentSection({
   title,
   parent,
   onChange,
+  onBatchChange,
   required,
   childAddress,
   onCopyChildAddress,
@@ -63,6 +64,7 @@ function ParentSection({
   title: string;
   parent: ParentDetails;
   onChange: (field: keyof ParentDetails, value: string) => void;
+  onBatchChange?: (fields: Partial<ParentDetails>) => void;
   required?: boolean;
   childAddress?: { street: string; suburb: string; state: string; postcode: string };
   onCopyChildAddress?: () => void;
@@ -116,13 +118,14 @@ function ParentSection({
             value={parent.postcode}
             onChange={(v) => {
               const digits = v.replace(/\D/g, "").slice(0, 4);
-              onChange("postcode", digits);
-              if (digits.length === 4) {
+              if (digits.length === 4 && onBatchChange) {
                 const state = stateFromPostcode(digits);
-                if (state) onChange("state", state);
+                onBatchChange(state ? { postcode: digits, state } : { postcode: digits });
+              } else {
+                onChange("postcode", digits);
               }
             }}
-            maxLength={5}
+            maxLength={4}
             inputMode="numeric"
             pattern="[0-9]*"
           />
@@ -147,8 +150,16 @@ export function ParentDetailsStep({ data, updateData }: Props) {
     updateData({ primaryParent: { ...data.primaryParent, [field]: value } });
   };
 
+  const batchUpdatePrimary = (fields: Partial<ParentDetails>) => {
+    updateData({ primaryParent: { ...data.primaryParent, ...fields } });
+  };
+
   const updateSecondary = (field: keyof ParentDetails, value: string) => {
     updateData({ secondaryParent: { ...data.secondaryParent, [field]: value } });
+  };
+
+  const batchUpdateSecondary = (fields: Partial<ParentDetails>) => {
+    updateData({ secondaryParent: { ...data.secondaryParent, ...fields } });
   };
 
   const copyChildAddress = () => {
@@ -170,6 +181,7 @@ export function ParentDetailsStep({ data, updateData }: Props) {
         title="Primary Parent / Guardian"
         parent={data.primaryParent}
         onChange={updatePrimary}
+        onBatchChange={batchUpdatePrimary}
         required
         childAddress={data.children[0]}
         onCopyChildAddress={copyChildAddress}
@@ -220,6 +232,7 @@ export function ParentDetailsStep({ data, updateData }: Props) {
             title="Secondary Parent / Guardian"
             parent={data.secondaryParent}
             onChange={updateSecondary}
+            onBatchChange={batchUpdateSecondary}
             onCopyChildAddress={() => {
               updateData({
                 secondaryParent: {
