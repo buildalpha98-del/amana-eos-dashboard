@@ -17,6 +17,7 @@ import { sendParentFollowUpEmail } from "@/lib/vapi/sendCallEmail";
 import { sendInternalNotification } from "@/lib/vapi/sendInternalNotification";
 import { createEnquiryFromCall } from "@/lib/vapi/create-enquiry-from-call";
 import { createBookingChangeTodo } from "@/lib/vapi/create-booking-change-todo";
+import { sendCallFollowUpSms } from "@/lib/vapi/sendCallSms";
 
 function coerceSuccessEvaluation(value: unknown): boolean | undefined {
   if (typeof value === "boolean") return value;
@@ -227,6 +228,9 @@ export async function POST(request: Request) {
     }
     sendInternalNotification(created.id).catch((err) =>
       logger.error("VAPI internal notification failed", { callId: created.id, error: err }),
+    );
+    sendCallFollowUpSms(created.id).catch((err) =>
+      logger.error("VAPI follow-up SMS failed", { callId: created.id, error: err }),
     );
 
     return NextResponse.json(
