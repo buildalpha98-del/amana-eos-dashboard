@@ -10,12 +10,12 @@ interface WelcomePackData {
   childName?: string;
   centre: {
     name: string;
-    address?: string;
-    suburb?: string;
-    state?: string;
-    postcode?: string;
-    phone?: string;
-    email?: string;
+    address?: string | null;
+    suburb?: string | null;
+    state?: string | null;
+    postcode?: string | null;
+    phone?: string | null;
+    email?: string | null;
     bscDailyRate?: number | null;
     ascDailyRate?: number | null;
     bscCasualRate?: number | null;
