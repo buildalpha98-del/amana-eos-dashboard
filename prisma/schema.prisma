@@ -3601,6 +3601,7 @@ model ParentEnquiry {
 
   touchpoints  ParentEnquiryTouchpoint[]
   nurtureSteps ParentNurtureStep[]
+  sourceCall   VapiCall? @relation("EnquiryFromCall")
 
   @@index([serviceId])
   @@index([stage])
@@ -5134,10 +5135,14 @@ model VapiCall {
   centreName               String?
   callDetails              Json?
   transcript               String?   @db.Text
+  summary                  String?   @db.Text // Vapi post-call AI summary
+  successEvaluation        Boolean?  // Vapi post-call success evaluation
   recordingUrl             String?
   callDurationSeconds      Int?
   followUpEmailSent        Boolean   @default(false)
   internalNotificationSent Boolean   @default(false)
+  linkedEnquiryId          String?   @unique // ParentEnquiry auto-created from this call
+  linkedEnquiry            ParentEnquiry? @relation("EnquiryFromCall", fields: [linkedEnquiryId], references: [id], onDelete: SetNull)
   notes                    String?   @db.Text
   actionedAt               DateTime?
   actionedBy               String?

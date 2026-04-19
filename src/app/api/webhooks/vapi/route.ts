@@ -15,12 +15,23 @@ import { logger } from "@/lib/logger";
 import { parseCallData } from "@/lib/vapi/parseTranscript";
 import { sendParentFollowUpEmail } from "@/lib/vapi/sendCallEmail";
 import { sendInternalNotification } from "@/lib/vapi/sendInternalNotification";
+import { createEnquiryFromCall } from "@/lib/vapi/create-enquiry-from-call";
 
 /**
  * Normalise the incoming VAPI payload into a consistent shape regardless of
  * whether VAPI sends the legacy `{ message: { type, call, ... } }` format or
  * the current `{ type, call, artifact: { transcript, messages, recordingUrl } }` format.
  */
+function coerceSuccessEvaluation(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    if (v === "true" || v === "pass" || v === "success" || v === "successful") return true;
+    if (v === "false" || v === "fail" || v === "failure" || v === "unsuccessful") return false;
+  }
+  return undefined;
+}
+
 function normalisePayload(body: Record<string, unknown>): {
   type: string | undefined;
   call: Record<string, unknown> | undefined;
@@ -29,25 +40,22 @@ function normalisePayload(body: Record<string, unknown>): {
   messages: any[];
   recordingUrl: string | undefined;
   structuredData: Record<string, unknown> | undefined;
+  summary: string | undefined;
+  successEvaluation: boolean | undefined;
 } {
-  // Legacy format: everything nested under `message`
   const message = body.message as Record<string, unknown> | undefined;
-  // Current format: `artifact` holds transcript, messages, recordingUrl
   const artifact = (body.artifact ?? message?.artifact) as Record<string, unknown> | undefined;
-  // Analysis holds post-call structured data extraction
   const analysis = (body.analysis ?? message?.analysis) as Record<string, unknown> | undefined;
 
   const type = (message?.type ?? body.type) as string | undefined;
   const call = (message?.call ?? body.call) as Record<string, unknown> | undefined;
 
-  // Transcript: try artifact first, then top-level / message-level
   const transcript =
     (artifact?.transcript as string) ??
     (message?.transcript as string) ??
     (body.transcript as string) ??
     "";
 
-  // Messages array: try artifact first, then top-level / message-level
   const messages =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (artifact?.messages as any[]) ??
@@ -57,19 +65,21 @@ function normalisePayload(body: Record<string, unknown>): {
     (body.messages as any[]) ??
     [];
 
-  // Recording URL
   const recordingUrl =
     (artifact?.recordingUrl as string) ??
     (message?.recordingUrl as string) ??
     (body.recordingUrl as string) ??
     undefined;
 
-  // Structured data from Vapi's analysisPlan (post-call extraction)
-  const structuredData =
-    (analysis?.structuredData as Record<string, unknown>) ??
-    undefined;
+  const structuredData = (analysis?.structuredData as Record<string, unknown>) ?? undefined;
 
-  return { type, call, transcript, messages, recordingUrl, structuredData };
+  const summaryRaw = analysis?.summary;
+  const summary =
+    typeof summaryRaw === "string" && summaryRaw.trim() ? summaryRaw.trim() : undefined;
+
+  const successEvaluation = coerceSuccessEvaluation(analysis?.successEvaluation);
+
+  return { type, call, transcript, messages, recordingUrl, structuredData, summary, successEvaluation };
 }
 
 /** Health check — lets the team verify the endpoint is live and the secret is configured. */
@@ -98,15 +108,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { type, call, transcript, messages, recordingUrl, structuredData } = normalisePayload(body);
+  const {
+    type,
+    call,
+    transcript,
+    messages,
+    recordingUrl,
+    structuredData,
+    summary,
+    successEvaluation,
+  } = normalisePayload(body);
 
-  // Log every incoming webhook type for diagnostics
   logger.info("VAPI webhook received", {
     type: type ?? "unknown",
     hasCall: !!call,
     hasTranscript: !!transcript,
     hasMessages: messages.length > 0,
     hasStructuredData: !!structuredData,
+    hasSummary: !!summary,
+    hasSuccessEvaluation: successEvaluation != null,
     bodyKeys: Object.keys(body),
   });
 
@@ -152,21 +172,42 @@ export async function POST(request: Request) {
         childName: parsed.childName,
         centreName: parsed.centreName,
         transcript: transcript || undefined,
+        summary,
+        successEvaluation,
         recordingUrl,
         callDurationSeconds,
         calledAt,
       },
     });
 
+    // For new_enquiry calls, auto-create a ParentEnquiry which enrols the parent
+    // into the existing nurture sequence (welcome → CCS info → enrolment reminders).
+    // We skip the one-off sendParentFollowUpEmail in this case to avoid duplicate
+    // welcome emails — the nurture system sends a richer "welcome" step.
+    let enquiryCreated = false;
+    if (parsed.callType === "new_enquiry") {
+      try {
+        const enquiryId = await createEnquiryFromCall(created.id);
+        enquiryCreated = !!enquiryId;
+      } catch (err) {
+        logger.error("VAPI: enquiry creation threw", { callId: created.id, error: err });
+      }
+    }
+
     // Fire and forget — email errors must not affect the 200 response
-    sendParentFollowUpEmail(created.id).catch((err) =>
-      logger.error("VAPI parent email failed", { callId: created.id, error: err }),
-    );
+    if (!enquiryCreated) {
+      sendParentFollowUpEmail(created.id).catch((err) =>
+        logger.error("VAPI parent email failed", { callId: created.id, error: err }),
+      );
+    }
     sendInternalNotification(created.id).catch((err) =>
       logger.error("VAPI internal notification failed", { callId: created.id, error: err }),
     );
 
-    return NextResponse.json({ received: true, callId: created.id }, { status: 200 });
+    return NextResponse.json(
+      { received: true, callId: created.id, enquiryCreated },
+      { status: 200 },
+    );
   } catch (err) {
     logger.error("VAPI webhook processing error", { error: err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
