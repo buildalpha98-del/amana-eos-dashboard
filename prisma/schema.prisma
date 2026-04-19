@@ -732,8 +732,9 @@ model Todo {
   completedAt DateTime?
   updatedAt   DateTime   @updatedAt
 
-  assignees TodoAssignee[] @relation("TodoAssignees")
-  aiDrafts  AiTaskDraft[]  @relation("TodoAiDraft")
+  assignees  TodoAssignee[] @relation("TodoAssignees")
+  aiDrafts   AiTaskDraft[]  @relation("TodoAiDraft")
+  sourceCall VapiCall?      @relation("TodoFromCall")
 
   @@index([assigneeId])
   @@index([rockId])
@@ -5141,8 +5142,11 @@ model VapiCall {
   callDurationSeconds      Int?
   followUpEmailSent        Boolean   @default(false)
   internalNotificationSent Boolean   @default(false)
+  slaAlertedAt             DateTime? // Set when an SLA escalation has been sent, to prevent duplicates
   linkedEnquiryId          String?   @unique // ParentEnquiry auto-created from this call
   linkedEnquiry            ParentEnquiry? @relation("EnquiryFromCall", fields: [linkedEnquiryId], references: [id], onDelete: SetNull)
+  linkedTodoId             String?   @unique // Todo auto-created from a booking-change call
+  linkedTodo               Todo?     @relation("TodoFromCall", fields: [linkedTodoId], references: [id], onDelete: SetNull)
   notes                    String?   @db.Text
   actionedAt               DateTime?
   actionedBy               String?
