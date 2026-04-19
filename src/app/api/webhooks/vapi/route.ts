@@ -28,11 +28,14 @@ function normalisePayload(body: Record<string, unknown>): {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   messages: any[];
   recordingUrl: string | undefined;
+  structuredData: Record<string, unknown> | undefined;
 } {
   // Legacy format: everything nested under `message`
   const message = body.message as Record<string, unknown> | undefined;
   // Current format: `artifact` holds transcript, messages, recordingUrl
   const artifact = (body.artifact ?? message?.artifact) as Record<string, unknown> | undefined;
+  // Analysis holds post-call structured data extraction
+  const analysis = (body.analysis ?? message?.analysis) as Record<string, unknown> | undefined;
 
   const type = (message?.type ?? body.type) as string | undefined;
   const call = (message?.call ?? body.call) as Record<string, unknown> | undefined;
@@ -61,7 +64,12 @@ function normalisePayload(body: Record<string, unknown>): {
     (body.recordingUrl as string) ??
     undefined;
 
-  return { type, call, transcript, messages, recordingUrl };
+  // Structured data from Vapi's analysisPlan (post-call extraction)
+  const structuredData =
+    (analysis?.structuredData as Record<string, unknown>) ??
+    undefined;
+
+  return { type, call, transcript, messages, recordingUrl, structuredData };
 }
 
 /** Health check — lets the team verify the endpoint is live and the secret is configured. */
@@ -90,7 +98,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { type, call, transcript, messages, recordingUrl } = normalisePayload(body);
+  const { type, call, transcript, messages, recordingUrl, structuredData } = normalisePayload(body);
 
   // Log every incoming webhook type for diagnostics
   logger.info("VAPI webhook received", {
@@ -98,6 +106,7 @@ export async function POST(request: Request) {
     hasCall: !!call,
     hasTranscript: !!transcript,
     hasMessages: messages.length > 0,
+    hasStructuredData: !!structuredData,
     bodyKeys: Object.keys(body),
   });
 
@@ -119,7 +128,7 @@ export async function POST(request: Request) {
     }
 
     const calledAt = startedAt ? new Date(startedAt) : new Date();
-    const parsed = parseCallData(transcript, messages);
+    const parsed = parseCallData(transcript, messages, structuredData);
 
     logger.info("VAPI call parsed", {
       vapiCallId,
@@ -128,6 +137,7 @@ export async function POST(request: Request) {
       parentName: parsed.parentName,
       centreName: parsed.centreName,
       transcriptLength: transcript.length,
+      source: structuredData ? "analysis" : "transcript",
     });
 
     const created = await prisma.vapiCall.create({
