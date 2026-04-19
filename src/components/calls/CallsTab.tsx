@@ -46,7 +46,9 @@ interface VapiCall {
   callDurationSeconds?: number;
   followUpEmailSent: boolean;
   internalNotificationSent: boolean;
+  slaAlertedAt?: string;
   linkedEnquiryId?: string;
+  linkedTodoId?: string;
   notes?: string;
   actionedAt?: string;
   actionedBy?: string;
@@ -411,6 +413,12 @@ export function CallsTab() {
                   {call.linkedEnquiryId && (
                     <span className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700">Enquiry</span>
                   )}
+                  {call.linkedTodoId && (
+                    <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700", !call.linkedEnquiryId && "ml-auto")}>Todo</span>
+                  )}
+                  {call.slaAlertedAt && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-700">SLA</span>
+                  )}
                 </div>
                 {call.summary && (
                   <p className="text-xs text-muted mt-1 line-clamp-2">{call.summary}</p>
@@ -637,6 +645,40 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
                 </div>
                 <ChevronRight className="w-4 h-4 text-emerald-700" />
               </a>
+            </section>
+          )}
+
+          {/* Todo link */}
+          {call.linkedTodoId && (
+            <section>
+              <a
+                href={`/queue?todo=${call.linkedTodoId}`}
+                className="flex items-center justify-between gap-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900">Todo auto-created for coordinator</p>
+                    <p className="text-xs text-blue-700">Booking change ready to action in OWNA</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-blue-700" />
+              </a>
+            </section>
+          )}
+
+          {/* SLA breach badge */}
+          {call.slaAlertedAt && call.status !== "actioned" && call.status !== "closed" && (
+            <section>
+              <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-red-900">SLA breach escalated</p>
+                  <p className="text-xs text-red-700">
+                    Team notified {formatDateTime(call.slaAlertedAt)} — action this call now.
+                  </p>
+                </div>
+              </div>
             </section>
           )}
 

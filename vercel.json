@@ -26,6 +26,10 @@
       "schedule": "30 22 * * *"
     },
     {
+      "path": "/api/cron/vapi-sla-monitor",
+      "schedule": "0 * * * *"
+    },
+    {
       "path": "/api/xero/sync/cron",
       "schedule": "0 11 * * *"
     },

@@ -16,6 +16,7 @@ import { parseCallData } from "@/lib/vapi/parseTranscript";
 import { sendParentFollowUpEmail } from "@/lib/vapi/sendCallEmail";
 import { sendInternalNotification } from "@/lib/vapi/sendInternalNotification";
 import { createEnquiryFromCall } from "@/lib/vapi/create-enquiry-from-call";
+import { createBookingChangeTodo } from "@/lib/vapi/create-booking-change-todo";
 
 function coerceSuccessEvaluation(value: unknown): boolean | undefined {
   if (typeof value === "boolean") return value;
@@ -186,6 +187,19 @@ export async function POST(request: Request) {
         enquiryCreated = !!enquiryId;
       } catch (err) {
         logger.error("VAPI: enquiry creation threw", { callId: created.id, error: err });
+      }
+    }
+
+    // For booking_change calls, auto-create a Todo for the centre coordinator
+    // so the change gets processed in OWNA within the SLA window.
+    if (parsed.callType === "booking_change") {
+      try {
+        await createBookingChangeTodo(created.id);
+      } catch (err) {
+        logger.error("VAPI: booking-change todo creation threw", {
+          callId: created.id,
+          error: err,
+        });
       }
     }
 
