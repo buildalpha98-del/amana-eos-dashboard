@@ -17,11 +17,6 @@ import { sendParentFollowUpEmail } from "@/lib/vapi/sendCallEmail";
 import { sendInternalNotification } from "@/lib/vapi/sendInternalNotification";
 import { createEnquiryFromCall } from "@/lib/vapi/create-enquiry-from-call";
 
-/**
- * Normalise the incoming VAPI payload into a consistent shape regardless of
- * whether VAPI sends the legacy `{ message: { type, call, ... } }` format or
- * the current `{ type, call, artifact: { transcript, messages, recordingUrl } }` format.
- */
 function coerceSuccessEvaluation(value: unknown): boolean | undefined {
   if (typeof value === "boolean") return value;
   if (typeof value === "string") {
