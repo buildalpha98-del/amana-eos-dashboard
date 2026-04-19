@@ -146,6 +146,20 @@ export async function POST(request: Request) {
     const calledAt = startedAt ? new Date(startedAt) : new Date();
     const parsed = parseCallData(transcript, messages, structuredData);
 
+    // Check for repeat caller (same phone in the last 7 days)
+    let repeatCaller = false;
+    if (parsed.parentPhone) {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const prior = await prisma.vapiCall.findFirst({
+        where: {
+          parentPhone: parsed.parentPhone,
+          calledAt: { gte: sevenDaysAgo },
+        },
+        select: { id: true },
+      });
+      repeatCaller = !!prior;
+    }
+
     logger.info("VAPI call parsed", {
       vapiCallId,
       callType: parsed.callType,
@@ -154,6 +168,7 @@ export async function POST(request: Request) {
       centreName: parsed.centreName,
       transcriptLength: transcript.length,
       source: structuredData ? "analysis" : "transcript",
+      repeatCaller,
     });
 
     const created = await prisma.vapiCall.create({
@@ -170,6 +185,7 @@ export async function POST(request: Request) {
         transcript: transcript || undefined,
         summary,
         successEvaluation,
+        repeatCaller,
         recordingUrl,
         callDurationSeconds,
         calledAt,

@@ -5140,6 +5140,7 @@ model VapiCall {
   successEvaluation        Boolean?  // Vapi post-call success evaluation
   recordingUrl             String?
   callDurationSeconds      Int?
+  repeatCaller             Boolean   @default(false) // Same phone called within past 7 days
   followUpEmailSent        Boolean   @default(false)
   internalNotificationSent Boolean   @default(false)
   slaAlertedAt             DateTime? // Set when an SLA escalation has been sent, to prevent duplicates

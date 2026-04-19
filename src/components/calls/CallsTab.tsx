@@ -21,6 +21,7 @@ import {
   Bell,
   User,
   ChevronRight,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 
@@ -44,6 +45,7 @@ interface VapiCall {
   successEvaluation?: boolean;
   recordingUrl?: string;
   callDurationSeconds?: number;
+  repeatCaller?: boolean;
   followUpEmailSent: boolean;
   internalNotificationSent: boolean;
   slaAlertedAt?: string;
@@ -316,7 +318,7 @@ export function CallsTab() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             type="text"
-            placeholder="Search name, phone, child..."
+            placeholder="Search name, phone, transcript..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-9 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
@@ -418,6 +420,9 @@ export function CallsTab() {
                   )}
                   {call.slaAlertedAt && (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-700">SLA</span>
+                  )}
+                  {call.repeatCaller && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-50 text-orange-700">Repeat</span>
                   )}
                 </div>
                 {call.summary && (
@@ -682,6 +687,28 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
             </section>
           )}
 
+          {/* Repeat caller warning */}
+          {call.repeatCaller && (
+            <section>
+              <div className="flex items-center gap-2 px-4 py-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <Phone className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-orange-900">Repeat caller</p>
+                  <p className="text-xs text-orange-700">
+                    This number has called within the past 7 days — check if a previous issue was unresolved.
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Convert to Enquiry */}
+          {!call.linkedEnquiryId && call.parentName && (
+            <section>
+              <ConvertToEnquiryButton callId={call.id} onSuccess={onClose} />
+            </section>
+          )}
+
           {/* Caller Details */}
           <section>
             <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
@@ -834,6 +861,40 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="text-muted w-20 flex-shrink-0">{label}</span>
       <span className="text-foreground">{value}</span>
     </div>
+  );
+}
+
+function ConvertToEnquiryButton({ callId, onSuccess }: { callId: string; onSuccess: () => void }) {
+  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
+
+  const handleConvert = async () => {
+    setLoading(true);
+    try {
+      await mutateApi(`/api/calls/${callId}/convert-to-enquiry`, { method: "POST" });
+      toast({ description: "Enquiry created — parent enrolled in nurture sequence" });
+      queryClient.invalidateQueries({ queryKey: ["vapi-calls"] });
+      queryClient.invalidateQueries({ queryKey: ["vapi-call-stats"] });
+      onSuccess();
+    } catch (err: unknown) {
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "Failed to create enquiry",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleConvert}
+      disabled={loading}
+      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#004E64] text-white rounded-lg text-sm font-medium hover:bg-[#003d4f] transition-colors disabled:opacity-50"
+    >
+      <UserPlus className="w-4 h-4" />
+      {loading ? "Creating enquiry..." : "Convert to Enquiry"}
+    </button>
   );
 }
 

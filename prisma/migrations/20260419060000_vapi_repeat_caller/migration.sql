@@ -1,0 +1,1 @@
+ALTER TABLE "VapiCall" ADD COLUMN "repeatCaller" BOOLEAN NOT NULL DEFAULT false;
