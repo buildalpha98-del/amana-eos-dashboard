@@ -197,12 +197,22 @@ function formatDuration(seconds?: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+// ─── Lazy-loaded analytics ─────────────────────────────────
+
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/Skeleton";
+const CallAnalytics = dynamic(
+  () => import("@/components/calls/CallAnalytics").then((m) => ({ default: m.CallAnalytics })),
+  { loading: () => <Skeleton className="h-96 w-full" /> },
+);
+
 // ─── Component ──────────────────────────────────────────────
 
 export function CallsTab() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const deepLinkId = searchParams.get("id");
+  const [view, setView] = useState<"calls" | "analytics">("calls");
 
   // Filters
   const [callTypeFilter, setCallTypeFilter] = useState("");
@@ -303,6 +313,32 @@ export function CallsTab() {
 
   return (
     <div>
+      {/* ── View Toggle ─────────────────────────────────── */}
+      <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit mb-4">
+        <button
+          onClick={() => setView("calls")}
+          className={cn(
+            "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+            view === "calls" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground",
+          )}
+        >
+          Calls
+        </button>
+        <button
+          onClick={() => setView("analytics")}
+          className={cn(
+            "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+            view === "analytics" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground",
+          )}
+        >
+          Analytics
+        </button>
+      </div>
+
+      {view === "analytics" ? (
+        <CallAnalytics />
+      ) : (
+      <>
       {/* ── Summary Cards ─────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label="Calls Today" value={stats?.todayTotal ?? 0} icon={Phone} color="text-[#004E64]" />
@@ -535,6 +571,8 @@ export function CallsTab() {
           onUpdate={(data) => updateCall.mutate({ id: selectedCall.id, data })}
         />
       )}
+      </>
+      )}
     </div>
   );
 }
@@ -702,10 +740,23 @@ function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose:
             </section>
           )}
 
-          {/* Convert to Enquiry */}
-          {!call.linkedEnquiryId && call.parentName && (
-            <section>
-              <ConvertToEnquiryButton callId={call.id} onSuccess={onClose} />
+          {/* Action buttons */}
+          {call.parentName && (
+            <section className="flex gap-2">
+              {!call.linkedEnquiryId && (
+                <ConvertToEnquiryButton callId={call.id} onSuccess={onClose} />
+              )}
+              {call.centreName && (
+                <a
+                  href={`/api/calls/${call.id}/welcome-pack`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-[#004E64] text-[#004E64] rounded-lg text-sm font-medium hover:bg-[#004E64]/5 transition-colors"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                  Welcome Pack PDF
+                </a>
+              )}
             </section>
           )}
 
@@ -890,7 +941,7 @@ function ConvertToEnquiryButton({ callId, onSuccess }: { callId: string; onSucce
     <button
       onClick={handleConvert}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#004E64] text-white rounded-lg text-sm font-medium hover:bg-[#003d4f] transition-colors disabled:opacity-50"
+      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#004E64] text-white rounded-lg text-sm font-medium hover:bg-[#003d4f] transition-colors disabled:opacity-50"
     >
       <UserPlus className="w-4 h-4" />
       {loading ? "Creating enquiry..." : "Convert to Enquiry"}
