@@ -109,10 +109,19 @@ export function parseCallData(
   let urgency = extractField(json, "urgency") ?? "routine";
   if (!["routine", "urgent", "critical"].includes(urgency)) urgency = "routine";
 
-  // Override: escalation + safeguarding → critical
+  // Override: escalation + safeguarding → critical.
+  // Check concernDetails, concernType, and notes since the assistant prompt
+  // may place the "SAFEGUARDING" marker in any of these fields.
   if (callType === "escalation") {
-    const concernDetails = extractField(json, "concernDetails", "concern", "details", "description") ?? "";
-    if (concernDetails.toUpperCase().includes("SAFEGUARDING")) {
+    const safeguardingHaystack = [
+      extractField(json, "concernDetails", "concern", "details", "description"),
+      extractField(json, "concernType", "concern_type", "type"),
+      extractField(json, "notes"),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toUpperCase();
+    if (safeguardingHaystack.includes("SAFEGUARDING")) {
       urgency = "critical";
     }
   }
