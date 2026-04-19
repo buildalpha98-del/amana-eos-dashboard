@@ -37,6 +37,8 @@ export const GET = withApiAuth(async (req) => {
       { parentName: { contains: search, mode: "insensitive" } },
       { parentPhone: { contains: search } },
       { childName: { contains: search, mode: "insensitive" } },
+      { summary: { contains: search, mode: "insensitive" } },
+      { transcript: { contains: search, mode: "insensitive" } },
     ];
   }
 
