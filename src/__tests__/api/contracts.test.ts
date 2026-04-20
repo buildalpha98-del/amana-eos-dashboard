@@ -242,7 +242,7 @@ describe("POST /api/contracts — nullable optional fields", () => {
   });
 
   it("accepts null for optional string fields without rejecting as 'expected string, received null'", async () => {
-    mockSession({ id: "u1", role: "admin" });
+    mockSession({ id: "u1", name: "Test User", role: "admin" });
 
     // user lookup for the contract target
     prismaMock.user.findUnique.mockImplementation(
@@ -306,7 +306,7 @@ describe("PATCH /api/contracts/[id] — nullable optional fields", () => {
   });
 
   it("accepts null for previously-set optional fields", async () => {
-    mockSession({ id: "u1", role: "admin" });
+    mockSession({ id: "u1", name: "Test User", role: "admin" });
 
     const existing = {
       id: "c1",

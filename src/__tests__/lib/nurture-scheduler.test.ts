@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import { prismaMock } from "../helpers/prisma-mock";
 
 vi.mock("@/lib/logger", () => ({
@@ -265,14 +265,15 @@ describe("scheduleNurtureFromStageChange", () => {
     await scheduleNurtureFromStageChange("enq-1", "info_sent");
 
     const calls = prismaMock.parentNurtureStep.upsert.mock.calls;
-    const steps = calls.map((c: unknown[]) => {
+    type Step = { key: unknown; scheduledFor: Date };
+    const steps: Step[] = calls.map((c: unknown[]) => {
       const create = (c[0] as Record<string, unknown>).create as Record<string, unknown>;
       return { key: create.templateKey, scheduledFor: create.scheduledFor as Date };
     });
 
-    const ccsAssist = steps.find(s => s.key === "ccs_assist")!;
-    const howToEnrol = steps.find(s => s.key === "how_to_enrol")!;
-    const nudge1 = steps.find(s => s.key === "nudge_1")!;
+    const ccsAssist = steps.find((s: Step) => s.key === "ccs_assist")!;
+    const howToEnrol = steps.find((s: Step) => s.key === "how_to_enrol")!;
+    const nudge1 = steps.find((s: Step) => s.key === "nudge_1")!;
 
     // ccs_assist at +24h, how_to_enrol at +48h, nudge_1 at +3d
     expect(ccsAssist.scheduledFor.getTime() - NOW.getTime()).toBe(24 * 60 * 60 * 1000);
@@ -287,14 +288,15 @@ describe("scheduleNurtureFromStageChange", () => {
     await scheduleNurtureFromStageChange("enq-1", "first_session");
 
     const calls = prismaMock.parentNurtureStep.upsert.mock.calls;
-    const steps = calls.map((c: unknown[]) => {
+    type Step = { key: unknown; scheduledFor: Date };
+    const steps: Step[] = calls.map((c: unknown[]) => {
       const create = (c[0] as Record<string, unknown>).create as Record<string, unknown>;
       return { key: create.templateKey, scheduledFor: create.scheduledFor as Date };
     });
 
-    const whatToBring = steps.find(s => s.key === "what_to_bring")!;
-    const day1 = steps.find(s => s.key === "day1_checkin")!;
-    const nps = steps.find(s => s.key === "nps_survey")!;
+    const whatToBring = steps.find((s: Step) => s.key === "what_to_bring")!;
+    const day1 = steps.find((s: Step) => s.key === "day1_checkin")!;
+    const nps = steps.find((s: Step) => s.key === "nps_survey")!;
 
     // what_to_bring on session day, day1 = session+1d, nps = session+30d
     expect(whatToBring.scheduledFor.getTime()).toBe(futureSession.getTime());

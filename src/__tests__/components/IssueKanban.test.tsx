@@ -27,8 +27,6 @@ function makeUser(id: string) {
 function makeIssue(overrides: Partial<IssueData> & { id: string; title: string }): IssueData {
   const now = new Date().toISOString();
   return {
-    id: overrides.id,
-    title: overrides.title,
     description: null,
     raisedById: "user-1",
     raisedBy: makeUser("user-1"),

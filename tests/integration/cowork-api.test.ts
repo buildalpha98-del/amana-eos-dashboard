@@ -7,7 +7,7 @@
  * Uses mocked Prisma for unit-level validation of auth logic.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 // Mock Prisma before importing
 vi.mock("@/lib/prisma", () => {
@@ -142,7 +142,7 @@ describe("Cowork bearer token auth (env-based)", () => {
     const { authenticateCowork } = await import("@/app/api/_lib/auth");
 
     const req = new NextRequest("http://localhost:3000/api/cowork/programs");
-    const result = authenticateCowork(req);
+    const result = await authenticateCowork(req);
 
     expect(result).not.toBeNull();
     expect(result!.status).toBe(401);

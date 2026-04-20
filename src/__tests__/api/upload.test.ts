@@ -55,23 +55,23 @@ function createFormDataRequest(path: string, formData: FormData): NextRequest {
 }
 
 /** Minimal valid PDF header bytes: "%PDF-1.4\n...". */
-function pdfBytes(extraSize = 0): Uint8Array {
+function pdfBytes(extraSize = 0): BlobPart {
   const header = new TextEncoder().encode("%PDF-1.4\n%\u00E2\u00E3\u00CF\u00D3\n");
   const padding = new Uint8Array(extraSize);
   const out = new Uint8Array(header.length + padding.length);
   out.set(header, 0);
   out.set(padding, header.length);
-  return out;
+  return out as BlobPart;
 }
 
 /** Minimal valid PNG header (89 50 4E 47 0D 0A 1A 0A). */
-function pngBytes(): Uint8Array {
-  return new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00]);
+function pngBytes(): BlobPart {
+  return new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00]) as BlobPart;
 }
 
 /** Minimal valid JPEG header (FF D8 FF E0). */
-function jpegBytes(): Uint8Array {
-  return new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+function jpegBytes(): BlobPart {
+  return new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]) as BlobPart;
 }
 
 // --- Tests ---------------------------------------------------------------

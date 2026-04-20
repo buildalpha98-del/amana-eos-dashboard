@@ -13,11 +13,20 @@
 
 import { vi } from "vitest";
 
+export type MockUserRole =
+  | "owner"
+  | "head_office"
+  | "admin"
+  | "marketing"
+  | "coordinator"
+  | "member"
+  | "staff";
+
 interface MockUser {
   id: string;
   name: string;
   email?: string;
-  role: "owner" | "head_office" | "admin" | "marketing" | "coordinator" | "member" | "staff";
+  role: MockUserRole;
   serviceId?: string | null;
 }
 
