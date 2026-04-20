@@ -140,6 +140,7 @@ export async function GET(req: NextRequest) {
       servicesNotified: sent,
     });
   } catch (err) {
+    logger.error("Unactioned bookings cron failed", { err });
     await guard.fail(err);
     throw err;
   }

@@ -145,7 +145,6 @@ export const GET = withApiHandler(async (req) => {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
-    logger.error("Auto-onboarding cron failed", { err });
     await guard.fail(err);
     throw err;
   }

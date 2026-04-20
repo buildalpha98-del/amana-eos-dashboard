@@ -151,7 +151,6 @@ export const GET = withApiHandler(async (req) => {
     await guard.complete({ synced, errors });
     return NextResponse.json({ synced, errors });
   } catch (err) {
-    logger.error("Social sync cron error", { err });
     await guard.fail(err);
     throw err;
   }
