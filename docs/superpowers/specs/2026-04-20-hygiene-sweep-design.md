@@ -1,31 +1,50 @@
 # Sub-project 2 — Hygiene Sweep
 
 **Date**: 2026-04-20
-**Status**: Draft
+**Status**: Draft (v2, post-baseline-reverification)
 **Parent roadmap**: [`2026-04-20-dashboard-bugfix-roadmap.md`](./2026-04-20-dashboard-bugfix-roadmap.md)
 **Predecessor**: Sub-project 1 P0 Bug Batch (merged as `dd0a1d9`)
 
 ## Overview
 
-Systemic convention-compliance sweep across the codebase. Eight categories of hygiene debt surfaced by the Sub-project 0 audit and the Sub-project 1 review. One feature branch, one PR, **eight stacked commits in smallest-blast-radius-first order**. Each commit is independently revert-safe. No new features, no schema changes, no module rebuilds — strictly applying already-established conventions to existing code.
+Systemic convention-compliance sweep across the codebase. Eight categories of hygiene debt surfaced by the Sub-project 0 audit, the Sub-project 1 review, and a baseline re-verification pass. One feature branch, one PR, **eight stacked commits in smallest-blast-radius-first order**. Each commit is independently revert-safe. No new features, no schema changes, no module rebuilds — strictly applying already-established conventions to existing code.
 
 **Branch**: `hygiene/sweep-2026-04-20` off `origin/main` at `dd0a1d9`
 **Worktree**: `.worktrees/hygiene-sweep`
-**Starting baseline**: 997 tests passing, ~60 `tsc --noEmit` errors (all in test files), 245 routes using raw `req.json()`, 11 crons lacking `acquireCronLock`, 46 mutations lacking `onError` toasts, 20 `as Role` casts across 8 files, 5 silent `.catch(() => {})` sites, CI integration tests failing on main due to missing `DATABASE_URL_UNPOOLED` env var.
-**Target end state**: 997+ tests passing, 0 `tsc --noEmit` errors, 0 raw `req.json()`, 0 unlocked crons, 0 mutations lacking `onError`, 0 `as Role` casts in touched files, 0 silent catches, CI green.
+
+## Baseline (captured 2026-04-20, post `npx prisma generate`)
+
+Numbers used throughout this spec, verified against the current codebase state. Every subagent MUST re-verify these at commit-start with the grep commands shown.
+
+| Metric | Count | Verification command |
+|---|---|---|
+| Tests passing | 997 | `npm test -- --run 2>&1 \| tail -5` |
+| `tsc --noEmit` errors | 26 total (24 in `src/__tests__/**`, 2 in `tests/integration/**`, 0 in prod code) | `npx tsc --noEmit 2>&1 \| grep -c "error TS"` |
+| `await req.json()` sites | 247 across 242 files in `src/app/api/` (some files have multiple) | `grep -rn "await req\.json" src/app/api/ \| wc -l` (sites) and `\| cut -d: -f1 \| sort -u \| wc -l` (files) |
+| Silent `.catch(() => {})` sites | 46 across 33 files | `grep -rn "\.catch(() *=> *{})" src/ \| wc -l` |
+| `as Role` in `hasFeature(...)` call sites (target) | 20 across 10 files | `grep -rn "hasFeature(.*as Role" src/ \| wc -l` |
+| `as Role` total in production | 38 sites across 27 files (broader; not all in scope) | `grep -rn "as Role" src/ \| grep -v __tests__ \| grep -v "\.d\.ts" \| wc -l` |
+| Cron routes total | 61 | `ls src/app/api/cron/ \| wc -l` |
+| Crons missing `acquireCronLock` | 11 | see commit 4 table |
+| `useMutation` missing `onError` | 46 across 22 files (dashboard + hooks + shared components; parent/cowork portals explicitly excluded from scope) | audit script committed at `scripts/audit-mutation-onerror.py` (commit 7 includes it) |
+| Inline `["admin", "head_office", "owner"]` role arrays | 2 confirmed sites (`owna/centres/route.ts:37`, `owna/test/route.ts:27`), plus 224 files that contain all three strings somewhere (superset — most aren't admin-role arrays) | `grep -rn '\["owner",\s*"admin",\s*"head_office"\]\|\["admin",\s*"head_office",\s*"owner"\]' src/` for exact matches, then broader audit |
+
+**Target end state**: baseline clean on all metrics (247→0 req.json sites, 46→0 silent catches, 20→0 `hasFeature(... as Role)`, 11→0 unlocked crons, 46→0 missing onError, 26→0 tsc errors) AND 997+ tests still passing AND CI green on the branch.
 
 ## In scope — 8 stacked commits
 
-| # | Commit subject | Category | Blast radius | Files touched |
-|---|---|---|---|---|
-| 1 | `fix(ci): add DATABASE_URL_UNPOOLED to test workflow env` | Infrastructure | 1 workflow file | 2 |
-| 2 | `refactor(auth): extract ADMIN_ROLES constant` | Code quality | Single constant + callsites | 5–8 |
-| 3 | `fix(errors): replace silent .catch(() => {}) with logger.error` | Reliability | 3 confirmed files | 3 |
-| 4 | `fix(cron): add acquireCronLock to 11 missing crons` | Reliability | Cron surface | 11 |
-| 5 | `refactor(auth): replace session.user.role as Role with safe narrowing` | Type safety | 8 files, 20 casts | 13 |
-| 6 | `fix(tests): resolve ~60 TS errors in test files` | Type safety | Tests only | 15–25 |
-| 7 | `fix(hooks): add onError destructive toast to 46 mutations` | UX reliability | 22 files | 22 |
-| 8 | `refactor(api): migrate 245 routes from req.json() to parseJsonBody()` | Error handling | Full API surface | 245 |
+| # | Commit subject | Category | Files touched |
+|---|---|---|---|
+| 1 | `fix(ci): add DATABASE_URL_UNPOOLED to test workflow env` | Infrastructure | 2 |
+| 2 | `refactor(auth): extract ADMIN_ROLES constant + inline-array audit` | Code quality | ~5 |
+| 3 | `fix(errors): replace 46 silent .catch(() => {}) with logger calls` | Reliability | 33 |
+| 4 | `fix(cron): add acquireCronLock to 11 missing crons` | Reliability | 11 |
+| 5 | `fix(tests): resolve 26 TS errors (24 test-file, 2 integration-test)` | Type safety | ~10 |
+| 6 | `refactor(auth): narrow session.user.role at hasFeature() call sites` | Type safety | ~10 |
+| 7 | `fix(hooks): add onError destructive toast to 46 mutations` | UX reliability | 22 + 1 (audit script) |
+| 8 | `refactor(api): migrate 247 req.json() sites in 242 files to parseJsonBody()` | Error handling | 242 + 1 (one-shot codemod) |
+
+**Ordering change from v1**: commits 5 and 6 are swapped. TS errors are fixed first (commit 5) to ensure the type-narrowing refactor in commit 6 lands on a clean tsc baseline — so any error introduced by the refactor is visible immediately, not lost in noise.
 
 Rule: if a commit breaks CI, fix it before stacking the next — no piling broken commits.
 
@@ -33,58 +52,132 @@ Rule: if a commit breaks CI, fix it before stacking the next — no piling broke
 
 ### Commit 1: `fix(ci): add DATABASE_URL_UNPOOLED to test workflow env`
 
-**Problem**: `prisma/schema.prisma:8` uses `directUrl = env("DATABASE_URL_UNPOOLED")`. `.github/workflows/test.yml` integration and e2e jobs set `DATABASE_URL` but never set `DATABASE_URL_UNPOOLED`. Integration tests on main fail because Prisma can't resolve `directUrl`.
+**Problem**: `prisma/schema.prisma:8` uses `directUrl = env("DATABASE_URL_UNPOOLED")`. `.github/workflows/test.yml` integration and e2e jobs set `DATABASE_URL` but never set `DATABASE_URL_UNPOOLED`. Integration tests on main fail because Prisma cannot resolve `directUrl`.
+
+**Fix** — anchor-based (robust to line drift):
+- `.github/workflows/test.yml`: in any `env:` block that currently contains a `DATABASE_URL:` line for the CI Postgres service, add a sibling `DATABASE_URL_UNPOOLED:` line with the same value. As of baseline, this is 2 blocks (integration job + e2e job).
+- `.env.example`: below the `DATABASE_URL=` line, add a `DATABASE_URL_UNPOOLED=` line with the same placeholder value and a comment: `# Prisma directUrl — bypasses connection pooler for migrations (CI/local: same as DATABASE_URL)`.
+
+**Acceptance**:
+- `grep -A 10 "DATABASE_URL:" .github/workflows/test.yml | grep -c DATABASE_URL_UNPOOLED` → matches the count of `DATABASE_URL:` entries
+- Next GitHub Actions run reaches test execution; no Prisma directUrl error
+- `.env.example` documents the var
+
+---
+
+### Commit 2: `refactor(auth): extract ADMIN_ROLES constant + inline-array audit`
+
+**Problem**: Flagged during Sub-project 1 bug #14 review. Inline `["admin", "head_office", "owner"]` arrays drift if one site adds a new admin role and others don't. Baseline audit found **2 confirmed sites** in that exact form (`owna/centres/route.ts:37`, `owna/test/route.ts:27`), but the broader audit may surface additional orderings / whitespace variants.
 
 **Fix**:
-- `.github/workflows/test.yml`: add `DATABASE_URL_UNPOOLED: postgresql://test:test@localhost:5432/amana_eos_test` to the `integration` job env block (after line 73) and the `e2e` job env block (after line 120). Same value as `DATABASE_URL` — in CI's local Postgres there is no pooler so direct = pooled.
-- `.env.example`: add a commented line documenting the var right after the `DATABASE_URL=` line.
+1. Add `export const ADMIN_ROLES = ["owner", "admin", "head_office"] as const;` to `src/lib/role-permissions.ts` (or a new `src/lib/auth-constants.ts` if circular import).
+2. Audit for inline 3-role admin arrays with these patterns:
+   - `\["admin",\s*"head_office",\s*"owner"\]`
+   - `\["owner",\s*"admin",\s*"head_office"\]`
+   - `\["head_office",\s*"admin",\s*"owner"\]`
+   - And any other permutation discovered via: `grep -rln '"admin"' src/app/api/ | xargs grep -l '"head_office"' | xargs grep -l '"owner"'` then inspecting each hit
+3. Replace each confirmed admin-role array site with `[...ADMIN_ROLES]` (spread — `withApiAuth({ roles: [...] })` expects a readonly string array)
 
-**Acceptance**: Next GitHub Actions run on this branch reaches test execution without the Prisma directUrl error. The integration job either passes or fails on legitimate test reasons.
+**Scope bound**: if the broader audit returns zero additional sites, the commit is just the 2 sites + constant declaration (~5-file diff). If many are found, include them all — this is still a small commit.
+
+**Acceptance**:
+- `ADMIN_ROLES` exported from a single location
+- `grep -rn '\["admin",\s*"head_office",\s*"owner"\]\|\["owner",\s*"admin",\s*"head_office"\]\|\["head_office",\s*"admin",\s*"owner"\]' src/` returns only the `ADMIN_ROLES` declaration
+- `npm run build` clean
+
+**Note**: if audit reveals a completely different dominant pattern (e.g. `["admin", "owner"]` 2-role), do NOT add a 2-role constant in this commit — file a follow-up. YAGNI.
 
 ---
 
-### Commit 2: `refactor(auth): extract ADMIN_ROLES constant`
+### Commit 3: `fix(errors): replace 46 silent .catch(() => {}) with logger calls`
 
-**Problem**: `["admin", "head_office", "owner"]` is repeated as an inline string-array in many route-handler `withApiAuth({ roles: [...] })` calls. Flagged during the Sub-project 1 bug #14 review. Drift risk — if one site adds a new admin role and others don't, we silently diverge.
+**Problem**: 46 sites across 33 files use `.catch(() => {})` to discard async errors. Real failures vanish. Baseline audit below.
 
-**Fix**: Add `export const ADMIN_ROLES = ["admin", "head_office", "owner"] as const;` to `src/lib/role-permissions.ts` (or a new `src/lib/auth-constants.ts` if circular import). Replace inline arrays at call sites.
+**Files affected** (from `grep -rn "\.catch(() *=> *{})" src/`):
 
-**Acceptance**: `grep -rn '\["admin",\s*"head_office",\s*"owner"\]' src/app/ src/lib/ src/components/` returns only the `ADMIN_ROLES` declaration. No duplicated inline admin-role arrays in routes.
+| File | Sites |
+|---|---|
+| `src/app/api/tickets/[id]/route.ts` | 2 (lines 142, 152) |
+| `src/app/api/bookings/[id]/approve/route.ts` | 1 (line 42) |
+| `src/app/api/bookings/[id]/decline/route.ts` | 1 |
+| `src/app/api/crm/leads/[id]/route.ts` | 1 (line 130) |
+| `src/app/api/attendance/roll-call/route.ts` | 2 (lines 191, 216) |
+| `src/app/api/messaging/conversations/[id]/messages/route.ts` | 1 (line 48) |
+| `src/app/api/messaging/conversations/route.ts` | ≥1 |
+| `src/app/api/messaging/broadcasts/route.ts` | ≥1 |
+| `src/app/api/parent/enrolments/route.ts` | 1 (line 143) |
+| `src/app/api/parent/messages/route.ts` | ≥1 |
+| `src/app/api/parent/messages/[id]/reply/route.ts` | ≥1 |
+| `src/app/api/parent/absences/route.ts` | ≥1 |
+| `src/app/api/parent/bookings/route.ts` | ≥1 |
+| `src/app/api/enrol/route.ts` | ≥1 |
+| `src/app/api/ai-drafts/[id]/route.ts` | ≥1 |
+| `src/app/api/exit-survey/trigger/route.ts` | ≥1 |
+| `src/app/api/rocks/route.ts` | ≥1 |
+| `src/app/api/issues/route.ts` | 1 (line 135) |
+| `src/app/api/cron/weekly-report/route.ts` | ≥1 |
+| `src/app/api/cron/auto-escalation/route.ts` | ≥1 |
+| `src/app/api/cron/attendance-to-financials/route.ts` | ≥1 |
+| `src/app/api/cron/attendance-alerts/route.ts` | ≥1 |
+| `src/app/parent/children/[id]/page.tsx` | ≥1 |
+| `src/app/(dashboard)/settings/SettingsContent.tsx` | ≥1 |
+| `src/app/survey/feedback/[serviceId]/page.tsx` | ≥1 |
+| `src/components/enrol/steps/BookingStep.tsx` | ≥1 |
+| `src/components/team/SeatEditModal.tsx` | ≥1 |
+| `src/components/marketing/ActivationAssignmentGrid.tsx` | ≥1 |
+| `src/components/marketing/TaskDetailPanel.tsx` | ≥1 |
+| `src/components/marketing/CreateTaskModal.tsx` | ≥1 |
+| `src/lib/ai-task-agent.ts` | ≥1 |
+| `src/lib/api-key-auth.ts` | ≥1 |
+| `src/lib/cache.ts` | ≥1 |
 
----
+**Triage** — each site must be assigned to one of 3 categories at fix time:
+- **(A) Convert to `logger.error`** — server-side fire-and-forget notification / scheduler where a failure is a bug. Default for most API-route and cron sites.
+  ```ts
+  sendX(args).catch((err) => logger.error("sendX failed", { err, <contextIds> }));
+  ```
+- **(B) Convert to dev-only `console.warn`** — client-side best-effort that genuinely should fail silently in prod (e.g. `navigator.clipboard.writeText(...)` failing silently is correct; dev feedback still useful).
+  ```ts
+  doX().catch((err) => { if (process.env.NODE_ENV !== "production") console.warn("doX failed:", err); });
+  ```
+- **(C) Intentional silent, document** — legit invariant where the error cannot be acted on (e.g. cache invalidation best-effort, where recovery is expected).
+  ```ts
+  // Intentional: cache invalidation is best-effort — downstream readers will retry.
+  doX().catch(() => {});
+  ```
 
-### Commit 3: `fix(errors): replace silent .catch(() => {}) with logger.error`
+**Assignment rule**: default to (A) for server-side code (`src/app/api/**`, `src/app/api/cron/**`, `src/lib/**`); default to (B) for client-side UI effects; only use (C) with a single-line comment explaining why.
 
-**Problem**: Five call sites discard errors from fire-and-forget async operations. Real failures vanish.
-
-**Fix** — exact sites:
-- `src/app/api/tickets/[id]/route.ts:142` — email notify
-- `src/app/api/tickets/[id]/route.ts:152` — SMS notify
-- `src/app/api/bookings/[id]/approve/route.ts:42` — `sendBookingConfirmedNotification(bookingId)`
-- `src/app/api/crm/leads/[id]/route.ts:130` — `scheduleCrmSequence(id, newStage)`
-
-Pattern per site:
-```ts
-// Before
-sendX(args).catch(() => {});
-// After
-sendX(args).catch((err) => logger.error("sendX failed", { err, <contextIds> }));
-```
-
-Include the logger import if missing. Route handlers already have request-ID context via wrapper.
-
-**Acceptance**: `grep -rn "\.catch(() => {})" src/` returns 0. No existing tests break (logging is observational).
+**Acceptance**:
+- `grep -rn "\.catch(() *=> *{})" src/` returns only (C)-category sites, each adjacent to a one-line justification comment
+- `grep -B 1 "\.catch(() *=> *{})" src/` every returned site has a `//` comment above it
+- PR body lists all (C)-category sites with justification
+- `npm test -- --run` passes (no behaviour change — logging is observational)
 
 ---
 
 ### Commit 4: `fix(cron): add acquireCronLock to 11 missing crons`
 
-**Problem**: 11 cron routes run without idempotency locks. A duplicate Vercel cron invocation (or manual replay) can corrupt state.
+**Problem**: 11 cron routes run without idempotency locks. A duplicate Vercel cron invocation can corrupt state.
 
-**Fix** — 11 routes, template from `src/app/api/cron/owna-sync/route.ts`:
+**Exact list** (verified via `for f in src/app/api/cron/*/route.ts; do grep -L acquireCronLock "$f"; done`):
+
+1. `src/app/api/cron/cleanup-tokens/route.ts`
+2. `src/app/api/cron/document-expiry/route.ts`
+3. `src/app/api/cron/social-sync/route.ts`
+4. `src/app/api/cron/health/route.ts`
+5. `src/app/api/cron/auto-onboarding/route.ts`
+6. `src/app/api/cron/enquiry-alerts/route.ts`
+7. `src/app/api/cron/enquiry-auto-cold/route.ts`
+8. `src/app/api/cron/waitlist-expiry/route.ts`
+9. `src/app/api/cron/unactioned-bookings/route.ts`
+10. `src/app/api/cron/attendance-to-financials/route.ts`
+11. `src/app/api/cron/financials-monthly-rollup/route.ts`
+
+**Fix template** — lifted from `src/app/api/cron/owna-sync/route.ts`:
 
 ```ts
-const periodKey = /* date / date+hour / year+month — per cron */;
+const periodKey = /* see table below */;
 const guard = await acquireCronLock(`<cron-name>-${periodKey}`, "<period>");
 if (!guard.acquired) return NextResponse.json({ message: guard.reason, skipped: true });
 
@@ -98,103 +191,185 @@ try {
 }
 ```
 
-Period choice per cron:
+**Period & key per cron** (per `src/lib/cron-guard.ts:28` — `CronPeriod = "hourly" | "2hourly" | "daily" | "weekly" | "monthly"`):
 
 | Cron | Period | Key shape |
 |---|---|---|
-| `cleanup-tokens` | daily | `YYYY-MM-DD` |
-| `document-expiry` | daily | `YYYY-MM-DD` |
-| `social-sync` | daily | `YYYY-MM-DD` |
-| `health` | daily | `YYYY-MM-DD` |
-| `auto-onboarding` | daily | `YYYY-MM-DD` |
-| `enquiry-alerts` | hourly | `YYYY-MM-DD-HH` |
-| `enquiry-auto-cold` | hourly | `YYYY-MM-DD-HH` |
-| `waitlist-expiry` | hourly | `YYYY-MM-DD-HH` |
-| `unactioned-bookings` | hourly | `YYYY-MM-DD-HH` |
-| `attendance-to-financials` | daily | `YYYY-MM-DD` |
-| `financials-monthly-rollup` | monthly | `YYYY-MM` |
+| `cleanup-tokens` | `daily` | `YYYY-MM-DD` |
+| `document-expiry` | `daily` | `YYYY-MM-DD` |
+| `social-sync` | `daily` | `YYYY-MM-DD` |
+| `health` | `daily` | `YYYY-MM-DD` |
+| `auto-onboarding` | `daily` | `YYYY-MM-DD` |
+| `enquiry-alerts` | `hourly` | `YYYY-MM-DD-HH` |
+| `enquiry-auto-cold` | `hourly` | `YYYY-MM-DD-HH` |
+| `waitlist-expiry` | `hourly` | `YYYY-MM-DD-HH` |
+| `unactioned-bookings` | `hourly` | `YYYY-MM-DD-HH` |
+| `attendance-to-financials` | `daily` | `YYYY-MM-DD` |
+| `financials-monthly-rollup` | `monthly` | `YYYY-MM` |
 
 **Acceptance**:
-- All 62 cron routes in `src/app/api/cron/` have `acquireCronLock`
-- Calling any of these crons twice within the same period returns `{ skipped: true }` on the second call
+- All 61 cron routes in `src/app/api/cron/` have `acquireCronLock`
+- For each of the 11, run the cron twice in the same period; second returns `{ skipped: true }`
+- Existing cron tests (if any) still pass
 - No cron's existing success path is broken
 
 ---
 
-### Commit 5: `refactor(auth): replace session.user.role as Role with safe narrowing`
+### Commit 5: `fix(tests): resolve 26 TS errors (24 test-file + 2 integration-test)`
 
-**Problem**: 20 `as Role` casts across 8 files assume `session.user.role` is always a valid Prisma `Role` enum value. If a corrupt session arrives, the cast silently proceeds and downstream permission checks may return unexpected results.
+**Problem**: `npx tsc --noEmit` currently reports 26 errors — 24 in `src/__tests__/**` and 2 in `tests/integration/**`. 0 errors in production code (verified post `npx prisma generate`). Should be 0 total.
 
-**Fix**: Introduce a runtime helper in `src/lib/role-permissions.ts`:
+**Exact error list** (from `npx tsc --noEmit 2>&1 | grep "error TS"`):
+
+| File | Errors | Root cause |
+|---|---|---|
+| `src/__tests__/api/contracts.test.ts` | 2 (lines 245, 309) | `MockUser` missing required `name` property |
+| `src/__tests__/api/internal-feedback.test.ts` | 1 (line 37) | `MockUser` missing `name`; `role: any` |
+| `src/__tests__/api/upload.test.ts` | 8 (lines 93, 116, 140, 156, 191, 204, 214) | `Uint8Array<ArrayBufferLike>` not assignable to `BlobPart` |
+| `src/__tests__/components/IssueKanban.test.tsx` | 2 (lines 30, 31) | Duplicate object keys |
+| `src/__tests__/function-seat-endpoints.test.ts` | 1 (line 62) | `RequestInit.signal` type mismatch (AbortSignal \| null \| undefined) |
+| `src/__tests__/lib/api-error.test.ts` | 2 (lines 245, 259) | `NextResponse` not imported |
+| `src/__tests__/lib/cert-expiry.test.ts` | 1 (line 66) | `afterAll` not imported from vitest |
+| `src/__tests__/lib/nurture-scheduler.test.ts` | 7 (lines 39, 273, 274, 275, 295, 296, 297) | `afterAll` not imported; implicit `any` on callback params |
+| `src/__tests__/service-tab-endpoints.test.ts` | 1 (line 60) | Same as function-seat-endpoints |
+| `tests/integration/cowork-api.test.ts` | 2 (lines 130, 148) | `afterEach` not imported; `.status` accessed on Promise |
+| **Total** | **26** | |
+
+**Fixes** (all mechanical):
+- **MockUser missing name** → add `name: "Test User"` (or similar) to mock user fixtures. Consider updating the `MockUser` helper in `src/__tests__/helpers/auth-mock.ts` to either default `name` or mark it optional.
+- **Uint8Array BlobPart** → the TS lib types for `Uint8Array<ArrayBufferLike>` changed in Node 20. Fix: cast to `BlobPart` at fixture creation, e.g. `new Blob([buffer as BlobPart], { type: "..." })`.
+- **Duplicate object keys in IssueKanban test** → remove the literal duplicates.
+- **RequestInit.signal** → in the custom request helper, the signal type is `AbortSignal | null | undefined` but Next's `RequestInit` expects `AbortSignal | undefined`. Fix: narrow at construction — `signal: init?.signal ?? undefined`.
+- **Missing imports (`NextResponse`, `afterAll`, `afterEach`)** → add the imports from `next/server` and `vitest`.
+- **Implicit any parameters** → add type annotations (`(s: Sequence) => ...`).
+- **`.status` on Promise** → `await` the promise first.
+
+**Rule**: production code (`src/app`, `src/components`, `src/hooks`, `src/lib`) MUST NOT change in this commit. Only test files and test helpers (`src/__tests__/helpers/**`).
+
+**Acceptance**:
+- `npx tsc --noEmit` → exit 0, 0 errors
+- All 997+ tests still pass (`npm test -- --run`)
+- `git diff --stat origin/main..HEAD -- src/app src/components src/hooks src/lib` shows 0 lines changed
+
+---
+
+### Commit 6: `refactor(auth): narrow session.user.role at hasFeature() call sites`
+
+**Problem**: 20 `hasFeature(... as Role, ...)` call sites across 10 files assume `session.user.role` is always a valid Prisma `Role` enum value. Cast is unsafe.
+
+**Scope bound** (narrow — the broader 38-site `as Role` sweep is deferred): this commit touches ONLY sites that match the pattern `hasFeature(... as Role, ...)`. Other `as Role` usages (e.g., `e.target.value as Role` in form `<select>` onChange handlers, `session?.user?.role as Role | undefined` in components) are out of scope — different semantics, belongs in a separate sweep.
+
+**Fix**: Add a runtime helper in `src/lib/role-permissions.ts`:
 
 ```ts
 import { Role } from "@prisma/client";
 
+/**
+ * Safely narrow a session role value to the Prisma Role enum.
+ * Returns null if the value is absent or not a valid Role.
+ */
 export function parseRole(value: unknown): Role | null {
   if (typeof value !== "string") return null;
   return (Object.values(Role) as string[]).includes(value) ? (value as Role) : null;
 }
 ```
 
-Replace each call site:
+Replace each `hasFeature(... as Role, ...)` site:
+
 ```ts
 // Before
-if (!hasFeature(session!.user.role as Role, "crm.view")) { ... }
+if (!hasFeature(session!.user.role as Role, "crm.view")) {
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+}
+
 // After
 const role = parseRole(session!.user.role);
-if (!role || !hasFeature(role, "crm.view")) throw ApiError.forbidden();
+if (!role || !hasFeature(role, "crm.view")) {
+  throw ApiError.forbidden();
+}
 ```
 
-Exact sites (13 files, 20 casts):
+(If the file already imports from `@/lib/api-error`, use `ApiError.forbidden()` to align with standard; if not, keep the existing error-return shape. Don't introduce a new dependency in a type-safety commit.)
+
+**Exact sites** (from `grep -rn "hasFeature(.*as Role" src/`):
 
 | File | Sites |
 |---|---|
-| `src/app/api/settings/api-keys/route.ts` | 2 (lines 26, 51) |
-| `src/app/api/settings/api-keys/[id]/route.ts` | 1 (line 10) |
-| `src/app/api/crm/email-templates/route.ts` | 2 (lines 33, 46) |
-| `src/app/api/crm/email-templates/[id]/route.ts` | 2 (lines 33, 86) |
-| `src/app/api/crm/leads/route.ts` | 2 (lines 37, 93) |
-| `src/app/api/crm/leads/[id]/touchpoints/route.ts` | 2 (lines 20, 39) |
-| `src/app/api/crm/leads/[id]/score/route.ts` | 1 (line 18) |
-| `src/app/api/crm/leads/[id]/send-email/route.ts` | 1 (line 28) |
-| `src/app/api/crm/leads/[id]/route.ts` | 3 (lines 43, 73, 176) |
-| `src/app/api/crm/scraper-status/route.ts` | 1 (line 9) |
-| `src/app/(dashboard)/settings/SettingsContent.tsx` | 1 (line 237 — `e.target.value as Role` in a `<select>` onChange; narrow with `parseRole` and guard) |
-| `src/app/(dashboard)/activity-library/page.tsx` | 1 (line 79) |
-| `src/app/(dashboard)/contracts/page.tsx` | 1 (line 775) |
+| `src/app/api/settings/api-keys/route.ts` | 2 |
+| `src/app/api/settings/api-keys/[id]/route.ts` | 1 |
+| `src/app/api/crm/email-templates/route.ts` | 2 |
+| `src/app/api/crm/email-templates/[id]/route.ts` | 2 |
+| `src/app/api/crm/leads/route.ts` | 2 |
+| `src/app/api/crm/leads/[id]/touchpoints/route.ts` | 2 |
+| `src/app/api/crm/leads/[id]/send-email/route.ts` | 1 |
+| `src/app/api/crm/leads/[id]/route.ts` | 3 |
+| `src/app/api/crm/scraper-status/route.ts` | 1 |
+| `src/app/api/crm/leads/[id]/score/route.ts` | 1 (`const role = session!.user.role as Role;` — use `parseRole` + guard) |
+| **Total** | **17 files-or-sites** — exact site list verified at impl start |
 
 **Acceptance**:
-- `grep -rn "as Role" src/app src/components src/hooks | grep -v __tests__` returns 0 (helper's own narrowing does not count — it's a cast inside the helper, but expressed as a narrowed return)
+- `grep -rn "hasFeature(.*as Role" src/` returns 0
+- `grep -rn "as Role" src/` (excluding test files, type narrowing helpers, and `e.target.value as Role` form casts) decreases by the number of sites touched
+- `parseRole` unit test added: `valid role → Role`, `undefined → null`, `null → null`, `"" → null`, `"nonsense" → null`, valid role at wrong casing (e.g. `"ADMIN"`) → null
+- Build + lint + tsc clean
 - All existing CRM + settings tests still pass
-- New unit test for `parseRole`: valid role → Role, `undefined`/`null`/`""`/`"nonsense"` → null
-
----
-
-### Commit 6: `fix(tests): resolve ~60 TS errors in test files`
-
-**Problem**: `npx tsc --noEmit` currently reports ~60 errors, all in test files (~20 pre-existing + ~40 introduced by Sub-project 1). CI does not run tsc today but this should be 0 as a baseline.
-
-**Fix classes**:
-- **MockUser typing** — align mock-user shapes with current Prisma `User` shape. Recent schema added `parentContactId`, `coordinatorIds`, and related fields.
-- **BlobPart** — test fixtures calling `new Blob([data])` where `data` is `ArrayBuffer | Buffer` and doesn't satisfy `BlobPart[]`.
-- **`role as any` in tests** — replace with proper `Role` literal types.
-
-**Approach**: run `npx tsc --noEmit 2>&1 > /tmp/tsc.log` once, group errors by root cause, fix root causes (often one helper fix cascades to many files). Production code MUST NOT change in this commit.
-
-**Acceptance**:
-- `npx tsc --noEmit` → exit 0, 0 errors
-- All 997+ tests still pass
-- No files in `src/app`, `src/components`, `src/hooks`, or `src/lib` touched
+- Manual smoke: hit one CRM endpoint as admin → 200; as a non-CRM role → 403
 
 ---
 
 ### Commit 7: `fix(hooks): add onError destructive toast to 46 mutations`
 
-**Problem**: 46 `useMutation` call sites across 22 files do not handle errors, so mutation failures are silent and the user sees stale UI with no explanation. #1 UX regression per global CLAUDE.md.
+**Problem**: 46 `useMutation` call sites across 22 files don't handle errors. Silent UX failure — #1 anti-pattern per global CLAUDE.md.
 
-**Full site list** (from audit script, 2026-04-20):
+**Audit script** (committed at `scripts/audit-mutation-onerror.py` in this commit for future re-use):
 
-| File | Site count |
+```python
+#!/usr/bin/env python3
+"""Audit useMutation() calls missing onError handlers in src/hooks, src/components, src/app."""
+import re, pathlib
+
+SCAN_ROOTS = [pathlib.Path("src/hooks"), pathlib.Path("src/components"), pathlib.Path("src/app")]
+EXCLUDE_PATH_PARTS = ("__tests__", "(parent)", "(cowork)")
+
+missing = []
+total = 0
+
+for root in SCAN_ROOTS:
+    if not root.exists(): continue
+    for f in sorted(list(root.rglob("*.ts")) + list(root.rglob("*.tsx"))):
+        if any(p in str(f) for p in EXCLUDE_PATH_PARTS) or ".test." in str(f): continue
+        src = f.read_text()
+        for m in re.finditer(r"useMutation\s*(<[^>]*>)?\s*\(\s*\{", src):
+            start = m.start()
+            # Find matching close brace
+            i = src.index("{", start)
+            depth = 0
+            end = i
+            for j in range(i, len(src)):
+                if src[j] == "{": depth += 1
+                elif src[j] == "}":
+                    depth -= 1
+                    if depth == 0: end = j; break
+            block = src[start:end+1]
+            total += 1
+            if "onError" not in block:
+                lineno = src[:start].count("\n") + 1
+                missing.append((str(f), lineno))
+
+print(f"Total useMutation(object) calls scanned: {total}")
+print(f"Missing onError: {len(missing)}")
+for f, ln in missing:
+    print(f"  {f}:{ln}")
+
+import sys
+sys.exit(1 if missing else 0)
+```
+
+**Scope bound**: `src/hooks/`, `src/components/`, `src/app/(dashboard)/`, `src/app/(page-without-group)/` excluding explicit parent and cowork portal paths (`src/app/(parent)/**`, `src/app/(cowork)/**`) and test paths. Rationale: portals have different UX patterns (parent-facing vs. staff); handle those separately.
+
+**Full site list** (46 sites, 22 files):
+
+| File | Sites |
 |---|---|
 | `src/hooks/useHolidayQuest.ts` | 1 |
 | `src/hooks/useParentNotifications.ts` | 1 |
@@ -219,7 +394,7 @@ Exact sites (13 files, 20 casts):
 | `src/app/(dashboard)/settings/SettingsContent.tsx` | 4 |
 | **Total** | **46** |
 
-**Pattern per site**:
+**Pattern per site** (default):
 ```ts
 useMutation({
   mutationFn: async (...) => { ... },
@@ -230,26 +405,28 @@ useMutation({
 });
 ```
 
-**Edge case**: if a mutation is *intentionally* silent (best-effort background work), add an explicit comment + log-only handler instead of a destructive toast:
+**Edge case — deliberately silent mutations**: if a mutation is genuinely best-effort background work where user-facing errors aren't warranted (e.g., analytics ping, auto-save to remote store with retry elsewhere), use:
 ```ts
 onError: (err) => {
-  if (process.env.NODE_ENV !== "production") console.error("<name> background mutation failed:", err);
+  if (process.env.NODE_ENV !== "production") console.error("<name> background failed:", err);
 },
 ```
-These cases must be flagged to the user in the PR description so the choice is reviewable.
+…with a one-line comment explaining why. All such sites MUST be listed in the PR body so the reviewer can audit the decision.
 
 **Acceptance**:
-- Re-run the audit script → 0 mutations missing `onError`
-- Every toast call uses `variant: "destructive"` and has a non-empty `description`
-- Mutations deliberately silent are documented with a code comment + listed in PR body
+- `python3 scripts/audit-mutation-onerror.py` exits 0 (no missing sites in scope)
+- `scripts/audit-mutation-onerror.py` is committed and shebang-executable
+- Every new `onError` call has either (a) `variant: "destructive"` toast OR (b) a documented silent-mutation exception listed in PR body
+- All 997+ tests still pass
+- Build + lint clean
 
 ---
 
-### Commit 8: `refactor(api): migrate 245 routes from req.json() to parseJsonBody()`
+### Commit 8: `refactor(api): migrate 247 req.json() sites in 242 files to parseJsonBody()`
 
-**Problem**: 245 API route handlers parse JSON bodies with raw `await req.json()`. If the client sends malformed JSON, this throws an unhandled `SyntaxError` that becomes a 500 Internal Server Error — should be 400 Bad Request.
+**Problem**: 247 sites across 242 files use raw `await req.json()`. Malformed JSON throws unhandled `SyntaxError` → 500. Should be 400 via `parseJsonBody()`.
 
-**Fix** — line-level replacement in every file under `src/app/api/` that contains `await req.json()`:
+**Fix** — line-level replacement:
 
 ```ts
 // Before
@@ -258,25 +435,48 @@ const body = await req.json();
 const body = await parseJsonBody(req);
 ```
 
-Ensure `import { parseJsonBody } from "@/lib/api-error";` is present (it's the canonical export path per the file definition).
+Ensure `import { parseJsonBody } from "@/lib/api-error";` is present in every modified file.
 
-**Rule — no opportunistic refactoring**: do NOT add `withApiHandler()` wrapping, Zod validation, or error-class conversion in this commit. This is a line-level parser swap only. Those other migrations are separate sub-projects.
+**Rule — no opportunistic refactoring**: do NOT add `withApiHandler()` wrapping, Zod validation, or error-class conversion. Line-level parser swap only. Other convention migrations are separate sub-projects.
 
-**Approach**:
-1. Generate the list of 245 files with `grep -rl "await req\.json" src/app/api/`
-2. Write a codemod script (`scripts/codemod-parseJsonBody.ts`) that reads each file, replaces the pattern, adds the import if missing, writes back
-3. Run on all files
-4. Manually review the diff (245 files but uniform shape — scan for any file where the replacement is incorrect, e.g. `const body: SomeShape = await req.json()` where the type annotation needs to stay)
-5. Run `npm run build` — must succeed
-6. Run `npm test -- --run` — must pass
-7. Delete the codemod script before commit (one-shot tool, not source code)
+**Codemod**: because the replacement is strictly mechanical across 247 sites, a one-shot codemod is the right tool. Committed at `scripts/one-shots/codemod-parseJsonBody.ts` in this commit (per reviewer recommendation — preserves audit trail).
+
+Codemod pseudocode:
+```ts
+// For each file under src/app/api/** matching "await req.json":
+// 1. Count occurrences
+// 2. Replace all occurrences (text replace, idempotent)
+// 3. Ensure import { parseJsonBody } from "@/lib/api-error" is present (insert after last import if not)
+// 4. Write back
+// 5. Log filename + occurrence count
+```
+
+**Procedure**:
+1. Commit codemod script at `scripts/one-shots/codemod-parseJsonBody.ts` (no refactor yet — just the tool)
+2. Run codemod: `npx tsx scripts/one-shots/codemod-parseJsonBody.ts`
+3. Run `npm run build` — must succeed
+4. Run `npm run lint` — must pass (fix import order if codemod created disorder)
+5. Run `npm test -- --run` — must pass
+6. Run `npx tsc --noEmit` — must be 0 errors (continues the clean state from commit 5)
+7. Manual diff scan: `git diff --stat` — expect ~242 files, small line counts each
+8. Git add + commit (includes codemod script + 242 modified files)
+
+**Rollback procedure** (concrete, per reviewer issue #10):
+- If step 3/4/5 fails on specific files: identify the failing files from the output
+- For each failing file: `git checkout HEAD -- <file>` (reverts just that file to pre-codemod state, keeps the migration for other files)
+- Add those files to a `// TODO(hygiene-sweep):` list at the top of the codemod script with the reason
+- Commit 8 then ships with N<247 sites migrated; the TODO list goes in the PR body
+- No revert PR needed — fewer files migrated doesn't invalidate the successful ones
+- If more than 20 files fail, abort the commit entirely — that signals a deeper issue (e.g., `parseJsonBody` incompatibility with some route shape), stop and re-plan
 
 **Acceptance**:
-- `grep -rn "await req\.json" src/app/api/` returns 0
+- `grep -rn "await req\.json" src/app/api/` returns 0 (or documented skip-list items per rollback procedure)
 - All tests still pass (997+)
-- Build clean, lint clean, tsc clean
-- API smoke: POST a route with malformed JSON → 400 (not 500)
-- No route's existing behavior on valid JSON changed
+- `npm run build`, `npm run lint`, `npx tsc --noEmit` all clean
+- `scripts/one-shots/codemod-parseJsonBody.ts` committed (not deleted)
+- PR body table: before (247 sites, 242 files) → after (0 sites — or N sites skipped, listed)
+
+**Smoke** (optional but recommended): start dev server, curl a POST endpoint with `Content-Type: application/json` and malformed JSON body → expect 400, not 500.
 
 ---
 
@@ -284,74 +484,75 @@ Ensure `import { parseJsonBody } from "@/lib/api-error";` is present (it's the c
 
 **Per commit** (run before stacking the next):
 ```bash
-npm run build
-npm test -- --run
-npx tsc --noEmit
-npm run lint
+npm run build 2>&1 | tail -10
+npm test -- --run 2>&1 | tail -10
+npx tsc --noEmit 2>&1 | grep -c "error TS"
+npm run lint 2>&1 | tail -10
 ```
-Record outputs. Any regression in test count or tsc count blocks the next commit.
-
-**Additional per-commit checks** (see each commit's Acceptance section).
+Record outputs. Any regression in test count or tsc count blocks the next commit. Each commit's individual Acceptance section is additive.
 
 **End-of-PR sweep** (before opening PR):
 - All 8 commits' acceptance criteria met
-- `grep` audits: 0 raw `req.json`, 0 silent catches, 0 `as Role` in touched code, 0 missing onError, 0 unlocked crons
+- All baseline grep audits return 0 for negative invariants (no raw req.json, no silent catches without comments, no hasFeature-cast pattern, no unlocked crons, no onError gaps in scope)
 - CI on the branch is green (unit + integration)
-- Manual smoke: dev server boots, at least one route per fix category exercised in browser
+- Manual smoke: dev server boots, login works, at least one route per fix category exercised
 - PR body table: before/after counts for each category
 
-## Sequencing rationale
+## Sequencing rationale (updated)
 
-Ordering by blast radius (smallest → largest) protects the bisect history and the reviewer:
-1. **CI first** (commit 1) so every downstream commit is actually verified on CI
-2. **Constant extraction** (commit 2) — tiny, a warm-up
-3. **Silent catches** (commit 3) — 5 sites, real bug fix, low risk
-4. **Cron locks** (commit 4) — same template 11×, reliability win
-5. **Type safety cast fixes** (commit 5) — 20 sites, narrow scope, isolated to CRM + settings
-6. **Test TS errors** (commit 6) — tests only, pre-work for confident regression on the big commits
-7. **Mutation onError** (commit 7) — 46 sites, mechanical, high UX value
-8. **parseJsonBody migration** (commit 8) — 245 files, the biggest. Reviewer has built confidence in everything before this.
+| Order | Commit | Why this position |
+|---|---|---|
+| 1 | CI env var fix | Every downstream commit needs CI to verify cleanly |
+| 2 | ADMIN_ROLES constant | Tiny warm-up, isolated |
+| 3 | Silent catches | ~33 files, real reliability fix, still small |
+| 4 | Cron locks | 11 files, template-repeat, easy review |
+| 5 | TS error cleanup | Tests-only; lands a clean tsc baseline so commit 6 is verifiable |
+| 6 | `hasFeature` role narrowing | Ties in `parseRole` helper; commit 5's clean tsc baseline makes any regression visible |
+| 7 | onError toasts | 22 files, mechanical repetition, UX-critical |
+| 8 | parseJsonBody migration | 242 files, mechanical, biggest — reviewer's confidence is highest by now |
 
 If a reviewer stops mid-PR or wants to revert anything, the smallest and safest commits are already in, and the biggest mechanical change is most easily revertible standalone.
 
 ## Explicitly out of scope
 
 - **Wrapping routes in `withApiHandler()` / `withApiAuth()`**: commit 8 migrates body parsing but does not add handler wrapping. Wrapping is a separate convention sweep.
-- **Adding Zod validation**: `parseJsonBody` returns `unknown`. Routes that previously trusted `await req.json()` without Zod still do so after this PR. Adding Zod is a separate sub-project.
-- **All 75 `as any` casts in production**: commit 5 only touches the 20 `as Role` sites and the auth/CRM files flagged. Broader `as any` sweep deferred.
-- **Parent portal + cowork portal mutation audits** — if additional `useMutation` sites without `onError` exist in `src/app/(parent)` or `src/app/(cowork)` beyond the 46 counted, they're flagged for a future sweep (not held to block this PR).
+- **Adding Zod validation**: `parseJsonBody` returns `unknown`. Routes that previously trusted raw JSON still do so after this PR. Zod coverage is a separate sub-project.
+- **Broader `as Role` sweep**: commit 6 handles only the `hasFeature(... as Role)` pattern (20 sites). The remaining ~18 `as Role` sites (form event handlers, component-level `as Role | undefined`) are out of scope — different semantics.
+- **All 75 production `as any` casts**: broader `as any` sweep deferred.
+- **Parent portal + cowork portal mutation audits** — `src/app/(parent)/**` and `src/app/(cowork)/**` `useMutation` sites are explicitly excluded from commit 7. If failures here matter to you, file a follow-up sub-project.
 - **Rate limit tuning, logger schema changes, new request-ID conventions** — orthogonal.
 - **Routes using `FormData` / `req.formData()`** — not affected by `parseJsonBody` migration.
-- **Acquiring locks on cron routes already locked (58 of 62)** — they're already compliant.
-- **ADMIN_ROLES in parent portal / cowork portal auth** — separate auth layer; in scope only if the exact same inline array is used there.
+- **Crons already locked (50 of 61)** — already compliant.
+- **ADMIN_ROLES in parent portal / cowork portal auth** — separate auth layer, out of scope.
+- **Production code TS errors** — baseline shows 0 in prod (post `npx prisma generate`). Commit 5 is tests-only.
 
-## Open questions — resolve during implementation
+## Open questions — resolvable during implementation
 
-1. **Q-B1 (commit 2)**: place `ADMIN_ROLES` in `src/lib/role-permissions.ts` or a new `src/lib/auth-constants.ts`? Default: `role-permissions.ts`. Escalate only if circular import appears.
-2. **Q-B2 (commit 4)**: confirm exact period-enum values accepted by `acquireCronLock(key, period)` in `src/lib/cron-guard.ts` before picking template. If the helper accepts only `"daily" | "hourly"`, the `financials-monthly-rollup` cron needs a custom key (e.g. `YYYY-MM-01`-style daily key that skips all days except the first).
-3. **Q-B3 (commit 5)**: `parseRole` return type — `Role | null` (silent) or throw on invalid. Decision: return `Role | null`, let callers decide the 403 shape, consistent with existing `parseJsonBody` pattern (parser returns safely; caller decides the error).
-4. **Q-B4 (commit 7)**: if any of the 46 mutations are deliberately silent, document each case in the PR body with reasoning. Escalate to user only if unclear.
-5. **Q-B5 (commit 8)**: `parseJsonBody` is exported from `src/lib/api-error.ts`. Keep that import path. If a file already uses `@/lib/api-handler` for `ApiError`, add a separate import from `@/lib/api-error` — don't re-export.
-6. **Q-B6 (commit 6)**: scope of test TS errors might exceed ~60 once real tsc is run. If the number is materially different (±30%), flag count but proceed to 0 regardless.
+1. **Q-B1 (commit 2)**: `ADMIN_ROLES` lives in `src/lib/role-permissions.ts` by default. Escalate only if circular import appears. If the broader 3-role audit surfaces 0 additional inline arrays, commit 2 is just the declaration + 2 call-site fixes (~5 lines).
+2. **Q-B2 (commit 5)**: the `MockUser` helper change — if the fix is literally "add `name: "Test User"` to every mock-user fixture in 3 files", do that. If it's "make `name` optional on the `MockUser` type", do that instead. Decision rule: 1-3 fixtures → fix inline; 4+ fixtures → update the type.
+3. **Q-B3 (commit 6)**: `parseRole` default return for invalid is `null` (consistent with `parseJsonBody` pattern — parsers return safely, callers decide the error). Callers use `if (!role || !hasFeature(role, "x")) throw ApiError.forbidden()`.
+4. **Q-B4 (commit 7)**: deliberately silent mutations documented in the PR body with justification. Escalate to user only if judgment is ambiguous — prefer the destructive toast unless obviously wrong.
+5. **Q-B5 (commit 3)**: silent-catch triage — for `src/lib/cache.ts` and `src/lib/ai-task-agent.ts` specifically (library-level code): prefer category (A) `logger.error` unless the function's contract documents that errors are swallowed.
 
-## Acceptance criteria (sub-project done when)
+## Acceptance criteria — sub-project done when
 
-- [ ] All 8 commits landed on `hygiene/sweep-2026-04-20` in the prescribed order
-- [ ] Each commit satisfies its own Acceptance section
-- [ ] `npm run build` + `npm test` + `npx tsc --noEmit` + `npm run lint` all clean at HEAD
-- [ ] Baseline grep audits all return 0 for their negative invariants
+- [ ] All 8 commits landed on `hygiene/sweep-2026-04-20` in prescribed order
+- [ ] Each commit's individual Acceptance section met
+- [ ] Final `npm run build`, `npm test -- --run`, `npx tsc --noEmit` (→ 0 errors), `npm run lint` all clean
+- [ ] Baseline grep audits all at 0 or documented skip-list
 - [ ] CI green on the branch (unit + integration)
-- [ ] PR opened with a before/after counts table and a per-commit summary
-- [ ] No new features, no schema changes, no new migrations introduced
-- [ ] User reviews and merges PR (standard merge, not squash — preserves the 8-commit bisect history per roadmap convention)
+- [ ] PR opened with before/after counts table + per-commit summary + any skip-list items
+- [ ] No new features, schema changes, or migrations introduced
+- [ ] User reviews and merges PR (standard merge — preserves the 8-commit bisect history per roadmap convention)
 
 ## Risks & mitigations
 
-- **Commit 8 (245 files) breaks a specific route**: isolate the route's hunk, revert that one file, continue with the other 244, add a `TODO` note, flag in PR body. Do not block the whole commit on a single route.
-- **CI red after commit 1**: if the DATABASE_URL_UNPOOLED fix uncovers a second unrelated CI failure, fix only what's caused by our changes; flag the rest as a follow-up.
-- **Codemod error in commit 8**: manual review of the 245-file diff before committing; codemod is one-shot (not merged to source).
-- **onError edge cases in commit 7**: deliberately-silent mutations documented in the PR body for reviewability.
-- **Commit 6 scope creep**: tsc error list may reveal production-code TS errors mixed in. If so, split — commit 6 fixes only test-file errors; any production TS errors are deferred to a separate commit (breaks "tests-only" principle but preserves the commit's review scope).
+- **Commit 8 (242 files) breaks on a specific route**: per rollback procedure above — isolate failing files, revert only those, document in PR body. Abort only if >20 files fail.
+- **CI red after commit 1**: the fix uncovers a second unrelated CI failure — fix only what's caused by our changes; defer the rest to a follow-up.
+- **Codemod in commit 8 mis-handles a file shape**: manual `git diff --stat` review before committing; codemod is committed to `scripts/one-shots/` so reviewers can audit it alongside the diff.
+- **onError edge cases in commit 7**: silent-mutation exceptions enumerated in PR body.
+- **Commit 5 scope creep from tsc surprises**: if tsc error count grows after `npx prisma generate` cleared the local cache, the 26-error target is a lower bound — the real count drives the work, but the bound on scope (tests-only) is absolute.
+- **Silent-catch triage (commit 3) drift**: the 46-site count is the floor; if any site was incorrectly categorized (e.g., a client-side effect that should have been server-logged), flag in PR body — review before merge.
 
 ## Rollback
 
