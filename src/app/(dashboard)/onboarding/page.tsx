@@ -24,6 +24,7 @@ import {
 } from "@/hooks/useLMS";
 import { ExitSurveyDashboard } from "@/components/exit-surveys/ExitSurveyDashboard";
 import { ModuleEditor } from "@/components/lms/ModuleEditor";
+import { StaffModuleRow } from "@/components/lms/StaffModuleRow";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   GraduationCap,
@@ -175,58 +176,24 @@ function StaffLMSView() {
                         const moduleProgress = enrollment.moduleProgress?.find((p) => p.moduleId === mod.id);
                         const isComplete = moduleProgress?.completed || false;
                         const isModExpanded = expandedModuleId === mod.id;
-                        const ModIcon = MODULE_TYPE_ICONS[mod.type] || FileText;
 
                         return (
-                          <div key={mod.id}>
-                            <div className="flex items-center gap-3 px-4 py-3 hover:bg-surface">
-                              <button
-                                onClick={() =>
-                                  updateProgress.mutate({
-                                    enrollmentId: enrollment.id,
-                                    moduleId: mod.id,
-                                    completed: !isComplete,
-                                  })
-                                }
-                                className="flex-shrink-0"
-                              >
-                                {isComplete ? (
-                                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                ) : (
-                                  <Circle className="w-5 h-5 text-muted/50 hover:text-brand" />
-                                )}
-                              </button>
-                              <ModIcon className="w-4 h-4 text-muted flex-shrink-0" />
-                              <button
-                                onClick={() => setExpandedModuleId(isModExpanded ? null : mod.id)}
-                                className="flex-1 text-left"
-                              >
-                                <p className={cn("text-sm font-medium", isComplete ? "text-muted line-through" : "text-foreground")}>
-                                  {mod.title}
-                                </p>
-                              </button>
-                              {mod.content && (
-                                <button
-                                  onClick={() => setExpandedModuleId(isModExpanded ? null : mod.id)}
-                                  className="text-xs text-brand hover:underline flex-shrink-0"
-                                >
-                                  {isModExpanded ? "Hide" : "View"}
-                                </button>
-                              )}
-                            </div>
-                            {isModExpanded && mod.content && (
-                              <div className="px-12 pb-3">
-                                <div className="prose prose-sm max-w-none text-muted whitespace-pre-wrap text-xs leading-relaxed">
-                                  {mod.content}
-                                </div>
-                                {mod.resourceUrl && (
-                                  <a href={mod.resourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-brand hover:underline mt-2">
-                                    <ExternalLink className="w-3 h-3" /> Open resource
-                                  </a>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          <StaffModuleRow
+                            key={mod.id}
+                            mod={mod}
+                            isComplete={isComplete}
+                            isExpanded={isModExpanded}
+                            onToggleComplete={() =>
+                              updateProgress.mutate({
+                                enrollmentId: enrollment.id,
+                                moduleId: mod.id,
+                                completed: !isComplete,
+                              })
+                            }
+                            onToggleExpand={() =>
+                              setExpandedModuleId(isModExpanded ? null : mod.id)
+                            }
+                          />
                         );
                       })}
                     </div>
