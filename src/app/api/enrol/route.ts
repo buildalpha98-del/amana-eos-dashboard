@@ -421,7 +421,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       to: primaryParent.email,
       subject,
       html,
-    }).catch((err) => logger.error("Failed to send enrolment confirmation email to parent", { err, enrolmentId: submission.id, parentEmail: primaryParent.email }));
+    }).catch((err) => logger.error("Failed to send enrolment confirmation email to parent", { err, enrolmentId: submission.id }));
   }
 
   // Send notification to school (fire and forget)
@@ -460,7 +460,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         to: service.email,
         subject: schoolSubject,
         html: schoolHtml,
-      }).catch((err) => logger.error("Failed to send school enrolment notification email", { err, enrolmentId: submission.id, serviceId, serviceEmail: service.email }));
+      }).catch((err) => logger.error("Failed to send school enrolment notification email", { err, enrolmentId: submission.id, serviceId }));
     }
   }
 
