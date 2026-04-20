@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { parseJsonBody } from "@/lib/api-error";
 import { withApiAuth } from "@/lib/server-auth";
 const importEntrySchema = z.object({
   email: z.string().email(),
@@ -26,7 +28,7 @@ const importSchema = z.object({
 
 // POST /api/timesheets/import — bulk import entries from parsed data
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = importSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -78,16 +80,7 @@ const body = await req.json();
 
   const matched: string[] = [];
   const unmatched: string[] = [];
-  const entriesToCreate: Array<{
-    timesheetId: string;
-    userId: string;
-    date: Date;
-    shiftStart: Date;
-    shiftEnd: Date;
-    breakMinutes: number;
-    totalHours: number;
-    shiftType: string;
-  }> = [];
+  const entriesToCreate: Prisma.TimesheetEntryCreateManyInput[] = [];
 
   for (const entry of entries) {
     const user = emailToUser.get(entry.email.toLowerCase());
@@ -120,7 +113,7 @@ const body = await req.json();
 
   // Bulk create entries
   const created = await prisma.timesheetEntry.createMany({
-    data: entriesToCreate as any,
+    data: entriesToCreate,
   });
 
   await prisma.activityLog.create({

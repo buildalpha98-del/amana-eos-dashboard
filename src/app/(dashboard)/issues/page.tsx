@@ -412,7 +412,7 @@ export default function IssuesPage() {
         </div>
       ) : issues && issues.length > 0 ? (
         viewMode === "board" ? (
-          <IssueKanban issues={filteredIssues} onSelect={setSelectedId} />
+          <IssueKanban issues={filteredIssues} onSelect={setSelectedId} showClosed={showArchived} />
         ) : (
           /* List View with checkboxes */
           <div className="space-y-2">

@@ -283,6 +283,7 @@ export function useUpdateModuleProgress() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lms-course"] });
+      qc.invalidateQueries({ queryKey: ["my-enrollments"] });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });

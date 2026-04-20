@@ -21,14 +21,19 @@ export function NewVacancyModal({ onClose, onCreated }: NewVacancyModalProps) {
   });
   const [saving, setSaving] = useState(false);
 
-  const { data: services = [] } = useQuery({
-    queryKey: ["services-list"],
+  const { data: services = [] } = useQuery<Array<{ id: string; name: string }>>({
+    queryKey: ["services-list-recruitment"],
     queryFn: async () => {
       const res = await fetch("/api/services?limit=100");
       if (!res.ok) return [];
       const d = await res.json();
-      return d.services || d;
+      if (Array.isArray(d)) return d;
+      if (Array.isArray(d.items)) return d.items;
+      if (Array.isArray(d.services)) return d.services;
+      return [];
     },
+    retry: 2,
+    staleTime: 30_000,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

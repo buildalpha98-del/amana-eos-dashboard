@@ -165,8 +165,15 @@ export function EnrolmentWizard({
   }, [data]);
 
   const updateData = useCallback(
-    (partial: Partial<EnrolmentFormData>) => {
-      setData((prev) => ({ ...prev, ...partial }));
+    (
+      partial:
+        | Partial<EnrolmentFormData>
+        | ((prev: EnrolmentFormData) => Partial<EnrolmentFormData>)
+    ) => {
+      setData((prev) => ({
+        ...prev,
+        ...(typeof partial === "function" ? partial(prev) : partial),
+      }));
     },
     []
   );

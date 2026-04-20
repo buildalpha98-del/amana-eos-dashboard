@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 // GET /api/timesheets/summary — aggregate hours by staff member
@@ -15,7 +16,7 @@ export const GET = withApiAuth(async (req, session) => {
     );
   }
 
-  const where: Record<string, unknown> = {
+  const where: Prisma.TimesheetEntryWhereInput = {
     date: {
       gte: new Date(startDate),
       lte: new Date(endDate),
@@ -29,7 +30,7 @@ export const GET = withApiAuth(async (req, session) => {
   }
 
   const entries = await prisma.timesheetEntry.findMany({
-    where: where as any,
+    where,
     include: {
       user: { select: { id: true, name: true } },
     },

@@ -6,7 +6,11 @@ import { ChildTabs } from "../ChildTabs";
 
 interface Props {
   data: EnrolmentFormData;
-  updateData: (d: Partial<EnrolmentFormData>) => void;
+  updateData: (
+    d:
+      | Partial<EnrolmentFormData>
+      | ((prev: EnrolmentFormData) => Partial<EnrolmentFormData>)
+  ) => void;
 }
 
 const SESSION_TYPES = [
@@ -40,9 +44,11 @@ export function BookingStep({ data, updateData }: Props) {
   const prefs = data.bookingPrefs[activeChild] || data.bookingPrefs[0];
 
   const updatePrefs = (field: keyof BookingPrefs, value: unknown) => {
-    const bookingPrefs = [...data.bookingPrefs];
-    bookingPrefs[activeChild] = { ...bookingPrefs[activeChild], [field]: value };
-    updateData({ bookingPrefs });
+    updateData((prev) => {
+      const bookingPrefs = [...prev.bookingPrefs];
+      bookingPrefs[activeChild] = { ...bookingPrefs[activeChild], [field]: value };
+      return { bookingPrefs };
+    });
   };
 
   const toggleSession = (sessionType: string) => {

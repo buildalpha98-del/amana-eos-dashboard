@@ -28,7 +28,7 @@ export const GET = withApiAuth(async (req, session) => {
   });
 
   return NextResponse.json({ feedback });
-});
+}, { roles: ["owner", "head_office", "admin"] });
 
 // POST /api/internal-feedback — create feedback (any authenticated user)
 export const POST = withApiAuth(async (req, session) => {

@@ -7,7 +7,11 @@ import { ChildTabs } from "../ChildTabs";
 
 interface Props {
   data: EnrolmentFormData;
-  updateData: (d: Partial<EnrolmentFormData>) => void;
+  updateData: (
+    d:
+      | Partial<EnrolmentFormData>
+      | ((prev: EnrolmentFormData) => Partial<EnrolmentFormData>)
+  ) => void;
 }
 
 function Input({
@@ -162,23 +166,43 @@ export function MedicalStep({ data, updateData }: Props) {
   const medical = data.medicals[activeChild] || data.medicals[0];
 
   const updateMedical = (field: keyof MedicalInfo, value: unknown) => {
-    const medicals = [...data.medicals];
-    medicals[activeChild] = { ...medicals[activeChild], [field]: value };
-    updateData({ medicals });
+    updateData((prev) => {
+      const medicals = [...prev.medicals];
+      medicals[activeChild] = { ...medicals[activeChild], [field]: value };
+      return { medicals };
+    });
   };
 
   const addMedication = () => {
-    updateMedical("medications", [...medical.medications, { name: "", dosage: "", frequency: "" }]);
+    updateData((prev) => {
+      const medicals = [...prev.medicals];
+      medicals[activeChild] = {
+        ...medicals[activeChild],
+        medications: [...medicals[activeChild].medications, { name: "", dosage: "", frequency: "" }],
+      };
+      return { medicals };
+    });
   };
 
   const removeMedication = (i: number) => {
-    updateMedical("medications", medical.medications.filter((_, idx) => idx !== i));
+    updateData((prev) => {
+      const medicals = [...prev.medicals];
+      medicals[activeChild] = {
+        ...medicals[activeChild],
+        medications: medicals[activeChild].medications.filter((_, idx) => idx !== i),
+      };
+      return { medicals };
+    });
   };
 
   const updateMedication = (i: number, field: keyof MedicationEntry, value: string) => {
-    const meds = [...medical.medications];
-    meds[i] = { ...meds[i], [field]: value };
-    updateMedical("medications", meds);
+    updateData((prev) => {
+      const medicals = [...prev.medicals];
+      const meds = [...medicals[activeChild].medications];
+      meds[i] = { ...meds[i], [field]: value };
+      medicals[activeChild] = { ...medicals[activeChild], medications: meds };
+      return { medicals };
+    });
   };
 
   return (

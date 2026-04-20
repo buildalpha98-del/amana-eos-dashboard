@@ -3,7 +3,15 @@ import { put, del } from "@vercel/blob";
 /**
  * Upload a file to Vercel Blob storage.
  *
- * Returns the public blob URL and file size.
+ * Defaults to `access: "public"` — the stored URL is opened directly by the
+ * browser (e.g. via `<a href>` for document downloads, `<img src>` for avatars).
+ * Private blobs return a 403 "Forbidden" page when navigated to without a
+ * signed URL, which surfaced as the documents "FORBIDDEN" bug.
+ *
+ * Callers that store sensitive exports (e.g. CSV backups) can opt into
+ * `access: "private"` explicitly.
+ *
+ * Returns the blob URL and file size.
  */
 export async function uploadFile(
   file: Buffer,
@@ -13,7 +21,7 @@ export async function uploadFile(
   const path = options?.folder ? `${options.folder}/${filename}` : filename;
 
   const blob = await put(path, file, {
-    access: options?.access ?? "private",
+    access: options?.access ?? "public",
     contentType: options?.contentType,
     addRandomSuffix: true,
   });

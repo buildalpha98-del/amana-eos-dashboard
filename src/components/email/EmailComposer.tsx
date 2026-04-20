@@ -93,31 +93,51 @@ export function EmailComposer() {
   useUnsavedChanges(emailIsDirty);
 
   // ── Post pre-fill ──────────────────────────────────────────
-  const { data: postData } = useQuery({
+  const { data: postData } = useQuery<{
+    id: string;
+    title: string;
+    content?: string | null;
+  }>({
     queryKey: ["marketing-post", postId],
     queryFn: () =>
       fetch(`/api/marketing/posts/${postId}`).then((r) => r.json()),
     enabled: !!postId,
+    // Prevent background refetches from re-seeding the editor mid-edit
+    // (Bug #8 — same class of bug as Bug #7's Weekly Pulse regression).
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 
+  // Hydrate editor state from the source post exactly once per postId. Using
+  // the object ref as a dep is what caused Bug #8 — a refetch returned a new
+  // ref, the effect re-ran, and the user's in-progress edits were clobbered.
+  const loadedPostIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (postData) {
-      setSubject(postData.title);
-      if (postData.content) {
-        setBlocks([{ type: "text", content: postData.content }]);
-      }
+    if (!postData?.id) return;
+    if (loadedPostIdRef.current === postData.id) return;
+    loadedPostIdRef.current = postData.id;
+
+    setSubject(postData.title);
+    if (postData.content) {
+      setBlocks([{ type: "text", content: postData.content }]);
     }
-  }, [postData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postData?.id]);
 
   // ── Template apply ─────────────────────────────────────────
   const { data: templateData } = useEmailTemplate(templateIdParam);
 
+  // Hydrate editor state from the template exactly once per templateId. Same
+  // Bug #8 fix: key off the stable id instead of the object ref so background
+  // refetches (which return a new ref) don't overwrite the user's edits.
+  const loadedTemplateIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (templateData) {
-      applyTemplate(templateData);
-    }
+    if (!templateData?.id) return;
+    if (loadedTemplateIdRef.current === templateData.id) return;
+    loadedTemplateIdRef.current = templateData.id;
+    applyTemplate(templateData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateData]);
+  }, [templateData?.id]);
 
   const applyTemplate = useCallback((template: EmailTemplateData) => {
     if (template.subject) setSubject(template.subject);
@@ -206,7 +226,10 @@ export function EmailComposer() {
           router.push("/marketing");
         },
         onError: (err) => {
-          toast({ description: err.message || "Failed to send email" });
+          toast({
+            variant: "destructive",
+            description: err.message || "Failed to send email",
+          });
         },
       },
     );

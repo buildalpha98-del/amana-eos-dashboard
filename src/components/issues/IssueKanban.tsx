@@ -23,20 +23,28 @@ import type { IssueData } from "@/hooks/useIssues";
 import { useUpdateIssue } from "@/hooks/useIssues";
 import { IssueCard } from "./IssueCard";
 import type { IssueStatus } from "@prisma/client";
-import { AlertTriangle, MessageSquare, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, MessageSquare, CheckCircle2, XCircle } from "lucide-react";
 
-const columns: { id: IssueStatus; label: string; icon: typeof AlertTriangle; color: string; borderColor: string }[] = [
+const activeColumns: { id: IssueStatus; label: string; icon: typeof AlertTriangle; color: string; borderColor: string }[] = [
   { id: "open", label: "Identify", icon: AlertTriangle, color: "text-amber-600", borderColor: "border-amber-400" },
   { id: "in_discussion", label: "Discuss", icon: MessageSquare, color: "text-blue-600", borderColor: "border-blue-400" },
   { id: "solved", label: "Solved", icon: CheckCircle2, color: "text-emerald-600", borderColor: "border-emerald-400" },
 ];
+
+const closedColumn: (typeof activeColumns)[0] = {
+  id: "closed",
+  label: "Closed",
+  icon: XCircle,
+  color: "text-muted",
+  borderColor: "border-border",
+};
 
 function DroppableColumn({
   column,
   issues,
   onIssueClick,
 }: {
-  column: (typeof columns)[0];
+  column: (typeof activeColumns)[0];
   issues: IssueData[];
   onIssueClick: (id: string) => void;
 }) {
@@ -109,9 +117,11 @@ function SortableIssueCard({
 export function IssueKanban({
   issues,
   onSelect,
+  showClosed = false,
 }: {
   issues: IssueData[];
   onSelect: (id: string) => void;
+  showClosed?: boolean;
 }) {
   const [activeIssue, setActiveIssue] = useState<IssueData | null>(null);
   const updateIssue = useUpdateIssue();
@@ -120,6 +130,8 @@ export function IssueKanban({
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
+
+  const columns = showClosed ? [...activeColumns, closedColumn] : activeColumns;
 
   const issuesByStatus = (status: IssueStatus) =>
     issues.filter((i) => i.status === status);
@@ -157,7 +169,11 @@ export function IssueKanban({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:overflow-visible">
+      <div
+        className={`flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid ${
+          showClosed ? "sm:grid-cols-4" : "sm:grid-cols-3"
+        } sm:overflow-visible`}
+      >
         {columns.map((col) => (
           <DroppableColumn
             key={col.id}
