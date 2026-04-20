@@ -128,6 +128,8 @@ async function exportToCsv(
   const { url } = await uploadFile(buffer, filename, {
     contentType: "text/csv",
     folder: "backups",
+    // Backups contain sensitive user/enquiry/compliance data — keep private.
+    access: "private",
   });
 
   return { table: tableName, rows: rows.length, url };
