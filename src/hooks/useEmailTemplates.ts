@@ -36,6 +36,12 @@ export function useEmailTemplate(id: string | null) {
     queryFn: () => fetchApi<EmailTemplateData>(`/api/email-templates/${id}`),
     enabled: !!id,
     retry: 2,
+    // Keep template data stable — prevents background refetches from handing
+    // back a new object reference mid-typing in EmailComposer, which would
+    // otherwise fire the reset effect and clobber the user's in-progress
+    // edits. Mirrors the Bug #7 fix applied to `usePulses`.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 }
 
