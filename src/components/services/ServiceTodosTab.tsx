@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn, formatDateAU, getWeekStart } from "@/lib/utils";
 import { CheckSquare, Plus, X, Calendar, ArrowUpDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { toast } from "@/hooks/useToast";
 
 interface TodoData {
   id: string;
@@ -109,6 +110,9 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos", { serviceId }] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { parsePagination } from "@/lib/pagination";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createContactSchema = z.object({
   waId: z.string().min(1, "WhatsApp ID is required"),
   phoneNumber: z.string().min(1, "Phone number is required"),
@@ -47,7 +48,7 @@ export const GET = withApiAuth(async (req, session) => {
 
 // POST /api/contacts — create a new WhatsApp contact
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createContactSchema.safeParse(body);
 
   if (!parsed.success) {

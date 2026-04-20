@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createAssetSchema = z.object({
   name: z.string().min(1, "Name is required"),
   type: z
@@ -38,7 +39,7 @@ export const GET = withApiAuth(async (req, session) => {
 
 // POST /api/marketing/assets — create a new asset
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createAssetSchema.safeParse(body);
 
   if (!parsed.success) {

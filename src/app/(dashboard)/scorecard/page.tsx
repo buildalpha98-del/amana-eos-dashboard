@@ -15,6 +15,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AiButton } from "@/components/ui/AiButton";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { toast } from "@/hooks/useToast";
 
 export default function ScorecardPage() {
   const { data: scorecard, isLoading, error, refetch } = useScorecard();
@@ -38,6 +39,9 @@ export default function ScorecardPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scorecard"] });
       setDeletingMeasurable(null);
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

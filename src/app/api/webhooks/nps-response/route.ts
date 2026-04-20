@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
@@ -51,7 +52,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   }
 
   // ── Parse body ───────────────────────────────────────────────
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = npsSchema.safeParse(body);
 
   if (!parsed.success) {

@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { indexDocument } from "@/lib/document-indexer";
 
+import { parseJsonBody } from "@/lib/api-error";
 const updateDocumentSchema = z.object({
   folderId: z.string().nullable().optional(),
   title: z.string().min(1).optional(),
@@ -17,7 +18,7 @@ const updateDocumentSchema = z.object({
 
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateDocumentSchema.safeParse(body);
 
   if (!parsed.success) {

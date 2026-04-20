@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const assignSchema = z.object({
   userId: z.string().min(1),
   packId: z.string().min(1),
@@ -55,7 +56,7 @@ const { searchParams } = new URL(req.url);
 
 // POST /api/onboarding/assign — assign a pack to a user OR update task progress
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = (await parseJsonBody(req)) as Record<string, unknown>;
 
   // Check if this is a progress update
   if (body.onboardingId && body.taskId !== undefined) {

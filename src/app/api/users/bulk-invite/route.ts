@@ -8,6 +8,7 @@ import { welcomeEmail } from "@/lib/email-templates";
 import { logAuditEvent } from "@/lib/audit-log";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bulkUserSchema = z.object({
   email: z.string().email("Valid email is required").transform((e) => e.toLowerCase().trim()),
   name: z.string().min(1, "Name is required"),
@@ -73,7 +74,7 @@ export const POST = withApiAuth(async (req, session) => {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = bulkInviteSchema.safeParse(body);
 
   if (!parsed.success) {

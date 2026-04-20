@@ -7,6 +7,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createEnquirySchema = z.object({
   serviceId: z.string().min(1),
   parentName: z.string().min(1),
@@ -84,7 +85,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const data = createEnquirySchema.parse(body);
 
     const enquiry = await prisma.parentEnquiry.create({

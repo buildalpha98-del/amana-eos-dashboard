@@ -12,12 +12,13 @@
  */
 
 import { vi } from "vitest";
+import type { Role } from "@prisma/client";
 
 interface MockUser {
   id: string;
   name: string;
   email?: string;
-  role: "owner" | "head_office" | "admin" | "marketing" | "coordinator" | "member" | "staff";
+  role: Role;
   serviceId?: string | null;
 }
 
@@ -57,3 +58,7 @@ export function mockSession(user: MockUser) {
 export function mockNoSession() {
   mockedGetServerSession.mockResolvedValue(null);
 }
+
+// Re-export Prisma Role under the legacy alias so callers using
+// `import type { MockUserRole }` continue to compile unchanged.
+export type { Role as MockUserRole };

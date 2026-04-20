@@ -4,14 +4,14 @@ import { authenticateCowork } from "../../_lib/auth";
 import { todosSchema } from "../../_lib/validation";
 import { resolveAssignee } from "../_lib/resolve-assignee";
 import { withApiHandler } from "@/lib/api-handler";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 
 // POST /api/cowork/todos — Create daily to-dos
 export const POST = withApiHandler(async (req: NextRequest) => {
   const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = todosSchema.safeParse(body);
 
   if (!parsed.success) {

@@ -5,6 +5,7 @@ import { authenticateCowork } from "../../_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 // ── Validation ──────────────────────────────────────────────
 
 const REFLECTION_TYPES = [
@@ -46,7 +47,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = (await parseJsonBody(req)) as Record<string, unknown>;
 
     // Support both single and bulk
     const isBulk = "reflections" in body;

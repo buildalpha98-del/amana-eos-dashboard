@@ -5,6 +5,7 @@ import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { parsePagination } from "@/lib/pagination";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createCertSchema = z.object({
   serviceId: z.string().min(1),
   userId: z.string().optional().nullable(),
@@ -75,7 +76,7 @@ export const GET = withApiAuth(async (req, session) => {
 });
 
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createCertSchema.safeParse(body);
 
   if (!parsed.success) {

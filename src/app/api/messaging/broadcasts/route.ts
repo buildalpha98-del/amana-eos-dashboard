@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendBroadcastNotification } from "@/lib/notifications/messaging";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // GET — List broadcasts
@@ -80,7 +81,7 @@ export const POST = withApiAuth(async (req: NextRequest, session) => {
 
   // Fire and forget email notifications
   if (familyIds.length > 0) {
-    sendBroadcastNotification(broadcast.id, familyIds).catch(() => {});
+    sendBroadcastNotification(broadcast.id, familyIds).catch((err) => logger.error("Failed to send broadcast notifications", { err, broadcastId: broadcast.id, familyCount: familyIds.length }));
   }
 
   return NextResponse.json(broadcast, { status: 201 });

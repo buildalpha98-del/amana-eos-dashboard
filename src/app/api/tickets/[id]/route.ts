@@ -7,6 +7,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const patchTicketSchema = z.object({
   subject: z.string().min(1).optional(),
   priority: z.enum(["urgent", "high", "normal", "low"]).optional(),
@@ -45,7 +46,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 // PATCH /api/tickets/[id]
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = patchTicketSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
@@ -139,7 +140,7 @@ const { id } = await context!.params!;
       assignedTo: ticket.assignedTo.name,
       raisedBy: ticket.contact?.name || undefined,
       url: ticketUrl,
-    }).catch(() => {});
+    }).catch((err) => logger.error("Failed to send Teams notification for ticket assigned", { err, ticketId: ticket.id }));
   }
 
   // Teams notification for status changes
@@ -149,7 +150,7 @@ const { id } = await context!.params!;
       subject: ticket.subject,
       newStatus: status,
       url: ticketUrl,
-    }).catch(() => {});
+    }).catch((err) => logger.error("Failed to send Teams notification for ticket status change", { err, ticketId: ticket.id, newStatus: status }));
   }
 
   return NextResponse.json(ticket);

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { prismaMock } from "@/__tests__/helpers/prisma-mock";
-import { mockSession } from "@/__tests__/helpers/auth-mock";
+import { mockSession, type MockUserRole } from "@/__tests__/helpers/auth-mock";
 import { createRequest } from "@/__tests__/helpers/request";
 
 // Mock rate-limit
@@ -34,7 +34,7 @@ describe("GET /api/internal-feedback — role enforcement", () => {
     ["staff", 403],
     ["marketing", 403],
   ])("returns %i for role %s", async (role, expected) => {
-    mockSession({ id: "u1", role: role as any });
+    mockSession({ id: "u1", name: "Test User", role: role as MockUserRole });
     prismaMock.user.findUnique.mockResolvedValue({ id: "u1", active: true, role });
 
     const req = createRequest("GET", "/api/internal-feedback");

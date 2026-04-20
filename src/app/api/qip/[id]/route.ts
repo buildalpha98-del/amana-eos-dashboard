@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const updateQipSchema = z.object({
   status: z.string().optional(),
   documentType: z.string().optional(),
@@ -39,7 +40,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = updateQipSchema.safeParse(body);
 
     if (!parsed.success) {

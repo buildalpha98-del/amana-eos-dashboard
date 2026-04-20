@@ -9,6 +9,7 @@ import {
 } from "@/lib/email-marketing-layout";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   templateId: z.string().optional().nullable(),
   htmlContent: z.string().optional().nullable(),
@@ -33,7 +34,7 @@ export const POST = withApiAuth(async (req, session) => {
 
   let raw: unknown;
   try {
-    raw = await req.json();
+    raw = await parseJsonBody(req);
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }

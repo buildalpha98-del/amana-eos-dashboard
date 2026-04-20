@@ -8,6 +8,7 @@ import {
 } from "@/lib/microsoft-calendar";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createCalendarEventSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   body: z.string().optional(),
@@ -77,7 +78,7 @@ const connected = await isCalendarConnected(session!.user.id);
     );
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createCalendarEventSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });

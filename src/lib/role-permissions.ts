@@ -1,4 +1,34 @@
-import type { Role } from "@prisma/client";
+import { Role } from "@prisma/client";
+
+/**
+ * The set of roles considered "admin" across page-level, feature-level, and
+ * API-route-level access checks. Owner, head_office, admin — consolidated to
+ * prevent drift across call sites. Used by `withApiAuth({ roles: [...ADMIN_ROLES] })`,
+ * in page-guard `.includes()` checks via `isAdminRole()`, and in `<RoleGate>`-like
+ * component gates.
+ */
+export const ADMIN_ROLES = ["owner", "admin", "head_office"] as const;
+
+/**
+ * Check whether a role string is an admin role (owner, head_office, or admin).
+ * Safe narrowing — accepts any string and returns whether it matches ADMIN_ROLES.
+ */
+export function isAdminRole(role: string | null | undefined): boolean {
+  if (!role) return false;
+  return (ADMIN_ROLES as readonly string[]).includes(role);
+}
+
+/**
+ * Safely narrow a session role value to the Prisma Role enum.
+ *
+ * Returns the Role enum if valid, null otherwise. Case-sensitive.
+ * Use this instead of `session.user.role as Role` to avoid unsafe casts
+ * on potentially-corrupt session data.
+ */
+export function parseRole(value: unknown): Role | null {
+  if (typeof value !== "string") return null;
+  return (Object.values(Role) as string[]).includes(value) ? (value as Role) : null;
+}
 
 // ---------------------------------------------------------------------------
 // 0. Role display names (human-readable labels for the UI)

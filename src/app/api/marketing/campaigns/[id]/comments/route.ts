@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createCommentSchema = z.object({
   text: z.string().min(1, "Comment text is required"),
 });
@@ -31,7 +32,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 // POST /api/marketing/campaigns/:id/comments — add a comment to a campaign
 export const POST = withApiAuth(async (req, session, context) => {
 const { id: campaignId } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createCommentSchema.safeParse(body);
 
   if (!parsed.success) {

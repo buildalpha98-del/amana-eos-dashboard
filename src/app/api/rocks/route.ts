@@ -7,6 +7,7 @@ import { parsePagination } from "@/lib/pagination";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { logger } from "@/lib/logger";
 
 // GET /api/rocks — list rocks with optional quarter filter
 export const GET = withApiAuth(async (req, session) => {
@@ -119,7 +120,7 @@ const body = await parseJsonBody(req);
     owner: rock.owner?.name || "Unassigned",
     quarter: rock.quarter,
     url: `${baseUrl}/rocks`,
-  }).catch(() => {});
+  }).catch((err) => logger.error("Failed to send Teams notification for new rock", { err, rockId: rock.id }));
 
   // Notify assigned owner via email (fire-and-forget)
   if (rock.ownerId && rock.ownerId !== session!.user.id) {

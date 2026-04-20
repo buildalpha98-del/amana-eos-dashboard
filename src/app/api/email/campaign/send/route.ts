@@ -14,6 +14,7 @@ import {
 } from "@/lib/email-marketing-layout";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   templateId: z.string().optional().nullable(),
   subject: z.string().min(1).max(500),
@@ -38,7 +39,7 @@ if (!isBrevoConfigured()) {
   // Read body ONCE upfront — req.json() can only be called once
   let raw: unknown;
   try {
-    raw = await req.json();
+    raw = await parseJsonBody(req);
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }

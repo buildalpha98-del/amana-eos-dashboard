@@ -3,13 +3,14 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const updateTrendSchema = z.object({
   dismissed: z.boolean(),
 });
 
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateTrendSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

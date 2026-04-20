@@ -5,6 +5,7 @@ import { logAuditEvent } from "@/lib/audit-log";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
@@ -17,7 +18,7 @@ const bodySchema = z.object({
  * Body: { password: string }
  */
 export const POST = withApiAuth(async (req, session) => {
-const raw = await req.json();
+const raw = await parseJsonBody(req);
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(

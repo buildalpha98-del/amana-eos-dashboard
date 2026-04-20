@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hasFeature } from "@/lib/role-permissions";
+import { hasFeature, parseRole } from "@/lib/role-permissions";
 import { getAI } from "@/lib/ai";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
-import type { Role } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
@@ -15,8 +14,8 @@ import { logger } from "@/lib/logger";
  * parses the JSON response, and updates the lead with score + summary.
  */
 export const POST = withApiAuth(async (req, session, context) => {
-const role = session!.user.role as Role;
-  if (!hasFeature(role, "crm.view")) {
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "crm.view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

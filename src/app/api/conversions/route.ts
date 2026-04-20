@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const patchConversionSchema = z.object({
   id: z.string().min(1),
   status: z.enum(["identified", "contacted", "converted", "declined"]),
@@ -43,7 +44,7 @@ export const GET = withApiAuth(async (req, session) => {
 
 // PATCH /api/conversions — update status
 export const PATCH = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = patchConversionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });

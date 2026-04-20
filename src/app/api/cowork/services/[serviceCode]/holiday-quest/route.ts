@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 
+import { parseJsonBody } from "@/lib/api-error";
 const postBodySchema = z.object({
   date: z.string().min(1),
   theme: z.string().min(1),
@@ -41,7 +42,7 @@ export const POST = withApiHandler(async (req, context) => {
     );
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = postBodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

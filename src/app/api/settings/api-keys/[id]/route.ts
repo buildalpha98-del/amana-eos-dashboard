@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hasFeature } from "@/lib/role-permissions";
-import type { Role } from "@prisma/client";
+import { hasFeature, parseRole } from "@/lib/role-permissions";
 import { withApiAuth } from "@/lib/server-auth";
 
 // DELETE /api/settings/api-keys/[id] — Revoke an API key (soft delete)
 export const DELETE = withApiAuth(async (req, session, context) => {
-// Feature check: only owners can manage API keys
-  if (!hasFeature(session!.user.role as Role, "api_keys.manage")) {
+  // Feature check: only owners can manage API keys
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "api_keys.manage")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

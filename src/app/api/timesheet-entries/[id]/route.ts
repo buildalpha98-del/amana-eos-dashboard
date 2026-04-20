@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const updateEntrySchema = z.object({
   date: z.string().optional(),
   shiftStart: z.string().optional(),
@@ -18,7 +19,7 @@ const updateEntrySchema = z.object({
 // PATCH /api/timesheet-entries/[id] — update single entry
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateEntrySchema.safeParse(body);
 
   if (!parsed.success) {

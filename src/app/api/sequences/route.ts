@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const postSchema = z.object({
   name: z.string().min(1),
   type: z.enum(["parent_nurture", "crm_outreach"]),
@@ -39,7 +40,7 @@ export const GET = withApiAuth(async (req, session) => {
 
 // POST /api/sequences — create sequence with steps
 export const POST = withApiAuth(async (req, session) => {
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = postSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

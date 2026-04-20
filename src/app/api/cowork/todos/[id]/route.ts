@@ -5,6 +5,7 @@ import { todoUpdateSchema } from "../../../_lib/validation";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 // PATCH /api/cowork/todos/[id] — Mark a todo as complete/incomplete
 export const PATCH = withApiHandler(async (req, context) => {
   const authError = await authenticateCowork(req);
@@ -12,7 +13,7 @@ export const PATCH = withApiHandler(async (req, context) => {
 
   try {
     const { id } = await context!.params!;
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = todoUpdateSchema.safeParse(body);
 
     if (!parsed.success) {

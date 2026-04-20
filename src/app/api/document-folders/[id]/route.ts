@@ -3,13 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const updateFolderSchema = z.object({
   name: z.string().min(1).optional(),
 });
 
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateFolderSchema.safeParse(body);
 
   if (!parsed.success) {

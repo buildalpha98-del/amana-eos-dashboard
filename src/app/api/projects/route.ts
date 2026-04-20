@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
@@ -64,7 +65,7 @@ export const GET = withApiAuth(async (req, session) => {
 
 // POST /api/projects
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createProjectSchema.safeParse(body);
 
   if (!parsed.success) {

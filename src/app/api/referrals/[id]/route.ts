@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const updateReferralSchema = z.object({
   status: z.enum(["pending", "enquired", "enrolled", "rewarded", "expired"]).optional(),
   rewardIssuedAt: z.string().optional(),
@@ -10,7 +11,7 @@ const updateReferralSchema = z.object({
 });
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateReferralSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

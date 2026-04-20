@@ -7,7 +7,7 @@ import { enrolmentConfirmationEmail, schoolEnrolmentNotificationEmail } from "@/
 import { encryptField } from "@/lib/field-encryption";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withApiHandler } from "@/lib/api-handler";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
@@ -189,7 +189,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     throw new ApiError(429, "Too many submissions. Please try again later.");
   }
 
-  const raw = await req.json();
+  const raw = await parseJsonBody(req);
   const parsed = enrolmentBodySchema.safeParse(raw);
   if (!parsed.success) {
     throw ApiError.badRequest(
@@ -408,7 +408,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         url: `${process.env.NEXTAUTH_URL}/enrolments`,
       },
     ],
-  }).catch(() => {});
+  }).catch((err) => logger.error("Failed to send Teams notification for new enrolment", { err, enrolmentId: submission.id }));
 
   // Send confirmation email to parent (fire and forget)
   if (primaryParent.email) {
@@ -421,7 +421,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       to: primaryParent.email,
       subject,
       html,
-    }).catch(() => {});
+    }).catch((err) => logger.error("Failed to send enrolment confirmation email to parent", { err, enrolmentId: submission.id }));
   }
 
   // Send notification to school (fire and forget)
@@ -460,7 +460,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         to: service.email,
         subject: schoolSubject,
         html: schoolHtml,
-      }).catch(() => {});
+      }).catch((err) => logger.error("Failed to send school enrolment notification email", { err, enrolmentId: submission.id, serviceId }));
     }
   }
 

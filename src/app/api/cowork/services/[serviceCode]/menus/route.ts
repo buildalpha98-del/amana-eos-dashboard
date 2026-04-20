@@ -7,6 +7,7 @@ import { resolveServiceByCode } from "../../../_lib/resolve-service";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const MEAL_SLOTS = ["morning_tea", "lunch", "afternoon_tea"] as const;
 
@@ -48,7 +49,7 @@ export const POST = withApiHandler(async (req, context) => {
     }
 
     // 4. Validate body
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = importMenuSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(

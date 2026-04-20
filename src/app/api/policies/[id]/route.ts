@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const updatePolicySchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
@@ -73,7 +74,7 @@ const { id } = await context!.params!;
     return NextResponse.json({ error: "Policy not found" }, { status: 404 });
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updatePolicySchema.safeParse(body);
 
   if (!parsed.success) {

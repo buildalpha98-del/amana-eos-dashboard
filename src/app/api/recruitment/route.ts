@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createVacancySchema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
   role: z.string().min(1, "role is required"),
@@ -46,7 +47,7 @@ const { searchParams } = new URL(req.url);
 }, { roles: ["owner", "head_office", "admin"] });
 
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createVacancySchema.safeParse(body);
 
   if (!parsed.success) {

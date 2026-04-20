@@ -5,6 +5,7 @@ import { parseJsonField, notificationPrefsSchema } from "@/lib/schemas/json-fiel
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const updatePrefsSchema = z.object({
   prefs: z.record(z.string(), z.boolean()),
 });
@@ -25,7 +26,7 @@ const user = await prisma.user.findUnique({
 
 // PUT /api/notification-preferences — update prefs
 export const PUT = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = updatePrefsSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });

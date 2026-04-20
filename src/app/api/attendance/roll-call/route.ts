@@ -5,6 +5,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { z } from "zod";
 import type { SessionType } from "@prisma/client";
 import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
+import { logger } from "@/lib/logger";
 
 // ── GET: Fetch roll call list for a session ───────────────
 
@@ -188,7 +189,7 @@ export const POST = withApiAuth(async (req, session) => {
         },
       });
       // Fire-and-forget — don't block the response
-      sendSignInNotification(childId, serviceId, signInTime).catch(() => {});
+      sendSignInNotification(childId, serviceId, signInTime).catch((err) => logger.error("Failed to send sign-in notification", { err, childId, serviceId }));
       break;
     }
 
@@ -213,7 +214,7 @@ export const POST = withApiAuth(async (req, session) => {
         },
       });
       // Fire-and-forget
-      sendSignOutNotification(childId, serviceId, signOutTime).catch(() => {});
+      sendSignOutNotification(childId, serviceId, signOutTime).catch((err) => logger.error("Failed to send sign-out notification", { err, childId, serviceId }));
       break;
     }
 

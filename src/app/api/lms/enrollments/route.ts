@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const enrollSchema = z.object({
   courseId: z.string().min(1),
   userIds: z.array(z.string().min(1)).min(1),
@@ -20,7 +21,7 @@ const unenrollSchema = z.object({
 
 // POST /api/lms/enrollments — enrol staff OR update module progress
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = (await parseJsonBody(req)) as Record<string, unknown>;
 
   // ── Mode B: Progress update ──
   if (body.enrollmentId && body.moduleId !== undefined) {
@@ -226,7 +227,7 @@ const body = await req.json();
 
 // DELETE /api/lms/enrollments — unenrol a user (owner/admin only)
 export const DELETE = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = unenrollSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

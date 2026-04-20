@@ -1002,6 +1002,9 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
       setNewCategory("");
       toast({ description: "Interest captured" });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const markActionedMutation = useMutation({
@@ -1017,6 +1020,9 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["interests", serviceId] });
       queryClient.invalidateQueries({ queryKey: ["interests-summary", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 
@@ -1036,6 +1042,9 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
       setEditingId(null);
       toast({ description: "Interest updated" });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const deleteInterestMutation = useMutation({
@@ -1050,6 +1059,9 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
       queryClient.invalidateQueries({ queryKey: ["interests", serviceId] });
       queryClient.invalidateQueries({ queryKey: ["interests-summary", serviceId] });
       toast({ description: "Interest removed" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

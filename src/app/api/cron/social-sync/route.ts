@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { decryptToken, fetchPostMetrics } from "@/lib/meta";
+import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
 export const GET = withApiHandler(async (req) => {
-  // Validate CRON_SECRET
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
+  const auth = verifyCronSecret(req);
+  if (auth) return auth.error;
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await acquireCronLock("social-sync", "2hourly");
+  if (!guard.acquired) {
+    return NextResponse.json({ message: guard.reason, skipped: true });
   }
 
   let synced = 0;
@@ -147,12 +148,10 @@ export const GET = withApiHandler(async (req) => {
       }
     }
 
+    await guard.complete({ synced, errors });
     return NextResponse.json({ synced, errors });
   } catch (err) {
-    logger.error("Social sync cron error", { err });
-    return NextResponse.json(
-      { error: "Social sync failed", synced, errors },
-      { status: 500 }
-    );
+    await guard.fail(err);
+    throw err;
   }
 });

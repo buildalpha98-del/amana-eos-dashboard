@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { z } from "zod";
 
 const patchSchema = z.object({
@@ -33,7 +33,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     );
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

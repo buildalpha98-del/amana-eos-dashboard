@@ -5,13 +5,14 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   months: z.number().int().min(1).max(24).default(1),
 });
 
 export const POST = withApiAuth(async (req, session) => {
 try {
-    const raw = await req.json().catch(() => ({}));
+    const raw = await parseJsonBody(req).catch(() => ({}));
     const parsed = bodySchema.safeParse(raw);
     const months = parsed.success ? parsed.data.months : 1;
 

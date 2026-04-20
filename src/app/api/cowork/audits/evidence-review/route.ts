@@ -5,6 +5,7 @@ import { authenticateCowork } from "../../../_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 // ── Validation ──────────────────────────────────────────────
 
 const NQS_RATINGS = ["exceeding", "meeting", "working_towards", "not_met"] as const;
@@ -40,7 +41,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = evidenceReviewSchema.safeParse(body);
 
     if (!parsed.success) {

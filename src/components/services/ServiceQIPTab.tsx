@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AiButton } from "@/components/ui/AiButton";
+import { toast } from "@/hooks/useToast";
 
 interface QIPQualityArea {
   id: string;
@@ -99,6 +100,9 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["qip", serviceId] });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const updateArea = useMutation({
@@ -115,6 +119,9 @@ export function ServiceQIPTab({ serviceId }: { serviceId: string }) {
       queryClient.invalidateQueries({ queryKey: ["qip", serviceId] });
       setEditingArea(null);
       setEditForm({});
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

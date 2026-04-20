@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const blockSchema = z.object({
   type: z.enum(["heading", "text", "image", "button", "divider", "spacer"]),
   text: z.string().optional(),
@@ -62,7 +63,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     );
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

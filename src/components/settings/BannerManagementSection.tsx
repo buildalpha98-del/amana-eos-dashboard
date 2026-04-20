@@ -412,6 +412,9 @@ export function BannerManagementSection() {
       queryClient.invalidateQueries({ queryKey: ["admin-banners"] });
       queryClient.invalidateQueries({ queryKey: ["system-banners"] });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -425,6 +428,9 @@ export function BannerManagementSection() {
       queryClient.invalidateQueries({ queryKey: ["system-banners"] });
       toast({ description: "Banner deleted" });
       setDeleteId(null);
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

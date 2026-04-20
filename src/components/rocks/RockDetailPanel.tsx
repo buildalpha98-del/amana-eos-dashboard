@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/Sheet";
+import { toast } from "@/hooks/useToast";
 import type { RockStatus, RockPriority, RockType } from "@prisma/client";
 
 const statusOptions: { value: RockStatus; label: string; color: string }[] = [
@@ -91,6 +92,9 @@ export function RockDetailPanel({
       setNewMilestoneDue("");
       setShowAddMilestone(false);
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const toggleMilestone = useMutation({
@@ -106,6 +110,9 @@ export function RockDetailPanel({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const deleteMilestone = useMutation({
@@ -116,6 +123,9 @@ export function RockDetailPanel({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 
@@ -149,6 +159,9 @@ export function RockDetailPanel({
       setNewTodoAssignee("");
       setShowAddTodo(false);
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const toggleTodoStatus = useMutation({
@@ -165,6 +178,9 @@ export function RockDetailPanel({
       queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
       queryClient.invalidateQueries({ queryKey: ["todos"] });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const unlinkTodo = useMutation({
@@ -180,6 +196,9 @@ export function RockDetailPanel({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
       queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 
@@ -209,6 +228,9 @@ export function RockDetailPanel({
       setNewIssuePriority("medium");
       setShowAddIssue(false);
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const unlinkIssue = useMutation({
@@ -224,6 +246,9 @@ export function RockDetailPanel({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rock", rockId] });
       queryClient.invalidateQueries({ queryKey: ["issues"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 
@@ -277,6 +302,9 @@ export function RockDetailPanel({
       setIssueSearchQuery("");
       setIssueDropdownOpen(false);
       setShowLinkIssue(false);
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

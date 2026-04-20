@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const completeSchema = z.object({
   reason: z.enum([
     "moved_schools",
@@ -69,7 +70,7 @@ export const PATCH = withApiHandler(async (req, context) => {
       return NextResponse.json({ error: "Survey already completed" }, { status: 400 });
     }
 
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const data = completeSchema.parse(body);
 
     const updated = await prisma.exitSurvey.update({

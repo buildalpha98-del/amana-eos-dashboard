@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   email: z.string().email("Valid email is required"),
   firstName: z.string().optional(),
@@ -17,7 +18,7 @@ const bodySchema = z.object({
  * ParentNurtureStep records (Day 0, 2, 5, 7, 14, 30).
  */
 export const POST = withApiAuth(async (req, session) => {
-  const raw = await req.json();
+  const raw = await parseJsonBody(req);
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(

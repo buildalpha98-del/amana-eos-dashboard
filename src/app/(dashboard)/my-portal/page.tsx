@@ -39,6 +39,7 @@ import Link from "next/link";
 import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
 import { SessionManagement } from "@/components/settings/SessionManagement";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { toast } from "@/hooks/useToast";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -441,6 +442,9 @@ export default function MyPortalPage() {
       setAckPolicyId(null);
       setAckPolicyTitle("");
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   /* ---- Contract acknowledgement mutation ---- */
@@ -454,6 +458,9 @@ export default function MyPortalPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-portal"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

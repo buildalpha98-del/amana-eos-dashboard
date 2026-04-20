@@ -86,6 +86,9 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["session"] });
       toast({ title: "Avatar removed", description: "Your profile photo has been cleared." });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -143,6 +146,9 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["my-portal"] });
       toast({ description: "Profile updated" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

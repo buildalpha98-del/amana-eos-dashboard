@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createAnnouncementSchema = z.object({
   title: z.string().min(1, "Title is required"),
   body: z.string().min(1, "Body is required"),
@@ -71,7 +72,7 @@ const { searchParams } = new URL(req.url);
 
 // POST /api/communication/announcements — create announcement
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createAnnouncementSchema.safeParse(body);
 
   if (!parsed.success) {

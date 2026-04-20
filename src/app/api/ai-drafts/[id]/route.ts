@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { logger } from "@/lib/logger";
 
 const PatchSchema = z.object({
   status: z.enum(["accepted", "edited", "dismissed"]),
@@ -67,35 +68,35 @@ export const PATCH = withApiAuth(
         await prisma.todo.update({
           where: { id: draft.todoId },
           data: { status: "complete", completedAt: new Date() },
-        }).catch(() => {}); // Non-critical
+        }).catch((err) => logger.error("Failed to complete todo after AI draft accept", { err, draftId: id, todoId: draft.todoId }));
       }
 
       if (draft.marketingTaskId) {
         await prisma.marketingTask.update({
           where: { id: draft.marketingTaskId },
           data: { status: "done" },
-        }).catch(() => {});
+        }).catch((err) => logger.error("Failed to complete marketingTask after AI draft accept", { err, draftId: id, marketingTaskId: draft.marketingTaskId }));
       }
 
       if (draft.coworkTodoId) {
         await prisma.coworkTodo.update({
           where: { id: draft.coworkTodoId },
           data: { completed: true, completedAt: new Date() },
-        }).catch(() => {});
+        }).catch((err) => logger.error("Failed to complete coworkTodo after AI draft accept", { err, draftId: id, coworkTodoId: draft.coworkTodoId }));
       }
 
       if (draft.ticketId) {
         await prisma.supportTicket.update({
           where: { id: draft.ticketId },
           data: { status: "resolved", resolvedAt: new Date() },
-        }).catch(() => {});
+        }).catch((err) => logger.error("Failed to resolve ticket after AI draft accept", { err, draftId: id, ticketId: draft.ticketId }));
       }
 
       if (draft.issueId) {
         await prisma.issue.update({
           where: { id: draft.issueId },
           data: { status: "solved", solvedAt: new Date() },
-        }).catch(() => {});
+        }).catch((err) => logger.error("Failed to solve issue after AI draft accept", { err, draftId: id, issueId: draft.issueId }));
       }
     }
 

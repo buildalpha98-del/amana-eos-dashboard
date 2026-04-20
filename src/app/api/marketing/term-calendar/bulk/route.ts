@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const entrySchema = z.object({
   year: z.number().int(),
   term: z.number().int().min(1).max(4),
@@ -38,7 +39,7 @@ const entryIncludes = {
 
 // POST /api/marketing/term-calendar/bulk — bulk create entries
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = bulkSchema.safeParse(body);
 
   if (!parsed.success) {

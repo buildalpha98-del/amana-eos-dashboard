@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { encrypt } from "@/lib/encryption";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const profileUpdateSchema = z.object({
   phone: z.string().optional(),
   dateOfBirth: z.string().optional(),
@@ -125,7 +126,7 @@ const { id } = await context!.params!;
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = profileUpdateSchema.safeParse(body);
 
   if (!parsed.success) {

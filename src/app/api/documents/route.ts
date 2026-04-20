@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { indexDocument } from "@/lib/document-indexer";
+import { parseJsonBody } from "@/lib/api-error";
 const createDocumentSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -95,7 +96,7 @@ const { searchParams } = new URL(req.url);
 });
 
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createDocumentSchema.safeParse(body);
 
   if (!parsed.success) {

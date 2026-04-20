@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 
 const updateSchema = z.object({
@@ -21,7 +22,7 @@ const updateSchema = z.object({
 // PATCH /api/services/[id]/programs/[activityId]
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id, activityId } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateSchema.safeParse(body);
 
   if (!parsed.success) {

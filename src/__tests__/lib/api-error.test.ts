@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { withApiHandler, handleApiError } from "@/lib/api-handler";
 

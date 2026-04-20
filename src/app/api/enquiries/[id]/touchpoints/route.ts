@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import { parseJsonBody } from "@/lib/api-error";
 const createTouchpointSchema = z.object({
   type: z.string().min(1, "Type is required"),
   channel: z.string().min(1, "Channel is required"),
@@ -36,7 +37,7 @@ export const POST = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const data = createTouchpointSchema.parse(body);
 
     const touchpoint = await prisma.parentEnquiryTouchpoint.create({

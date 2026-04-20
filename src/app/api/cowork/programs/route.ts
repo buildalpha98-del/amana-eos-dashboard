@@ -6,6 +6,7 @@ import { saveBase64File } from "../../_lib/upload";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 // POST /api/cowork/programs — Upload a weekly program (upsert)
 // Supports both base64 file upload and pre-signed URL references
 export const POST = withApiHandler(async (req) => {
@@ -56,7 +57,7 @@ export const POST = withApiHandler(async (req) => {
         };
       }
     } else {
-      body = await req.json();
+      body = (await parseJsonBody(req)) as Record<string, unknown>;
     }
 
     const parsed = programSchema.safeParse(body);

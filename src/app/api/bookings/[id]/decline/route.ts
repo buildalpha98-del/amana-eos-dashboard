@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendBookingDeclinedNotification } from "@/lib/notifications/bookings";
+import { logger } from "@/lib/logger";
 
 const declineSchema = z.object({
   reason: z.string().max(500).optional(),
@@ -51,7 +52,7 @@ export const POST = withApiAuth(
     });
 
     // Fire and forget
-    sendBookingDeclinedNotification(bookingId, parsed.data.reason).catch(() => {});
+    sendBookingDeclinedNotification(bookingId, parsed.data.reason).catch((err) => logger.error("Failed to send booking-declined notification", { err, bookingId }));
 
     return NextResponse.json(updated);
   },

@@ -203,7 +203,7 @@ export async function saveDraft(
         section: "agent",
       },
     })
-    .catch(() => {});
+    .catch((err) => logger.error("Failed to log AI usage for task agent draft", { err, draftId: draft.id, sourceId: ctx.sourceId }));
 
   return draft.id;
 }

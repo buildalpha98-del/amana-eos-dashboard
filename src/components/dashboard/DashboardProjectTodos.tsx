@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/useToast";
 import {
   FolderKanban,
   Building2,
@@ -38,6 +39,9 @@ export function DashboardProjectTodos({
       queryClient.invalidateQueries({ queryKey: ["dashboard-command-centre"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["todos"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const patchSchema = z.object({
   status: z.string().optional(),
   serviceId: z.string().optional(),
@@ -46,7 +47,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
