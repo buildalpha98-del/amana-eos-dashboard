@@ -27,9 +27,16 @@ for root in SCAN_ROOTS:
         if any(p in str(f) for p in EXCLUDE_PATH_PARTS) or ".test." in str(f):
             continue
         src = f.read_text()
-        for m in re.finditer(r"useMutation\s*(<[^>]*>)?\s*\(\s*\{", src):
-            start = m.start()
-            i = src.index("{", start)
+        # Match the opening of the call: useMutation, optional generic, then "(".
+        # Then find the "{" that sits after that "(" — NOT any "{" inside the generic.
+        for m in re.finditer(r"useMutation\s*(?:<[^>]*>)?\s*\(\s*", src):
+            call_start = m.start()
+            paren_end = m.end()  # one past the matched sequence (i.e. after "(")
+            # find the first "{" at/after paren_end
+            try:
+                i = src.index("{", paren_end)
+            except ValueError:
+                continue
             depth = 0
             end = i
             for j in range(i, len(src)):
@@ -40,10 +47,10 @@ for root in SCAN_ROOTS:
                     if depth == 0:
                         end = j
                         break
-            block = src[start:end + 1]
+            block = src[call_start:end + 1]
             total += 1
             if "onError" not in block:
-                lineno = src[:start].count("\n") + 1
+                lineno = src[:call_start].count("\n") + 1
                 missing.append((str(f), lineno))
 
 print(f"Total useMutation(object) calls scanned: {total}")
