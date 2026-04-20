@@ -7,6 +7,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   recipients: z.array(z.string().email()).optional(),
 });
@@ -24,7 +25,7 @@ const { id } = await context!.params!;
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }
 
-  const raw = await req.json().catch(() => ({}));
+  const raw = await parseJsonBody(req).catch(() => ({}));
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(

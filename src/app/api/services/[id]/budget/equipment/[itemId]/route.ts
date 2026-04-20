@@ -4,6 +4,7 @@ import { z } from "zod";
 import { recalcFinancialsForWeek } from "@/lib/budget-helpers";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const updateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   amount: z.number().positive().optional(),
@@ -18,7 +19,7 @@ const updateSchema = z.object({
 // PATCH /api/services/[id]/budget/equipment/[itemId]
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id, itemId } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateSchema.safeParse(body);
 
   if (!parsed.success) {

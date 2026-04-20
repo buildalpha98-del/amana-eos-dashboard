@@ -3,12 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   notificationIds: z.array(z.string().min(1)).min(1, "At least one notification ID is required"),
 });
 
 export const POST = withApiAuth(async (req, session) => {
-  const raw = await req.json();
+  const raw = await parseJsonBody(req);
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(

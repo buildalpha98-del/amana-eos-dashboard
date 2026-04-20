@@ -5,6 +5,7 @@ import { z } from "zod";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createIncidentSchema = z.object({
   serviceCode: z.string(),
   date: z.string().datetime(),
@@ -149,7 +150,7 @@ export const POST = withApiHandler(async (req) => {
   const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createIncidentSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request body", issues: parsed.error.issues }, { status: 400 });

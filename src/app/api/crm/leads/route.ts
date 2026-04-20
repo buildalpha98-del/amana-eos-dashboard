@@ -6,6 +6,7 @@ import { parsePagination } from "@/lib/pagination";
 import type { PipelineStage, LeadSource } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const PIPELINE_STAGES: PipelineStage[] = [
   "new_lead", "reviewing", "contact_made", "follow_up_1", "follow_up_2",
   "meeting_booked", "proposal_sent", "submitted", "negotiating",
@@ -96,7 +97,7 @@ export const POST = withApiAuth(async (req, session) => {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createLeadSchema.safeParse(body);
 
   if (!parsed.success) {

@@ -7,6 +7,7 @@ import { resolveServiceByCode } from "../../_lib/resolve-service";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const AUDIENCES = ["all", "owners_admins", "managers", "custom"] as const;
 const PRIORITIES = ["normal", "important", "urgent"] as const;
 
@@ -26,7 +27,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = apiAnnouncementSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(

@@ -5,6 +5,7 @@ import { hasFeature, parseRole } from "@/lib/role-permissions";
 import type { PipelineStage, LeadSource } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const PIPELINE_STAGES: PipelineStage[] = [
   "new_lead", "reviewing", "contact_made", "follow_up_1", "follow_up_2",
   "meeting_booked", "proposal_sent", "submitted", "negotiating",
@@ -36,7 +37,7 @@ export const PUT = withApiAuth(async (req, session, context) => {
   }
 
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateTemplateSchema.safeParse(body);
 
   if (!parsed.success) {

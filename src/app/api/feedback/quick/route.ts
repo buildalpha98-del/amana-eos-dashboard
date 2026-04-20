@@ -7,6 +7,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const feedbackSchema = z.object({
   serviceId: z.string().min(1),
   score: z.number().int().min(1).max(5),
@@ -30,7 +31,7 @@ function hashIp(ip: string): string {
 
 // POST /api/feedback/quick — public, rate-limited
 export const POST = withApiHandler(async (req) => {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const data = feedbackSchema.parse(body);
 
     // Verify service exists

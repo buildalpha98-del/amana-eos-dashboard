@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const submitPulseSchema = z.object({
   surveyId: z.string().min(1, "surveyId required"),
   q1Happy: z.number().int().min(1).max(5),
@@ -82,7 +83,7 @@ export const GET = withApiAuth(async (req, session) => {
 });
 
 export const POST = withApiAuth(async (req, session) => {
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = submitPulseSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });

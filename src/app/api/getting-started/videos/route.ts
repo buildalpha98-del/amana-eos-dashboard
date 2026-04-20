@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 // GET /api/getting-started/videos — return role video URLs from OrgSettings
 export const GET = withApiAuth(async (req, session) => {
   const settings = await prisma.orgSettings.findUnique({
@@ -31,7 +32,7 @@ const updateSchema = z.object({
 
 // PUT /api/getting-started/videos — update role video URLs (admin+ only)
 export const PUT = withApiAuth(async (req, session) => {
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateSchema.safeParse(body);
 
   if (!parsed.success) {

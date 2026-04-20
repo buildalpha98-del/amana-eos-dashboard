@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bulkTodoSchema = z.object({
   todos: z.array(
     z.object({
@@ -17,7 +18,7 @@ const bulkTodoSchema = z.object({
 });
 
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = bulkTodoSchema.safeParse(body);
 
   if (!parsed.success) {

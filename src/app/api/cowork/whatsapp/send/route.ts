@@ -13,6 +13,7 @@ import {
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const whatsappSendSchema = z.object({
   group: z.enum([...GROUP_TYPES]),
   serviceCode: z.string().optional().nullable(),
@@ -45,7 +46,7 @@ export const POST = withApiHandler(async (req) => {
 
   try {
     // 3. Validate body
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = whatsappSendSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(

@@ -5,6 +5,7 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const updateStageSchema = z.object({
   stage: z.string().min(1, "Stage is required"),
 });
@@ -20,7 +21,7 @@ export const PATCH = withApiHandler(async (req, context) => {
   const { id } = await context!.params!;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const data = updateStageSchema.parse(body);
 
     const existing = await prisma.parentEnquiry.findUnique({

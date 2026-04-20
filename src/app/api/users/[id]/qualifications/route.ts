@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createQualificationSchema = z.object({
   type: z.enum([
     "cert_iii",
@@ -29,7 +30,7 @@ const { id } = await context!.params!;
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createQualificationSchema.safeParse(body);
 
   if (!parsed.success) {

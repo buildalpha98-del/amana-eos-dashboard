@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createFeedbackSchema = z.object({
   category: z.enum(["bug", "feature_request", "question", "general"]),
   message: z.string().min(1, "Message is required"),
@@ -32,7 +33,7 @@ export const GET = withApiAuth(async (req, session) => {
 
 // POST /api/internal-feedback — create feedback (any authenticated user)
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createFeedbackSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });

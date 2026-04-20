@@ -4,6 +4,7 @@ import { parseJsonField, gettingStartedProgressSchema } from "@/lib/schemas/json
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const putSchema = z.object({
   key: z.string().min(1, "key is required"),
   completed: z.boolean(),
@@ -23,7 +24,7 @@ const user = await prisma.user.findUnique({
 
 // PUT /api/getting-started — toggle a checklist item
 export const PUT = withApiAuth(async (req, session) => {
-const raw = await req.json();
+const raw = await parseJsonBody(req);
   const parsed = putSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(

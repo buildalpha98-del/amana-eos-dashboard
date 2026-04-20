@@ -7,7 +7,7 @@ import { enrolmentConfirmationEmail, schoolEnrolmentNotificationEmail } from "@/
 import { encryptField } from "@/lib/field-encryption";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { withApiHandler } from "@/lib/api-handler";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
@@ -189,7 +189,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
     throw new ApiError(429, "Too many submissions. Please try again later.");
   }
 
-  const raw = await req.json();
+  const raw = await parseJsonBody(req);
   const parsed = enrolmentBodySchema.safeParse(raw);
   if (!parsed.success) {
     throw ApiError.badRequest(

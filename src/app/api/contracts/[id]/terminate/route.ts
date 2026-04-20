@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const terminateSchema = z.object({
   notes: z.string().optional(),
   endDate: z.string().optional(),
@@ -33,7 +34,7 @@ const { id } = await context!.params!;
     );
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = terminateSchema.safeParse(body);
 
   if (!parsed.success) {

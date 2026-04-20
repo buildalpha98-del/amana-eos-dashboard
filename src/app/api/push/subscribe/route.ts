@@ -3,7 +3,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 
 const subscribeSchema = z.object({
   subscription: z.object({
@@ -25,7 +25,7 @@ const subscribeSchema = z.object({
  * Requires either a userId (staff) or familyId (parent) to link the subscription.
  */
 export const POST = withApiHandler(async (req: NextRequest) => {
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = subscribeSchema.safeParse(body);
 
   if (!parsed.success) {

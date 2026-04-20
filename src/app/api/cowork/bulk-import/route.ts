@@ -5,6 +5,7 @@ import { authenticateCowork } from "../../_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 // ── Validation ──────────────────────────────────────────────
 
 const ACTIVITY_CATEGORIES = [
@@ -53,7 +54,7 @@ export const POST = withApiHandler(async (req) => {
   // Rate limit: 10 req/min (use a fixed key id for cowork bearer)
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = bulkImportSchema.safeParse(body);
 
     if (!parsed.success) {

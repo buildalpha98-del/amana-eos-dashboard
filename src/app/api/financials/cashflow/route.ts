@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createCashFlowSchema = z.object({
   periodMonth: z.string().min(1),
   openingBalance: z.number().optional().default(0),
@@ -47,7 +48,7 @@ export const GET = withApiAuth(async (req, session) => {
  */
 export const POST = withApiAuth(async (req, session) => {
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = createCashFlowSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
@@ -96,7 +97,7 @@ export const POST = withApiAuth(async (req, session) => {
  */
 export const PUT = withApiAuth(async (req, session) => {
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = forecastSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });

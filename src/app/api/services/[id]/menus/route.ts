@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const WEEK_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday"] as const;
 const MEAL_SLOTS = ["morning_tea", "lunch", "afternoon_tea"] as const;
 
@@ -60,7 +61,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 // PUT /api/services/[id]/menus — upsert full week menu
 export const PUT = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = saveMenuSchema.safeParse(body);
 
   if (!parsed.success) {

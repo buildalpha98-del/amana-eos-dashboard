@@ -11,6 +11,7 @@ import {
 } from "@/lib/meta";
 import { withApiHandler } from "@/lib/api-handler";
 
+import { parseJsonBody } from "@/lib/api-error";
 const PLATFORMS = ["instagram", "facebook", "both"] as const;
 
 const postSchema = z.object({
@@ -44,7 +45,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   // 3. Validate body
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = socialScheduleSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

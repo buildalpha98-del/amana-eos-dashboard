@@ -6,6 +6,7 @@ import { getResend, FROM_EMAIL } from "@/lib/email";
 import { applyMergeTags } from "@/lib/crm/merge-tags";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 /** Escape HTML special characters to prevent injection */
 function escapeHtml(str: string): string {
   return str
@@ -30,7 +31,7 @@ export const POST = withApiAuth(async (req, session, context) => {
   }
 
   const { id } = await context!.params!;
-  const reqBody = await req.json();
+  const reqBody = await parseJsonBody(req);
   const parsed = sendEmailSchema.safeParse(reqBody);
 
   if (!parsed.success) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createModuleSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -20,7 +21,7 @@ const reorderSchema = z.object({
 // POST /api/lms/courses/[id]/modules — add a module
 export const POST = withApiAuth(async (req, session, context) => {
 const { id: courseId } = await context!.params!;
-  const body = await req.json();
+  const body = (await parseJsonBody(req)) as Record<string, unknown>;
 
   // Handle reorder
   if (body.moduleIds) {

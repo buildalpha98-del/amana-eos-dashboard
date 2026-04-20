@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 /**
  * GET /api/scenarios — list saved scenarios for the current user
  */
@@ -35,7 +36,7 @@ const scenarioBodySchema = z.object({
  * Body: { name, description?, inputs, outputs }
  */
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = scenarioBodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

@@ -5,6 +5,7 @@ import { generateBoardReport } from "@/lib/board-report-generator";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   month: z.number().min(1).max(12),
   year: z.number().min(2000).max(2100),
@@ -21,7 +22,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = bodySchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(

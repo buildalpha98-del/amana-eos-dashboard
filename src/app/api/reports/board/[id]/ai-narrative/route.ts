@@ -6,6 +6,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const VALID_SECTIONS: NarrativeSection[] = [
   "executive",
   "financial",
@@ -29,7 +30,7 @@ export const POST = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
 
   try {
-    const raw = await req.json();
+    const raw = await parseJsonBody(req);
     const parsed = bodySchema.safeParse(raw);
     if (!parsed.success) {
       return NextResponse.json(

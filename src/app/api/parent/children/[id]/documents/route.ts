@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { withParentAuth } from "@/lib/parent-auth";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { uploadFile } from "@/lib/storage/uploadFile";
 
@@ -143,7 +143,7 @@ export const POST = withParentAuth(async (req, ctx) => {
     notes: z.string().max(500).optional(),
   });
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     throw ApiError.badRequest("Invalid document data", parsed.error.flatten().fieldErrors);

@@ -4,6 +4,7 @@ import { createHmac } from "crypto";
 import { withApiHandler } from "@/lib/api-handler";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const patchSchema = z.object({
   subscribed: z.boolean(),
 });
@@ -66,7 +67,7 @@ export const PATCH = withApiHandler(async (req, context) => {
   }
 
   try {
-    const raw = await req.json();
+    const raw = await parseJsonBody(req);
     const parsed = patchSchema.safeParse(raw);
     if (!parsed.success) {
       return NextResponse.json(

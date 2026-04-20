@@ -4,6 +4,7 @@ import type { AuditResponseFormat } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const postSchema = z.object({
   items: z.array(z.object({
     section: z.string().optional(),
@@ -21,7 +22,7 @@ const postSchema = z.object({
  */
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = postSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

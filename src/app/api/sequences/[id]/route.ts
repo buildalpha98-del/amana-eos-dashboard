@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const putSchema = z.object({
   name: z.string().min(1).optional(),
   triggerStage: z.string().nullable().optional(),
@@ -88,7 +89,7 @@ export const PUT = withApiAuth(async (req, session, context) => {
     );
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = putSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

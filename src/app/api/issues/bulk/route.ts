@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import { parseJsonBody } from "@/lib/api-error";
 const bulkSchema = z.object({
   action: z.enum(["resolve", "delete", "assign", "move"]),
   ids: z.array(z.string()).min(1),
@@ -12,7 +13,7 @@ const bulkSchema = z.object({
 
 // POST /api/issues/bulk
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = bulkSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

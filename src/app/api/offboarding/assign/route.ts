@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const initiateSchema = z.object({
   userId: z.string().min(1),
   packId: z.string().min(1),
@@ -56,7 +57,7 @@ const { searchParams } = new URL(req.url);
 
 // POST /api/offboarding/assign — initiate offboarding OR update task progress
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = (await parseJsonBody(req)) as Record<string, unknown>;
 
   // ── Mode B: Update progress on an existing offboarding ─────────
   if (body.offboardingId && body.taskId !== undefined) {

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
+import { parseJsonBody } from "@/lib/api-error";
 const patchEnrolmentSchema = z.object({
   status: z.enum(["submitted", "under_review", "processed", "rejected", "archived"], {
     error: "Invalid status. Must be one of: submitted, under_review, processed, rejected, archived",
@@ -28,7 +29,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
 
   const parsed = patchEnrolmentSchema.safeParse(body);
   if (!parsed.success) {

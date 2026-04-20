@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createContactSchema = z.object({
   name: z.string().min(1, "Name is required"),
   phone: z.string().min(1, "Phone is required"),
@@ -24,7 +25,7 @@ const { id } = await context!.params!;
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createContactSchema.safeParse(body);
 
   if (!parsed.success) {

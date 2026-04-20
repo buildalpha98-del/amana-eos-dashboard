@@ -4,6 +4,7 @@ import { holidayQuestProgrammeEmail } from "@/lib/email-templates";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
   from: z.string().min(1, "from date is required"),
@@ -17,7 +18,7 @@ const bodySchema = z.object({
  * Returns email HTML + social post captions for the holiday period.
  */
 export const POST = withApiAuth(async (req, session) => {
-  const raw = await req.json();
+  const raw = await parseJsonBody(req);
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(

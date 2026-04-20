@@ -4,6 +4,7 @@ import { z } from "zod";
 import { recalcFinancialsForWeek } from "@/lib/budget-helpers";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const equipmentItemSchema = z.object({
   name: z.string().min(1).max(200),
   amount: z.number().positive(),
@@ -45,7 +46,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 // POST /api/services/[id]/budget/equipment — create equipment item
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = equipmentItemSchema.safeParse(body);
 
   if (!parsed.success) {

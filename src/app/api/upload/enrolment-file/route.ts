@@ -6,6 +6,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   file: z.string().min(1, "file is required"),
   filename: z.string().min(1, "filename is required"),
@@ -40,7 +41,7 @@ export const POST = withApiHandler(async (req) => {
   }
 
   try {
-    const raw = await req.json();
+    const raw = await parseJsonBody(req);
     const parsed = bodySchema.safeParse(raw);
     if (!parsed.success) {
       return NextResponse.json(

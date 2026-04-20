@@ -6,6 +6,7 @@ import { z } from "zod";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 /**
  * POST /api/cowork/px
  * Upsert parent experience metrics (single or batch).
@@ -110,7 +111,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = (await parseJsonBody(req)) as Record<string, unknown>;
 
     // Determine single vs batch
     if ("metrics" in body) {

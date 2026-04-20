@@ -6,6 +6,7 @@ import { getCentreScope, applyCentreFilter } from "@/lib/centre-scope";
 import { parsePagination } from "@/lib/pagination";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createServiceSchema = z.object({
   name: z.string().min(1, "Name is required"),
   code: z.string().min(1, "Code is required"),
@@ -75,7 +76,7 @@ const { serviceIds } = await getCentreScope(session);
 
 // POST /api/services
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createServiceSchema.safeParse(body);
 
   if (!parsed.success) {

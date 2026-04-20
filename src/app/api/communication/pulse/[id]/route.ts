@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const patchPulseSchema = z.object({
   wins: z.string().optional(),
   priorities: z.string().optional(),
@@ -32,7 +33,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 // PATCH /api/communication/pulse/[id] — Update pulse fields
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = patchPulseSchema.safeParse(body);
 
   if (!parsed.success) {

@@ -7,6 +7,7 @@ import { API_SCOPES } from "@/lib/api-key-auth";
 import { logAuditEvent } from "@/lib/audit-log";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createApiKeySchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   scopes: z
@@ -53,7 +54,7 @@ export const POST = withApiAuth(async (req, session) => {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createApiKeySchema.safeParse(body);
 
   if (!parsed.success) {

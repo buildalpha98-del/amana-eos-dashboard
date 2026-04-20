@@ -5,6 +5,7 @@ import { logAuditEvent } from "@/lib/audit-log";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   code: z.string().min(6).max(8).optional(),
 });
@@ -28,7 +29,7 @@ const userId = session!.user.id;
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const raw = await req.json().catch(() => ({}));
+  const raw = await parseJsonBody(req).catch(() => ({}));
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(

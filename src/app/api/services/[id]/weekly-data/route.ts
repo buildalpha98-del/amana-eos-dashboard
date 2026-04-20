@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const weeklyDataSchema = z.object({
   weekOf: z.string(),
   bscRecurring: z.number().min(0).default(0),
@@ -35,7 +36,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 // POST /api/services/[id]/weekly-data — create/update weekly record with auto-revenue calc
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = weeklyDataSchema.safeParse(body);
 
   if (!parsed.success) {

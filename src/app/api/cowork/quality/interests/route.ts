@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 
+import { parseJsonBody } from "@/lib/api-error";
 const INTEREST_SOURCES = ["interest_book", "verbal", "observation", "parent", "suggestion_box"] as const;
 
 const batchCreateSchema = z.object({
@@ -99,7 +100,7 @@ export const POST = withApiHandler(async (req) => {
   const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = batchCreateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });

@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const postSchema = z.object({
   platform: z.enum(["facebook", "instagram"]),
 });
@@ -18,7 +19,7 @@ if (!isConfigured()) {
   }
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = postSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(

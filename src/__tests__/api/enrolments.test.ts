@@ -29,15 +29,28 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 // Mock api-error / api-handler (used by server-auth catch)
-vi.mock("@/lib/api-error", () => ({
-  ApiError: class ApiError extends Error {
+vi.mock("@/lib/api-error", () => {
+  class ApiError extends Error {
     statusCode: number;
     constructor(statusCode: number, message: string) {
       super(message);
       this.statusCode = statusCode;
     }
-  },
-}));
+    static badRequest(message = "Bad request") {
+      return new ApiError(400, message);
+    }
+  }
+  return {
+    ApiError,
+    parseJsonBody: async (req: Request) => {
+      try {
+        return await req.json();
+      } catch {
+        throw ApiError.badRequest("Invalid or missing JSON body");
+      }
+    },
+  };
+});
 
 vi.mock("@/lib/api-handler", () => ({
   handleApiError: vi.fn((_req: unknown, err: unknown, reqId: string) => {

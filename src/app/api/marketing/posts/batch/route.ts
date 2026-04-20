@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const batchSchema = z.object({
   postIds: z.array(z.string()).min(1, "At least one post ID is required"),
   action: z.enum([
@@ -21,7 +22,7 @@ const batchSchema = z.object({
 
 // POST /api/marketing/posts/batch — batch operations on posts
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = batchSchema.safeParse(body);
 
   if (!parsed.success) {

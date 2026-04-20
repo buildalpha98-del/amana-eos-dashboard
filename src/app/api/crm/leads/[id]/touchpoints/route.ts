@@ -5,6 +5,7 @@ import { hasFeature, parseRole } from "@/lib/role-permissions";
 import type { TouchpointType } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const TOUCHPOINT_TYPES: TouchpointType[] = [
   "email_sent", "call", "meeting", "note", "stage_change", "auto_email",
 ];
@@ -43,7 +44,7 @@ export const POST = withApiAuth(async (req, session, context) => {
   }
 
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createTouchpointSchema.safeParse(body);
 
   if (!parsed.success) {

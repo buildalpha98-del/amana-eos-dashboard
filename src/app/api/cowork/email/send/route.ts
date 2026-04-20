@@ -12,6 +12,7 @@ import {
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const emailSendSchema = z.object({
   serviceCode: z.string().min(1, "serviceCode is required"),
   subject: z.string().min(1).max(200, "Subject must be 1–200 characters"),
@@ -35,7 +36,7 @@ export const POST = withApiHandler(async (req) => {
 
   try {
     // 3. Validate body
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = emailSendSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(

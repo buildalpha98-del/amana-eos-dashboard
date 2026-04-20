@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createReferralSchema = z.object({
   serviceId: z.string().min(1),
   referrerName: z.string().min(1),
@@ -45,7 +46,7 @@ export const GET = withApiAuth(async (req, session) => {
 }, { roles: ["owner", "head_office", "admin"] });
 
 export const POST = withApiAuth(async (req, session) => {
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createReferralSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

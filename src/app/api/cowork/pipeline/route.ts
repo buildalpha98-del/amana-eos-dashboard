@@ -6,6 +6,7 @@ import { resolveServiceByCode } from "../_lib/resolve-service";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const STAGES = [
   "new_enquiry",
   "info_sent",
@@ -208,7 +209,7 @@ export const POST = withApiHandler(async (req) => {
 
   let body: unknown;
   try {
-    body = await req.json();
+    body = await parseJsonBody(req);
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -341,7 +342,7 @@ export const PUT = withApiHandler(async (req) => {
 
   let body: unknown;
   try {
-    body = await req.json();
+    body = await parseJsonBody(req);
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }

@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const patchSchema = z.object({
   amountPaid: z.number().optional(),
   reminderStatus: z.string().optional(),
@@ -47,7 +48,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
 
   try {
-    const raw = await req.json();
+    const raw = await parseJsonBody(req);
     const parsed = patchSchema.safeParse(raw);
     if (!parsed.success) {
       return NextResponse.json(

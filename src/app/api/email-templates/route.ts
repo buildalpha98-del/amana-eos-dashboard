@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const blockSchema = z.object({
   type: z.enum(["heading", "text", "image", "button", "divider", "spacer"]),
   text: z.string().optional(),
@@ -48,7 +49,7 @@ export const GET = withApiAuth(async (req, session) => {
 
 // POST /api/email-templates — create a new template
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

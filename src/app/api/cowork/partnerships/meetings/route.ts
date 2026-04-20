@@ -5,6 +5,7 @@ import { z } from "zod";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const postSchema = z.object({
   serviceCode: z.string(),
   date: z.string().datetime(),
@@ -27,7 +28,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = postSchema.safeParse(body);
 
     if (!parsed.success) {

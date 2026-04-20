@@ -8,6 +8,7 @@ import { scheduleCrmSequence } from "@/lib/crm/schedule-sequence";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const PIPELINE_STAGES: PipelineStage[] = [
   "new_lead", "reviewing", "contact_made", "follow_up_1", "follow_up_2",
   "meeting_booked", "proposal_sent", "submitted", "negotiating",
@@ -77,7 +78,7 @@ export const PUT = withApiAuth(async (req, session, context) => {
   }
 
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateLeadSchema.safeParse(body);
 
   if (!parsed.success) {

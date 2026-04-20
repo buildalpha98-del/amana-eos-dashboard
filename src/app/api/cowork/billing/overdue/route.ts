@@ -5,6 +5,7 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const postBodySchema = z.object({
   recordId: z.string().min(1),
   message: z.string().min(1),
@@ -95,7 +96,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = postBodySchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(

@@ -5,6 +5,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { withApiHandler } from "@/lib/api-handler";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   userId: z.string().min(1, "userId is required"),
   code: z.string().min(6).max(8, "code must be 6-8 characters"),
@@ -28,7 +29,7 @@ export const POST = withApiHandler(async (req) => {
     );
   }
 
-  const raw = await req.json();
+  const raw = await parseJsonBody(req);
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(

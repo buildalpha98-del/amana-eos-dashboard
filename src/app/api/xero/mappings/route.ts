@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 // ─── GET /api/xero/mappings ─────────────────────────────────────────────────
 
 export const GET = withApiAuth(async (req, session) => {
@@ -69,7 +70,7 @@ const saveMappingsSchema = z.object({
 });
 
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = saveMappingsSchema.safeParse(body);
 
   if (!parsed.success) {

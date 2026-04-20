@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const postSchema = z.object({
   serviceId: z.string().min(1),
   days: z.array(z.object({
@@ -55,7 +56,7 @@ export const GET = withApiAuth(async (req, session) => {
  * Body: { serviceId, days: [{ date, theme, morningActivity, afternoonActivity, ... }] }
  */
 export const POST = withApiAuth(async (req, session) => {
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = postSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
