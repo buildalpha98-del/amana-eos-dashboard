@@ -570,7 +570,7 @@ Include the full per-file classification in the PR body (not the commit message)
 
 **Insertion rule (critical):** each target cron ALREADY has an existing wrapper — `withApiHandler`, `withApiAuth`, plain function, or `POST` form. **Do NOT rewrite the export shape.** Preserve it. Insert the `acquireCronLock` guard block INSIDE the existing handler body, wrap the existing work in the try/catch.
 
-**Before shape — 4 variants to recognize and preserve:**
+**Before shape — 3 variants to recognize and preserve** (none of the 10 in-scope crons use `withApiAuth`, so that wrapper is NOT a variant to handle):
 
 ```ts
 // Variant A (most common — 8 of 10): withApiHandler + arrow
@@ -792,7 +792,7 @@ For each line (93, 116, 140, 156, 191, 204, 214): update `new Blob([buffer], { t
 
 Use Edit tool per site. If the same expression appears multiple times, `replace_all: false` with sufficient context to pin each one.
 
-Alternative: fix once at fixture creation — if all 8 sites use a shared `const pdfBuffer = new Uint8Array([...])` helper, cast the helper's type: `const pdfBuffer: BlobPart = new Uint8Array([...])`. Prefer this if the fixture is centralized.
+Alternative: fix once at fixture creation — if all 7 sites use a shared `const pdfBuffer = new Uint8Array([...])` helper, cast the helper's type: `const pdfBuffer: BlobPart = new Uint8Array([...])`. Prefer this if the fixture is centralized.
 
 - [ ] **Step 3: Verify**
 
@@ -945,7 +945,7 @@ fix(tests): resolve 26 TS errors (24 test-file + 2 integration-test)
 
 Bring tsc --noEmit to 0 errors. Fixes by category:
 - MockUser: add missing name field to 3 fixtures
-- BlobPart: cast Uint8Array fixtures to BlobPart (8 sites, 1 file)
+- BlobPart: cast Uint8Array fixtures to BlobPart (7 sites, 1 file)
 - Duplicate keys: remove/reorder in IssueKanban test fixture
 - RequestInit.signal: narrow to AbortSignal | undefined (2 sites)
 - Missing imports: NextResponse, afterAll, afterEach (5 sites)
@@ -1686,7 +1686,7 @@ hygiene sweep bringing the codebase into convention compliance.
 |---|---|---|
 | `req.json()` sites | 247 in 242 files | 0 (+ skip list if any) |
 | Silent `.catch(() => {})` | 46 in 33 files | 0 non-commented |
-| Unlocked crons | 11 | 0 |
+| Unlocked crons (in scope) | 10 | 0 |
 | `session.user.role as Role` in scope | 17 in 10 files | 0 |
 | `useMutation` missing `onError` | 46 in 21 files | 0 |
 | `tsc --noEmit` errors | 26 (all in test files) | 0 |
@@ -1698,7 +1698,7 @@ hygiene sweep bringing the codebase into convention compliance.
 1. `fix(ci): add DATABASE_URL_UNPOOLED to test workflow env`
 2. `refactor(auth): extract ADMIN_ROLES constant (scoped)`
 3. `fix(errors): replace 46 silent .catch(() => {}) with logger calls`
-4. `fix(cron): add acquireCronLock to 11 missing crons`
+4. `fix(cron): add acquireCronLock to 10 missing crons`
 5. `fix(tests): resolve 26 TS errors (24 test-file + 2 integration-test)`
 6. `refactor(auth): narrow session.user.role — replace unsafe as Role`
 7. `fix(hooks): add onError destructive toast to 46 mutations`
