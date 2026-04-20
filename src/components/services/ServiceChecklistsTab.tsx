@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/useToast";
 
 interface ChecklistItem {
   id: string;
@@ -104,6 +105,9 @@ function ChecklistCard({
         queryKey: ["service-checklists", serviceId],
       });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const markAllComplete = useMutation({
@@ -125,6 +129,9 @@ function ChecklistCard({
       queryClient.invalidateQueries({
         queryKey: ["service-checklists", serviceId],
       });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

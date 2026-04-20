@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
+import { toast } from "@/hooks/useToast";
 import type { MeasurableData } from "@/hooks/useScorecard";
 
 interface UserOption {
@@ -82,6 +83,9 @@ export function AddMeasurableModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scorecard"] });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const updateMeasurable = useMutation({
@@ -109,6 +113,9 @@ export function AddMeasurableModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scorecard"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 export interface ParentNotificationItem {
   id: string;
@@ -35,6 +36,9 @@ export function useMarkNotificationsRead() {
       mutateApi("/api/parent/notifications", { method: "PATCH", body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["parent-notifications"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 }

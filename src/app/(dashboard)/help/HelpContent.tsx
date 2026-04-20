@@ -17,6 +17,7 @@ import {
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/useToast";
 
 interface Article {
   id: string;
@@ -70,6 +71,9 @@ export function HelpContent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["knowledge-base"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

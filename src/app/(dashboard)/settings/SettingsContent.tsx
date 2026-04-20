@@ -359,6 +359,9 @@ function UserRow({
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setShowDeleteConfirm(false);
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const toggleActive = useMutation({
@@ -373,6 +376,9 @@ function UserRow({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 
@@ -389,6 +395,9 @@ function UserRow({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setShowMenu(false);
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 
@@ -881,6 +890,9 @@ function OrgSettingsSection({ isOwner }: { isOwner: boolean }) {
       queryClient.invalidateQueries({ queryKey: ["org-settings"] });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

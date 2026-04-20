@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Save, ChevronLeft, ChevronRight, DollarSign } from "lucide-react";
+import { toast } from "@/hooks/useToast";
 
 interface WeeklyRecord {
   id: string;
@@ -114,6 +115,9 @@ export function WeeklyDataEntry({
       queryClient.invalidateQueries({ queryKey: ["weekly-data", serviceId] });
       queryClient.invalidateQueries({ queryKey: ["financials"] });
       queryClient.invalidateQueries({ queryKey: ["service", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 
