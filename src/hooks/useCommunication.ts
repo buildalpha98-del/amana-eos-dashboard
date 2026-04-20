@@ -247,6 +247,11 @@ export function usePulses(weekOf?: string, userId?: string) {
       );
     },
     retry: 2,
+    // Keep pulse data stable — prevents background refetches from returning
+    // a new object reference mid-typing, which would otherwise fire the load
+    // effect in WeeklyPulseTab and reset the user's in-progress input.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 }
 
