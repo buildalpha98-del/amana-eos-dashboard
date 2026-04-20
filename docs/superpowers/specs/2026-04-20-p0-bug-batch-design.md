@@ -100,7 +100,7 @@ These are questions the spec cannot answer from static analysis — they must be
 
 - **Q1 (Bug #4 Documents PDF upload):** which pipeline — direct client-to-Blob upload, or via a `/api/documents` POST route? Ground truth needs reading the current upload code.
 - **Q2 (Bug #6 Training module):** does the module detail route `/lms/courses/[id]` / `/training/[id]` exist today? If not, this is a missing route — defer to Sub-project 5 (LMS is owned there) and disable the click in this sub-project, OR escalate to user.
-- **Q3 (Bug #11 Postcode):** grep found no 3-char limit on any postcode field. User confirmation needed on which specific screen this occurs, OR the bug may not exist.
+- **Q3 (Bug #11 Postcode):** user confirmed the bug is real — "when parents type 2144 it'll only let them put in 214" on a parent-facing form. Static grep found no 3-char limit anywhere. Suggests a render/state issue (4th keystroke swallowed), not a hard cap. Reproduce across the three parent surfaces (`/enrol/[token]`, `/parent/children/new`, `/parent/account`) during implementation to identify the specific broken form and diagnose.
 - **Q4 (Bug #13 Issues Show Closed):** is the bug in the API query filter or in the list rendering? Toggle state is wired ([issues/page.tsx:220-223](../../src/app/(dashboard)/issues/page.tsx:220)); need to read `useIssues` hook and `/api/issues` to find the real break.
 
 These Qs don't block spec approval; they're flagged for the implementation plan (Sub-project 1's `plan.md`).
