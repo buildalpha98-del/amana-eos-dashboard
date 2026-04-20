@@ -1,7 +1,7 @@
 # Sub-project 2 — Hygiene Sweep
 
 **Date**: 2026-04-20
-**Status**: Draft (v2, post-baseline-reverification)
+**Status**: Approved (v3, post-baseline-reverification, spec-reviewer-approved)
 **Parent roadmap**: [`2026-04-20-dashboard-bugfix-roadmap.md`](./2026-04-20-dashboard-bugfix-roadmap.md)
 **Predecessor**: Sub-project 1 P0 Bug Batch (merged as `dd0a1d9`)
 
@@ -23,12 +23,12 @@ Numbers used throughout this spec, verified against the current codebase state. 
 | `await req.json()` sites | 247 across 242 files in `src/app/api/` (some files have multiple) | `grep -rn "await req\.json" src/app/api/ \| wc -l` (sites) and `\| cut -d: -f1 \| sort -u \| wc -l` (files) |
 | Silent `.catch(() => {})` sites | 46 across 33 files | `grep -rn "\.catch(() *=> *{})" src/ \| wc -l` |
 | `hasFeature(... as Role)` sites | 16 across 10 files | `grep -rn "hasFeature(.*as Role" src/ \| wc -l` |
-| `session.user.role as Role` sites (broader scope for commit 6) | 17 across 11 files (16 `hasFeature` + 1 `const role = session!.user.role as Role` in `crm/leads/[id]/score/route.ts`) | see commit 6 table |
+| `session.user.role as Role` sites (scope for commit 6) | 17 across 10 files (16 `hasFeature(... as Role)` + 1 `const role = session!.user.role as Role` in `crm/leads/[id]/score/route.ts`) | see commit 6 table |
 | `as Role` total in production | 38 sites across 27 files (broader; not all in scope) | `grep -rn "as Role" src/ \| grep -v __tests__ \| grep -v "\.d\.ts" \| wc -l` |
 | Cron routes total | 61 | `ls src/app/api/cron/ \| wc -l` |
 | Crons missing `acquireCronLock` | 11 | see commit 4 table |
-| `useMutation` missing `onError` | 46 across 22 files (dashboard + hooks + shared components; parent/cowork portals explicitly excluded from scope) | audit script committed at `scripts/audit-mutation-onerror.py` (commit 7 includes it) |
-| Inline 3-role admin arrays — broken down by shape | `["owner", "head_office", "admin"]`: ~130 in `withApiAuth({ roles: [...] })` shape (dominant). `["owner", "admin", "head_office"]`: 2 in `owna/*`. Local `const ADMIN_ROLES = [...]` declarations: 3 files (policies, getting-started, guides pages). `role: { in: [...] }` Prisma queries: 4 sites. `.includes(...)` audit checks: ~6 sites. **In scope for commit 2**: only 5 files — add `ADMIN_ROLES` export, consolidate 3 local declarations, replace 2 owna sites. **Out of scope**: the ~130 `withApiAuth` sites (separate sub-project — uniform mechanical migration candidate). | commit 2's Acceptance section |
+| `useMutation` missing `onError` | 46 across 21 files (dashboard + hooks + shared components; parent portal explicitly excluded — no cowork portal dir exists) | audit script committed at `scripts/audit-mutation-onerror.py` (commit 7 includes it) |
+| Inline 3-role admin arrays — broken down by shape | `["owner", "head_office", "admin"]`: ~178 in `withApiAuth({ roles: [...] })` shape (dominant). `["owner", "admin", "head_office"]`: 2 in `owna/*`. Local `const ADMIN_ROLES = [...]` declarations: 3 files (policies, getting-started, guides pages). `role: { in: [...] }` Prisma queries: 4 sites. `.includes(...)` audit checks: ~6 sites. **In scope for commit 2**: only 5 files — add `ADMIN_ROLES` export, consolidate 3 local declarations, replace 2 owna sites. **Out of scope**: the ~178 `withApiAuth` sites (separate sub-project — uniform mechanical migration candidate). | commit 2's Acceptance section |
 
 **Target end state**: baseline clean on all in-scope metrics (247→0 req.json sites, 46→0 silent catches, 17→0 `session.user.role as Role` in scoped files, 11→0 unlocked crons, 46→0 missing onError, 26→0 tsc errors, 5→0 target inline ADMIN_ROLES sites) AND 997+ tests still passing AND CI green on the branch.
 
@@ -68,7 +68,7 @@ Rule: if a commit breaks CI, fix it before stacking the next — no piling broke
 
 ### Commit 2: `refactor(auth): extract ADMIN_ROLES constant (scoped)`
 
-**Problem**: Flagged during Sub-project 1 bug #14 review. Three page files already declare their own local `ADMIN_ROLES` constant, and 2 owna routes use an inline `["owner", "admin", "head_office"]` array. Consolidate to a single shared export. The *dominant* admin-role array shape in the codebase is `["owner", "head_office", "admin"]` (~130 sites in `withApiAuth({ roles: [...] })` shape) — explicitly OUT OF SCOPE for this commit (separate follow-up sub-project; too big to fold in here).
+**Problem**: Flagged during Sub-project 1 bug #14 review. Three page files already declare their own local `ADMIN_ROLES` constant, and 2 owna routes use an inline `["owner", "admin", "head_office"]` array. Consolidate to a single shared export. The *dominant* admin-role array shape in the codebase is `["owner", "head_office", "admin"]` (~178 sites in `withApiAuth({ roles: [...] })` shape) — explicitly OUT OF SCOPE for this commit (separate follow-up sub-project; too big to fold in here).
 
 **Scope — exactly 5 files**:
 1. Add export: `src/lib/role-permissions.ts` → `export const ADMIN_ROLES = ["owner", "admin", "head_office"] as const;`
@@ -80,16 +80,16 @@ Rule: if a commit breaks CI, fix it before stacking the next — no piling broke
    - `src/app/(dashboard)/getting-started/GettingStartedContent.tsx:56` — `const ADMIN_ROLES = ["owner", "admin", "head_office"];`
    - `src/app/(dashboard)/guides/GuidesContent.tsx:12` — `const ADMIN_ROLES = new Set<string>(["owner", "admin", "head_office"]);` → either construct a Set from `ADMIN_ROLES` locally (`new Set(ADMIN_ROLES)`) or rework the usage site to `.includes()`
 
-**Follow-up (documented in PR body)**: `~130 withApiAuth({ roles: ["owner", "head_office", "admin"] })` sites should be migrated to `[...ADMIN_ROLES]` in a dedicated follow-up sub-project. That migration is uniform-mechanical and warrants its own PR — not folded into this hygiene sweep.
+**Follow-up (documented in PR body)**: `~178 withApiAuth({ roles: ["owner", "head_office", "admin"] })` sites should be migrated to `[...ADMIN_ROLES]` in a dedicated follow-up sub-project. That migration is uniform-mechanical and warrants its own PR — not folded into this hygiene sweep.
 
 **Acceptance**:
 - `ADMIN_ROLES` exported from `src/lib/role-permissions.ts`
 - `grep -rn "const ADMIN_ROLES" src/app/" returns 0 (all local declarations removed / imported from shared)
 - `grep -rn '\["owner",\s*"admin",\s*"head_office"\]' src/app/api/owna/` returns 0 (owna sites use `[...ADMIN_ROLES]`)
 - `npm run build` clean, `npm test -- --run` passes
-- PR body explicitly documents the `~130 withApiAuth` follow-up (name + scope)
+- PR body explicitly documents the `~178 withApiAuth` follow-up (name + scope)
 
-**YAGNI note**: do NOT migrate the `~130 withApiAuth` sites in this commit even if it looks mechanical. That's out of scope — respect the scope bound.
+**YAGNI note**: do NOT migrate the `~178 withApiAuth` sites in this commit even if it looks mechanical. That's out of scope — respect the scope bound.
 
 ---
 
@@ -266,7 +266,7 @@ Key points (per `src/lib/cron-guard.ts`):
 
 ### Commit 6: `refactor(auth): narrow session.user.role — replace unsafe as Role in scoped files`
 
-**Problem**: 17 sites across 11 files unsafely cast `session.user.role` (or similar) to the Prisma `Role` enum using `as Role`. The value might not be a valid enum variant. Breakdown:
+**Problem**: 17 sites across 10 files unsafely cast `session.user.role` (or similar) to the Prisma `Role` enum using `as Role`. The value might not be a valid enum variant. Breakdown:
 - 16 sites: `hasFeature(... as Role, ...)` — the dominant pattern
 - 1 site: `const role = session!.user.role as Role;` in `src/app/api/crm/leads/[id]/score/route.ts:18` — same semantic, different syntax
 
@@ -323,7 +323,7 @@ if (!role || !hasFeature(role, "crm.view")) {
 | `src/app/api/crm/leads/[id]/score/route.ts` | 1 | `const role = session!.user.role as Role;` (narrow + replace downstream usages) |
 | **Total** | **17 sites, 10 files** | |
 
-**Note**: the 11-files figure in the baseline counts `src/components/ui/RoleGate.tsx` and `src/lib/server-auth.ts` as having `hasFeature + as Role` separately (they may call `hasFeature` indirectly), but those are out of scope for this commit per the scope bound above. Re-verify with `grep` at impl start — if a site was missed, add it with the same pattern; if a site is different shape, defer.
+**Note**: `src/components/ui/RoleGate.tsx` (1 site: `as Role | undefined`) and `src/lib/server-auth.ts` (2 sites: `role as Role` in a role-validation function) contain `as Role` but NOT the `hasFeature(... as Role)` or `session.user.role as Role` patterns covered by this commit. They're out of scope per the scope bound above.
 
 **Acceptance**:
 - `grep -rn "hasFeature(.*as Role" src/` returns 0
@@ -528,7 +528,7 @@ Record outputs. Any regression in test count or tsc count blocks the next commit
 | 4 | Cron locks | 11 files, template-repeat, easy review |
 | 5 | TS error cleanup | Tests-only; lands a clean tsc baseline so commit 6 is verifiable |
 | 6 | `hasFeature` role narrowing | Ties in `parseRole` helper; commit 5's clean tsc baseline makes any regression visible |
-| 7 | onError toasts | 22 files, mechanical repetition, UX-critical |
+| 7 | onError toasts | 21 files, mechanical repetition, UX-critical |
 | 8 | parseJsonBody migration | 242 files, mechanical, biggest — reviewer's confidence is highest by now |
 
 If a reviewer stops mid-PR or wants to revert anything, the smallest and safest commits are already in, and the biggest mechanical change is most easily revertible standalone.
@@ -537,9 +537,9 @@ If a reviewer stops mid-PR or wants to revert anything, the smallest and safest 
 
 - **Wrapping routes in `withApiHandler()` / `withApiAuth()`**: commit 8 migrates body parsing but does not add handler wrapping. Wrapping is a separate convention sweep.
 - **Adding Zod validation**: `parseJsonBody` returns `unknown`. Routes that previously trusted raw JSON still do so after this PR. Zod coverage is a separate sub-project.
-- **Broader `as Role` sweep**: commit 6 handles only the `hasFeature(... as Role)` pattern (20 sites). The remaining ~18 `as Role` sites (form event handlers, component-level `as Role | undefined`) are out of scope — different semantics.
+- **Broader `as Role` sweep**: commit 6 handles only the `session.user.role as Role` pattern (17 sites — 16 `hasFeature(... as Role)` + 1 `const role = ... as Role`). The remaining ~21 `as Role` sites (form event handlers, component-level `as Role | undefined`, server-auth's role validation) are out of scope — different semantics.
 - **All 75 production `as any` casts**: broader `as any` sweep deferred.
-- **Parent portal + cowork portal mutation audits** — `src/app/(parent)/**` and `src/app/(cowork)/**` `useMutation` sites are explicitly excluded from commit 7. If failures here matter to you, file a follow-up sub-project.
+- **Parent portal mutation audits** — `src/app/parent/**` `useMutation` sites explicitly excluded from commit 7 (currently 0 sites but defensively gated). No cowork portal directory exists. If parent-portal mutations grow later, they warrant a follow-up sub-project.
 - **Rate limit tuning, logger schema changes, new request-ID conventions** — orthogonal.
 - **Routes using `FormData` / `req.formData()`** — not affected by `parseJsonBody` migration.
 - **Crons already locked (50 of 61)** — already compliant.
