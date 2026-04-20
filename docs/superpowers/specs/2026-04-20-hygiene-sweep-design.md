@@ -22,25 +22,26 @@ Numbers used throughout this spec, verified against the current codebase state. 
 | `tsc --noEmit` errors | 26 total (24 in `src/__tests__/**`, 2 in `tests/integration/**`, 0 in prod code) | `npx tsc --noEmit 2>&1 \| grep -c "error TS"` |
 | `await req.json()` sites | 247 across 242 files in `src/app/api/` (some files have multiple) | `grep -rn "await req\.json" src/app/api/ \| wc -l` (sites) and `\| cut -d: -f1 \| sort -u \| wc -l` (files) |
 | Silent `.catch(() => {})` sites | 46 across 33 files | `grep -rn "\.catch(() *=> *{})" src/ \| wc -l` |
-| `as Role` in `hasFeature(...)` call sites (target) | 20 across 10 files | `grep -rn "hasFeature(.*as Role" src/ \| wc -l` |
+| `hasFeature(... as Role)` sites | 16 across 10 files | `grep -rn "hasFeature(.*as Role" src/ \| wc -l` |
+| `session.user.role as Role` sites (broader scope for commit 6) | 17 across 11 files (16 `hasFeature` + 1 `const role = session!.user.role as Role` in `crm/leads/[id]/score/route.ts`) | see commit 6 table |
 | `as Role` total in production | 38 sites across 27 files (broader; not all in scope) | `grep -rn "as Role" src/ \| grep -v __tests__ \| grep -v "\.d\.ts" \| wc -l` |
 | Cron routes total | 61 | `ls src/app/api/cron/ \| wc -l` |
 | Crons missing `acquireCronLock` | 11 | see commit 4 table |
 | `useMutation` missing `onError` | 46 across 22 files (dashboard + hooks + shared components; parent/cowork portals explicitly excluded from scope) | audit script committed at `scripts/audit-mutation-onerror.py` (commit 7 includes it) |
-| Inline `["admin", "head_office", "owner"]` role arrays | 2 confirmed sites (`owna/centres/route.ts:37`, `owna/test/route.ts:27`), plus 224 files that contain all three strings somewhere (superset — most aren't admin-role arrays) | `grep -rn '\["owner",\s*"admin",\s*"head_office"\]\|\["admin",\s*"head_office",\s*"owner"\]' src/` for exact matches, then broader audit |
+| Inline 3-role admin arrays — broken down by shape | `["owner", "head_office", "admin"]`: ~130 in `withApiAuth({ roles: [...] })` shape (dominant). `["owner", "admin", "head_office"]`: 2 in `owna/*`. Local `const ADMIN_ROLES = [...]` declarations: 3 files (policies, getting-started, guides pages). `role: { in: [...] }` Prisma queries: 4 sites. `.includes(...)` audit checks: ~6 sites. **In scope for commit 2**: only 5 files — add `ADMIN_ROLES` export, consolidate 3 local declarations, replace 2 owna sites. **Out of scope**: the ~130 `withApiAuth` sites (separate sub-project — uniform mechanical migration candidate). | commit 2's Acceptance section |
 
-**Target end state**: baseline clean on all metrics (247→0 req.json sites, 46→0 silent catches, 20→0 `hasFeature(... as Role)`, 11→0 unlocked crons, 46→0 missing onError, 26→0 tsc errors) AND 997+ tests still passing AND CI green on the branch.
+**Target end state**: baseline clean on all in-scope metrics (247→0 req.json sites, 46→0 silent catches, 17→0 `session.user.role as Role` in scoped files, 11→0 unlocked crons, 46→0 missing onError, 26→0 tsc errors, 5→0 target inline ADMIN_ROLES sites) AND 997+ tests still passing AND CI green on the branch.
 
 ## In scope — 8 stacked commits
 
 | # | Commit subject | Category | Files touched |
 |---|---|---|---|
 | 1 | `fix(ci): add DATABASE_URL_UNPOOLED to test workflow env` | Infrastructure | 2 |
-| 2 | `refactor(auth): extract ADMIN_ROLES constant + inline-array audit` | Code quality | ~5 |
+| 2 | `refactor(auth): extract ADMIN_ROLES constant (scoped)` | Code quality | ~5 |
 | 3 | `fix(errors): replace 46 silent .catch(() => {}) with logger calls` | Reliability | 33 |
 | 4 | `fix(cron): add acquireCronLock to 11 missing crons` | Reliability | 11 |
 | 5 | `fix(tests): resolve 26 TS errors (24 test-file, 2 integration-test)` | Type safety | ~10 |
-| 6 | `refactor(auth): narrow session.user.role at hasFeature() call sites` | Type safety | ~10 |
+| 6 | `refactor(auth): narrow session.user.role — replace unsafe as Role in scoped files` | Type safety | ~11 |
 | 7 | `fix(hooks): add onError destructive toast to 46 mutations` | UX reliability | 22 + 1 (audit script) |
 | 8 | `refactor(api): migrate 247 req.json() sites in 242 files to parseJsonBody()` | Error handling | 242 + 1 (one-shot codemod) |
 
@@ -65,27 +66,30 @@ Rule: if a commit breaks CI, fix it before stacking the next — no piling broke
 
 ---
 
-### Commit 2: `refactor(auth): extract ADMIN_ROLES constant + inline-array audit`
+### Commit 2: `refactor(auth): extract ADMIN_ROLES constant (scoped)`
 
-**Problem**: Flagged during Sub-project 1 bug #14 review. Inline `["admin", "head_office", "owner"]` arrays drift if one site adds a new admin role and others don't. Baseline audit found **2 confirmed sites** in that exact form (`owna/centres/route.ts:37`, `owna/test/route.ts:27`), but the broader audit may surface additional orderings / whitespace variants.
+**Problem**: Flagged during Sub-project 1 bug #14 review. Three page files already declare their own local `ADMIN_ROLES` constant, and 2 owna routes use an inline `["owner", "admin", "head_office"]` array. Consolidate to a single shared export. The *dominant* admin-role array shape in the codebase is `["owner", "head_office", "admin"]` (~130 sites in `withApiAuth({ roles: [...] })` shape) — explicitly OUT OF SCOPE for this commit (separate follow-up sub-project; too big to fold in here).
 
-**Fix**:
-1. Add `export const ADMIN_ROLES = ["owner", "admin", "head_office"] as const;` to `src/lib/role-permissions.ts` (or a new `src/lib/auth-constants.ts` if circular import).
-2. Audit for inline 3-role admin arrays with these patterns:
-   - `\["admin",\s*"head_office",\s*"owner"\]`
-   - `\["owner",\s*"admin",\s*"head_office"\]`
-   - `\["head_office",\s*"admin",\s*"owner"\]`
-   - And any other permutation discovered via: `grep -rln '"admin"' src/app/api/ | xargs grep -l '"head_office"' | xargs grep -l '"owner"'` then inspecting each hit
-3. Replace each confirmed admin-role array site with `[...ADMIN_ROLES]` (spread — `withApiAuth({ roles: [...] })` expects a readonly string array)
+**Scope — exactly 5 files**:
+1. Add export: `src/lib/role-permissions.ts` → `export const ADMIN_ROLES = ["owner", "admin", "head_office"] as const;`
+2. Replace 2 owna inline sites:
+   - `src/app/api/owna/centres/route.ts:37` — `{ roles: ["owner", "admin", "head_office"] }` → `{ roles: [...ADMIN_ROLES] }`
+   - `src/app/api/owna/test/route.ts:27` — same
+3. Consolidate 3 local declarations (replace with import of shared constant):
+   - `src/app/(dashboard)/policies/page.tsx:42` — `const ADMIN_ROLES: string[] = ["owner", "admin", "head_office"];`
+   - `src/app/(dashboard)/getting-started/GettingStartedContent.tsx:56` — `const ADMIN_ROLES = ["owner", "admin", "head_office"];`
+   - `src/app/(dashboard)/guides/GuidesContent.tsx:12` — `const ADMIN_ROLES = new Set<string>(["owner", "admin", "head_office"]);` → either construct a Set from `ADMIN_ROLES` locally (`new Set(ADMIN_ROLES)`) or rework the usage site to `.includes()`
 
-**Scope bound**: if the broader audit returns zero additional sites, the commit is just the 2 sites + constant declaration (~5-file diff). If many are found, include them all — this is still a small commit.
+**Follow-up (documented in PR body)**: `~130 withApiAuth({ roles: ["owner", "head_office", "admin"] })` sites should be migrated to `[...ADMIN_ROLES]` in a dedicated follow-up sub-project. That migration is uniform-mechanical and warrants its own PR — not folded into this hygiene sweep.
 
 **Acceptance**:
-- `ADMIN_ROLES` exported from a single location
-- `grep -rn '\["admin",\s*"head_office",\s*"owner"\]\|\["owner",\s*"admin",\s*"head_office"\]\|\["head_office",\s*"admin",\s*"owner"\]' src/` returns only the `ADMIN_ROLES` declaration
-- `npm run build` clean
+- `ADMIN_ROLES` exported from `src/lib/role-permissions.ts`
+- `grep -rn "const ADMIN_ROLES" src/app/" returns 0 (all local declarations removed / imported from shared)
+- `grep -rn '\["owner",\s*"admin",\s*"head_office"\]' src/app/api/owna/` returns 0 (owna sites use `[...ADMIN_ROLES]`)
+- `npm run build` clean, `npm test -- --run` passes
+- PR body explicitly documents the `~130 withApiAuth` follow-up (name + scope)
 
-**Note**: if audit reveals a completely different dominant pattern (e.g. `["admin", "owner"]` 2-role), do NOT add a 2-role constant in this commit — file a follow-up. YAGNI.
+**YAGNI note**: do NOT migrate the `~130 withApiAuth` sites in this commit even if it looks mechanical. That's out of scope — respect the scope bound.
 
 ---
 
@@ -93,43 +97,44 @@ Rule: if a commit breaks CI, fix it before stacking the next — no piling broke
 
 **Problem**: 46 sites across 33 files use `.catch(() => {})` to discard async errors. Real failures vanish. Baseline audit below.
 
-**Files affected** (from `grep -rn "\.catch(() *=> *{})" src/`):
+**Files affected — exact counts per file (33 files, 46 sites)**:
 
 | File | Sites |
 |---|---|
-| `src/app/api/tickets/[id]/route.ts` | 2 (lines 142, 152) |
-| `src/app/api/bookings/[id]/approve/route.ts` | 1 (line 42) |
+| `src/app/api/ai-drafts/[id]/route.ts` | 5 |
+| `src/app/api/enrol/route.ts` | 3 |
+| `src/app/api/cron/auto-escalation/route.ts` | 3 |
+| `src/lib/cache.ts` | 2 |
+| `src/components/marketing/ActivationAssignmentGrid.tsx` | 2 |
+| `src/app/parent/children/[id]/page.tsx` | 2 |
+| `src/app/api/tickets/[id]/route.ts` | 2 |
+| `src/app/api/attendance/roll-call/route.ts` | 2 |
+| `src/lib/api-key-auth.ts` | 1 |
+| `src/lib/ai-task-agent.ts` | 1 |
+| `src/components/team/SeatEditModal.tsx` | 1 |
+| `src/components/marketing/TaskDetailPanel.tsx` | 1 |
+| `src/components/marketing/CreateTaskModal.tsx` | 1 |
+| `src/components/enrol/steps/BookingStep.tsx` | 1 |
+| `src/app/survey/feedback/[serviceId]/page.tsx` | 1 |
+| `src/app/api/rocks/route.ts` | 1 |
+| `src/app/api/parent/messages/route.ts` | 1 |
+| `src/app/api/parent/messages/[id]/reply/route.ts` | 1 |
+| `src/app/api/parent/enrolments/route.ts` | 1 |
+| `src/app/api/parent/bookings/route.ts` | 1 |
+| `src/app/api/parent/absences/route.ts` | 1 |
+| `src/app/api/messaging/conversations/route.ts` | 1 |
+| `src/app/api/messaging/conversations/[id]/messages/route.ts` | 1 |
+| `src/app/api/messaging/broadcasts/route.ts` | 1 |
+| `src/app/api/issues/route.ts` | 1 |
+| `src/app/api/exit-survey/trigger/route.ts` | 1 |
+| `src/app/api/cron/weekly-report/route.ts` | 1 |
+| `src/app/api/cron/attendance-to-financials/route.ts` | 1 |
+| `src/app/api/cron/attendance-alerts/route.ts` | 1 |
+| `src/app/api/crm/leads/[id]/route.ts` | 1 |
 | `src/app/api/bookings/[id]/decline/route.ts` | 1 |
-| `src/app/api/crm/leads/[id]/route.ts` | 1 (line 130) |
-| `src/app/api/attendance/roll-call/route.ts` | 2 (lines 191, 216) |
-| `src/app/api/messaging/conversations/[id]/messages/route.ts` | 1 (line 48) |
-| `src/app/api/messaging/conversations/route.ts` | ≥1 |
-| `src/app/api/messaging/broadcasts/route.ts` | ≥1 |
-| `src/app/api/parent/enrolments/route.ts` | 1 (line 143) |
-| `src/app/api/parent/messages/route.ts` | ≥1 |
-| `src/app/api/parent/messages/[id]/reply/route.ts` | ≥1 |
-| `src/app/api/parent/absences/route.ts` | ≥1 |
-| `src/app/api/parent/bookings/route.ts` | ≥1 |
-| `src/app/api/enrol/route.ts` | ≥1 |
-| `src/app/api/ai-drafts/[id]/route.ts` | ≥1 |
-| `src/app/api/exit-survey/trigger/route.ts` | ≥1 |
-| `src/app/api/rocks/route.ts` | ≥1 |
-| `src/app/api/issues/route.ts` | 1 (line 135) |
-| `src/app/api/cron/weekly-report/route.ts` | ≥1 |
-| `src/app/api/cron/auto-escalation/route.ts` | ≥1 |
-| `src/app/api/cron/attendance-to-financials/route.ts` | ≥1 |
-| `src/app/api/cron/attendance-alerts/route.ts` | ≥1 |
-| `src/app/parent/children/[id]/page.tsx` | ≥1 |
-| `src/app/(dashboard)/settings/SettingsContent.tsx` | ≥1 |
-| `src/app/survey/feedback/[serviceId]/page.tsx` | ≥1 |
-| `src/components/enrol/steps/BookingStep.tsx` | ≥1 |
-| `src/components/team/SeatEditModal.tsx` | ≥1 |
-| `src/components/marketing/ActivationAssignmentGrid.tsx` | ≥1 |
-| `src/components/marketing/TaskDetailPanel.tsx` | ≥1 |
-| `src/components/marketing/CreateTaskModal.tsx` | ≥1 |
-| `src/lib/ai-task-agent.ts` | ≥1 |
-| `src/lib/api-key-auth.ts` | ≥1 |
-| `src/lib/cache.ts` | ≥1 |
+| `src/app/api/bookings/[id]/approve/route.ts` | 1 |
+| `src/app/(dashboard)/settings/SettingsContent.tsx` | 1 |
+| **Total** | **46 sites, 33 files** |
 
 **Triage** — each site must be assigned to one of 3 categories at fix time:
 - **(A) Convert to `logger.error`** — server-side fire-and-forget notification / scheduler where a failure is a bug. Default for most API-route and cron sites.
@@ -174,38 +179,44 @@ Rule: if a commit breaks CI, fix it before stacking the next — no piling broke
 10. `src/app/api/cron/attendance-to-financials/route.ts`
 11. `src/app/api/cron/financials-monthly-rollup/route.ts`
 
-**Fix template** — lifted from `src/app/api/cron/owna-sync/route.ts`:
+**Fix template** — verified against `src/lib/cron-guard.ts` and `src/app/api/cron/daily-digest/route.ts` (canonical usage example; `owna-sync` is a special case that constructs an external half-hour slot):
 
 ```ts
-const periodKey = /* see table below */;
-const guard = await acquireCronLock(`<cron-name>-${periodKey}`, "<period>");
-if (!guard.acquired) return NextResponse.json({ message: guard.reason, skipped: true });
+const guard = await acquireCronLock("<cron-name>", "<period>");
+if (!guard.acquired) {
+  return NextResponse.json({ message: guard.reason, skipped: true });
+}
 
 try {
-  // existing work
+  // existing work...
   await guard.complete({ /* metrics */ });
   return NextResponse.json({ /* result */ });
 } catch (err) {
-  await guard.complete({ error: String(err) });
+  await guard.fail(err);
   throw err;
 }
 ```
 
-**Period & key per cron** (per `src/lib/cron-guard.ts:28` — `CronPeriod = "hourly" | "2hourly" | "daily" | "weekly" | "monthly"`):
+Key points (per `src/lib/cron-guard.ts`):
+- `acquireCronLock(cronName, period)` — pass cron name and period type ONLY. The period key is computed internally by `getPeriodKey(period)` (produces `YYYY-MM-DD` for daily, `YYYY-MM-DDTHH` for hourly, `YYYY-MM` for monthly, `YYYY-Www` for weekly).
+- `guard.complete(details)` — mark run as **successfully completed**. Call on the success path only.
+- `guard.fail(err)` — mark run as **failed** (distinct state). Call on the error path. NEVER use `guard.complete({ error })` to represent failure — that records success and defeats idempotency for retry after a real failure.
 
-| Cron | Period | Key shape |
-|---|---|---|
-| `cleanup-tokens` | `daily` | `YYYY-MM-DD` |
-| `document-expiry` | `daily` | `YYYY-MM-DD` |
-| `social-sync` | `daily` | `YYYY-MM-DD` |
-| `health` | `daily` | `YYYY-MM-DD` |
-| `auto-onboarding` | `daily` | `YYYY-MM-DD` |
-| `enquiry-alerts` | `hourly` | `YYYY-MM-DD-HH` |
-| `enquiry-auto-cold` | `hourly` | `YYYY-MM-DD-HH` |
-| `waitlist-expiry` | `hourly` | `YYYY-MM-DD-HH` |
-| `unactioned-bookings` | `hourly` | `YYYY-MM-DD-HH` |
-| `attendance-to-financials` | `daily` | `YYYY-MM-DD` |
-| `financials-monthly-rollup` | `monthly` | `YYYY-MM` |
+**Period per cron** (per `src/lib/cron-guard.ts:28` — `CronPeriod = "hourly" | "2hourly" | "daily" | "weekly" | "monthly"`):
+
+| Cron | Period |
+|---|---|
+| `cleanup-tokens` | `daily` |
+| `document-expiry` | `daily` |
+| `social-sync` | `daily` |
+| `health` | `daily` |
+| `auto-onboarding` | `daily` |
+| `enquiry-alerts` | `hourly` |
+| `enquiry-auto-cold` | `hourly` |
+| `waitlist-expiry` | `hourly` |
+| `unactioned-bookings` | `hourly` |
+| `attendance-to-financials` | `daily` |
+| `financials-monthly-rollup` | `monthly` |
 
 **Acceptance**:
 - All 61 cron routes in `src/app/api/cron/` have `acquireCronLock`
@@ -253,11 +264,16 @@ try {
 
 ---
 
-### Commit 6: `refactor(auth): narrow session.user.role at hasFeature() call sites`
+### Commit 6: `refactor(auth): narrow session.user.role — replace unsafe as Role in scoped files`
 
-**Problem**: 20 `hasFeature(... as Role, ...)` call sites across 10 files assume `session.user.role` is always a valid Prisma `Role` enum value. Cast is unsafe.
+**Problem**: 17 sites across 11 files unsafely cast `session.user.role` (or similar) to the Prisma `Role` enum using `as Role`. The value might not be a valid enum variant. Breakdown:
+- 16 sites: `hasFeature(... as Role, ...)` — the dominant pattern
+- 1 site: `const role = session!.user.role as Role;` in `src/app/api/crm/leads/[id]/score/route.ts:18` — same semantic, different syntax
 
-**Scope bound** (narrow — the broader 38-site `as Role` sweep is deferred): this commit touches ONLY sites that match the pattern `hasFeature(... as Role, ...)`. Other `as Role` usages (e.g., `e.target.value as Role` in form `<select>` onChange handlers, `session?.user?.role as Role | undefined` in components) are out of scope — different semantics, belongs in a separate sweep.
+**Scope bound** (narrow — the broader 38-site `as Role` sweep is deferred): this commit touches ONLY the session-role narrowing pattern. Out of scope:
+- `e.target.value as Role` in form `<select>` onChange handlers (different semantic — user input, not session value)
+- `session?.user?.role as Role | undefined` in components (union type including undefined — handled differently)
+- `as Role` in `src/lib/server-auth.ts` and `src/components/ui/RoleGate.tsx` (infrastructure-level — may deserve deeper refactor)
 
 **Fix**: Add a runtime helper in `src/lib/role-permissions.ts`:
 
@@ -291,26 +307,28 @@ if (!role || !hasFeature(role, "crm.view")) {
 
 (If the file already imports from `@/lib/api-error`, use `ApiError.forbidden()` to align with standard; if not, keep the existing error-return shape. Don't introduce a new dependency in a type-safety commit.)
 
-**Exact sites** (from `grep -rn "hasFeature(.*as Role" src/`):
+**Exact sites** (17 total, 11 files — from `grep -rn "hasFeature(.*as Role\|const role = session.*as Role" src/`):
 
-| File | Sites |
-|---|---|
-| `src/app/api/settings/api-keys/route.ts` | 2 |
-| `src/app/api/settings/api-keys/[id]/route.ts` | 1 |
-| `src/app/api/crm/email-templates/route.ts` | 2 |
-| `src/app/api/crm/email-templates/[id]/route.ts` | 2 |
-| `src/app/api/crm/leads/route.ts` | 2 |
-| `src/app/api/crm/leads/[id]/touchpoints/route.ts` | 2 |
-| `src/app/api/crm/leads/[id]/send-email/route.ts` | 1 |
-| `src/app/api/crm/leads/[id]/route.ts` | 3 |
-| `src/app/api/crm/scraper-status/route.ts` | 1 |
-| `src/app/api/crm/leads/[id]/score/route.ts` | 1 (`const role = session!.user.role as Role;` — use `parseRole` + guard) |
-| **Total** | **17 files-or-sites** — exact site list verified at impl start |
+| File | Sites | Pattern |
+|---|---|---|
+| `src/app/api/settings/api-keys/route.ts` | 2 | `hasFeature(... as Role)` |
+| `src/app/api/settings/api-keys/[id]/route.ts` | 1 | `hasFeature(... as Role)` |
+| `src/app/api/crm/email-templates/route.ts` | 2 | `hasFeature(... as Role)` |
+| `src/app/api/crm/email-templates/[id]/route.ts` | 2 | `hasFeature(... as Role)` |
+| `src/app/api/crm/leads/route.ts` | 2 | `hasFeature(... as Role)` |
+| `src/app/api/crm/leads/[id]/touchpoints/route.ts` | 2 | `hasFeature(... as Role)` |
+| `src/app/api/crm/leads/[id]/send-email/route.ts` | 1 | `hasFeature(... as Role)` |
+| `src/app/api/crm/leads/[id]/route.ts` | 3 | `hasFeature(... as Role)` |
+| `src/app/api/crm/scraper-status/route.ts` | 1 | `hasFeature(... as Role)` |
+| `src/app/api/crm/leads/[id]/score/route.ts` | 1 | `const role = session!.user.role as Role;` (narrow + replace downstream usages) |
+| **Total** | **17 sites, 10 files** | |
+
+**Note**: the 11-files figure in the baseline counts `src/components/ui/RoleGate.tsx` and `src/lib/server-auth.ts` as having `hasFeature + as Role` separately (they may call `hasFeature` indirectly), but those are out of scope for this commit per the scope bound above. Re-verify with `grep` at impl start — if a site was missed, add it with the same pattern; if a site is different shape, defer.
 
 **Acceptance**:
 - `grep -rn "hasFeature(.*as Role" src/` returns 0
-- `grep -rn "as Role" src/` (excluding test files, type narrowing helpers, and `e.target.value as Role` form casts) decreases by the number of sites touched
-- `parseRole` unit test added: `valid role → Role`, `undefined → null`, `null → null`, `"" → null`, `"nonsense" → null`, valid role at wrong casing (e.g. `"ADMIN"`) → null
+- `grep -n "const role = session.*as Role" src/app/api/crm/leads/\[id\]/score/route.ts` returns 0
+- `parseRole` unit test added: valid role → `Role`; `undefined` → `null`; `null` → `null`; `""` → `null`; `"nonsense"` → `null`; wrong-case `"ADMIN"` → `null` (case-sensitive match)
 - Build + lint + tsc clean
 - All existing CRM + settings tests still pass
 - Manual smoke: hit one CRM endpoint as admin → 200; as a non-CRM role → 403
@@ -319,7 +337,7 @@ if (!role || !hasFeature(role, "crm.view")) {
 
 ### Commit 7: `fix(hooks): add onError destructive toast to 46 mutations`
 
-**Problem**: 46 `useMutation` call sites across 22 files don't handle errors. Silent UX failure — #1 anti-pattern per global CLAUDE.md.
+**Problem**: 46 `useMutation` call sites across 21 files don't handle errors. Silent UX failure — #1 anti-pattern per global CLAUDE.md.
 
 **Audit script** (committed at `scripts/audit-mutation-onerror.py` in this commit for future re-use):
 
@@ -329,7 +347,9 @@ if (!role || !hasFeature(role, "crm.view")) {
 import re, pathlib
 
 SCAN_ROOTS = [pathlib.Path("src/hooks"), pathlib.Path("src/components"), pathlib.Path("src/app")]
-EXCLUDE_PATH_PARTS = ("__tests__", "(parent)", "(cowork)")
+# Exclude test files and parent-portal paths. Note: actual dirs are src/app/parent/
+# (no parens — not a Next.js route group). No cowork portal dir exists today.
+EXCLUDE_PATH_PARTS = ("__tests__", "/parent/")
 
 missing = []
 total = 0
@@ -365,9 +385,9 @@ import sys
 sys.exit(1 if missing else 0)
 ```
 
-**Scope bound**: `src/hooks/`, `src/components/`, `src/app/(dashboard)/`, `src/app/(page-without-group)/` excluding explicit parent and cowork portal paths (`src/app/(parent)/**`, `src/app/(cowork)/**`) and test paths. Rationale: portals have different UX patterns (parent-facing vs. staff); handle those separately.
+**Scope bound**: `src/hooks/`, `src/components/`, and `src/app/(dashboard)/**` page files, excluding test paths and `src/app/parent/**` (parent portal). As of baseline, `src/app/parent/` contains 0 `useMutation` calls, so the exclusion is defensive. There is no cowork portal directory in the current codebase.
 
-**Full site list** (46 sites, 22 files):
+**Full site list** (46 sites, 21 files):
 
 | File | Sites |
 |---|---|
@@ -392,7 +412,7 @@ sys.exit(1 if missing else 0)
 | `src/app/(dashboard)/profile/page.tsx` | 2 |
 | `src/app/(dashboard)/scorecard/page.tsx` | 1 |
 | `src/app/(dashboard)/settings/SettingsContent.tsx` | 4 |
-| **Total** | **46** |
+| **Total** | **46 sites, 21 files** |
 
 **Pattern per site** (default):
 ```ts
