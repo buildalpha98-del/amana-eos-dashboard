@@ -63,6 +63,7 @@ describe("Cowork API key authentication", () => {
       id: "cowork-key",
       name: "Cowork Integration",
       scopes: ["programs:write", "programs:read", "announcements:write"],
+      allowedIps: [], // empty = allow all; required since schema field is String[] (non-nullable)
       createdById: "user-1",
       revokedAt: null,
       expiresAt: null,
@@ -82,6 +83,7 @@ describe("Cowork API key authentication", () => {
       id: "cowork-key",
       name: "Cowork Integration",
       scopes: ["programs:read"], // read-only, no write
+      allowedIps: [],
       createdById: "user-1",
       revokedAt: null,
       expiresAt: null,
