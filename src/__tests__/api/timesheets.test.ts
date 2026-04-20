@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession, mockNoSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
+import { _clearUserActiveCache } from "@/lib/server-auth";
 
 // Mock service-scope (owner/admin get null scope = see all)
 vi.mock("@/lib/service-scope", () => ({
@@ -98,8 +100,25 @@ describe("GET /api/timesheets", () => {
 
 describe("POST /api/timesheets", () => {
   beforeEach(() => {
+    _clearUserActiveCache();
     vi.clearAllMocks();
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
+  });
+
+  it("returns 400 (not 500) on malformed JSON body", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+
+    // Use NextRequest directly — createRequest helper only sends JSON-stringified bodies.
+    const req = new NextRequest("http://localhost:3000/api/timesheets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{not-json",
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBeTruthy();
   });
 
   it("returns 400 with missing required fields", async () => {

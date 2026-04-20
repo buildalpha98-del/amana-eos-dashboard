@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { parseJsonBody } from "@/lib/api-error";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { withApiAuth } from "@/lib/server-auth";
 
@@ -48,7 +50,7 @@ export const POST = withApiAuth(async (req, session, context) => {
     }
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createEntriesSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -69,7 +71,7 @@ export const POST = withApiAuth(async (req, session, context) => {
     }
   }
 
-  const entriesToCreate = parsed.data.map((entry) => {
+  const entriesToCreate: Prisma.TimesheetEntryCreateManyInput[] = parsed.data.map((entry) => {
     const shiftStart = new Date(entry.shiftStart);
     const shiftEnd = new Date(entry.shiftEnd);
     const breakMins = entry.breakMinutes ?? 0;
@@ -87,13 +89,13 @@ export const POST = withApiAuth(async (req, session, context) => {
       breakMinutes: breakMins,
       totalHours: Math.max(0, totalHours),
       shiftType: entry.shiftType,
-      notes: entry.notes,
-      payRate: entry.payRate,
+      notes: entry.notes ?? null,
+      payRate: entry.payRate ?? null,
     };
   });
 
   const created = await prisma.timesheetEntry.createMany({
-    data: entriesToCreate as any,
+    data: entriesToCreate,
   });
 
   await prisma.activityLog.create({
