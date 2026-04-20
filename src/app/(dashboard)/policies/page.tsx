@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import type { Role } from "@prisma/client";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -61,7 +61,7 @@ export default function PoliciesPage() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const role = (session?.user?.role as Role) || "staff";
-  const isAdmin = (ADMIN_ROLES as readonly string[]).includes(role);
+  const isAdmin = isAdminRole(role);
 
   const [mainTab, setMainTab] = useState<"policies" | "compliance">("policies");
   const [statusFilter, setStatusFilter] = useState("all");

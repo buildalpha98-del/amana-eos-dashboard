@@ -52,7 +52,7 @@ import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 import { TeamOnboardingTracker } from "@/components/getting-started/TeamOnboardingTracker";
 import { WelcomeTour, TOUR_STORAGE_KEY } from "@/components/onboarding/WelcomeTour";
-import { ADMIN_ROLES } from "@/lib/role-permissions";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1045,7 +1045,7 @@ export function GettingStartedContent() {
   const role = (sessionData?.user?.role ?? "staff") as string;
   const firstName = sessionData?.user?.name?.split(" ")[0] ?? "there";
   const roleDisplayName = getRoleDisplayName(role);
-  const isAdmin = (ADMIN_ROLES as readonly string[]).includes(role);
+  const isAdmin = isAdminRole(role);
 
   const checklist = getChecklist(role);
   const grouped = groupByCategory(checklist);
