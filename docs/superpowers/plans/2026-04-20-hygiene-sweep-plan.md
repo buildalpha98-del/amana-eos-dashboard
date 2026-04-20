@@ -4,7 +4,7 @@
 
 **Goal:** Ship 8 stacked commits on one feature branch that bring the codebase into convention compliance — fixing CI env var, extracting the `ADMIN_ROLES` constant (scoped), replacing 46 silent catches, locking 10 crons (health excluded — it's a UI endpoint), clearing 26 TS errors, narrowing 17 unsafe `as Role` casts, adding 46 missing `onError` toasts, and migrating 247 `req.json()` sites to `parseJsonBody()` — without breaking 997 tests.
 
-**Architecture:** One feature branch (`hygiene/sweep-2026-04-20`) off `origin/main` at `dd0a1d9`. Commits stacked smallest-blast-radius-first so CI gates the smaller changes before the 242-file migration lands. Each commit independently revert-safe. Standard merge (not squash) to preserve bisect history. Mechanical changes at scale use codemods (committed to `scripts/one-shots/` for audit trail).
+**Architecture:** One feature branch (`hygiene/sweep-2026-04-20`) off local `main` HEAD (which has the reviewer-approved spec+plan docs on top of `origin/main@dd0a1d9`). Docs and implementation ship in one PR, matching Sub-project 1's pattern. Commits stacked smallest-blast-radius-first so CI gates the smaller changes before the 242-file migration lands. Each commit independently revert-safe. Standard merge (not squash) to preserve bisect history. Mechanical changes at scale use codemods (committed to `scripts/one-shots/` for audit trail).
 
 **Tech Stack:** Next.js 16, TypeScript, Prisma 5.22 (`npx prisma generate` required after pulling), Vitest, GitHub Actions CI, Tailwind. Existing conventions: `withApiAuth` / `withApiHandler` / `parseJsonBody` / `ApiError` / `acquireCronLock` / `logger`.
 
@@ -38,16 +38,17 @@ No Prisma migrations. No new nav routes. No schema changes. One new import path 
 Run: `git fetch origin`
 Expected: fetches without error; may show new branches.
 
-- [ ] **Step 2: Confirm main is at dd0a1d9**
+- [ ] **Step 2: Confirm origin/main is at dd0a1d9 and local main is ahead with docs only**
 
-Run: `git log origin/main --oneline -1`
-Expected: `dd0a1d9 fix: P0 bug batch — 15 user-reported bugs + security fix`
-If not: your base has drifted from the spec — stop and escalate. Do NOT proceed.
+Run: `git log origin/main --oneline -1` → expected: `dd0a1d9 fix: P0 bug batch — 15 user-reported bugs + security fix`
+Run: `git log main..origin/main` → expected: empty (origin/main is an ancestor of local main)
+Run: `git log origin/main..main --oneline` → expected: 7 docs-only commits (spec iterations + plan iterations)
+If origin/main is ahead of local main, or if local main has non-docs commits ahead of origin/main, stop and escalate.
 
-- [ ] **Step 3: Create the worktree off origin/main**
+- [ ] **Step 3: Create the worktree off local main HEAD**
 
-Run: `git worktree add -b hygiene/sweep-2026-04-20 .worktrees/hygiene-sweep origin/main`
-Expected: new worktree at `.worktrees/hygiene-sweep/` on new branch `hygiene/sweep-2026-04-20` tracking `origin/main` HEAD.
+Run: `git worktree add -b hygiene/sweep-2026-04-20 .worktrees/hygiene-sweep main`
+Expected: new worktree at `.worktrees/hygiene-sweep/` on new branch `hygiene/sweep-2026-04-20` tracking local `main` HEAD. This ensures the feature branch INCLUDES the reviewer-approved spec+plan docs — they ship with the implementation in one PR.
 
 - [ ] **Step 4: Switch into the worktree for all subsequent work**
 
