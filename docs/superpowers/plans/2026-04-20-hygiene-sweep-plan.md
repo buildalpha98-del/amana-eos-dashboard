@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED: Use `superpowers:subagent-driven-development` (if subagents available) or `superpowers:executing-plans` to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship 8 stacked commits on one feature branch that bring the codebase into convention compliance — fixing CI env var, extracting the `ADMIN_ROLES` constant (scoped), replacing 46 silent catches, locking 11 crons, clearing 26 TS errors, narrowing 17 unsafe `as Role` casts, adding 46 missing `onError` toasts, and migrating 247 `req.json()` sites to `parseJsonBody()` — without breaking 997 tests.
+**Goal:** Ship 8 stacked commits on one feature branch that bring the codebase into convention compliance — fixing CI env var, extracting the `ADMIN_ROLES` constant (scoped), replacing 46 silent catches, locking 10 crons (health excluded — it's a UI endpoint), clearing 26 TS errors, narrowing 17 unsafe `as Role` casts, adding 46 missing `onError` toasts, and migrating 247 `req.json()` sites to `parseJsonBody()` — without breaking 997 tests.
 
 **Architecture:** One feature branch (`hygiene/sweep-2026-04-20`) off `origin/main` at `dd0a1d9`. Commits stacked smallest-blast-radius-first so CI gates the smaller changes before the 242-file migration lands. Each commit independently revert-safe. Standard merge (not squash) to preserve bisect history. Mechanical changes at scale use codemods (committed to `scripts/one-shots/` for audit trail).
 
@@ -19,7 +19,7 @@
 | 1 | CI infra | `.github/workflows/test.yml`, `.env.example` (2 files) |
 | 2 | Code quality | `src/lib/role-permissions.ts` (add export), `src/app/api/owna/centres/route.ts`, `src/app/api/owna/test/route.ts`, `src/app/(dashboard)/policies/page.tsx`, `src/app/(dashboard)/getting-started/GettingStartedContent.tsx`, `src/app/(dashboard)/guides/GuidesContent.tsx` (6 files) |
 | 3 | Reliability | 33 files across `src/app/api/**`, `src/lib/**`, `src/components/**`, `src/app/parent/**`, `src/app/(dashboard)/**` (see commit 3 task for full list) |
-| 4 | Reliability | 11 cron route files under `src/app/api/cron/**` |
+| 4 | Reliability | 10 cron route files under `src/app/api/cron/**` (health excluded — UI endpoint) |
 | 5 | Type safety | 10 test files under `src/__tests__/**` + 1 under `tests/integration/**` + potentially `src/__tests__/helpers/auth-mock.ts` |
 | 6 | Type safety | 10 files (`src/app/api/settings/api-keys/**`, `src/app/api/crm/**`) + `src/lib/role-permissions.ts` (add `parseRole`) + new test file |
 | 7 | UX reliability | 21 files across `src/hooks/**`, `src/components/**`, `src/app/(dashboard)/**` + `scripts/audit-mutation-onerror.py` (new) |
@@ -104,7 +104,7 @@ grep -rl "await req\.json" src/app/api/ 2>/dev/null | wc -l
 grep -rn "\.catch(() *=> *{})" src/ 2>/dev/null | wc -l
 grep -rl "\.catch(() *=> *{})" src/ 2>/dev/null | wc -l
 
-# unlocked crons: expected 11
+# unlocked crons: expected 11 (10 in-scope + health which is not a real cron)
 for f in src/app/api/cron/*/route.ts; do
   grep -L acquireCronLock "$f" 2>/dev/null
 done | wc -l
@@ -329,16 +329,19 @@ Read: `sed -n '50,65p' src/app/(dashboard)/getting-started/GettingStartedContent
 
 - [ ] **Step 3: Fix guides/GuidesContent.tsx**
 
-Read: `sed -n '8,20p' src/app/(dashboard)/guides/GuidesContent.tsx`. Current form: `const ADMIN_ROLES = new Set<string>(["owner", "admin", "head_office"]);` — returns a Set used with `.has()`. Replace:
+Read: `sed -n '8,20p' src/app/(dashboard)/guides/GuidesContent.tsx`. Current form: `const ADMIN_ROLES = new Set<string>(["owner", "admin", "head_office"]);` — returns a Set used with `.has()`.
+
+Rename the local const to `ADMIN_ROLE_SET` to avoid collision with the shared export AND satisfy the spec's acceptance grep (`grep -rn "const ADMIN_ROLES" src/app/` must return 0):
+
 ```tsx
-const ADMIN_ROLES = new Set<string>(["owner", "admin", "head_office"]);
+// at top of file (add import):
+import { ADMIN_ROLES } from "@/lib/role-permissions";
+
+// replace the local const declaration:
+const ADMIN_ROLE_SET = new Set<string>(ADMIN_ROLES);
 ```
-With (at top, replacing local const):
-```tsx
-import { ADMIN_ROLES as ADMIN_ROLE_LIST } from "@/lib/role-permissions";
-const ADMIN_ROLES = new Set<string>(ADMIN_ROLE_LIST);
-```
-This preserves the `Set<string>` type used downstream.
+
+Then use Grep to find every `ADMIN_ROLES.has(` usage in this file and rename to `ADMIN_ROLE_SET.has(`. Search-and-replace must be scoped to this file ONLY.
 
 - [ ] **Step 4: Check for any other hits I might have missed**
 
@@ -419,6 +422,12 @@ sendX(args).catch((err) => logger.error("sendX failed", { err, ...contextIds }))
 ```
 Add the import if missing: `import { logger } from "@/lib/logger";`.
 
+**Guidance for `...contextIds`:** each call site must include whatever IDs are in local scope — pick the minimum set that would let an engineer reading the log reproduce the failure:
+- From URL/route params: `bookingId`, `ticketId`, `leadId`, `enrollmentId`, etc.
+- From the request body (if already parsed): `userId`, `messageId`, etc.
+- From the surrounding Prisma query: `serviceId`, the primary entity ID from the `findUnique` / `create` just above
+- At minimum, a short verb/noun descriptor of what the fire-and-forget call was doing (embedded in the log message, e.g. `"failed to send booking-confirmed email"` rather than `"sendX failed"`)
+
 For category (B):
 ```ts
 // before
@@ -440,7 +449,7 @@ doX().catch(() => {});
 
 Process files in this order (smallest site count first, so the pattern is familiar before hitting the 5-site `ai-drafts` file):
 
-- [ ] **Step 1: Fix 1-site files in src/app/api/ (19 files)**
+- [ ] **Step 1: Fix 1-site files in src/app/api/ (17 files)**
 
 For each file listed below, read the relevant line (use grep to locate), classify as (A), fix, run `grep -c "\.catch(() *=> *{})" <file>` → should decrement by 1 per fix.
 
@@ -553,112 +562,133 @@ Include the full per-file classification in the PR body (not the commit message)
 
 ---
 
-## Chunk 5: Commit 4 — Cron locks (11 crons)
+## Chunk 5: Commit 4 — Cron locks (10 crons; health excluded)
 
-### Task 5.1: Apply lock template to each cron
+**Scope note (critical):** The spec initially listed 11 unlocked routes in `src/app/api/cron/`, but `health/route.ts` is NOT a Vercel cron — it's a UI-invoked admin monitoring endpoint that uses `withApiAuth` (no `verifyCronSecret`) and is NOT in `vercel.json`'s `crons` array. Adding `acquireCronLock` would reject the second admin visiting the health page in the same period. **Do NOT add a lock to `health/route.ts`.** Leave it as-is; it's a follow-up to move outside the cron dir.
 
-**Template** (verified against `src/lib/cron-guard.ts`):
+### Task 5.1: Apply lock template to each in-scope cron
+
+**Insertion rule (critical):** each target cron ALREADY has an existing wrapper — `withApiHandler`, `withApiAuth`, plain function, or `POST` form. **Do NOT rewrite the export shape.** Preserve it. Insert the `acquireCronLock` guard block INSIDE the existing handler body, wrap the existing work in the try/catch.
+
+**Before shape — 4 variants to recognize and preserve:**
 
 ```ts
-import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
-import { NextResponse } from "next/server";
+// Variant A (most common — 8 of 10): withApiHandler + arrow
+export const GET = withApiHandler(async (req) => {
+  const authCheck = verifyCronSecret(req);
+  if (authCheck) return authCheck.error;
+  // ... work ...
+});
+```
 
+```ts
+// Variant B — plain async function (e.g. unactioned-bookings)
 export async function GET(req: NextRequest) {
   const authCheck = verifyCronSecret(req);
   if (authCheck) return authCheck.error;
-
-  const guard = await acquireCronLock("<cron-name>", "<period>");
-  if (!guard.acquired) {
-    return NextResponse.json({ message: guard.reason, skipped: true });
-  }
-
-  try {
-    // ...existing work body goes here...
-    await guard.complete({ /* metrics */ });
-    return NextResponse.json({ /* result */ });
-  } catch (err) {
-    await guard.fail(err);
-    throw err;
-  }
+  // ... work ...
 }
 ```
 
-**Per-cron period** (11 crons):
+```ts
+// Variant C — POST instead of GET (e.g. waitlist-expiry)
+export const POST = withApiHandler(async (req: NextRequest) => {
+  const authCheck = verifyCronSecret(req);
+  if (authCheck) return authCheck.error;
+  // ... work ...
+});
+```
 
-| Cron directory | `<cron-name>` arg | `<period>` arg |
-|---|---|---|
-| `cleanup-tokens` | `"cleanup-tokens"` | `"daily"` |
-| `document-expiry` | `"document-expiry"` | `"daily"` |
-| `social-sync` | `"social-sync"` | `"daily"` |
-| `health` | `"health"` | `"daily"` |
-| `auto-onboarding` | `"auto-onboarding"` | `"daily"` |
-| `enquiry-alerts` | `"enquiry-alerts"` | `"hourly"` |
-| `enquiry-auto-cold` | `"enquiry-auto-cold"` | `"hourly"` |
-| `waitlist-expiry` | `"waitlist-expiry"` | `"hourly"` |
-| `unactioned-bookings` | `"unactioned-bookings"` | `"hourly"` |
-| `attendance-to-financials` | `"attendance-to-financials"` | `"daily"` |
-| `financials-monthly-rollup` | `"financials-monthly-rollup"` | `"monthly"` |
+**After shape** (preserving whichever variant the file uses):
+
+```ts
+// Inside the existing handler body, immediately after the verifyCronSecret check:
+const guard = await acquireCronLock("<cron-name>", "<period>");
+if (!guard.acquired) {
+  return NextResponse.json({ message: guard.reason, skipped: true });
+}
+
+try {
+  // ... existing work body (everything that was after the verifyCronSecret check) ...
+  await guard.complete({ /* meaningful metrics */ });
+  return NextResponse.json({ /* existing result */ });
+} catch (err) {
+  await guard.fail(err);
+  throw err;
+}
+```
+
+Add import if missing: `import { acquireCronLock } from "@/lib/cron-guard";` (the existing file probably already imports `verifyCronSecret` from the same module — extend that import).
+
+**Per-cron period — DERIVED FROM `vercel.json` SCHEDULES** (10 crons):
+
+| Cron directory | vercel.json schedule | `<cron-name>` arg | `<period>` arg |
+|---|---|---|---|
+| `cleanup-tokens` | `0 14 * * *` (daily) | `"cleanup-tokens"` | `"daily"` |
+| `document-expiry` | `0 21 * * 1` (weekly Mon) | `"document-expiry"` | `"weekly"` |
+| `social-sync` | `0 */4 * * *` (every 4h) | `"social-sync"` | `"2hourly"` |
+| `auto-onboarding` | `30 21 * * *` (daily) | `"auto-onboarding"` | `"daily"` |
+| `enquiry-alerts` | `30 21 * * *` (daily) | `"enquiry-alerts"` | `"daily"` |
+| `enquiry-auto-cold` | `0 10 * * 0` (weekly Sun) | `"enquiry-auto-cold"` | `"weekly"` |
+| `waitlist-expiry` | `0 * * * *` (hourly) | `"waitlist-expiry"` | `"hourly"` |
+| `unactioned-bookings` | `0 23 * * *` (daily) | `"unactioned-bookings"` | `"daily"` |
+| `attendance-to-financials` | `0 13 * * 0` (weekly Sun) | `"attendance-to-financials"` | `"weekly"` |
+| `financials-monthly-rollup` | `0 14 1 * *` (monthly, 1st) | `"financials-monthly-rollup"` | `"monthly"` |
+
+**On `social-sync` `"2hourly"`:** cadence is every 4h (hours 0, 4, 8, 12, 16, 20 UTC). The `"2hourly"` period floors to even hours, giving period keys `T00, T04, T08, T12, T16, T20` — each run gets a unique key; duplicate invocations within the same 2h window are correctly rejected.
 
 ### Task 5.2: Apply to each cron file
 
-For each file, read it first, identify the existing `GET` / `POST` handler body, wrap in the template.
+For each file, read it first, identify the existing wrapper variant, preserve the export shape, insert the guard block inside the body.
 
 - [ ] **Step 1: Read an existing compliant cron as a reference**
 
 Run: `cat src/app/api/cron/daily-digest/route.ts | head -80`
-Expected: see the standard `verifyCronSecret` → `acquireCronLock` → `try/finally with complete/fail` pattern.
+Expected: see the standard `verifyCronSecret` → `acquireCronLock` → `try/finally with complete/fail` pattern used inside `withApiHandler`.
 
-- [ ] **Step 2: Apply to cleanup-tokens**
+- [ ] **Step 2: Apply to cleanup-tokens (daily, withApiHandler variant)**
 
-Read `src/app/api/cron/cleanup-tokens/route.ts` (full file). Note the shape of its current handler. Wrap the work body in the template — preserve every existing step inside the `try` block. Ensure `await guard.complete({ ... })` is called on the success path with meaningful metrics (e.g., `{ tokensDeleted: count }`).
+Read `src/app/api/cron/cleanup-tokens/route.ts` (full file). It uses `export const GET = withApiHandler(async (req) => { ... })`. Preserve that. Insert the guard block after `verifyCronSecret`, wrap the work in try/catch. Metrics: `{ tokensDeleted: count }` or similar based on the work.
 
-Verify:
-```bash
-grep -c "acquireCronLock\|guard.fail\|guard.complete" src/app/api/cron/cleanup-tokens/route.ts
-```
-Expected: 3 or more (depending on structure).
+Verify: `grep -c "acquireCronLock\|guard.fail\|guard.complete" src/app/api/cron/cleanup-tokens/route.ts` → 3 or more.
 
-- [ ] **Step 3: Apply to document-expiry**
+- [ ] **Step 3: Apply to document-expiry (WEEKLY, withApiHandler variant)**
 
-Same pattern. Metrics: `{ remindersSent: n, expired: m }` or similar based on the cron's actual work.
+Period: `"weekly"` per vercel.json. Metrics: `{ remindersSent: n, expired: m }`.
 
-- [ ] **Step 4: Apply to social-sync**
+- [ ] **Step 4: Apply to social-sync (2HOURLY, withApiHandler variant)**
 
-Same pattern.
+Period: `"2hourly"`. Reason: cron runs every 4h (0, 4, 8...), each run lands in a distinct 2h period key.
 
-- [ ] **Step 5: Apply to health**
+- [ ] **Step 5: Apply to auto-onboarding (daily, withApiHandler variant)**
 
-Special: `health` is a ping cron. Metrics can be minimal, e.g., `{ ok: true, timestamp: new Date().toISOString() }`. Still daily lock.
+Period: `"daily"`. Metrics: `{ usersOnboarded: n }`.
 
-- [ ] **Step 6: Apply to auto-onboarding**
+- [ ] **Step 6: Apply to enquiry-alerts (DAILY, withApiHandler variant)**
 
-Same pattern. Metrics: `{ usersOnboarded: n }`.
+Period: `"daily"` per vercel.json `30 21 * * *` (was `"hourly"` in spec v1 — incorrect). Metrics: `{ alertsSent: n }`.
 
-- [ ] **Step 7: Apply to enquiry-alerts (hourly)**
+- [ ] **Step 7: Apply to enquiry-auto-cold (WEEKLY, withApiHandler variant)**
 
-Hourly period. Metrics: `{ alertsSent: n }`.
+Period: `"weekly"` per vercel.json `0 10 * * 0`.
 
-- [ ] **Step 8: Apply to enquiry-auto-cold (hourly)**
+- [ ] **Step 8: Apply to waitlist-expiry (hourly, withApiHandler + POST variant)**
 
-Same.
+Period: `"hourly"`. NOTE: this file uses `export const POST = withApiHandler(async (req: NextRequest) => { ... })` — preserve the POST export, don't rewrite as GET. Metrics: `{ offersExpired: n }`.
 
-- [ ] **Step 9: Apply to waitlist-expiry (hourly)**
+- [ ] **Step 9: Apply to unactioned-bookings (DAILY, plain async function variant)**
 
-Same. Metrics: `{ offersExpired: n }`.
+Period: `"daily"` per vercel.json `0 23 * * *`. NOTE: this file uses `export async function GET(req: NextRequest) { ... }` (plain function, no wrapper) — preserve that form.
 
-- [ ] **Step 10: Apply to unactioned-bookings (hourly)**
+- [ ] **Step 10: Apply to attendance-to-financials (WEEKLY, withApiHandler variant)**
 
-Same.
+Period: `"weekly"` per vercel.json `0 13 * * 0`.
 
-- [ ] **Step 11: Apply to attendance-to-financials (daily)**
+- [ ] **Step 11: Apply to financials-monthly-rollup (monthly, withApiHandler variant)**
 
-Same.
+Period: `"monthly"` per vercel.json `0 14 1 * *`.
 
-- [ ] **Step 12: Apply to financials-monthly-rollup (monthly)**
-
-Same. Monthly period. Metrics: `{ servicesRolled: n }` etc.
-
-- [ ] **Step 13: Verify count of locked crons**
+- [ ] **Step 12: Verify count of locked crons**
 
 Run:
 ```bash
@@ -666,9 +696,9 @@ for f in src/app/api/cron/*/route.ts; do
   if ! grep -q "acquireCronLock" "$f" 2>/dev/null; then echo "MISSING: $f"; fi
 done
 ```
-Expected: no output (all 61 crons now have the lock).
+Expected: exactly one output — `MISSING: src/app/api/cron/health/route.ts`. Every other cron is locked. `health` is explicitly out of scope.
 
-- [ ] **Step 14: Run full verification gate**
+- [ ] **Step 13: Run full verification gate**
 
 ```bash
 npm run build 2>&1 | tail -5
@@ -678,24 +708,35 @@ npm run lint 2>&1 | tail -5
 ```
 Expected: build passes, 997 tests pass, 26 tsc errors unchanged, lint passes.
 
-- [ ] **Step 15: Commit**
+- [ ] **Step 14: Commit**
 
 ```bash
 git add src/app/api/cron/
 git commit -m "$(cat <<'EOF'
-fix(cron): add acquireCronLock to 11 missing crons
+fix(cron): add acquireCronLock to 10 missing crons
 
-Previously-unlocked crons: cleanup-tokens, document-expiry, social-sync,
-health, auto-onboarding, enquiry-alerts, enquiry-auto-cold, waitlist-
-expiry, unactioned-bookings, attendance-to-financials, financials-
-monthly-rollup.
+Previously-unlocked crons (10): cleanup-tokens, document-expiry,
+social-sync, auto-onboarding, enquiry-alerts, enquiry-auto-cold,
+waitlist-expiry, unactioned-bookings, attendance-to-financials,
+financials-monthly-rollup.
 
-Each now follows the standard template: verifyCronSecret →
+Each now follows the standard pattern: verifyCronSecret →
 acquireCronLock(name, period) → try { work; guard.complete(metrics) }
-catch (err) { guard.fail(err); throw }.
+catch (err) { guard.fail(err); throw }. Existing wrapper styles
+(withApiHandler, POST, plain async function) preserved.
 
 Duplicate Vercel cron invocation or manual retry within the same period
-will now return { skipped: true } instead of corrupting state.
+now returns { skipped: true } instead of corrupting state.
+
+Periods derived from vercel.json schedules (not assumed): document-
+expiry/enquiry-auto-cold/attendance-to-financials = weekly; social-sync
+= 2hourly (runs every 4h, fits uniquely in 2h period keys); others
+daily or monthly per spec.
+
+Out of scope: src/app/api/cron/health/route.ts — despite its location,
+it's a UI-invoked admin monitoring endpoint (withApiAuth, not in
+vercel.json crons array). Locking it would reject legitimate admin
+refreshes.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
@@ -736,7 +777,7 @@ Read line 37 ± 5 lines. Expected: `{ id: "u1", role: "admin" as any }` → chan
 Run: `npx tsc --noEmit 2>&1 | grep "MockUser" | wc -l`
 Expected: 0.
 
-### Task 6.2: Fix BlobPart errors (8 sites, 1 file)
+### Task 6.2: Fix BlobPart errors (7 sites, 1 file)
 
 **Problem:** `new Blob([uint8Array])` — TS lib types for `Uint8Array<ArrayBufferLike>` no longer satisfy `BlobPart[]` under recent Node types.
 
@@ -745,7 +786,7 @@ Expected: 0.
 Run: `sed -n '88,100p' src/__tests__/api/upload.test.ts`
 Understand the pattern: likely `new Blob([pdfBuffer], { type: "application/pdf" })` where `pdfBuffer` is a `Uint8Array`.
 
-- [ ] **Step 2: Apply the cast fix to each of the 8 sites**
+- [ ] **Step 2: Apply the cast fix to each of the 7 sites**
 
 For each line (93, 116, 140, 156, 191, 204, 214): update `new Blob([buffer], { type: "..." })` to `new Blob([buffer as BlobPart], { type: "..." })`.
 
@@ -982,13 +1023,24 @@ describe("parseRole", () => {
 Run: `npx vitest run src/__tests__/lib/role-permissions.test.ts`
 Expected: FAIL — `parseRole` not exported.
 
-- [ ] **Step 4: Implement `parseRole`**
+- [ ] **Step 4a: Convert `import type { Role }` to value import**
 
-Edit `src/lib/role-permissions.ts`. Add after `ADMIN_ROLES`:
+The file currently has `import type { Role } from "@prisma/client";` at line 1. `parseRole` needs `Role` as a VALUE (for `Object.values(Role)` — Prisma generates Role as an enum object at runtime, not just a type). Change line 1:
+
+```ts
+// before
+import type { Role } from "@prisma/client";
+// after
+import { Role } from "@prisma/client";
+```
+
+Without this change, `Object.values(Role)` produces TS2693: "Role only refers to a type but is being used as a value here."
+
+- [ ] **Step 4b: Implement `parseRole`**
+
+Edit `src/lib/role-permissions.ts`. Add after `ADMIN_ROLES` (the `Role` import is already at the top from Step 4a):
 
 ```typescript
-import { Role } from "@prisma/client";
-
 /**
  * Safely narrow a session role value to the Prisma Role enum.
  *
@@ -1001,8 +1053,6 @@ export function parseRole(value: unknown): Role | null {
   return (Object.values(Role) as string[]).includes(value) ? (value as Role) : null;
 }
 ```
-
-(If `Role` is already imported at the top, don't duplicate the import.)
 
 - [ ] **Step 5: Run tests, confirm pass**
 
@@ -1254,7 +1304,7 @@ useMutation({
 });
 ```
 
-**Before editing each file:** verify `toast` is imported (usually from `@/hooks/useToast` or similar — check existing imports in the file). If not, add the import.
+**Before editing each file:** verify `toast` is imported from `@/hooks/useToast` (canonical path — verified via existing usages in `src/components/calls/CallsTab.tsx`, `src/components/settings/BulkInviteModal.tsx`, and many other files). If not imported, add: `import { toast } from "@/hooks/useToast";`.
 
 ### Task 8.3: Process each file
 
@@ -1417,11 +1467,19 @@ for (const file of walkFiles(API_ROOT)) {
   // Replace the expression
   let after = before.replace(/await\s+req\.json\(\s*\)/g, "await parseJsonBody(req)");
 
-  // Ensure the import is present. Naive insertion: if not present, add it
-  // immediately after the last top-of-file import statement.
-  if (!after.includes('from "@/lib/api-error"')) {
-    // No parseJsonBody import yet
-    // Find the index right after the final top-of-file import
+  // Inspect the IMPORT STATEMENT specifically (not the whole file) to decide
+  // whether parseJsonBody is in scope. NOTE: checking `after.includes("parseJsonBody")`
+  // is WRONG because the call-site replacement above just inserted that string
+  // into the body — which would fool the check into thinking the import exists.
+  const apiErrorImportMatch = after.match(/import\s*\{([^}]+)\}\s*from\s*"@\/lib\/api-error"\s*;/);
+  const importedNames = apiErrorImportMatch
+    ? apiErrorImportMatch[1].split(",").map((n: string) => n.trim()).filter(Boolean)
+    : null;
+  const importHasParseJsonBody = importedNames?.includes("parseJsonBody") ?? false;
+
+  if (!apiErrorImportMatch) {
+    // No import from @/lib/api-error yet — insert the full statement after the
+    // last top-of-file import.
     const importRegex = /^import[^;\n]+;\s*$/gm;
     let lastImportEnd = 0;
     let match: RegExpExecArray | null;
@@ -1433,9 +1491,8 @@ for (const file of walkFiles(API_ROOT)) {
       continue;
     }
     after = after.slice(0, lastImportEnd) + "\n" + IMPORT_STATEMENT + after.slice(lastImportEnd);
-  } else if (!after.includes("parseJsonBody")) {
-    // There IS an import from api-error, but it doesn't include parseJsonBody.
-    // Fix: extend the named-imports list.
+  } else if (!importHasParseJsonBody) {
+    // Import exists but doesn't include parseJsonBody — extend the named list.
     after = after.replace(
       /import\s*\{([^}]+)\}\s*from\s*"@\/lib\/api-error"\s*;/,
       (_match, named) => {
@@ -1445,6 +1502,7 @@ for (const file of walkFiles(API_ROOT)) {
       },
     );
   }
+  // else: import already has parseJsonBody — nothing to do for imports
 
   if (after !== before) {
     writeFileSync(file, after, "utf8");
@@ -1544,22 +1602,9 @@ npm run lint 2>&1 | tail -5
 ```
 Expected: all clean. 0 TS errors. 997+ tests passing.
 
-- [ ] **Step 2: Manual smoke — malformed JSON test**
+- [ ] **Step 2: Manual smoke — malformed JSON test (OPTIONAL, skip if auth is hard to set up)**
 
-Start dev server: `npm run dev &`. Wait for `Ready in`.
-
-Pick one route that was migrated, e.g. `/api/rocks`. Send malformed JSON:
-```bash
-curl -X POST http://localhost:3000/api/rocks \
-  -H "Content-Type: application/json" \
-  -H "Cookie: $(cat /tmp/session-cookie.txt)" \
-  -d '{not-valid-json' -s -o /dev/null -w "%{http_code}\n"
-```
-(Replace session cookie with a real session — or skip the auth-required route and pick an unauthenticated route.)
-
-Expected: `400` (previously would have been 500).
-
-Stop dev server: `kill %1`.
+If an unauthenticated write route exists (e.g. a webhook receiver), curl it with malformed JSON and confirm 400 (not 500). Most dashboard routes require auth — if setting up a session cookie for smoke is non-trivial, skip this step. The test suite already covers `parseJsonBody`'s unit behaviour via `src/__tests__/lib/api-error.test.ts`; the route-level regression is covered by the fact that `npm test` passed on the codemod output.
 
 - [ ] **Step 3: Commit**
 

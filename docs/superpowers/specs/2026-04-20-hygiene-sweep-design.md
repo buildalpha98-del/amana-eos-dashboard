@@ -26,11 +26,11 @@ Numbers used throughout this spec, verified against the current codebase state. 
 | `session.user.role as Role` sites (scope for commit 6) | 17 across 10 files (16 `hasFeature(... as Role)` + 1 `const role = session!.user.role as Role` in `crm/leads/[id]/score/route.ts`) | see commit 6 table |
 | `as Role` total in production | 38 sites across 27 files (broader; not all in scope) | `grep -rn "as Role" src/ \| grep -v __tests__ \| grep -v "\.d\.ts" \| wc -l` |
 | Cron routes total | 61 | `ls src/app/api/cron/ \| wc -l` |
-| Crons missing `acquireCronLock` | 11 | see commit 4 table |
+| Crons missing `acquireCronLock` | 10 (of 11 unlocked routes, `health` is excluded — it's a UI admin monitoring endpoint in the cron dir, NOT listed in `vercel.json`'s `crons` array; locking it would reject legitimate admin UI refreshes) | see commit 4 table |
 | `useMutation` missing `onError` | 46 across 21 files (dashboard + hooks + shared components; parent portal explicitly excluded — no cowork portal dir exists) | audit script committed at `scripts/audit-mutation-onerror.py` (commit 7 includes it) |
 | Inline 3-role admin arrays — broken down by shape | `["owner", "head_office", "admin"]`: ~178 in `withApiAuth({ roles: [...] })` shape (dominant). `["owner", "admin", "head_office"]`: 2 in `owna/*`. Local `const ADMIN_ROLES = [...]` declarations: 3 files (policies, getting-started, guides pages). `role: { in: [...] }` Prisma queries: 4 sites. `.includes(...)` audit checks: ~6 sites. **In scope for commit 2**: only 5 files — add `ADMIN_ROLES` export, consolidate 3 local declarations, replace 2 owna sites. **Out of scope**: the ~178 `withApiAuth` sites (separate sub-project — uniform mechanical migration candidate). | commit 2's Acceptance section |
 
-**Target end state**: baseline clean on all in-scope metrics (247→0 req.json sites, 46→0 silent catches, 17→0 `session.user.role as Role` in scoped files, 11→0 unlocked crons, 46→0 missing onError, 26→0 tsc errors, 5→0 target inline ADMIN_ROLES sites) AND 997+ tests still passing AND CI green on the branch.
+**Target end state**: baseline clean on all in-scope metrics (247→0 req.json sites, 46→0 silent catches, 17→0 `session.user.role as Role` in scoped files, 10→0 unlocked crons in scope, 46→0 missing onError, 26→0 tsc errors, 5→0 target inline ADMIN_ROLES sites) AND 997+ tests still passing AND CI green on the branch.
 
 ## In scope — 8 stacked commits
 
@@ -39,7 +39,7 @@ Numbers used throughout this spec, verified against the current codebase state. 
 | 1 | `fix(ci): add DATABASE_URL_UNPOOLED to test workflow env` | Infrastructure | 2 |
 | 2 | `refactor(auth): extract ADMIN_ROLES constant (scoped)` | Code quality | ~5 |
 | 3 | `fix(errors): replace 46 silent .catch(() => {}) with logger calls` | Reliability | 33 |
-| 4 | `fix(cron): add acquireCronLock to 11 missing crons` | Reliability | 11 |
+| 4 | `fix(cron): add acquireCronLock to 10 missing crons` | Reliability | 10 |
 | 5 | `fix(tests): resolve 26 TS errors (24 test-file, 2 integration-test)` | Type safety | ~10 |
 | 6 | `refactor(auth): narrow session.user.role — replace unsafe as Role in scoped files` | Type safety | ~11 |
 | 7 | `fix(hooks): add onError destructive toast to 46 mutations` | UX reliability | 22 + 1 (audit script) |
@@ -161,23 +161,24 @@ Rule: if a commit breaks CI, fix it before stacking the next — no piling broke
 
 ---
 
-### Commit 4: `fix(cron): add acquireCronLock to 11 missing crons`
+### Commit 4: `fix(cron): add acquireCronLock to 10 missing crons`
 
-**Problem**: 11 cron routes run without idempotency locks. A duplicate Vercel cron invocation can corrupt state.
+**Problem**: 10 cron routes run without idempotency locks. A duplicate Vercel cron invocation can corrupt state.
 
-**Exact list** (verified via `for f in src/app/api/cron/*/route.ts; do grep -L acquireCronLock "$f"; done`):
+**Excluded from scope**: `src/app/api/cron/health/route.ts` — despite living in the cron directory, it's a UI-invoked admin monitoring endpoint (uses `withApiAuth`, not `withApiHandler` + `verifyCronSecret`) and is NOT listed in `vercel.json`'s `crons` array. Adding `acquireCronLock` would reject the second admin user who visits the health page in the same period. Out of scope; either leave as-is or move outside `/api/cron/` in a separate follow-up.
+
+**Exact list** (10 crons — verified via `grep -L acquireCronLock src/app/api/cron/*/route.ts`, cross-checked against `vercel.json` `crons` array):
 
 1. `src/app/api/cron/cleanup-tokens/route.ts`
 2. `src/app/api/cron/document-expiry/route.ts`
 3. `src/app/api/cron/social-sync/route.ts`
-4. `src/app/api/cron/health/route.ts`
-5. `src/app/api/cron/auto-onboarding/route.ts`
-6. `src/app/api/cron/enquiry-alerts/route.ts`
-7. `src/app/api/cron/enquiry-auto-cold/route.ts`
-8. `src/app/api/cron/waitlist-expiry/route.ts`
-9. `src/app/api/cron/unactioned-bookings/route.ts`
-10. `src/app/api/cron/attendance-to-financials/route.ts`
-11. `src/app/api/cron/financials-monthly-rollup/route.ts`
+4. `src/app/api/cron/auto-onboarding/route.ts`
+5. `src/app/api/cron/enquiry-alerts/route.ts`
+6. `src/app/api/cron/enquiry-auto-cold/route.ts`
+7. `src/app/api/cron/waitlist-expiry/route.ts`
+8. `src/app/api/cron/unactioned-bookings/route.ts`
+9. `src/app/api/cron/attendance-to-financials/route.ts`
+10. `src/app/api/cron/financials-monthly-rollup/route.ts`
 
 **Fix template** — verified against `src/lib/cron-guard.ts` and `src/app/api/cron/daily-digest/route.ts` (canonical usage example; `owna-sync` is a special case that constructs an external half-hour slot):
 
@@ -202,27 +203,27 @@ Key points (per `src/lib/cron-guard.ts`):
 - `guard.complete(details)` — mark run as **successfully completed**. Call on the success path only.
 - `guard.fail(err)` — mark run as **failed** (distinct state). Call on the error path. NEVER use `guard.complete({ error })` to represent failure — that records success and defeats idempotency for retry after a real failure.
 
-**Period per cron** (per `src/lib/cron-guard.ts:28` — `CronPeriod = "hourly" | "2hourly" | "daily" | "weekly" | "monthly"`):
+**Period per cron** (derived from `vercel.json` schedules; CronPeriod types per `src/lib/cron-guard.ts:28` — `CronPeriod = "hourly" | "2hourly" | "daily" | "weekly" | "monthly"`):
 
-| Cron | Period |
-|---|---|
-| `cleanup-tokens` | `daily` |
-| `document-expiry` | `daily` |
-| `social-sync` | `daily` |
-| `health` | `daily` |
-| `auto-onboarding` | `daily` |
-| `enquiry-alerts` | `hourly` |
-| `enquiry-auto-cold` | `hourly` |
-| `waitlist-expiry` | `hourly` |
-| `unactioned-bookings` | `hourly` |
-| `attendance-to-financials` | `daily` |
-| `financials-monthly-rollup` | `monthly` |
+| Cron | vercel.json schedule | Period |
+|---|---|---|
+| `cleanup-tokens` | `0 14 * * *` (daily) | `daily` |
+| `document-expiry` | `0 21 * * 1` (weekly Mon) | `weekly` |
+| `social-sync` | `0 */4 * * *` (every 4h) | `2hourly` (4h runs fit uniquely in 2h period keys) |
+| `auto-onboarding` | `30 21 * * *` (daily) | `daily` |
+| `enquiry-alerts` | `30 21 * * *` (daily) | `daily` |
+| `enquiry-auto-cold` | `0 10 * * 0` (weekly Sun) | `weekly` |
+| `waitlist-expiry` | `0 * * * *` (hourly) | `hourly` |
+| `unactioned-bookings` | `0 23 * * *` (daily) | `daily` |
+| `attendance-to-financials` | `0 13 * * 0` (weekly Sun) | `weekly` |
+| `financials-monthly-rollup` | `0 14 1 * *` (1st of month) | `monthly` |
 
 **Acceptance**:
-- All 61 cron routes in `src/app/api/cron/` have `acquireCronLock`
-- For each of the 11, run the cron twice in the same period; second returns `{ skipped: true }`
+- All 60 real cron routes in `src/app/api/cron/` (i.e. all except `health`, which is a UI endpoint) have `acquireCronLock`
+- For each of the 10, run the cron twice in the same period; second returns `{ skipped: true }`
 - Existing cron tests (if any) still pass
 - No cron's existing success path is broken
+- Existing wrapper (`withApiHandler`, plain function, or `POST`) preserved — commit does NOT rewrite the export shape
 
 ---
 
