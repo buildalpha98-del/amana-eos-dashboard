@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyCronSecret } from "@/lib/cron-guard";
+import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { sendEmail, FROM_EMAIL } from "@/lib/email";
 import { spotExpiredEmail, spotAvailableEmail } from "@/lib/email-templates";
@@ -16,100 +16,114 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   const authResult = verifyCronSecret(req);
   if (authResult) return authResult.error;
 
-  const now = new Date();
-
-  // Find expired offers
-  const expired = await prisma.parentEnquiry.findMany({
-    where: {
-      stage: "waitlisted",
-      waitlistExpiresAt: { not: null, lt: now },
-      deleted: false,
-    },
-    include: {
-      service: { select: { id: true, name: true } },
-    },
-  });
-
-  if (expired.length === 0) {
-    return NextResponse.json({ expired: 0, offered: 0 });
+  const guard = await acquireCronLock("waitlist-expiry", "hourly");
+  if (!guard.acquired) {
+    return NextResponse.json({ message: guard.reason, skipped: true });
   }
 
-  let expiredCount = 0;
-  let offeredCount = 0;
+  try {
+    const now = new Date();
 
-  for (const enquiry of expired) {
-    const serviceId = enquiry.waitlistServiceId;
-    if (!serviceId) continue;
-
-    // Atomic position assignment — FOR UPDATE prevents race condition
-    const maxResult = await prisma.$queryRaw<[{ pos: bigint }]>`
-      SELECT COALESCE(MAX("waitlistPosition"), 0) + 1 as pos
-      FROM "ParentEnquiry"
-      WHERE "waitlistServiceId" = ${serviceId}
-      AND "stage" = 'waitlisted'
-      FOR UPDATE
-    `;
-    const endPosition = Number(maxResult[0].pos);
-
-    // Clear offer and move to end of waitlist
-    await prisma.parentEnquiry.update({
-      where: { id: enquiry.id },
-      data: {
-        waitlistOfferedAt: null,
-        waitlistExpiresAt: null,
-        waitlistPosition: endPosition,
-      },
-    });
-    expiredCount++;
-
-    // Send expired email (fire-and-forget)
-    const serviceName = enquiry.service?.name ?? "our service";
-    if (enquiry.parentEmail) {
-      const { subject, html } = spotExpiredEmail(enquiry.parentName, serviceName);
-      sendEmail({ from: FROM_EMAIL, to: enquiry.parentEmail, subject, html }).catch((err) => {
-        logger.error("Waitlist expiry: failed to send expired email", { err, enquiryId: enquiry.id });
-      });
-    }
-
-    // Auto-offer to next person in line for this service
-    const next = await prisma.parentEnquiry.findFirst({
+    // Find expired offers
+    const expired = await prisma.parentEnquiry.findMany({
       where: {
         stage: "waitlisted",
-        waitlistServiceId: serviceId,
-        waitlistOfferedAt: null,
+        waitlistExpiresAt: { not: null, lt: now },
         deleted: false,
-        id: { not: enquiry.id }, // exclude the one we just expired
       },
-      orderBy: { waitlistPosition: "asc" },
       include: {
         service: { select: { id: true, name: true } },
       },
     });
 
-    if (next) {
-      const offerExpiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    if (expired.length === 0) {
+      await guard.complete({ offersExpired: 0, offered: 0 });
+      return NextResponse.json({ expired: 0, offered: 0 });
+    }
+
+    let expiredCount = 0;
+    let offeredCount = 0;
+
+    for (const enquiry of expired) {
+      const serviceId = enquiry.waitlistServiceId;
+      if (!serviceId) continue;
+
+      // Atomic position assignment — FOR UPDATE prevents race condition
+      const maxResult = await prisma.$queryRaw<[{ pos: bigint }]>`
+        SELECT COALESCE(MAX("waitlistPosition"), 0) + 1 as pos
+        FROM "ParentEnquiry"
+        WHERE "waitlistServiceId" = ${serviceId}
+        AND "stage" = 'waitlisted'
+        FOR UPDATE
+      `;
+      const endPosition = Number(maxResult[0].pos);
+
+      // Clear offer and move to end of waitlist
       await prisma.parentEnquiry.update({
-        where: { id: next.id },
+        where: { id: enquiry.id },
         data: {
-          waitlistOfferedAt: now,
-          waitlistExpiresAt: offerExpiresAt,
+          waitlistOfferedAt: null,
+          waitlistExpiresAt: null,
+          waitlistPosition: endPosition,
         },
       });
-      offeredCount++;
+      expiredCount++;
 
-      // Send spot-available email to next family (fire-and-forget)
-      if (next.parentEmail) {
-        const baseUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
-        const enrolUrl = `${baseUrl}/enrol?prefill=${next.id}`;
-        const nextServiceName = next.service?.name ?? "our service";
-        const { subject, html } = spotAvailableEmail(next.parentName, nextServiceName, enrolUrl);
-        sendEmail({ from: FROM_EMAIL, to: next.parentEmail, subject, html }).catch((err) => {
-          logger.error("Waitlist expiry: failed to send offer email", { err, enquiryId: next.id });
+      // Send expired email (fire-and-forget)
+      const serviceName = enquiry.service?.name ?? "our service";
+      if (enquiry.parentEmail) {
+        const { subject, html } = spotExpiredEmail(enquiry.parentName, serviceName);
+        sendEmail({ from: FROM_EMAIL, to: enquiry.parentEmail, subject, html }).catch((err) => {
+          logger.error("Waitlist expiry: failed to send expired email", { err, enquiryId: enquiry.id });
         });
       }
-    }
-  }
 
-  logger.info("Waitlist expiry cron completed", { expiredCount, offeredCount });
-  return NextResponse.json({ expired: expiredCount, offered: offeredCount });
+      // Auto-offer to next person in line for this service
+      const next = await prisma.parentEnquiry.findFirst({
+        where: {
+          stage: "waitlisted",
+          waitlistServiceId: serviceId,
+          waitlistOfferedAt: null,
+          deleted: false,
+          id: { not: enquiry.id }, // exclude the one we just expired
+        },
+        orderBy: { waitlistPosition: "asc" },
+        include: {
+          service: { select: { id: true, name: true } },
+        },
+      });
+
+      if (next) {
+        const offerExpiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+        await prisma.parentEnquiry.update({
+          where: { id: next.id },
+          data: {
+            waitlistOfferedAt: now,
+            waitlistExpiresAt: offerExpiresAt,
+          },
+        });
+        offeredCount++;
+
+        // Send spot-available email to next family (fire-and-forget)
+        if (next.parentEmail) {
+          const baseUrl = process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
+          const enrolUrl = `${baseUrl}/enrol?prefill=${next.id}`;
+          const nextServiceName = next.service?.name ?? "our service";
+          const { subject, html } = spotAvailableEmail(next.parentName, nextServiceName, enrolUrl);
+          sendEmail({ from: FROM_EMAIL, to: next.parentEmail, subject, html }).catch((err) => {
+            logger.error("Waitlist expiry: failed to send offer email", { err, enquiryId: next.id });
+          });
+        }
+      }
+    }
+
+    logger.info("Waitlist expiry cron completed", { expiredCount, offeredCount });
+
+    await guard.complete({ offersExpired: expiredCount, offered: offeredCount });
+
+    return NextResponse.json({ expired: expiredCount, offered: offeredCount });
+  } catch (err) {
+    await guard.fail(err);
+    throw err;
+  }
 });

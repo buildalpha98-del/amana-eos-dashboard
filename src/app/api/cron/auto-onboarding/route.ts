@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
@@ -14,11 +15,12 @@ import { logger } from "@/lib/logger";
  * Auth: Bearer CRON_SECRET
  */
 export const GET = withApiHandler(async (req) => {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
+  const auth = verifyCronSecret(req);
+  if (auth) return auth.error;
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const guard = await acquireCronLock("auto-onboarding", "daily");
+  if (!guard.acquired) {
+    return NextResponse.json({ message: guard.reason, skipped: true });
   }
 
   try {
@@ -130,6 +132,12 @@ export const GET = withApiHandler(async (req) => {
       }
     }
 
+    await guard.complete({
+      onboardingAssigned,
+      lmsEnrolled,
+      errorCount: errors.length,
+    });
+
     return NextResponse.json({
       message: "Auto-onboarding complete",
       onboardingAssigned,
@@ -138,9 +146,7 @@ export const GET = withApiHandler(async (req) => {
     });
   } catch (err) {
     logger.error("Auto-onboarding cron failed", { err });
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Cron failed" },
-      { status: 500 }
-    );
+    await guard.fail(err);
+    throw err;
   }
 });
