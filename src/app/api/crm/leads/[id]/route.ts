@@ -127,7 +127,7 @@ if (!hasFeature(session!.user.role as Role, "crm.edit")) {
     });
 
     // Trigger CRM sequences for this stage (fire and forget)
-    scheduleCrmSequence(id, newStage).catch(() => {});
+    scheduleCrmSequence(id, newStage).catch((err) => logger.error("Failed to schedule CRM sequence for lead stage change", { err, leadId: id, newStage }));
   }
 
   const updated = await prisma.lead.update({

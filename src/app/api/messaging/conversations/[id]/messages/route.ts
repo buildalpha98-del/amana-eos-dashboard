@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
+import { logger } from "@/lib/logger";
 
 const messageSchema = z.object({
   body: z.string().min(1, "Message body is required").max(5000),
@@ -45,7 +46,7 @@ export const POST = withApiAuth(async (req, session, context) => {
   ]);
 
   // Fire and forget notification
-  sendNewMessageNotification(message.id).catch(() => {});
+  sendNewMessageNotification(message.id).catch((err) => logger.error("Failed to send new message notification", { err, messageId: message.id }));
 
   return NextResponse.json(message, { status: 201 });
 });

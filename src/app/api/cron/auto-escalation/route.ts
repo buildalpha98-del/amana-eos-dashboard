@@ -102,7 +102,7 @@ export const GET = withApiHandler(async (req) => {
         count: user.todos.length,
         assignee: user.name,
         url: `${baseUrl}/todos`,
-      }).catch(() => {});
+      }).catch((err) => logger.error("Failed to send Teams notification for overdue todos", { err, assignee: user.name, count: user.todos.length }));
     }
 
     // ── 2. Off-Track Rocks ────────────────────────────────────
@@ -151,7 +151,7 @@ export const GET = withApiHandler(async (req) => {
           quarter: rock.quarter,
           percentComplete: rock.percentComplete,
           url: `${baseUrl}/rocks`,
-        }).catch(() => {});
+        }).catch((err) => logger.error("Failed to send Teams notification for off-track rock", { err, rockId: rock.id }));
       } catch (err) {
         errors.push(`Rock escalation ${rock.id}: ${err instanceof Error ? err.message : "Unknown"}`);
       }
@@ -173,7 +173,7 @@ export const GET = withApiHandler(async (req) => {
       notifyStaleIssues({
         count: staleIssues.length,
         url: `${baseUrl}/issues`,
-      }).catch(() => {});
+      }).catch((err) => logger.error("Failed to send Teams notification for stale issues", { err, count: staleIssues.length }));
     }
 
     await guard.complete({

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { sendTeamsNotification } from "@/lib/teams-notify";
 import { verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
+import { logger } from "@/lib/logger";
 
 /**
  * GET /api/cron/attendance-to-financials
@@ -173,7 +174,7 @@ export const GET = withApiHandler(async (req) => {
       actions: [
         { type: "Action.OpenUrl" as const, title: "View Financials", url: `${process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au"}/financials` },
       ],
-    }).catch(() => {});
+    }).catch((err) => logger.error("Failed to send Teams notification for weekly financials auto-generation", { err, centresProcessed }));
   }
 
   return NextResponse.json({

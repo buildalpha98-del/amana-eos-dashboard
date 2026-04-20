@@ -52,7 +52,7 @@ export async function withCache<T>(
 
   // Store in cache (fire-and-forget for Redis)
   if (r) {
-    r.set(cacheKey, JSON.stringify(data), { ex: ttlSeconds }).catch(() => {});
+    r.set(cacheKey, JSON.stringify(data), { ex: ttlSeconds }).catch(() => {}); // Intentional: cache write is best-effort; Redis outages must not break the request (fetchFn already succeeded)
   } else {
     memoryCache.set(cacheKey, {
       data,
@@ -103,7 +103,7 @@ export async function invalidateCacheKey(key: string): Promise<void> {
   const r = getRedis();
 
   if (r) {
-    r.del(cacheKey).catch(() => {});
+    r.del(cacheKey).catch(() => {}); // Intentional: cache invalidation is best-effort; TTL will expire stale entries anyway
   } else {
     memoryCache.delete(cacheKey);
   }

@@ -38,7 +38,9 @@ export default function QuickFeedbackPage() {
       .then((data) => {
         if (data?.name) setServiceName(data.name);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (process.env.NODE_ENV !== "production") console.warn("Survey feedback: fetch public service name failed:", err);
+      });
   }, [serviceId]);
 
   const handleSubmit = async () => {

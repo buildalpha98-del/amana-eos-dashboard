@@ -46,7 +46,9 @@ export function SeatEditModal({ seat, parentId, allSeats, onClose }: SeatEditMod
         );
         setUsers(active);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (process.env.NODE_ENV !== "production") console.warn("SeatEditModal: fetch users failed:", err);
+      });
   }, []);
 
   const addResponsibility = () => setResponsibilities((r) => [...r, ""]);

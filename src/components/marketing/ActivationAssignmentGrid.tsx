@@ -59,7 +59,9 @@ export function ActivationAssignmentGrid({
         const list = Array.isArray(data) ? data : (data as { items: ServiceOption[] }).items ?? [];
         setServices(list);
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (process.env.NODE_ENV !== "production") console.warn("ActivationAssignmentGrid: fetch services failed:", err);
+      });
   }, []);
 
   // Fetch users for coordinator dropdown
@@ -67,7 +69,9 @@ export function ActivationAssignmentGrid({
     fetch("/api/users")
       .then((res) => res.json())
       .then((data: UserOption[]) => setUsers(data))
-      .catch(() => {});
+      .catch((err) => {
+        if (process.env.NODE_ENV !== "production") console.warn("ActivationAssignmentGrid: fetch users failed:", err);
+      });
   }, []);
 
   // Merge services with existing assignments

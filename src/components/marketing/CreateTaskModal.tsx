@@ -53,7 +53,9 @@ export function CreateTaskModal({
     fetch("/api/users")
       .then((res) => res.json())
       .then((data) => setUsers(data))
-      .catch(() => {});
+      .catch((err) => {
+        if (process.env.NODE_ENV !== "production") console.warn("CreateTaskModal: fetch users failed:", err);
+      });
   }, []);
 
   // Reset when opened with defaults

@@ -4,6 +4,7 @@ import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -99,7 +100,7 @@ export const POST = withParentAuth(async (req, ctx) => {
   ]);
 
   // Fire and forget notification to coordinator
-  sendNewMessageNotification(message.id).catch(() => {});
+  sendNewMessageNotification(message.id).catch((err) => logger.error("Failed to send new message notification", { err, messageId: message.id }));
 
   return NextResponse.json(message, { status: 201 });
 });

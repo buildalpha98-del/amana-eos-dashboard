@@ -408,7 +408,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         url: `${process.env.NEXTAUTH_URL}/enrolments`,
       },
     ],
-  }).catch(() => {});
+  }).catch((err) => logger.error("Failed to send Teams notification for new enrolment", { err, enrolmentId: submission.id }));
 
   // Send confirmation email to parent (fire and forget)
   if (primaryParent.email) {
@@ -421,7 +421,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
       to: primaryParent.email,
       subject,
       html,
-    }).catch(() => {});
+    }).catch((err) => logger.error("Failed to send enrolment confirmation email to parent", { err, enrolmentId: submission.id, parentEmail: primaryParent.email }));
   }
 
   // Send notification to school (fire and forget)
@@ -460,7 +460,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
         to: service.email,
         subject: schoolSubject,
         html: schoolHtml,
-      }).catch(() => {});
+      }).catch((err) => logger.error("Failed to send school enrolment notification email", { err, enrolmentId: submission.id, serviceId, serviceEmail: service.email }));
     }
   }
 

@@ -169,7 +169,7 @@ export const GET = withApiHandler(async (req) => {
     avgOccupancy: Math.round((avgBscOccupancy + avgAscOccupancy) / 2),
     overdueTodos: overdueTodosCount,
     url: `${baseUrl}/dashboard`,
-  }).catch(() => {});
+  }).catch((err) => logger.error("Failed to send Teams weekly summary notification", { err, centres: centreData.length }));
 
   await guard.complete({
     weekOf: lastMonday.toISOString().split("T")[0],

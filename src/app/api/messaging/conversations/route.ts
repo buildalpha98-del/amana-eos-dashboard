@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // GET — List conversations
@@ -115,7 +116,7 @@ export const POST = withApiAuth(async (req: NextRequest, session) => {
   // Fire and forget notification
   const firstMessage = conversation.messages[0];
   if (firstMessage) {
-    sendNewMessageNotification(firstMessage.id).catch(() => {});
+    sendNewMessageNotification(firstMessage.id).catch((err) => logger.error("Failed to send new message notification", { err, messageId: firstMessage.id }));
   }
 
   return NextResponse.json(conversation, { status: 201 });

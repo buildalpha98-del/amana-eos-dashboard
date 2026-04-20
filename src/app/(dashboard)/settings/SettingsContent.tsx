@@ -1946,7 +1946,9 @@ function ApiKeysSection() {
   }
 
   function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text).catch(() => {});
+    navigator.clipboard.writeText(text).catch((err) => {
+      if (process.env.NODE_ENV !== "production") console.warn("Clipboard copy failed:", err);
+    });
   }
 
   function getKeyStatus(key: { revokedAt: string | null; expiresAt: string | null }) {

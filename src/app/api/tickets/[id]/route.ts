@@ -139,7 +139,7 @@ const { id } = await context!.params!;
       assignedTo: ticket.assignedTo.name,
       raisedBy: ticket.contact?.name || undefined,
       url: ticketUrl,
-    }).catch(() => {});
+    }).catch((err) => logger.error("Failed to send Teams notification for ticket assigned", { err, ticketId: ticket.id }));
   }
 
   // Teams notification for status changes
@@ -149,7 +149,7 @@ const { id } = await context!.params!;
       subject: ticket.subject,
       newStatus: status,
       url: ticketUrl,
-    }).catch(() => {});
+    }).catch((err) => logger.error("Failed to send Teams notification for ticket status change", { err, ticketId: ticket.id, newStatus: status }));
   }
 
   return NextResponse.json(ticket);

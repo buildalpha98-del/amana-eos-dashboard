@@ -38,7 +38,9 @@ export function BookingStep({ data, updateData }: Props) {
           setServices(list);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (process.env.NODE_ENV !== "production") console.warn("BookingStep: fetch public services failed:", err);
+      });
   }, []);
 
   const prefs = data.bookingPrefs[activeChild] || data.bookingPrefs[0];

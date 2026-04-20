@@ -604,7 +604,9 @@ function DocumentsTab({ childId }: { childId: string }) {
   useEffect(() => {
     fetchApi<{ documents: ChildDocForParent[] }>(`/api/parent/children/${childId}/documents`)
       .then((res) => setDocs(res.documents ?? []))
-      .catch(() => {})
+      .catch((err) => {
+        if (process.env.NODE_ENV !== "production") console.warn("Fetch child documents failed:", err);
+      })
       .finally(() => setLoading(false));
   }, [childId]);
 
@@ -755,7 +757,9 @@ function PickupsTab({ childId }: { childId: string }) {
   useEffect(() => {
     fetchApi<PickupPerson[]>(`/api/parent/children/${childId}/pickups`)
       .then(setPickups)
-      .catch(() => {})
+      .catch((err) => {
+        if (process.env.NODE_ENV !== "production") console.warn("Fetch child pickups failed:", err);
+      })
       .finally(() => setLoading(false));
   }, [childId]);
 

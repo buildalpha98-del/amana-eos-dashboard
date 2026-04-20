@@ -4,6 +4,7 @@ import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendBookingRequestNotification } from "@/lib/notifications/bookings";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -160,7 +161,7 @@ export const POST = withParentAuth(async (req, { parent }) => {
   });
 
   // Fire and forget — notify coordinator
-  sendBookingRequestNotification(booking.id).catch(() => {});
+  sendBookingRequestNotification(booking.id).catch((err) => logger.error("Failed to send booking-request notification to coordinator", { err, bookingId: booking.id }));
 
   return NextResponse.json(booking, { status: 201 });
 });
