@@ -44,7 +44,7 @@ No new Prisma migrations. No new nav routes (so no `role-permissions.ts` changes
 - [ ] **Step 1: Confirm clean working tree**
 
 Run: `git status`
-Expected: only untracked `.env.save` and the existing `M .claude/launch.json` / `logs/decision-review.log`. No unstaged changes in `src/` or `docs/`.
+Expected: no unstaged changes in `src/` or `docs/`. Any pre-existing dirty files outside those paths (e.g. `.env.save`, `.claude/launch.json`, `logs/*.log`) are fine — don't let them block you, just don't accidentally stage them.
 
 - [ ] **Step 2: Pull latest main**
 
@@ -56,14 +56,21 @@ Expected: `Already up to date.` or fast-forward merge only.
 Run: `git checkout -b fix/p0-bug-batch-2026-04-20`
 Expected: `Switched to a new branch 'fix/p0-bug-batch-2026-04-20'`.
 
-- [ ] **Step 4: Sanity-check test runner**
+- [ ] **Step 4: Establish a known-good baseline before any edits**
 
-Run: `npm test -- --run src/__tests__/lib/api-error.test.ts`
-Expected: tests run, most pass. (Spec-hunt found 13 pre-existing TS errors in test files; if one of them prevents this file from running, note it and proceed — that's Sub-project 2's scope, not this one.)
+Run each and save the outputs (pipe to a scratch file if helpful). This is the reference point — regressions introduced by bug fixes will be compared against this baseline, not against an empty state.
+
+```bash
+npm run build 2>&1 | tail -30
+npm test -- --run 2>&1 | tail -30
+npx tsc --noEmit 2>&1 | wc -l
+```
+
+Expected: build may succeed (with warnings OK), tests mostly pass (spec noted 13 pre-existing TS errors in test files that are Sub-project 2's scope — record the test file names that fail), `tsc --noEmit` reports around 13 errors currently.
 
 - [ ] **Step 5: Sanity-check dev server boots**
 
-Run: `npm run dev` in a terminal; wait for "Ready in Xms". Open `http://localhost:3000`. Confirm login works. Stop the server with Ctrl-C once confirmed.
+Start the dev server: `npm run dev`. Wait for "Ready in Xms". Open `http://localhost:3000` — confirm the login page renders. (Credentials per `MEMORY.md`: 9 seeded users, password `AmanaOSHC2026!`.) Stop the server with Ctrl-C.
 
 No commit for setup.
 
@@ -162,9 +169,28 @@ const createContractSchema = z.object({
 });
 ```
 
-- [ ] **Step 4: Check the PATCH schema in `[id]/route.ts`**
+- [ ] **Step 4: Confirm PATCH schema already handles null correctly**
 
-Read `src/app/api/contracts/[id]/route.ts`. If it has a similar update schema with `.optional()` on string fields, apply the same `.nullish()` treatment. Add an analogous test.
+Read `src/app/api/contracts/[id]/route.ts:5-28`. The `updateContractSchema` already uses `.nullable().optional()` on the string fields (equivalent to `.nullish()`). No changes required — but add a matching test case so regressions don't slip in:
+
+```typescript
+it("PATCH accepts null for previously-set optional fields", async () => {
+  mockSession({ id: "u1", role: "admin" });
+  prisma.user.findUnique.mockResolvedValue({ id: "u1", active: true, role: "admin" });
+  prisma.employmentContract.findUnique.mockResolvedValue({ id: "c1", userId: "other" });
+  prisma.employmentContract.update.mockResolvedValue({ id: "c1" });
+
+  const req = createRequest("PATCH", "/api/contracts/c1", {
+    awardLevelCustom: null,
+    documentUrl: null,
+    notes: null,
+    endDate: null,
+  });
+  const { PATCH } = await import("@/app/api/contracts/[id]/route");
+  const res = await PATCH(req, { params: Promise.resolve({ id: "c1" }) });
+  expect(res.status).toBe(200);
+});
+```
 
 - [ ] **Step 5: Run the test, confirm it passes**
 
@@ -194,14 +220,16 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ### Task 2.2 — Bug #3: Timesheets Internal Server Error
 
-**Root cause:** `src/app/api/timesheets/route.ts:41` uses `where: where as any`. The `where` object is built with `Record<string, unknown>` and coerced at runtime. Two smoking guns:
-1. POST uses raw `await req.json()` (line 55) rather than `parseJsonBody`, so malformed bodies return 500 not 400.
-2. POST creates the timesheet after Zod validation but the entries/import routes use `data: entriesToCreate as any` — if the payload shape drifts from Prisma's `TimesheetEntryCreateManyInput[]`, the runtime throws a `PrismaClientValidationError` surfaced as 500.
+**Root cause (confirmed by code read):** The entry/import routes already have Zod validation (`entrySchema` at `[id]/entries/route.ts:7-23` and `importEntrySchema` at `import/route.ts:5-19`). The smoking guns are:
 
-**Fix:**
-1. Replace `await req.json()` with `await parseJsonBody(req)` everywhere in the timesheets routes.
-2. Replace `where as any` and `data: entriesToCreate as any` with proper `Prisma.TimesheetWhereInput` and `Prisma.TimesheetEntryCreateManyInput[]` types.
-3. Add a Zod schema for entry rows used by `[id]/entries/route.ts` and `import/route.ts` — validate before insert.
+1. `route.ts:55` uses raw `req.json()` — malformed JSON returns 500 instead of 400.
+2. `route.ts:41` uses `where: where as any` masking a `Prisma.TimesheetWhereInput` shape drift.
+3. `[id]/entries/route.ts:51` uses raw `req.json()` — same malformed-body issue.
+4. `[id]/entries/route.ts:96` uses `data: entriesToCreate as any`. The object constructed on lines 72-93 includes `notes: entry.notes` and `payRate: entry.payRate` — both `string | undefined` / `number | undefined` from Zod — but `TimesheetEntryCreateManyInput` likely expects `string | null`. This mismatch is masked by `as any`; at runtime when Prisma tries to insert, it may throw `PrismaClientValidationError` → 500.
+5. `import/route.ts:29` raw `req.json()`; `import/route.ts:123` `data: entriesToCreate as any`.
+6. `summary/route.ts:32` `where: where as any`.
+
+**Fix:** Route every body through `parseJsonBody`; replace every `as any` with the correct Prisma type; normalise `undefined` → `null` in entry mapping so the Prisma type is satisfied.
 
 **Files:**
 - Modify: `src/app/api/timesheets/route.ts`
@@ -210,41 +238,40 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - Modify: `src/app/api/timesheets/summary/route.ts`
 - Test: `src/__tests__/api/timesheets.test.ts`
 
-- [ ] **Step 1: Read the entries/import routes to understand current shape**
+- [ ] **Step 1: Write failing test — malformed JSON returns 400, not 500**
 
-Run: `cat src/app/api/timesheets/[id]/entries/route.ts src/app/api/timesheets/import/route.ts`
-Note the shape of the entries payload, which is what we must Zod-validate.
-
-- [ ] **Step 2: Write failing test — happy-path create + add entry**
-
-In `src/__tests__/api/timesheets.test.ts`, add:
+In `src/__tests__/api/timesheets.test.ts` (create if missing):
 
 ```typescript
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { POST as createTimesheet } from "@/app/api/timesheets/route";
-import { POST as addEntries } from "@/app/api/timesheets/[id]/entries/route";
 import { createRequest } from "@/__tests__/helpers/request";
 import { mockSession } from "@/__tests__/helpers/auth-mock";
 import { prisma, _clearUserActiveCache } from "@/__tests__/helpers/prisma-mock";
 
-describe("Timesheets happy path", () => {
+describe("Timesheets POST /api/timesheets", () => {
   beforeEach(() => {
     _clearUserActiveCache();
     vi.clearAllMocks();
   });
 
-  it("creates a timesheet with a new entry and returns 201", async () => {
+  it("creates a timesheet and returns 201", async () => {
     mockSession({ id: "u1", role: "admin" });
     prisma.user.findUnique.mockResolvedValue({ id: "u1", active: true, role: "admin" });
     prisma.timesheet.findUnique.mockResolvedValue(null);
-    prisma.timesheet.create.mockResolvedValue({ id: "t1", serviceId: "svc1", weekEnding: new Date("2026-04-27"), status: "draft" });
+    prisma.timesheet.create.mockResolvedValue({
+      id: "t1",
+      serviceId: "svc1",
+      weekEnding: new Date("2026-04-27"),
+      status: "ts_draft",
+    });
 
     const req = createRequest("POST", "/api/timesheets", {
       serviceId: "svc1",
       weekEnding: "2026-04-27",
       notes: null,
     });
-
     const res = await createTimesheet(req);
     expect(res.status).toBe(201);
   });
@@ -253,88 +280,153 @@ describe("Timesheets happy path", () => {
     mockSession({ id: "u1", role: "admin" });
     prisma.user.findUnique.mockResolvedValue({ id: "u1", active: true, role: "admin" });
 
-    const req = new Request("http://localhost:3000/api/timesheets", {
+    // Use NextRequest directly because createRequest helper only sends JSON-stringified bodies.
+    const req = new NextRequest("http://localhost:3000/api/timesheets", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "{not-json",
     });
-    // @ts-expect-error — the handler accepts NextRequest but duck-typed Request works for test
     const res = await createTimesheet(req);
     expect(res.status).toBe(400);
   });
 });
 ```
 
-- [ ] **Step 3: Run test, confirm both fail**
+- [ ] **Step 2: Run test, confirm the malformed-JSON case fails**
 
-Run: `npx vitest run src/__tests__/api/timesheets.test.ts`
-Expected: at least the "returns 400 on malformed JSON" test fails (probably 500), and possibly the happy path if the mock isn't wired — confirm by reading the POST body code path.
+Run: `npx vitest run src/__tests__/api/timesheets.test.ts -t "malformed"`
+Expected: FAIL — probably returns 500 (or Zod eats the thrown error differently, but not 400).
 
-- [ ] **Step 4: Apply fixes — route.ts**
+- [ ] **Step 3: Apply fix — route.ts**
 
 Edit `src/app/api/timesheets/route.ts`:
 
-1. Import `parseJsonBody` and Prisma types at the top:
+Top of file, add imports:
 ```typescript
 import { parseJsonBody } from "@/lib/api-error";
 import type { Prisma } from "@prisma/client";
 ```
 
-2. Replace `const where: Record<string, unknown>` with `const where: Prisma.TimesheetWhereInput`.
+Line 23 (GET handler):
+Change `const where: Record<string, unknown> = { deleted: false };` to:
+```typescript
+const where: Prisma.TimesheetWhereInput = { deleted: false };
+```
 
-3. Remove `where: where as any` — now `where: where` (or just `where`).
+Line 41: remove `as any` — becomes `where,`.
 
-4. In POST handler, replace `const body = await req.json();` with `const body = await parseJsonBody(req);`.
+Line 32-38 (the `weekEnding` range object): replace the `as Record<string, unknown>` casts with the typed shape:
+```typescript
+if (weekEndingAfter || weekEndingBefore) {
+  const range: Prisma.DateTimeFilter = {};
+  if (weekEndingAfter) range.gte = new Date(weekEndingAfter);
+  if (weekEndingBefore) range.lte = new Date(weekEndingBefore);
+  where.weekEnding = range;
+}
+```
 
-- [ ] **Step 5: Apply fixes — entries/route.ts**
+Line 55 (POST handler): change `const body = await req.json();` to `const body = await parseJsonBody(req);`.
+
+- [ ] **Step 4: Apply fix — entries/route.ts**
 
 Edit `src/app/api/timesheets/[id]/entries/route.ts`:
 
-1. Add a Zod schema for entries at the top (replace the current un-validated payload handling):
+Top of file add imports (if not present):
 ```typescript
-const entryRowSchema = z.object({
-  userId: z.string().min(1),
-  date: z.string(),
-  hoursWorked: z.number().nonnegative(),
-  breakMinutes: z.number().int().nonnegative().nullish(),
-  notes: z.string().nullish(),
-  // extend with actual fields from existing UI/DB — read the current inline construction and mirror it
-});
-const entriesPayloadSchema = z.object({
-  entries: z.array(entryRowSchema).min(1),
+import { parseJsonBody } from "@/lib/api-error";
+import type { Prisma } from "@prisma/client";
+```
+
+Line 51: `const body = await req.json();` → `const body = await parseJsonBody(req);`.
+
+Lines 72-93: update the `.map(...)` callback to normalise undefineds to nulls and type the array:
+```typescript
+const entriesToCreate: Prisma.TimesheetEntryCreateManyInput[] = parsed.data.map((entry) => {
+  const shiftStart = new Date(entry.shiftStart);
+  const shiftEnd = new Date(entry.shiftEnd);
+  const breakMins = entry.breakMinutes ?? 0;
+  const diffMs = shiftEnd.getTime() - shiftStart.getTime();
+  const totalHours =
+    Math.round((diffMs / (1000 * 60 * 60) - breakMins / 60) * 100) / 100;
+  return {
+    timesheetId: id,
+    userId: entry.userId,
+    date: new Date(entry.date),
+    shiftStart,
+    shiftEnd,
+    breakMinutes: breakMins,
+    totalHours: Math.max(0, totalHours),
+    shiftType: entry.shiftType,
+    notes: entry.notes ?? null,
+    payRate: entry.payRate ?? null,
+  };
 });
 ```
 
-2. Replace `const body = await req.json()` with `const body = await parseJsonBody(req)`.
+Line 96: remove `as any` — becomes `data: entriesToCreate,`.
 
-3. After Zod-validating the body, type `entriesToCreate` as `Prisma.TimesheetEntryCreateManyInput[]` and remove `as any`.
+- [ ] **Step 5: Apply fix — import/route.ts**
 
-- [ ] **Step 6: Apply fixes — import/route.ts and summary/route.ts**
+Edit `src/app/api/timesheets/import/route.ts`:
 
-Same treatment: replace `as any` and `req.json()` with typed inputs and `parseJsonBody`. Keep Zod validation on import payload.
+Top of file add imports (if not present):
+```typescript
+import { parseJsonBody } from "@/lib/api-error";
+import type { Prisma } from "@prisma/client";
+```
+
+Line 29: `const body = await req.json();` → `const body = await parseJsonBody(req);`.
+
+Lines 81-90: replace the inline object type with `Prisma.TimesheetEntryCreateManyInput[]`:
+```typescript
+const entriesToCreate: Prisma.TimesheetEntryCreateManyInput[] = [];
+```
+
+Line 123: remove `as any` — becomes `data: entriesToCreate,`.
+
+(No test needed for import route in this PR — the route-level Zod already validates, and the fix here is type-safety only. Covered by existing tests if any.)
+
+- [ ] **Step 6: Apply fix — summary/route.ts**
+
+Edit `src/app/api/timesheets/summary/route.ts`:
+
+Top: add `import type { Prisma } from "@prisma/client";`
+
+Line 18: change `const where: Record<string, unknown> = { ... };` to:
+```typescript
+const where: Prisma.TimesheetEntryWhereInput = {
+  date: { gte: new Date(startDate), lte: new Date(endDate) },
+};
+```
+
+Line 25-29: the `where.timesheet = { ... }` shape is valid for `Prisma.TimesheetEntryWhereInput` if typed; no further change.
+
+Line 32: remove `as any` — becomes `where,`.
 
 - [ ] **Step 7: Run tests**
 
 Run: `npx vitest run src/__tests__/api/timesheets.test.ts`
-Expected: PASS.
+Expected: both tests PASS.
 
-- [ ] **Step 8: Build to catch TS errors**
+- [ ] **Step 8: Baseline-compare build**
 
-Run: `npx tsc --noEmit 2>&1 | grep -E "timesheets" || echo "clean"`
-Expected: `clean` or only pre-existing unrelated errors.
+Run: `npx tsc --noEmit 2>&1 | wc -l`
+Compare against the baseline captured in Task 1.1 Step 4. Expected: same count or LOWER (we removed `as any` casts which means TS is now checking what it couldn't before; if it's higher, investigate the new errors — they're likely real issues the casts were hiding).
 
 - [ ] **Step 9: Commit**
 
 ```bash
 git add src/app/api/timesheets/ src/__tests__/api/timesheets.test.ts
-git commit -m "fix(bug-3): replace 'as any' casts in timesheets with typed inputs
+git commit -m "fix(bug-3): replace 'as any' casts in timesheets with typed Prisma inputs
 
-The 'where as any' and 'entriesToCreate as any' casts masked a Prisma
-type mismatch, surfacing as 500 Internal Server Error on valid create
-requests. Switch to Prisma.TimesheetWhereInput and
-Prisma.TimesheetEntryCreateManyInput[]; route POST bodies through
-parseJsonBody so malformed JSON returns 400 not 500; add Zod schema
-for entry rows.
+Timesheets routes had 'where as any' on WhereInputs and
+'entriesToCreate as any' on createMany payloads. The latter masked a
+Prisma shape mismatch where entry.notes/payRate arrive as
+'string|undefined' from Zod but Prisma expects 'string|null',
+surfacing as a 500 Internal Server Error on valid payloads. Switch to
+Prisma.TimesheetWhereInput and Prisma.TimesheetEntryCreateManyInput[],
+coerce undefined to null in the mapping, and route all POST bodies
+through parseJsonBody so malformed JSON returns 400.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ```
@@ -565,11 +657,12 @@ Run: `cat src/hooks/useCommunication.ts | head -80` and find `usePulses`. Confir
 
 - [ ] **Step 2: Write failing test — type a 50-char string and verify it persists**
 
-Create `src/__tests__/components/WeeklyPulseTab.test.tsx`:
+Create `src/__tests__/components/WeeklyPulseTab.test.tsx`. Read `WeeklyPulseTab.tsx` first to see whether the Wins textarea has a `<label htmlFor>` or just a visual heading — if no label/heading association, use a more resilient locator (by placeholder, `data-testid`, or `textarea` role with a `name`):
 
 ```typescript
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WeeklyPulseTab } from "@/components/communication/WeeklyPulseTab";
 
@@ -579,26 +672,27 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe("WeeklyPulseTab rapid typing", () => {
-  it("retains the full string after typing 50 characters rapidly", async () => {
-    let fetchCount = 0;
+  it("retains the full string after typing 50 characters one key at a time", async () => {
     global.fetch = vi.fn().mockImplementation(async (url: string) => {
       if (url.includes("/pulse")) {
-        fetchCount++;
-        return {
-          ok: true,
-          json: async () => ({ pulses: [], myPulse: null }),
-        };
+        return { ok: true, json: async () => ({ pulses: [], myPulse: null }) };
       }
       return { ok: true, json: async () => ({}) };
     }) as unknown as typeof fetch;
 
+    const user = userEvent.setup();
     render(<WeeklyPulseTab />, { wrapper });
 
-    const textarea = await waitFor(() => screen.getByLabelText(/wins/i) as HTMLTextAreaElement);
-    const target = "This is a 50 character wins entry for test coverage!!";
-    fireEvent.change(textarea, { target: { value: target } });
+    // Resilient locator — adapt based on actual component markup.
+    // Fallback order: getByPlaceholderText → getByRole("textbox", {name}) → container.querySelector
+    const textarea = await waitFor(() =>
+      screen.getByPlaceholderText(/wins|what went well/i) as HTMLTextAreaElement
+    );
+    const target = "This is a 50 character wins entry for test coverage!";
+    await user.type(textarea, target);
 
-    await waitFor(() => expect((screen.getByLabelText(/wins/i) as HTMLTextAreaElement).value).toBe(target));
+    // userEvent.type fires one keypress per char — this is the real-world repro
+    expect(textarea.value).toBe(target);
   });
 });
 ```
@@ -657,14 +751,19 @@ useEffect(() => {
 }, [myPulse?.id]);
 ```
 
-Also invalidate the query manually on submit (inside `submitPulse.onSuccess`) so the state stays fresh after an explicit save:
+Also invalidate the query manually on submit (inside `submitPulse.onSuccess`) so the state stays fresh after an explicit save. If `submitPulse` doesn't already use `useQueryClient`, add it at the top of the hook where the mutation is defined:
 
 ```typescript
-// inside submitPulse config
+// at top of the mutation hook
+const queryClient = useQueryClient();
+
+// inside the useMutation config
 onSuccess: () => {
   queryClient.invalidateQueries({ queryKey: ["pulses"] });
 },
 ```
+
+TanStack's partial-key invalidation: `["pulses"]` matches any query whose key starts with `"pulses"`, so the full-key `["pulses", weekOf, userId]` will invalidate correctly.
 
 - [ ] **Step 6: Re-run test, confirm passing**
 
@@ -705,8 +804,18 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: Locate the second editor**
 
-Run: `rg "one character|character at a time|useEffect.*set(Message|Body|Content)" src/components/communication src/components/messaging -l`
-Read candidate files. Look for a controlled textarea/rich-text editor that's inside a component calling `useQuery` and has a reset `useEffect`.
+Run (broaden to all comms-related directories — two of these may not exist, which is fine):
+```bash
+rg -i "useEffect.*set(Message|Body|Content|Text|Draft)" \
+  src/components/communication \
+  src/components/messaging \
+  src/components/broadcast \
+  src/components/email \
+  src/app/\(dashboard\)/messaging \
+  -l 2>/dev/null
+```
+
+Read each candidate file. The target pattern: a controlled `<textarea>` (or rich-text editor) whose parent component calls `useQuery`, and has a `useEffect` that resets the editor state when a server value changes. That's the same bug as #7.
 
 - [ ] **Step 2: Write failing test (same shape as #7)**
 
@@ -750,10 +859,11 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - Modify: related staff portal LMS component if the mutation is inlined there
 - Test: `src/__tests__/hooks/useLMS.test.tsx` (create or extend)
 
-- [ ] **Step 1: Locate the completion mutation**
+- [ ] **Step 1: Locate the completion mutation and record the real hook name**
 
-Run: `rg "markComplete|completeModule|completeCourse|useMutation.*lms" src/hooks src/components -l`
-Read the relevant file to find the mutation.
+Run: `rg -i "markComplete|completeModule|completeCourse|useLMS.*mutation|lms.*complete" src/hooks src/components -l`
+
+Read the hits. Record the actual exported hook name (e.g. `useCompleteLmsModule`, `useMarkCourseComplete`) — the test in Step 3 references this name, so resolve it before moving on. Also note the list-query key currently used by the LMS list view (for the `invalidateQueries` call in Step 5).
 
 - [ ] **Step 2: Read the current `onSuccess` handling**
 
@@ -846,20 +956,27 @@ Workflow for every bug in this chunk:
 
 1. `preview_start` if not running
 2. Navigate to the affected page; reproduce the bug
-3. Capture console logs + network errors via `preview_console_logs` / `preview_network`
-4. Read source code along the trace (component → hook → API route)
+3. Capture console + network via `preview_console_logs` / `preview_network` / `preview_snapshot` / `preview_inspect` / `preview_eval`
+4. Read source code along the trace (component → hook → API route) via the Read / Grep tools (not `cat`)
 5. Form a root cause hypothesis
 6. Write a failing regression test
 7. Apply the fix
 8. Verify the test passes and the browser reproduction is gone
 9. Commit
 
+For inspecting database rows while diagnosing, use `tsx` for one-off scripts (this repo uses tsx, not ts-node) or `npx prisma studio`.
+
 ### Task 4.1 — Bug #11: Postcode 3-char limit on parent form
 
 - [ ] **Step 1: Reproduce in browser**
 
-Start preview. Log in as a parent (need a test parent account — check `MEMORY.md` for seeded credentials). Navigate in order to each of these forms and try entering "2144" in the postcode:
-  1. `/enrol/<token>` — create a test enrolment link first via admin (`/enrolments` → "Send to parent" button if one exists, else manually create a `ParentMagicLink` row)
+Start preview. Parent portal uses magic-link auth (not password) — there is no shared parent password. To test, either:
+  a) Use admin UI to trigger a real magic link for a known parent email and follow it, OR
+  b) Insert a `ParentMagicLink` row directly with a known `token` and open `/parent/login?token=<x>`, OR
+  c) Use an existing seeded parent if one is present (check `ParentUser` table via `npx prisma studio`).
+
+Then try entering "2144" in the postcode on each of:
+  1. `/enrol/<token>` — create a test enrolment link first via admin UI (or insert directly)
   2. `/parent/children/new`
   3. `/parent/account`
 
@@ -912,7 +1029,7 @@ Log in as admin. Navigate to `/issues`. Confirm there's at least one issue with 
 
 - [ ] **Step 2: Read the issue hook**
 
-Run: `cat src/hooks/useIssues.ts | head -60` — check the query key + options. Likely candidates:
+Read `src/hooks/useIssues.ts` (use the Read tool, not `cat`). Check the query key + options. Likely candidates:
 - The hook passes a `status` filter that never includes "closed"
 - The board view ([issues/page.tsx:92-100](../../src/app/(dashboard)/issues/page.tsx:92)) does render a `closed` column but may be empty because the hook filter excluded closed issues server-side
 - The list view may apply a second filter after `filteredIssues`
@@ -950,7 +1067,7 @@ Read `src/app/api/documents/[id]/route.ts` (GET) and `src/app/api/documents/down
 
 - [ ] **Step 3: Cross-check against the document record**
 
-Via Prisma Studio (or a one-off `ts-node` script if Studio is unwieldy), read the document's `serviceId`, visibility flags, and uploader. Compare against the session user's role + service.
+Via `npx prisma studio` (or a one-off `tsx` script — this repo uses tsx, not ts-node), read the document's `serviceId`, visibility flags, and uploader. Compare against the session user's role + service.
 
 - [ ] **Step 4: Identify the rejecting check**
 
@@ -1028,7 +1145,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: Reproduce**
 
-Log in as a staff user. Navigate to Training / LMS. Click on a course/module. Capture the click behavior: does the URL change? Does a page render? Is there a console error?
+Log in as a staff user. Navigate to Training / LMS (likely under `src/app/(dashboard)/training/...` or `src/app/(dashboard)/lms/...` — grep for `useLMS` to find the parent page). Click on a course/module. Capture the click behavior: does the URL change? Does a page render? Is there a console error?
 
 - [ ] **Step 2: Classify**
 
@@ -1044,6 +1161,8 @@ Find the component rendering the clickable module item. Inspect its `href` or `o
 - [ ] **Step 4: Fix**
 
 Fix the wiring. If the module detail route genuinely doesn't exist, stub a minimal "Module: {title}" page that uses `useLMS` data — NOT a full LMS rebuild (that's Sub-project 5). Scope note: this is the minimal fix to make the click work today.
+
+**Role-permissions gotcha:** if you add a NEW route (e.g. `/lms/modules/[id]`), also add it to `src/lib/role-permissions.ts` (`allPages` plus each role's `rolePageAccess` list that should see it). This is the one failure mode that has bitten this project before (see `MEMORY.md` / commit `cc0ad93`).
 
 - [ ] **Step 5: Write regression test**
 
@@ -1075,7 +1194,7 @@ Is the glitch a layout flicker, a state reset, an infinite render, or a focus tr
 
 - [ ] **Step 3: Trace the selection state**
 
-Look for a state like `selectedChildId` and the effect that syncs form state when it changes.
+Start from `src/app/(dashboard)/enrolments/*` or `src/components/enrolments/*` (grep for `selectedChild`, `currentChildId`, or the multi-child switcher). Look for a state like `selectedChildId` and the effect that syncs form state when it changes.
 
 - [ ] **Step 4: Fix**
 
@@ -1110,7 +1229,7 @@ Admin → `/projects`. Click "New Project". Capture the glitch. Repeat for "Laun
 
 - [ ] **Step 2: Wrap in an error boundary first**
 
-If the glitch forces app restart, there's an unhandled exception. Add a temporary error boundary around the Projects page or the modal, log the actual error to console/network, then proceed with the real fix.
+If the glitch forces app restart, there's an unhandled exception. Add a temporary error boundary in `src/app/(dashboard)/projects/page.tsx` wrapping the `<NewProjectModal>` (or equivalent) invocation. Log the captured error via the existing structured logger so the error surfaces in the dev console and browser. Then proceed with the real fix. Remove the boundary at the end (or keep it if the component is complex enough to warrant permanent defensive wrapping — developer's call).
 
 - [ ] **Step 3: Root cause**
 
@@ -1150,31 +1269,37 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 Run: `npm run build`
 Expected: exit 0, no type errors introduced by this branch (pre-existing errors tracked as Sub-project 2 are acceptable).
 
-- [ ] **Step 2: Test**
+- [ ] **Step 2: TypeScript check**
+
+Run: `npx tsc --noEmit 2>&1 | tee /tmp/tsc-output.txt; wc -l /tmp/tsc-output.txt`
+Expected: line count equal to or LOWER than the baseline captured in Chunk 1 Step 4. If higher, inspect the new errors — they're likely real issues exposed by removing `as any` casts, and should be addressed.
+
+- [ ] **Step 3: Test**
 
 Run: `npm test -- --run`
-Expected: all tests pass. Any pre-existing failures must match the baseline from main (verify by switching to main briefly if unsure).
+Expected: all tests pass. Any pre-existing failures must match the baseline from Chunk 1 Step 4.
 
-- [ ] **Step 3: Lint**
+- [ ] **Step 4: Lint**
 
 Run: `npm run lint`
 Expected: no new lint errors.
 
-- [ ] **Step 4: Role-permissions audit (per CLAUDE.md memory note)**
+- [ ] **Step 5: Role-permissions audit (per CLAUDE.md memory note)**
 
 Run: `git diff main...HEAD -- src/lib/nav-config.ts src/lib/role-permissions.ts`
-Expected: no diff (this sub-project adds no nav items).
+Expected: no diff, UNLESS Bug #6 (LMS module route) required stubbing a new route — in which case a small diff adding that route to `allPages` + appropriate role lists is correct and intended. Confirm via reading the diff.
 
-- [ ] **Step 5: Grep audit — no new `as any` introduced**
+- [ ] **Step 6: Grep audit — no new `as any` introduced**
 
-Run: `git diff main...HEAD --stat -- 'src/**'` to see touched files, then for each:
-`git diff main...HEAD -- <file> | grep -E '^\+.*as any' | head -20`
-Expected: empty. (We may have REMOVED some `as any`; we must not have ADDED any.)
+Use the Grep tool against the working tree with pattern `as any` across `src/**/*.ts{,x}` (optionally narrow to files changed in this branch via `git diff --name-only main...HEAD`). Cross-reference: we should have REMOVED `as any` casts from timesheets routes; we must not have ADDED any new ones.
 
-- [ ] **Step 6: Grep audit — no new raw console logs in production code**
+- [ ] **Step 7: Grep audit — no new raw console logs in production code**
 
-Run: `git diff main...HEAD -- 'src/**' | grep -E '^\+.*console\.(log|warn|error)' | grep -v test`
-Expected: empty.
+Use Grep: pattern `console\.(log|warn|error)`, path `src`, exclude test files. Compare hits against the main branch: any new hits are a regression.
+
+- [ ] **Step 8: Live-preview sweep — confirm every UI-observable fix**
+
+Start the dev server. For each UI-observable bug that was fixed (all except #1, #3, #14), navigate to the affected screen and confirm the bug no longer reproduces. Take a `preview_screenshot` of each fixed surface and store under `/tmp/bug-N-after.png` for attaching to the PR description.
 
 ### Task 5.2 — Open the PR
 
@@ -1228,7 +1353,7 @@ EOF
 )"
 ```
 
-- [ ] **Step 2: Return the PR URL to the user**
+- [ ] **Step 3: Return the PR URL to the user**
 
 ---
 
