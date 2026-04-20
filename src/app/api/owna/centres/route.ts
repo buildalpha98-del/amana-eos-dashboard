@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getOwnaClient } from "@/lib/owna";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const GET = withApiAuth(async (req, session) => {
   const owna = getOwnaClient();
@@ -34,4 +35,4 @@ export const GET = withApiAuth(async (req, session) => {
       { status: 502 },
     );
   }
-}, { roles: ["owner", "admin", "head_office"] });
+}, { roles: [...ADMIN_ROLES] });

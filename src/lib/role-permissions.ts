@@ -1,5 +1,11 @@
 import type { Role } from "@prisma/client";
 
+/**
+ * The set of roles considered "admin" for page-level and feature-level access.
+ * Owner, head_office, admin — consolidated to prevent drift across call sites.
+ */
+export const ADMIN_ROLES = ["owner", "admin", "head_office"] as const;
+
 // ---------------------------------------------------------------------------
 // 0. Role display names (human-readable labels for the UI)
 // ---------------------------------------------------------------------------
