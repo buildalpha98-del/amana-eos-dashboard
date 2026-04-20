@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { hasFeature } from "@/lib/role-permissions";
+import { hasFeature, parseRole } from "@/lib/role-permissions";
 import { getResend, FROM_EMAIL } from "@/lib/email";
 import { applyMergeTags } from "@/lib/crm/merge-tags";
-import type { Role } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 
 /** Escape HTML special characters to prevent injection */
@@ -25,7 +24,8 @@ const sendEmailSchema = z.object({
 
 // POST /api/crm/leads/[id]/send-email
 export const POST = withApiAuth(async (req, session, context) => {
-if (!hasFeature(session!.user.role as Role, "crm.create")) {
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "crm.create")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

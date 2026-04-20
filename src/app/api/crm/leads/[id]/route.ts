@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { hasFeature } from "@/lib/role-permissions";
-import type { Role, PipelineStage, LeadSource } from "@prisma/client";
+import { hasFeature, parseRole } from "@/lib/role-permissions";
+import type { PipelineStage, LeadSource } from "@prisma/client";
 import { handleLeadWon } from "@/lib/crm/handle-lead-won";
 import { scheduleCrmSequence } from "@/lib/crm/schedule-sequence";
 import { withApiAuth } from "@/lib/server-auth";
@@ -40,7 +40,8 @@ const updateLeadSchema = z.object({
 
 // GET /api/crm/leads/[id]
 export const GET = withApiAuth(async (req, session, context) => {
-if (!hasFeature(session!.user.role as Role, "crm.view")) {
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "crm.view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -70,7 +71,8 @@ if (!hasFeature(session!.user.role as Role, "crm.view")) {
 
 // PUT /api/crm/leads/[id]
 export const PUT = withApiAuth(async (req, session, context) => {
-if (!hasFeature(session!.user.role as Role, "crm.edit")) {
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "crm.edit")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -173,7 +175,8 @@ if (!hasFeature(session!.user.role as Role, "crm.edit")) {
 
 // DELETE /api/crm/leads/[id]
 export const DELETE = withApiAuth(async (req, session, context) => {
-if (!hasFeature(session!.user.role as Role, "crm.edit")) {
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "crm.edit")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

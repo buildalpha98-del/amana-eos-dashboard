@@ -1,4 +1,4 @@
-import type { Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 
 /**
  * The set of roles considered "admin" across page-level, feature-level, and
@@ -16,6 +16,18 @@ export const ADMIN_ROLES = ["owner", "admin", "head_office"] as const;
 export function isAdminRole(role: string | null | undefined): boolean {
   if (!role) return false;
   return (ADMIN_ROLES as readonly string[]).includes(role);
+}
+
+/**
+ * Safely narrow a session role value to the Prisma Role enum.
+ *
+ * Returns the Role enum if valid, null otherwise. Case-sensitive.
+ * Use this instead of `session.user.role as Role` to avoid unsafe casts
+ * on potentially-corrupt session data.
+ */
+export function parseRole(value: unknown): Role | null {
+  if (typeof value !== "string") return null;
+  return (Object.values(Role) as string[]).includes(value) ? (value as Role) : null;
 }
 
 // ---------------------------------------------------------------------------

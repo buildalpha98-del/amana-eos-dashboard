@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { hasFeature } from "@/lib/role-permissions";
-import type { Role, PipelineStage, LeadSource } from "@prisma/client";
+import { hasFeature, parseRole } from "@/lib/role-permissions";
+import type { PipelineStage, LeadSource } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 
 const PIPELINE_STAGES: PipelineStage[] = [
@@ -30,7 +30,8 @@ const createTemplateSchema = z.object({
 
 // GET /api/crm/email-templates
 export const GET = withApiAuth(async (req, session) => {
-if (!hasFeature(session!.user.role as Role, "crm.view")) {
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "crm.view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -43,7 +44,8 @@ if (!hasFeature(session!.user.role as Role, "crm.view")) {
 
 // POST /api/crm/email-templates
 export const POST = withApiAuth(async (req, session) => {
-if (!hasFeature(session!.user.role as Role, "crm.manage_templates")) {
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "crm.manage_templates")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes, createHash } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { hasFeature } from "@/lib/role-permissions";
-import type { Role } from "@prisma/client";
+import { hasFeature, parseRole } from "@/lib/role-permissions";
 import { API_SCOPES } from "@/lib/api-key-auth";
 import { logAuditEvent } from "@/lib/audit-log";
 import { withApiAuth } from "@/lib/server-auth";
@@ -23,7 +22,8 @@ const createApiKeySchema = z.object({
 
 // GET /api/settings/api-keys — List all API keys
 export const GET = withApiAuth(async (req, session) => {
-if (!hasFeature(session!.user.role as Role, "api_keys.manage")) {
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "api_keys.manage")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -48,7 +48,8 @@ if (!hasFeature(session!.user.role as Role, "api_keys.manage")) {
 
 // POST /api/settings/api-keys — Create a new API key
 export const POST = withApiAuth(async (req, session) => {
-if (!hasFeature(session!.user.role as Role, "api_keys.manage")) {
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "api_keys.manage")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
