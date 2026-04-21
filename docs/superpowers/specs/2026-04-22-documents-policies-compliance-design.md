@@ -9,7 +9,7 @@
 
 The Documents, Policies, and Compliance modules already exist and work. This sub-project closes three specific gaps flagged in the roadmap's "out of scope for earlier sub-projects" section + the "Compliance Expiry Alert System" Tier 1 completion that started in 3a:
 
-1. **Multi-centre document selection** — currently a document is attached to a single service. Organisations with multi-service presence (e.g. a Head Office policy that applies to all 11 centres) have to duplicate the upload 11 times. Fix: allow a document to belong to 0..N services, with "all services" as a first-class option.
+1. **"All services" document scope** — currently a document is attached to a single service. Head Office policies that apply to all 11 centres have to be duplicated 11 times. Fix: add an `allServices: boolean` flag to `Document`. When true, the doc is visible org-wide (existing `serviceId` is ignored). The UI is binary: "This service only" (default) vs "All services" (org-wide). Per-service subset lists are out of scope (YAGNI) — extend later if needed.
 2. **Policies tab improvements** — the `/policies` page is 936 lines and has the model + acknowledgement tracking + compliance dashboard built. Gaps: admin needs a clearer "N policies unacknowledged by M staff" heat-map view (similar to 3a's compliance heat map); staff need a single "Policies awaiting your acknowledgement" inbox.
 3. **Audit calendar editability** — the audits module has a calendar view; currently it's read-only. Admins need to drag-to-reschedule audits + manual add/edit without rebuilding the full template.
 
@@ -29,11 +29,11 @@ Smaller follow-ups from 3a reviewer feedback:
 
 | # | Commit subject | Category | Files (approx.) |
 |---|---|---|---|
-| 1 | `feat(schema): Document.services many-to-many relation + migration` | Schema | 2 |
+| 1 | `feat(schema): Document.allServices boolean + migration` | Schema | 2 |
 | 2 | `feat(components): PolicyHeatMap + PolicyInbox` (reuse compliance heat map pattern from 3a) | Shared UI | 4 |
 | 3 | `feat(api): /api/policies/heat-map + /api/policies/my-inbox routes` | API | 4 |
 | 4 | `feat(policies): add heat-map toggle + inbox card to /policies page` | Feature | 2 |
-| 5 | `feat(documents): multi-service upload flow + "all services" option` | Feature | ~5 |
+| 5 | `feat(documents): "All services" upload toggle + org-wide filter` | Feature | ~4 |
 | 6 | `feat(audits): draggable calendar + inline edit modal` | Feature | ~4 |
 | 7 | `refactor(auth): widen PATCH /api/compliance/[id] to self + same-service coordinator` | Reliability | 2 |
 
@@ -41,7 +41,7 @@ Smaller follow-ups from 3a reviewer feedback:
 
 ## Key design decisions
 
-- **Multi-centre documents**: new `DocumentService` join table (or Prisma implicit m:n). `Document.serviceId` kept for backward compat (nullable), new `Document.services Service[] @relation("DocumentServices")` m:n added. Migration backfills `services` from existing `serviceId` where set. A `"all_services"` semantic = empty `services[]` (means org-wide).
+- **"All services" documents**: add `Document.allServices Boolean @default(false)` field. Existing `serviceId` stays. When `allServices=true`, the doc shows in every service's document list regardless of `serviceId` value (server-side filter adjusts). Upload UI gets a single "All services" toggle checkbox. Simpler than m:n; upgrade path to per-service lists is clean (add `services[]` later, migrate `allServices=true` rows to empty array).
 - **Policy heat map**: reuse the `ComplianceMatrix` component pattern from 3a. Rows = staff, columns = policies, cells = acknowledged / expiring-version / not-acknowledged.
 - **Audit calendar drag-to-reschedule**: use existing `@hello-pangea/dnd` (already in deps — used by scorecard drag-reorder). On drop: `PATCH /api/audits/calendar/[id]` updates scheduled date.
 - **Compliance PATCH widen**: same access rules as `/api/compliance/[id]/download` (self, same-service coordinator, admin).

@@ -9,7 +9,7 @@
 
 The parent portal + enrolment flow already exists and is comprehensively built (magic-link auth, children pages, messaging, bookings, billing, attendance, medical, authorised pickups, sibling enrolment). This sub-project targets three specific Tier-1 priorities from Jayden's backlog that this surface needs:
 
-1. **Two-Way OWNA Sync for Enrolments** (Tier 1 — highest business impact). Staff currently port enrolment data from dashboard → OWNA manually. The school notification email is a band-aid. Build a "Push to OWNA" action on the enrolment detail panel that sends structured data via the existing `getOwnaClient()`.
+1. **Enrolment-to-OWNA CSV export** (Tier 1 follow-up). The long-term plan is to replace OWNA — but until then, staff still have to port enrolment data to OWNA manually. A direct push-API integration would be wasted work since we're removing OWNA. Instead: build a "Download OWNA-importable CSV" action on the enrolment detail panel. Admin downloads → uploads to OWNA's own import UI → dashboard tracks which enrolments have been exported. Minimal coupling to OWNA; drops cleanly when OWNA goes away.
 2. **Verify Parent Portal end-to-end** (Tier 1). The portal works but hasn't been tested with real data. Explicit E2E tests covering: magic-link send/verify, JWT session, children render, attendance display, account update, messaging round-trip. Fix anything the tests surface.
 3. **Enrolment wizard polish** — the P0 batch fixed postcode, booking, and medical step issues. Follow-up gaps flagged: school-notification email has full medical breakdown (shipped), but the flow from "enrolment submitted" → "child created in OWNA" is still manual. Close that loop via #1 above.
 
@@ -28,9 +28,9 @@ Smaller follow-ups from 3a reviewer feedback:
 
 | # | Commit subject | Category | Files (approx.) |
 |---|---|---|---|
-| 1 | `feat(owna): pushChildToOwna + pushEnrolmentToOwna in src/lib/owna.ts` | API client | 2 |
-| 2 | `feat(api): POST /api/enrolment-applications/[id]/push-to-owna` | API | 3 |
-| 3 | `feat(ui): "Push to OWNA" button on enrolment detail panel` | Feature | ~3 |
+| 1 | `feat(lib): buildOwnaCsv helper in src/lib/owna-csv.ts (format enrolment → OWNA import columns)` | Lib | 2 |
+| 2 | `feat(api): GET /api/enrolment-applications/[id]/owna-csv (download)` | API | 3 |
+| 3 | `feat(ui): "Download OWNA CSV" button + ownaExportedAt display on enrolment detail panel` | Feature | ~3 |
 | 4 | `fix(portal): verify parent-portal flow end-to-end + fix issues surfaced` | Reliability | ~5 (varies on what breaks) |
 | 5 | `test(e2e): Playwright coverage for parent portal round-trip` | Testing | ~3 |
 | 6 | `refactor(components): WeeklyDataEntry fetch → mutateApi` | Reliability | 2 |
@@ -39,10 +39,9 @@ Smaller follow-ups from 3a reviewer feedback:
 
 ## Key design decisions
 
-- **OWNA push scope**: push a single enrolment's child record. If OWNA's POST API is not available (check during implementation), scope shrinks to "generate OWNA-importable CSV" as fallback. Preferred path: direct API.
-- **OWNA credentials**: reuse existing `OWNA_API_URL` + `OWNA_API_KEY` env vars. If push requires different scope/creds, document in `.env.example`.
-- **Idempotency on push**: track `EnrolmentApplication.ownaPushedAt` (new field, nullable DateTime) to prevent double-push. UI disables the button once pushed; shows "Pushed to OWNA on {date}".
-- **Error handling**: if OWNA push fails (non-200), store error in `EnrolmentApplication.ownaPushError` (new field, String?) and surface in UI with retry button. Log via `logger.error`.
+- **CSV export format**: OWNA's child-import CSV schema (need to verify during implementation — check OWNA docs or an existing export template in `.env.save` / project docs; if unknown, session should ask Jayden). Columns likely include: first_name, last_name, dob, gender, family_address, parent_email, parent_phone, medical_notes. The `buildOwnaCsv` helper produces a single-row CSV matching that schema.
+- **Download flow**: `GET /api/enrolment-applications/[id]/owna-csv` returns `Content-Type: text/csv` with `Content-Disposition: attachment; filename=enrolment-{childName}-{date}.csv`. Access: admin/head_office/owner/coordinator (at application's service).
+- **Tracking**: `EnrolmentApplication.ownaExportedAt DateTime?` (single nullable field — replaces the previous Push/Error/ChildId design). Set when CSV is downloaded. UI shows "Exported on {date}" + "Download again" button for re-export.
 - **E2E verification**: extend existing `tests/e2e/` Playwright suite with parent-portal scenarios. If no parent-portal test data fixtures exist, create minimal seed utilities.
 
 ## Schema changes
@@ -50,13 +49,11 @@ Smaller follow-ups from 3a reviewer feedback:
 ```prisma
 model EnrolmentApplication {
   // ... existing fields ...
-  ownaPushedAt    DateTime?
-  ownaPushError   String?
-  ownaChildId     String?   // OWNA's ID for the pushed child (for future linkage/sync)
+  ownaExportedAt  DateTime?   // when admin last downloaded the OWNA-import CSV
 }
 ```
 
-Additive only. No existing column changes.
+Single additive field. No existing column changes. Much simpler than the push-API design — matches the "OWNA is going away" direction.
 
 ## Out of scope (defer)
 
@@ -72,19 +69,19 @@ Additive only. No existing column changes.
 - [ ] Schema migration applied to Neon pre-merge
 - [ ] 1298 → ~1330+ tests (approx. 30 new, including E2E scenarios)
 - [ ] 0 tsc errors
-- [ ] "Push to OWNA" button on enrolment detail works; idempotent; error path surfaces
+- [ ] "Download OWNA CSV" button on enrolment detail works; tracks `ownaExportedAt`; can re-download
 - [ ] Playwright parent-portal round-trip test passes
 - [ ] PR body includes a "how I verified the portal end-to-end" log + any bugs fixed
 
 ## Risks
 
-- **OWNA push API availability unknown**: if OWNA doesn't support writes, scope shrinks to CSV export. Flag to Jayden at plan time if unclear.
+- **OWNA CSV schema unknown**: if Jayden doesn't have a reference template or OWNA doesn't document its import format, session should ask at plan time. Fallback: ship with a reasonable default column set; Jayden adjusts via a small config change in `owna-csv.ts`.
 - **Parent portal E2E flakiness**: Playwright tests against real DB can be flaky. Mitigation: clean-room seed per test + short timeouts.
-- **`ownaChildId` field**: if OWNA doesn't return the created ID in its response, leave nullable and document limitation.
+- **Scope of "verify end-to-end"**: open-ended. Plan should enumerate the exact flows to cover (magic-link send → verify → children list → attendance → message send/receive → account update) to avoid scope creep.
 
 ## Rollback
 
-Schema additive. Each commit revert-safe. If OWNA push misfires, the flag field blocks re-push — easy to clear via one SQL UPDATE.
+Schema additive (single field). Each commit revert-safe. If CSV export format is wrong, fix the helper; no DB cleanup needed.
 
 ---
 
