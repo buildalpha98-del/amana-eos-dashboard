@@ -17,8 +17,8 @@ const CentreSwitcher = dynamic(
   { ssr: false }
 );
 
-const NotificationDropdown = dynamic(
-  () => import("@/components/notifications/NotificationDropdown").then((m) => m.NotificationDropdown),
+const NotificationBell = dynamic(
+  () => import("./NotificationBell").then((m) => m.NotificationBell),
   { ssr: false }
 );
 
@@ -212,7 +212,7 @@ export function TopBar() {
             <Plus className="w-4 h-4" />
           </button>
 
-          <span data-tour="notifications"><NotificationDropdown /></span>
+          <span data-tour="notifications"><NotificationBell /></span>
         </div>
       </header>
 
@@ -229,7 +229,7 @@ export function TopBar() {
         <button onClick={handleQuickAddClick} className="p-1.5 rounded-lg text-white bg-brand hover:bg-brand-hover transition-all" title="Quick Add" aria-label="Quick add">
           <Plus className="w-3.5 h-3.5" />
         </button>
-        <NotificationDropdown />
+        <NotificationBell />
       </MobileHeaderActions>
 
       {/* Single QuickAddMenu — rendered at root level to avoid stacking context issues */}

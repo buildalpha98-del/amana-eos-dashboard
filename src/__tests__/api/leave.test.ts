@@ -119,6 +119,8 @@ describe("POST /api/leave/requests", () => {
     };
     prismaMock.leaveRequest.create.mockResolvedValue(created);
     prismaMock.activityLog.create.mockResolvedValue({});
+    // No coordinators by default for this test — notification path short-circuits.
+    prismaMock.user.findMany.mockResolvedValue([]);
 
     const req = createRequest("POST", "/api/leave/requests", {
       body: {
@@ -135,6 +137,102 @@ describe("POST /api/leave/requests", () => {
     expect(body.id).toBe("lr-new");
     expect(prismaMock.leaveRequest.create).toHaveBeenCalled();
     expect(prismaMock.activityLog.create).toHaveBeenCalled();
+  });
+
+  it("creates a LEAVE_SUBMITTED notification for each coordinator at the submitter's service", async () => {
+    mockSession({
+      id: "user-1",
+      name: "Mirna",
+      role: "staff",
+      serviceId: "svc-1",
+    });
+
+    const created = {
+      id: "lr-new",
+      userId: "user-1",
+      leaveType: "annual",
+      startDate: new Date("2026-04-01"),
+      endDate: new Date("2026-04-03"),
+      totalDays: 3,
+      isHalfDay: false,
+      reason: null,
+      status: "leave_pending",
+      serviceId: "svc-1",
+      user: { id: "user-1", name: "Mirna", email: "mirna@test.com", avatar: null },
+      service: { id: "svc-1", name: "Svc", code: "SVC1" },
+    };
+    prismaMock.leaveRequest.create.mockResolvedValue(created);
+    prismaMock.activityLog.create.mockResolvedValue({});
+    prismaMock.user.findMany.mockResolvedValue([{ id: "coord-1" }, { id: "coord-2" }]);
+    prismaMock.userNotification.create.mockResolvedValue({});
+
+    const req = createRequest("POST", "/api/leave/requests", {
+      body: {
+        leaveType: "annual",
+        startDate: "2026-04-01",
+        endDate: "2026-04-03",
+      },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+
+    // Coordinator lookup scoped to requester's service + active
+    expect(prismaMock.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          role: "coordinator",
+          serviceId: "svc-1",
+          active: true,
+        }),
+      }),
+    );
+
+    expect(prismaMock.userNotification.create).toHaveBeenCalledTimes(2);
+    const firstArg = prismaMock.userNotification.create.mock.calls[0][0];
+    expect(firstArg.data.userId).toBe("coord-1");
+    expect(firstArg.data.type).toBe("leave_submitted");
+    expect(firstArg.data.title).toContain("Mirna");
+    expect(firstArg.data.link).toBe("/leave?id=lr-new");
+  });
+
+  it("still returns 201 when notification creation fails", async () => {
+    mockSession({
+      id: "user-1",
+      name: "Mirna",
+      role: "staff",
+      serviceId: "svc-1",
+    });
+
+    const created = {
+      id: "lr-fail-notif",
+      userId: "user-1",
+      leaveType: "annual",
+      startDate: new Date("2026-04-01"),
+      endDate: new Date("2026-04-03"),
+      totalDays: 3,
+      isHalfDay: false,
+      reason: null,
+      status: "leave_pending",
+      serviceId: "svc-1",
+      user: { id: "user-1", name: "Mirna", email: "mirna@test.com", avatar: null },
+      service: { id: "svc-1", name: "Svc", code: "SVC1" },
+    };
+    prismaMock.leaveRequest.create.mockResolvedValue(created);
+    prismaMock.activityLog.create.mockResolvedValue({});
+    prismaMock.user.findMany.mockResolvedValue([{ id: "coord-1" }]);
+    prismaMock.userNotification.create.mockRejectedValue(new Error("DB exploded"));
+
+    const req = createRequest("POST", "/api/leave/requests", {
+      body: {
+        leaveType: "annual",
+        startDate: "2026-04-01",
+        endDate: "2026-04-03",
+      },
+    });
+    const res = await POST(req);
+
+    // The core leave request must still succeed despite the notification failure.
+    expect(res.status).toBe(201);
   });
 });
 
@@ -185,6 +283,7 @@ describe("PATCH /api/leave/requests/[id]", () => {
     };
     prismaMock.leaveRequest.update.mockResolvedValue(updated);
     prismaMock.activityLog.create.mockResolvedValue({});
+    prismaMock.userNotification.create.mockResolvedValue({});
 
     const req = createRequest("PATCH", "/api/leave/requests/lr-1", {
       body: { status: "leave_approved" },
@@ -196,6 +295,14 @@ describe("PATCH /api/leave/requests/[id]", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.status).toBe("leave_approved");
+
+    // Requester gets a LEAVE_APPROVED notification
+    expect(prismaMock.userNotification.create).toHaveBeenCalledTimes(1);
+    const notifCall = prismaMock.userNotification.create.mock.calls[0][0];
+    expect(notifCall.data.userId).toBe("user-2");
+    expect(notifCall.data.type).toBe("leave_approved");
+    expect(notifCall.data.title).toBe("Leave approved");
+    expect(notifCall.data.link).toBe("/leave?id=lr-1");
   });
 
   it("rejects leave request when owner", async () => {
@@ -224,6 +331,7 @@ describe("PATCH /api/leave/requests/[id]", () => {
     };
     prismaMock.leaveRequest.update.mockResolvedValue(updated);
     prismaMock.activityLog.create.mockResolvedValue({});
+    prismaMock.userNotification.create.mockResolvedValue({});
 
     const req = createRequest("PATCH", "/api/leave/requests/lr-1", {
       body: { status: "leave_rejected", reviewNotes: "Insufficient notice" },
@@ -235,5 +343,13 @@ describe("PATCH /api/leave/requests/[id]", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.status).toBe("leave_rejected");
+
+    // Requester gets a LEAVE_DENIED notification with the review note in the body
+    expect(prismaMock.userNotification.create).toHaveBeenCalledTimes(1);
+    const notifCall = prismaMock.userNotification.create.mock.calls[0][0];
+    expect(notifCall.data.userId).toBe("user-2");
+    expect(notifCall.data.type).toBe("leave_denied");
+    expect(notifCall.data.title).toBe("Leave denied");
+    expect(notifCall.data.body).toContain("Insufficient notice");
   });
 });
