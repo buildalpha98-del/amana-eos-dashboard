@@ -103,6 +103,7 @@ export default function DocumentsPage() {
     fileName: "",
     fileUrl: "",
     centreId: "",
+    allServices: false,
     tags: "",
   });
 
@@ -202,7 +203,8 @@ export default function DocumentsPage() {
       fileUrl: formData.fileUrl,
       fileSize: uploadedFile?.fileSize,
       mimeType: uploadedFile?.mimeType,
-      centreId: formData.centreId || null,
+      centreId: formData.allServices ? null : (formData.centreId || null),
+      allServices: formData.allServices,
       folderId: currentFolderId || null,
       tags: formData.tags ? formData.tags.split(",").map(t => t.trim()) : [],
     });
@@ -214,6 +216,7 @@ export default function DocumentsPage() {
       fileName: "",
       fileUrl: "",
       centreId: "",
+      allServices: false,
       tags: "",
     });
     setUploadedFile(null);
@@ -568,9 +571,13 @@ export default function DocumentsPage() {
                       )}
                     </div>
                   )}
-                  {doc.centre && (
+                  {doc.allServices ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium mb-2">
+                      🌐 All services
+                    </span>
+                  ) : doc.centre ? (
                     <p className="text-sm text-muted mb-2">📍 {doc.centre.name}</p>
-                  )}
+                  ) : null}
                   <div className="space-y-1 mb-4 text-xs text-muted">
                     <div className="flex items-center gap-2">
                       <User className="w-3 h-3" /> {doc.uploadedBy?.name ?? "Unknown"}
@@ -656,7 +663,13 @@ export default function DocumentsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-muted">
-                          {doc.centre?.name || "—"}
+                          {doc.allServices ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+                              All services
+                            </span>
+                          ) : (
+                            doc.centre?.name || "—"
+                          )}
                         </td>
                         <td className="px-4 py-3 text-muted">
                           {doc.uploadedBy?.name ?? "Unknown"}
@@ -846,7 +859,11 @@ export default function DocumentsPage() {
                   <select
                     value={formData.centreId}
                     onChange={(e) => setFormData({ ...formData, centreId: e.target.value })}
-                    className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+                    disabled={formData.allServices}
+                    className={cn(
+                      "w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent",
+                      formData.allServices && "opacity-60 cursor-not-allowed",
+                    )}
                   >
                     <option value="">Not centre-specific</option>
                     {services.map(service => (
@@ -855,6 +872,24 @@ export default function DocumentsPage() {
                       </option>
                     ))}
                   </select>
+                  <label className="flex items-center gap-2 text-sm mt-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.allServices}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          allServices: e.target.checked,
+                          centreId: e.target.checked ? "" : formData.centreId,
+                        })
+                      }
+                      className="rounded border-border"
+                    />
+                    <span className="font-medium text-foreground/90">Visible to all services</span>
+                  </label>
+                  <p className="text-xs text-muted ml-6 mt-0.5">
+                    When enabled, staff at every centre can see this document regardless of their assignment.
+                  </p>
                 </div>
               </div>
 
