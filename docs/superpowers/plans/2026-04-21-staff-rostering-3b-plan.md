@@ -189,14 +189,36 @@ npx tsc --noEmit 2>&1 | grep -c "error TS"
 ```
 Expected: prisma generates cleanly; 1168 tests still pass; 0 tsc errors.
 
-### Task 2.5: Commit
+### Task 2.5: Extend NOTIFICATION_TYPES constants (in same commit as schema)
+
+**Critical ordering fix**: commits 4 + 7 reference 5 new notification type constants. Those MUST be added here in Chunk 2 (the earliest commit that any downstream code references them). Commit 11 is then a no-op placeholder (removable if tooling permits).
+
+**Files:**
+- Modify: `src/lib/notification-types.ts`
+
+- [ ] **Step 1: Append 5 new roster entries to the constant object**
+
+Find `src/lib/notification-types.ts`. It currently has 9 entries (CERT_* / LEAVE_* / TIMESHEET_*). Add these at the end of the object:
+
+```ts
+  // Roster & shift management (added in Sub-project 3b)
+  ROSTER_PUBLISHED: "roster_published",
+  SHIFT_SWAP_PROPOSED: "shift_swap_proposed",
+  SHIFT_SWAP_ACCEPTED: "shift_swap_accepted",
+  SHIFT_SWAP_APPROVED: "shift_swap_approved",
+  SHIFT_SWAP_REJECTED: "shift_swap_rejected",
+```
+
+The `NotificationType` union auto-derives via `typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES]` — no type changes needed.
+
+### Task 2.6: Commit (schema + constants together)
 
 - [ ] **Step 1: Commit**
 
 ```bash
-git add prisma/schema.prisma prisma/migrations/
+git add prisma/schema.prisma prisma/migrations/ src/lib/notification-types.ts
 git commit -m "$(cat <<'EOF'
-feat(schema): RosterShift userId/status + ShiftSwapRequest model
+feat(schema): RosterShift userId/status + ShiftSwapRequest + notification constants
 
 Adds 4 fields to RosterShift: userId FK (optional), status default
 "published" (OWNA-synced rows stay visible), publishedAt, createdById
@@ -210,6 +232,10 @@ shiftId for query efficiency.
 User model gains 5 new back-relations: rosterShifts,
 createdRosterShifts, proposedShiftSwaps, targetShiftSwaps,
 approvedShiftSwaps.
+
+Notification type constants pre-added to src/lib/notification-types.ts
+(5 new entries: ROSTER_PUBLISHED, SHIFT_SWAP_PROPOSED/ACCEPTED/
+APPROVED/REJECTED) so downstream API commits can reference them.
 
 Additive schema only — no column drops, no type changes on existing
 fields. Existing @@unique([serviceId, date, staffName, shiftStart])
@@ -881,15 +907,30 @@ export const POST = withApiAuth(async (req, session) => {
 - [ ] **Step 1: Implement**
 
 Similar structure to publish. Zod body: `{ serviceId, sourceWeekStart, targetWeekStart }`. Read source-week shifts. For each:
-- Compute target date = source date + (targetWeekStart - sourceWeekStart) in days
-- Check target cell: `prisma.rosterShift.findUnique` on `serviceId_date_staffName_shiftStart` unique constraint
-- If target doesn't exist → create as draft, `createdById: session.user.id`
-- If target exists and is draft → delete + create (replace)
-- If target exists and is published → skip, add to response `skipped: [{date, sessionType, staffName, reason: "target already published"}]`
+- Compute target date = source date + (targetWeekStart - sourceWeekStart) days
+- Lookup target cell using the **existing composite unique**: `@@unique([serviceId, date, staffName, shiftStart])`. Concrete Prisma lookup:
+  ```ts
+  const targetCell = await tx.rosterShift.findUnique({
+    where: {
+      serviceId_date_staffName_shiftStart: {
+        serviceId: source.serviceId,
+        date: targetDate,                  // Date object (not string)
+        staffName: source.staffName,       // copied from source row
+        shiftStart: source.shiftStart,
+      },
+    },
+  });
+  ```
+  **Note**: the unique is keyed on `staffName`, not `userId` — so collisions arise on matching display name + start-time pairs. Dashboard-created shifts populate `staffName` from user snapshot so this works correctly for both OWNA + dashboard rows.
+- If target doesn't exist → create as draft, `createdById: session.user.id`, copy `userId` + `staffName` + `sessionType` + `role` + time fields from source
+- If target exists and is draft → `await tx.rosterShift.delete({ where: { id: targetCell.id } })` then create new (replace — keeps the audit-trail distinction between old draft and new draft)
+- If target exists and is published → skip, add to response `skipped: [{ date, sessionType, staffName, reason: "target already published" }]`
 
-Response: `{ created: number, replaced: number, skipped: Array<...> }`.
+Wrap the whole iteration in `prisma.$transaction` to ensure partial failures don't leave the target week half-written.
 
-- [ ] **Step 2: Write tests** — no collision → all created; draft collision → replaced; published collision → skipped.
+Response: `{ created: number, replaced: number, skipped: Array<{date: string, sessionType: string, staffName: string, reason: string}> }`.
+
+- [ ] **Step 2: Write tests** — no collision → all created; draft collision → replaced; published collision → skipped list populated; mixed source+target → correct counts.
 
 ### Task 5.6: Verify + commit
 
@@ -1128,8 +1169,30 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: Props) {
         </table>
       </div>
 
-      {/* Ratio badges per day (skeleton — full per-session computation in commit 9) */}
-      {/* TODO: wire bookings count per day+sessionType */}
+      {/* Ratio badges per day × sessionType */}
+      <div className="mt-4 grid grid-cols-6 gap-2 text-sm">
+        <div></div>  {/* empty cell under staff column */}
+        {weekDates.map((date) => {
+          // For each day: read booked children count from existing /api/bookings/roster for this day+service
+          // (the hook useRoster from 3a returns children per sessionType per day)
+          // For each sessionType, compute rostered staff count
+          const dayShifts = (shiftsData?.shifts ?? []).filter((s) => new Date(s.date).toISOString().split("T")[0] === date);
+          const bySession = { bsc: 0, asc: 0, vc: 0 };
+          for (const s of dayShifts) bySession[s.sessionType as "bsc" | "asc" | "vc"] = (bySession[s.sessionType as "bsc" | "asc" | "vc"] ?? 0) + 1;
+          return (
+            <div key={date} className="flex flex-col gap-1">
+              {/* TODO: replace zeros with real bookedCount when wired to useRoster */}
+              <RatioBadge staffCount={bySession.bsc} childrenCount={0} />
+              <RatioBadge staffCount={bySession.asc} childrenCount={0} />
+              <RatioBadge staffCount={bySession.vc} childrenCount={0} />
+            </div>
+          );
+        })}
+      </div>
+      {/* Wiring bookedCount to the existing useRoster hook is a stretch — if time permits
+          in this chunk, fetch via useRoster(serviceId, weekStart) and count children per
+          session per day; otherwise initial pass uses 0 and a follow-up sub-project
+          lights them up. */}
 
       {modalState && (
         <ShiftEditModal
@@ -1259,10 +1322,55 @@ export function MyUpcomingShiftsCard({ userId }: { userId: string }) {
 }
 ```
 
-**Note**: this implies a `GET /api/roster/shifts/mine` route. Add it inline to chunk 7 (small addition):
-- File: `src/app/api/roster/shifts/mine/route.ts`
-- Behavior: `GET ?from=&to=` returns shifts for `session.user.id` across all services in date range
-- Access: session user only (no admin override — admins use the existing `/api/roster/shifts?serviceId=X` for others)
+### Task 7.1b: `GET /api/roster/shifts/mine` route
+
+**Files:**
+- Create: `src/app/api/roster/shifts/mine/route.ts`
+- Create: `src/__tests__/api/roster-shifts-mine.test.ts`
+
+- [ ] **Step 1: Implement route**
+
+```ts
+import { NextResponse } from "next/server";
+import { withApiAuth } from "@/lib/server-auth";
+import { prisma } from "@/lib/prisma";
+import { ApiError } from "@/lib/api-error";
+import { z } from "zod";
+
+const querySchema = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+export const GET = withApiAuth(async (req, session) => {
+  const { searchParams } = new URL(req.url);
+  const parsed = querySchema.safeParse({
+    from: searchParams.get("from"),
+    to: searchParams.get("to"),
+  });
+  if (!parsed.success) {
+    throw ApiError.badRequest("from and to (YYYY-MM-DD) required", parsed.error.flatten());
+  }
+
+  const shifts = await prisma.rosterShift.findMany({
+    where: {
+      userId: session.user.id,
+      status: "published", // only show published shifts to self (drafts are manager-preview only)
+      date: { gte: new Date(parsed.data.from), lte: new Date(parsed.data.to) },
+    },
+    orderBy: [{ date: "asc" }, { shiftStart: "asc" }],
+    include: { service: { select: { id: true, name: true } } },
+  });
+
+  return NextResponse.json({ shifts });
+});
+```
+
+- [ ] **Step 2: Write tests** (4 cases minimum):
+  - 401 without session
+  - 400 malformed / missing date params
+  - 200 happy path returns self shifts only
+  - Admin/coord cannot fetch another user's shifts via this route (no `?userId=` support — use the general `/api/roster/shifts?serviceId=X` for others)
 
 - [ ] **Step 2: Add to my-portal/page.tsx**
 
@@ -1272,31 +1380,110 @@ Insert `<MyUpcomingShiftsCard userId={session.user.id} />` in the page's self-se
 
 **Files:**
 - Modify: `src/components/staff/tabs/OverviewTab.tsx`
+- Modify: `src/app/(dashboard)/staff/[id]/page.tsx` (parent server component)
 
-- [ ] **Step 1: Find "Coming soon" placeholder**
+**Architecture note**: `OverviewTab.tsx` is a **server component** (no `"use client"` directive). The parent page at `src/app/(dashboard)/staff/[id]/page.tsx` already fetches stats (rocks count, todos, leave balance, etc.) server-side and passes them as props. Follow the same pattern: the page fetches `nextShift` and passes it in.
 
-`grep -n "Coming soon\|next.shift" src/components/staff/tabs/OverviewTab.tsx`
+- [ ] **Step 1: Add nextShift query to the parent page.tsx**
 
-- [ ] **Step 2: Replace with actual next-shift data**
+In the page's existing `Promise.all` block, add:
+```ts
+prisma.rosterShift.findFirst({
+  where: {
+    userId: targetUser.id,
+    status: "published",
+    date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+  },
+  orderBy: [{ date: "asc" }, { shiftStart: "asc" }],
+  select: { id: true, date: true, shiftStart: true, shiftEnd: true, sessionType: true, role: true, staffName: true, userId: true, status: true },
+}),
+```
+Pass the result as `nextShift` prop to `<OverviewTab ... nextShift={...} />`.
 
-Query earliest published shift where `userId === targetUser.id AND date >= today`. Render as inline chip or "No upcoming shift" empty state.
+- [ ] **Step 2: Locate "Coming soon" placeholder in OverviewTab**
 
-### Task 7.3: /roster/me page
+`grep -n "Coming soon\|next.shift\|Next [Ss]hift" src/components/staff/tabs/OverviewTab.tsx`
+
+- [ ] **Step 3: Replace with nextShift display**
+
+Add the `nextShift` prop to `OverviewTab`'s props interface. Replace the placeholder JSX with:
+```tsx
+{nextShift ? (
+  <div>
+    <div className="text-xs text-gray-500">Next Shift</div>
+    <ShiftChip shift={nextShift} />
+  </div>
+) : (
+  <div className="text-xs text-gray-400">No upcoming shifts</div>
+)}
+```
+
+**Note**: `OverviewTab` stays a server component — just add one more prop. No client-side query needed.
+
+### Task 7.3: /roster/me page + dedicated single-user component
 
 **Files:**
 - Create: `src/app/(dashboard)/roster/me/page.tsx`
 - Create: `src/app/(dashboard)/roster/me/loading.tsx`
+- Create: `src/components/roster/MyWeekShifts.tsx` (single-user week view, NOT the multi-staff grid)
 - Modify: `src/lib/role-permissions.ts` (add `/roster/me`)
 
-- [ ] **Step 1: Implement page**
+**Architecture note**: `ServiceWeeklyShiftsGrid` from Chunk 6 is a rows=staff × cols=days grid (multi-staff). `/roster/me` shows ONE user's week — a different layout (5 day columns, one row of shift chips per day). Build a separate component `MyWeekShifts.tsx` rather than overloading the multi-staff grid.
 
-Server component. Reads `?userId=X` optional query param. Access check:
-- `viewerId === targetId` → always allow
-- `isAdminRole` → allow
-- `coordinator` + same service → allow
-- Others → redirect with toast OR 403 page
+- [ ] **Step 1: Implement MyWeekShifts component**
 
-Render `<ServiceWeeklyShiftsGrid>`-like week view filtered to this user only, plus any pending `ShiftSwapRequest` where `targetId === user.id`.
+`src/components/roster/MyWeekShifts.tsx`:
+```tsx
+"use client";
+import { useQuery } from "@tanstack/react-query";
+import { fetchApi } from "@/lib/fetch-api";
+import { ShiftChip } from "@/components/roster/ShiftChip";
+
+interface Props { userId: string; weekStart: string; }
+
+export function MyWeekShifts({ userId, weekStart }: Props) {
+  const end = new Date(weekStart); end.setDate(end.getDate() + 6);
+  const endStr = end.toISOString().split("T")[0];
+  const { data } = useQuery({
+    queryKey: ["my-week-shifts", userId, weekStart],
+    queryFn: () => fetchApi<{ shifts: any[] }>(`/api/roster/shifts/mine?from=${weekStart}&to=${endStr}`),
+    retry: 2, staleTime: 30_000,
+  });
+
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart); d.setDate(d.getDate() + i);
+    return d.toISOString().split("T")[0];
+  });
+
+  return (
+    <div className="grid grid-cols-7 gap-2">
+      {weekDates.map((date) => {
+        const dayShifts = (data?.shifts ?? []).filter((s) => new Date(s.date).toISOString().split("T")[0] === date);
+        return (
+          <div key={date} className="border rounded p-2 min-h-[80px]">
+            <div className="text-xs text-gray-500 mb-1">
+              {new Date(date).toLocaleDateString("en-AU", { weekday: "short", day: "numeric" })}
+            </div>
+            <div className="flex flex-col gap-1">
+              {dayShifts.length === 0
+                ? <span className="text-xs text-gray-400">Off</span>
+                : dayShifts.map((s) => <ShiftChip key={s.id} shift={s} />)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: Implement /roster/me/page.tsx**
+
+Server component with access rules matching `/staff/[id]` (self always; admin any; coordinator at own service; others 403). Read `?userId=X` (defaults to session.user.id). Render `<MyWeekShifts userId={...} weekStart={...} />` plus a list of pending `ShiftSwapRequest` where `targetId === userId` (fetched server-side via prisma).
+
+- [ ] **Step 3: Add route to role-permissions.ts**
+
+Per MEMORY.md: add `/roster/me` to `allPages` array + every role's `rolePageAccess` that needs it (admin/owner/head_office inherit via `allPages` spread — confirm by reading the file; coordinator/member/marketing/staff need explicit entries).
 
 - [ ] **Step 2: Add route to role-permissions.ts**
 
@@ -1406,7 +1593,7 @@ export const POST = withApiAuth(async (_req, session, context) => {
   });
   if (!swap) throw ApiError.notFound("Swap request not found");
   if (swap.targetId !== session.user.id) throw ApiError.forbidden("Only the target can accept");
-  if (swap.status !== "proposed") throw new ApiError(409, `Cannot accept a ${swap.status} swap`);
+  if (swap.status !== "proposed") throw ApiError.conflict(`Cannot accept a ${swap.status} swap`);
 
   const updated = await prisma.$transaction(async (tx) => {
     const s = await tx.shiftSwapRequest.update({
@@ -1465,7 +1652,7 @@ export const POST = withApiAuth(async (req, session, context) => {
   const swap = await prisma.shiftSwapRequest.findUnique({ where: { id } });
   if (!swap) throw ApiError.notFound("Swap request not found");
   if (swap.targetId !== session.user.id) throw ApiError.forbidden();
-  if (swap.status !== "proposed") throw new ApiError(409, `Cannot reject a ${swap.status} swap`);
+  if (swap.status !== "proposed") throw ApiError.conflict(`Cannot reject a ${swap.status} swap`);
 
   const body = await parseJsonBody(req);
   const parsed = rejectSchema.safeParse(body);
@@ -1504,7 +1691,7 @@ export const POST = withApiAuth(async (_req, session, context) => {
     include: { shift: { select: { id: true, serviceId: true, userId: true } } },
   });
   if (!swap) throw ApiError.notFound("Swap request not found");
-  if (swap.status !== "accepted") throw new ApiError(409, `Cannot approve a ${swap.status} swap`);
+  if (swap.status !== "accepted") throw ApiError.conflict(`Cannot approve a ${swap.status} swap`);
 
   const role = session.user.role ?? "";
   const isAdmin = ["admin", "owner", "head_office"].includes(role);
@@ -1548,7 +1735,7 @@ export const POST = withApiAuth(async (_req, session, context) => {
   const swap = await prisma.shiftSwapRequest.findUnique({ where: { id } });
   if (!swap) throw ApiError.notFound("Swap request not found");
   if (swap.proposerId !== session.user.id) throw ApiError.forbidden("Only proposer can cancel");
-  if (swap.status !== "proposed") throw new ApiError(409, `Cannot cancel a ${swap.status} swap`);
+  if (swap.status !== "proposed") throw ApiError.conflict(`Cannot cancel a ${swap.status} swap`);
 
   const updated = await prisma.shiftSwapRequest.update({
     where: { id },
@@ -1597,19 +1784,46 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/components/roster/ShiftSwapDialog.tsx`
+- Create: `src/__tests__/components/roster/ShiftSwapDialog.test.tsx`
 
 - [ ] **Step 1: Implement**
 
 Form dialog with: target staff dropdown (scoped to same-service active staff minus self), optional reason textarea, submit button. Submits `POST /api/shift-swaps`. On success, toast + close.
 
+- [ ] **Step 2: Write test**
+
+At minimum: render with a shift prop; target dropdown excludes current user; submit calls fetch with correct body; error path shows destructive toast. ~3-4 cases.
+
 ### Task 9.2: Context menu on ShiftChip
 
 **Files:**
 - Modify: `src/components/roster/ShiftChip.tsx`
+- Modify: `src/__tests__/components/roster/ShiftChip.test.tsx` (add cases)
 
-- [ ] **Step 1: Add `ownedByCurrentUser` prop**
+- [ ] **Step 1: Extend props**
 
-When the chip's `userId === currentUserId`, show a small "⋯" button opening a menu with "Request swap" action → opens `ShiftSwapDialog`.
+Update `ShiftChipProps` in `src/components/roster/ShiftChip.tsx`:
+```ts
+interface ShiftChipProps {
+  shift: ShiftChipShift;
+  onClick?: (shift: ShiftChipShift) => void;
+  onRequestSwap?: (shift: ShiftChipShift) => void;  // NEW
+  currentUserId?: string;                             // NEW — used to compute ownership
+  className?: string;
+}
+```
+
+- [ ] **Step 2: Show "⋯" menu only when owned by current user**
+
+Inside the component, compute `const isOwned = currentUserId !== undefined && shift.userId === currentUserId;`. If `isOwned && onRequestSwap`, render a small menu trigger `<button>⋯</button>` inside the chip that on click calls `onRequestSwap(shift)`. Use a simple dropdown or headless-ui `<Menu>` pattern.
+
+- [ ] **Step 3: Update existing tests + add case**
+
+Add: "shows ⋯ menu when currentUserId matches shift.userId and onRequestSwap provided"; "does NOT show ⋯ when currentUserId mismatches".
+
+- [ ] **Step 4: Update ServiceWeeklyShiftsGrid (Chunk 6) to pass currentUserId + onRequestSwap**
+
+Grep for existing `<ShiftChip>` usages in `src/components/services/ServiceWeeklyShiftsGrid.tsx` and `src/components/my-portal/MyUpcomingShiftsCard.tsx` and `src/components/roster/MyWeekShifts.tsx` — pass `currentUserId={session.user.id}` and `onRequestSwap={(s) => setSwapDialogShift(s)}` where applicable.
 
 ### Task 9.3: /roster/swaps inbox
 
@@ -1754,51 +1968,20 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 
 ---
 
-## Chunk 11: Commit 10 — Notification type constants
+## Chunk 11: No-op — constants moved to Chunk 2
 
-### Task 11.1: Extend NOTIFICATION_TYPES
+**Status**: this chunk's original content (adding 5 new entries to `NOTIFICATION_TYPES`) has been **folded into Chunk 2** as Task 2.5 to fix a plan-reviewer-flagged ordering bug: commits 5 + 8 reference these constants and would otherwise fail the `tsc --noEmit` gate before Chunk 11 lands.
 
-**Files:**
-- Modify: `src/lib/notification-types.ts`
+### Task 11.1: Verify constants are already in place
 
-- [ ] **Step 1: Add 5 new entries**
-
-```ts
-export const NOTIFICATION_TYPES = {
-  // ... existing 9 entries unchanged ...
-  ROSTER_PUBLISHED: "roster_published",
-  SHIFT_SWAP_PROPOSED: "shift_swap_proposed",
-  SHIFT_SWAP_ACCEPTED: "shift_swap_accepted",
-  SHIFT_SWAP_APPROVED: "shift_swap_approved",
-  SHIFT_SWAP_REJECTED: "shift_swap_rejected",
-} as const;
-```
-
-The `NotificationType` union auto-derives via existing `typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES]`.
-
-- [ ] **Step 2: Verify compilation**
-
-Routes in commits 4 + 7 already reference these constants (they'll compile if Chunk 11 lands first — but this chunk comes near the end. If the constant references are in earlier commits and those commits compiled, then this is a no-op or a cleanup commit).
-
-**Note**: if Chunk 4/7 were drafted referencing literal strings (e.g. `"roster_published"` instead of `NOTIFICATION_TYPES.ROSTER_PUBLISHED`), grep to find and replace them here. Otherwise this chunk is essentially just the constants additions.
-
-### Task 11.2: Commit
+- [ ] **Step 1: Sanity check**
 
 ```bash
-git add src/lib/notification-types.ts
-git commit -m "feat(notifications): 5 new roster notification types
-
-- ROSTER_PUBLISHED
-- SHIFT_SWAP_PROPOSED
-- SHIFT_SWAP_ACCEPTED
-- SHIFT_SWAP_APPROVED
-- SHIFT_SWAP_REJECTED
-
-Creation sites wired in commits 4 and 7. NotificationType union
-auto-derives via keyof typeof NOTIFICATION_TYPES.
-
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+grep -c "ROSTER_PUBLISHED\|SHIFT_SWAP_PROPOSED\|SHIFT_SWAP_ACCEPTED\|SHIFT_SWAP_APPROVED\|SHIFT_SWAP_REJECTED" src/lib/notification-types.ts
 ```
+Expected: 5. If any are missing, fall back to appending them here (would indicate Chunk 2 Task 2.5 was skipped).
+
+No commit — this is a verification-only chunk. The resulting PR will have **10 feature commits** (not 11) plus docs commits.
 
 ---
 
@@ -1827,9 +2010,13 @@ return NextResponse.json({ certsExpiring, leavePending, timesheetsPending, shift
 **Files:**
 - Modify: `src/components/team/ActionRequiredWidget.tsx`
 
-- [ ] **Step 1: Add 4th card**
+- [ ] **Step 1: Confirm current grid class**
 
-New interface field `shiftSwapsPending: number`. Add 4th Link card in the grid (adjust grid to `md:grid-cols-4`). Link to `/roster/swaps?filter=pending`.
+Before editing, `grep -n "grid-cols" src/components/team/ActionRequiredWidget.tsx` to verify the current column count (expected: `md:grid-cols-3` from 3a's 3-card implementation).
+
+- [ ] **Step 2: Add 4th card**
+
+New interface field `shiftSwapsPending: number` on the ActionCounts type. Update the grid class from `md:grid-cols-3` to `md:grid-cols-4`. Add 4th `<Link>` card mirroring the existing 3 (Calendar icon + count + description). Link: `/roster/swaps?filter=pending`.
 
 Widget visibility rule (role hide for staff/member/marketing) unchanged — coordinators + admins still see all 4 cards.
 
