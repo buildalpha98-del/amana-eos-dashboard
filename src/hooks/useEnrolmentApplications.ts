@@ -41,6 +41,7 @@ export interface EnrolmentApplicationDetail extends EnrolmentApplicationSummary 
   copyAuthorisedPickups: boolean;
   copyEmergencyContacts: boolean;
   createdChildId: string | null;
+  ownaExportedAt: string | null;
   updatedAt: string;
   siblings: Array<{
     id: string;
@@ -131,6 +132,55 @@ export function useDeclineEnrolmentApplication() {
       toast({
         variant: "destructive",
         description: err.message || "Failed to decline application",
+      });
+    },
+  });
+}
+
+/**
+ * Download the OWNA-import CSV for an application. Triggers a browser
+ * download on success and refreshes the detail query so the UI reflects
+ * the new ownaExportedAt timestamp.
+ */
+export function useDownloadOwnaCsv() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/enrolment-applications/${id}/owna-csv`);
+      if (!res.ok) {
+        let serverError = `Request failed with status ${res.status}`;
+        try {
+          const body = await res.json();
+          serverError = body?.error ?? serverError;
+        } catch {
+          // non-JSON error body — ignore
+        }
+        throw new Error(serverError);
+      }
+      // Pull filename from Content-Disposition
+      const cd = res.headers.get("content-disposition") ?? "";
+      const match = cd.match(/filename="([^"]+)"/);
+      const filename = match?.[1] ?? "enrolment.csv";
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      return { id, filename };
+    },
+    onSuccess: ({ id }) => {
+      queryClient.invalidateQueries({ queryKey: ["enrolment-application", id] });
+      queryClient.invalidateQueries({ queryKey: ["enrolment-applications"] });
+      toast({ description: "OWNA CSV downloaded" });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Failed to download CSV",
       });
     },
   });

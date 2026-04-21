@@ -11,6 +11,7 @@ import {
   Users,
   Check,
   AlertCircle,
+  Download,
 } from "lucide-react";
 import {
   Sheet,
@@ -23,6 +24,7 @@ import {
   useEnrolmentApplicationDetail,
   useApproveEnrolmentApplication,
   useDeclineEnrolmentApplication,
+  useDownloadOwnaCsv,
 } from "@/hooks/useEnrolmentApplications";
 import { Skeleton } from "@/components/ui/Skeleton";
 
@@ -60,6 +62,7 @@ export function SiblingApplicationReviewPanel({ applicationId, onClose }: Props)
   const { data: app, isLoading } = useEnrolmentApplicationDetail(applicationId);
   const approve = useApproveEnrolmentApplication();
   const decline = useDeclineEnrolmentApplication();
+  const download = useDownloadOwnaCsv();
 
   const [approveNotes, setApproveNotes] = useState("");
   const [declineReason, setDeclineReason] = useState("");
@@ -114,6 +117,18 @@ export function SiblingApplicationReviewPanel({ applicationId, onClose }: Props)
             </div>
           ) : app ? (
             <>
+              {app?.ownaExportedAt && (
+                <div className="flex items-center gap-2 text-xs text-foreground/60 bg-surface/50 rounded-lg px-3 py-2">
+                  <Check className="h-3.5 w-3.5 text-green-600" />
+                  Exported to OWNA on{" "}
+                  {new Date(app.ownaExportedAt).toLocaleDateString("en-AU", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </div>
+              )}
+
               {/* Child Info */}
               <Section icon={User} title="Child Information">
                 <InfoRow label="Full Name" value={`${app.childFirstName} ${app.childLastName}`} />
@@ -229,10 +244,23 @@ export function SiblingApplicationReviewPanel({ applicationId, onClose }: Props)
           ) : null}
         </div>
 
-        {/* Action buttons */}
-        {isPending && (
-          <div className="shrink-0 px-6 py-4 border-t border-border bg-background space-y-3">
-            {showApproveConfirm ? (
+        {/* Action buttons — Download OWNA CSV is always available; approve/decline only when pending */}
+        <div className="shrink-0 px-6 py-4 border-t border-border bg-background space-y-3">
+          <button
+            onClick={() => download.mutate(applicationId)}
+            disabled={download.isPending}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-foreground/80 border border-border rounded-lg hover:bg-surface transition-colors min-h-[44px] disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            {download.isPending
+              ? "Downloading..."
+              : app?.ownaExportedAt
+                ? "Re-download OWNA CSV"
+                : "Download OWNA CSV"}
+          </button>
+
+          {isPending && (
+            showApproveConfirm ? (
               <div className="space-y-3">
                 <textarea
                   value={approveNotes}
@@ -297,9 +325,9 @@ export function SiblingApplicationReviewPanel({ applicationId, onClose }: Props)
                   Approve
                 </button>
               </div>
-            )}
-          </div>
-        )}
+            )
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );

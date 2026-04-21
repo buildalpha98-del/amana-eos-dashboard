@@ -6,6 +6,7 @@ import { getWeekStart } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { Save, ChevronLeft, ChevronRight, DollarSign } from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import { fetchApi, mutateApi } from "@/lib/fetch-api";
 
 interface WeeklyRecord {
   id: string;
@@ -72,11 +73,9 @@ export function WeeklyDataEntry({
   // Fetch existing data
   const { data: records } = useQuery<WeeklyRecord[]>({
     queryKey: ["weekly-data", serviceId],
-    queryFn: async () => {
-      const res = await fetch(`/api/services/${serviceId}/weekly-data`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
-    },
+    queryFn: () => fetchApi(`/api/services/${serviceId}/weekly-data`),
+    retry: 2,
+    staleTime: 30_000,
   });
 
   // Live calculation
@@ -91,11 +90,10 @@ export function WeeklyDataEntry({
   const estMargin = estTotalRevenue > 0 ? (estProfit / estTotalRevenue) * 100 : 0;
 
   const submitWeekly = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/services/${serviceId}/weekly-data`, {
+    mutationFn: () =>
+      mutateApi(`/api/services/${serviceId}/weekly-data`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           weekOf: selectedWeek.toISOString(),
           bscRecurring,
           bscCasual,
@@ -106,11 +104,8 @@ export function WeeklyDataEntry({
           foodCosts,
           suppliesCosts,
           otherCosts,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to submit");
-      return res.json();
-    },
+        },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["weekly-data", serviceId] });
       queryClient.invalidateQueries({ queryKey: ["financials"] });

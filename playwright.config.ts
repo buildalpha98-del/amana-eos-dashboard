@@ -1,4 +1,28 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "fs";
+import path from "path";
+
+// Minimal dotenv parser — loads .env files for Prisma-based test helpers.
+// Precedence mirrors Next.js: values from .env.local win over .env.
+function loadEnvFile(file: string) {
+  const full = path.resolve(__dirname, file);
+  if (!fs.existsSync(full)) return;
+  const src = fs.readFileSync(full, "utf8");
+  for (const rawLine of src.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq <= 0) continue;
+    const key = line.slice(0, eq).trim();
+    let val = line.slice(eq + 1).trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (!(key in process.env)) process.env[key] = val;
+  }
+}
+loadEnvFile(".env.local");
+loadEnvFile(".env");
 
 export default defineConfig({
   testDir: "./tests/e2e",

@@ -51,8 +51,20 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname, router]);
 
-  const logout = () => {
-    // Clear the flag cookie (httpOnly session cookie is cleared server-side via /api/parent/auth/logout)
+  const logout = async () => {
+    // Call the logout API to clear the httpOnly `parent-session` JWT cookie
+    // server-side. Without this the JWT remains valid until it expires (7d)
+    // and could be replayed against the APIs.
+    try {
+      await fetch("/api/parent/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Ignore network errors — still clear client state and redirect below.
+    }
+    // Also clear the non-httpOnly flag cookie locally so the UI updates
+    // immediately even if the response is slow.
     document.cookie =
       "parent-active=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     setIsAuthenticated(false);
