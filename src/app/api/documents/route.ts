@@ -67,11 +67,27 @@ const { searchParams } = new URL(req.url);
       return NextResponse.json({ documents: [], total: 0, page, totalPages: 0 });
     }
     if (centreId) {
-      // Keep allServices docs visible even when filtering to a specific centre
-      where.OR = [
-        { centreId },
-        { allServices: true },
-      ];
+      if (search) {
+        // Preserve the text search alongside the centre filter — using AND
+        // keeps the two OR groups from clobbering each other.
+        where.AND = [
+          { OR: [{ centreId }, { allServices: true }] },
+          {
+            OR: [
+              { title: { contains: search, mode: "insensitive" as const } },
+              { description: { contains: search, mode: "insensitive" as const } },
+              { tags: { hasSome: [search] } },
+            ],
+          },
+        ];
+        delete where.OR;
+      } else {
+        // Keep allServices docs visible even when filtering to a specific centre
+        where.OR = [
+          { centreId },
+          { allServices: true },
+        ];
+      }
     }
   } else if (centreId) {
     where.centreId = centreId;
