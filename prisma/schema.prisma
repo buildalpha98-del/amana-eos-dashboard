@@ -1339,37 +1339,44 @@ model CampaignActivationAssignment {
 // ============================================================
 
 model Service {
-  id                    String        @id @default(cuid())
-  name                  String
-  code                  String        @unique
-  address               String?
-  suburb                String?
-  state                 String?
-  postcode              String?
-  phone                 String?
-  email                 String?
-  status                ServiceStatus @default(active)
-  managerId             String?
-  manager               User?         @relation("ServiceManager", fields: [managerId], references: [id])
-  capacity              Int?
-  capacityBsc           Int?
-  capacityAsc           Int?
-  capacityVc            Int?
-  operatingDays         String?
-  notes                 String?       @db.Text
-  bscDailyRate          Float?
-  ascDailyRate          Float?
-  vcDailyRate           Float?
-  bscCasualRate         Float         @default(0)
-  ascCasualRate         Float         @default(0)
-  bscGroceryRate        Float         @default(0.80)
-  ascGroceryRate        Float         @default(1.20)
-  vcGroceryRate         Float         @default(4.50)
-  monthlyPurchaseBudget Float? // If set, overrides org-wide tier for centre purchase budget
-  xeroTrackingOptionId  String?
-  ownaServiceId         String? // OWNA's internal service ID
-  ownaLocationId        String? // OWNA's location reference
-  ownaSyncedAt          DateTime? // Last successful OWNA sync
+  id                     String        @id @default(cuid())
+  name                   String
+  code                   String        @unique
+  address                String?
+  suburb                 String?
+  state                  String?
+  postcode               String?
+  phone                  String?
+  email                  String?
+  status                 ServiceStatus @default(active)
+  managerId              String?
+  manager                User?         @relation("ServiceManager", fields: [managerId], references: [id])
+  capacity               Int?
+  capacityBsc            Int?
+  capacityAsc            Int?
+  capacityVc             Int?
+  operatingDays          String?
+  // ── ACECQA approval numbers ──
+  serviceApprovalNumber  String?
+  providerApprovalNumber String?
+  // ── Per-session-type start/end times (Zod: sessionTimesSchema) ──
+  sessionTimes           Json?
+  // ── Per-session casual booking config (Zod: casualBookingSettingsSchema) ──
+  casualBookingSettings  Json?
+  notes                  String?       @db.Text
+  bscDailyRate           Float?
+  ascDailyRate           Float?
+  vcDailyRate            Float?
+  bscCasualRate          Float         @default(0)
+  ascCasualRate          Float         @default(0)
+  bscGroceryRate         Float         @default(0.80)
+  ascGroceryRate         Float         @default(1.20)
+  vcGroceryRate          Float         @default(4.50)
+  monthlyPurchaseBudget  Float? // If set, overrides org-wide tier for centre purchase budget
+  xeroTrackingOptionId   String?
+  ownaServiceId          String? // OWNA's internal service ID
+  ownaLocationId         String? // OWNA's location reference
+  ownaSyncedAt           DateTime? // Last successful OWNA sync
 
   // ── Marketing / Growth Fields (Sprint 0) ───────────────────
   schoolPopulation       Int? // Total students at the partner school
@@ -4646,6 +4653,11 @@ model Child {
   anaphylaxisActionPlan Boolean              @default(false) // Flag: action plan document exists
   dietaryRequirements   String[] // e.g. ["Halal", "Nut Free", "Vegetarian"]
   additionalNeeds       String? // Free text: other care requirements
+  // ── Medicare + immunisation (consumed by Services Medical tab) ──
+  medicareNumber        String?
+  medicareExpiry        DateTime?
+  medicareRef           String?
+  vaccinationStatus     String?
   photo                 String? // URL to profile photo (Vercel Blob)
   status                String               @default("pending") // pending, active, withdrawn
   // OWNA sync fields
