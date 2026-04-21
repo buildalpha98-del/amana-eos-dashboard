@@ -65,8 +65,24 @@ const { searchParams } = new URL(req.url);
       return NextResponse.json({ documents: [], total: 0, page, totalPages: 0 });
     }
     if (centreId) {
-      where.centreId = centreId;
-      delete where.OR;
+      if (search) {
+        // Preserve the text search alongside the centre filter.
+        // Using AND keeps the two OR groups from clobbering each other.
+        where.AND = [
+          { OR: [{ centreId }, { centreId: null }] },
+          {
+            OR: [
+              { title: { contains: search, mode: "insensitive" as const } },
+              { description: { contains: search, mode: "insensitive" as const } },
+              { tags: { hasSome: [search] } },
+            ],
+          },
+        ];
+        delete where.OR;
+      } else {
+        where.centreId = centreId;
+        delete where.OR;
+      }
     }
   } else if (centreId) {
     where.centreId = centreId;
