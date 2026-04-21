@@ -13,6 +13,12 @@ export const NOTIFICATION_TYPES = {
   LEAVE_DENIED: "leave_denied",
   TIMESHEET_SUBMITTED: "timesheet_submitted",
   TIMESHEET_APPROVED: "timesheet_approved",
+  // Roster & shift management (added in Sub-project 3b)
+  ROSTER_PUBLISHED: "roster_published",
+  SHIFT_SWAP_PROPOSED: "shift_swap_proposed",
+  SHIFT_SWAP_ACCEPTED: "shift_swap_accepted",
+  SHIFT_SWAP_APPROVED: "shift_swap_approved",
+  SHIFT_SWAP_REJECTED: "shift_swap_rejected",
 } as const;
 
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];

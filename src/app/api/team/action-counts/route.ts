@@ -28,29 +28,43 @@ export const GET = withApiAuth(async (_req, session) => {
   const in30days = new Date();
   in30days.setDate(in30days.getDate() + 30);
 
-  const [certsExpiring, leavePending, timesheetsPending] = await Promise.all([
-    prisma.complianceCertificate.count({
-      where: {
-        expiryDate: { gte: now, lte: in30days },
-        ...(scopedServiceId ? { serviceId: scopedServiceId } : {}),
-      },
-    }),
-    prisma.leaveRequest.count({
-      where: {
-        status: "leave_pending",
-        ...(scopedServiceId
-          ? { user: { serviceId: scopedServiceId } }
-          : {}),
-      },
-    }),
-    prisma.timesheet.count({
-      where: {
-        // TimesheetStatus enum value is "submitted" (not "ts_submitted")
-        status: "submitted",
-        ...(scopedServiceId ? { serviceId: scopedServiceId } : {}),
-      },
-    }),
-  ]);
+  const [certsExpiring, leavePending, timesheetsPending, shiftSwapsPending] =
+    await Promise.all([
+      prisma.complianceCertificate.count({
+        where: {
+          expiryDate: { gte: now, lte: in30days },
+          ...(scopedServiceId ? { serviceId: scopedServiceId } : {}),
+        },
+      }),
+      prisma.leaveRequest.count({
+        where: {
+          status: "leave_pending",
+          ...(scopedServiceId
+            ? { user: { serviceId: scopedServiceId } }
+            : {}),
+        },
+      }),
+      prisma.timesheet.count({
+        where: {
+          // TimesheetStatus enum value is "submitted" (not "ts_submitted")
+          status: "submitted",
+          ...(scopedServiceId ? { serviceId: scopedServiceId } : {}),
+        },
+      }),
+      prisma.shiftSwapRequest.count({
+        where: {
+          status: "accepted",
+          ...(scopedServiceId
+            ? { shift: { serviceId: scopedServiceId } }
+            : {}),
+        },
+      }),
+    ]);
 
-  return NextResponse.json({ certsExpiring, leavePending, timesheetsPending });
+  return NextResponse.json({
+    certsExpiring,
+    leavePending,
+    timesheetsPending,
+    shiftSwapsPending,
+  });
 });

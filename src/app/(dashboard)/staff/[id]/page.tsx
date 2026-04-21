@@ -108,6 +108,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     documents,
     activeRocks,
     openTodos,
+    nextShift,
   ] = await Promise.all([
     prisma.emergencyContact.findMany({
       where: { userId: id },
@@ -152,6 +153,25 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
         deleted: false,
       },
     }).catch(() => 0),
+    prisma.rosterShift.findFirst({
+      where: {
+        userId: targetUser.id,
+        status: "published",
+        date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+      },
+      orderBy: [{ date: "asc" }, { shiftStart: "asc" }],
+      select: {
+        id: true,
+        date: true,
+        shiftStart: true,
+        shiftEnd: true,
+        sessionType: true,
+        role: true,
+        staffName: true,
+        userId: true,
+        status: true,
+      },
+    }).catch(() => null),
   ]);
 
   // Aggregate timesheets by weekEnding (last 5 weeks)
@@ -195,6 +215,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
     qualifications,
     certificates,
     documents,
+    nextShift,
     stats: {
       activeRocks: Number(activeRocks) || 0,
       openTodos: Number(openTodos) || 0,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,6 +13,8 @@ import { useRoster, type RosterChild } from "@/hooks/useRoster";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/Button";
+import { ServiceWeeklyShiftsGrid } from "./ServiceWeeklyShiftsGrid";
+import { cn } from "@/lib/utils";
 
 interface ServiceWeeklyRosterTabProps {
   serviceId: string;
@@ -50,7 +53,18 @@ function getWeekDates(monday: Date): string[] {
   });
 }
 
-export function ServiceWeeklyRosterTab({ serviceId }: ServiceWeeklyRosterTabProps) {
+export function ServiceWeeklyRosterTab({ serviceId, serviceName }: ServiceWeeklyRosterTabProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const rawSub = searchParams?.get("sub") ?? "bookings";
+  const sub: "bookings" | "shifts" = rawSub === "shifts" ? "shifts" : "bookings";
+
+  const setSub = (next: "bookings" | "shifts") => {
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.set("sub", next);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
+
   const [weekOffset, setWeekOffset] = useState(0);
   const [sessionType, setSessionType] = useState("asc");
 
@@ -65,6 +79,80 @@ export function ServiceWeeklyRosterTab({ serviceId }: ServiceWeeklyRosterTabProp
 
   const { data: roster, isLoading, error } = useRoster(serviceId, weekStart);
 
+  return (
+    <div className="space-y-4">
+      {/* Sub-pill: Bookings vs Shifts */}
+      <div className="flex gap-2 border-b border-border">
+        <button
+          type="button"
+          onClick={() => setSub("bookings")}
+          className={cn(
+            "px-4 py-2 text-sm transition-colors",
+            sub === "bookings"
+              ? "border-b-2 border-brand font-medium text-foreground"
+              : "text-muted hover:text-foreground",
+          )}
+        >
+          Bookings
+        </button>
+        <button
+          type="button"
+          onClick={() => setSub("shifts")}
+          className={cn(
+            "px-4 py-2 text-sm transition-colors",
+            sub === "shifts"
+              ? "border-b-2 border-brand font-medium text-foreground"
+              : "text-muted hover:text-foreground",
+          )}
+        >
+          Shifts
+        </button>
+      </div>
+
+      {sub === "shifts" && (
+        <ServiceWeeklyShiftsGrid serviceId={serviceId} serviceName={serviceName} />
+      )}
+
+      {sub === "bookings" && (
+        <BookingsView
+          isLoading={isLoading}
+          error={error}
+          weekOffset={weekOffset}
+          setWeekOffset={setWeekOffset}
+          monday={monday}
+          weekDates={weekDates}
+          sessionType={sessionType}
+          setSessionType={setSessionType}
+          roster={roster}
+        />
+      )}
+    </div>
+  );
+}
+
+interface BookingsViewProps {
+  isLoading: boolean;
+  error: Error | null;
+  weekOffset: number;
+  setWeekOffset: React.Dispatch<React.SetStateAction<number>>;
+  monday: Date;
+  weekDates: string[];
+  sessionType: string;
+  setSessionType: React.Dispatch<React.SetStateAction<string>>;
+  roster: Record<string, Record<string, RosterChild[]>> | undefined;
+}
+
+function BookingsView({
+  isLoading,
+  error,
+  weekOffset,
+  setWeekOffset,
+  monday,
+  weekDates,
+  sessionType,
+  setSessionType,
+  roster,
+}: BookingsViewProps) {
   return (
     <div className="space-y-4">
       {/* Week Navigator + Session Toggle */}

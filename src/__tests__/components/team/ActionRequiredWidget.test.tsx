@@ -21,6 +21,7 @@ function installFetchMock(counts: {
   certsExpiring: number;
   leavePending: number;
   timesheetsPending: number;
+  shiftSwapsPending: number;
 }) {
   global.fetch = vi.fn().mockImplementation(async (url: string | URL) => {
     const u = String(url);
@@ -47,7 +48,7 @@ describe("ActionRequiredWidget — role visibility", () => {
   });
 
   it("renders nothing for role=staff (hidden)", () => {
-    installFetchMock({ certsExpiring: 5, leavePending: 3, timesheetsPending: 2 });
+    installFetchMock({ certsExpiring: 5, leavePending: 3, timesheetsPending: 2, shiftSwapsPending: 1 });
     const qc = makeClient();
     const { container } = render(
       <ActionRequiredWidget userRole="staff" />,
@@ -58,7 +59,7 @@ describe("ActionRequiredWidget — role visibility", () => {
   });
 
   it("renders nothing for role=member (hidden)", () => {
-    installFetchMock({ certsExpiring: 5, leavePending: 3, timesheetsPending: 2 });
+    installFetchMock({ certsExpiring: 5, leavePending: 3, timesheetsPending: 2, shiftSwapsPending: 1 });
     const qc = makeClient();
     const { container } = render(
       <ActionRequiredWidget userRole="member" />,
@@ -69,7 +70,7 @@ describe("ActionRequiredWidget — role visibility", () => {
   });
 
   it("renders nothing for role=marketing (hidden)", () => {
-    installFetchMock({ certsExpiring: 5, leavePending: 3, timesheetsPending: 2 });
+    installFetchMock({ certsExpiring: 5, leavePending: 3, timesheetsPending: 2, shiftSwapsPending: 1 });
     const qc = makeClient();
     const { container } = render(
       <ActionRequiredWidget userRole="marketing" />,
@@ -79,8 +80,8 @@ describe("ActionRequiredWidget — role visibility", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders all three cards for role=admin", async () => {
-    installFetchMock({ certsExpiring: 4, leavePending: 2, timesheetsPending: 6 });
+  it("renders all four cards for role=admin", async () => {
+    installFetchMock({ certsExpiring: 4, leavePending: 2, timesheetsPending: 6, shiftSwapsPending: 3 });
     const qc = makeClient();
     render(<ActionRequiredWidget userRole="admin" />, {
       wrapper: makeWrapper(qc),
@@ -91,6 +92,7 @@ describe("ActionRequiredWidget — role visibility", () => {
     });
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("6")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
     expect(
       screen.getByText(/certs expiring within 30 days/i),
     ).toBeInTheDocument();
@@ -100,10 +102,30 @@ describe("ActionRequiredWidget — role visibility", () => {
     expect(
       screen.getByText(/timesheets awaiting review/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/shift swaps pending approval/i),
+    ).toBeInTheDocument();
   });
 
-  it("renders all three cards for role=coordinator", async () => {
-    installFetchMock({ certsExpiring: 1, leavePending: 0, timesheetsPending: 3 });
+  it("renders 4th shift swap card for role=admin when count > 0", async () => {
+    installFetchMock({ certsExpiring: 0, leavePending: 0, timesheetsPending: 0, shiftSwapsPending: 5 });
+    const qc = makeClient();
+    render(<ActionRequiredWidget userRole="admin" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("5")).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText(/shift swaps pending approval/i),
+    ).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /shift swaps/i });
+    expect(link).toHaveAttribute("href", "/roster/swaps?filter=pending");
+  });
+
+  it("renders all four cards for role=coordinator", async () => {
+    installFetchMock({ certsExpiring: 1, leavePending: 0, timesheetsPending: 3, shiftSwapsPending: 0 });
     const qc = makeClient();
     render(<ActionRequiredWidget userRole="coordinator" />, {
       wrapper: makeWrapper(qc),
@@ -112,12 +134,13 @@ describe("ActionRequiredWidget — role visibility", () => {
     await waitFor(() => {
       expect(screen.getByText("1")).toBeInTheDocument();
     });
-    expect(screen.getByText("0")).toBeInTheDocument();
+    // Two cards with count 0 (leavePending and shiftSwapsPending)
+    expect(screen.getAllByText("0")).toHaveLength(2);
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
-  it("hides the widget when all counts are 0", async () => {
-    installFetchMock({ certsExpiring: 0, leavePending: 0, timesheetsPending: 0 });
+  it("hides the widget when all 4 counts are 0", async () => {
+    installFetchMock({ certsExpiring: 0, leavePending: 0, timesheetsPending: 0, shiftSwapsPending: 0 });
     const qc = makeClient();
     const { container } = render(
       <ActionRequiredWidget userRole="admin" />,

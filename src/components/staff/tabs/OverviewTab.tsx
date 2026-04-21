@@ -1,7 +1,9 @@
 import type { User, Service } from "@prisma/client";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
 import { RoleBadge } from "@/components/staff/RoleBadge";
+import { ShiftChip } from "@/components/roster/ShiftChip";
 import { Mountain, CheckSquare, CalendarOff, ShieldCheck, Clock } from "lucide-react";
+import type { StaffProfileNextShift } from "@/components/staff/StaffProfileTabs";
 
 interface OverviewTabProps {
   targetUser: User & { service?: Service | null };
@@ -12,6 +14,7 @@ interface OverviewTabProps {
     validCertCount: number;
     expiringCertCount: number;
   };
+  nextShift: StaffProfileNextShift | null;
 }
 
 function formatDate(d: Date | null | undefined): string {
@@ -38,7 +41,7 @@ function tenure(start: Date | null | undefined): string {
   return `${years}y ${remMonths}m`;
 }
 
-export function OverviewTab({ targetUser, stats }: OverviewTabProps) {
+export function OverviewTab({ targetUser, stats, nextShift }: OverviewTabProps) {
   return (
     <div className="space-y-6">
       {/* Hero card */}
@@ -95,8 +98,47 @@ export function OverviewTab({ targetUser, stats }: OverviewTabProps) {
           value={stats.validCertCount}
           sub={stats.expiringCertCount > 0 ? `${stats.expiringCertCount} expiring` : undefined}
         />
-        <StatCard icon={Clock} label="Next shift" value="Coming soon" small />
+        <NextShiftCard nextShift={nextShift} />
       </div>
+    </div>
+  );
+}
+
+function NextShiftCard({ nextShift }: { nextShift: StaffProfileNextShift | null }) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <div className="flex items-center gap-2 text-muted">
+        <Clock className="w-4 h-4" />
+        <span className="text-xs uppercase tracking-wide">Next shift</span>
+      </div>
+      {nextShift ? (
+        <div className="mt-2">
+          <div className="text-xs text-muted mb-1">
+            {new Date(nextShift.date).toLocaleDateString("en-AU", {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+            })}
+          </div>
+          <ShiftChip
+            shift={{
+              id: nextShift.id,
+              userId: nextShift.userId,
+              staffName: nextShift.staffName,
+              shiftStart: nextShift.shiftStart,
+              shiftEnd: nextShift.shiftEnd,
+              sessionType: nextShift.sessionType,
+              role: nextShift.role,
+              status:
+                nextShift.status === "published" ? "published" : "draft",
+            }}
+          />
+        </div>
+      ) : (
+        <div className="mt-1 text-sm font-medium text-muted">
+          No upcoming shifts
+        </div>
+      )}
     </div>
   );
 }

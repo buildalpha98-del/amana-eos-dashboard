@@ -130,6 +130,10 @@ export const allPages = [
   "/marketing/email/compose",
   // Staff profile (People module)
   "/staff/[id]",
+  // Roster self-view (People module)
+  "/roster/me",
+  // Roster — shift swap inbox
+  "/roster/swaps",
 ] as const;
 
 export type AppPage = (typeof allPages)[number];
@@ -161,6 +165,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/documents",
     "/profile",
     "/staff/[id]",
+    "/roster/me",
+    "/roster/swaps",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
     "/tools/amana-way-one-pager",
@@ -187,6 +193,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/onboarding",
     "/profile",
     "/staff/[id]",
+    "/roster/me",
+    "/roster/swaps",
     "/incidents",
     "/policies",
     "/holiday-quest",
@@ -228,6 +236,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/onboarding",
     "/profile",
     "/staff/[id]",
+    "/roster/me",
+    "/roster/swaps",
     "/incidents",
     "/policies",
     "/holiday-quest",
@@ -265,6 +275,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/policies",
     "/profile",
     "/staff/[id]",
+    "/roster/me",
+    "/roster/swaps",
     "/leave",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",

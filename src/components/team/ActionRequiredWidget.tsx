@@ -2,13 +2,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
-import { Shield, Calendar, Clock } from "lucide-react";
+import { Shield, Calendar, Clock, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 interface ActionCounts {
   certsExpiring: number;
   leavePending: number;
   timesheetsPending: number;
+  shiftSwapsPending: number;
 }
 
 /**
@@ -41,13 +42,19 @@ export function ActionRequiredWidget({ userRole }: { userRole: string }) {
   if (hidden) return null;
   if (!data) return null;
 
-  const { certsExpiring, leavePending, timesheetsPending } = data;
-  if (certsExpiring === 0 && leavePending === 0 && timesheetsPending === 0) {
+  const { certsExpiring, leavePending, timesheetsPending, shiftSwapsPending } =
+    data;
+  if (
+    certsExpiring === 0 &&
+    leavePending === 0 &&
+    timesheetsPending === 0 &&
+    shiftSwapsPending === 0
+  ) {
     return null;
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <Link
         href="/compliance?filter=expiring"
         className="border rounded-lg p-4 bg-white hover:bg-amber-50 transition flex items-center gap-3"
@@ -81,6 +88,18 @@ export function ActionRequiredWidget({ userRole }: { userRole: string }) {
           <div className="text-2xl font-semibold">{timesheetsPending}</div>
           <div className="text-sm text-gray-600">
             timesheets awaiting review
+          </div>
+        </div>
+      </Link>
+      <Link
+        href="/roster/swaps?filter=pending"
+        className="border rounded-lg p-4 bg-white hover:bg-orange-50 transition flex items-center gap-3"
+      >
+        <RefreshCw className="h-8 w-8 text-orange-600" />
+        <div>
+          <div className="text-2xl font-semibold">{shiftSwapsPending}</div>
+          <div className="text-sm text-gray-600">
+            shift swaps pending approval
           </div>
         </div>
       </Link>

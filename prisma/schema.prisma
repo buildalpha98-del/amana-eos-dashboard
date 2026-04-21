@@ -604,6 +604,13 @@ model User {
   // ── In-App Notifications ──────────────────────────
   notifications UserNotification[] @relation("UserNotifications")
 
+  // ── Staff Rostering ──────────────────────────────
+  rosterShifts        RosterShift[]      @relation("UserRosterShifts")
+  createdRosterShifts RosterShift[]      @relation("CreatedRosterShifts")
+  proposedShiftSwaps  ShiftSwapRequest[] @relation("ProposedShiftSwaps")
+  targetShiftSwaps    ShiftSwapRequest[] @relation("TargetShiftSwaps")
+  approvedShiftSwaps  ShiftSwapRequest[] @relation("ApprovedShiftSwaps")
+
   @@index([serviceId])
 }
 
@@ -3413,11 +3420,49 @@ model RosterShift {
   role        String? // "coordinator", "educator", "assistant"
   syncedAt    DateTime    @default(now())
 
+  userId            String?
+  user              User?              @relation("UserRosterShifts", fields: [userId], references: [id], onDelete: SetNull)
+  status            String             @default("published")
+  publishedAt       DateTime?
+  createdById       String?
+  createdBy         User?              @relation("CreatedRosterShifts", fields: [createdById], references: [id], onDelete: SetNull)
+  shiftSwapRequests ShiftSwapRequest[] @relation("ShiftSwapRequests")
+
   @@unique([serviceId, date, staffName, shiftStart])
   @@index([serviceId])
   @@index([date])
   @@index([serviceId, date])
   @@index([date, staffName])
+  @@index([userId])
+  @@index([userId, date])
+  @@index([status])
+}
+
+/// Staff-initiated request to swap or cover a shift.
+/// 3-step flow: proposer → target accepts → admin/coordinator approves.
+model ShiftSwapRequest {
+  id             String      @id @default(cuid())
+  shiftId        String
+  shift          RosterShift @relation("ShiftSwapRequests", fields: [shiftId], references: [id], onDelete: Cascade)
+  proposerId     String
+  proposer       User        @relation("ProposedShiftSwaps", fields: [proposerId], references: [id])
+  targetId       String
+  target         User        @relation("TargetShiftSwaps", fields: [targetId], references: [id])
+  reason         String?
+  status         String      @default("proposed")
+  acceptedAt     DateTime?
+  approvedAt     DateTime?
+  approvedById   String?
+  approvedBy     User?       @relation("ApprovedShiftSwaps", fields: [approvedById], references: [id], onDelete: SetNull)
+  rejectedAt     DateTime?
+  rejectedReason String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([proposerId])
+  @@index([targetId])
+  @@index([status])
+  @@index([shiftId])
 }
 
 // ── Conversion Tracking ──────────────────────────────────

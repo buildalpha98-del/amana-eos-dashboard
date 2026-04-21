@@ -4,13 +4,12 @@ import { sendEmail } from "@/lib/email";
 import { acquireCronLock } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
+import { computeRatio } from "@/lib/roster-ratio";
 
 const BRAND_COLOR = "#004E64";
 const ACCENT_COLOR = "#FECE00";
 const DASHBOARD_URL =
   process.env.NEXTAUTH_URL || "https://dashboard.amanaoshc.com.au";
-
-const RATIO_THRESHOLD = 13;
 
 interface ShiftGap {
   serviceName: string;
@@ -117,20 +116,9 @@ export const GET = withApiHandler(async (req) => {
       const service = shifts.find((s) => s.serviceId === serviceId)?.service;
       const serviceName = shiftData?.serviceName || service?.name || "Unknown";
 
-      // Flag: no staff rostered for session with enrolled children
-      if (staffCount === 0) {
-        gaps.push({
-          serviceName,
-          serviceId,
-          date: dateStr,
-          sessionType,
-          staffCount: 0,
-          enrolled,
-          issue: "no_staff",
-        });
-      }
-      // Flag: ratio exceeds threshold
-      else if (enrolled / staffCount > RATIO_THRESHOLD) {
+      // Flag: no staff rostered or ratio exceeds threshold
+      const ratioResult = computeRatio(staffCount, enrolled);
+      if (ratioResult.status === "breach") {
         gaps.push({
           serviceName,
           serviceId,
@@ -138,8 +126,8 @@ export const GET = withApiHandler(async (req) => {
           sessionType,
           staffCount,
           enrolled,
-          issue: "high_ratio",
-          ratio: Math.round((enrolled / staffCount) * 10) / 10,
+          issue: staffCount === 0 ? "no_staff" : "high_ratio",
+          ratio: staffCount === 0 ? undefined : Math.round((enrolled / staffCount) * 10) / 10,
         });
       }
     }
