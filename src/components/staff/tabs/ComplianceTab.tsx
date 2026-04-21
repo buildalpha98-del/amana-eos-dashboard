@@ -1,5 +1,6 @@
 import type { StaffQualification, ComplianceCertificate } from "@prisma/client";
 import { CertStatusBadge } from "@/components/staff/CertStatusBadge";
+import { CertActionBar } from "@/components/compliance/CertActionBar";
 import { Download } from "lucide-react";
 
 interface ComplianceTabProps {
@@ -78,16 +79,6 @@ export function ComplianceTab({ qualifications, certificates, canManage }: Compl
       <div className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-foreground">Compliance certificates</h3>
-          {canManage && (
-            <button
-              type="button"
-              disabled
-              title="Upload lands in a future chunk"
-              className="text-sm text-muted px-3 py-1 rounded-md border border-border opacity-60 cursor-not-allowed"
-            >
-              Upload certificate
-            </button>
-          )}
         </div>
         {certificates.length === 0 ? (
           <p className="text-sm text-muted">No certificates uploaded.</p>
@@ -107,17 +98,11 @@ export function ComplianceTab({ qualifications, certificates, canManage }: Compl
                   Expires: {formatDate(c.expiryDate)}
                 </div>
                 <CertStatusBadge expiryDate={c.expiryDate} />
-                {c.fileUrl && (
-                  <a
-                    href={c.fileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Download
-                  </a>
-                )}
+                <CertActionBar
+                  cert={c}
+                  canEdit={canManage}
+                  canDelete={canManage}
+                />
               </li>
             ))}
           </ul>

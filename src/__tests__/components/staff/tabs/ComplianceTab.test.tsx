@@ -73,23 +73,46 @@ describe("ComplianceTab", () => {
       />,
     );
     expect(container.textContent).toContain("WWCC VIC");
-    const download = container.querySelector('a[href="https://example.com/c1.pdf"]');
+    // Download link now routes through the access-checked download route
+    const download = container.querySelector('a[href="/api/compliance/c1/download"]');
     expect(download).not.toBeNull();
   });
 
-  it("hides Add/Upload buttons when canManage is false", () => {
+  it("hides the Add qualification button when canManage is false", () => {
     const { container } = render(
       <ComplianceTab qualifications={[]} certificates={[]} canManage={false} />,
     );
     expect(container.textContent).not.toContain("Add qualification");
-    expect(container.textContent).not.toContain("Upload certificate");
   });
 
-  it("shows Add/Upload buttons when canManage is true", () => {
+  it("shows the Add qualification button when canManage is true", () => {
     const { container } = render(
       <ComplianceTab qualifications={[]} certificates={[]} canManage={true} />,
     );
     expect(container.textContent).toContain("Add qualification");
-    expect(container.textContent).toContain("Upload certificate");
+  });
+
+  it("hides Replace/Delete actions on cert cards when canManage is false", () => {
+    const { container } = render(
+      <ComplianceTab
+        qualifications={[]}
+        certificates={[makeCert()]}
+        canManage={false}
+      />,
+    );
+    expect(container.textContent).not.toContain("Replace");
+    expect(container.textContent).not.toContain("Delete");
+  });
+
+  it("shows Replace/Delete actions on cert cards when canManage is true", () => {
+    const { container } = render(
+      <ComplianceTab
+        qualifications={[]}
+        certificates={[makeCert()]}
+        canManage={true}
+      />,
+    );
+    expect(container.textContent).toContain("Replace");
+    expect(container.textContent).toContain("Delete");
   });
 });
