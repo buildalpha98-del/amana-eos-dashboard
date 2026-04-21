@@ -13,6 +13,7 @@ const updateDocumentSchema = z.object({
   category: z.string().nullable().optional(),
   tags: z.array(z.string()).optional(),
   centreId: z.string().nullable().optional(),
+  allServices: z.boolean().optional(),
   fileUrl: z.string().url().optional(),
 });
 
@@ -25,10 +26,15 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const { centreId, ...rest } = parsed.data;
+  const { centreId, allServices, ...rest } = parsed.data;
   const updateData: Record<string, unknown> = { ...rest };
-  if (centreId !== undefined) {
-    updateData.centre = centreId ? { connect: { id: centreId } } : { disconnect: true };
+  if (allServices !== undefined) {
+    updateData.allServices = allServices;
+  }
+  // When allServices is set to true, clear centreId (org-wide visibility supersedes centre scope)
+  const effectiveCentreId = allServices === true ? null : centreId;
+  if (effectiveCentreId !== undefined) {
+    updateData.centre = effectiveCentreId ? { connect: { id: effectiveCentreId } } : { disconnect: true };
   }
 
   const document = await prisma.document.update({

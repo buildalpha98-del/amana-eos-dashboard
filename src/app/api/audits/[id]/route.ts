@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
@@ -10,6 +10,13 @@ const patchSchema = z.object({
   areasForImprovement: z.string().optional(),
   actionPlan: z.string().optional(),
   comments: z.string().optional(),
+  // Reschedule / inline-edit fields
+  scheduledMonth: z.number().int().min(1).max(12).optional(),
+  scheduledYear: z.number().int().min(2020).max(2100).optional(),
+  dueDate: z.string().datetime().optional().nullable(),
+  templateId: z.string().optional(),
+  serviceId: z.string().optional(),
+  auditorId: z.string().nullable().optional(),
 });
 /**
  * GET /api/audits/[id] — full audit instance detail with responses
@@ -132,6 +139,15 @@ const { id } = await context!.params!;
   if (areasForImprovement !== undefined) data.areasForImprovement = areasForImprovement;
   if (actionPlan !== undefined) data.actionPlan = actionPlan;
   if (comments !== undefined) data.comments = comments;
+
+  if (parsed.data.scheduledMonth !== undefined) data.scheduledMonth = parsed.data.scheduledMonth;
+  if (parsed.data.scheduledYear !== undefined) data.scheduledYear = parsed.data.scheduledYear;
+  if (parsed.data.dueDate !== undefined) {
+    data.dueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
+  }
+  if (parsed.data.templateId !== undefined) data.templateId = parsed.data.templateId;
+  if (parsed.data.serviceId !== undefined) data.serviceId = parsed.data.serviceId;
+  if (parsed.data.auditorId !== undefined) data.auditorId = parsed.data.auditorId;
 
   const updated = await prisma.auditInstance.update({
     where: { id },

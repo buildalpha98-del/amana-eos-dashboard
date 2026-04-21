@@ -14,6 +14,7 @@ const createDocumentSchema = z.object({
   fileSize: z.number().optional(),
   mimeType: z.string().optional(),
   centreId: z.string().optional().nullable(),
+  allServices: z.boolean().optional().default(false),
   folderId: z.string().optional().nullable(),
   tags: z.array(z.string()).optional(),
 });
@@ -51,6 +52,7 @@ const { searchParams } = new URL(req.url);
     where.OR = [
       { centreId: staffServiceId },
       { centreId: null },
+      { allServices: true },
       ...(search
         ? [
             { title: { contains: search, mode: "insensitive" as const } },
@@ -65,8 +67,11 @@ const { searchParams } = new URL(req.url);
       return NextResponse.json({ documents: [], total: 0, page, totalPages: 0 });
     }
     if (centreId) {
-      where.centreId = centreId;
-      delete where.OR;
+      // Keep allServices docs visible even when filtering to a specific centre
+      where.OR = [
+        { centreId },
+        { allServices: true },
+      ];
     }
   } else if (centreId) {
     where.centreId = centreId;
@@ -106,12 +111,16 @@ const body = await parseJsonBody(req);
     );
   }
 
+  const createData = {
+    ...parsed.data,
+    // allServices=true means org-wide visibility — clear any stale centreId.
+    centreId: parsed.data.allServices ? null : parsed.data.centreId ?? null,
+    tags: parsed.data.tags || [],
+    uploadedById: session!.user.id,
+  };
+
   const document = await prisma.document.create({
-    data: {
-      ...parsed.data,
-      tags: parsed.data.tags || [],
-      uploadedById: session!.user.id,
-    },
+    data: createData,
     include: {
       uploadedBy: { select: { id: true, name: true, email: true } },
       centre: { select: { id: true, name: true, code: true } },

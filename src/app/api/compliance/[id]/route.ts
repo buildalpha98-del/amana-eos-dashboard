@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { uploadFile, deleteFile } from "@/lib/storage";
+import { isAdminRole } from "@/lib/role-permissions";
 const updateCertSchema = z.object({
   type: z.enum(["wwcc", "first_aid", "anaphylaxis", "asthma", "cpr", "police_check", "annual_review", "other"]).optional(),
   label: z.string().nullable().optional(),
@@ -18,6 +19,33 @@ const updateCertSchema = z.object({
 
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
+
+  // Resource-level access check (mirrors /api/compliance/[id]/download auth matrix):
+  //   - Own cert: allowed
+  //   - Admin role: allowed
+  //   - Coordinator whose service matches the cert's service: allowed
+  //   - Anyone else: 403
+  const existing = await prisma.complianceCertificate.findUnique({
+    where: { id },
+    select: { id: true, userId: true, serviceId: true, fileUrl: true },
+  });
+  if (!existing) throw ApiError.notFound("Certificate not found");
+
+  const viewerId = session.user.id;
+  const viewerRole = session.user.role ?? "";
+  const isOwn = existing.userId === viewerId;
+  const isAdmin = isAdminRole(viewerRole);
+
+  let canAccess = isOwn || isAdmin;
+  if (!canAccess && viewerRole === "coordinator") {
+    const viewer = await prisma.user.findUnique({
+      where: { id: viewerId },
+      select: { serviceId: true },
+    });
+    canAccess = !!viewer?.serviceId && viewer.serviceId === existing.serviceId;
+  }
+  if (!canAccess) throw ApiError.forbidden();
+
   const contentType = req.headers.get("content-type") ?? "";
 
   let rawData: unknown;
@@ -40,13 +68,6 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     const file = form.get("file");
     if (file && typeof file !== "string" && (file as File).size > 0) {
       const fileObj = file as File;
-
-      // Load existing cert to delete the prior blob (avoid orphaned files)
-      const existing = await prisma.complianceCertificate.findUnique({
-        where: { id },
-        select: { fileUrl: true, userId: true, serviceId: true },
-      });
-      if (!existing) throw ApiError.notFound("Certificate not found");
 
       const buffer = Buffer.from(await fileObj.arrayBuffer());
       const folderKey = existing.userId ?? existing.serviceId ?? "service";
@@ -93,7 +114,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(cert);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "coordinator", "staff", "member"] });
 
 export const DELETE = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;

@@ -190,6 +190,7 @@ export function useAcknowledgePolicy() {
       queryClient.invalidateQueries({ queryKey: ["policy"] });
       queryClient.invalidateQueries({ queryKey: ["policies-compliance"] });
       queryClient.invalidateQueries({ queryKey: ["my-pending-policies"] });
+      queryClient.invalidateQueries({ queryKey: ["policy-heat-map"] });
       toast({ description: "Policy acknowledged" });
     },
     onError: (err: Error) => {
@@ -216,6 +217,50 @@ export function useMyPendingPolicies() {
     queryKey: ["my-pending-policies"],
     queryFn: () => fetchApi<PolicyData[]>("/api/policies/my-pending"),
     staleTime: 30_000,
+    retry: 2,
+  });
+}
+
+// ── Policy Heat-Map ──────────────────────────────────────────────────────────
+
+export interface PolicyHeatMapAck {
+  policyId: string;
+  policyVersion: number;
+  acknowledgedAt: string;
+}
+
+export interface PolicyHeatMapRow {
+  userId: string;
+  userName: string;
+  serviceName: string;
+  serviceCode: string;
+  acknowledgements: PolicyHeatMapAck[];
+}
+
+export interface PolicyHeatMapPolicy {
+  id: string;
+  title: string;
+  version: number;
+  category: string | null;
+  publishedAt: string | null;
+}
+
+export interface PolicyHeatMapData {
+  rows: PolicyHeatMapRow[];
+  policies: PolicyHeatMapPolicy[];
+  summary: {
+    totalStaff: number;
+    fullyAcknowledged: number;
+    partial: number;
+    none: number;
+  };
+}
+
+export function usePolicyHeatMap() {
+  return useQuery<PolicyHeatMapData>({
+    queryKey: ["policy-heat-map"],
+    queryFn: () => fetchApi<PolicyHeatMapData>("/api/policies/heat-map"),
+    staleTime: 60_000,
     retry: 2,
   });
 }
