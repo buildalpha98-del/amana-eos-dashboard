@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
 import { ShiftChip, type ShiftChipShift } from "@/components/roster/ShiftChip";
+import { ShiftSwapDialog } from "@/components/roster/ShiftSwapDialog";
 
 interface WeekShift extends ShiftChipShift {
   date: string; // ISO
+  service?: { id: string; name: string } | null;
 }
 
 interface MyWeekShiftsProps {
@@ -34,7 +37,7 @@ export function MyWeekShifts({ userId, weekStart }: MyWeekShiftsProps) {
   end.setDate(end.getDate() + 6);
   const endStr = end.toISOString().split("T")[0];
 
-  const { data, isLoading, error } = useQuery<{ shifts: WeekShift[] }>({
+  const { data, isLoading, error, refetch } = useQuery<{ shifts: WeekShift[] }>({
     queryKey: ["my-week-shifts", userId, weekStart],
     queryFn: () =>
       fetchApi<{ shifts: WeekShift[] }>(
@@ -46,6 +49,14 @@ export function MyWeekShifts({ userId, weekStart }: MyWeekShiftsProps) {
   });
 
   const days = weekDates(weekStart);
+
+  const [swapDialogShift, setSwapDialogShift] = useState<{
+    id: string;
+    serviceId: string;
+    date: string;
+    shiftStart: string;
+    shiftEnd: string;
+  } | null>(null);
 
   return (
     <div data-testid="my-week-shifts">
@@ -72,13 +83,44 @@ export function MyWeekShifts({ userId, weekStart }: MyWeekShiftsProps) {
                 ) : dayShifts.length === 0 ? (
                   <span className="text-xs text-muted/70">Off</span>
                 ) : (
-                  dayShifts.map((s) => <ShiftChip key={s.id} shift={s} />)
+                  dayShifts.map((s) => (
+                    <ShiftChip
+                      key={s.id}
+                      shift={s}
+                      currentUserId={userId}
+                      onRequestSwap={
+                        s.service?.id
+                          ? () =>
+                              setSwapDialogShift({
+                                id: s.id,
+                                serviceId: s.service!.id,
+                                date,
+                                shiftStart: s.shiftStart,
+                                shiftEnd: s.shiftEnd,
+                              })
+                          : undefined
+                      }
+                    />
+                  ))
                 )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {swapDialogShift && (
+        <ShiftSwapDialog
+          open
+          onClose={() => setSwapDialogShift(null)}
+          shift={swapDialogShift}
+          currentUserId={userId}
+          onSubmitted={() => {
+            setSwapDialogShift(null);
+            void refetch();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock } from "lucide-react";
 import { fetchApi } from "@/lib/fetch-api";
 import { ShiftChip, type ShiftChipShift } from "@/components/roster/ShiftChip";
+import { ShiftSwapDialog } from "@/components/roster/ShiftSwapDialog";
 
 interface MineShift extends ShiftChipShift {
   date: string; // ISO string from the API
@@ -31,10 +33,14 @@ function formatDate(iso: string): string {
   });
 }
 
+function isoDate(value: string): string {
+  return new Date(value).toISOString().split("T")[0];
+}
+
 export function MyUpcomingShiftsCard({ userId }: MyUpcomingShiftsCardProps) {
   const { from, to } = nextSevenDays();
 
-  const { data, isLoading, error } = useQuery<{ shifts: MineShift[] }>({
+  const { data, isLoading, error, refetch } = useQuery<{ shifts: MineShift[] }>({
     queryKey: ["my-shifts", userId, from, to],
     queryFn: () =>
       fetchApi<{ shifts: MineShift[] }>(
@@ -44,6 +50,14 @@ export function MyUpcomingShiftsCard({ userId }: MyUpcomingShiftsCardProps) {
     retry: 2,
     staleTime: 60_000,
   });
+
+  const [swapDialogShift, setSwapDialogShift] = useState<{
+    id: string;
+    serviceId: string;
+    date: string;
+    shiftStart: string;
+    shiftEnd: string;
+  } | null>(null);
 
   return (
     <div
@@ -76,13 +90,41 @@ export function MyUpcomingShiftsCard({ userId }: MyUpcomingShiftsCardProps) {
               <span className="text-xs text-muted w-28 flex-shrink-0">
                 {formatDate(s.date)}
               </span>
-              <ShiftChip shift={s} />
+              <ShiftChip
+                shift={s}
+                currentUserId={userId}
+                onRequestSwap={
+                  s.service?.id
+                    ? () =>
+                        setSwapDialogShift({
+                          id: s.id,
+                          serviceId: s.service!.id,
+                          date: isoDate(s.date),
+                          shiftStart: s.shiftStart,
+                          shiftEnd: s.shiftEnd,
+                        })
+                    : undefined
+                }
+              />
               {s.service?.name ? (
                 <span className="text-xs text-muted">{s.service.name}</span>
               ) : null}
             </li>
           ))}
         </ul>
+      )}
+
+      {swapDialogShift && (
+        <ShiftSwapDialog
+          open
+          onClose={() => setSwapDialogShift(null)}
+          shift={swapDialogShift}
+          currentUserId={userId}
+          onSubmitted={() => {
+            setSwapDialogShift(null);
+            void refetch();
+          }}
+        />
       )}
     </div>
   );

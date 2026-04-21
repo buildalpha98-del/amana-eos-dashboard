@@ -8,6 +8,7 @@ import { useTeam } from "@/hooks/useTeam";
 import { ShiftChip, type ShiftChipShift } from "@/components/roster/ShiftChip";
 import { RatioBadge } from "@/components/roster/RatioBadge";
 import { ShiftEditModal } from "@/components/roster/ShiftEditModal";
+import { ShiftSwapDialog } from "@/components/roster/ShiftSwapDialog";
 import { StaffAvatar } from "@/components/staff/StaffAvatar";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -123,6 +124,14 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
   const [modalState, setModalState] = useState<ModalState>(null);
   const [publishing, setPublishing] = useState(false);
   const [copying, setCopying] = useState(false);
+  const [swapDialogShift, setSwapDialogShift] =
+    useState<{
+      id: string;
+      serviceId: string;
+      date: string;
+      shiftStart: string;
+      shiftEnd: string;
+    } | null>(null);
 
   const handlePublish = async () => {
     setPublishing(true);
@@ -342,6 +351,16 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
                                       ? () => setModalState({ mode: "edit", shift: s })
                                       : undefined
                                   }
+                                  currentUserId={session?.user?.id}
+                                  onRequestSwap={() =>
+                                    setSwapDialogShift({
+                                      id: s.id,
+                                      serviceId,
+                                      date: dateIso(s.date),
+                                      shiftStart: s.shiftStart,
+                                      shiftEnd: s.shiftEnd,
+                                    })
+                                  }
                                 />
                               );
                             })}
@@ -399,6 +418,19 @@ export function ServiceWeeklyShiftsGrid({ serviceId }: ServiceWeeklyShiftsGridPr
           defaultDate={modalState.mode === "create" ? modalState.date : undefined}
           onSaved={() => {
             setModalState(null);
+            void refetch();
+          }}
+        />
+      )}
+
+      {swapDialogShift && session?.user?.id && (
+        <ShiftSwapDialog
+          open
+          onClose={() => setSwapDialogShift(null)}
+          shift={swapDialogShift}
+          currentUserId={session.user.id}
+          onSubmitted={() => {
+            setSwapDialogShift(null);
             void refetch();
           }}
         />

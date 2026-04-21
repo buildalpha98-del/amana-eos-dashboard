@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCheck, CheckCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,9 @@ import {
   useMarkAllNotificationsRead,
   type UserNotificationItem,
 } from "@/hooks/useNotifications";
+import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 
 interface NotificationPopoverProps {
   open: boolean;
@@ -31,14 +34,30 @@ function timeAgo(value: string | Date): string {
   return `${weeks}w ago`;
 }
 
+/**
+ * Parse the swap ID out of a notification link like `/roster/me?swap=<id>`.
+ * Returns `null` when the link is missing or doesn't carry a `swap` param.
+ */
+function extractSwapId(link: string | null): string | null {
+  if (!link) return null;
+  const query = link.includes("?") ? link.slice(link.indexOf("?") + 1) : "";
+  if (!query) return null;
+  const params = new URLSearchParams(query);
+  const id = params.get("swap");
+  return id && id.length > 0 ? id : null;
+}
+
 export function NotificationPopover({ open, onClose }: NotificationPopoverProps) {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Only fetch when the popover is open.
-  const { data, isLoading } = useNotifications({ enabled: open });
+  const { data, isLoading, refetch } = useNotifications({ enabled: open });
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllNotificationsRead();
+
+  // Track which swap action is in-flight — disables that row's buttons.
+  const [pendingSwap, setPendingSwap] = useState<string | null>(null);
 
   const notifications: UserNotificationItem[] = data?.notifications ?? [];
   // Show unread first, then most recent read (up to 10).
@@ -78,6 +97,39 @@ export function NotificationPopover({ open, onClose }: NotificationPopoverProps)
     onClose();
     if (n.link) router.push(n.link);
   };
+
+  async function handleSwapAction(
+    n: UserNotificationItem,
+    action: "accept" | "reject",
+  ) {
+    const swapId = extractSwapId(n.link);
+    if (!swapId) {
+      toast({
+        variant: "destructive",
+        description: "Could not determine which swap to respond to.",
+      });
+      return;
+    }
+    setPendingSwap(n.id);
+    try {
+      await mutateApi(`/api/shift-swaps/${swapId}/${action}`, {
+        method: "POST",
+        body: action === "reject" ? {} : undefined,
+      });
+      toast({
+        description: action === "accept" ? "Swap accepted." : "Swap rejected.",
+      });
+      if (!n.read) markRead.mutate(n.id);
+      void refetch();
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "Something went wrong",
+      });
+    } finally {
+      setPendingSwap(null);
+    }
+  }
 
   return (
     <div
@@ -119,33 +171,66 @@ export function NotificationPopover({ open, onClose }: NotificationPopoverProps)
           </div>
         ) : (
           <ul className="divide-y divide-border/40">
-            {items.map((n) => (
-              <li key={n.id}>
-                <button
-                  type="button"
-                  onClick={() => handleItemClick(n)}
-                  className={cn(
-                    "w-full text-left px-4 py-3 hover:bg-surface transition-colors cursor-pointer",
-                    !n.read && "bg-accent/5",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span
-                      className={cn(
-                        "text-xs font-semibold text-foreground",
-                        !n.read && "text-brand",
-                      )}
+            {items.map((n) => {
+              const showSwapActions =
+                n.type === NOTIFICATION_TYPES.SHIFT_SWAP_PROPOSED &&
+                !n.read &&
+                extractSwapId(n.link) !== null;
+              const isPending = pendingSwap === n.id;
+              return (
+                <li key={n.id}>
+                  <div
+                    className={cn(
+                      "px-4 py-3 hover:bg-surface transition-colors",
+                      !n.read && "bg-accent/5",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleItemClick(n)}
+                      className="w-full text-left cursor-pointer"
                     >
-                      {n.title}
-                    </span>
-                    <span className="text-[10px] text-muted flex-shrink-0">
-                      {timeAgo(n.createdAt)}
-                    </span>
+                      <div className="flex items-start justify-between gap-2">
+                        <span
+                          className={cn(
+                            "text-xs font-semibold text-foreground",
+                            !n.read && "text-brand",
+                          )}
+                        >
+                          {n.title}
+                        </span>
+                        <span className="text-[10px] text-muted flex-shrink-0">
+                          {timeAgo(n.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted mt-0.5 line-clamp-2">
+                        {n.body}
+                      </p>
+                    </button>
+                    {showSwapActions ? (
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => handleSwapAction(n, "accept")}
+                          disabled={isPending}
+                          className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-brand text-white hover:opacity-90 disabled:opacity-50"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSwapAction(n, "reject")}
+                          disabled={isPending}
+                          className="px-2.5 py-1 rounded-md text-[11px] font-medium border border-border hover:bg-surface disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
-                  <p className="text-xs text-muted mt-0.5 line-clamp-2">{n.body}</p>
-                </button>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
