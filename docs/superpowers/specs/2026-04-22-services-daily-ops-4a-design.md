@@ -13,13 +13,16 @@ Part 2 (Sub-project 4b, deferred) tackles: incidents tab, photos/gallery, parent
 
 ## Baseline
 
-- Main at `ba8ab55` (post #5/#7/#9 merges)
-- ~1700+ tests passing (baseline was 1298 before #5/#7/#9 landed — exact count to be captured in worktree setup)
+- Main at `ba8ab55` (post #5/#7/#9 merges). Exact test count at worktree-baseline step — each commit's gate re-asserts that number.
 - 0 `tsc --noEmit` errors
 - `/services/[id]/page.tsx` (504 lines) has 6 tab groups + sub-pill routing via `?tab=&sub=`
-- `ServiceTodayPanel.tsx` (414 lines) exists but currently renders inside overview card, not as a first-class tab
-- `Child` model has expanded profile fields (medicalConditions, dietaryRequirements, photo, ownaChildId for legacy sync)
-- `Service` model has capacity + rates + marketing fields; NO approval numbers, session times structure, or casual booking settings
+- `ServiceTodayPanel.tsx` (414 lines) renders at page-level above the tab group navigation in `src/app/(dashboard)/services/[id]/page.tsx` (~line 299) — NOT inside Overview. Commit 13 removes the page-level render + promotes its content into a first-class tab.
+- `Child` model has expanded profile fields (`medicalConditions String[]`, `dietaryRequirements String[]`, `photo`, `ownaChildId` for legacy sync); also has `bookingPrefs Json?` for session-type/days/booking-type preferences. NO `medicareNumber`, `medicareExpiry`, `medicareRef`, `vaccinationStatus` fields today — Commit 1 adds them.
+- `Service` model has capacity + rates + marketing fields; NO approval numbers, session times structure, or casual booking settings — Commit 1 adds them.
+- `AttendanceRecord` model (`prisma/schema.prisma:2450-2473`) already has `signInTime`, `signOutTime`, `signedInById`, `signedOutById`, `absenceReason`, `notes` — no migration needed for sign-in/out attribution.
+- `Booking` model is per-date (no recurring pattern field). Permanent-days pattern (Mon–Sun + Mon2–Sun2 fortnight) stored in `Child.bookingPrefs Json` — Commit 8 defines the JSON shape; no new Prisma model needed.
+- Existing attendance APIs: `/api/attendance/route.ts` (POST/GET global), `/api/attendance/roll-call/route.ts` (daily view used by `useRollCall`). Commit 5 REUSES these for the daily view and ADDS `/api/services/[id]/roll-call/weekly|monthly` for the new views — does NOT duplicate.
+- Existing children route: `/api/children/route.ts` with optional `?serviceId=` filter (NOT a per-service `/api/services/[id]/children` route). Commit 11 extends `/api/children` to optionally hydrate primary + secondary parents via `?includeParents=true`; does NOT create a new per-service route.
 
 ## In scope — 13 stacked commits
 
@@ -41,18 +44,29 @@ Part 2 (Sub-project 4b, deferred) tackles: incidents tab, photos/gallery, parent
 
 ---
 
-### Commit 1 — Schema additions
+### Commit 1 — Schema additions (all schema changes for 4a in one migration)
 
 New fields on `Service` model (all nullable, additive):
 
 ```prisma
 model Service {
   // ... existing fields ...
-
   serviceApprovalNumber  String?   // e.g. "SE-XXXXXXXX" (ACECQA service approval)
   providerApprovalNumber String?   // e.g. "PR-XXXXXXXX" (ACECQA provider approval)
   sessionTimes           Json?     // { bsc: { start: "06:30", end: "08:45" }, asc: { start: "15:00", end: "18:30" }, vc: { start: "08:00", end: "18:00" } }
   casualBookingSettings  Json?     // see shape below
+}
+```
+
+New fields on `Child` model (all nullable, additive — consumed by Commit 9 Medical tab):
+
+```prisma
+model Child {
+  // ... existing fields ...
+  medicareNumber     String?
+  medicareExpiry     DateTime?    // stored as a date; UI renders month/year
+  medicareRef        String?      // IRN reference #
+  vaccinationStatus  String?      // "up_to_date" | "partial" | "not_provided" | "exempt"
 }
 ```
 
@@ -67,15 +81,26 @@ model Service {
 
 Defaults (set client-side when editor opens for the first time): `enabled: false, fee: <centre's existing casual rate>, spots: 10, cutOffHours: 24, days: ["mon"..."fri"]`.
 
-**Zod validation** for both JSON fields lives in `src/lib/service-settings.ts` (new) alongside TypeScript types, so API routes + UI share one source of truth.
+`Child.bookingPrefs` **JSON shape** (existing field, formally documented here — used by Commit 8 Room/Days tab):
+```ts
+{
+  fortnightPattern: {
+    week1: { bsc?: ("mon"|"tue"|"wed"|"thu"|"fri"|"sat"|"sun")[]; asc?: same; vc?: same };
+    week2: { same shape as week1 };
+  };
+  // plus any existing keys — don't break them
+}
+```
 
-**Migration**: `npx prisma migrate dev --name add_service_approval_and_session_times`. Additive only.
+**Zod validation** for all three JSON shapes (`sessionTimes`, `casualBookingSettings`, `bookingPrefs.fortnightPattern`) lives in `src/lib/service-settings.ts` (new) alongside TypeScript types, so API routes + UI share one source of truth.
+
+**Migration**: `npx prisma migrate dev --name add_service_approval_session_times_child_medical`. Additive only — no column drops, no type changes. **No other commits in 4a ship schema changes** (single migration policy).
 
 ---
 
 ### Commit 2 — Overview tab: display new fields
 
-Add a "Service approvals" and "Session times" card to the Overview tab. Admin/coordinator sees an Edit button that opens a modal to update all four new fields (plus existing approval numbers if we later absorb anything from the marketing fields already there).
+Add a "Service approvals" and "Session times" card to the Overview tab. Admin/coordinator sees an Edit button that opens a modal to update the 4 new fields (approvalNumber, providerApprovalNumber, sessionTimes, casualBookingSettings is handled in Commit 12). Existing marketing fields are NOT merged or renamed — just unchanged alongside.
 
 Visible to everyone with access to the service (read-only for staff).
 
@@ -83,35 +108,39 @@ Visible to everyone with access to the service (read-only for staff).
 
 ### Commit 3 — Decompose ServiceOverviewTab
 
-Current `ServiceOverviewTab.tsx` is 1200 lines. Split into:
+Current `ServiceOverviewTab.tsx` is 1200 lines with 4 pre-existing embedded sections (`CapacityWaitlistWidget`, `StaffingForecast`, `SchoolPartnershipSection`, `ParentFeedbackSection`) plus the notes textarea workflow. Split into:
 - `OverviewHeader.tsx` — hero card with name, code, status
-- `ServiceInfoCard.tsx` — address, contact, approvals, session times (new)
-- `CapacityCard.tsx` — capacity + attendance targets
+- `ServiceInfoCard.tsx` — address, contact, approvals, session times (new — from Commit 2)
+- `CapacityCard.tsx` — capacity + attendance targets (absorbs `CapacityWaitlistWidget`)
 - `RatesCard.tsx` — daily + casual rates
-- `MarketingCard.tsx` — school population, targets, launch phase
+- `MarketingCard.tsx` — school population, parent segment, launch phase, school partnership (absorbs `SchoolPartnershipSection`)
+- `StaffingForecastCard.tsx` — existing embedded `StaffingForecast` lifted out
+- `ParentFeedbackCard.tsx` — existing embedded `ParentFeedbackSection` lifted out
+- Keep the notes textarea workflow in the parent `ServiceOverviewTab.tsx` (simpler than threading a state prop through 7 children; ~150 lines of composition + notes logic)
 
-Parent `ServiceOverviewTab.tsx` becomes a thin composition (~200 lines). No feature changes, pure decomposition.
+Parent `ServiceOverviewTab.tsx` becomes ~200 lines composition. No feature changes, pure decomposition. Run existing overview tests before + after to verify no behavior regression.
 
 ---
 
 ### Commit 4 — Roll Call view toggle
 
-Add `?rollCallView=daily|weekly|monthly` query param synced to state on `ServiceRollCallTab.tsx`. Header button group toggles between the 3 views. Daily view = existing implementation (untouched).
+Add `?rollCallView=daily|weekly|monthly` query param synced to state on `ServiceRollCallTab.tsx`. Header button group toggles between the 3 views. **Daily view = existing implementation (untouched)** — the tab's internal `useState(todayDateString)` date-picker state stays local; only the top-level view selector is URL-synced. Acknowledged awkwardness: daily view's date is not bookmarkable. Not worth rewriting in 4a; revisit in 4b.
 
 ---
 
-### Commit 5 — Weekly roll-call + attendance CRUD API
+### Commit 5 — Weekly + monthly roll-call API (reuses existing attendance CRUD)
+
+**Route reuse policy**: daily view keeps existing `/api/attendance/roll-call` and `/api/attendance` POST/PATCH/DELETE. Commit 5 adds **only the two new aggregation routes** needed for the weekly + monthly views, plus the enrollable-children route.
 
 New API routes (all `withApiAuth`, admin/coord scoped):
 
 - `GET /api/services/[id]/roll-call/weekly?weekStart=YYYY-MM-DD` — returns all children attending that week at the service, with per-day per-session status (booked / signed-in / signed-out / absent / none), their bookings, their existing `AttendanceRecord`s.
-- `POST /api/services/[id]/attendance` — create attendance (body: `{ childId, date, sessionType, signInAt?, signOutAt?, notes? }`)
-- `PATCH /api/services/[id]/attendance/[attendanceId]` — edit sign-in/out times, notes, session type
-- `DELETE /api/services/[id]/attendance/[attendanceId]` — mark absent / remove
-- `GET /api/services/[id]/roll-call/monthly?month=YYYY-MM` — per-day totals for calendar view
-- `GET /api/services/[id]/children/enrollable?weekStart=YYYY-MM-DD` — children in the service not yet on this week's roster (for the "+ add child" flow)
+- `GET /api/services/[id]/roll-call/monthly?month=YYYY-MM` — per-day totals for calendar view.
+- `GET /api/services/[id]/children/enrollable?weekStart=YYYY-MM-DD` — children eligible for the "+ add child to week" flow. **Enrollable definition**: `Child.serviceId === this service` AND `Child.status === "active"` AND `Child` has no `AttendanceRecord` in [weekStart, weekStart+7d). This set represents active children of the service not yet on the week's roster.
 
-Zod validated, tests for auth/happy/403/404/409 per route.
+**Attendance mutations**: client UI calls existing `POST /api/attendance` / `PATCH /api/attendance/[id]` / `DELETE /api/attendance/[id]` — NO new mutation endpoints under `/api/services/[id]/attendance/*`. Keeps one source of truth for attendance CRUD.
+
+Zod validated, tests for auth/happy/403/404 per route.
 
 ---
 
@@ -132,6 +161,8 @@ New `ServiceWeeklyRollCallGrid.tsx` component:
 - Loading state = skeleton grid; error state = inline error with retry.
 
 Tests: render cases (empty / populated), click a chip → correct popover action, add-child flow → correct API call.
+
+**Performance note**: a 60-child × 5-day × 3-session grid is up to 900 cells. Use `React.memo` on the cell component with `(prev, next) => prev.shift?.id === next.shift?.id && prev.shift?.status === next.shift?.status`, and `useMemo` for derived grid shape keyed on the week's attendance set. Without memo, sign-in actions re-render every cell.
 
 ---
 
@@ -162,9 +193,19 @@ New route: `src/app/(dashboard)/children/[id]/page.tsx` (server component) + `la
 
 Commits 9 & 10 add the remaining 3 tabs.
 
-**Access control**: matches existing Child access rules. Admin/coord scoped to their service. Staff / member / marketing only see basic info if child is at their service.
+**Access control (per tab, per role)**:
 
-**Role-permissions.ts update**: add `/children/[id]` to `allPages` + per-role access per MEMORY.md.
+| Tab | Admin / H.O. / Owner | Coordinator (same service) | Staff / Member / Marketing (same service) | Any role (different service) |
+|---|---|---|---|---|
+| Details | R/W | R/W | R only | 403 |
+| Room / Days | R/W | R/W | R only | 403 |
+| Relationships | R/W | R/W | R only | 403 |
+| Medical | R/W | R/W | R only | 403 |
+| Attendances | R | R | R | 403 |
+
+All roles see Child's primary fields (name, DOB, service, basic photo). Non-admin read-only on all tabs. "R/W" includes upload actions for photo + documents. Staff role gains read access specifically on their own service's children.
+
+**Role-permissions.ts update**: add `/children/[id]` to `allPages` AND explicit entries in `rolePageAccess` for **owner, head_office, admin** (via allPages spread if pattern allows), plus explicit entries for **coordinator, marketing, member, staff**. Per MEMORY.md.
 
 ---
 
@@ -196,7 +237,9 @@ Edit `ServiceChildrenTab.tsx` — add filter row + column improvements matching 
 - Grid columns: Name+Account, DOB+Age, **Parents/Carers** (primary starred, with phone/email quick-links), Room/Days+Session+Fee+Times, Action (edit / deactivate), **CCS Status badge** (Confirmed / Enrolment number / % + hours used)
 - Sort-by dropdown: Surname (default), First name, Added date, DOB
 
-Reuses existing data but surfaces more. No new API route needed if existing `/api/services/[id]/children` returns parents — confirm during impl; extend if not.
+**Data source**: extends existing `/api/children/route.ts` — adds `?includeParents=true` query flag. When set, response includes `parents: { id?, firstName, surname, relationship, isPrimary, phone?, email? }[]` hydrated from `EnrolmentSubmission.primaryParent` + any linked `CentreContact` rows + existing `authorisedPickups` for secondary carers. Does NOT create a new per-service route.
+
+UI hook `useChildren(filters)` passes `includeParents: true` + filter params. Existing hook signature extended with optional `TeamFilters`-style primitives-in-query-key pattern from CLAUDE.md.
 
 ---
 
@@ -212,7 +255,8 @@ UI:
   - Cut-off hours input (number) — "Parents must book X hours before session start"
   - Day-of-week checkboxes (Mon–Sun) — which days accept casual bookings
 - Live preview card: "Parents can book casual BSC up to 24 hours before the session at $36.00 (10 spots available)"
-- Save → `PATCH /api/services/[id]` updates `casualBookingSettings` JSON field
+- **Stored — not enforced in 4a**. Settings save correctly, but the parent-portal casual-booking flow does NOT yet gate on these settings. UI shows a "⚠ Settings stored — parent-portal enforcement ships in a follow-up sub-project" info banner below the form so admins know the preview is aspirational. Wire-through to parent portal deferred (see Out of scope).
+- Save → new dedicated route `PATCH /api/services/[id]/casual-settings` (body: Zod-validated casualBookingSettings). Dedicated route keeps the JSON validation isolated and lets existing `PATCH /api/services/[id]` stay lean.
 
 Tests: form renders, save calls API, validation rejects negative fees / zero cut-off hours.
 
@@ -254,18 +298,28 @@ End-of-PR manual smoke:
 
 ## Access control summary
 
-- **Admin / head_office / owner**: full edit on all tabs + service settings + CCS settings
-- **Coordinator**: full edit for their own service's tabs; read-only for others
-- **Marketing / Member**: read-only on everything
-- **Staff**: read-only, plus ability to sign children in/out at their own service (not edit other records)
+| Surface | Admin / H.O. / Owner | Coordinator (own service) | Staff (own service) | Marketing / Member (own service) | Any role (diff service) |
+|---|---|---|---|---|---|
+| Service Overview | R/W | R/W | R | R | R |
+| Service settings (approvals, session times, casual booking) | R/W | R/W | R | R | 403 |
+| Today tab | R | R | R | R | 403 |
+| Daily Ops → Roll Call (all views) | R/W | R/W | R/W sign-in/out + add-child | R | 403 |
+| Daily Ops → Casual Bookings Settings | R/W | R/W | 403 | 403 | 403 |
+| Children list filters + details | R/W | R/W | R | R | 403 |
+| `/children/[id]` (5 tabs) | R/W | R/W | R | R | 403 |
 
-## Open questions — resolve during implementation
+"R/W" on Roll Call includes `/api/attendance` POST/PATCH/DELETE. Staff role specifically gets write access to Roll Call (sign-in/out + add-child-to-week) for their own service — they're the ones on the floor doing it.
 
-1. **Q-A1** (Commit 1): `casualBookingSettings` JSON vs. separate `CasualBookingSetting` model with FK? Default: JSON for flexibility; promote to model later if it grows fields.
-2. **Q-A2** (Commit 5): existing `AttendanceRecord` model has which fields? Verify during schema read. If missing `signInAt` / `signOutAt` / `signInStaffId` / `signOutStaffId`, add them in Commit 5's migration step (tack onto Commit 1 if small).
-3. **Q-A3** (Commit 8): Child model currently has `medical Json?` (legacy) AND `medicalConditions String[]` (expanded). Commit 9's Medical tab should write to the expanded fields; legacy stays read-only.
-4. **Q-A4** (Commit 12): casual booking actually flows where? Parent portal booking flow (if it exists) needs to respect `casualBookingSettings`. That's deferred to a follow-up — Commit 12 only stores the settings; wire-through to parent portal is 4b or a separate follow-up.
-5. **Q-A5** (Commit 13): Should `Today` tab replace the Overview tab entirely, or sit alongside it? Spec says sit alongside (first-class); Overview keeps service-facts role. Implementation confirms.
+## Resolved decisions
+
+1. **Schema consolidated into Commit 1** — all Service + Child field additions ship in one migration. No commit-9 surprise schema change.
+2. **AttendanceRecord already has sign-in/out attribution** — `signInTime`, `signOutTime`, `signedInById`, `signedOutById`, `absenceReason`, `notes` all exist. No migration for attendance.
+3. **Permanent-days pattern stored in existing `Child.bookingPrefs Json`** — Commit 1 formalizes the JSON shape via Zod; no new model or field.
+4. **`casualBookingSettings` stays JSON** — simpler; promote to model later if fields grow.
+5. **Child's legacy `medical Json?` stays read-only**; Commit 9 writes to `medicalConditions String[]` + new Medicare/vaccination fields.
+6. **Casual booking enforcement deferred to a follow-up** — Commit 12 stores settings + UI banner says "not yet enforced".
+7. **Today tab sits alongside Overview**, promoted to first tab + default landing.
+8. **Route reuse**: daily view + attendance CRUD continue on existing `/api/attendance` + `/api/attendance/roll-call`. New routes only for weekly/monthly aggregation + enrollable children.
 
 ## Acceptance criteria
 
