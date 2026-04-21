@@ -106,6 +106,7 @@ export const GET = withApiAuth(
       declineReason: application.declineReason,
       notes: application.notes,
       createdChildId: application.createdChildId,
+      ownaExportedAt: application.ownaExportedAt?.toISOString() ?? null,
       createdAt: application.createdAt.toISOString(),
       updatedAt: application.updatedAt.toISOString(),
       siblings: siblings.map((s) => ({
