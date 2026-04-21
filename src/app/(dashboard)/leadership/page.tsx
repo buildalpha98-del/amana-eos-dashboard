@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useLeadershipOverview } from "@/hooks/useLeadership";
+import { LeaderboardContent } from "@/components/contact-centre/LeaderboardContent";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -150,10 +151,9 @@ export default function LeadershipPage() {
             )}
           </section>
 
-          {/* Section 4: Leaderboard — filled in commit 5 */}
-          <section className="rounded-xl border border-border bg-card p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-2">Coordinator Leaderboard</h3>
-            <p className="text-sm text-muted italic">Leaderboard lands in a follow-up commit.</p>
+          {/* Section 4: Coordinator Leaderboard */}
+          <section className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <LeaderboardContent embedded />
           </section>
         </>
       )}
