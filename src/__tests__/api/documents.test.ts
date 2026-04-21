@@ -88,6 +88,39 @@ describe("GET /api/documents", () => {
       expect.arrayContaining([{ centreId: "svc-1" }, { allServices: true }]),
     );
   });
+
+  it("preserves text search when staff filters by their own centreId", async () => {
+    mockSession({ id: "u-1", name: "Staff", role: "staff", serviceId: "svc-1" });
+    prismaMock.document.findMany.mockResolvedValue([]);
+    prismaMock.document.count.mockResolvedValue(0);
+
+    const res = await GET(
+      createRequest("GET", "/api/documents?centreId=svc-1&search=safety"),
+    );
+    expect(res.status).toBe(200);
+
+    const callArgs = prismaMock.document.findMany.mock.calls[0][0];
+    const where = callArgs.where as Record<string, unknown>;
+
+    // The final where must constrain by BOTH the search term and the centre
+    // scope. The old code overwrote where.OR with the centre scope alone, so
+    // "safety" disappeared from the query entirely.
+    expect(JSON.stringify(where)).toContain("safety");
+
+    const and = where.AND as Array<Record<string, unknown>> | undefined;
+    expect(and).toBeDefined();
+    expect(and).toEqual(
+      expect.arrayContaining([
+        { OR: [{ centreId: "svc-1" }, { allServices: true }] },
+      ]),
+    );
+    const searchClause = and!.find((c) => {
+      const or = (c as { OR?: Array<Record<string, unknown>> }).OR;
+      return Array.isArray(or) && or.some((x) => "title" in x);
+    }) as { OR: Array<Record<string, unknown>> } | undefined;
+    expect(searchClause).toBeDefined();
+    expect(searchClause!.OR).toHaveLength(3);
+  });
 });
 
 describe("POST /api/documents", () => {
