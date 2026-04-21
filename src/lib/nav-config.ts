@@ -38,6 +38,7 @@ import {
   HelpCircle,
   Rocket,
   Contact,
+  Crown,
   Inbox,
   AlertTriangle,
   Shield,
@@ -108,6 +109,7 @@ export const navItems: NavItem[] = [
   { href: "/directory", label: "Staff Directory", icon: Contact, section: "People", tooltip: "Find and connect with your team" },
 
   // ── Admin — config, strategy & utilities ──────────────────
+  { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment" },
   { href: "/reports", label: "Reports", icon: BarChart3, section: "Operations", tooltip: "Attendance, booking, revenue, enrolment, and medical reports" },
   { href: "/settings", label: "Settings", icon: Settings, section: "Admin" },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },

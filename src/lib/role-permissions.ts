@@ -118,6 +118,7 @@ export const allPages = [
     "/tools/amana-way-one-pager",
     "/tools/employee-handbook",
   // Admin
+  "/leadership",
   "/automations",
   "/audit-log",
   // Support — accessible to all roles
