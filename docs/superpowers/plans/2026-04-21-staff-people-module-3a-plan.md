@@ -1287,6 +1287,17 @@ Query all expiring certs org-wide. Build a summary: counts per service × status
 
 ### Task 8.4: Verify + commit
 
+### Task 8.5: Rollback procedure (documented in commit message + PR body)
+
+If commit 7 over-alerts in production:
+
+1. `git revert <commit-7-sha>` — restores the two pre-refactor crons (compliance-alerts original logic + cert-expiry-alert weekly)
+2. `DELETE FROM "ComplianceCertificateAlert";` — clear the dedup rows so the reverted cron doesn't see phantom "already sent" markers. The **migration stays in place** (schema is additive); the table just goes unused.
+3. Existing `complianceAlertEmail` / `complianceAdminSummaryEmail` templates are unchanged by this commit — no template rollback needed.
+4. `UserNotification` rows from the buggy run can optionally be deleted: `DELETE FROM "UserNotification" WHERE type LIKE 'cert_%' AND "createdAt" > <revert-time>;` — not required for correctness, just cleanup.
+
+Rollback is commit-local — no other commits in the sweep depend on commit 7's runtime behaviour (commits 8-12 depend on the schema + constants from commit 1, not on commit 7's cron logic).
+
 ---
 
 ## Chunk 9: Commit 8 — Bell UI + non-compliance notification triggers
@@ -1303,20 +1314,22 @@ Uses `useQuery({ queryKey: ["notifications", "unread-count"], refetchInterval: 6
 
 - [ ] **Step 2: Wire into top nav**
 
-Find the existing top-nav component. Insert `<NotificationBell />` before the user menu.
+Top-nav component is `src/components/layout/TopBar.tsx`. Insert `<NotificationBell />` before the user menu (find the user-menu dropdown — add `<NotificationBell />` as a sibling directly before it).
+
+**Tunable constant**: at the top of `NotificationBell.tsx`, declare `const POLL_INTERVAL_MS = 60_000;` and use that in the `refetchInterval` option. Keeps the polling cadence tunable in one place.
 
 ### Task 9.2: Non-compliance trigger points
 
-**Files to modify:**
-- `src/app/api/leave/[id]/approve/route.ts` (or wherever approve happens) — on approve, create UserNotification for requesting staff (type `LEAVE_APPROVED`)
-- `src/app/api/leave/[id]/deny/route.ts` — type `LEAVE_DENIED`
-- `src/app/api/leave/route.ts` POST — on submit, create UserNotification for each coordinator at the user's service (type `LEAVE_SUBMITTED`)
-- `src/app/api/timesheets/route.ts` POST — type `TIMESHEET_SUBMITTED` → coordinator
-- `src/app/api/timesheets/[id]/approve/route.ts` — type `TIMESHEET_APPROVED` → submitting user
+**Files to modify (actual paths verified):**
+- `src/app/api/leave/requests/route.ts` POST — on submit, create UserNotification for each coordinator at the user's service (type `LEAVE_SUBMITTED`)
+- `src/app/api/leave/requests/[id]/route.ts` PATCH — **one handler for both approve and deny** (discriminated on `data.status`). Branch on `status === "leave_approved"` → create `LEAVE_APPROVED` for requesting staff; `status === "leave_rejected"` → create `LEAVE_DENIED`.
+- `src/app/api/timesheets/[id]/submit/route.ts` POST — type `TIMESHEET_SUBMITTED` → coordinator
+- `src/app/api/timesheets/[id]/approve/route.ts` POST — type `TIMESHEET_APPROVED` → submitting user
 
-Each insertion is 5-10 lines. Pattern:
+Each insertion is 5-10 lines. Patterns:
 
 ```ts
+// Simple path (submit / approve — single notification)
 await prisma.userNotification.create({
   data: {
     userId: recipientId,
@@ -1326,7 +1339,32 @@ await prisma.userNotification.create({
     link: `/leave?id=${leaveRequest.id}`,
   },
 });
+
+// Branched path (leave PATCH handler — approve vs deny)
+if (data.status === "leave_approved") {
+  await prisma.userNotification.create({
+    data: {
+      userId: leaveRequest.userId,
+      type: NOTIFICATION_TYPES.LEAVE_APPROVED,
+      title: "Leave request approved",
+      body: `Your leave from ${startDate} to ${endDate} was approved`,
+      link: `/leave?id=${leaveRequest.id}`,
+    },
+  });
+} else if (data.status === "leave_rejected") {
+  await prisma.userNotification.create({
+    data: {
+      userId: leaveRequest.userId,
+      type: NOTIFICATION_TYPES.LEAVE_DENIED,
+      title: "Leave request denied",
+      body: `Your leave request from ${startDate} to ${endDate} was denied`,
+      link: `/leave?id=${leaveRequest.id}`,
+    },
+  });
+}
 ```
+
+**Important**: the leave approve/deny logic is a branch of a single PATCH handler — do NOT look for separate `/approve` and `/deny` route files (they don't exist in this codebase).
 
 ### Task 9.3: Verify + commit
 
@@ -1358,7 +1396,9 @@ export const GET = withApiAuth(async (_req, session) => {
       where: { status: "leave_pending", ...(isAdmin ? {} : { user: { serviceId: session!.user.serviceId } }) },
     }),
     prisma.timesheet.count({
-      where: { status: "ts_submitted", ...(isAdmin ? {} : { serviceId: session!.user.serviceId }) },
+      // IMPORTANT: TimesheetStatus enum values are ts_draft, submitted,
+      // approved, exported_to_xero, rejected. Use "submitted" (no ts_ prefix).
+      where: { status: "submitted", ...(isAdmin ? {} : { serviceId: session!.user.serviceId }) },
     }),
   ]);
 
@@ -1408,7 +1448,26 @@ Add `<ActionRequiredWidget />` above the existing chart/list toggle.
 
 - [ ] **Step 1: New DirectoryContent using grid + filters**
 
-Replace contents. Keep existing `useTeam()` hook but extend to accept filters.
+Replace contents. Extend `useTeam()` hook to accept an OPTIONAL filters parameter (backward-compatible — existing `/team` page callers pass nothing).
+
+Per Jayden's CLAUDE.md global rule: "Query keys must use primitive values — never pass filter objects directly." The hook signature becomes:
+
+```ts
+export function useTeam(filters?: { service?: string; role?: string; q?: string }) {
+  return useQuery({
+    queryKey: ["team", filters?.service, filters?.role, filters?.q],  // spread primitives
+    queryFn: () => fetchApi<TeamMember[]>(`/api/team${buildQueryString(filters)}`),
+    retry: 2,
+    staleTime: 30_000,
+  });
+}
+```
+
+The existing `/team` page call `useTeam()` with no arguments continues to work (filters omitted → no query params → backward-compat preserved).
+
+- [ ] **Step 2: Update /api/team route to accept filters**
+
+Accept optional `?service=`, `?role=`, `?q=` query params. When present, filter the user list. When absent, return all (current behaviour).
 
 ### Task 11.3: Verify + commit
 
