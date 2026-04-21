@@ -6,9 +6,66 @@
 
 **Architecture:** Feature branch `feat/services-daily-ops-4a-2026-04-22` off local `main`. Commits stacked dependency-first: schema → Overview fields → Overview decomposition → Roll Call toggle/views/API/grid → child page tabs → children list → casual settings → Today tab. Each commit revert-safe. Standard merge (not squash) to preserve bisect history.
 
-**Tech Stack:** Next.js 16, TypeScript, Prisma 5.22, Vitest, Tailwind. Conventions from Sub-projects 2/3a/3b: `withApiAuth` / `withApiHandler` / `parseJsonBody` / `ApiError` with `.conflict()` factory / `logger` / `ADMIN_ROLES` / `parseRole` / `isAdminRole` / `NOTIFICATION_TYPES` / `toast` from `@/hooks/useToast` / primitive-spread query keys. Reuse existing attendance CRUD (`/api/attendance/*`) — do NOT duplicate.
+**Tech Stack:** Next.js 16, TypeScript, Prisma 5.22, Vitest, Tailwind. Conventions from Sub-projects 2/3a/3b: `withApiAuth` / `withApiHandler` / `parseJsonBody` / `ApiError` with `.conflict()` factory / `logger` / `ADMIN_ROLES` / `parseRole` / `isAdminRole` / `NOTIFICATION_TYPES` / `toast` from `@/hooks/useToast` / primitive-spread query keys. Reuse existing attendance mutation route (`POST /api/attendance/roll-call` with action `sign_in|sign_out|mark_absent|undo`) — do NOT duplicate. New read routes allowed (weekly/monthly/enrollable-children/child-attendances).
 
 **Parent spec:** [`docs/superpowers/specs/2026-04-22-services-daily-ops-4a-design.md`](../specs/2026-04-22-services-daily-ops-4a-design.md)
+
+---
+
+## Implementation Conventions (apply to every commit)
+
+Read this once before starting. These rules apply globally; individual tasks below don't re-state them.
+
+### Pinned field names & routes (don't drift)
+
+| Thing | Correct value | Common mis-reference |
+|---|---|---|
+| AttendanceRecord date column | `date DateTime @db.Date` | ~~`attendanceDate`~~ |
+| Booking date column | `date DateTime` | — |
+| Sign-in/out mutation route | `POST /api/attendance/roll-call` (action: `sign_in`/`sign_out`/`mark_absent`/`undo`) | ~~`/api/attendance/[id]`~~ (does not exist) |
+| Aggregate daily counts route | `POST /api/attendance` (writes `DailyAttendance`, not per-child) | — |
+| "Book a child" (create empty `booked` record) | `POST /api/attendance/roll-call` with `action: "undo"` — upsert creates `status: "booked"` record if none exists | Don't create a new endpoint |
+| Scope helpers | `getServiceScope(session)` + `getStateScope(session)` from `@/lib/service-scope` | Don't inline `prisma.user.findUnique({ ... serviceId })` |
+| Session types enum | `"bsc" | "asc" | "vc"` (lowercase) | — |
+| AttendanceRecord status | `"booked" | "present" | "absent"` | — |
+
+### TDD ordering within every task
+1. Write the failing test first (create the `.test.ts[x]` file).
+2. Run it — confirm it fails with an informative error (missing file / component / route).
+3. Implement minimal code to make the test pass.
+4. Run the test — confirm it passes.
+5. Run the commit-level gate (`npx tsc --noEmit | grep -c "error TS"` → 0; `npm test -- <path>` → green).
+6. Commit.
+
+Where a task below lists "Implement" before "Tests", flip the order at execution time. The checkbox label changes from `Implement` to `Write failing test`; the code block for the implementation moves into a later step.
+
+### Date math is UTC-safe
+Any week/month boundary calculation in API routes or client code must use UTC mutators:
+- `d.setUTCDate(d.getUTCDate() + 7)` — not `setDate`
+- `d.setUTCMonth(d.getUTCMonth() + 1)` — not `setMonth`
+- `Date.UTC(y, m - 1, 1)` — not `new Date(\`${y}-${m}-01\`)` (local-TZ)
+
+Motivation: Neon is UTC; server is AU-local. The data integrity audit (March 26) fixed several DST-boundary bugs the same way.
+
+### Multi-row writes wrap in `prisma.$transaction`
+Every server-side flow that writes > 1 row in one logical operation must use `prisma.$transaction([...])` so partial failure rolls back:
+- Add-child-to-week bulk create (Commit 6 — N attendance rows per dialog submit)
+- `bookingPrefs` merge in RoomDaysTab (Commit 8 — read existing prefs → merge → write)
+- Any roll-call action that also touches `DailyAttendance` aggregate (already transactional in the existing roll-call route — don't un-do it)
+
+### JSON Prisma columns use `Prisma.InputJsonValue`
+Never cast Zod-parsed JSON as `any`. Use `import type { Prisma } from "@prisma/client"` and type the update payload as `parsed.data as Prisma.InputJsonValue`. Motivation: CLAUDE.md rule "Unsafe type casts — each one is a bug waiting to happen."
+
+### Client mutation pattern
+- Every `useMutation` must have `onError: (err) => toast({ variant: "destructive", description: err.message || "Something went wrong" })`.
+- Every `useQuery` must have `retry: 2` and `staleTime: 30_000`.
+- Mutations use `mutateApi`/`fetchApi` — no raw `fetch()`.
+
+### Role-permissions checklist (MEMORY.md)
+Any new page added in this project must update `src/lib/role-permissions.ts`:
+1. Add the route to the `allPages` constant (owner/head_office inherit, admin inherits except `/crm/templates`).
+2. Explicitly add to each other role's array in `rolePageAccess` that should see the page — `coordinator`, `member`, `staff`, `marketing` do NOT auto-inherit.
+3. Add a smoke assertion to a test that `canAccessPage(role, "/new/path")` returns the expected boolean per role.
 
 ---
 
@@ -168,14 +225,62 @@ export const bookingPrefsSchema = z.object({
 
 `npx prisma migrate dev --name add_service_approval_session_times_child_medical`
 
-If shadow DB fails (inherited P3006 from earlier sub-projects), use `--create-only` + `prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma` fallback (same pattern as 3a/3b).
+If shadow DB fails (inherited P3006 from earlier sub-projects), fall back to the same pattern as 3a/3b/5/7/9:
+
+```bash
+mkdir -p "prisma/migrations/$(date +%Y%m%d%H%M%S)_add_service_approval_session_times_child_medical"
+npx prisma migrate diff \
+  --from-url "$DATABASE_URL" \
+  --to-schema-datamodel prisma/schema.prisma \
+  --script \
+  > "prisma/migrations/$(ls prisma/migrations | tail -1)/migration.sql"
+```
 
 - [ ] **Step 2: Inspect migration.sql**
 
-Expect:
-- `ALTER TABLE "Service"` adding 4 cols (2 TEXT, 2 JSONB)
-- `ALTER TABLE "Child"` adding 4 cols (3 TEXT, 1 TIMESTAMP)
-- Zero other changes
+Expect exactly these statements (order may vary):
+
+```sql
+-- AlterTable
+ALTER TABLE "Service" ADD COLUMN "serviceApprovalNumber" TEXT;
+ALTER TABLE "Service" ADD COLUMN "providerApprovalNumber" TEXT;
+ALTER TABLE "Service" ADD COLUMN "sessionTimes" JSONB;
+ALTER TABLE "Service" ADD COLUMN "casualBookingSettings" JSONB;
+
+-- AlterTable
+ALTER TABLE "Child" ADD COLUMN "medicareNumber" TEXT;
+ALTER TABLE "Child" ADD COLUMN "medicareExpiry" TIMESTAMP(3);
+ALTER TABLE "Child" ADD COLUMN "medicareRef" TEXT;
+ALTER TABLE "Child" ADD COLUMN "vaccinationStatus" TEXT;
+```
+
+Any deviation (e.g. unrelated dropped columns, column renames, index changes) means the schema drifted — STOP and investigate before continuing. Migration must be additive-only.
+
+- [ ] **Step 3: Write the paste-ready Neon SQL to `prisma/migrations/<ts>_.../neon-apply.sql`**
+
+Jayden will copy-paste this into the Neon SQL editor manually (not via `prisma migrate deploy`). Include the `_prisma_migrations` INSERT so Prisma sees it as applied:
+
+```sql
+-- Run this in the Neon SQL editor. Replace <MIGRATION_NAME> with the generated folder name.
+ALTER TABLE "Service" ADD COLUMN IF NOT EXISTS "serviceApprovalNumber" TEXT;
+ALTER TABLE "Service" ADD COLUMN IF NOT EXISTS "providerApprovalNumber" TEXT;
+ALTER TABLE "Service" ADD COLUMN IF NOT EXISTS "sessionTimes" JSONB;
+ALTER TABLE "Service" ADD COLUMN IF NOT EXISTS "casualBookingSettings" JSONB;
+
+ALTER TABLE "Child" ADD COLUMN IF NOT EXISTS "medicareNumber" TEXT;
+ALTER TABLE "Child" ADD COLUMN IF NOT EXISTS "medicareExpiry" TIMESTAMP(3);
+ALTER TABLE "Child" ADD COLUMN IF NOT EXISTS "medicareRef" TEXT;
+ALTER TABLE "Child" ADD COLUMN IF NOT EXISTS "vaccinationStatus" TEXT;
+
+-- Tell Prisma this migration is applied (use the exact folder name under prisma/migrations/)
+INSERT INTO "_prisma_migrations"
+  (id, checksum, migration_name, started_at, finished_at, applied_steps_count)
+VALUES
+  (gen_random_uuid()::text, 'manual', '<MIGRATION_FOLDER_NAME>', now(), now(), 1)
+ON CONFLICT DO NOTHING;
+```
+
+This file is the canonical artefact for PR body + Jayden's hand-off step in Task 15.3.
 
 ### Task 2.4: Verify + commit
 
@@ -455,7 +560,9 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - Create: `src/app/api/services/[id]/roll-call/weekly/route.ts`
 - Create: `src/__tests__/api/services-roll-call-weekly.test.ts`
 
-- [ ] **Step 1: Implement**
+- [ ] **Step 1: Write failing test** (create `src/__tests__/api/services-roll-call-weekly.test.ts` first with the cases below — verify it errors with "cannot find module" — then implement)
+
+- [ ] **Step 2: Implement**
 
 ```ts
 import { NextResponse } from "next/server";
@@ -463,6 +570,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
+import { getServiceScope } from "@/lib/service-scope";
 
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
@@ -472,15 +580,18 @@ export const GET = withApiAuth(async (req, session, context) => {
     throw ApiError.badRequest("weekStart (YYYY-MM-DD) required");
   }
 
-  // Access: admin/coord/staff/member/marketing at this service; 403 cross-service non-admin
+  // Access: admin any; non-admin must be scoped to this service
   const role = session.user.role ?? "";
   if (!isAdminRole(role)) {
-    const viewer = await prisma.user.findUnique({ where: { id: session.user.id }, select: { serviceId: true } });
-    if (viewer?.serviceId !== id) throw ApiError.forbidden();
+    const scope = getServiceScope(session);
+    if (!scope || !scope.includes(id)) throw ApiError.forbidden();
   }
 
-  const start = new Date(weekStart);
-  const end = new Date(start); end.setDate(end.getDate() + 7);
+  // UTC-safe week boundary: parse weekStart as UTC midnight, add 7 UTC days
+  const [y, m, d] = weekStart.split("-").map(Number);
+  const start = new Date(Date.UTC(y, m - 1, d));
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 7);
 
   const [children, attendanceRecords, bookings] = await Promise.all([
     prisma.child.findMany({
@@ -489,15 +600,20 @@ export const GET = withApiAuth(async (req, session, context) => {
         status: "active",
         OR: [
           { bookings: { some: { date: { gte: start, lt: end } } } },
-          { attendanceRecords: { some: { attendanceDate: { gte: start, lt: end } } } },
+          { attendanceRecords: { some: { date: { gte: start, lt: end } } } },
         ],
       },
       select: { id: true, firstName: true, surname: true, photo: true, dob: true, bookingPrefs: true },
       orderBy: { surname: "asc" },
     }),
     prisma.attendanceRecord.findMany({
-      where: { child: { serviceId: id }, attendanceDate: { gte: start, lt: end } },
-      select: { id: true, childId: true, attendanceDate: true, sessionType: true, signInTime: true, signOutTime: true, signedInById: true, signedOutById: true, absenceReason: true, notes: true, fee: true },
+      where: { child: { serviceId: id }, date: { gte: start, lt: end } },
+      select: {
+        id: true, childId: true, date: true, sessionType: true,
+        status: true, signInTime: true, signOutTime: true,
+        signedInById: true, signedOutById: true,
+        absenceReason: true, notes: true,
+      },
     }),
     prisma.booking.findMany({
       where: { child: { serviceId: id }, date: { gte: start, lt: end } },
@@ -509,46 +625,104 @@ export const GET = withApiAuth(async (req, session, context) => {
 });
 ```
 
-- [ ] **Step 2: Tests**
+Note on fields: `AttendanceRecord` has no `fee` column (verify against `prisma/schema.prisma:2450`) — the per-session fee lives on `Booking`. `status` is required to drive cell colour.
 
-Cases:
+- [ ] **Step 3: Run test — verify green**
+
+Cases to cover in the test file:
 - 401 no session
-- 400 missing/malformed weekStart
-- 403 cross-service non-admin
-- 200 happy path — admin any service; coord own service; correctly-shaped response
+- 400 missing/malformed weekStart (e.g. "not-a-date", "2025-13-01")
+- 403 cross-service non-admin (seed user at different serviceId, expect 403)
+- 200 happy path — admin any service; coord own service; correctly-shaped response with `date` on AttendanceRecord (not `attendanceDate`)
 
 ### Task 6.2: GET /api/services/[id]/roll-call/monthly
 
 **Files:**
 - Create: `src/app/api/services/[id]/roll-call/monthly/route.ts`
-- Extend: `src/__tests__/api/services-roll-call-weekly.test.ts` (or new file)
+- Create: `src/__tests__/api/services-roll-call-monthly.test.ts`
 
-- [ ] **Step 1: Implement**
+- [ ] **Step 1: Write failing test** (404 if module doesn't exist yet)
 
-Same access pattern. Query shape:
+- [ ] **Step 2: Implement**
 
 ```ts
-// ?month=YYYY-MM
-// returns per-day totals { date: "YYYY-MM-DD", booked: N, attended: N, absent: N }
+import { NextResponse } from "next/server";
+import { withApiAuth } from "@/lib/server-auth";
+import { prisma } from "@/lib/prisma";
+import { ApiError } from "@/lib/api-error";
+import { isAdminRole } from "@/lib/role-permissions";
+import { getServiceScope } from "@/lib/service-scope";
 
-const monthStart = new Date(`${month}-01`);
-const monthEnd = new Date(monthStart); monthEnd.setMonth(monthEnd.getMonth() + 1);
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
+  const { searchParams } = new URL(req.url);
+  const month = searchParams.get("month");
+  if (!month || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    throw ApiError.badRequest("month (YYYY-MM) required");
+  }
 
-// Group by date: use raw SQL or groupBy
-const perDay = await prisma.attendanceRecord.groupBy({
-  by: ["attendanceDate"],
-  where: { child: { serviceId: id }, attendanceDate: { gte: monthStart, lt: monthEnd } },
-  _count: true,
+  const role = session.user.role ?? "";
+  if (!isAdminRole(role)) {
+    const scope = getServiceScope(session);
+    if (!scope || !scope.includes(id)) throw ApiError.forbidden();
+  }
+
+  // UTC-safe month boundary
+  const [y, m] = month.split("-").map(Number);
+  const monthStart = new Date(Date.UTC(y, m - 1, 1));
+  const monthEnd = new Date(monthStart);
+  monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+
+  // Per-day status counts across attendance records
+  const attGroups = await prisma.attendanceRecord.groupBy({
+    by: ["date", "status"],
+    where: { child: { serviceId: id }, date: { gte: monthStart, lt: monthEnd } },
+    _count: { _all: true },
+  });
+
+  // Per-day booking counts (for days with bookings but no attendance records yet)
+  const bookingGroups = await prisma.booking.groupBy({
+    by: ["date"],
+    where: { child: { serviceId: id }, date: { gte: monthStart, lt: monthEnd } },
+    _count: { _all: true },
+  });
+
+  // Build { date → { booked, attended, absent } } map
+  const perDay = new Map<string, { booked: number; attended: number; absent: number }>();
+  for (const g of attGroups) {
+    const key = g.date.toISOString().split("T")[0];
+    const entry = perDay.get(key) ?? { booked: 0, attended: 0, absent: 0 };
+    if (g.status === "present") entry.attended += g._count._all;
+    else if (g.status === "absent") entry.absent += g._count._all;
+    else entry.booked += g._count._all;
+    perDay.set(key, entry);
+  }
+  for (const g of bookingGroups) {
+    const key = g.date.toISOString().split("T")[0];
+    const entry = perDay.get(key) ?? { booked: 0, attended: 0, absent: 0 };
+    // bookings counted as "booked" only when no corresponding attendance rows exist for that day
+    if (entry.attended === 0 && entry.absent === 0 && entry.booked === 0) {
+      entry.booked = g._count._all;
+    }
+    perDay.set(key, entry);
+  }
+
+  // Emit days array for every day in the month
+  const days: Array<{ date: string; booked: number; attended: number; absent: number }> = [];
+  const cursor = new Date(monthStart);
+  while (cursor < monthEnd) {
+    const key = cursor.toISOString().split("T")[0];
+    days.push({ date: key, ...(perDay.get(key) ?? { booked: 0, attended: 0, absent: 0 }) });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return NextResponse.json({ month, days });
 });
-// + booking count per day (no attendance)
-// build { date, booked, attended, absent } array for every day in month
 ```
 
-Response: `{ days: Array<{ date: string; booked: number; attended: number; absent: number }> }`.
+- [ ] **Step 3: Run test — verify green**
 
-- [ ] **Step 2: Tests**
-
-Same auth cases + happy path with fixed dates.
+Auth cases + happy path: seed 3 records across 2 days, expect correct per-day counts; verify no records → zero-counts for every day of the month; verify invalid `month=2025-13` returns 400.
 
 ### Task 6.3: GET /api/services/[id]/children/enrollable
 
@@ -556,29 +730,55 @@ Same auth cases + happy path with fixed dates.
 - Create: `src/app/api/services/[id]/children/enrollable/route.ts`
 - Create: `src/__tests__/api/services-children-enrollable.test.ts`
 
-- [ ] **Step 1: Implement**
+- [ ] **Step 1: Write failing test** in `src/__tests__/api/services-children-enrollable.test.ts`
+
+- [ ] **Step 2: Implement**
 
 Per spec definition: "active children at this service with NO attendance record in [weekStart, weekStart+7d)".
 
 ```ts
-const start = new Date(weekStart);
-const end = new Date(start); end.setDate(end.getDate() + 7);
+import { NextResponse } from "next/server";
+import { withApiAuth } from "@/lib/server-auth";
+import { prisma } from "@/lib/prisma";
+import { ApiError } from "@/lib/api-error";
+import { isAdminRole } from "@/lib/role-permissions";
+import { getServiceScope } from "@/lib/service-scope";
 
-const children = await prisma.child.findMany({
-  where: {
-    serviceId: id,
-    status: "active",
-    attendanceRecords: { none: { attendanceDate: { gte: start, lt: end } } },
-  },
-  select: { id: true, firstName: true, surname: true, photo: true, dob: true, bookingPrefs: true },
-  orderBy: { surname: "asc" },
+export const GET = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
+  const { searchParams } = new URL(req.url);
+  const weekStart = searchParams.get("weekStart");
+  if (!weekStart || !/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
+    throw ApiError.badRequest("weekStart (YYYY-MM-DD) required");
+  }
+
+  const role = session.user.role ?? "";
+  if (!isAdminRole(role)) {
+    const scope = getServiceScope(session);
+    if (!scope || !scope.includes(id)) throw ApiError.forbidden();
+  }
+
+  const [y, m, d] = weekStart.split("-").map(Number);
+  const start = new Date(Date.UTC(y, m - 1, d));
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 7);
+
+  const children = await prisma.child.findMany({
+    where: {
+      serviceId: id,
+      status: "active",
+      attendanceRecords: { none: { date: { gte: start, lt: end } } },
+    },
+    select: { id: true, firstName: true, surname: true, photo: true, dob: true, bookingPrefs: true },
+    orderBy: { surname: "asc" },
+  });
+  return NextResponse.json({ children });
 });
-return NextResponse.json({ children });
 ```
 
-- [ ] **Step 2: Tests**
+- [ ] **Step 3: Run test — verify green**
 
-Auth cases + happy path (children who have attendance are filtered out; children who don't are returned).
+Auth cases (401 / 400 / 403) + happy path (children who have attendance are filtered out; children who don't are returned). Seed `AttendanceRecord.date` (NOT `attendanceDate`) — confirm the Prisma schema field is `date DateTime @db.Date`.
 
 ### Task 6.4: Commit
 
@@ -596,8 +796,8 @@ git commit -m "feat(api): weekly + monthly roll-call + enrollable-children route
 - GET /api/services/[id]/children/enrollable?weekStart=YYYY-MM-DD —
   active children at service with no attendance record in the week
 
-Attendance mutations reuse existing /api/attendance and
-/api/attendance/roll-call routes — no duplication.
+Attendance mutations reuse existing POST /api/attendance/roll-call
+(actions: sign_in | sign_out | mark_absent | undo) — no duplication.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ```
@@ -618,14 +818,22 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchApi } from "@/lib/fetch-api";
 
 export interface WeeklyRollCallResponse {
-  children: Array<{ id: string; firstName: string; surname: string; photo: string | null; dob: Date | null; bookingPrefs: any }>;
+  children: Array<{ id: string; firstName: string; surname: string; photo: string | null; dob: string | null; bookingPrefs: unknown }>;
   attendanceRecords: Array<{
-    id: string; childId: string; attendanceDate: string; sessionType: string;
-    signInTime: string | null; signOutTime: string | null;
-    signedInById: string | null; signedOutById: string | null;
-    absenceReason: string | null; notes: string | null; fee: number | null;
+    id: string;
+    childId: string;
+    /** AttendanceRecord.date in prisma/schema.prisma — NOT `attendanceDate`. */
+    date: string;
+    sessionType: "bsc" | "asc" | "vc";
+    status: "booked" | "present" | "absent";
+    signInTime: string | null;
+    signOutTime: string | null;
+    signedInById: string | null;
+    signedOutById: string | null;
+    absenceReason: string | null;
+    notes: string | null;
   }>;
-  bookings: Array<{ id: string; childId: string; date: string; sessionType: string; fee: number | null }>;
+  bookings: Array<{ id: string; childId: string; date: string; sessionType: "bsc" | "asc" | "vc"; fee: number | null }>;
   weekStart: string;
 }
 
@@ -668,6 +876,7 @@ export interface CellShift {
   status: "booked" | "signed_in" | "signed_out" | "absent";
   signInTime?: string | null;
   signOutTime?: string | null;
+  /** Optional — only set for booking-only cells (no attendance record yet) */
   fee?: number | null;
 }
 
@@ -746,17 +955,21 @@ export function ServiceWeeklyRollCallGrid({ serviceId }: { serviceId: string }) 
 
   const [weekOffset, setWeekOffset] = useState(0);
   const weekStart = useMemo(() => {
-    const d = new Date();
-    const day = d.getDay();
+    // Monday-of-current-week, UTC-safe. getDay(): 0=Sun..6=Sat. For Mon-start:
+    // on Sunday (0), step back 6 days. Otherwise step 1-day back to Monday.
+    const now = new Date();
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const day = d.getUTCDay();
     const diff = day === 0 ? -6 : 1 - day;
-    d.setDate(d.getDate() + diff + weekOffset * 7);
-    d.setHours(0, 0, 0, 0);
+    d.setUTCDate(d.getUTCDate() + diff + weekOffset * 7);
     return d.toISOString().split("T")[0];
   }, [weekOffset]);
 
   const weekDates = useMemo(() =>
     Array.from({ length: 5 }, (_, i) => {
-      const d = new Date(weekStart); d.setDate(d.getDate() + i);
+      const [y, m, dd] = weekStart.split("-").map(Number);
+      const d = new Date(Date.UTC(y, m - 1, dd));
+      d.setUTCDate(d.getUTCDate() + i);
       return d.toISOString().split("T")[0];
     }), [weekStart]);
 
@@ -768,22 +981,21 @@ export function ServiceWeeklyRollCallGrid({ serviceId }: { serviceId: string }) 
     const m: Record<string, Record<string, CellShift[]>> = {};
     if (!data) return m;
     const getStatus = (rec: typeof data.attendanceRecords[0]): CellShift["status"] => {
-      if (rec.absenceReason) return "absent";
+      if (rec.status === "absent") return "absent";
       if (rec.signOutTime) return "signed_out";
       if (rec.signInTime) return "signed_in";
       return "booked";
     };
     for (const rec of data.attendanceRecords) {
-      const date = new Date(rec.attendanceDate).toISOString().split("T")[0];
+      const date = rec.date.split("T")[0]; // AttendanceRecord.date (NOT attendanceDate)
       m[rec.childId] ??= {};
       m[rec.childId][date] ??= [];
       m[rec.childId][date].push({
         attendanceId: rec.id,
-        sessionType: rec.sessionType as "bsc" | "asc" | "vc",
+        sessionType: rec.sessionType,
         status: getStatus(rec),
         signInTime: rec.signInTime,
         signOutTime: rec.signOutTime,
-        fee: rec.fee,
       });
     }
     // Add booking-only (no attendance record yet) as "booked"
@@ -869,16 +1081,93 @@ export function ServiceWeeklyRollCallGrid({ serviceId }: { serviceId: string }) 
 }
 ```
 
-### Task 7.4: Build popover + add-child dialog
+### Task 7.4: Build CellActionsPopover (mutations)
 
-Sub-components within the same file (or extracted if desired):
+**Files:**
+- Extend: `src/components/services/ServiceWeeklyRollCallGrid.tsx` (same file or split if > 500 lines)
 
-- **CellActionsPopover** — appears on cell click. For a booked shift: "Sign in", "Mark absent", "Edit". For signed-in shift: "Sign out", "Edit". Actions POST/PATCH to `/api/attendance/[id]` or POST `/api/attendance` (create new).
-- **AddChildDialog** — lists `useEnrollableChildren()` results. For each child, user picks day(s) + session type(s) and submits. Creates `AttendanceRecord` rows via `POST /api/attendance` per selection.
+- [ ] **Step 1: Define action mapping**
 
-Both use existing attendance routes — no new mutation endpoints.
+All mutations hit `POST /api/attendance/roll-call` (the ONLY per-child attendance mutation endpoint — see existing route `src/app/api/attendance/roll-call/route.ts:149`).
 
-### Task 7.5: Render weekly view in tab
+| Cell status | Actions shown | Body sent |
+|---|---|---|
+| booked | Sign in, Mark absent, Edit notes | `action: "sign_in" | "mark_absent"` |
+| signed_in | Sign out, Edit notes, Undo | `action: "sign_out" | "undo"` |
+| signed_out | Edit notes, Undo | `action: "undo"` |
+| absent | Undo | `action: "undo"` |
+
+Payload shape: `{ childId, serviceId, date: "YYYY-MM-DD", sessionType: "bsc"|"asc"|"vc", action, absenceReason?, notes? }` — matches the existing route's `actionSchema`.
+
+- [ ] **Step 2: Implement with mutateApi + onError toast + query invalidation**
+
+```tsx
+import { mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
+function useRollCallAction(serviceId: string, weekStart: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      childId: string;
+      date: string;
+      sessionType: "bsc" | "asc" | "vc";
+      action: "sign_in" | "sign_out" | "mark_absent" | "undo";
+      absenceReason?: string;
+      notes?: string;
+    }) => mutateApi<{ id: string }>("/api/attendance/roll-call", {
+      method: "POST",
+      body: { serviceId, ...body },
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["weekly-roll-call", serviceId, weekStart] });
+      qc.invalidateQueries({ queryKey: ["monthly-roll-call", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+```
+
+Render popover with buttons wired to `.mutate({ ... })` per the table above.
+
+### Task 7.5: Build AddChildDialog (add child to this week)
+
+**Files:**
+- Extend: `src/components/services/ServiceWeeklyRollCallGrid.tsx`
+
+- [ ] **Step 1: UI**
+
+Dialog body lists children from `useEnrollableChildren(serviceId, weekStart)`. Per child: inline checkbox grid (5 days × 3 sessions). On submit: for each (child, date, sessionType) tuple the user checked, POST to `/api/attendance/roll-call` with `action: "undo"` (the existing route's `undo` action upserts to `status: "booked"` — that's exactly "create empty booked record").
+
+- [ ] **Step 2: Transactional submit (client side — Promise.all with revert-on-error)**
+
+```tsx
+async function onSubmit(selections: Array<{ childId: string; date: string; sessionType: "bsc" | "asc" | "vc" }>) {
+  try {
+    await Promise.all(selections.map((s) =>
+      mutateApi("/api/attendance/roll-call", {
+        method: "POST",
+        body: { serviceId, ...s, action: "undo" }, // creates status: "booked"
+      }),
+    ));
+    qc.invalidateQueries({ queryKey: ["weekly-roll-call", serviceId, weekStart] });
+    qc.invalidateQueries({ queryKey: ["enrollable-children", serviceId, weekStart] });
+    toast({ description: `Added ${selections.length} booking${selections.length === 1 ? "" : "s"}.` });
+    onClose();
+  } catch (err) {
+    toast({ variant: "destructive", description: (err as Error).message });
+    // Best-effort: re-fetch to reconcile UI with whatever did persist
+    qc.invalidateQueries({ queryKey: ["weekly-roll-call", serviceId, weekStart] });
+  }
+}
+```
+
+Note: true DB-level transaction would require a new `POST /api/attendance/roll-call/bulk` endpoint; scope creep for 4a. Client-side `Promise.all` with reconcile-on-error is sufficient for the typical add-3-days use case. Flag in PR body as "bulk endpoint deferred to 4b" if needed.
+
+### Task 7.6: Render weekly view in tab
 
 **Files:**
 - Modify: `src/components/services/ServiceRollCallTab.tsx`
@@ -889,7 +1178,51 @@ Both use existing attendance routes — no new mutation endpoints.
 {view === "weekly" && <ServiceWeeklyRollCallGrid serviceId={service.id} />}
 ```
 
-### Task 7.6: Test + commit
+### Task 7.7: Playwright E2E — weekly grid sign-in flow
+
+**Files:**
+- Create: `tests/e2e/weekly-roll-call.spec.ts`
+
+- [ ] **Step 1: Write failing spec**
+
+```ts
+import { test, expect } from "@playwright/test";
+import { loginAs, seedTestService, seedTestChildBooking } from "./_helpers";
+
+test("weekly grid — sign child in persists across reload", async ({ page }) => {
+  const { serviceId, coordUserEmail } = await seedTestService();
+  const { childId, weekStart, mondayDate, sessionType } = await seedTestChildBooking({ serviceId });
+
+  await loginAs(page, coordUserEmail);
+  await page.goto(`/services/${serviceId}?tab=daily-ops&sub=roll-call&rollCallView=weekly`);
+  await page.getByRole("button", { name: /→|next week|week of/i }).waitFor();
+
+  // Find the child's booked chip for Monday + session type, click to open popover
+  const cell = page.getByRole("cell", { name: new RegExp(sessionType, "i") }).first();
+  await cell.click();
+  await page.getByRole("button", { name: /sign in/i }).click();
+
+  // Verify the chip turns green (signed_in) and shows an In: time
+  await expect(cell).toContainText(/in: \d{2}:\d{2}/i);
+
+  // Reload; record persists
+  await page.reload();
+  const reloadedCell = page.getByRole("cell", { name: new RegExp(sessionType, "i") }).first();
+  await expect(reloadedCell).toContainText(/in: \d{2}:\d{2}/i);
+});
+```
+
+- [ ] **Step 2: Add seed helpers if missing**
+
+Check `tests/e2e/_helpers.ts`. If `seedTestService` / `seedTestChildBooking` don't exist, add them as thin wrappers around existing seed utilities (pattern: same as 3b's roster E2E).
+
+- [ ] **Step 3: Run**
+
+`npx playwright test weekly-roll-call.spec.ts --reporter=line`
+
+Expected: passes on first run after helpers + grid wired. Flakes → bump timeout per spec.
+
+### Task 7.8: Component tests + commit
 
 - [ ] **Step 1: Component tests**
 
@@ -897,25 +1230,31 @@ Both use existing attendance routes — no new mutation endpoints.
 - Empty state when no children
 - Grid renders with children × 5 cells per row
 - `canEdit=false` for staff-different-service hides + buttons
-- Click cell with shift → popover opens
-- Add child flow → dialog renders `useEnrollableChildren` results
+- Click cell with booked shift → popover opens with "Sign in" / "Mark absent" / "Edit"
+- Click cell with signed-in shift → popover shows "Sign out" / "Undo"
+- Add child flow → dialog renders `useEnrollableChildren` results; submitting calls POST /api/attendance/roll-call with `action: "undo"` per selection
 
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/components/services/ServiceWeeklyRollCallGrid.tsx src/components/services/WeeklyRollCallCell.tsx src/components/services/ServiceRollCallTab.tsx src/hooks/useWeeklyRollCall.ts src/__tests__/
+git add src/components/services/ServiceWeeklyRollCallGrid.tsx src/components/services/WeeklyRollCallCell.tsx src/components/services/ServiceRollCallTab.tsx src/hooks/useWeeklyRollCall.ts tests/e2e/weekly-roll-call.spec.ts src/__tests__/
 git commit -m "feat(roll-call): editable weekly grid with sign-in/out + add-child
 
 New ServiceWeeklyRollCallGrid renders children × Mon-Fri with shift
 chips colored by status (booked/signed-in/signed-out/absent). Empty
-cells clickable to add; chip clicks open action popover
-(sign-in/sign-out/mark-absent/edit). Header '+ Add child to week'
+cells clickable to add; chip clicks open action popover (sign-in /
+sign-out / mark-absent / undo / edit). Header '+ Add child to week'
 button opens dialog listing children not yet on the week's roster.
 
 WeeklyRollCallCell memoized to prevent full grid re-render on single
 shift update — 60 children × 5 days = up to 900 cells.
 
-All attendance mutations hit existing /api/attendance routes.
+All attendance mutations hit POST /api/attendance/roll-call with
+actions sign_in / sign_out / mark_absent / undo (the 'undo' action
+doubles as 'create booked record' when no row exists — upsert
+behaviour already built into the existing route).
+
+Playwright e2e covers the sign-in-persist-across-reload path.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 ```
@@ -953,7 +1292,20 @@ Render full month grid (6 weeks × 7 days). Each day shows `{attended}/{booked}`
 - ≥ 70% → amber
 - < 70% → red
 
-Click a day → navigate to daily view: `router.replace(`?rollCallView=daily&date=${date}`)` (daily view reads `date` param — add this coupling now so daily view can use it when the user clicks).
+Click a day → navigate: `router.replace(\`?tab=daily-ops&sub=roll-call&rollCallView=daily&date=${date}\`)`. Preserve the existing tab/sub path — don't drop the user out of Roll Call.
+
+- [ ] **Step 3: Wire daily view to read the `date` search param**
+
+The existing `ServiceRollCallTab.tsx` daily view currently has its own `useState(today)` date picker — it ignores URL params. Update its initial state:
+
+```tsx
+// inside ServiceRollCallTab daily view
+const searchParams = useSearchParams();
+const urlDate = searchParams?.get("date");
+const [selectedDate, setSelectedDate] = useState(urlDate ?? todayDateString());
+```
+
+And when the user manually changes the date picker, sync back to URL: `router.replace(\`?...&date=${newDate}\`)`. This keeps monthly-drilldown + bookmarking consistent.
 
 ### Task 8.2: Render in tab
 
@@ -966,7 +1318,7 @@ Click a day → navigate to daily view: `router.replace(`?rollCallView=daily&dat
 
 ### Task 8.3: Test + commit
 
-- [ ] **Step 1: Tests** — calendar renders 28-31 cells per month; color classification; click navigates.
+- [ ] **Step 1: Tests** — calendar renders all days of month; color classification (≥90/≥70/<70%); click navigates to daily view with `date` param; daily view reads param on mount.
 
 - [ ] **Step 2: Commit**
 
@@ -993,15 +1345,101 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 - Create: `src/app/(dashboard)/children/[id]/loading.tsx`
 - Modify: `src/lib/role-permissions.ts`
 
-- [ ] **Step 1: role-permissions.ts**
+- [ ] **Step 1: role-permissions.ts — add `/children/[id]` per-role**
 
-Read the file. Add `"/children/[id]"` to `allPages`. For each non-admin role's access list (coordinator, marketing, member, staff), add `"/children/[id]"`. Admin/owner/head_office inherit via `allPages` spread (verify pattern).
+Read `src/lib/role-permissions.ts`. Current state (as of baseline):
+- `owner` and `head_office` set to `allPages` (full). `admin` is `allPages.filter(p => p !== "/crm/templates")` → inherits.
+- `coordinator` and `member` already have `/children`. `staff` and `marketing` do NOT.
 
-- [ ] **Step 2: layout.tsx**
+Per the spec access matrix (v2), all non-admin roles should be able to READ `/children/[id]` at their own service (Details/Room: coord+ read; Relationships/Medical/Attendances: all roles R).
+
+Changes required:
+1. **Add `/children/[id]` to `allPages` constant** — place it directly after `"/children"` (around line 105). This auto-grants owner/head_office/admin via the spread.
+2. **Add `/children/[id]`** to each of these arrays in `rolePageAccess`:
+   - `coordinator` (after existing `/children` entry)
+   - `member` (after existing `/children` entry)
+   - `staff` (new — `/children/[id]` only; do NOT add `/children` list itself to staff because the list route hasn't been opened to staff in the spec. The page route access is gated further by the server-side same-service check in `page.tsx`.)
+   - `marketing` (new — `/children/[id]` only; same rationale as staff)
+
+3. **Add a unit test** `src/__tests__/lib/role-permissions-children-detail.test.ts`:
+
+```ts
+import { canAccessPage } from "@/lib/role-permissions";
+describe("canAccessPage /children/[id]", () => {
+  for (const role of ["owner", "head_office", "admin", "coordinator", "member", "staff", "marketing"] as const) {
+    it(`allows ${role}`, () => {
+      expect(canAccessPage(role, "/children/abc123")).toBe(true);
+    });
+  }
+});
+```
+
+- [ ] **Step 2: Explicitly widen `/api/children/[id]` PATCH Zod schema**
+
+The existing schema at `src/app/api/children/[id]/route.ts:9-15` accepts only 5 fields (`status`, `serviceId`, `schoolName`, `yearLevel`, `generateBookings`). The DetailsTab (Task 9.3) and MedicalTab (Task 10.2) both PATCH this route with many more fields. Extend now:
+
+```ts
+const patchSchema = z.object({
+  // Existing fields
+  status: z.string().optional(),
+  serviceId: z.string().optional(),
+  schoolName: z.string().optional(),
+  yearLevel: z.string().optional(),
+  generateBookings: z.boolean().optional(),
+  // New in 4a — Details tab
+  firstName: z.string().min(1).max(100).optional(),
+  surname: z.string().min(1).max(100).optional(),
+  dob: z.string().datetime().optional().nullable(),
+  gender: z.enum(["male", "female", "other", "prefer_not_to_say"]).optional().nullable(),
+  crn: z.string().max(20).optional().nullable(),
+  photo: z.string().url().optional().nullable(),
+  enrolmentDate: z.string().datetime().optional().nullable(),
+  exitDate: z.string().datetime().optional().nullable(),
+  exitCategory: z.string().max(100).optional().nullable(),
+  exitReason: z.string().max(500).optional().nullable(),
+  // New in 4a — Medical tab (needs schema fields from Commit 1)
+  medicalConditions: z.array(z.string()).optional(),
+  medicareNumber: z.string().max(20).optional().nullable(),
+  medicareExpiry: z.string().datetime().optional().nullable(),
+  medicareRef: z.string().max(10).optional().nullable(),
+  vaccinationStatus: z.enum(["up_to_date", "overdue", "exempt", "unknown"]).optional().nullable(),
+  // New in 4a — Room/Days tab
+  bookingPrefs: z.record(z.unknown()).optional(), // detailed validation via bookingPrefsSchema on write
+});
+```
+
+Also add auth-narrowing: currently the PATCH is `withApiAuth` with default roles — acceptable. But explicitly state that Medical + Room/Days sections require coordinator+ (admin/hq/owner/coord) per spec matrix. Implementation: route handler checks `parsed.data` for medical/bookingPrefs keys; if present and role not in `[owner, head_office, admin, coordinator]`, throw `ApiError.forbidden()`.
+
+Verify test: add a case to `src/__tests__/api/children-id.test.ts` that a staff-role user patching `medicareNumber` gets 403.
+
+- [ ] **Step 3: Extend the PATCH implementation for bookingPrefs merge (transactional)**
+
+Because `bookingPrefs` is a JSON column, partial-update needs a read-merge-write. Otherwise a client sending only `fortnightPattern` clobbers other keys. In the PATCH handler, when `parsed.data.bookingPrefs` is present:
+
+```ts
+await prisma.$transaction(async (tx) => {
+  const existing = await tx.child.findUnique({
+    where: { id },
+    select: { bookingPrefs: true },
+  });
+  const merged = {
+    ...(existing?.bookingPrefs as object ?? {}),
+    ...parsed.data.bookingPrefs,
+  };
+  await tx.child.update({
+    where: { id },
+    data: { bookingPrefs: merged as Prisma.InputJsonValue, ...otherFields },
+  });
+});
+```
+
+(Import `Prisma` from `@prisma/client` at the top.)
+
+- [ ] **Step 4: layout.tsx**
 
 Sticky header with avatar + name + DOB+age + service name + back button.
 
-- [ ] **Step 3: page.tsx (server component)**
+- [ ] **Step 5: page.tsx (server component)**
 
 Fetch child + parallel data. Access check:
 
@@ -1025,7 +1463,7 @@ On success:
 />
 ```
 
-- [ ] **Step 4: loading.tsx** — skeleton matching layout.
+- [ ] **Step 6: loading.tsx** — skeleton matching layout.
 
 ### Task 9.2: ChildProfileTabs client component
 
@@ -1053,24 +1491,32 @@ Render active tab content. Commits 9-10 implement Relationships / Medical / Atte
 **Files:**
 - Create: `src/components/child/tabs/DetailsTab.tsx`
 
-- [ ] **Step 1: Implement**
+- [ ] **Step 1: Write failing test** (`src/__tests__/components/child/DetailsTab.test.tsx`) covering: view-only mode hides inputs, edit mode shows all 11 fields, save triggers `mutateApi('/api/children/<id>', PATCH, {...body})`.
+
+- [ ] **Step 2: Implement**
 
 Display + edit (if `canEdit`) form with: firstName, surname, dob, gender, photo upload, schoolName, yearLevel, crn, status (active/withdrawn), enrolment start date, finish date, exit category/reason.
 
-PATCH `/api/children/[id]` (extend existing route to accept all these fields if it doesn't already).
+PATCH `/api/children/[id]`. The schema extension in Task 9.1 Step 2 already accepts all these fields — this tab is purely UI. Use `mutateApi("/api/children/" + childId, { method: "PATCH", body: dirtyFields })` with `onError` destructive toast.
+
+- [ ] **Step 3: Verify test passes**
 
 ### Task 9.4: RoomDaysTab
 
 **Files:**
 - Create: `src/components/child/tabs/RoomDaysTab.tsx`
 
-- [ ] **Step 1: Implement editable fortnight pattern**
+- [ ] **Step 1: Write failing test** (`src/__tests__/components/child/RoomDaysTab.test.tsx`) — existing bookingPrefs.fortnightPattern renders checkboxes correctly; toggling then saving only sends the new fortnight pattern in the PATCH body (server-side merge handles the rest).
+
+- [ ] **Step 2: Implement editable fortnight pattern**
 
 Render two rows (Week 1 / Week 2). Each row has sub-rows per session type (BSC / ASC / VC). Columns = Mon / Tue / Wed / Thu / Fri / Sat / Sun. Each cell = checkbox.
 
-Current pattern reads from `child.bookingPrefs?.fortnightPattern` (Zod-validated via `fortnightPatternSchema`).
+Current pattern reads from `child.bookingPrefs?.fortnightPattern` (parse via `bookingPrefsSchema` from `@/lib/service-settings` then narrow to `.fortnightPattern`).
 
-On Save → `PATCH /api/children/[id]` with `bookingPrefs: { ...existing, fortnightPattern: newPattern }`. Use `bookingPrefsSchema.passthrough()` to preserve unknown keys.
+On Save → `mutateApi('/api/children/' + childId, { method: 'PATCH', body: { bookingPrefs: { fortnightPattern: newPattern } } })`. The client sends ONLY `{ fortnightPattern: ... }` as the `bookingPrefs` key — the server's transactional merge (implemented in Task 9.1 Step 3) reads existing `bookingPrefs`, shallow-merges, and writes back. This avoids client-side clobber + the race between concurrent edits.
+
+- [ ] **Step 3: Verify test passes**
 
 ### Task 9.5: Tests + commit
 
@@ -1122,11 +1568,17 @@ List primary carer (starred), secondary carers, emergency contacts, authorised p
 **Files:**
 - Create: `src/components/child/tabs/MedicalTab.tsx`
 
-- [ ] **Step 1: Form fields**
+- [ ] **Step 1: Write failing test** (`src/__tests__/components/child/MedicalTab.test.tsx`) — form renders existing values; save triggers PATCH with exactly the Medical-fields subset; 403 surfaces to destructive toast.
 
-Checkboxes: Anaphylaxis, Allergies, Asthma, Dietary Restrictions. Free-text textareas: mild allergies, severe medical conditions. Medicare #, expiry (month+year), ref #. Vaccination status dropdown (4 values from spec).
+- [ ] **Step 2: Form fields**
 
-Read from `child.medicalConditions[]`, `child.medicareNumber`, etc. (added in Commit 1). Save via PATCH /api/children/[id].
+Checkboxes: Anaphylaxis, Allergies, Asthma, Dietary Restrictions. Free-text textareas: mild allergies, severe medical conditions. Medicare #, expiry (month+year), ref #. Vaccination status dropdown (`up_to_date | overdue | exempt | unknown`).
+
+Read from `child.medicalConditions[]`, `child.medicareNumber`, `child.medicareExpiry`, `child.medicareRef`, `child.vaccinationStatus` (all added in Commit 1). Save via `mutateApi('/api/children/' + childId, { method: 'PATCH', body: {...medicalFields} })`. The PATCH schema extension (Task 9.1 Step 2) already accepts these fields.
+
+Per spec access matrix: staff/member/marketing are **read-only**. In the UI, gate edit controls behind `canEdit` (passed in from page.tsx based on role). Server-side, the PATCH handler's authz narrowing (Task 9.1 Step 2) rejects non-coord+ roles patching Medical fields with 403.
+
+- [ ] **Step 3: Verify test passes**
 
 ### Task 10.3: Wire into ChildProfileTabs + tests + commit
 
@@ -1252,8 +1704,20 @@ export interface ChildrenFilters {
 }
 
 export function useChildren(filters?: ChildrenFilters) {
+  // Sort tags so cache hits are stable regardless of user-supplied order
+  const sortedTags = (filters?.tags ?? []).slice().sort();
   return useQuery({
-    queryKey: ["children", filters?.serviceId ?? null, filters?.room ?? null, filters?.day ?? null, filters?.ccsStatus ?? null, filters?.status ?? null, filters?.sortBy ?? null, filters?.includeParents ?? false, ...(filters?.tags ?? [])],
+    queryKey: [
+      "children",
+      filters?.serviceId ?? null,
+      filters?.room ?? null,
+      filters?.day ?? null,
+      filters?.ccsStatus ?? null,
+      filters?.status ?? null,
+      filters?.sortBy ?? null,
+      filters?.includeParents ?? false,
+      ...sortedTags,
+    ],
     queryFn: () => fetchApi<Child[]>(`/api/children${buildQueryString(filters)}`),
     retry: 2,
     staleTime: 30_000,
@@ -1261,7 +1725,7 @@ export function useChildren(filters?: ChildrenFilters) {
 }
 ```
 
-Primitive-spread query keys per CLAUDE.md.
+Primitive-spread query keys per CLAUDE.md. Tags sorted so `["foo","bar"]` and `["bar","foo"]` produce the same cache key.
 
 ### Task 12.3: ChildrenFilters component + list upgrade
 
@@ -1318,19 +1782,27 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { isAdminRole } from "@/lib/role-permissions";
 import { casualBookingSettingsSchema } from "@/lib/service-settings";
 
+import type { Prisma } from "@prisma/client";
+import { getServiceScope } from "@/lib/service-scope";
+
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
   const role = session.user.role ?? "";
   if (!isAdminRole(role)) {
-    const viewer = await prisma.user.findUnique({ where: { id: session.user.id }, select: { serviceId: true } });
-    if (role !== "coordinator" || viewer?.serviceId !== id) throw ApiError.forbidden();
+    if (role !== "coordinator") throw ApiError.forbidden();
+    const scope = getServiceScope(session);
+    if (!scope || !scope.includes(id)) throw ApiError.forbidden();
   }
   const body = await parseJsonBody(req);
   const parsed = casualBookingSettingsSchema.safeParse(body);
   if (!parsed.success) throw ApiError.badRequest("Invalid casualBookingSettings", parsed.error.flatten());
+
+  // Client sends the FULL {bsc,asc,vc} blob (UI displays all three cards every time,
+  // so partial-update isn't needed here). Zod-parsed → Prisma.InputJsonValue cast
+  // satisfies the JSON column type without unsafe `as any`.
   const updated = await prisma.service.update({
     where: { id },
-    data: { casualBookingSettings: parsed.data as any },
+    data: { casualBookingSettings: parsed.data as Prisma.InputJsonValue },
   });
   return NextResponse.json({ service: updated });
 });
@@ -1437,6 +1909,20 @@ const activeTab = searchParams?.get("tab") ?? "today";
 
 Find the current line (~299) that renders `<ServiceTodayPanel />` above the tab group. Remove it. The panel only renders inside the new Today tab now.
 
+- [ ] **Step 5: Audit existing links to `/services/[id]` (avoid silent redirects)**
+
+Before committing, grep for existing link targets. Any bare `/services/<id>` link that users currently expect to land on Overview will now land on Today instead:
+
+```bash
+# Within the worktree:
+grep -rn "services/\${" src --include="*.tsx" --include="*.ts" \
+  | grep -v "tab="
+grep -rn "/services/\[id\]" src/lib/nav-config.ts src/lib/email-templates.ts 2>/dev/null
+grep -rn "href.*services/\$" src --include="*.tsx"
+```
+
+For each hit: decide intentionally. If the link SHOULD preserve Overview-default behaviour (e.g. an email CTA that says "Review service settings"), append `?tab=overview`. If the link should land on Today (most dashboard navigation), leave untouched. Document any you changed in the commit body.
+
 ### Task 14.3: Test + commit
 
 - [ ] **Step 1: Test**
@@ -1520,8 +2006,26 @@ Smoke scenarios:
 
 ### Task 15.3: Apply migration + merge
 
-- [ ] **Step 1: Hand Jayden migration SQL from `prisma/migrations/<ts>_add_service_approval_session_times_child_medical/migration.sql`**
-- [ ] **Step 2: After Jayden confirms applied, verify via psql** — tables/columns exist
+- [ ] **Step 1: Hand Jayden the paste-ready SQL artefact** from `prisma/migrations/<ts>_add_service_approval_session_times_child_medical/neon-apply.sql` (created in Task 2.3 Step 3). It includes the ALTER TABLE statements PLUS the `INSERT INTO _prisma_migrations` that tells Prisma the migration is applied. Reminder: substitute `<MIGRATION_FOLDER_NAME>` with the actual folder name.
+
+- [ ] **Step 2: After Jayden confirms applied, verify via psql**
+
+```sql
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'Service' AND column_name IN
+  ('serviceApprovalNumber','providerApprovalNumber','sessionTimes','casualBookingSettings');
+-- Expect 4 rows
+
+SELECT column_name FROM information_schema.columns
+WHERE table_name = 'Child' AND column_name IN
+  ('medicareNumber','medicareExpiry','medicareRef','vaccinationStatus');
+-- Expect 4 rows
+
+SELECT migration_name FROM "_prisma_migrations"
+WHERE migration_name LIKE '%add_service_approval_session_times_child_medical%';
+-- Expect 1 row
+```
+
 - [ ] **Step 3: Merge PR + cleanup**
 
 ```bash
@@ -1534,14 +2038,21 @@ git fetch && git reset --hard origin/main
 
 ## Acceptance criteria
 
-- [ ] All 13 commits land in prescribed order
-- [ ] Schema migration applied to Neon pre-merge
-- [ ] 1298+ baseline → 1400+ tests (~80+ new)
+- [ ] All 13 commits land in prescribed order (+ 2 docs commits)
+- [ ] Schema migration applied to Neon pre-merge (via `neon-apply.sql` artefact)
+- [ ] 1298+ baseline → 1400+ tests (~80+ new, including 1 Playwright E2E for weekly grid)
 - [ ] 0 tsc errors
-- [ ] `/children/[id]` added to `src/lib/role-permissions.ts`
+- [ ] `/children/[id]` added to `src/lib/role-permissions.ts` in `allPages` + explicitly in 4 non-admin roles (coordinator, member, staff, marketing)
+- [ ] `/api/children/[id]` PATCH Zod schema widened to 15+ fields (Details + Medical + Room/Days) with 403 narrowing for Medical/Room/Days from non-coord+
+- [ ] `bookingPrefs` PATCH is transactional (read-merge-write inside `prisma.$transaction`)
+- [ ] All attendance mutations route through `POST /api/attendance/roll-call` — zero references to `/api/attendance/[id]` (doesn't exist)
+- [ ] All AttendanceRecord date filters use `date` column (not `attendanceDate`)
+- [ ] All week/month boundary calcs use UTC mutators (`setUTCDate` / `setUTCMonth` / `Date.UTC`)
+- [ ] No `as any` casts on Prisma JSON writes (use `Prisma.InputJsonValue`)
+- [ ] Weekly grid Playwright test covers sign-in-persist-across-reload
 - [ ] CI green on PR
 - [ ] Manual smoke: all 8 scenarios pass
-- [ ] PR body includes before/after + migration SQL
+- [ ] PR body includes before/after + `neon-apply.sql` content + "deferred to 4b" list
 
 ## Risk mitigations
 
