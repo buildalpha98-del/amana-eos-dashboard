@@ -347,6 +347,8 @@ sessionTimes: sessionTimesSchema.nullish(),
 
 Import `sessionTimesSchema` from `@/lib/service-settings`. (casualBookingSettings comes in Commit 12's dedicated endpoint — do NOT add it here.)
 
+> **Important:** Also add `"coordinator"` to the `roles` array on the PATCH handler, and add a service-scope narrowing check inside the handler: if role is `"coordinator"`, call `getServiceScope(session)` and throw `ApiError.forbidden()` unless `scope.includes(id)`. Matches the same pattern used by `/api/services/[id]/roll-call/weekly` (Commit 5) and `/api/services/[id]/casual-settings` (Commit 12).
+
 ### Task 3.2: Add service-info UI card
 
 **Files:**
