@@ -11,7 +11,12 @@ function canAccess(role: string, pathname: string): boolean {
 }
 
 // Public API routes that bypass auth middleware (they handle their own auth or are intentionally public)
-const PUBLIC_API_ROUTES = ["/api/services/public-list"];
+const PUBLIC_API_ROUTES = [
+  "/api/services/public-list",
+  // Parents filling out the public enrolment form at /enrol/[token] have no session.
+  // The route itself rate-limits by IP and validates magic bytes / size / extension.
+  "/api/upload/enrolment-file",
+];
 
 export default withAuth(
   function middleware(req) {
