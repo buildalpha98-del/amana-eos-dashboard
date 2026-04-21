@@ -5117,6 +5117,9 @@ model EnrolmentApplication {
   // If approved, the created child record
   createdChildId String?
 
+  // OWNA CSV export tracking (set when admin downloads the OWNA-import CSV)
+  ownaExportedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
