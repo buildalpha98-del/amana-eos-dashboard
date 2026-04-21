@@ -56,6 +56,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.leaveRequest.count.mockResolvedValue(3);
     prismaMock.timesheet.count.mockResolvedValue(7);
     prismaMock.shiftSwapRequest.count.mockResolvedValue(2);
+    prismaMock.weeklyPulse.count.mockResolvedValue(0);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
@@ -67,6 +68,7 @@ describe("GET /api/team/action-counts", () => {
       leavePending: 3,
       timesheetsPending: 7,
       shiftSwapsPending: 2,
+      pulsesConcerning: 0,
     });
 
     // Verify no serviceId scoping applied for admin
@@ -99,6 +101,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.leaveRequest.count.mockResolvedValue(1);
     prismaMock.timesheet.count.mockResolvedValue(4);
     prismaMock.shiftSwapRequest.count.mockResolvedValue(3);
+    prismaMock.weeklyPulse.count.mockResolvedValue(0);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
@@ -110,6 +113,7 @@ describe("GET /api/team/action-counts", () => {
       leavePending: 1,
       timesheetsPending: 4,
       shiftSwapsPending: 3,
+      pulsesConcerning: 0,
     });
 
     // Verify service-scoped filter applied
@@ -136,6 +140,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.leaveRequest.count.mockResolvedValue(0);
     prismaMock.timesheet.count.mockResolvedValue(0);
     prismaMock.shiftSwapRequest.count.mockResolvedValue(0);
+    prismaMock.weeklyPulse.count.mockResolvedValue(0);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
@@ -156,6 +161,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.leaveRequest.count.mockResolvedValue(0);
     prismaMock.timesheet.count.mockResolvedValue(0);
     prismaMock.shiftSwapRequest.count.mockResolvedValue(0);
+    prismaMock.weeklyPulse.count.mockResolvedValue(0);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
@@ -178,6 +184,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.leaveRequest.count.mockResolvedValue(0);
     prismaMock.timesheet.count.mockResolvedValue(0);
     prismaMock.shiftSwapRequest.count.mockResolvedValue(0);
+    prismaMock.weeklyPulse.count.mockResolvedValue(0);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
@@ -189,6 +196,7 @@ describe("GET /api/team/action-counts", () => {
       leavePending: 0,
       timesheetsPending: 0,
       shiftSwapsPending: 0,
+      pulsesConcerning: 0,
     });
 
     // Non-admin roles get scoped by serviceId
@@ -208,6 +216,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.leaveRequest.count.mockResolvedValue(0);
     prismaMock.timesheet.count.mockResolvedValue(0);
     prismaMock.shiftSwapRequest.count.mockResolvedValue(0);
+    prismaMock.weeklyPulse.count.mockResolvedValue(0);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
@@ -217,5 +226,42 @@ describe("GET /api/team/action-counts", () => {
     // scopedServiceId resolves to null → spread is skipped → no filter applied
     const certCall = prismaMock.complianceCertificate.count.mock.calls[0][0];
     expect(certCall.where.serviceId).toBeUndefined();
+  });
+
+  it("returns pulsesConcerning for admin (org-wide, mood<=2, current week filter)", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner" });
+    prismaMock.complianceCertificate.count.mockResolvedValue(0);
+    prismaMock.leaveRequest.count.mockResolvedValue(0);
+    prismaMock.timesheet.count.mockResolvedValue(0);
+    prismaMock.shiftSwapRequest.count.mockResolvedValue(0);
+    prismaMock.weeklyPulse.count.mockResolvedValue(3);
+
+    const res = await GET(createRequest("GET", "/api/team/action-counts"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.pulsesConcerning).toBe(3);
+
+    const call = prismaMock.weeklyPulse.count.mock.calls[0][0];
+    expect(call.where.mood).toEqual({ lte: 2 });
+    expect(call.where.submittedAt).toEqual({ not: null });
+    expect(call.where.weekOf?.gte).toBeInstanceOf(Date);
+    expect(call.where.user).toBeUndefined();
+  });
+
+  it("scopes pulsesConcerning for coordinator via user.serviceId", async () => {
+    mockSession({ id: "u2", name: "Coord", role: "coordinator", serviceId: "svc-1" });
+    prismaMock.complianceCertificate.count.mockResolvedValue(0);
+    prismaMock.leaveRequest.count.mockResolvedValue(0);
+    prismaMock.timesheet.count.mockResolvedValue(0);
+    prismaMock.shiftSwapRequest.count.mockResolvedValue(0);
+    prismaMock.weeklyPulse.count.mockResolvedValue(1);
+
+    const res = await GET(createRequest("GET", "/api/team/action-counts"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.pulsesConcerning).toBe(1);
+
+    const call = prismaMock.weeklyPulse.count.mock.calls[0][0];
+    expect(call.where.user).toEqual({ serviceId: "svc-1" });
   });
 });

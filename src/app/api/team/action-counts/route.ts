@@ -3,6 +3,14 @@ import { withApiAuth } from "@/lib/server-auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/role-permissions";
 
+function startOfIsoWeek(): Date {
+  const d = new Date();
+  const day = d.getDay();
+  d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 /**
  * GET /api/team/action-counts
  *
@@ -28,7 +36,7 @@ export const GET = withApiAuth(async (_req, session) => {
   const in30days = new Date();
   in30days.setDate(in30days.getDate() + 30);
 
-  const [certsExpiring, leavePending, timesheetsPending, shiftSwapsPending] =
+  const [certsExpiring, leavePending, timesheetsPending, shiftSwapsPending, pulsesConcerning] =
     await Promise.all([
       prisma.complianceCertificate.count({
         where: {
@@ -59,6 +67,16 @@ export const GET = withApiAuth(async (_req, session) => {
             : {}),
         },
       }),
+      prisma.weeklyPulse.count({
+        where: {
+          submittedAt: { not: null },
+          mood: { lte: 2 },
+          weekOf: { gte: startOfIsoWeek() },
+          ...(scopedServiceId
+            ? { user: { serviceId: scopedServiceId } }
+            : {}),
+        },
+      }),
     ]);
 
   return NextResponse.json({
@@ -66,5 +84,6 @@ export const GET = withApiAuth(async (_req, session) => {
     leavePending,
     timesheetsPending,
     shiftSwapsPending,
+    pulsesConcerning,
   });
 });
