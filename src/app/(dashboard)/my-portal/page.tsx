@@ -40,6 +40,8 @@ import { NotificationPreferences } from "@/components/settings/NotificationPrefe
 import { SessionManagement } from "@/components/settings/SessionManagement";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
+import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
+import { MyLeaveBalanceCard } from "@/components/my-portal/MyLeaveBalanceCard";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -652,9 +654,29 @@ export default function MyPortalPage() {
               Edit Profile
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
+            {session?.user?.id && (
+              <Link
+                href={`/staff/${session.user.id}`}
+                className="inline-flex items-center gap-1.5 mt-1 text-sm font-medium text-brand hover:underline"
+                data-testid="view-full-profile-link"
+              >
+                <UserCircle className="w-3.5 h-3.5" />
+                View my full profile
+              </Link>
+            )}
           </div>
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* 3b. MY COMPLIANCE + MY LEAVE BALANCE (self-service)           */}
+      {/* ============================================================ */}
+      {session?.user?.id && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <MyComplianceCard userId={session.user.id} />
+          <MyLeaveBalanceCard userId={session.user.id} />
+        </div>
+      )}
 
       {/* ============================================================ */}
       {/* 4. LEAVE BALANCES                                            */}
