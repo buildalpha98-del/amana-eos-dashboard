@@ -25,7 +25,7 @@ Part 2 (**Sub-project 3b**, deferred) handles Staff Rostering & Shift Management
 | Tests passing | 1004 | 1004+ (new tests added for each new component/route) |
 | `tsc --noEmit` | 0 errors | 0 |
 | Individual staff profile page | Does not exist (only API routes at `/api/users/[id]/*`) | `/staff/[id]` with 7 tabs + access control |
-| Compliance alert system | Partial: `cert-expiry-alert` (weekly) + `compliance-alerts` (daily 7am) crons exist; `compliance-alerts` sends emails via `complianceAlertEmail` / `complianceAdminSummaryEmail` templates | Single rationalised system: 30/14/7/0 cadence, staff + coordinator CC + admin weekly digest, email + in-app, dedup tracking |
+| Compliance alert system | Partial: `cert-expiry-alert` (weekly Sun 22:15 UTC) + `compliance-alerts` (daily 21:00 UTC = 7am AEST) crons exist; `compliance-alerts` sends emails via `complianceAlertEmail` / `complianceAdminSummaryEmail` templates | Single rationalised system: 30/14/7/0 cadence, staff + coordinator CC + admin weekly digest, email + in-app, dedup tracking |
 | Compliance matrix API | Exists at `/api/compliance/matrix` with 11 cert types + CertStatus logic | UI (heat map grid) added on `/compliance` page; toggle between list view and matrix view |
 | In-app notification model | No generic `UserNotification` model (only `ParentNotification` + `NotificationLog`-for-email-audit) | New `UserNotification` model added for staff-facing in-app notifications |
 | Cert file upload | `ComplianceCertificate.fileUrl` + `fileName` fields exist in schema; no dedicated upload UI | Upload/renew flow on cert cards, download button everywhere |
@@ -43,10 +43,10 @@ One feature branch, one PR, **12 stacked commits** in logical-dependency order. 
 
 | # | Commit subject | Category | Files (approx.) |
 |---|---|---|---|
-| 1 | `feat(schema): UserNotification + ComplianceCertificateAlert models + migration` | Schema | 2 (schema + migration) |
+| 1 | `feat(schema): UserNotification + ComplianceCertificateAlert models + notification-types constants + migration` | Schema | 3 (schema + migration + constants file) |
 | 2 | `feat(components): shared staff UI primitives (StaffAvatar, RoleBadge, CertStatusBadge, LeaveBalanceCard)` | Shared UI | ~8 (4 components + 4 test files) |
 | 3 | `feat(api): UserNotification CRUD routes + markAsRead + list` | API | ~4 (routes + tests) |
-| 4 | `feat(staff): individual profile page /staff/[id] with 7 tabs + access control` | Feature | ~12 (page + 7 tab components + layout + tests) |
+| 4 | `feat(staff): individual profile page /staff/[id] with 7 tabs + access control` | Feature | ~20 (layout + page + loading + 7 tab components + role-permissions update + 7-10 test files) |
 | 5 | `feat(compliance): cert upload/renew/download flow` | Feature | ~5 (new POST /api/compliance/[id]/file; UI on cert cards; Vercel Blob helper reuse) |
 | 6 | `feat(compliance): heat map matrix view on /compliance page` | Feature | ~3 (new matrix component; page toggle; matrix API already exists) |
 | 7 | `refactor(crons): rationalise compliance-alerts + cert-expiry-alert to single 30/14/7/0 cadence with dedup` | Reliability | ~4 (consolidate crons, add dedup via ComplianceCertificateAlert) |
@@ -102,9 +102,32 @@ model ComplianceCertificateAlert {
 **User model update**: add `notifications UserNotification[] @relation("UserNotifications")` back-relation.
 **ComplianceCertificate model update**: add `alerts ComplianceCertificateAlert[] @relation("CertificateAlerts")` back-relation.
 
-**Migration name**: `20260421_add_user_notification_and_cert_alert_dedup`
+**Migration**: `npx prisma migrate dev --name add_user_notification_and_cert_alert_dedup` — Prisma prefixes the timestamp automatically; the resulting file lives at `prisma/migrations/<timestamp>_add_user_notification_and_cert_alert_dedup/migration.sql`.
 
-**Acceptance**: `npx prisma migrate dev --name add_user_notification_and_cert_alert_dedup` runs clean locally. `npx prisma generate` produces types. `npm test` still passes (0 schema-related TS errors).
+**Also in this commit** — create `src/lib/notification-types.ts`:
+
+```ts
+/**
+ * All known UserNotification.type string literals. Import from here
+ * instead of hand-typing strings at creation sites to prevent drift
+ * between notification creators and the bell UI.
+ */
+export const NOTIFICATION_TYPES = {
+  CERT_EXPIRING_30D: "cert_expiring_30d",
+  CERT_EXPIRING_14D: "cert_expiring_14d",
+  CERT_EXPIRING_7D: "cert_expiring_7d",
+  CERT_EXPIRED: "cert_expired",
+  LEAVE_SUBMITTED: "leave_submitted",
+  LEAVE_APPROVED: "leave_approved",
+  LEAVE_DENIED: "leave_denied",
+  TIMESHEET_SUBMITTED: "timesheet_submitted",
+  TIMESHEET_APPROVED: "timesheet_approved",
+} as const;
+
+export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];
+```
+
+**Acceptance**: Prisma migrate runs clean locally. `npx prisma generate` produces types. `npm test` still passes. `notification-types.ts` exports both constant + union type.
 
 ---
 
@@ -225,9 +248,11 @@ Implemented via `withApiAuth` role gating on each sub-API endpoint + server-side
 
 **Purpose**: Staff can download their own certs; admins can upload new certs / renewals for anyone.
 
-**New route**: `POST /api/compliance/[id]/file` — upload a file to Vercel Blob, store URL on the cert record. Handles both "new cert" (when id is a placeholder or sentinel) and "renewal" (updates existing).
+**Route shape (decided)**: reuse existing `POST /api/compliance` for create-with-file and `PATCH /api/compliance/[id]` for update/replace-file. Both accept multipart form data; use the existing `@/lib/storage` helpers (`uploadFile`/`deleteFile`) — do NOT introduce a new `/file` subroute.
 
-Actually — simpler: reuse existing `POST /api/compliance` (create with file) + `PATCH /api/compliance/[id]` (update, accepting new file). Add file handling to both routes.
+New route: `GET /api/compliance/[id]/download` — access-checked download. Returns 302 redirect to the blob URL (it's already public per the Sub-project 1 bug #5 fix that made Vercel Blob uploads public by default — redirect is the simplest pattern; proxy-streaming would hide the URL but isn't needed for cert scans which are regulatory attestations, not sensitive PII). Wrapped in `withApiAuth` with role-based access per the matrix below.
+
+**Avatar-route auth alignment**: the existing `POST /api/users/[id]/avatar` route only allows `owner` + `admin` + self. This commit MUST widen it to `[...ADMIN_ROLES, "coordinator"]` (with coordinator scoped to users at their service) so cert-upload + avatar-upload behave consistently. Two-line change, same file.
 
 **UI on cert cards**:
 - Download button → links to `fileUrl` (already public per Sub-project 1 bug #5 fix for Vercel Blob defaults)
@@ -278,7 +303,7 @@ Enforced server-side on a new route `GET /api/compliance/[id]/download` which ch
 
 **Purpose**: Two overlapping crons exist (`compliance-alerts` daily, `cert-expiry-alert` weekly). Consolidate to one cron running at the right cadence with dedup.
 
-**Approach**: keep `compliance-alerts` as the primary (daily is right for catching 30/14/7 transitions). Remove `cert-expiry-alert` OR repurpose it to the admin weekly digest.
+**Approach**: keep `compliance-alerts` as the primary daily cron (at `0 21 * * *` UTC = 7am AEST) for catching 30/14/7/0 transitions. Repurpose `cert-expiry-alert` (weekly Monday) to be the **admin weekly digest only** — aggregates all expiring certs org-wide into a single email to admin/head_office/owner. Per-staff alerts live in `compliance-alerts`; per-admin summary lives in `cert-expiry-alert`.
 
 **Logic**:
 ```ts
@@ -311,8 +336,9 @@ Admin weekly digest: `cert-expiry-alert` cron (weekly Monday) — aggregates all
 
 **Purpose**: Wire up `UserNotification` creation in the right places + expose bell icon in top nav.
 
-**Trigger points**:
-- Compliance cron (commit 7) — on each threshold crossing
+**Scope clarification vs. commit 7**: the **compliance cron trigger points** (creating `UserNotification` rows on each threshold crossing) are done IN COMMIT 7 as part of the rationalised alert flow. Commit 8 covers the remaining triggers + the UI.
+
+**Trigger points done in THIS commit**:
 - Leave request submitted → notify coordinator/admin
 - Leave request approved/denied → notify requesting staff
 - Timesheet submitted → notify coordinator/admin
@@ -371,7 +397,7 @@ Admin weekly digest: `cert-expiry-alert` cron (weekly Monday) — aggregates all
 **Access**:
 - Staff users see cards with only name + service (no role badge, no email)
 - Admins/coordinators see full info
-- Clicking a card as staff → redirects to directory with "You don't have permission to view this profile" (or a stripped public profile — decide during impl)
+- Clicking a card as staff for another staff → 403 with inline toast "You don't have permission to view this profile" (per Decision #3). Own profile always accessible.
 
 **Files**: `src/app/(dashboard)/directory/DirectoryContent.tsx` (rewrite), tests.
 
@@ -454,15 +480,15 @@ npm run lint          # no new problems
 - **Any schema changes beyond `UserNotification` + `ComplianceCertificateAlert`** — contained to what the features need
 - **Push notifications** (PWA / Teams) — in-app bell + email only; push deferred
 
-## Open questions — resolve during implementation
+## Decisions (previously open questions, now resolved)
 
-1. **Q-A1**: New cert upload vs. renew — single UI flow or separate? Decision: single flow with radio toggle "Replace current" vs "New version (keep history)". Implementation decides.
-2. **Q-A2**: `GET /api/compliance/[id]/download` — redirect to blob URL (302) or proxy-stream the file? Redirect is simpler; proxy hides URL. Default to redirect.
-3. **Q-A3**: If `/staff/[id]` accessed by staff user for another person, return 403 or redirect to `/directory` with toast? Match existing pattern; check a similar page first.
-4. **Q-A4**: Coordinator "service-scoped" access — derive service from `User.serviceId` of the coordinator, OR lookup via a relation? Check existing coordinator role definition.
-5. **Q-A5**: `UserNotification.type` — enum or free-form string? Start with free-form string (matches `ParentNotification.type`); can tighten to Prisma enum later if value set stabilises.
-6. **Q-A6**: When a user has multiple coordinators (multi-service case), who gets the CC on compliance alerts? Default to all. If performance becomes an issue, switch to "primary service coordinator" (requires schema signal — defer until problem manifests).
-7. **Q-A7**: Bell icon polling interval — 60s is a guess. Measure actual user patterns post-ship and tune.
+1. **Cert upload vs. renew**: single UI flow with a radio toggle "Replace current" vs. "New version (keeps history)". "Replace" overwrites `fileUrl` on existing record. "New version" creates a fresh `ComplianceCertificate` row with same `type` + `userId`, leaves the old one with its original `expiryDate` for history.
+2. **Download route**: `GET /api/compliance/[id]/download` returns 302 redirect to blob URL. Proxy-streaming deferred — blob URLs are already public (per Sub-project 1 bug #5) and cert scans are regulatory attestations, not sensitive PII.
+3. **Staff accessing another user's profile**: returns `403` with no redirect. Matches the existing `withApiAuth` role-deny pattern. Clients get a clean error the UI can translate to "You don't have permission to view this profile." No stripped public view — commit 4 does NOT need a public-render code path.
+4. **Coordinator service scope**: derive the coordinator's service from `User.serviceId` on their own User record. Compliance/leave/timesheet queries for coordinator requests filter `where: { serviceId: session.user.serviceId }`. Multi-service coordinators are out of scope for 3a (spec says so explicitly — see item 6 below).
+5. **`UserNotification.type`**: free-form string, but constrained via a shared constants file `src/lib/notification-types.ts` (exported `NOTIFICATION_TYPES` object — callers import the string literals from there instead of hand-typing). Prevents drift between creation sites and the bell UI.
+6. **Multi-service coordinator CC**: default to "all services the coordinator belongs to". Query: `prisma.user.findMany({ where: { role: 'coordinator', serviceId: cert.user.serviceId } })` (per-cert coordinator lookup).
+7. **Bell icon polling interval**: 60s default. Tunable via a constant at the top of `NotificationBell.tsx` — no user preference yet, just a single value.
 
 ## Acceptance criteria — sub-project done when
 
