@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { withApiAuth } from "@/lib/server-auth";
+import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { logger } from "@/lib/logger";
 
 // POST /api/timesheets/[id]/submit — submit timesheet for approval
 export const POST = withApiAuth(async (req, session, context) => {
@@ -55,6 +57,38 @@ export const POST = withApiAuth(async (req, session, context) => {
       details: { weekEnding: timesheet.weekEnding },
     },
   });
+
+  // Notify coordinators at the timesheet's service. Observational — log failures but
+  // do not fail the request.
+  try {
+    const coordinators = await prisma.user.findMany({
+      where: { role: "coordinator", serviceId: timesheet.serviceId, active: true },
+      select: { id: true },
+    });
+
+    if (coordinators.length > 0) {
+      const submitterName = session.user.name || "A team member";
+      const weekEndingStr = new Date(timesheet.weekEnding).toISOString().slice(0, 10);
+      await Promise.all(
+        coordinators.map((c) =>
+          prisma.userNotification.create({
+            data: {
+              userId: c.id,
+              type: NOTIFICATION_TYPES.TIMESHEET_SUBMITTED,
+              title: `${submitterName} submitted a timesheet`,
+              body: `Week ending ${weekEndingStr}`,
+              link: `/timesheets?id=${id}`,
+            },
+          }),
+        ),
+      );
+    }
+  } catch (err) {
+    logger.error("Failed to create timesheet-submitted notifications", {
+      err,
+      timesheetId: id,
+    });
+  }
 
   return NextResponse.json(updated);
 });

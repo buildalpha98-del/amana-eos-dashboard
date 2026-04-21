@@ -1,19 +1,43 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uploadFile, deleteFile } from "@/lib/storage";
 import { withApiAuth } from "@/lib/server-auth";
 import { validateFileContent } from "@/lib/file-validation";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
+/**
+ * Resolve whether the viewer may manage the target user's avatar.
+ *
+ * Allowed:
+ *   - Self (viewer is the target user)
+ *   - Admin roles (owner / head_office / admin)
+ *   - Coordinator, if the target user shares the coordinator's service
+ */
+async function canManageAvatar(
+  viewerId: string,
+  viewerRole: string,
+  targetId: string,
+): Promise<boolean> {
+  if (viewerId === targetId) return true;
+  if ((ADMIN_ROLES as readonly string[]).includes(viewerRole)) return true;
+  if (viewerRole === "coordinator") {
+    const [target, viewer] = await Promise.all([
+      prisma.user.findUnique({ where: { id: targetId }, select: { serviceId: true } }),
+      prisma.user.findUnique({ where: { id: viewerId }, select: { serviceId: true } }),
+    ]);
+    return !!target?.serviceId && target.serviceId === viewer?.serviceId;
+  }
+  return false;
+}
+
 // POST /api/users/[id]/avatar — upload or replace avatar
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const isAdmin = ["owner", "admin"].includes(session!.user.role);
-  const isSelf = session!.user.id === id;
-
-  if (!isAdmin && !isSelf) {
+  const allowed = await canManageAvatar(session!.user.id, session!.user.role, id);
+  if (!allowed) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -93,10 +117,8 @@ const { id } = await context!.params!;
 // DELETE /api/users/[id]/avatar — remove avatar
 export const DELETE = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const isAdmin = ["owner", "admin"].includes(session!.user.role);
-  const isSelf = session!.user.id === id;
-
-  if (!isAdmin && !isSelf) {
+  const allowed = await canManageAvatar(session!.user.id, session!.user.role, id);
+  if (!allowed) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -1,11 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { parsePagination } from "@/lib/pagination";
 import { withApiAuth } from "@/lib/server-auth";
 
-import { parseJsonBody } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { uploadFile } from "@/lib/storage";
 const createCertSchema = z.object({
   serviceId: z.string().min(1),
   userId: z.string().optional().nullable(),
@@ -76,8 +77,44 @@ export const GET = withApiAuth(async (req, session) => {
 });
 
 export const POST = withApiAuth(async (req, session) => {
-const body = await parseJsonBody(req);
-  const parsed = createCertSchema.safeParse(body);
+  const contentType = req.headers.get("content-type") ?? "";
+
+  let rawData: unknown;
+  let uploadedFileUrl: string | null = null;
+  let uploadedFileName: string | null = null;
+
+  if (contentType.includes("multipart/form-data")) {
+    const form = await req.formData();
+    const jsonStr = form.get("data");
+    if (typeof jsonStr !== "string") {
+      throw ApiError.badRequest("Missing 'data' field in multipart body");
+    }
+    try {
+      rawData = JSON.parse(jsonStr);
+    } catch {
+      throw ApiError.badRequest("Invalid JSON in 'data' field");
+    }
+
+    const file = form.get("file");
+    if (file && typeof file !== "string" && (file as File).size > 0) {
+      const fileObj = file as File;
+      const buffer = Buffer.from(await fileObj.arrayBuffer());
+      const folderKey =
+        (rawData as { userId?: string; serviceId?: string })?.userId ??
+        (rawData as { serviceId?: string })?.serviceId ??
+        "service";
+      const uploaded = await uploadFile(buffer, fileObj.name, {
+        contentType: fileObj.type || undefined,
+        folder: `compliance/${folderKey}`,
+      });
+      uploadedFileUrl = uploaded.url;
+      uploadedFileName = fileObj.name;
+    }
+  } else {
+    rawData = await parseJsonBody(req);
+  }
+
+  const parsed = createCertSchema.safeParse(rawData);
 
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -94,6 +131,9 @@ const body = await parseJsonBody(req);
     return NextResponse.json({ error: "Service ID is required" }, { status: 400 });
   }
 
+  const finalFileUrl = uploadedFileUrl ?? parsed.data.fileUrl ?? null;
+  const finalFileName = uploadedFileName ?? parsed.data.fileName ?? null;
+
   const cert = await prisma.complianceCertificate.create({
     data: {
       serviceId: finalServiceId,
@@ -104,8 +144,8 @@ const body = await parseJsonBody(req);
       expiryDate: new Date(parsed.data.expiryDate),
       notes: parsed.data.notes || null,
       alertDays: parsed.data.alertDays ?? 30,
-      fileUrl: parsed.data.fileUrl || null,
-      fileName: parsed.data.fileName || null,
+      fileUrl: finalFileUrl,
+      fileName: finalFileName,
     },
     include: {
       service: { select: { id: true, name: true, code: true } },

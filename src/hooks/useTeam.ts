@@ -14,8 +14,9 @@ export interface TeamMember {
   id: string;
   name: string;
   email: string;
-  role: "owner" | "admin" | "member";
+  role: "owner" | "head_office" | "admin" | "marketing" | "coordinator" | "member" | "staff";
   avatar: string | null;
+  service: { id: string; name: string } | null;
   activeRocks: number;
   totalTodos: number;
   completedTodos: number;
@@ -25,11 +26,35 @@ export interface TeamMember {
   rocks: TeamMemberRock[];
 }
 
-export function useTeam() {
+export interface TeamFilters {
+  service?: string;
+  role?: string;
+  q?: string;
+}
+
+function buildQueryString(filters?: TeamFilters): string {
+  if (!filters) return "";
+  const params = new URLSearchParams();
+  if (filters.service) params.set("service", filters.service);
+  if (filters.role) params.set("role", filters.role);
+  if (filters.q) params.set("q", filters.q);
+  const s = params.toString();
+  return s ? `?${s}` : "";
+}
+
+export function useTeam(filters?: TeamFilters) {
   return useQuery<TeamMember[]>({
-    queryKey: ["team"],
-    queryFn: () => fetchApi<TeamMember[]>("/api/team"),
-    staleTime: 5 * 60_000, // Reference data: 5 min stale time
+    // Primitive-spread query key per CLAUDE.md — prevents cache misses
+    // on re-render when a caller passes a newly-constructed filters object.
+    queryKey: [
+      "team",
+      filters?.service ?? null,
+      filters?.role ?? null,
+      filters?.q ?? null,
+    ],
+    queryFn: () =>
+      fetchApi<TeamMember[]>(`/api/team${buildQueryString(filters)}`),
+    staleTime: 30_000,
     retry: 2,
   });
 }

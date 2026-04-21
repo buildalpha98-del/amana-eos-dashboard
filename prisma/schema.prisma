@@ -601,6 +601,9 @@ model User {
   // ── Sibling Enrolment Reviews ───────────────────
   reviewedEnrolmentApplications EnrolmentApplication[] @relation("EnrolmentReviewedBy")
 
+  // ── In-App Notifications ──────────────────────────
+  notifications UserNotification[] @relation("UserNotifications")
+
   @@index([serviceId])
 }
 
@@ -2388,9 +2391,26 @@ model ComplianceCertificate {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
+  alerts ComplianceCertificateAlert[] @relation("CertificateAlerts")
+
   @@index([serviceId])
   @@index([userId])
   @@index([expiryDate])
+}
+
+/// Dedup tracking for compliance expiry alerts. One row per (cert, threshold).
+/// Ensures the cron doesn't send duplicate emails on re-runs or retries.
+model ComplianceCertificateAlert {
+  id            String                @id @default(cuid())
+  certificateId String
+  certificate   ComplianceCertificate @relation("CertificateAlerts", fields: [certificateId], references: [id], onDelete: Cascade)
+  threshold     Int // 30 | 14 | 7 | 0 — which cadence milestone
+  sentAt        DateTime              @default(now())
+  channels      String[] // "email" | "in_app"
+
+  @@unique([certificateId, threshold])
+  @@index([certificateId])
+  @@index([sentAt])
 }
 
 // ── Attendance & Enrolment Tracking ─────────────────────────
@@ -3190,20 +3210,20 @@ model CentreContact {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  nurtureSteps       ParentNurtureStep[] @relation("ContactNurtureSteps")
-  npsResponses       NpsSurveyResponse[] @relation("ContactNpsResponses")
-  referralsMade      Referral[]          @relation("ReferrerContact")
-  exitSurveys        ExitSurvey[]        @relation("ContactExitSurveys")
-  sequenceEnrolments SequenceEnrolment[] @relation("ContactSequenceEnrolments")
-  statements         Statement[]         @relation("ContactStatements")
-  payments           Payment[]           @relation("ContactPayments")
-  documents          ParentDocument[]    @relation("ContactDocuments")
-  supportTickets     SupportTicket[]     @relation("ParentTickets")
-  bookings           Booking[]           @relation("ContactBookings")
-  conversations           Conversation[]
-  enrolmentApplications   EnrolmentApplication[] @relation("ContactEnrolmentApplications")
-  authTokens              ParentAuthToken[]      @relation("ContactAuthTokens")
-  onboardingProgress Json? // { profile, medical, documents, pickups, installed }
+  nurtureSteps          ParentNurtureStep[]    @relation("ContactNurtureSteps")
+  npsResponses          NpsSurveyResponse[]    @relation("ContactNpsResponses")
+  referralsMade         Referral[]             @relation("ReferrerContact")
+  exitSurveys           ExitSurvey[]           @relation("ContactExitSurveys")
+  sequenceEnrolments    SequenceEnrolment[]    @relation("ContactSequenceEnrolments")
+  statements            Statement[]            @relation("ContactStatements")
+  payments              Payment[]              @relation("ContactPayments")
+  documents             ParentDocument[]       @relation("ContactDocuments")
+  supportTickets        SupportTicket[]        @relation("ParentTickets")
+  bookings              Booking[]              @relation("ContactBookings")
+  conversations         Conversation[]
+  enrolmentApplications EnrolmentApplication[] @relation("ContactEnrolmentApplications")
+  authTokens            ParentAuthToken[]      @relation("ContactAuthTokens")
+  onboardingProgress    Json? // { profile, medical, documents, pickups, installed }
 
   @@unique([email, serviceId])
   @@index([serviceId])
@@ -3602,7 +3622,7 @@ model ParentEnquiry {
 
   touchpoints  ParentEnquiryTouchpoint[]
   nurtureSteps ParentNurtureStep[]
-  sourceCall   VapiCall? @relation("EnquiryFromCall")
+  sourceCall   VapiCall?                 @relation("EnquiryFromCall")
 
   @@index([serviceId])
   @@index([stage])
@@ -4556,45 +4576,45 @@ model EnrolmentSubmission {
 // ============================================================
 
 model Child {
-  id                 String               @id @default(cuid())
-  enrolmentId        String?
-  enrolment          EnrolmentSubmission? @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
-  serviceId          String?
-  service            Service?             @relation("ServiceChildren", fields: [serviceId], references: [id])
-  firstName          String
-  surname            String
-  dob                DateTime?
-  gender             String?
-  address            Json? // { street, suburb, state, postcode }
-  culturalBackground String[]
-  schoolName         String?
-  yearLevel          String?
-  crn                String?
-  medical            Json? // Full medical info (legacy — from enrolment import)
-  dietary            Json? // Dietary requirements (legacy — from enrolment import)
-  bookingPrefs       Json? // Session types, days, booking type
+  id                    String               @id @default(cuid())
+  enrolmentId           String?
+  enrolment             EnrolmentSubmission? @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  serviceId             String?
+  service               Service?             @relation("ServiceChildren", fields: [serviceId], references: [id])
+  firstName             String
+  surname               String
+  dob                   DateTime?
+  gender                String?
+  address               Json? // { street, suburb, state, postcode }
+  culturalBackground    String[]
+  schoolName            String?
+  yearLevel             String?
+  crn                   String?
+  medical               Json? // Full medical info (legacy — from enrolment import)
+  dietary               Json? // Dietary requirements (legacy — from enrolment import)
+  bookingPrefs          Json? // Session types, days, booking type
   // ── Expanded profile fields ──
-  medicalConditions       String[] // e.g. ["Asthma", "Anaphylaxis"]
-  medicationDetails       String?  // Free text: medications, dosage, administration
-  anaphylaxisActionPlan   Boolean  @default(false) // Flag: action plan document exists
-  dietaryRequirements     String[] // e.g. ["Halal", "Nut Free", "Vegetarian"]
-  additionalNeeds         String?  // Free text: other care requirements
-  photo                   String?  // URL to profile photo (Vercel Blob)
-  status             String               @default("pending") // pending, active, withdrawn
+  medicalConditions     String[] // e.g. ["Asthma", "Anaphylaxis"]
+  medicationDetails     String? // Free text: medications, dosage, administration
+  anaphylaxisActionPlan Boolean              @default(false) // Flag: action plan document exists
+  dietaryRequirements   String[] // e.g. ["Halal", "Nut Free", "Vegetarian"]
+  additionalNeeds       String? // Free text: other care requirements
+  photo                 String? // URL to profile photo (Vercel Blob)
+  status                String               @default("pending") // pending, active, withdrawn
   // OWNA sync fields
-  ownaChildId        String?              @unique
-  ownaRoomId         String?
-  ownaRoomName       String?
-  ownaSyncedAt       DateTime?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  ownaChildId           String?              @unique
+  ownaRoomId            String?
+  ownaRoomName          String?
+  ownaSyncedAt          DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
-  bookings          Booking[]            @relation("ChildBookings")
-  absences          Absence[]            @relation("ChildAbsences")
-  documents         ParentDocument[]     @relation("ChildDocuments")
-  childDocuments    ChildDocument[]      @relation("ChildProfileDocuments")
-  authorisedPickups AuthorisedPickup[]   @relation("ChildPickups")
-  postTags          ParentPostChildTag[] @relation("ChildPostTags")
+  bookings           Booking[]            @relation("ChildBookings")
+  absences           Absence[]            @relation("ChildAbsences")
+  documents          ParentDocument[]     @relation("ChildDocuments")
+  childDocuments     ChildDocument[]      @relation("ChildProfileDocuments")
+  authorisedPickups  AuthorisedPickup[]   @relation("ChildPickups")
+  postTags           ParentPostChildTag[] @relation("ChildPostTags")
   attendanceRecords  AttendanceRecord[]   @relation("ChildAttendance")
   statementLineItems StatementLineItem[]  @relation("ChildStatementLines")
 
@@ -4703,27 +4723,27 @@ model ParentMagicLink {
 }
 
 model Booking {
-  id            String        @id @default(cuid())
+  id            String         @id @default(cuid())
   childId       String
-  child         Child         @relation("ChildBookings", fields: [childId], references: [id], onDelete: Cascade)
+  child         Child          @relation("ChildBookings", fields: [childId], references: [id], onDelete: Cascade)
   serviceId     String
-  service       Service       @relation("ServiceBookings_Portal", fields: [serviceId], references: [id], onDelete: Cascade)
-  date          DateTime      @db.Date
+  service       Service        @relation("ServiceBookings_Portal", fields: [serviceId], references: [id], onDelete: Cascade)
+  date          DateTime       @db.Date
   sessionType   SessionType
-  status        BookingStatus @default(requested)
-  type          BookingType   @default(casual)
+  status        BookingStatus  @default(requested)
+  type          BookingType    @default(casual)
   fee           Float?
   ccsApplied    Float? // CCS subsidy amount applied
   gapFee        Float? // Fee after CCS applied
   requestedById String? // CentreContact who requested (parent)
   requestedBy   CentreContact? @relation("ContactBookings", fields: [requestedById], references: [id])
   reviewedById  String? // User (staff) who approved/declined
-  reviewedBy    User?         @relation("BookingReviewedBy", fields: [reviewedById], references: [id])
+  reviewedBy    User?          @relation("BookingReviewedBy", fields: [reviewedById], references: [id])
   reviewedAt    DateTime?
-  declineReason String?       @db.Text
-  notes         String?       @db.Text
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  declineReason String?        @db.Text
+  notes         String?        @db.Text
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@unique([childId, serviceId, date, sessionType])
   @@index([childId])
@@ -4779,8 +4799,8 @@ model Statement {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  lineItems   StatementLineItem[]
-  payments    Payment[]
+  lineItems StatementLineItem[]
+  payments  Payment[]
 
   @@index([contactId])
   @@index([serviceId, periodStart])
@@ -4803,8 +4823,8 @@ model StatementLineItem {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  statement   Statement   @relation(fields: [statementId], references: [id], onDelete: Cascade)
-  child       Child       @relation("ChildStatementLines", fields: [childId], references: [id])
+  statement Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  child     Child     @relation("ChildStatementLines", fields: [childId], references: [id])
 
   @@index([statementId])
 }
@@ -4823,10 +4843,10 @@ model Payment {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  statement    Statement?    @relation(fields: [statementId], references: [id], onDelete: SetNull)
-  contact      CentreContact @relation("ContactPayments", fields: [contactId], references: [id])
-  service      Service       @relation("ServicePayments", fields: [serviceId], references: [id])
-  recordedBy   User?         @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
+  statement  Statement?    @relation(fields: [statementId], references: [id], onDelete: SetNull)
+  contact    CentreContact @relation("ContactPayments", fields: [contactId], references: [id])
+  service    Service       @relation("ServicePayments", fields: [serviceId], references: [id])
+  recordedBy User?         @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
 
   @@index([contactId, receivedAt])
   @@index([statementId])
@@ -4857,7 +4877,7 @@ model AuthorisedPickup {
   relationship       String
   phone              String
   photoUrl           String?
-  photoId            String?  // Description of ID they carry for verification
+  photoId            String? // Description of ID they carry for verification
   isEmergencyContact Boolean  @default(false)
   hasPassword        Boolean  @default(false)
   passwordHash       String?
@@ -4884,10 +4904,10 @@ model ChildDocument {
   child        Child             @relation("ChildProfileDocuments", fields: [childId], references: [id], onDelete: Cascade)
   documentType ChildDocumentType
   fileName     String
-  fileUrl      String            // Vercel Blob URL
+  fileUrl      String // Vercel Blob URL
   uploadedById String
   uploadedBy   User              @relation("UploadedChildDocuments", fields: [uploadedById], references: [id])
-  uploaderType String?           // "staff" | "parent"
+  uploaderType String? // "staff" | "parent"
   expiresAt    DateTime?
   isVerified   Boolean           @default(false)
   verifiedById String?
@@ -4952,35 +4972,35 @@ model ParentNotification {
 // ── In-App Messaging ────────────────────────────────────
 
 model Conversation {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
   serviceId     String
-  familyId      String    // CentreContact id
+  familyId      String // CentreContact id
   subject       String
-  status        String    @default("open") // "open" | "resolved" | "archived"
-  lastMessageAt DateTime  @default(now())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  status        String   @default("open") // "open" | "resolved" | "archived"
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  service       Service        @relation(fields: [serviceId], references: [id])
-  family        CentreContact  @relation(fields: [familyId], references: [id])
-  messages      Message[]
+  service  Service       @relation(fields: [serviceId], references: [id])
+  family   CentreContact @relation(fields: [familyId], references: [id])
+  messages Message[]
 
   @@index([serviceId, status, lastMessageAt])
   @@index([familyId, lastMessageAt])
 }
 
 model Message {
-  id              String    @id @default(cuid())
-  conversationId  String
-  body            String    @db.Text
-  senderType      String    // "staff" | "parent"
-  senderId        String    // User.id or CentreContact.id depending on senderType
-  senderName      String    // Denormalised for display
-  isRead          Boolean   @default(false)
-  readAt          DateTime?
-  createdAt       DateTime  @default(now())
+  id             String    @id @default(cuid())
+  conversationId String
+  body           String    @db.Text
+  senderType     String // "staff" | "parent"
+  senderId       String // User.id or CentreContact.id depending on senderType
+  senderName     String // Denormalised for display
+  isRead         Boolean   @default(false)
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
 
-  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
   @@index([senderId, senderType])
@@ -4991,14 +5011,14 @@ model Broadcast {
   serviceId      String
   subject        String
   body           String   @db.Text
-  sentById       String   // User.id
+  sentById       String // User.id
   sentByName     String
   recipientCount Int      @default(0)
   sentAt         DateTime @default(now())
   createdAt      DateTime @default(now())
 
-  service        Service  @relation(fields: [serviceId], references: [id])
-  sentBy         User     @relation("BroadcastSentBy", fields: [sentById], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+  sentBy  User    @relation("BroadcastSentBy", fields: [sentById], references: [id])
 
   @@index([serviceId, sentAt])
 }
@@ -5008,23 +5028,23 @@ model Broadcast {
 // ============================================================
 
 model EnrolmentApplication {
-  id                String    @id @default(cuid())
-  serviceId         String
-  familyId          String    // CentreContact id (existing parent)
-  status            String    @default("pending") // "pending" | "approved" | "declined" | "withdrawn"
-  type              String    @default("sibling") // "new" | "sibling"
+  id        String @id @default(cuid())
+  serviceId String
+  familyId  String // CentreContact id (existing parent)
+  status    String @default("pending") // "pending" | "approved" | "declined" | "withdrawn"
+  type      String @default("sibling") // "new" | "sibling"
 
   // Child details
-  childFirstName    String
-  childLastName     String
-  childDateOfBirth  DateTime  @db.Date
-  childGender       String?
-  childSchool       String?
-  childYear         String?
+  childFirstName   String
+  childLastName    String
+  childDateOfBirth DateTime @db.Date
+  childGender      String?
+  childSchool      String?
+  childYear        String?
 
   // Care requirements
-  sessionTypes      String[]  // ["BSC", "ASC", "VAC"]
-  startDate         DateTime? @db.Date
+  sessionTypes String[] // ["BSC", "ASC", "VAC"]
+  startDate    DateTime? @db.Date
 
   // Medical
   medicalConditions     String[]
@@ -5034,30 +5054,30 @@ model EnrolmentApplication {
   additionalNeeds       String?
 
   // Consents
-  consentPhotography    Boolean @default(false)
-  consentSunscreen      Boolean @default(false)
-  consentFirstAid       Boolean @default(false)
-  consentExcursions     Boolean @default(false)
+  consentPhotography Boolean @default(false)
+  consentSunscreen   Boolean @default(false)
+  consentFirstAid    Boolean @default(false)
+  consentExcursions  Boolean @default(false)
 
   // Copy from sibling flag
   copyAuthorisedPickups Boolean @default(true)
   copyEmergencyContacts Boolean @default(true)
 
   // Review
-  reviewedById      String?
-  reviewedAt        DateTime?
-  declineReason     String?
-  notes             String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  declineReason String?
+  notes         String?
 
   // If approved, the created child record
-  createdChildId    String?
+  createdChildId String?
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  service           Service        @relation("ServiceEnrolmentApplications", fields: [serviceId], references: [id])
-  family            CentreContact  @relation("ContactEnrolmentApplications", fields: [familyId], references: [id])
-  reviewedBy        User?          @relation("EnrolmentReviewedBy", fields: [reviewedById], references: [id])
+  service    Service       @relation("ServiceEnrolmentApplications", fields: [serviceId], references: [id])
+  family     CentreContact @relation("ContactEnrolmentApplications", fields: [familyId], references: [id])
+  reviewedBy User?         @relation("EnrolmentReviewedBy", fields: [reviewedById], references: [id])
 
   @@index([serviceId, status])
   @@index([familyId, status])
@@ -5082,6 +5102,23 @@ model NotificationLog {
   @@index([type, createdAt])
   @@index([recipientEmail, createdAt])
   @@index([relatedId, relatedType])
+}
+
+/// In-app notification for a staff user. Surfaced via bell icon.
+model UserNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  type      String // see src/lib/notification-types.ts for known values
+  title     String
+  body      String
+  link      String? // deep link path, e.g. "/staff/{userId}?tab=compliance"
+  read      Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, read, createdAt])
+  @@index([userId, createdAt])
 }
 
 // ============================================================
@@ -5113,7 +5150,7 @@ model ParentAuthToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 
-  family    CentreContact @relation("ContactAuthTokens", fields: [familyId], references: [id], onDelete: Cascade)
+  family CentreContact @relation("ContactAuthTokens", fields: [familyId], references: [id], onDelete: Cascade)
 
   @@index([token])
 }
@@ -5123,11 +5160,11 @@ model ParentAuthToken {
 // ============================================================
 
 model VapiCall {
-  id                       String    @id @default(cuid())
-  vapiCallId               String?   @unique
-  callType                 String    // "new_enquiry" | "booking_change" | "billing_issue" | "escalation" | "holiday_quest" | "general_message"
-  urgency                  String    @default("routine") // "routine" | "urgent" | "critical"
-  status                   String    @default("new") // "new" | "in_progress" | "actioned" | "closed"
+  id                       String         @id @default(cuid())
+  vapiCallId               String?        @unique
+  callType                 String // "new_enquiry" | "booking_change" | "billing_issue" | "escalation" | "holiday_quest" | "general_message"
+  urgency                  String         @default("routine") // "routine" | "urgent" | "critical"
+  status                   String         @default("new") // "new" | "in_progress" | "actioned" | "closed"
   assignedTo               String?
   parentName               String?
   parentPhone              String?
@@ -5135,25 +5172,25 @@ model VapiCall {
   childName                String?
   centreName               String?
   callDetails              Json?
-  transcript               String?   @db.Text
-  summary                  String?   @db.Text // Vapi post-call AI summary
-  successEvaluation        Boolean?  // Vapi post-call success evaluation
+  transcript               String?        @db.Text
+  summary                  String?        @db.Text // Vapi post-call AI summary
+  successEvaluation        Boolean? // Vapi post-call success evaluation
   recordingUrl             String?
   callDurationSeconds      Int?
-  repeatCaller             Boolean   @default(false) // Same phone called within past 7 days
-  followUpEmailSent        Boolean   @default(false)
-  internalNotificationSent Boolean   @default(false)
+  repeatCaller             Boolean        @default(false) // Same phone called within past 7 days
+  followUpEmailSent        Boolean        @default(false)
+  internalNotificationSent Boolean        @default(false)
   slaAlertedAt             DateTime? // Set when an SLA escalation has been sent, to prevent duplicates
-  linkedEnquiryId          String?   @unique // ParentEnquiry auto-created from this call
+  linkedEnquiryId          String?        @unique // ParentEnquiry auto-created from this call
   linkedEnquiry            ParentEnquiry? @relation("EnquiryFromCall", fields: [linkedEnquiryId], references: [id], onDelete: SetNull)
-  linkedTodoId             String?   @unique // Todo auto-created from a booking-change call
-  linkedTodo               Todo?     @relation("TodoFromCall", fields: [linkedTodoId], references: [id], onDelete: SetNull)
-  notes                    String?   @db.Text
+  linkedTodoId             String?        @unique // Todo auto-created from a booking-change call
+  linkedTodo               Todo?          @relation("TodoFromCall", fields: [linkedTodoId], references: [id], onDelete: SetNull)
+  notes                    String?        @db.Text
   actionedAt               DateTime?
   actionedBy               String?
-  calledAt                 DateTime  @default(now())
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  calledAt                 DateTime       @default(now())
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
 
   @@index([status, callType])
   @@index([centreName, calledAt])

@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { acquireCronLock } from "@/lib/cron-guard";
+import { NextResponse } from "next/server";
+import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { checkCertExpiry } from "@/lib/cert-expiry";
@@ -7,19 +7,18 @@ import { checkCertExpiry } from "@/lib/cert-expiry";
 /**
  * GET /api/cron/cert-expiry-alert
  *
- * Weekly cron (Monday) — sends a clean certificate expiry summary grouped
- * by service. Service managers receive their centre's expiring certs,
- * and admins receive a network-wide overview.
+ * Weekly cron (Monday) — admin-only certificate expiry digest.
+ *
+ * Emails a single network-wide summary to every admin / head_office / owner.
+ * Per-staff alerts and dedup tracking (`ComplianceCertificateAlert`) are
+ * owned by the daily `/api/cron/compliance-alerts` cron — this route is
+ * deliberately a read-only roll-up.
  *
  * Auth: Bearer CRON_SECRET
  */
 export const GET = withApiHandler(async (req) => {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = verifyCronSecret(req);
+  if (auth) return auth.error;
 
   const guard = await acquireCronLock("cert-expiry-alert", "weekly");
   if (!guard.acquired) {
@@ -49,7 +48,7 @@ export const GET = withApiHandler(async (req) => {
     });
 
     return NextResponse.json({
-      message: "Certificate expiry alerts sent",
+      message: "Certificate expiry digest sent",
       ...result,
     });
   } catch (err) {

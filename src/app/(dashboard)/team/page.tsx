@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { useTeam } from "@/hooks/useTeam";
 import { OrgChartView } from "@/components/team/OrgChartView";
 import { TeamListView } from "@/components/team/TeamListView";
+import { ActionRequiredWidget } from "@/components/team/ActionRequiredWidget";
 import {
   Users,
   LayoutGrid,
@@ -21,6 +23,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Download } from "lucide-react";
 
 export default function TeamPage() {
+  const { data: session } = useSession();
   const { data: members, isLoading: teamLoading, error, refetch } = useTeam();
   const [viewMode, setViewMode] = useState<"chart" | "list">("chart");
 
@@ -78,6 +81,10 @@ export default function TeamPage() {
           },
         ]}
       />
+
+      {session?.user?.role && (
+        <ActionRequiredWidget userRole={session.user.role} />
+      )}
 
       {/* Stats cards — only show on list view */}
       {viewMode === "list" && (
