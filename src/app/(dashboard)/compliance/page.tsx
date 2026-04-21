@@ -34,6 +34,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Pagination } from "@/components/ui/Pagination";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import ComplianceMatrixView from "@/components/compliance/ComplianceMatrixView";
+import { ComplianceMatrix } from "@/components/compliance/ComplianceMatrix";
 import { AuditCalendarTab } from "@/components/compliance/AuditCalendarTab";
 import { AuditResultsTab } from "@/components/compliance/AuditResultsTab";
 import { QualificationRatiosTab } from "@/components/compliance/QualificationRatiosTab";
@@ -43,6 +44,8 @@ import {
   BarChart3,
   GraduationCap,
   Grid3X3,
+  List,
+  LayoutGrid,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -397,6 +400,7 @@ export default function CompliancePage() {
   const role = (session?.user?.role as string) || "";
   const isServiceScoped = role === "staff" || role === "member";
   const [activeTab, setActiveTab] = useState<ComplianceTabKey>("certificates");
+  const [view, setView] = useState<"list" | "matrix">("list");
   const [serviceFilter, setServiceFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
 
@@ -406,42 +410,86 @@ export default function CompliancePage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      <PageHeader
-        title="Compliance"
-        description="Staff certificates, NQS audits, qualification ratios & compliance tracking"
-      />
-
-      {/* Tab bar */}
-      <div className="border-b border-border -mb-px overflow-x-auto">
-        <nav className="flex gap-1" aria-label="Compliance tabs">
-          {complianceTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
-                  isActive
-                    ? "border-brand text-brand"
-                    : "border-transparent text-muted hover:text-foreground hover:border-border"
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <PageHeader
+          title="Compliance"
+          description="Staff certificates, NQS audits, qualification ratios & compliance tracking"
+        />
+        <div
+          role="group"
+          aria-label="View mode"
+          className="inline-flex rounded-lg border border-border overflow-hidden shrink-0"
+        >
+          <button
+            type="button"
+            onClick={() => setView("list")}
+            aria-pressed={view === "list"}
+            data-testid="view-toggle-list"
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors",
+              view === "list"
+                ? "bg-brand text-white"
+                : "bg-card text-foreground/80 hover:bg-surface"
+            )}
+          >
+            <List className="w-4 h-4" />
+            List
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("matrix")}
+            aria-pressed={view === "matrix"}
+            data-testid="view-toggle-matrix"
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium transition-colors border-l border-border",
+              view === "matrix"
+                ? "bg-brand text-white"
+                : "bg-card text-foreground/80 hover:bg-surface"
+            )}
+          >
+            <LayoutGrid className="w-4 h-4" />
+            Matrix
+          </button>
+        </div>
       </div>
 
-      {/* Tab content */}
-      {activeTab === "certificates" && <AdminComplianceView serviceFilter={serviceFilter} setServiceFilter={setServiceFilter} typeFilter={typeFilter} setTypeFilter={setTypeFilter} />}
-      {activeTab === "audit-calendar" && <AuditCalendarTab />}
-      {activeTab === "audit-results" && <AuditResultsTab />}
-      {activeTab === "qual-ratios" && <QualificationRatiosTab />}
-      {activeTab === "matrix" && <MatrixTabWrapper />}
+      {view === "matrix" ? (
+        <ComplianceMatrix serviceId={serviceFilter || undefined} />
+      ) : (
+        <>
+          {/* Tab bar */}
+          <div className="border-b border-border -mb-px overflow-x-auto">
+            <nav className="flex gap-1" aria-label="Compliance tabs">
+              {complianceTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
+                      isActive
+                        ? "border-brand text-brand"
+                        : "border-transparent text-muted hover:text-foreground hover:border-border"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Tab content */}
+          {activeTab === "certificates" && <AdminComplianceView serviceFilter={serviceFilter} setServiceFilter={setServiceFilter} typeFilter={typeFilter} setTypeFilter={setTypeFilter} />}
+          {activeTab === "audit-calendar" && <AuditCalendarTab />}
+          {activeTab === "audit-results" && <AuditResultsTab />}
+          {activeTab === "qual-ratios" && <QualificationRatiosTab />}
+          {activeTab === "matrix" && <MatrixTabWrapper />}
+        </>
+      )}
     </div>
   );
 }
