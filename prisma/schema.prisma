@@ -1650,6 +1650,7 @@ model Document {
   uploadedById String?
   uploadedBy   User?            @relation("DocumentUploader", fields: [uploadedById], references: [id])
   version      Int              @default(1)
+  allServices  Boolean          @default(false)
   tags         String[]
   folderId     String?
   folder       DocumentFolder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
@@ -1665,6 +1666,7 @@ model Document {
   @@index([centreId])
   @@index([uploadedById])
   @@index([folderId])
+  @@index([allServices])
 }
 
 model DocumentFolder {
