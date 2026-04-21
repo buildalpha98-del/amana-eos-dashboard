@@ -354,3 +354,42 @@ export function usePulseSummary(weekOf: string) {
     retry: 2,
   });
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WEEKLY PULSE — ADMIN VIEW (anonymous)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface PulseServiceRow {
+  serviceId: string;
+  serviceName: string;
+  serviceCode: string;
+  totalUsers: number;
+  submitted: number;
+  positive: number;
+  neutral: number;
+  concerning: number;
+  blockerCount: number;
+}
+
+export interface PulseAdminSummary {
+  weekOf: string;
+  org: {
+    totalUsers: number;
+    submitted: number;
+    positive: number;
+    neutral: number;
+    concerning: number;
+    blockerCount: number;
+  };
+  byService: PulseServiceRow[];
+}
+
+export function usePulseAdminSummary(weekOf: string, enabled: boolean) {
+  return useQuery<PulseAdminSummary>({
+    queryKey: ["pulse-admin-summary", weekOf],
+    queryFn: () =>
+      fetchApi<PulseAdminSummary>(`/api/communication/pulse/admin-summary?weekOf=${weekOf}`),
+    enabled: enabled && !!weekOf,
+    retry: 2,
+  });
+}
