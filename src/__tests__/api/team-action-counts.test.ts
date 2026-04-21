@@ -55,6 +55,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.complianceCertificate.count.mockResolvedValue(5);
     prismaMock.leaveRequest.count.mockResolvedValue(3);
     prismaMock.timesheet.count.mockResolvedValue(7);
+    prismaMock.shiftSwapRequest.count.mockResolvedValue(2);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
@@ -65,6 +66,7 @@ describe("GET /api/team/action-counts", () => {
       certsExpiring: 5,
       leavePending: 3,
       timesheetsPending: 7,
+      shiftSwapsPending: 2,
     });
 
     // Verify no serviceId scoping applied for admin
@@ -78,6 +80,11 @@ describe("GET /api/team/action-counts", () => {
     const leaveCall = prismaMock.leaveRequest.count.mock.calls[0][0];
     expect(leaveCall.where.status).toBe("leave_pending");
     expect(leaveCall.where.user).toBeUndefined();
+
+    // Verify no shift scoping for admin
+    const swapCall = prismaMock.shiftSwapRequest.count.mock.calls[0][0];
+    expect(swapCall.where.status).toBe("accepted");
+    expect(swapCall.where.shift).toBeUndefined();
   });
 
   it("coordinator sees service-scoped counts", async () => {
@@ -91,6 +98,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.complianceCertificate.count.mockResolvedValue(2);
     prismaMock.leaveRequest.count.mockResolvedValue(1);
     prismaMock.timesheet.count.mockResolvedValue(4);
+    prismaMock.shiftSwapRequest.count.mockResolvedValue(3);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
@@ -101,6 +109,7 @@ describe("GET /api/team/action-counts", () => {
       certsExpiring: 2,
       leavePending: 1,
       timesheetsPending: 4,
+      shiftSwapsPending: 3,
     });
 
     // Verify service-scoped filter applied
@@ -113,6 +122,11 @@ describe("GET /api/team/action-counts", () => {
 
     const leaveCall = prismaMock.leaveRequest.count.mock.calls[0][0];
     expect(leaveCall.where.user).toEqual({ serviceId: "svc-1" });
+
+    // Verify shift swap scoped via shift.serviceId relation
+    const swapCall = prismaMock.shiftSwapRequest.count.mock.calls[0][0];
+    expect(swapCall.where.status).toBe("accepted");
+    expect(swapCall.where.shift).toEqual({ serviceId: "svc-1" });
   });
 
   it("owner sees org-wide counts (no scoping)", async () => {
@@ -121,6 +135,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.complianceCertificate.count.mockResolvedValue(10);
     prismaMock.leaveRequest.count.mockResolvedValue(0);
     prismaMock.timesheet.count.mockResolvedValue(0);
+    prismaMock.shiftSwapRequest.count.mockResolvedValue(0);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
@@ -128,6 +143,7 @@ describe("GET /api/team/action-counts", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.certsExpiring).toBe(10);
+    expect(body.shiftSwapsPending).toBe(0);
 
     const certCall = prismaMock.complianceCertificate.count.mock.calls[0][0];
     expect(certCall.where.serviceId).toBeUndefined();
@@ -139,6 +155,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.complianceCertificate.count.mockResolvedValue(0);
     prismaMock.leaveRequest.count.mockResolvedValue(0);
     prismaMock.timesheet.count.mockResolvedValue(0);
+    prismaMock.shiftSwapRequest.count.mockResolvedValue(0);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
@@ -160,6 +177,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.complianceCertificate.count.mockResolvedValue(1);
     prismaMock.leaveRequest.count.mockResolvedValue(0);
     prismaMock.timesheet.count.mockResolvedValue(0);
+    prismaMock.shiftSwapRequest.count.mockResolvedValue(0);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
@@ -170,6 +188,7 @@ describe("GET /api/team/action-counts", () => {
       certsExpiring: 1,
       leavePending: 0,
       timesheetsPending: 0,
+      shiftSwapsPending: 0,
     });
 
     // Non-admin roles get scoped by serviceId
@@ -188,6 +207,7 @@ describe("GET /api/team/action-counts", () => {
     prismaMock.complianceCertificate.count.mockResolvedValue(0);
     prismaMock.leaveRequest.count.mockResolvedValue(0);
     prismaMock.timesheet.count.mockResolvedValue(0);
+    prismaMock.shiftSwapRequest.count.mockResolvedValue(0);
 
     const req = createRequest("GET", "/api/team/action-counts");
     const res = await GET(req);
