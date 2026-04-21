@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { getCertStatus, type CertStatus } from "@/lib/cert-status";
+
 const REQUIRED_CERT_TYPES = [
   "wwcc",
   "first_aid",
@@ -14,32 +16,6 @@ const REQUIRED_CERT_TYPES = [
   "food_safety",
   "food_handler",
 ] as const;
-
-type CertStatus = "valid" | "expiring" | "expired" | "missing";
-
-function getCertStatus(
-  expiryDate: Date | null
-): { status: CertStatus; daysLeft: number | null } {
-  if (!expiryDate) {
-    return { status: "missing", daysLeft: null };
-  }
-
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const expiry = new Date(expiryDate);
-  expiry.setHours(0, 0, 0, 0);
-  const daysLeft = Math.ceil(
-    (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-  if (daysLeft < 0) {
-    return { status: "expired", daysLeft };
-  }
-  if (daysLeft <= 30) {
-    return { status: "expiring", daysLeft };
-  }
-  return { status: "valid", daysLeft };
-}
 
 export const GET = withApiAuth(async (req, session) => {
 const { searchParams } = new URL(req.url);
