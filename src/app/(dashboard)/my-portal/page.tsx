@@ -42,6 +42,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 import { MyComplianceCard } from "@/components/my-portal/MyComplianceCard";
 import { MyLeaveBalanceCard } from "@/components/my-portal/MyLeaveBalanceCard";
+import { MyUpcomingShiftsCard } from "@/components/my-portal/MyUpcomingShiftsCard";
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -676,6 +677,13 @@ export default function MyPortalPage() {
           <MyComplianceCard userId={session.user.id} />
           <MyLeaveBalanceCard userId={session.user.id} />
         </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* 3c. MY UPCOMING SHIFTS (next 7 days)                          */}
+      {/* ============================================================ */}
+      {session?.user?.id && (
+        <MyUpcomingShiftsCard userId={session.user.id} />
       )}
 
       {/* ============================================================ */}

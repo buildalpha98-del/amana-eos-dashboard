@@ -33,6 +33,7 @@ describe("OverviewTab", () => {
           validCertCount: 2,
           expiringCertCount: 0,
         }}
+        nextShift={null}
       />,
     );
     expect(container.textContent).toContain("Jane Doe");
@@ -52,6 +53,7 @@ describe("OverviewTab", () => {
           validCertCount: 2,
           expiringCertCount: 1,
         }}
+        nextShift={null}
       />,
     );
     expect(container.textContent).toContain("Active rocks");
@@ -73,6 +75,7 @@ describe("OverviewTab", () => {
           validCertCount: 0,
           expiringCertCount: 0,
         }}
+        nextShift={null}
       />,
     );
     expect(container.textContent).toContain("Deactivated");
@@ -89,6 +92,7 @@ describe("OverviewTab", () => {
           validCertCount: 0,
           expiringCertCount: 0,
         }}
+        nextShift={null}
       />,
     );
     expect(container.textContent).toContain("—");

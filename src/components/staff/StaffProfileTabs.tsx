@@ -46,6 +46,18 @@ interface TimesheetSummary {
   status: string;
 }
 
+export interface StaffProfileNextShift {
+  id: string;
+  date: Date;
+  shiftStart: string;
+  shiftEnd: string;
+  sessionType: string;
+  role: string | null;
+  staffName: string;
+  userId: string | null;
+  status: string;
+}
+
 export interface StaffProfileData {
   targetUser: User & { service?: Service | null };
   emergencyContacts: EmergencyContact[];
@@ -56,6 +68,7 @@ export interface StaffProfileData {
   qualifications: StaffQualification[];
   certificates: ComplianceCertificate[];
   documents: Document[];
+  nextShift: StaffProfileNextShift | null;
   stats: {
     activeRocks: number;
     openTodos: number;
@@ -149,7 +162,11 @@ export function StaffProfileTabs({
       {/* Tab content */}
       <div className="min-h-[40vh]">
         {active === "overview" && (
-          <OverviewTab targetUser={data.targetUser} stats={data.stats} />
+          <OverviewTab
+            targetUser={data.targetUser}
+            stats={data.stats}
+            nextShift={data.nextShift}
+          />
         )}
         {active === "personal" && (
           <PersonalTab

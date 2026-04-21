@@ -69,6 +69,7 @@ function setupCommonMocks() {
   prismaMock.document.findMany.mockResolvedValue([]);
   prismaMock.rock.count.mockResolvedValue(0);
   prismaMock.todo.count.mockResolvedValue(0);
+  prismaMock.rosterShift.findFirst.mockResolvedValue(null);
 }
 
 // ---------------------------------------------------------------------------
