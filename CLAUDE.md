@@ -116,7 +116,7 @@
 
 ## Testing
 - **Unit/Integration**: Vitest (`vitest.config.mts`, `vitest.integration.config.mts`) — 700+ tests across 46 files
-- **E2E**: Playwright (`playwright.config.ts`) — 34 tests across 7 files (requires test DB)
+- **E2E**: Playwright (`playwright.config.ts`) — 34 tests across 7 files (requires test DB). Local runs require `.env.local` with `NEXTAUTH_URL=http://localhost:3000` (not the Vercel URL — the magic-link verify redirects off-host otherwise) and `PARENT_JWT_SECRET` set. `playwright.config.ts` has an inline `dotenv` loader so test helpers (which run out-of-process via Prisma) pick these up.
 - **Test dir**: `src/__tests__/` with `api/` (route tests), `lib/` (utility tests)
 - **Test helpers**: `src/__tests__/helpers/` — `prisma-mock.ts` (auto-mock with `$transaction` support), `auth-mock.ts` (`mockSession`/`mockNoSession`), `request.ts` (`createRequest`)
 - **Route test coverage**: auth, users, services, todos, rocks, enquiries, webhooks, marketing, CRM, attendance, financials, enrolments, communication, timesheets, incidents, leave, contracts
