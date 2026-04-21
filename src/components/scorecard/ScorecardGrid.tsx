@@ -11,6 +11,7 @@ import { StickyTable } from "@/components/ui/StickyTable";
 import { HelpTooltip } from "@/components/ui/HelpTooltip";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { mutateApi } from "@/lib/fetch-api";
+import { MeasurableTrendDrawer } from "./MeasurableTrendDrawer";
 
 function TrendArrow({ values, goalDirection }: { values: (number | null)[]; goalDirection: "above" | "below" | "exact" }) {
   // values are newest-first; find the two most recent non-null values
@@ -91,6 +92,7 @@ export function ScorecardGrid({
 }) {
   const weeks = useMemo(() => getTrailing13Weeks(), []);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [trendId, setTrendId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const reorderMutation = useMutation({
     mutationFn: (orderedIds: string[]) =>
@@ -331,9 +333,14 @@ export function ScorecardGrid({
                     <td className="sticky left-0 z-10 bg-card group-hover/row:bg-surface/30 px-4 py-2">
                       <div className="flex items-center gap-1.5">
                         <GripVertical className="w-3.5 h-3.5 text-muted/50 cursor-grab shrink-0 md:opacity-0 md:group-hover/row:opacity-100 opacity-60" />
-                        <div className="text-sm font-medium text-foreground truncate max-w-[130px]" title={m.title}>
+                        <button
+                          type="button"
+                          onClick={() => setTrendId(m.id)}
+                          className="text-left font-medium text-foreground hover:text-brand hover:underline truncate max-w-[130px] text-sm"
+                          title="View 12-week trend"
+                        >
                           {m.title}
-                        </div>
+                        </button>
                         <TrendArrow
                           values={weeks.map((w) => {
                             const e = entryLookup[m.id]?.[w.toISOString().split("T")[0]];
@@ -433,6 +440,7 @@ export function ScorecardGrid({
       </div>
       </StickyTable>
       </ScrollableTable>
+      <MeasurableTrendDrawer measurableId={trendId} onClose={() => setTrendId(null)} />
     </div>
   );
 }

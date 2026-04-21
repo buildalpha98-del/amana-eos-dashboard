@@ -2,9 +2,11 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { UserPlus, MessageSquare, Phone } from "lucide-react";
+import { UserPlus, MessageSquare, Phone, Trophy } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { isAdminRole } from "@/lib/role-permissions";
 
 // Lazy-load heavy tab content
 import dynamic from "next/dynamic";
@@ -20,10 +22,16 @@ const CallsTab = dynamic(() => import("@/components/calls/CallsTab").then((m) =>
   loading: () => <Skeleton className="h-96 w-full" />,
 });
 
+const LeaderboardContent = dynamic(
+  () => import("@/components/contact-centre/LeaderboardContent").then((m) => ({ default: m.LeaderboardContent })),
+  { loading: () => <Skeleton className="h-96 w-full" /> },
+);
+
 const TABS = [
   { key: "enquiries", label: "Enquiries", icon: UserPlus },
   { key: "tickets", label: "Tickets", icon: MessageSquare },
   { key: "calls", label: "Calls", icon: Phone },
+  { key: "leaderboard", label: "Leaderboard", icon: Trophy, adminOnly: true },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -35,6 +43,9 @@ function ContactCentreContent() {
   const [activeTab, setActiveTab] = useState<TabKey>(
     TABS.some((t) => t.key === tabParam) ? (tabParam as TabKey) : "enquiries",
   );
+  const { data: session } = useSession();
+  const isAdmin = isAdminRole((session?.user as { role?: string } | undefined)?.role);
+  const visibleTabs = TABS.filter((t) => !("adminOnly" in t) || !t.adminOnly || isAdmin);
 
   // Sync URL when tab changes
   useEffect(() => {
@@ -65,7 +76,7 @@ function ContactCentreContent() {
       {/* Tab Switcher */}
       <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 mb-6">
         <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit">
-          {TABS.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
@@ -90,6 +101,7 @@ function ContactCentreContent() {
       {activeTab === "enquiries" && <EnquiriesContent />}
       {activeTab === "tickets" && <TicketsContent />}
       {activeTab === "calls" && <CallsTab />}
+      {activeTab === "leaderboard" && isAdmin && <LeaderboardContent />}
     </div>
   );
 }

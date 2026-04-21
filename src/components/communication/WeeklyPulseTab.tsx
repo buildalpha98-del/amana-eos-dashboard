@@ -19,6 +19,8 @@ import {
   useSubmitPulse,
   usePulseSummary,
 } from "@/hooks/useCommunication";
+import { isAdminRole } from "@/lib/role-permissions";
+import { PulseAdminView } from "./PulseAdminView";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -58,9 +60,10 @@ export function WeeklyPulseTab() {
   const { data: session } = useSession();
   const userId = (session?.user as any)?.id;
   const userRole = (session?.user as any)?.role;
-  const isLeader = userRole === "owner" || userRole === "admin";
+  const isLeader = userRole === "owner" || userRole === "admin" || userRole === "head_office";
+  const isAdmin = isAdminRole(userRole);
 
-  const [view, setView] = useState<"my" | "team">("my");
+  const [view, setView] = useState<"my" | "team" | "admin">("my");
   const [weekOffset, setWeekOffset] = useState(0);
 
   const weekOf = useMemo(() => {
@@ -472,12 +475,23 @@ export function WeeklyPulseTab() {
               Team Pulse
             </button>
           )}
+          {isAdmin && (
+            <button
+              onClick={() => setView("admin")}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
+                view === "admin" ? "bg-brand text-white shadow-sm" : "text-muted hover:text-foreground"
+              )}
+            >
+              All Services
+            </button>
+          )}
         </div>
         <WeekSelector />
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6">
-        {view === "my" ? <MyPulseView /> : <TeamPulseView />}
+        {view === "my" ? <MyPulseView /> : view === "team" ? <TeamPulseView /> : <PulseAdminView weekOf={weekOf} />}
       </div>
     </div>
   );
