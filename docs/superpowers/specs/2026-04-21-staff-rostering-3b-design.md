@@ -27,19 +27,19 @@ Part 2 of the Staff / People module. Makes the dashboard the **source of truth**
 
 ## In scope — 11 stacked commits
 
-| # | Commit subject | Category | Files (approx.) |
+| # | Commit subject | Category | Files touched (approx.) |
 |---|---|---|---|
-| 1 | `feat(schema): RosterShift userId/status + ShiftSwapRequest + migration` | Schema | 3 |
-| 2 | `chore(data): backfill RosterShift.userId by staffName exact-match to User.name` | Data migration | 1 (script) + report |
-| 3 | `feat(components): ShiftChip, RatioBadge, ShiftEditModal` | Shared UI | 6 (3 comps + 3 tests) |
-| 4 | `feat(api): roster shift CRUD + publish + copy-week routes` | API | 10 (routes + tests) |
-| 5 | `feat(roster): builder grid in ServiceWeeklyRosterTab Shifts sub-pill` | Feature | ~8 |
-| 6 | `feat(roster): staff self-view — my-portal card + /staff/[id] Overview wiring + /roster/me` | Feature | ~5 |
-| 7 | `feat(api): ShiftSwapRequest CRUD + accept + approve + reject routes` | API | 8 (routes + tests) |
-| 8 | `feat(roster): shift swap UI — staff propose + target accept + admin approve` | Feature | ~7 |
-| 9 | `refactor(lib): extract roster-ratio helper from shift-gap-detector + inline warnings` | Reliability | 3 |
-| 10 | `feat(notifications): wire 5 new roster notification types + constants update` | Feature | ~4 |
-| 11 | `feat(team): extend Action Required widget with shift-swaps-pending count` | Feature | 2 |
+| 1 | `feat(schema): RosterShift userId/status + ShiftSwapRequest + migration` | Schema | `prisma/schema.prisma`, `prisma/migrations/<ts>_.../migration.sql` (2 files + generated) |
+| 2 | `chore(data): backfill RosterShift.userId by staffName match` | Data migration | `scripts/one-shots/backfill-roster-userid.ts` (1 file) |
+| 3 | `feat(components): ShiftChip, RatioBadge, ShiftEditModal` | Shared UI | `src/components/roster/ShiftChip.tsx`, `RatioBadge.tsx`, `ShiftEditModal.tsx` + 3 tests (6 files) |
+| 4 | `feat(api): roster shift CRUD + publish + copy-week` | API | `src/app/api/roster/shifts/{route,[id]/route}.ts`, `publish/route.ts`, `copy-week/route.ts` + 4 test files (~10 files) |
+| 5 | `feat(roster): builder grid in Shifts sub-pill` | Feature | `src/components/services/ServiceWeeklyRosterTab.tsx` (sub-pill router), new `ServiceWeeklyShiftsGrid.tsx`, `src/hooks/useRosterShifts.ts`, tests (~6 files) |
+| 6 | `feat(roster): staff self-view` | Feature | `src/app/(dashboard)/my-portal/page.tsx` (card), new `src/components/my-portal/MyUpcomingShiftsCard.tsx`, `src/components/staff/tabs/OverviewTab.tsx` (replace placeholder), `src/app/(dashboard)/roster/me/page.tsx`, `src/lib/role-permissions.ts` (add route), tests (~5 files) |
+| 7 | `feat(api): shift swap CRUD + state transitions` | API | `src/app/api/shift-swaps/{route,[id]/{accept,reject,approve,cancel}/route}.ts` + tests (~8 files) |
+| 8 | `feat(roster): shift swap UI` | Feature | `src/components/roster/ShiftSwapDialog.tsx`, extend `ShiftChip.tsx` (context menu), `src/app/(dashboard)/roster/swaps/page.tsx`, extend `NotificationPopover.tsx` (inline actions), `src/lib/role-permissions.ts` (add route), tests (~7 files) |
+| 9 | `refactor(lib): extract roster-ratio helper + inline warnings` | Reliability | `src/lib/roster-ratio.ts` (new), `src/app/api/cron/shift-gap-detector/route.ts` (refactor to import), `src/components/roster/RatioBadge.tsx` (retrofit) (3 files) |
+| 10 | `feat(notifications): 5 new roster notification types` | Feature | `src/lib/notification-types.ts` (add 5 entries — preserves `as const` + `NotificationType` union auto-derivation), trigger wiring at call sites in commits 4 + 7 (~2 primary files + wiring) |
+| 11 | `feat(team): Action Required widget + shift swaps pending` | Feature | `src/components/team/ActionRequiredWidget.tsx` (+ 4th card), `src/app/api/team/action-counts/route.ts` (+ shiftSwapsPending), tests (2-3 files) |
 
 **Ordering rationale**: schema first (unblocks API + UI). Migration second (so userId values are present before any UI depends on them). Shared components third. Then API + UI in functional slices (builder, self-view, swaps). Helpers + notifications layered on. Team widget last.
 
@@ -51,21 +51,25 @@ Part 2 of the Staff / People module. Makes the dashboard the **source of truth**
 
 ```prisma
 model RosterShift {
-  // ... existing fields ...
-  userId       String?
-  user         User?     @relation("UserRosterShifts", fields: [userId], references: [id], onDelete: SetNull)
-  status       String    @default("published")  // "draft" | "published"
-  publishedAt  DateTime?                         // when manager hit Publish; NULL for OWNA-synced rows
-  createdById  String?
-  createdBy    User?     @relation("CreatedRosterShifts", fields: [createdById], references: [id], onDelete: SetNull)
-  
+  // ... existing fields unchanged (id, serviceId, service, date, sessionType,
+  //     staffName, shiftStart, shiftEnd, role, syncedAt) ...
+
+  userId            String?
+  user              User?               @relation("UserRosterShifts", fields: [userId], references: [id], onDelete: SetNull)
+  status            String              @default("published")  // "draft" | "published"
+  publishedAt       DateTime?                                   // when manager hit Publish; NULL for OWNA-synced rows
+  createdById       String?
+  createdBy         User?               @relation("CreatedRosterShifts", fields: [createdById], references: [id], onDelete: SetNull)
+  shiftSwapRequests ShiftSwapRequest[]  @relation("ShiftSwapRequests")
+
   @@index([userId])
   @@index([userId, date])
   @@index([status])
 }
 
 model User {
-  // ... existing ...
+  // ... existing fields + relations unchanged ...
+
   rosterShifts        RosterShift[]      @relation("UserRosterShifts")
   createdRosterShifts RosterShift[]      @relation("CreatedRosterShifts")
   proposedShiftSwaps  ShiftSwapRequest[] @relation("ProposedShiftSwaps")
@@ -93,7 +97,7 @@ model ShiftSwapRequest {
   rejectedReason String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
-  
+
   @@index([proposerId])
   @@index([targetId])
   @@index([status])
@@ -101,17 +105,19 @@ model ShiftSwapRequest {
 }
 ```
 
-`RosterShift.status` defaults to `"published"` — preserves backward-compat for existing OWNA-synced rows (they're visible as published). New dashboard-created shifts start as `"draft"` until the manager publishes.
+**Naming convention notes** (all five new @relation names matched exactly on both sides):
+- `"UserRosterShifts"` — User.rosterShifts ↔ RosterShift.user
+- `"CreatedRosterShifts"` — User.createdRosterShifts ↔ RosterShift.createdBy
+- `"ShiftSwapRequests"` — RosterShift.shiftSwapRequests ↔ ShiftSwapRequest.shift
+- `"ProposedShiftSwaps"` — User.proposedShiftSwaps ↔ ShiftSwapRequest.proposer
+- `"TargetShiftSwaps"` — User.targetShiftSwaps ↔ ShiftSwapRequest.target
+- `"ApprovedShiftSwaps"` — User.approvedShiftSwaps ↔ ShiftSwapRequest.approvedBy
 
-**Back-relations on `ComplianceCertificate` and `RosterShift`**: RosterShift already has a service relation; only the new `user`, `createdBy`, and `shiftSwapRequests` (implicit via `ShiftSwapRequest` FK) are new.
+**`RosterShift.status` default = `"published"`** — preserves backward-compat for existing OWNA-synced rows. New dashboard-created shifts start `"draft"` until the manager publishes.
 
-Add to `RosterShift`:
-```prisma
-  shiftSwapRequests ShiftSwapRequest[] @relation
-```
-(Actually Prisma infers this via the FK; the back-relation is optional but recommended for query ergonomics.)
+**`RosterShift.staffName` on dashboard-created shifts** — populated from `user.name` at create/update time (snapshot). This keeps the existing unique constraint `@@unique([serviceId, date, staffName, shiftStart])` working and lets the `shift-gap-detector` email templates continue to use `staffName`. If the linked user later changes name, a one-off reconciliation job can update `staffName` — not in 3b scope.
 
-**Migration**: `npx prisma migrate dev --name add_roster_shift_user_and_swap_requests`. Additive only — no column drops, no type changes on existing fields.
+**Migration**: `npx prisma migrate dev --name add_roster_shift_user_and_swap_requests`. Additive only — no column drops, no type changes on existing fields. Existing unique constraint preserved (staffName still populated from user.name for dashboard shifts, preventing collisions).
 
 **Acceptance**:
 - Migration file generated and applied locally
@@ -170,21 +176,38 @@ Run once against the live Neon DB after migration. Non-matching rows are left al
 
 ### Commit 4: `feat(api): roster shift CRUD + publish + copy-week routes`
 
-**Routes**:
+**Routes + Zod body schemas**:
 
-- `GET /api/roster/shifts?serviceId=X&weekStart=YYYY-MM-DD` — list shifts for a service + week
-- `POST /api/roster/shifts` — create shift (admin/coord at service)
-- `PATCH /api/roster/shifts/[id]` — edit shift (admin/coord)
-- `DELETE /api/roster/shifts/[id]` — delete shift (admin/coord)
-- `POST /api/roster/publish` — body: `{ serviceId, weekStart }` — flips all `status: "draft"` shifts in that service+week to `"published"`, sets `publishedAt`, creates `ROSTER_PUBLISHED` UserNotifications for each affected `userId`
-- `POST /api/roster/copy-week` — body: `{ serviceId, sourceWeekStart, targetWeekStart }` — duplicates shifts from source week to target week with `status: "draft"`. Idempotent — re-running replaces target week's draft shifts (but never published shifts).
+- `GET /api/roster/shifts?serviceId=X&weekStart=YYYY-MM-DD` — list shifts for a service + week (7 days starting weekStart, inclusive)
+- `POST /api/roster/shifts` — create shift (admin/coord at service). Zod body:
+  ```ts
+  const createShiftSchema = z.object({
+    serviceId: z.string().min(1),
+    userId: z.string().min(1),              // required for dashboard-created shifts
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),  // ISO date
+    sessionType: z.enum(["bsc", "asc", "vc"]),
+    shiftStart: z.string().regex(/^\d{2}:\d{2}$/),  // HH:mm
+    shiftEnd: z.string().regex(/^\d{2}:\d{2}$/),
+    role: z.string().nullish(),
+    status: z.enum(["draft", "published"]).default("draft"),
+  });
+  ```
+  Server hydrates `staffName` from `user.name` snapshot at create time. Sets `createdById` from session user. Enforces `shiftEnd > shiftStart` validation.
+- `PATCH /api/roster/shifts/[id]` — edit shift (admin/coord). Zod body: all create fields optional (partial update). If `userId` changes, re-hydrate `staffName`.
+- `DELETE /api/roster/shifts/[id]` — delete shift (admin/coord). Soft-block deleting published shifts with pending `ShiftSwapRequest` — return 409.
+- `POST /api/roster/publish` — body: `{ serviceId: string, weekStart: string }`. Flips all `status: "draft"` shifts in that service+week to `"published"`, sets `publishedAt`, creates `ROSTER_PUBLISHED` UserNotifications for each affected `userId` (one notification per staff member with count of their shifts for the week — not one per shift).
+- `POST /api/roster/copy-week` — body: `{ serviceId: string, sourceWeekStart: string, targetWeekStart: string }`. For each shift in source week:
+  - If target cell (date, userId, sessionType, shiftStart) doesn't exist → create as `status:"draft"` with new `createdById`
+  - If target cell exists with `status:"draft"` → replace (delete old draft, create new)
+  - If target cell exists with `status:"published"` → **skip** that shift, include in response's `skipped` array
+  Response: `{ created: number, replaced: number, skipped: Array<{date, sessionType, reason}> }`
 
 **Auth**: all `withApiAuth`. Access rules:
 - Admin / head_office / owner: any service
-- Coordinator: own service only (derived from `User.serviceId`)
-- Others: 403
+- Coordinator: own service only — compare `session.user.serviceId === shift.serviceId` (or request body's `serviceId` for POST/copy-week/publish)
+- Staff / member / marketing: 403 on mutations; 200 on GET (read-only)
 
-**Tests**: auth, validation, happy path, coordinator-scope, publish triggers notifications, copy-week doesn't clobber published shifts.
+**Tests**: auth per role, Zod validation, happy path CRUD, coordinator cross-service → 403, publish triggers exactly one notification per staff (not per shift), copy-week skip list correct on mixed-status target week.
 
 ---
 
@@ -196,11 +219,12 @@ Run once against the live Neon DB after migration. Non-matching rows are left al
 
 **Shifts sub-pill** (rows=staff, cols=Mon–Fri):
 - Header: week picker (← / →), "Copy last week" button, "Publish" button (admin/coord only)
-- Left column: staff avatars + names (scoped to this service)
+- Left column: staff avatars + names. **Staff scope** = `User.findMany({ where: { serviceId: serviceId, active: true } })` — only currently-active users whose primary service matches. Order by name asc. This same query drives the `ShiftEditModal` user dropdown (Commit 3).
 - Cells: click empty → opens `<ShiftEditModal>` for create. Click a `<ShiftChip>` → edit/delete
 - Bottom row per day: `<RatioBadge>` for BSC + ASC + VC showing ratio vs. booked children count (from existing booking query)
 - Draft shifts visually distinct (dashed border)
 - Empty state: "No shifts rostered for this week — click a cell to create"
+- **Leave integration (graceful degradation)**: if a staff member has an approved `LeaveRequest` overlapping this week, their row still renders (existing shifts continue to show as scheduled). Full leave-aware disabling of cells is out of scope for 3b — defer to a later sub-project.
 
 **Staff view** (role=staff/member/marketing): same grid but read-only; no modal, no publish button, no copy-week.
 
@@ -224,30 +248,36 @@ Run once against the live Neon DB after migration. Non-matching rows are left al
 - Read-only week view of own shifts
 - Week picker (← / →)
 - Plus any pending shift-swap requests targeted at the user (from commit 8)
-- Access: self-only (staff) or admin (viewing any user's roster by `?userId=X`)
+- Access (`?userId=X` param): self always allowed; admin/head_office/owner can view any; coordinator can view staff at own service (same rule as `/staff/[id]` profile access); others 403
 
 **Files**: extend `my-portal/page.tsx`, `OverviewTab.tsx`, new `/roster/me/page.tsx` + content.
+
+**Role-permissions update** (per MEMORY.md checklist): add `/roster/me` to `allPages` in `src/lib/role-permissions.ts` AND to each non-admin role's access list in `rolePageAccess` (coordinator, member, marketing, staff).
 
 ---
 
 ### Commit 7: `feat(api): ShiftSwapRequest CRUD + accept + approve + reject routes`
 
-**Routes**:
+**Routes + Zod schemas**:
 
-- `POST /api/shift-swaps` — body: `{ shiftId, targetId, reason? }` — creates `ShiftSwapRequest{status:"proposed"}` + creates `SHIFT_SWAP_PROPOSED` notification for target. Proposer must be the shift's current `userId`.
-- `POST /api/shift-swaps/[id]/accept` — target user accepts → `status:"accepted"`, `acceptedAt:now()` + `SHIFT_SWAP_ACCEPTED` notification for proposer + admin/coord(s) at service
-- `POST /api/shift-swaps/[id]/reject` — body: `{ reason? }` — target rejects → `status:"rejected"`, `rejectedAt`, `rejectedReason` + `SHIFT_SWAP_REJECTED` notification for proposer
-- `POST /api/shift-swaps/[id]/approve` — admin/coord approves an accepted swap → `status:"approved"`, `approvedAt`, `approvedById` + **swaps RosterShift.userId** (proposer's shift now points to target) + `SHIFT_SWAP_APPROVED` notifications for proposer and target
-- `POST /api/shift-swaps/[id]/cancel` — proposer cancels while still "proposed" → `status:"cancelled"`
-- `GET /api/shift-swaps?status=X&scope=mine|service|all` — list (scoped by role)
+- `POST /api/shift-swaps` — body: `{ shiftId: string, targetId: string, reason?: string }`. Creates `ShiftSwapRequest{status:"proposed"}` + creates `SHIFT_SWAP_PROPOSED` notification for target. Server validates: (a) `shift.userId === session.user.id` (proposer is the shift owner), (b) `target.serviceId === shift.serviceId` AND `target.active === true` (target must be an active staff member at the same service as the shift — same scope as the roster builder staff dropdown). Prevents spoofed inter-service or inactive-user swaps.
+- `POST /api/shift-swaps/[id]/accept` — target user accepts → `status:"accepted"`, `acceptedAt:now()` + `SHIFT_SWAP_ACCEPTED` notification for proposer + one notification per admin/coordinator at the shift's service (so approvers know there's something waiting). Only `swap.targetId === session.user.id` may call this; only transitions from `"proposed"`.
+- `POST /api/shift-swaps/[id]/reject` — body: `{ reason?: string }` — target rejects → `status:"rejected"`, `rejectedAt`, `rejectedReason` + `SHIFT_SWAP_REJECTED` notification for proposer. Only `swap.targetId === session.user.id`.
+- `POST /api/shift-swaps/[id]/approve` — admin/coord approves an accepted swap. **Atomic via `prisma.$transaction`**: (1) update `ShiftSwapRequest` to `status:"approved"`, `approvedAt`, `approvedById`, (2) update the linked `RosterShift.userId` and `staffName` to point to the target user, (3) create `SHIFT_SWAP_APPROVED` notifications for proposer and target. All three writes succeed or none do. Enforced access: admin/head_office/owner globally, OR coordinator where `session.user.serviceId === shift.serviceId`. Only transitions from `"accepted"` (cannot approve a "proposed" or "rejected" swap).
+- `POST /api/shift-swaps/[id]/cancel` — proposer cancels while still `"proposed"` → `status:"cancelled"`. Only `swap.proposerId === session.user.id`, only from `"proposed"`.
+- `GET /api/shift-swaps?status=X&scope=mine|service|all` — list (scoped by role):
+  - `scope=mine`: swaps where `proposerId === session.user.id OR targetId === session.user.id`
+  - `scope=service`: all swaps where `shift.serviceId` matches coordinator's service (admins ignore scope)
+  - `scope=all`: admin only — 403 for non-admins
 
-**Auth**:
-- Propose: any staff where `shift.userId === session.user.id`
-- Accept/Reject: only the `targetId` user
-- Approve: admin/head_office/owner OR coordinator at shift's service
-- Cancel: only the `proposerId` user and only while `status === "proposed"`
+**State machine** (enforced server-side):
+- `proposed` → `accepted` (target) | `rejected` (target) | `cancelled` (proposer)
+- `accepted` → `approved` (admin/coord) | `rejected` (admin/coord with a reason)
+- `approved` / `rejected` / `cancelled` → terminal (no further transitions)
 
-**Tests**: full state machine — propose → accept → approve; propose → reject; propose → cancel. Auth matrix for each transition.
+Any attempt to cross-transition (e.g. approve a `"rejected"` swap) returns 409 Conflict.
+
+**Tests**: full state machine — propose → accept → approve atomically swaps userId; propose → reject; propose → cancel; approve with mismatched coordinator-service → 403; propose with target at different service → 400; reject an already-rejected swap → 409.
 
 ---
 
@@ -259,9 +289,11 @@ Run once against the live Neon DB after migration. Non-matching rows are left al
 
 **Target UI**: NotificationPopover shows `SHIFT_SWAP_PROPOSED` with inline Accept / Reject actions (or navigate to `/roster/me` where pending swaps are listed with actions)
 
-**Admin UI**: new `/roster/swaps` inbox page showing all "accepted" swaps awaiting approval. Table with: proposer, target, shift detail, reason, "Approve" / "Reject" buttons. Access: admin + coord (service-scoped).
+**Admin UI**: new `/roster/swaps` inbox page showing all `"accepted"` swaps awaiting approval. Table with: proposer, target, shift detail, reason, "Approve" / "Reject" buttons. Access: admin/head_office/owner see all; coordinator sees swaps at own service.
 
 **Files**: context-menu extension in `ShiftChip` (or a new `ShiftSwapButton.tsx`), `ShiftSwapDialog.tsx`, `/roster/swaps/page.tsx`, extend NotificationPopover with inline actions.
+
+**Role-permissions update** (per MEMORY.md checklist): add `/roster/swaps` to `allPages` in `src/lib/role-permissions.ts` AND to each role's access list that should see it (admin/owner/head_office auto via `allPages` spread; coordinator explicit entry; staff/member/marketing explicit entries — they need view access to see their own swaps).
 
 ---
 
@@ -317,6 +349,8 @@ No new UI — reuses the 3a bell + popover infrastructure.
 Extend `/api/team/action-counts` to also return `shiftSwapsPending: number` (count of `ShiftSwapRequest{status:"accepted"}`, scoped to admin=org-wide, coord=own service).
 
 Extend `ActionRequiredWidget` to show the 4th stat card. Link → `/roster/swaps?filter=pending`.
+
+**Role visibility**: the widget currently hides for `staff|member|marketing`. Keep that logic — the 4th card inherits the same visibility (visible only to admin/head_office/owner/coordinator). Staff see their swap-related notifications via the bell popover + inline actions (commits 8 + 10) instead of the team widget.
 
 ---
 
@@ -375,6 +409,8 @@ Extend `ActionRequiredWidget` to show the 4th stat card. Link → `/roster/swaps
 ## Rollback
 
 Schema migration is additive — safe to keep even if feature is rolled back. Each commit is `git revert`-safe standalone. Worst-case whole-PR revert via merge-commit revert — leaves the migration applied but UI and routes removed.
+
+**Backfill data specifically**: if the sub-project is rolled back, the `userId` values populated on `RosterShift` rows remain (harmless — they're now orphan metadata since the UI stops reading `userId`, falling back to `staffName` display as before). The backfill script is idempotent — re-running after rollback is safe.
 
 ---
 
