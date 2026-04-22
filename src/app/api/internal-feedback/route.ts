@@ -4,6 +4,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
 import { parseJsonBody } from "@/lib/api-error";
+import { sendSlackFeedback } from "@/lib/slack-webhook";
 const createFeedbackSchema = z.object({
   category: z.enum(["bug", "feature_request", "question", "general"]),
   message: z.string().min(1, "Message is required"),
@@ -48,23 +49,38 @@ export const GET = withApiAuth(async (req) => {
 }, { roles: ["owner", "head_office", "admin"] });
 
 // POST /api/internal-feedback — create feedback (any authenticated user)
-export const POST = withApiAuth(async (req, session) => {
-const body = await parseJsonBody(req);
-  const parsed = createFeedbackSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });
-  }
-  const { category, message, screenshotUrl, page } = parsed.data;
+export const POST = withApiAuth(
+  async (req, session) => {
+    const body = await parseJsonBody(req);
+    const parsed = createFeedbackSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message, details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const { category, message, screenshotUrl, page } = parsed.data;
 
-  const feedback = await prisma.internalFeedback.create({
-    data: {
-      authorId: session!.user.id,
+    const feedback = await prisma.internalFeedback.create({
+      data: {
+        authorId: session.user.id,
+        category,
+        message: message.trim(),
+        screenshotUrl: screenshotUrl || null,
+        page: page || null,
+      },
+    });
+
+    // Fire-and-forget Slack webhook (errors logged, never thrown)
+    sendSlackFeedback({
+      id: feedback.id,
+      authorName: session.user.name ?? session.user.email ?? "Unknown",
+      role: session.user.role ?? "unknown",
       category,
       message: message.trim(),
-      screenshotUrl: screenshotUrl || null,
-      page: page || null,
-    },
-  });
+    }).catch(() => {}); // belt-and-braces — helper already swallows
 
-  return NextResponse.json({ feedback }, { status: 201 });
-});
+    return NextResponse.json({ feedback }, { status: 201 });
+  },
+  { rateLimit: { max: 5, windowMs: 60_000 } },
+);
