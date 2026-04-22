@@ -31,4 +31,30 @@ describe("filterNavItems", () => {
     const marketingFiltered = filterNavItems(navItems, "marketing" as Role);
     expect(marketingFiltered.some((i) => i.href === "/audit-log")).toBe(false);
   });
+
+  it("includes /contracts for coordinator (has contracts.view + rolePageAccess)", () => {
+    const filtered = filterNavItems(navItems, "coordinator" as Role);
+    expect(filtered.some((i) => i.href === "/contracts")).toBe(true);
+  });
+
+  it("includes /contracts for member (has contracts.view + rolePageAccess)", () => {
+    const filtered = filterNavItems(navItems, "member" as Role);
+    expect(filtered.some((i) => i.href === "/contracts")).toBe(true);
+  });
+
+  it("returns a new array (does not mutate input)", () => {
+    const before = navItems.length;
+    filterNavItems(navItems, "staff" as Role);
+    expect(navItems.length).toBe(before);
+  });
+
+  it("handles undefined role by returning items without feature gates", () => {
+    // During session hydration, role is undefined. canAccessPage returns true
+    // for undefined but hasFeature returns false, so feature-gated items are hidden.
+    const filtered = filterNavItems(navItems, undefined);
+    // /contracts is feature-gated → hidden
+    expect(filtered.some((i) => i.href === "/contracts")).toBe(false);
+    // /dashboard has no feature gate → shown
+    expect(filtered.some((i) => i.href === "/dashboard")).toBe(true);
+  });
 });
