@@ -22,24 +22,20 @@ export function FeedbackDetailPanel({ feedbackId, onClose }: { feedbackId: strin
   const { data, isLoading } = useFeedback(feedbackId);
   const feedback = data?.feedback;
 
-  const [notes, setNotes] = useState("");
+  // Local override used only while the user is mid-type (dirty).
+  // `null` means "defer to server" — the derived `notes` below picks up adminNotes.
+  // Parent remounts this component via `key={selectedId}` when switching items,
+  // so no id-change reset logic is needed here.
+  const [localNotes, setLocalNotes] = useState<string | null>(null);
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesSavedAt, setNotesSavedAt] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Dirty ref prevents a mid-type server response from clobbering the user's text.
-  // Flips true on keystroke, back to false only after the successful save round-trip.
-  const notesDirtyRef = useRef(false);
 
   const qc = useQueryClient();
   const update = useUpdateFeedback();
 
-  // Only sync server → local when NOT dirty (user isn't mid-type).
-  // Dependency on id covers switching between feedback items.
-  useEffect(() => {
-    if (!notesDirtyRef.current) {
-      setNotes(feedback?.adminNotes ?? "");
-    }
-  }, [feedback?.id, feedback?.adminNotes]);
+  // Derived display value: prefer local edits while dirty, otherwise show server authority.
+  const notes = localNotes !== null ? localNotes : (feedback?.adminNotes ?? "");
 
   // Esc-to-close handler
   useEffect(() => {
@@ -74,8 +70,7 @@ export function FeedbackDetailPanel({ feedbackId, onClose }: { feedbackId: strin
   };
 
   const handleNotesChange = (v: string) => {
-    notesDirtyRef.current = true;
-    setNotes(v);
+    setLocalNotes(v);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       if (!feedback) return;
@@ -86,7 +81,8 @@ export function FeedbackDetailPanel({ feedbackId, onClose }: { feedbackId: strin
           onSuccess: () => {
             setNotesSaving(false);
             setNotesSavedAt(Date.now());
-            notesDirtyRef.current = false;
+            // Clear local override so future server updates flow through.
+            setLocalNotes(null);
           },
           onError: (err: Error) => {
             setNotesSaving(false);

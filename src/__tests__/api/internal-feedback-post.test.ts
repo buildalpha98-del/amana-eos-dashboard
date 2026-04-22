@@ -90,7 +90,7 @@ describe("POST /api/internal-feedback", () => {
   });
 
   it("does not fail the response if Slack webhook throws", async () => {
-    (sendSlackFeedback as any).mockRejectedValue(new Error("slack down"));
+    vi.mocked(sendSlackFeedback).mockRejectedValue(new Error("slack down"));
     prismaMock.internalFeedback.create.mockResolvedValue({ id: "fb-ok", category: "general", message: "m", status: "new" });
 
     const req = createRequest("POST", "/api/internal-feedback", { body: { category: "general", message: "m" } });

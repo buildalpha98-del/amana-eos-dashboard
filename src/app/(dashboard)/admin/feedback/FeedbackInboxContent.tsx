@@ -193,6 +193,7 @@ export function FeedbackInboxContent() {
 
       {selectedId && (
         <FeedbackDetailPanel
+          key={selectedId}
           feedbackId={selectedId}
           onClose={() => setSelectedId(null)}
         />
