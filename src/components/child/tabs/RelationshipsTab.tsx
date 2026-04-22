@@ -7,6 +7,7 @@ import {
   parseJsonField,
   primaryParentSchema,
   emergencyContactSchema,
+  authorisedPickupSchema, // 4b: hoisted from local
 } from "@/lib/schemas/json-fields";
 import type { ChildProfileRecord } from "../types";
 import { useChildRelationships } from "@/hooks/useChildRelationships";
@@ -20,14 +21,6 @@ interface RelationshipsTabProps {
   child: ChildProfileRecord;
   canEdit: boolean;
 }
-
-const authorisedPickupSchema = z
-  .object({
-    name: z.string(),
-    relationship: z.string().optional(),
-    phone: z.string().optional(),
-  })
-  .passthrough();
 
 const emergencyContactsListSchema = z.array(emergencyContactSchema);
 const authorisedPickupListSchema = z.array(authorisedPickupSchema);

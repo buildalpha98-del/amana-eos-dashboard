@@ -40,6 +40,11 @@ export const GET = withApiAuth(async (req, session, context) => {
   const end = new Date(Date.UTC(ty, tm - 1, td));
   end.setUTCDate(end.getUTCDate() + 1); // inclusive end-of-day
 
+  const rangeDays = Math.round((end.getTime() - start.getTime()) / 86_400_000);
+  if (rangeDays > 366) {
+    throw ApiError.badRequest("Date range must not exceed 366 days");
+  }
+
   const records = await prisma.attendanceRecord.findMany({
     where: { childId: id, date: { gte: start, lt: end } },
     orderBy: { date: "desc" },
