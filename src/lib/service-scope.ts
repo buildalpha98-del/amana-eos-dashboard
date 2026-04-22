@@ -2,12 +2,25 @@ import type { Session } from "next-auth";
 
 /**
  * Returns the serviceId to scope queries by, or null if the user has full access.
- * Staff and member users are scoped to their assigned service/centre.
+ *
+ * Post-4b widening: every non-admin role (coordinator / marketing / member / staff)
+ * with a populated session.user.serviceId is scoped to that service. Owner /
+ * head_office / admin retain cross-service access (admin uses getStateScope
+ * separately for state-level filtering).
+ *
+ * See docs/superpowers/plans/2026-04-22-services-daily-ops-4b-scope-audit.md
+ * for the 17-route audit that drove this widening, including the rocks route
+ * which keeps an inline override for EOS-wide visibility.
  */
 export function getServiceScope(session: Session | null): string | null {
   if (!session?.user) return null;
   const role = session.user.role as string;
-  if ((role === "staff" || role === "member") && session.user.serviceId) {
+  if (
+    role !== "owner" &&
+    role !== "head_office" &&
+    role !== "admin" &&
+    session.user.serviceId
+  ) {
     return session.user.serviceId as string;
   }
   return null;

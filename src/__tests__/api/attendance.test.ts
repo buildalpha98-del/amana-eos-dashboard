@@ -36,6 +36,7 @@ vi.mock("@/app/api/attendance/propagate/route", () => ({
 
 // Import AFTER mocks are set up
 import { GET, POST } from "@/app/api/attendance/route";
+import { getServiceScope } from "@/lib/service-scope";
 
 describe("GET /api/attendance", () => {
   beforeEach(() => {
@@ -184,5 +185,78 @@ describe("POST /api/attendance", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toBeTruthy();
+  });
+});
+
+// ── 4b scope-widening regression (high-risk narrow route) ──
+describe("GET /api/attendance — 4b scope audit regression (narrow)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+  });
+
+  it("coordinator is narrowed to own service (serviceId = svc1)", async () => {
+    mockSession({
+      id: "coord-1",
+      name: "Coord",
+      role: "coordinator",
+      serviceId: "svc1",
+    });
+    vi.mocked(getServiceScope).mockReturnValue("svc1");
+
+    prismaMock.dailyAttendance.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/attendance");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+
+    const callArgs = prismaMock.dailyAttendance.findMany.mock.calls[0][0];
+    expect(callArgs.where.serviceId).toBe("svc1");
+  });
+
+  it("coordinator querying another service gets 403", async () => {
+    mockSession({
+      id: "coord-1",
+      name: "Coord",
+      role: "coordinator",
+      serviceId: "svc1",
+    });
+    vi.mocked(getServiceScope).mockReturnValue("svc1");
+
+    const req = createRequest("GET", "/api/attendance?serviceId=svc2");
+    const res = await GET(req);
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("POST /api/attendance — 4b scope audit regression (narrow)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _clearUserActiveCache();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+  });
+
+  it("coordinator creating attendance for another service gets 403", async () => {
+    mockSession({
+      id: "coord-1",
+      name: "Coord",
+      role: "coordinator",
+      serviceId: "svc1",
+    });
+    vi.mocked(getServiceScope).mockReturnValue("svc1");
+
+    const req = createRequest("POST", "/api/attendance", {
+      body: {
+        serviceId: "svc2", // not their service
+        date: "2026-04-22",
+        sessionType: "bsc",
+        enrolled: 20,
+        attended: 18,
+        capacity: 30,
+      },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(403);
   });
 });
