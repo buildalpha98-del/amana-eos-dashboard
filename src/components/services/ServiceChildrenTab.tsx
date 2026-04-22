@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   useChildren,
+  deriveFilterOptions,
   type ChildRecord,
   type ChildrenFilters as ChildrenFiltersType,
 } from "@/hooks/useChildren";
@@ -130,16 +131,11 @@ export function ServiceChildrenTab({ serviceId }: ServiceChildrenTabProps) {
 
   const children = useMemo(() => data?.children ?? [], [data?.children]);
 
-  // Derive room options from returned children (OWNA-synced rooms). If none
-  // come back with a room, the filter dropdown renders disabled.
-  const roomOptions = useMemo(() => {
-    const set = new Set<string>();
-    children.forEach((c) => {
-      const room = (c as ChildRecord & { ownaRoomName?: string | null }).ownaRoomName;
-      if (room) set.add(room);
-    });
-    return Array.from(set).sort();
-  }, [children]);
+  // Derive option lists from the live result set. `deriveFilterOptions`
+  // considers Child.room / Child.ccsStatus / Child.tags only — the API
+  // filter added in Commit 2 matches on Child.room (not ownaRoomName),
+  // so surfacing OWNA-only rooms would produce empty result sets.
+  const options = useMemo(() => deriveFilterOptions(children), [children]);
 
   return (
     <div className="space-y-4">
@@ -161,7 +157,9 @@ export function ServiceChildrenTab({ serviceId }: ServiceChildrenTabProps) {
       <ChildrenFilters
         filters={filters}
         onChange={setFilters}
-        roomOptions={roomOptions}
+        roomOptions={options.roomOptions}
+        ccsStatusOptions={options.ccsStatusOptions}
+        tagOptions={options.tagOptions}
       />
 
       {/* List */}

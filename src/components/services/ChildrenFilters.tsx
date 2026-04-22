@@ -115,7 +115,7 @@ export function ChildrenFilters({
             className="border border-border rounded-md px-2 py-1.5 text-xs bg-card text-foreground disabled:opacity-50"
           >
             <option value="">
-              {roomOptions.length === 0 ? "Room (n/a)" : "All rooms"}
+              {roomOptions.length === 0 ? "Room (no values yet)" : "All rooms"}
             </option>
             {roomOptions.map((room) => (
               <option key={room} value={room}>
@@ -154,7 +154,7 @@ export function ChildrenFilters({
             className="border border-border rounded-md px-2 py-1.5 text-xs bg-card text-foreground disabled:opacity-50"
           >
             <option value="">
-              {ccsStatusOptions.length === 0 ? "CCS status (—)" : "All CCS statuses"}
+              {ccsStatusOptions.length === 0 ? "CCS status (no values yet)" : "All CCS statuses"}
             </option>
             {ccsStatusOptions.map((s) => (
               <option key={s} value={s}>
@@ -180,7 +180,7 @@ export function ChildrenFilters({
             className="border border-border rounded-md px-2 py-1.5 text-xs bg-card text-foreground disabled:opacity-50"
           >
             {tagOptions.length === 0 ? (
-              <option value="">Tags (n/a)</option>
+              <option value="">Tags (no values yet)</option>
             ) : (
               tagOptions.map((t) => (
                 <option key={t} value={t}>
