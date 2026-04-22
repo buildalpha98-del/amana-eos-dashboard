@@ -342,8 +342,8 @@ describe("ServiceWeeklyRollCallGrid", () => {
   });
 
 
-  it("AddChildDialog submit calls mutateApi with action='undo' per selection", async () => {
-    mutateApiSpy.mockResolvedValue({ id: "new-rec" });
+  it("AddChildDialog submit calls the bulk endpoint with action='undo' items", async () => {
+    mutateApiSpy.mockResolvedValue({ created: 1, failed: 0 });
     weeklyRef.data = makeData();
     enrollableRef.data = {
       children: [
@@ -380,17 +380,22 @@ describe("ServiceWeeklyRollCallGrid", () => {
     fireEvent.click(screen.getByRole("button", { name: /add 1/i }));
 
     await waitFor(() => {
-      expect(mutateApiSpy).toHaveBeenCalled();
+      expect(mutateApiSpy).toHaveBeenCalledTimes(1);
     });
 
     const [url, init] = mutateApiSpy.mock.calls[0];
-    expect(url).toBe("/api/attendance/roll-call");
+    expect(url).toBe("/api/attendance/roll-call/bulk");
     expect(init.method).toBe("POST");
     expect(init.body).toMatchObject({
       serviceId: "svc-1",
-      childId: "child-2",
-      sessionType: "asc",
-      action: "undo",
+      items: [
+        {
+          childId: "child-2",
+          date: monday,
+          sessionType: "asc",
+          action: "undo",
+        },
+      ],
     });
   });
 });

@@ -39,12 +39,11 @@ const SESSION_TYPES: SessionType[] = ["bsc", "asc", "vc"];
  * for the week) with a per-child 5×3 checkbox grid (Mon–Fri × BSC/ASC/VC).
  *
  * On submit:
- *   POST /api/attendance/roll-call { action: "undo" } per selection
- *   → creates a status: "booked" attendance record for each cell.
- *
- * NOTE: This issues N parallel requests. A true DB transaction would require
- * a new bulk endpoint, deferred to sub-project 4b. On partial failure we still
- * invalidate the weekly query so the UI reflects whichever rows succeeded.
+ *   POST /api/attendance/roll-call/bulk { items: [{ action: "undo" }, …] }
+ *   → atomic: all selections create status: "booked" records in a single
+ *   DB transaction, or none do. On server failure the whole batch rolls
+ *   back and the error message (including the failing item index) is
+ *   surfaced in a destructive toast.
  */
 export function AddChildDialog({
   open,
@@ -95,24 +94,25 @@ export function AddChildDialog({
 
     setSubmitting(true);
     try {
-      await Promise.all(
-        picks.map((s) =>
-          mutateApi("/api/attendance/roll-call", {
-            method: "POST",
-            body: {
-              serviceId,
-              childId: s.childId,
-              date: s.date,
-              sessionType: s.sessionType,
-              action: "undo", // creates status: "booked" record via upsert
-            },
-          }),
-        ),
+      const items = picks.map((s) => ({
+        childId: s.childId,
+        date: s.date,
+        sessionType: s.sessionType,
+        action: "undo" as const, // creates status: "booked" record via upsert
+      }));
+
+      const result = await mutateApi<{ created: number; failed: number }>(
+        "/api/attendance/roll-call/bulk",
+        {
+          method: "POST",
+          body: { serviceId, items },
+        },
       );
+
       qc.invalidateQueries({ queryKey: ["weekly-roll-call", serviceId, weekStart] });
       qc.invalidateQueries({ queryKey: ["enrollable-children", serviceId, weekStart] });
       toast({
-        description: `Added ${picks.length} booking${picks.length === 1 ? "" : "s"}.`,
+        description: `Added ${result.created} booking${result.created === 1 ? "" : "s"}.`,
       });
       setSelections({});
       onClose();
@@ -121,9 +121,9 @@ export function AddChildDialog({
         variant: "destructive",
         description: err instanceof Error ? err.message : "Failed to add bookings",
       });
-      // Best-effort: refresh so whichever rows succeeded appear in the grid.
-      qc.invalidateQueries({ queryKey: ["weekly-roll-call", serviceId, weekStart] });
-      qc.invalidateQueries({ queryKey: ["enrollable-children", serviceId, weekStart] });
+      // Bulk endpoint is transactional — on failure the batch rolled back,
+      // so there's nothing fresh to refresh. Keep the dialog open so the
+      // user can adjust their selections.
     } finally {
       setSubmitting(false);
     }
