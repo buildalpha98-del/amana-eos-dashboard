@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   LogIn,
   LogOut,
@@ -20,6 +21,9 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MedicalAlertBadge } from "@/components/children/MedicalAlertBadge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
+import { cn } from "@/lib/utils";
+
+type RollCallView = "daily" | "weekly" | "monthly";
 
 // ── Types & Constants ────────────────────────────────────
 
@@ -69,6 +73,20 @@ function ChildAvatar({ child }: { child: RollCallEntry["child"] }) {
 // ── Main Component ───────────────────────────────────────
 
 export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const rawView = searchParams?.get("rollCallView") ?? "daily";
+  const view: RollCallView =
+    rawView === "weekly" ? "weekly" :
+    rawView === "monthly" ? "monthly" :
+    "daily";
+
+  const setView = (next: RollCallView) => {
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.set("rollCallView", next);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
+
   const [date, setDate] = useState(todayDateString);
   const [sessionType, setSessionType] = useState("asc");
   const [search, setSearch] = useState("");
@@ -107,81 +125,113 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* ── Date & Session Picker ──────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="px-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
-        />
-
-        <div className="flex rounded-lg border border-border overflow-hidden">
-          {(["bsc", "asc", "vc"] as const).map((st) => (
-            <button
-              key={st}
-              onClick={() => setSessionType(st)}
-              className={`px-5 py-2.5 text-sm font-medium transition-colors min-h-[44px] ${
-                sessionType === st
-                  ? "bg-brand text-white"
-                  : "bg-card text-muted hover:bg-surface"
-              }`}
-            >
-              {SESSION_LABELS[st]}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative flex-1 w-full sm:w-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-          <input
-            type="text"
-            placeholder="Search by name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
-          />
-        </div>
+      {/* ── View Toggle (Daily / Weekly / Monthly) ─────── */}
+      <div className="flex gap-2">
+        {(["daily", "weekly", "monthly"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={view === v}
+            onClick={() => setView(v)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]",
+              view === v
+                ? "bg-brand text-white"
+                : "bg-card text-muted border border-border hover:bg-surface",
+            )}
+          >
+            {v.charAt(0).toUpperCase() + v.slice(1)}
+          </button>
+        ))}
       </div>
 
-      {/* ── Summary Cards ──────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryCard icon={Users} label="Total Enrolled" value={summary.total} color="text-foreground" bgColor="bg-surface" />
-        <SummaryCard icon={UserCheck} label="Present" value={summary.present} color="text-green-600" bgColor="bg-green-50" />
-        <SummaryCard icon={UserX} label="Absent" value={summary.absent} color="text-red-600" bgColor="bg-red-50" />
-        <SummaryCard icon={Clock} label="Not Yet Marked" value={summary.notMarked} color="text-amber-600" bgColor="bg-amber-50" />
-      </div>
-
-      {/* ── Roll Call List ─────────────────────────────── */}
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full rounded-xl" />
-          ))}
-        </div>
-      ) : error ? (
-        <ErrorState error={error} />
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title={entries.length === 0 ? "No children booked for this session" : "No matching children"}
-          description={
-            entries.length === 0
-              ? "There are no confirmed bookings for this date and session type."
-              : "Try a different search term."
-          }
-        />
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((entry) => (
-            <RollCallRow
-              key={entry.childId}
-              entry={entry}
-              onAction={handleAction}
-              isPending={updateRollCall.isPending}
+      {view === "daily" && (
+        <>
+          {/* ── Date & Session Picker ──────────────────────── */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="px-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
             />
-          ))}
-        </div>
+
+            <div className="flex rounded-lg border border-border overflow-hidden">
+              {(["bsc", "asc", "vc"] as const).map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setSessionType(st)}
+                  className={`px-5 py-2.5 text-sm font-medium transition-colors min-h-[44px] ${
+                    sessionType === st
+                      ? "bg-brand text-white"
+                      : "bg-card text-muted hover:bg-surface"
+                  }`}
+                >
+                  {SESSION_LABELS[st]}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative flex-1 w-full sm:w-auto">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input
+                type="text"
+                placeholder="Search by name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
+              />
+            </div>
+          </div>
+
+          {/* ── Summary Cards ──────────────────────────────── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <SummaryCard icon={Users} label="Total Enrolled" value={summary.total} color="text-foreground" bgColor="bg-surface" />
+            <SummaryCard icon={UserCheck} label="Present" value={summary.present} color="text-green-600" bgColor="bg-green-50" />
+            <SummaryCard icon={UserX} label="Absent" value={summary.absent} color="text-red-600" bgColor="bg-red-50" />
+            <SummaryCard icon={Clock} label="Not Yet Marked" value={summary.notMarked} color="text-amber-600" bgColor="bg-amber-50" />
+          </div>
+
+          {/* ── Roll Call List ─────────────────────────────── */}
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : error ? (
+            <ErrorState error={error} />
+          ) : filtered.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title={entries.length === 0 ? "No children booked for this session" : "No matching children"}
+              description={
+                entries.length === 0
+                  ? "There are no confirmed bookings for this date and session type."
+                  : "Try a different search term."
+              }
+            />
+          ) : (
+            <div className="space-y-2">
+              {filtered.map((entry) => (
+                <RollCallRow
+                  key={entry.childId}
+                  entry={entry}
+                  onAction={handleAction}
+                  isPending={updateRollCall.isPending}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {view === "weekly" && (
+        <div className="text-sm text-muted">Weekly view — ships in next commit</div>
+      )}
+
+      {view === "monthly" && (
+        <div className="text-sm text-muted">Monthly view — ships in next commit</div>
       )}
     </div>
   );
