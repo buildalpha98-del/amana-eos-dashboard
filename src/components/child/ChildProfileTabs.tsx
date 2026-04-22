@@ -6,6 +6,8 @@ import { User, CalendarDays, Users, Heart, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DetailsTab } from "./tabs/DetailsTab";
 import { RoomDaysTab } from "./tabs/RoomDaysTab";
+import { RelationshipsTab } from "./tabs/RelationshipsTab";
+import { MedicalTab } from "./tabs/MedicalTab";
 import type { ChildProfileRecord } from "./types";
 
 export type ChildProfileTabKey =
@@ -98,15 +100,9 @@ export function ChildProfileTabs({
         {active === "details" && <DetailsTab child={child} canEdit={canEdit} />}
         {active === "room" && <RoomDaysTab child={child} canEdit={canEdit} />}
         {active === "relationships" && (
-          <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted">
-            Relationships tab ships in Commit 9.
-          </div>
+          <RelationshipsTab child={child} canEdit={canEdit} />
         )}
-        {active === "medical" && (
-          <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted">
-            Medical tab ships in Commit 9.
-          </div>
-        )}
+        {active === "medical" && <MedicalTab child={child} canEdit={canEdit} />}
         {active === "attendances" && (
           <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted">
             Attendances tab ships in Commit 10.
