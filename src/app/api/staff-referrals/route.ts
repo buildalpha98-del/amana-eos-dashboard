@@ -27,7 +27,7 @@ export const GET = withApiAuth(
 
     return NextResponse.json(referrals);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: ["owner", "head_office", "admin", "coordinator"] },
 );
 
 const createSchema = z.object({
@@ -54,5 +54,5 @@ export const POST = withApiAuth(
     });
     return NextResponse.json(referral, { status: 201 });
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { feature: "recruitment.candidates.manage" },
 );

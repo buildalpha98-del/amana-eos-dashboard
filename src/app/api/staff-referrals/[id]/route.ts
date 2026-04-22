@@ -66,5 +66,5 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(updated);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { feature: "recruitment.candidates.manage" },
 );

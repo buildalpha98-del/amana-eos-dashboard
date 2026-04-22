@@ -439,6 +439,11 @@ export const features = [
   "contracts.edit",
   "contracts.acknowledge",
 
+  // HR — Recruitment
+  "recruitment.view",
+  "recruitment.edit",
+  "recruitment.candidates.manage",
+
   // Policies
   "policies.view",
   "policies.create",
@@ -565,6 +570,7 @@ const coordinatorFeatures: readonly Feature[] = [
   "attendance.view",
   "attendance.create",
   "attendance.edit",
+  "recruitment.view", // coordinators can see vacancies in their service
 ];
 
 const staffFeatures: readonly Feature[] = [

@@ -82,7 +82,7 @@ export const POST = withApiAuth(
     });
   },
   {
-    roles: ["owner", "head_office", "admin"],
+    feature: "recruitment.candidates.manage",
     rateLimit: { max: 5, windowMs: 60_000 },
   },
 );

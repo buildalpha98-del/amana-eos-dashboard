@@ -129,4 +129,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(contract, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { feature: "contracts.create" });

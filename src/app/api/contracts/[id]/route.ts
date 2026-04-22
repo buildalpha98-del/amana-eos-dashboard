@@ -136,4 +136,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(contract);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { feature: "contracts.edit" });
