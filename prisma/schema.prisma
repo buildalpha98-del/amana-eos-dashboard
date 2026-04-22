@@ -3795,6 +3795,7 @@ model StaffReferral {
   status         String                @default("pending") // pending, hired, bonus_paid, expired
   bonusAmount    Float                 @default(200)
   bonusPaidAt    DateTime?
+  lastReminderAt DateTime?
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 

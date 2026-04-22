@@ -155,3 +155,73 @@ export function useAiScreenCandidate() {
     },
   });
 }
+
+export interface Referral {
+  id: string;
+  referrerUserId: string;
+  referrerUser: {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string | null;
+  };
+  referredName: string;
+  referredEmail: string | null;
+  candidateId: string | null;
+  candidate: {
+    id: string;
+    name: string;
+    email: string | null;
+    stage: string;
+  } | null;
+  status: "pending" | "hired" | "bonus_paid" | "expired";
+  bonusAmount: number;
+  bonusPaidAt: string | null;
+  lastReminderAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useReferrals(status?: string) {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const query = params.toString();
+  return useQuery({
+    queryKey: ["referrals", status],
+    queryFn: () =>
+      fetchApi<Referral[]>(
+        `/api/staff-referrals${query ? `?${query}` : ""}`,
+      ),
+    retry: 2,
+    staleTime: 30_000,
+  });
+}
+
+export function useMarkReferralPaid() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      bonusPaidAt,
+      bonusAmount,
+    }: {
+      id: string;
+      bonusPaidAt?: string;
+      bonusAmount?: number;
+    }) =>
+      mutateApi<Referral>(`/api/staff-referrals/${id}`, {
+        method: "PATCH",
+        body: { status: "bonus_paid", bonusPaidAt, bonusAmount },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["referrals"] });
+      toast({ description: "Bonus marked as paid" });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Failed to mark bonus paid",
+      });
+    },
+  });
+}
