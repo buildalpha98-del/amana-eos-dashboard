@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
+import { mutateApi } from "@/lib/fetch-api";
 
 const CATEGORIES = [
   { value: "bug", label: "Bug Report" },
@@ -21,22 +22,8 @@ export function FeedbackWidget() {
   const pathname = usePathname();
 
   const mutation = useMutation({
-    mutationFn: async (data: {
-      category: string;
-      message: string;
-      page: string;
-    }) => {
-      const res = await fetch("/api/internal-feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to submit feedback");
-      }
-      return res.json();
-    },
+    mutationFn: (data: { category: string; message: string; page: string }) =>
+      mutateApi("/api/internal-feedback", { method: "POST", body: data }),
     onSuccess: () => {
       toast({ description: "Feedback submitted — thank you!" });
       setMessage("");
