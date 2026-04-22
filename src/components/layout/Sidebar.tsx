@@ -14,8 +14,7 @@ import {
   Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { canAccessPage } from "@/lib/permissions";
-import { navItems } from "@/lib/nav-config";
+import { navItems, filterNavItems } from "@/lib/nav-config";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { useBookingRequestCount } from "@/hooks/useBookingRequests";
 import { useUnreadMessageCount } from "@/hooks/useMessaging";
@@ -40,8 +39,9 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
   // Group filtered nav items by section, preserving order
   const groupedItems = useMemo(() => {
-    const filtered = navItems.filter((item) =>
-      canAccessPage(session?.user?.role as Role | undefined, item.href)
+    const filtered = filterNavItems(
+      navItems,
+      session?.user?.role as Role | undefined
     );
     const sections: { key: string; items: typeof navItems }[] = [];
     for (const item of filtered) {
@@ -58,11 +58,10 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // Build favourited items list from the filtered nav items
   const favouriteItems = useMemo(() => {
     if (favourites.size === 0) return [];
-    const filtered = navItems.filter(
-      (item) =>
-        favourites.has(item.href) &&
-        canAccessPage(session?.user?.role as Role | undefined, item.href)
-    );
+    const filtered = filterNavItems(
+      navItems,
+      session?.user?.role as Role | undefined
+    ).filter((item) => favourites.has(item.href));
     return filtered;
   }, [favourites, session?.user?.role]);
 
