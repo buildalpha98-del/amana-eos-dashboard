@@ -43,7 +43,12 @@ export function parseScreenResponse(raw: string): AiScreenResult {
     .replace(/^```(?:json)?\n?/i, "")
     .replace(/\n?```$/, "")
     .trim();
-  const parsed = JSON.parse(cleaned) as { score: unknown; summary: unknown };
+  let parsed: { score: unknown; summary: unknown };
+  try {
+    parsed = JSON.parse(cleaned) as { score: unknown; summary: unknown };
+  } catch {
+    throw new Error("AI returned malformed response");
+  }
   const score = Number(parsed.score);
   const summary = typeof parsed.summary === "string" ? parsed.summary : "";
   if (!Number.isFinite(score) || score < 0 || score > 100) {

@@ -21,12 +21,16 @@ export const POST = withApiAuth(
             role: true,
             employmentType: true,
             qualificationRequired: true,
+            deleted: true,
           },
         },
       },
     });
     if (!candidate) {
       throw ApiError.notFound("Candidate not found");
+    }
+    if (candidate.vacancy.deleted) {
+      throw ApiError.notFound("Candidate's vacancy has been deleted");
     }
     if (!candidate.resumeText || candidate.resumeText.trim().length === 0) {
       throw ApiError.badRequest("Candidate has no resume text to screen");

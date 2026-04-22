@@ -79,6 +79,29 @@ describe("POST /api/recruitment/candidates/[id]/ai-screen", () => {
     expect(res.status).toBe(404);
   });
 
+  it("404 when candidate's vacancy is soft-deleted", async () => {
+    mockSession({ id: "u-1", name: "Test", role: "admin" });
+    prismaMock.recruitmentCandidate.findUnique.mockResolvedValue({
+      id: "c-1",
+      name: "X",
+      email: null,
+      phone: null,
+      resumeText: "ok",
+      vacancy: {
+        role: "educator",
+        employmentType: "permanent",
+        qualificationRequired: null,
+        deleted: true,
+      },
+    });
+    const req = createRequest(
+      "POST",
+      "/api/recruitment/candidates/c-1/ai-screen",
+    );
+    const res = await POST(req, { params: Promise.resolve({ id: "c-1" }) });
+    expect(res.status).toBe(404);
+  });
+
   it("400 when candidate has no resumeText", async () => {
     mockSession({ id: "u-1", name: "Test", role: "admin" });
     prismaMock.recruitmentCandidate.findUnique.mockResolvedValue({
@@ -91,6 +114,7 @@ describe("POST /api/recruitment/candidates/[id]/ai-screen", () => {
         role: "educator",
         employmentType: "permanent",
         qualificationRequired: null,
+        deleted: false,
       },
     });
     const req = createRequest(
@@ -113,6 +137,7 @@ describe("POST /api/recruitment/candidates/[id]/ai-screen", () => {
         role: "educator",
         employmentType: "part_time",
         qualificationRequired: "cert_iii",
+        deleted: false,
       },
     });
     prismaMock.recruitmentCandidate.update.mockResolvedValue({
@@ -152,6 +177,7 @@ describe("POST /api/recruitment/candidates/[id]/ai-screen", () => {
         role: "educator",
         employmentType: "permanent",
         qualificationRequired: null,
+        deleted: false,
       },
     });
     prismaMock.recruitmentCandidate.update.mockResolvedValue({

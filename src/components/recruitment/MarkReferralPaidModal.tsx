@@ -13,7 +13,6 @@ export function MarkReferralPaidModal({ referral, onClose }: Props) {
     new Date().toISOString().slice(0, 10),
   );
   const [amount, setAmount] = useState(referral.bonusAmount);
-  const [invoiceLink, setInvoiceLink] = useState("");
   const mutation = useMarkReferralPaid();
 
   async function handleSubmit() {
@@ -75,22 +74,6 @@ export function MarkReferralPaidModal({ referral, onClose }: Props) {
               min="0"
               value={amount}
               onChange={(e) => setAmount(Number(e.target.value))}
-              className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-card"
-            />
-          </div>
-          <div>
-            <label
-              className="block text-sm font-medium mb-1"
-              htmlFor="invoice-link"
-            >
-              Xero invoice link (optional)
-            </label>
-            <input
-              id="invoice-link"
-              type="url"
-              placeholder="https://go.xero.com/..."
-              value={invoiceLink}
-              onChange={(e) => setInvoiceLink(e.target.value)}
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-card"
             />
           </div>

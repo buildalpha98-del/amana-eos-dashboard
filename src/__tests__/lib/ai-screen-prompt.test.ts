@@ -85,4 +85,16 @@ describe("parseScreenResponse", () => {
       parseScreenResponse('{"score": 50, "summary": ""}'),
     ).toThrow(/empty summary/);
   });
+
+  it("throws friendly error when AI returns malformed JSON", () => {
+    expect(() => parseScreenResponse("not json at all")).toThrow(
+      /malformed response/,
+    );
+  });
+
+  it("throws friendly error when fenced content is malformed", () => {
+    expect(() =>
+      parseScreenResponse('```json\n{ bad: "shape" }\n```'),
+    ).toThrow(/malformed response/);
+  });
 });

@@ -33,7 +33,7 @@ export async function generateText(
     );
   }
   const res = await ai.messages.create({
-    model: opts.model ?? "claude-sonnet-4-20250514",
+    model: opts.model ?? "claude-haiku-4-5-20251001",
     max_tokens: opts.maxTokens ?? 1000,
     system: opts.system,
     temperature: opts.temperature,
