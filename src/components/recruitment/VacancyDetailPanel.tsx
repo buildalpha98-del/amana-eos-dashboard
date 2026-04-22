@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, Plus, UserPlus, ChevronRight, Sparkles } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
 import { AiScreenBadge } from "@/components/recruitment/AiScreenBadge";
+import { CandidateDetailPanel } from "@/components/recruitment/CandidateDetailPanel";
 import { useAiScreenCandidate } from "@/hooks/useRecruitment";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -56,6 +57,9 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [screenResults, setScreenResults] = useState<string | null>(null);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(
+    null,
+  );
 
   const { data: vacancy, isLoading } = useQuery({
     queryKey: ["recruitment-vacancy", vacancyId],
@@ -372,17 +376,22 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
               }) => (
                 <div key={c.id} className="bg-surface/50 rounded-lg px-4 py-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium text-foreground">{c.name}</p>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCandidateId(c.id)}
+                      className="min-w-0 flex-1 text-left hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                      aria-label={`Open ${c.name} details`}
+                    >
+                      <span className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-foreground">{c.name}</span>
                         {c.aiScreenScore !== null && (
                           <AiScreenBadge score={c.aiScreenScore} summary={c.aiScreenSummary} />
                         )}
-                      </div>
-                      <p className="text-xs text-muted">
+                      </span>
+                      <span className="block text-xs text-muted">
                         {c.source} &middot; Applied {new Date(c.appliedAt).toLocaleDateString("en-AU")}
-                      </p>
-                    </div>
+                      </span>
+                    </button>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
@@ -411,6 +420,14 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
           </div>
         </div>
       </div>
+
+      {selectedCandidateId && (
+        <CandidateDetailPanel
+          candidateId={selectedCandidateId}
+          vacancyId={vacancyId}
+          onClose={() => setSelectedCandidateId(null)}
+        />
+      )}
     </div>
   );
 }
