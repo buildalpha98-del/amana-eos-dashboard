@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, type ChangeEvent } from "react";
+import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   CONTRACT_TYPES,
@@ -54,9 +56,11 @@ interface Props {
  * Does NOT render modal chrome — the parent modal owns header / submit /
  * cancel buttons.
  *
- * PDF upload UI is intentionally omitted — that comes in Commit 2 of the
- * Contracts + Recruitment Rebuild. The `documentUrl` / `documentId` fields
- * are kept in the shape so the value can be preserved when editing.
+ * Includes an optional signed-contract PDF upload. Upload goes via
+ * `POST /api/upload` (multipart/form-data, 10MB cap, magic-byte validated);
+ * the returned `fileUrl` is stored in `EmploymentContract.documentUrl`.
+ * `documentId` is left `null` — we don't create a full `Document` record
+ * for contract PDFs.
  */
 export function ContractFormFields({
   users,
@@ -68,6 +72,48 @@ export function ContractFormFields({
     key: K,
     next: ContractFormValue[K]
   ) => onChange({ ...value, [key]: next });
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      setUploadError("PDF only");
+      // Reset the input so the same bad file can be re-selected after fix.
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("PDF too large (max 10MB)");
+      e.target.value = "";
+      return;
+    }
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      // Raw fetch (not fetchApi) — FormData uploads are a documented
+      // exception since fetchApi sets JSON content-type.
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(body.error ?? "Upload failed");
+      }
+      const { fileUrl } = (await res.json()) as { fileUrl: string };
+      onChange({ ...value, documentUrl: fileUrl, documentId: null });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -222,6 +268,54 @@ export function ContractFormFields({
           placeholder="Additional contract details..."
           className={cn(inputCls, "resize-none")}
         />
+      </div>
+
+      {/* Signed contract PDF upload */}
+      <div>
+        <label
+          htmlFor="contract-pdf-upload"
+          className="block text-sm font-medium text-foreground/80 mb-1"
+        >
+          Signed contract PDF{" "}
+          <span className="text-muted text-xs font-normal">(optional)</span>
+        </label>
+        {value.documentUrl && (
+          <div className="mb-2 flex items-center gap-3 text-sm">
+            <a
+              href={value.documentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand hover:underline inline-flex items-center gap-1"
+            >
+              <FileText className="w-4 h-4" />
+              View current PDF
+            </a>
+            <button
+              type="button"
+              onClick={() =>
+                onChange({ ...value, documentUrl: null, documentId: null })
+              }
+              className="text-xs text-muted hover:text-foreground"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+        <input
+          id="contract-pdf-upload"
+          type="file"
+          accept="application/pdf"
+          onChange={handleFileChange}
+          disabled={uploading}
+          className="block w-full text-sm text-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-surface file:text-foreground hover:file:bg-muted/20 disabled:opacity-50"
+        />
+        {uploading && (
+          <p className="text-xs text-muted mt-1">Uploading&hellip;</p>
+        )}
+        {uploadError && (
+          <p className="text-xs text-red-600 mt-1">{uploadError}</p>
+        )}
+        <p className="text-xs text-muted mt-1">Accepts .pdf up to 10MB</p>
       </div>
     </div>
   );

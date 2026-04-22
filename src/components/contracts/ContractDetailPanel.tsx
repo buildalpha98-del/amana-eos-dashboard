@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import {
   ArrowRightLeft,
   Ban,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContractData } from "@/hooks/useContracts";
@@ -151,6 +152,24 @@ export function ContractDetailPanel({
           <p className="text-sm text-muted bg-card rounded-lg border border-border p-3">
             {contract.notes}
           </p>
+        </div>
+      )}
+
+      {/* Signed Contract Document */}
+      {contract.documentUrl && (
+        <div>
+          <p className="text-xs font-medium text-muted uppercase tracking-wider mb-1">
+            Document
+          </p>
+          <a
+            href={contract.documentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm text-brand hover:underline"
+          >
+            <FileText className="w-4 h-4" />
+            View signed contract
+          </a>
         </div>
       )}
 
