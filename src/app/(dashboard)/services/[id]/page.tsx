@@ -34,6 +34,7 @@ import {
   Target,
   ChevronDown,
   Users,
+  Sunrise,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
@@ -53,7 +54,7 @@ import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab
 import { ServiceRollCallTab } from "@/components/services/ServiceRollCallTab";
 import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
 import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
-import { ServiceTodayPanel } from "@/components/services/ServiceTodayPanel";
+import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
 import { ServiceCasualBookingsTab } from "@/components/services/ServiceCasualBookingsTab";
 import { isAdminRole } from "@/lib/role-permissions";
 
@@ -91,6 +92,12 @@ const CASUAL_BOOKINGS_SUBTAB: SubTab = {
 };
 
 const tabGroups: TabGroup[] = [
+  {
+    key: "today",
+    label: "Today",
+    icon: Sunrise,
+    subTabs: [],
+  },
   {
     key: "overview",
     label: "Overview",
@@ -175,7 +182,7 @@ export default function ServiceDetailPage() {
   const urlTab = searchParams.get("tab");
   const urlSub = searchParams.get("sub");
 
-  const [activeGroup, setActiveGroup] = useState(urlTab || "overview");
+  const [activeGroup, setActiveGroup] = useState(urlTab || "today");
   const [activeSubTab, setActiveSubTab] = useState<Record<string, string>>(() => {
     const defaults: Record<string, string> = {
       daily: "attendance",
@@ -195,7 +202,7 @@ export default function ServiceDetailPage() {
     const group = tabGroups.find((g) => g.key === activeGroup);
     const hasSubTabs = group && group.subTabs.length > 0;
     const params = new URLSearchParams();
-    if (activeGroup !== "overview") {
+    if (activeGroup !== "today") {
       params.set("tab", activeGroup);
       if (hasSubTabs && currentSub) params.set("sub", currentSub);
     }
@@ -322,9 +329,6 @@ export default function ServiceDetailPage() {
         </span>
       </div>
 
-      {/* Today Panel */}
-      <ServiceTodayPanel serviceId={id} />
-
       {/* ── Mobile Tab Dropdown (< sm) ───────────────────────── */}
       <div className="sm:hidden relative">
         <button
@@ -438,6 +442,11 @@ export default function ServiceDetailPage() {
 
       {/* ── Tab Content ──────────────────────────────────────── */}
       <div className="min-h-[40vh]">
+        {/* Today group (no subtabs) — live ops snapshot */}
+        {activeGroup === "today" && (
+          <ServiceTodayTab serviceId={service.id} serviceName={service.name} />
+        )}
+
         {/* Overview group (no subtabs) */}
         {activeGroup === "overview" && (
           <ServiceOverviewTab service={service} users={users || []} />
