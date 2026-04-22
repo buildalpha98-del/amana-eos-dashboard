@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // ─── Mocks ───────────────────────────────────────────────────────
@@ -28,6 +28,11 @@ vi.mock("@/hooks/useRollCall", () => ({
 vi.mock("@/hooks/useWeeklyRollCall", () => ({
   useWeeklyRollCall: () => ({ data: undefined, isLoading: false, error: null }),
   useEnrollableChildren: () => ({ data: undefined, isLoading: false, error: null }),
+}));
+
+// Stub the monthly-view hook so we don't hit the network.
+vi.mock("@/hooks/useMonthlyRollCall", () => ({
+  useMonthlyRollCall: () => ({ data: undefined, isLoading: false, error: null }),
 }));
 
 // Session stub — required by the weekly grid's useSession().
@@ -110,14 +115,15 @@ describe("ServiceRollCallTab — view toggle", () => {
     expect(screen.queryByText(/Total Enrolled/i)).toBeNull();
   });
 
-  it("renders monthly placeholder when ?rollCallView=monthly", () => {
+  it("renders monthly calendar when ?rollCallView=monthly", () => {
     searchParamsRef.value = new URLSearchParams("rollCallView=monthly");
     const qc = makeClient();
     render(<ServiceRollCallTab serviceId="svc-1" />, {
       wrapper: makeWrapper(qc),
     });
 
-    expect(screen.getByText(/Monthly view — ships/i)).toBeDefined();
+    // Monthly view renders its own range label.
+    expect(screen.getByTestId("monthly-range-label")).toBeDefined();
     expect(screen.queryByText(/Total Enrolled/i)).toBeNull();
   });
 
@@ -164,5 +170,64 @@ describe("ServiceRollCallTab — view toggle", () => {
     expect(screen.getByText(/Total Enrolled/i)).toBeDefined();
     expect(screen.queryByText(/Weekly view — ships/i)).toBeNull();
     expect(screen.queryByText(/Monthly view — ships/i)).toBeNull();
+  });
+
+  it("daily view reads ?date=YYYY-MM-DD from URL on mount", () => {
+    searchParamsRef.value = new URLSearchParams(
+      "rollCallView=daily&date=2026-04-15",
+    );
+    const qc = makeClient();
+    render(<ServiceRollCallTab serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    const dateInput = screen.getByDisplayValue("2026-04-15");
+    expect(dateInput).toBeDefined();
+    expect((dateInput as HTMLInputElement).value).toBe("2026-04-15");
+  });
+
+  it("daily view ignores malformed ?date and falls back to today", () => {
+    searchParamsRef.value = new URLSearchParams(
+      "rollCallView=daily&date=not-a-date",
+    );
+    const qc = makeClient();
+    render(<ServiceRollCallTab serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    // Should NOT have a 2026-04-15 value — should render a today fallback.
+    expect(screen.queryByDisplayValue("not-a-date")).toBeNull();
+    // Today's date string in YYYY-MM-DD (ISO) should appear in the date input.
+    const today = new Date().toISOString().split("T")[0];
+    expect(screen.getByDisplayValue(today)).toBeDefined();
+  });
+
+  it("daily view syncs URL when the user changes the date picker", async () => {
+    searchParamsRef.value = new URLSearchParams("tab=roll-call&sub=today");
+    const qc = makeClient();
+    render(<ServiceRollCallTab serviceId="svc-1" />, {
+      wrapper: makeWrapper(qc),
+    });
+
+    // routerReplace may have been called already for the initial mount (no —
+    // the didMountRef.current=true skip handles that). So clear and test
+    // the user-driven change.
+    routerReplace.mockClear();
+
+    // Find the date input and change it. Use a date guaranteed to differ
+    // from "today" in any timezone — 2025-01-01 is safe.
+    const today = new Date().toISOString().split("T")[0];
+    const dateInput = screen.getByDisplayValue(today) as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: "2025-01-01" } });
+
+    // useEffect fires after render; wait for the sync to happen.
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalled();
+    });
+    const [url] = routerReplace.mock.calls[0];
+    expect(url).toContain("date=2025-01-01");
+    // Preserves other URL params.
+    expect(url).toContain("tab=roll-call");
+    expect(url).toContain("sub=today");
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   LogIn,
@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { MedicalAlertBadge } from "@/components/children/MedicalAlertBadge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { ServiceWeeklyRollCallGrid } from "./ServiceWeeklyRollCallGrid";
+import { ServiceMonthlyRollCallView } from "./ServiceMonthlyRollCallView";
 import { cn } from "@/lib/utils";
 
 type RollCallView = "daily" | "weekly" | "monthly";
@@ -88,9 +89,36 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
-  const [date, setDate] = useState(todayDateString);
+  // Read the `date` URL param on mount — this enables bookmarking and the
+  // monthly → daily drill-down flow. Validate YYYY-MM-DD shape to prevent
+  // garbage from reaching the date picker.
+  const urlDate = searchParams?.get("date") ?? null;
+  const initialDate =
+    urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate) ? urlDate : todayDateString();
+  const [date, setDateState] = useState(initialDate);
   const [sessionType, setSessionType] = useState("asc");
   const [search, setSearch] = useState("");
+
+  // Keep URL in sync when the user changes the date picker. Using a ref to
+  // avoid re-syncing on first render (the URL already has the initial date, or
+  // we don't need a date in the URL on first daily-view mount).
+  const didMountRef = useRef(false);
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.set("date", date);
+    router.replace(`?${params.toString()}`, { scroll: false });
+    // Intentionally omit searchParams/router from deps — we only want to
+    // react to user-driven date changes, not downstream URL tick updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date]);
+
+  function setDate(next: string) {
+    setDateState(next);
+  }
 
   const { data, isLoading, error } = useRollCall(serviceId, date, sessionType);
   const updateRollCall = useUpdateRollCall();
@@ -229,9 +257,7 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
 
       {view === "weekly" && <ServiceWeeklyRollCallGrid serviceId={serviceId} />}
 
-      {view === "monthly" && (
-        <div className="text-sm text-muted">Monthly view — ships in next commit</div>
-      )}
+      {view === "monthly" && <ServiceMonthlyRollCallView serviceId={serviceId} />}
     </div>
   );
 }
