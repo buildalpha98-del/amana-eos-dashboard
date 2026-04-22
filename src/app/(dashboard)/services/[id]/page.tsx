@@ -18,6 +18,7 @@ import {
   CheckSquare,
   AlertCircle,
   CalendarDays,
+  CalendarClock,
   DollarSign,
   FolderKanban,
   Loader2,
@@ -33,6 +34,7 @@ import {
   Target,
   ChevronDown,
   Users,
+  Sunrise,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
@@ -52,7 +54,9 @@ import { ServiceChecklistsTab } from "@/components/services/ServiceChecklistsTab
 import { ServiceRollCallTab } from "@/components/services/ServiceRollCallTab";
 import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
 import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
-import { ServiceTodayPanel } from "@/components/services/ServiceTodayPanel";
+import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
+import { ServiceCasualBookingsTab } from "@/components/services/ServiceCasualBookingsTab";
+import { isAdminRole } from "@/lib/role-permissions";
 
 /* ------------------------------------------------------------------ */
 /* Grouped tab definitions — 16 tabs consolidated into 6 groups       */
@@ -71,7 +75,29 @@ interface TabGroup {
   subTabs: SubTab[];
 }
 
+// Base Daily Ops sub-tabs always visible. `casual-bookings` is appended
+// at render-time for admin/coord only (see `visibleGroups` below).
+const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
+  { key: "attendance", label: "Attendance", icon: ClipboardList },
+  { key: "roll-call", label: "Roll Call", icon: ClipboardCheck },
+  { key: "children", label: "Children", icon: Users },
+  { key: "roster", label: "Weekly Roster", icon: CalendarDays },
+  { key: "checklists", label: "Checklists", icon: ClipboardCheck },
+];
+
+const CASUAL_BOOKINGS_SUBTAB: SubTab = {
+  key: "casual-bookings",
+  label: "Casual Bookings",
+  icon: CalendarClock,
+};
+
 const tabGroups: TabGroup[] = [
+  {
+    key: "today",
+    label: "Today",
+    icon: Sunrise,
+    subTabs: [],
+  },
   {
     key: "overview",
     label: "Overview",
@@ -82,13 +108,7 @@ const tabGroups: TabGroup[] = [
     key: "daily",
     label: "Daily Ops",
     icon: Activity,
-    subTabs: [
-      { key: "attendance", label: "Attendance", icon: ClipboardList },
-      { key: "roll-call", label: "Roll Call", icon: ClipboardCheck },
-      { key: "children", label: "Children", icon: Users },
-      { key: "roster", label: "Weekly Roster", icon: CalendarDays },
-      { key: "checklists", label: "Checklists", icon: ClipboardCheck },
-    ],
+    subTabs: DAILY_OPS_BASE_SUBTABS,
   },
   {
     key: "program",
@@ -162,7 +182,7 @@ export default function ServiceDetailPage() {
   const urlTab = searchParams.get("tab");
   const urlSub = searchParams.get("sub");
 
-  const [activeGroup, setActiveGroup] = useState(urlTab || "overview");
+  const [activeGroup, setActiveGroup] = useState(urlTab || "today");
   const [activeSubTab, setActiveSubTab] = useState<Record<string, string>>(() => {
     const defaults: Record<string, string> = {
       daily: "attendance",
@@ -182,7 +202,7 @@ export default function ServiceDetailPage() {
     const group = tabGroups.find((g) => g.key === activeGroup);
     const hasSubTabs = group && group.subTabs.length > 0;
     const params = new URLSearchParams();
-    if (activeGroup !== "overview") {
+    if (activeGroup !== "today") {
       params.set("tab", activeGroup);
       if (hasSubTabs && currentSub) params.set("sub", currentSub);
     }
@@ -194,11 +214,25 @@ export default function ServiceDetailPage() {
   const todoBadge = service?.todos?.filter((t) => t.status !== "done").length || 0;
   const issueBadge = service?.issues?.filter((i) => i.status === "open").length || 0;
 
-  // Filter admin-only groups
-  const visibleGroups = useMemo(
-    () => tabGroups.filter((g) => !g.adminOnly || hasMinRole(role, "admin")),
-    [role]
-  );
+  // Filter admin-only groups and inject role-gated sub-tabs
+  const sessionServiceId =
+    (session?.user as { serviceId?: string | null } | undefined)?.serviceId ??
+    null;
+  const canSeeCasualBookings =
+    isAdminRole(role) ||
+    (role === "coordinator" && sessionServiceId === id);
+
+  const visibleGroups = useMemo(() => {
+    return tabGroups
+      .filter((g) => !g.adminOnly || hasMinRole(role, "admin"))
+      .map((g) => {
+        // Append Casual Bookings sub-tab for admin/coord on this service only
+        if (g.key === "daily" && canSeeCasualBookings) {
+          return { ...g, subTabs: [...g.subTabs, CASUAL_BOOKINGS_SUBTAB] };
+        }
+        return g;
+      });
+  }, [role, canSeeCasualBookings]);
 
   const currentGroup = visibleGroups.find((g) => g.key === activeGroup) || visibleGroups[0];
   const currentSubKey = activeSubTab[activeGroup] || currentGroup?.subTabs[0]?.key;
@@ -294,9 +328,6 @@ export default function ServiceDetailPage() {
           {service.status}
         </span>
       </div>
-
-      {/* Today Panel */}
-      <ServiceTodayPanel serviceId={id} />
 
       {/* ── Mobile Tab Dropdown (< sm) ───────────────────────── */}
       <div className="sm:hidden relative">
@@ -411,6 +442,11 @@ export default function ServiceDetailPage() {
 
       {/* ── Tab Content ──────────────────────────────────────── */}
       <div className="min-h-[40vh]">
+        {/* Today group (no subtabs) — live ops snapshot */}
+        {activeGroup === "today" && (
+          <ServiceTodayTab serviceId={service.id} serviceName={service.name} />
+        )}
+
         {/* Overview group (no subtabs) */}
         {activeGroup === "overview" && (
           <ServiceOverviewTab service={service} users={users || []} />
@@ -435,6 +471,11 @@ export default function ServiceDetailPage() {
         {activeGroup === "daily" && currentSubKey === "checklists" && (
           <ServiceChecklistsTab serviceId={service.id} serviceName={service.name} />
         )}
+        {activeGroup === "daily" &&
+          currentSubKey === "casual-bookings" &&
+          canSeeCasualBookings && (
+            <ServiceCasualBookingsTab service={service} />
+          )}
 
         {/* Program group */}
         {activeGroup === "program" && currentSubKey === "activities" && (

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { sessionTimesSchema } from "@/lib/service-settings";
 import { z } from "zod";
 
 const patchSchema = z.object({
@@ -36,6 +37,10 @@ const patchSchema = z.object({
   schoolBusinessManagerEmail: z.string().optional(),
   lastPrincipalVisit: z.string().nullable().optional(),
   buildAlphaKidsActive: z.boolean().optional(),
+  // ── ACECQA approvals + per-session-type start/end times ─────────
+  serviceApprovalNumber: z.string().nullish(),
+  providerApprovalNumber: z.string().nullish(),
+  sessionTimes: sessionTimesSchema.nullish(),
 });
 
 // GET /api/services/[id]
@@ -108,6 +113,17 @@ export const GET = withApiAuth(
 export const PATCH = withApiAuth(
   async (req, session, context) => {
     const { id } = await context!.params!;
+
+    // Coordinators may only edit their own service. Admin/owner/head_office bypass.
+    const role = session.user.role ?? "";
+    if (role === "coordinator") {
+      const coordinatorServiceId = (session.user as { serviceId?: string | null })
+        .serviceId ?? null;
+      if (!coordinatorServiceId || coordinatorServiceId !== id) {
+        throw ApiError.forbidden();
+      }
+    }
+
     const body = await parseJsonBody(req);
     const parsed = patchSchema.safeParse(body);
     if (!parsed.success) {
@@ -155,7 +171,7 @@ export const PATCH = withApiAuth(
 
     return NextResponse.json(service);
   },
-  { roles: ["owner", "head_office", "admin"] },
+  { roles: ["owner", "head_office", "admin", "coordinator"] },
 );
 
 // DELETE /api/services/[id]

@@ -103,6 +103,7 @@ export const allPages = [
   "/messaging",
   "/enrolments",
   "/children",
+  "/children/[id]",
   "/conversions",
   // Operations extras
   "/roll-call",
@@ -165,6 +166,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/projects",
     "/documents",
     "/profile",
+    "/children/[id]",
     "/staff/[id]",
     "/roster/me",
     "/roster/swaps",
@@ -204,6 +206,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/messaging",
     "/enrolments",
     "/children",
+    "/children/[id]",
     "/roll-call",
     "/bookings",
     "/billing",
@@ -247,6 +250,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/messaging",
     "/enrolments",
     "/children",
+    "/children/[id]",
     "/roll-call",
     "/bookings",
     "/billing",
@@ -275,6 +279,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/compliance",
     "/policies",
     "/profile",
+    "/children/[id]",
     "/staff/[id]",
     "/roster/me",
     "/roster/swaps",
@@ -595,12 +600,33 @@ export const roleFeatures: Record<Role, readonly Feature[]> = {
 // 3. Helper functions
 // ---------------------------------------------------------------------------
 
+/**
+ * Match a registered page path (which may contain `[id]` dynamic segments)
+ * against a concrete href. A registered path like `/children/[id]` matches
+ * `/children/abc123` (and any sub-path under it). Exact/prefix matching still
+ * applies for plain paths.
+ */
+function pathMatches(pattern: string, href: string): boolean {
+  // Fast path — literal equality or prefix match on non-dynamic patterns
+  if (href === pattern) return true;
+  if (!pattern.includes("[")) {
+    return href.startsWith(pattern + "/");
+  }
+  // Dynamic pattern: convert [x] segments into a single-segment regex
+  const re = new RegExp(
+    "^" +
+      pattern.replace(/\[[^/]+\]/g, "[^/]+").replace(/\//g, "\\/") +
+      "(?:\\/.*)?$",
+  );
+  return re.test(href);
+}
+
 /** Can the given role access a page (or a sub-path of it)? */
 export function canAccessPage(role: Role | undefined, href: string): boolean {
   if (!role) return true; // still loading; let server middleware decide
   const allowed = rolePageAccess[role];
   if (!allowed) return true;
-  return allowed.some((path) => href === path || href.startsWith(path + "/"));
+  return allowed.some((path) => pathMatches(path, href));
 }
 
 /** Convenience: return the list of accessible page paths */

@@ -28,11 +28,29 @@ const STATUS_BADGE: Record<string, { label: string; color: string }> = {
   withdrawn: { label: "Withdrawn", color: "bg-red-50 text-red-700" },
 };
 
+type ChildStatusFilter = "current" | "all" | "withdrawn" | "active" | "pending";
+
+function normaliseStatus(value: string): ChildStatusFilter {
+  if (
+    value === "current" ||
+    value === "all" ||
+    value === "withdrawn" ||
+    value === "active" ||
+    value === "pending"
+  ) {
+    return value;
+  }
+  return "all";
+}
+
 export default function ChildrenPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { data, isLoading } = useChildren({ status: activeTab, search: search || undefined });
+  const { data, isLoading } = useChildren({
+    status: normaliseStatus(activeTab),
+    search: search || undefined,
+  });
 
   const children = data?.children || [];
 

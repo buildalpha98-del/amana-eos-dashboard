@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import type { SessionTimes } from "@/lib/service-settings";
 
 export interface ServiceSummary {
   id: string;
@@ -149,6 +150,9 @@ export function useUpdateService() {
       bscGroceryRate?: number;
       ascGroceryRate?: number;
       vcGroceryRate?: number;
+      serviceApprovalNumber?: string | null;
+      providerApprovalNumber?: string | null;
+      sessionTimes?: SessionTimes | null;
     }) => {
       return mutateApi<ServiceDetail>(`/api/services/${id}`, {
         method: "PATCH",
