@@ -62,15 +62,12 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   const dateParam = searchParams.get("date");
 
   const dateStr = dateParam ?? new Date().toISOString().split("T")[0];
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) {
-    throw ApiError.badRequest("Invalid date");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    throw ApiError.badRequest("date must be YYYY-MM-DD");
   }
-
-  const startOfDay = new Date(date);
-  startOfDay.setUTCHours(0, 0, 0, 0);
-  const endOfDay = new Date(date);
-  endOfDay.setUTCHours(23, 59, 59, 999);
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const startOfDay = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
+  const endOfDay = new Date(Date.UTC(y, m - 1, d, 23, 59, 59, 999));
 
   const where: Record<string, unknown> = {
     date: { gte: startOfDay, lte: endOfDay },

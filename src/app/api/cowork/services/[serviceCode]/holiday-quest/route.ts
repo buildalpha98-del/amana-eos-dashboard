@@ -5,8 +5,16 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 
 import { parseJsonBody } from "@/lib/api-error";
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseDateUTC(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
 const postBodySchema = z.object({
-  date: z.string().min(1),
+  date: z.string().regex(DATE_RE, "date must be YYYY-MM-DD"),
   theme: z.string().min(1),
   morningActivity: z.string().min(1),
   afternoonActivity: z.string().min(1),
@@ -64,7 +72,7 @@ export const POST = withApiHandler(async (req, context) => {
     status,
   } = parsed.data;
 
-  const dateObj = new Date(date);
+  const dateObj = parseDateUTC(date);
 
   const day = await prisma.holidayQuestDay.upsert({
     where: {
@@ -140,11 +148,18 @@ export const GET = withApiHandler(async (req, context) => {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
 
+  if (from && !DATE_RE.test(from)) {
+    return NextResponse.json({ error: "from must be YYYY-MM-DD" }, { status: 400 });
+  }
+  if (to && !DATE_RE.test(to)) {
+    return NextResponse.json({ error: "to must be YYYY-MM-DD" }, { status: 400 });
+  }
+
   const where: Record<string, unknown> = { serviceId: service.id };
   if (from || to) {
     where.date = {};
-    if (from) (where.date as Record<string, unknown>).gte = new Date(from);
-    if (to) (where.date as Record<string, unknown>).lte = new Date(to);
+    if (from) (where.date as Record<string, unknown>).gte = parseDateUTC(from);
+    if (to) (where.date as Record<string, unknown>).lte = parseDateUTC(to);
   }
 
   const days = await prisma.holidayQuestDay.findMany({

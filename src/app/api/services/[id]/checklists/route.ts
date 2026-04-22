@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 /**
  * GET /api/services/[id]/checklists?date=2026-03-16&sessionType=asc
  * Fetch daily checklists for a service centre (dashboard).
@@ -25,7 +28,11 @@ export const GET = withApiAuth(async (req, session, context) => {
   const where: Record<string, unknown> = { serviceId: id };
 
   if (dateStr) {
-    where.date = new Date(dateStr);
+    if (!DATE_RE.test(dateStr)) {
+      return NextResponse.json({ error: "date must be YYYY-MM-DD" }, { status: 400 });
+    }
+    const [y, m, d] = dateStr.split("-").map(Number);
+    where.date = new Date(Date.UTC(y, m - 1, d));
   }
   if (sessionType) {
     where.sessionType = sessionType;

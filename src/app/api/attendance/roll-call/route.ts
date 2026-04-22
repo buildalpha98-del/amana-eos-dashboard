@@ -7,6 +7,20 @@ import type { SessionType } from "@prisma/client";
 import { sendSignInNotification, sendSignOutNotification } from "@/lib/notifications/attendance";
 import { logger } from "@/lib/logger";
 
+// YYYY-MM-DD regex used by both handlers for DST-safe parsing.
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Parse a YYYY-MM-DD string as UTC midnight. Keeps AttendanceRecord.date
+ * and DailyAttendance.date aligned with the bulk roll-call route across
+ * AEST/AEDT DST boundaries, which `new Date("YYYY-MM-DD")` can't guarantee
+ * across runtimes.
+ */
+function parseDateUTC(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
 // ── GET: Fetch roll call list for a session ───────────────
 
 export const GET = withApiAuth(async (req, session) => {
@@ -19,11 +33,15 @@ export const GET = withApiAuth(async (req, session) => {
     throw ApiError.badRequest("serviceId, date, and sessionType are required");
   }
 
+  if (!DATE_RE.test(dateStr)) {
+    throw ApiError.badRequest("date must be YYYY-MM-DD");
+  }
+
   if (!["bsc", "asc", "vc"].includes(sessionType)) {
     throw ApiError.badRequest("sessionType must be bsc, asc, or vc");
   }
 
-  const date = new Date(dateStr);
+  const date = parseDateUTC(dateStr);
 
   // 1. Get all children with confirmed bookings for this session
   const bookings = await prisma.booking.findMany({
@@ -139,7 +157,7 @@ export const GET = withApiAuth(async (req, session) => {
 const actionSchema = z.object({
   childId: z.string().min(1),
   serviceId: z.string().min(1),
-  date: z.string().min(1),
+  date: z.string().regex(DATE_RE, "date must be YYYY-MM-DD"),
   sessionType: z.enum(["bsc", "asc", "vc"]),
   action: z.enum(["sign_in", "sign_out", "mark_absent", "undo"]),
   absenceReason: z.string().max(500).optional(),
@@ -154,7 +172,7 @@ export const POST = withApiAuth(async (req, session) => {
   }
 
   const { childId, serviceId, date, sessionType, action, absenceReason, notes } = parsed.data;
-  const dateObj = new Date(date);
+  const dateObj = parseDateUTC(date);
   const uniqueKey = {
     childId_serviceId_date_sessionType: {
       childId,
