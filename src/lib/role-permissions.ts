@@ -122,6 +122,7 @@ export const allPages = [
   "/leadership",
   "/automations",
   "/audit-log",
+  "/admin/feedback",
   // Support — accessible to all roles
   "/guides",
   "/help",

@@ -10,25 +10,41 @@ const createFeedbackSchema = z.object({
   screenshotUrl: z.string().optional(),
   page: z.string().optional(),
 });
+const LIMIT = 50;
+
 // GET /api/internal-feedback — list feedback (admin+ only)
-export const GET = withApiAuth(async (req, session) => {
+export const GET = withApiAuth(async (req) => {
   const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status");
-  const category = searchParams.get("category");
+  const statusParam = searchParams.get("status");
+  const categoryParam = searchParams.get("category");
+
+  const pageRaw = Number(searchParams.get("page") ?? "1");
+  const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? Math.floor(pageRaw) : 1;
 
   const where: Record<string, unknown> = {};
-  if (status) where.status = status;
-  if (category) where.category = category;
+  if (statusParam) where.status = statusParam;
+  if (categoryParam) where.category = categoryParam;
 
-  const feedback = await prisma.internalFeedback.findMany({
-    where,
-    include: {
-      author: { select: { id: true, name: true, email: true, role: true } },
-    },
-    orderBy: { createdAt: "desc" },
+  const [feedback, total] = await Promise.all([
+    prisma.internalFeedback.findMany({
+      where,
+      include: {
+        author: { select: { id: true, name: true, email: true, role: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * LIMIT,
+      take: LIMIT,
+    }),
+    prisma.internalFeedback.count({ where }),
+  ]);
+
+  return NextResponse.json({
+    feedback,
+    page,
+    limit: LIMIT,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / LIMIT)),
   });
-
-  return NextResponse.json({ feedback });
 }, { roles: ["owner", "head_office", "admin"] });
 
 // POST /api/internal-feedback — create feedback (any authenticated user)
