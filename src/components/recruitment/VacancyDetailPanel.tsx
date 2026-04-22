@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, Plus, UserPlus, ChevronRight, Sparkles } from "lucide-react";
 import { AiButton } from "@/components/ui/AiButton";
+import { AiScreenBadge } from "@/components/recruitment/AiScreenBadge";
+import { useAiScreenCandidate } from "@/hooks/useRecruitment";
 
 const ROLE_LABELS: Record<string, string> = {
   educator: "Educator",
@@ -40,6 +42,7 @@ interface VacancyDetailPanelProps {
 
 export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDetailPanelProps) {
   const queryClient = useQueryClient();
+  const aiScreen = useAiScreenCandidate();
   const [showAddCandidate, setShowAddCandidate] = useState(false);
   const [candidateForm, setCandidateForm] = useState({
     name: "",
@@ -363,23 +366,45 @@ export function VacancyDetailPanel({ vacancyId, onClose, onUpdated }: VacancyDet
                 source: string;
                 stage: string;
                 appliedAt: string;
+                resumeText: string | null;
+                aiScreenScore: number | null;
+                aiScreenSummary: string | null;
               }) => (
-                <div key={c.id} className="flex items-center justify-between bg-surface/50 rounded-lg px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{c.name}</p>
-                    <p className="text-xs text-muted">
-                      {c.source} &middot; Applied {new Date(c.appliedAt).toLocaleDateString("en-AU")}
-                    </p>
+                <div key={c.id} className="bg-surface/50 rounded-lg px-4 py-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-foreground">{c.name}</p>
+                        {c.aiScreenScore !== null && (
+                          <AiScreenBadge score={c.aiScreenScore} summary={c.aiScreenSummary} />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted">
+                        {c.source} &middot; Applied {new Date(c.appliedAt).toLocaleDateString("en-AU")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => aiScreen.mutate(c.id)}
+                        disabled={aiScreen.isPending || !c.resumeText}
+                        title={!c.resumeText ? "Candidate has no resume text to screen" : undefined}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg border border-border text-foreground/80 hover:bg-surface disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        {c.aiScreenScore !== null ? "Re-screen" : "AI Screen"}
+                      </button>
+                      <select
+                        value={c.stage}
+                        onChange={(e) => handleStageChange(c.id, e.target.value)}
+                        className={`text-xs rounded-full px-3 py-1 font-medium border-0 ${STAGE_STYLES[c.stage] || "bg-surface text-foreground/80"}`}
+                      >
+                        {Object.entries(STAGE_LABELS).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <select
-                    value={c.stage}
-                    onChange={(e) => handleStageChange(c.id, e.target.value)}
-                    className={`text-xs rounded-full px-3 py-1 font-medium border-0 ${STAGE_STYLES[c.stage] || "bg-surface text-foreground/80"}`}
-                  >
-                    {Object.entries(STAGE_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </select>
                 </div>
               ))}
             </div>
