@@ -21,6 +21,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { MedicalAlertBadge } from "@/components/children/MedicalAlertBadge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
+import { ServiceWeeklyRollCallGrid } from "./ServiceWeeklyRollCallGrid";
 import { cn } from "@/lib/utils";
 
 type RollCallView = "daily" | "weekly" | "monthly";
@@ -226,9 +227,7 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
         </>
       )}
 
-      {view === "weekly" && (
-        <div className="text-sm text-muted">Weekly view — ships in next commit</div>
-      )}
+      {view === "weekly" && <ServiceWeeklyRollCallGrid serviceId={serviceId} />}
 
       {view === "monthly" && (
         <div className="text-sm text-muted">Monthly view — ships in next commit</div>

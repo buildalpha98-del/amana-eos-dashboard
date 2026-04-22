@@ -24,6 +24,27 @@ vi.mock("@/hooks/useRollCall", () => ({
   useUpdateRollCall: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
+// Stub the new weekly grid hook so we don't need real session/data.
+vi.mock("@/hooks/useWeeklyRollCall", () => ({
+  useWeeklyRollCall: () => ({ data: undefined, isLoading: false, error: null }),
+  useEnrollableChildren: () => ({ data: undefined, isLoading: false, error: null }),
+}));
+
+// Session stub — required by the weekly grid's useSession().
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({
+    data: {
+      user: {
+        id: "user-self",
+        email: "me@example.com",
+        role: "admin",
+        serviceId: null,
+      },
+    },
+    status: "authenticated",
+  }),
+}));
+
 // next/navigation mocks — `searchParamsRef.value` is mutated between tests to
 // simulate different URL states.
 const searchParamsRef: { value: URLSearchParams } = {
@@ -76,14 +97,15 @@ describe("ServiceRollCallTab — view toggle", () => {
     expect(screen.queryByText(/Monthly view — ships/i)).toBeNull();
   });
 
-  it("renders weekly placeholder when ?rollCallView=weekly", () => {
+  it("renders weekly grid when ?rollCallView=weekly", () => {
     searchParamsRef.value = new URLSearchParams("rollCallView=weekly");
     const qc = makeClient();
     render(<ServiceRollCallTab serviceId="svc-1" />, {
       wrapper: makeWrapper(qc),
     });
 
-    expect(screen.getByText(/Weekly view — ships/i)).toBeDefined();
+    // Weekly grid renders its week-range label (Week of ...).
+    expect(screen.getByTestId("weekly-range-label").textContent).toMatch(/week of/i);
     // Daily markup should not be visible — the summary cards are daily-only.
     expect(screen.queryByText(/Total Enrolled/i)).toBeNull();
   });
