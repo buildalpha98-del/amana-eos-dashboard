@@ -1,17 +1,25 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Search,
   AlertTriangle,
   UtensilsCrossed,
   Users,
+  Star,
+  Mail,
   Phone,
 } from "lucide-react";
-import { useChildren, type ChildRecord } from "@/hooks/useChildren";
+import {
+  useChildren,
+  type ChildRecord,
+  type ChildrenFilters as ChildrenFiltersType,
+} from "@/hooks/useChildren";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { ChildrenFilters } from "@/components/services/ChildrenFilters";
 
 interface ServiceChildrenTabProps {
   serviceId: string;
@@ -22,6 +30,12 @@ const STATUS_STYLES: Record<string, string> = {
   active: "bg-green-100 text-green-700",
   pending: "bg-amber-100 text-amber-700",
   withdrawn: "bg-red-100 text-red-700",
+};
+
+const CCS_BADGE_STYLES: Record<string, string> = {
+  eligible: "bg-green-100 text-green-700 border-green-200",
+  pending: "bg-amber-100 text-amber-700 border-amber-200",
+  ineligible: "bg-red-100 text-red-700 border-red-200",
 };
 
 const SESSION_LABELS: Record<string, string> = {
@@ -43,7 +57,10 @@ function getAge(dob: string | null): string {
   const birth = new Date(dob);
   const now = new Date();
   let age = now.getFullYear() - birth.getFullYear();
-  if (now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())) {
+  if (
+    now.getMonth() < birth.getMonth() ||
+    (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())
+  ) {
     age--;
   }
   return `${age}y`;
@@ -100,33 +117,33 @@ function renderEnrolledDays(bookingPrefs: Record<string, unknown> | null): React
 
 export function ServiceChildrenTab({ serviceId }: ServiceChildrenTabProps) {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [filters, setFilters] = useState<ChildrenFiltersType>({
+    serviceId,
+    status: "current",
+    includeParents: true,
+  });
 
   const { data, isLoading, error } = useChildren({
-    serviceId,
-    status: statusFilter === "all" ? undefined : statusFilter,
+    ...filters,
     search: search.trim() || undefined,
   });
 
-  const children = data?.children ?? [];
+  const children = useMemo(() => data?.children ?? [], [data?.children]);
 
-  // Counts per status (from the unfiltered query if possible)
-  const statusCounts = useMemo(() => {
-    const counts = { all: data?.total ?? 0, active: 0, pending: 0, withdrawn: 0 };
-    // These would need separate queries for accurate counts; use total for now
-    return counts;
-  }, [data]);
-
-  const statuses = [
-    { key: "active", label: "Active" },
-    { key: "pending", label: "Pending" },
-    { key: "withdrawn", label: "Withdrawn" },
-    { key: "all", label: "All" },
-  ];
+  // Derive room options from returned children (OWNA-synced rooms). If none
+  // come back with a room, the filter dropdown renders disabled.
+  const roomOptions = useMemo(() => {
+    const set = new Set<string>();
+    children.forEach((c) => {
+      const room = (c as ChildRecord & { ownaRoomName?: string | null }).ownaRoomName;
+      if (room) set.add(room);
+    });
+    return Array.from(set).sort();
+  }, [children]);
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
+      {/* Search */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="relative flex-1 w-full sm:w-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
@@ -138,23 +155,14 @@ export function ServiceChildrenTab({ serviceId }: ServiceChildrenTabProps) {
             className="w-full pl-9 pr-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
-
-        <div className="flex rounded-lg border border-border overflow-hidden">
-          {statuses.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setStatusFilter(s.key)}
-              className={`px-3 py-2 text-xs font-medium transition-colors ${
-                statusFilter === s.key
-                  ? "bg-brand text-white"
-                  : "bg-card text-muted hover:bg-surface"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
       </div>
+
+      {/* Filters */}
+      <ChildrenFilters
+        filters={filters}
+        onChange={setFilters}
+        roomOptions={roomOptions}
+      />
 
       {/* List */}
       {isLoading ? (
@@ -186,21 +194,38 @@ export function ServiceChildrenTab({ serviceId }: ServiceChildrenTabProps) {
   );
 }
 
+function CcsBadge({ status }: { status: string }) {
+  const normalised = status.toLowerCase();
+  const styles =
+    CCS_BADGE_STYLES[normalised] ?? "bg-gray-100 text-gray-700 border-gray-200";
+  return (
+    <span
+      data-testid="ccs-badge"
+      className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full border capitalize ${styles}`}
+    >
+      CCS: {status}
+    </span>
+  );
+}
+
 function ChildRow({ child }: { child: ChildRecord }) {
   const medical = hasMedicalFlags(child.medical);
   const dietary = hasDietaryFlags(child.dietary);
-  const pp = child.enrolment?.primaryParent;
   const bp = child.bookingPrefs as Record<string, unknown> | null;
   const bookingType = (bp as BookingPrefsShape | null)?.bookingType;
+  const parents = child.parents ?? [];
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-2">
-      {/* Row 1: Name, badges, status */}
+      {/* Row 1: Name (link), badges, status */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-semibold text-foreground">
+          <Link
+            href={`/children/${child.id}`}
+            className="font-semibold text-foreground hover:text-brand hover:underline"
+          >
             {child.firstName} {child.surname}
-          </p>
+          </Link>
           {child.dob && (
             <span className="text-xs text-muted">{getAge(child.dob)}</span>
           )}
@@ -221,33 +246,91 @@ function ChildRow({ child }: { child: ChildRecord }) {
               {bookingType}
             </span>
           )}
+          {child.ccsStatus && <CcsBadge status={child.ccsStatus} />}
         </div>
         <span
-          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_STYLES[child.status] ?? "bg-gray-100 text-gray-700"}`}
+          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${
+            STATUS_STYLES[child.status] ?? "bg-gray-100 text-gray-700"
+          }`}
         >
           {child.status}
         </span>
       </div>
 
-      {/* Row 2: Parent + school + enrolled days */}
+      {/* Row 2: Parents / Carers with primary-star and click-to-action links */}
+      {parents.length > 0 ? (
+        <ul
+          className="flex flex-col gap-1 text-xs text-muted"
+          aria-label="Parents and carers"
+        >
+          {parents.map((parent, idx) => (
+            <li
+              key={`${parent.firstName}-${parent.surname}-${idx}`}
+              className="flex items-center gap-2 flex-wrap"
+            >
+              {parent.isPrimary && (
+                <Star
+                  className="w-3 h-3 text-amber-500 fill-amber-500"
+                  aria-label="Primary contact"
+                />
+              )}
+              <span className="font-medium text-foreground">
+                {parent.firstName} {parent.surname}
+              </span>
+              {parent.relationship && (
+                <span className="text-muted">· {parent.relationship}</span>
+              )}
+              {parent.phone && (
+                <a
+                  href={`tel:${parent.phone}`}
+                  className="inline-flex items-center gap-1 text-brand hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Phone className="w-3 h-3" />
+                  {parent.phone}
+                </a>
+              )}
+              {parent.email && (
+                <a
+                  href={`mailto:${parent.email}`}
+                  className="inline-flex items-center gap-1 text-brand hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Mail className="w-3 h-3" />
+                  {parent.email}
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        (() => {
+          // Fallback when the API didn't hydrate parents: render the legacy
+          // single-line "primary parent" summary from the enrolment.
+          const pp = child.enrolment?.primaryParent;
+          if (!pp) return null;
+          return (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-muted">
+              <span className="flex items-center gap-1">
+                <Phone className="w-3 h-3" />
+                {pp.firstName} {pp.surname}
+                {pp.mobile && ` · ${pp.mobile}`}
+              </span>
+            </div>
+          );
+        })()
+      )}
+
+      {/* Row 3: School + enrolled days */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-muted">
-        {pp && (
-          <span className="flex items-center gap-1">
-            <Phone className="w-3 h-3" />
-            {pp.firstName} {pp.surname}
-            {pp.mobile && ` · ${pp.mobile}`}
-          </span>
-        )}
         {child.schoolName && (
           <span>
             {child.schoolName}
             {child.yearLevel && ` · ${child.yearLevel}`}
           </span>
         )}
+        <div>{renderEnrolledDays(bp)}</div>
       </div>
-
-      {/* Row 3: Enrolled days */}
-      <div>{renderEnrolledDays(bp)}</div>
     </div>
   );
 }
