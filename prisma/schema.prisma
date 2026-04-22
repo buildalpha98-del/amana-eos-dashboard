@@ -4658,6 +4658,10 @@ model Child {
   medicareExpiry        DateTime?
   medicareRef           String?
   vaccinationStatus     String?
+  // ── CCS + room + tags (first-class filter dimensions, 4b) ──
+  ccsStatus             String? // "eligible" | "pending" | "ineligible" — documented values, free-text for forward compat
+  room                  String? // dashboard-controlled room label; decoupled from OWNA's ownaRoomName
+  tags                  String[]             @default([]) // optional filter tags; empty-array default means existing rows don't need backfill
   photo                 String? // URL to profile photo (Vercel Blob)
   status                String               @default("pending") // pending, active, withdrawn
   // OWNA sync fields
@@ -4681,6 +4685,8 @@ model Child {
   @@index([serviceId])
   @@index([status])
   @@index([ownaChildId])
+  @@index([serviceId, ccsStatus])
+  @@index([serviceId, room])
 }
 
 // ── Sequences (Parent Nurture + CRM Outreach) ───────────────
