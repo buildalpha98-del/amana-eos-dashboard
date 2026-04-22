@@ -110,4 +110,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(newContract, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { feature: "contracts.edit" });

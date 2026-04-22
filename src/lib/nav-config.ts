@@ -47,6 +47,8 @@ import {
   Receipt,
   Bug,
 } from "lucide-react";
+import type { Role } from "@prisma/client";
+import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
 
 export interface NavItem {
   href: string;
@@ -54,6 +56,11 @@ export interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   section: string;
   tooltip?: string;
+  /**
+   * Optional feature gate. When set, the nav item is only shown in the sidebar
+   * if the role has this feature (in addition to `canAccessPage`).
+   */
+  feature?: Feature;
 }
 
 /**
@@ -104,7 +111,7 @@ export const navItems: NavItem[] = [
   { href: "/team", label: "Team", icon: Users, section: "People" },
   { href: "/recruitment", label: "Recruitment", icon: Briefcase, section: "People", tooltip: "Track vacancies, candidates & staff referrals" },
   { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding" },
-  { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates" },
+  { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view" },
   { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "People", tooltip: "Import OWNA rosters, approve & export to Xero" },
   { href: "/leave", label: "Leave", icon: CalendarDays, section: "People", tooltip: "Request & manage staff leave" },
   { href: "/directory", label: "Staff Directory", icon: Contact, section: "People", tooltip: "Find and connect with your team" },
@@ -136,3 +143,21 @@ export const navItems: NavItem[] = [
 export const pageTitlesFromNav: Record<string, string> = Object.fromEntries(
   navItems.map((item) => [item.href, item.label])
 );
+
+/**
+ * Filter nav items by role: must pass `canAccessPage` AND (if tagged) the
+ * `hasFeature` gate. Keeps role logic in one place so Sidebar stays declarative.
+ *
+ * Feature-gated items are hidden from the sidebar even if the role technically
+ * has URL access — acts as a belt-and-suspenders visibility control.
+ */
+export function filterNavItems(
+  items: readonly NavItem[],
+  role: Role | undefined
+): NavItem[] {
+  return items.filter((item) => {
+    if (!canAccessPage(role, item.href)) return false;
+    if (item.feature && !hasFeature(role, item.feature)) return false;
+    return true;
+  });
+}

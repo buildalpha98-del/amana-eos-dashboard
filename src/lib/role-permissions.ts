@@ -215,6 +215,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/knowledge",
     "/leave",
     "/timesheets",
+    "/contracts",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
     "/tools/amana-way-one-pager",
@@ -259,6 +260,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/knowledge",
     "/leave",
     "/timesheets",
+    "/contracts",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
     "/tools/amana-way-one-pager",
@@ -285,6 +287,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/roster/me",
     "/roster/swaps",
     "/leave",
+    "/contracts",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
     "/tools/amana-way-one-pager",
@@ -437,6 +440,11 @@ export const features = [
   "contracts.edit",
   "contracts.acknowledge",
 
+  // HR — Recruitment
+  "recruitment.view",
+  "recruitment.edit",
+  "recruitment.candidates.manage",
+
   // Policies
   "policies.view",
   "policies.create",
@@ -563,6 +571,7 @@ const coordinatorFeatures: readonly Feature[] = [
   "attendance.view",
   "attendance.create",
   "attendance.edit",
+  "recruitment.view", // coordinators can see vacancies in their service
 ];
 
 const staffFeatures: readonly Feature[] = [

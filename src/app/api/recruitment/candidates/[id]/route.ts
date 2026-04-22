@@ -49,4 +49,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(candidate);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { feature: "recruitment.candidates.manage" });

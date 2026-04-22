@@ -44,7 +44,7 @@ const { searchParams } = new URL(req.url);
   ]);
 
   return NextResponse.json({ vacancies, total, page, limit });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "coordinator"] });
 
 export const POST = withApiAuth(async (req, session) => {
 const body = await parseJsonBody(req);
@@ -76,4 +76,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(vacancy, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { feature: "recruitment.edit" });

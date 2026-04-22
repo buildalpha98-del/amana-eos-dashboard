@@ -41,7 +41,7 @@ const { id } = await context!.params!;
   }
 
   return NextResponse.json(vacancy);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "coordinator"] });
 
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
@@ -79,7 +79,7 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(vacancy);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { feature: "recruitment.edit" });
 
 export const DELETE = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
@@ -90,4 +90,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json({ success: true });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { feature: "recruitment.edit" });
