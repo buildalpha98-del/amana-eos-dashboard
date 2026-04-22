@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@/lib/fetch-api", () => ({
   fetchApi: vi.fn(),
@@ -19,6 +20,15 @@ vi.mock("next/navigation", () => ({
 
 import { RelationshipsTab } from "@/components/child/tabs/RelationshipsTab";
 import type { ChildProfileRecord } from "@/components/child/types";
+
+// 4b wires RelationshipsTab into `useChildRelationships`, which needs a
+// QueryClient context — wrap every render in a fresh provider.
+function withQueryClient(ui: React.ReactElement) {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
+}
 
 function makeChild(
   enrolment: ChildProfileRecord["enrolment"] = null,
@@ -95,7 +105,9 @@ describe("RelationshipsTab", () => {
   it("renders primary carer with click-to-call and click-to-email links", () => {
     const enrolment = makeEnrolment();
     const { container } = render(
-      <RelationshipsTab child={makeChild(enrolment)} canEdit={false} />,
+      withQueryClient(
+        <RelationshipsTab child={makeChild(enrolment)} canEdit={false} />,
+      ),
     );
     expect(container.textContent).toContain("Linh");
     expect(container.textContent).toContain("Nguyen");
@@ -121,14 +133,18 @@ describe("RelationshipsTab", () => {
       },
     });
     const r1 = render(
-      <RelationshipsTab child={makeChild(withSecondary)} canEdit={false} />,
+      withQueryClient(
+        <RelationshipsTab child={makeChild(withSecondary)} canEdit={false} />,
+      ),
     );
     expect(r1.container.textContent).toContain("Secondary");
     expect(r1.container.textContent).toContain("Binh");
     r1.unmount();
 
     const r2 = render(
-      <RelationshipsTab child={makeChild(makeEnrolment())} canEdit={false} />,
+      withQueryClient(
+        <RelationshipsTab child={makeChild(makeEnrolment())} canEdit={false} />,
+      ),
     );
     expect(r2.container.textContent).not.toContain("Binh");
   });
@@ -151,7 +167,9 @@ describe("RelationshipsTab", () => {
       ],
     });
     const { container } = render(
-      <RelationshipsTab child={makeChild(enrolment)} canEdit={false} />,
+      withQueryClient(
+        <RelationshipsTab child={makeChild(enrolment)} canEdit={false} />,
+      ),
     );
     expect(container.textContent).toContain("Aunt May");
     expect(container.textContent).toContain("Uncle Ben");
@@ -166,7 +184,9 @@ describe("RelationshipsTab", () => {
       ],
     });
     const { container } = render(
-      <RelationshipsTab child={makeChild(enrolment)} canEdit={false} />,
+      withQueryClient(
+        <RelationshipsTab child={makeChild(enrolment)} canEdit={false} />,
+      ),
     );
     expect(container.textContent).toContain("Grandpa Joe");
     expect(container.textContent).toContain("Neighbour Sue");
@@ -175,7 +195,9 @@ describe("RelationshipsTab", () => {
 
   it("shows empty state when enrolment is null", () => {
     const { container } = render(
-      <RelationshipsTab child={makeChild(null)} canEdit={false} />,
+      withQueryClient(
+        <RelationshipsTab child={makeChild(null)} canEdit={false} />,
+      ),
     );
     expect(container.textContent).toContain("No enrolment data available");
   });

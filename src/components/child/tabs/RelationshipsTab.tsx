@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import Link from "next/link";
-import { Star, Phone, Mail, Users, ShieldCheck } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Star, Phone, Mail, Users, ShieldCheck, Pencil, Plus, Trash2 } from "lucide-react";
 import { z } from "zod";
 import {
   parseJsonField,
@@ -10,6 +9,12 @@ import {
   emergencyContactSchema,
 } from "@/lib/schemas/json-fields";
 import type { ChildProfileRecord } from "../types";
+import { useChildRelationships } from "@/hooks/useChildRelationships";
+import {
+  RelationshipsEditDialog,
+  type RelationshipsDialogKind,
+  type RelationshipsDialogPayload,
+} from "./RelationshipsEditDialog";
 
 interface RelationshipsTabProps {
   child: ChildProfileRecord;
@@ -29,6 +34,23 @@ const authorisedPickupListSchema = z.array(authorisedPickupSchema);
 
 type EmergencyContact = z.infer<typeof emergencyContactSchema>;
 type AuthorisedPickup = z.infer<typeof authorisedPickupSchema>;
+
+type SecondaryParent = z.infer<typeof primaryParentSchema>;
+
+interface EditingState {
+  kind: RelationshipsDialogKind;
+  /** Index into the target list (emergency / pickup). Undefined = new item. */
+  index?: number;
+  initial?: {
+    firstName?: string;
+    surname?: string;
+    name?: string;
+    relationship?: string;
+    phone?: string;
+    mobile?: string;
+    email?: string;
+  };
+}
 
 function digitsOnly(value: string | undefined): string {
   if (!value) return "";
@@ -60,6 +82,8 @@ function parentName(p: {
 
 export function RelationshipsTab({ child, canEdit }: RelationshipsTabProps) {
   const enrolment = child.enrolment;
+  const mutation = useChildRelationships(child.id);
+  const [editing, setEditing] = useState<EditingState | null>(null);
 
   const primary = useMemo(
     () =>
@@ -72,7 +96,7 @@ export function RelationshipsTab({ child, canEdit }: RelationshipsTabProps) {
     [enrolment],
   );
 
-  const secondary = useMemo(() => {
+  const secondary = useMemo<SecondaryParent | null>(() => {
     if (!enrolment?.secondaryParent) return null;
     const parsed = parseJsonField(
       enrolment.secondaryParent,
@@ -121,9 +145,70 @@ export function RelationshipsTab({ child, canEdit }: RelationshipsTabProps) {
     );
   }
 
+  async function handleSave(payload: RelationshipsDialogPayload) {
+    if (!editing) return;
+    if (editing.kind === "secondary") {
+      const next = {
+        firstName: payload.firstName ?? "",
+        surname: payload.surname ?? "",
+        relationship: payload.relationship ?? undefined,
+        mobile: payload.mobile ?? undefined,
+        email: payload.email ?? undefined,
+      };
+      await mutation.mutateAsync({ secondaryParent: next });
+      return;
+    }
+    if (editing.kind === "emergency") {
+      const entry = {
+        name: payload.name ?? "",
+        relationship: payload.relationship ?? "",
+        phone: payload.phone ?? "",
+        email: payload.email ?? undefined,
+      };
+      const nextList = [...emergencyContacts];
+      if (editing.index !== undefined) {
+        nextList[editing.index] = entry;
+      } else {
+        nextList.push(entry);
+      }
+      await mutation.mutateAsync({ emergencyContacts: nextList });
+      return;
+    }
+    // pickup
+    const entry = {
+      name: payload.name ?? "",
+      relationship: payload.relationship ?? undefined,
+      phone: payload.phone ?? undefined,
+    };
+    const nextList = [...authorisedPickup];
+    if (editing.index !== undefined) {
+      nextList[editing.index] = entry;
+    } else {
+      nextList.push(entry);
+    }
+    await mutation.mutateAsync({ authorisedPickup: nextList });
+  }
+
+  async function removeSecondary() {
+    // `null` is the "clear" signal — server maps to Prisma.JsonNull (SQL NULL).
+    // An empty object would fail Zod because primaryParentSchema requires
+    // firstName + surname.
+    await mutation.mutateAsync({ secondaryParent: null });
+  }
+
+  async function removeEmergency(i: number) {
+    const nextList = emergencyContacts.filter((_, idx) => idx !== i);
+    await mutation.mutateAsync({ emergencyContacts: nextList });
+  }
+
+  async function removePickup(i: number) {
+    const nextList = authorisedPickup.filter((_, idx) => idx !== i);
+    await mutation.mutateAsync({ authorisedPickup: nextList });
+  }
+
   return (
     <div className="space-y-6">
-      {/* Primary carer (starred) */}
+      {/* Primary carer (starred, always read-only) */}
       <section className="rounded-xl border-2 border-brand/30 bg-card p-6">
         <div className="flex items-center gap-2 mb-4">
           <Star className="w-5 h-5 text-brand fill-brand" aria-hidden />
@@ -141,33 +226,90 @@ export function RelationshipsTab({ child, canEdit }: RelationshipsTabProps) {
         ) : (
           <p className="text-sm text-muted">No primary carer recorded.</p>
         )}
+        {canEdit && (
+          <p className="text-xs text-muted mt-3">
+            Primary carer details are managed through the enrolment flow.
+          </p>
+        )}
       </section>
 
       {/* Secondary carer (optional) */}
-      {secondary && (
-        <section className="rounded-xl border border-border bg-card p-6">
-          <div className="flex items-center gap-2 mb-4">
+      <section className="rounded-xl border border-border bg-card p-6">
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-muted" aria-hidden />
             <h3 className="text-lg font-semibold text-foreground">
               Secondary Carer
             </h3>
           </div>
-          <ContactRow
-            name={parentName(secondary)}
-            relationship={secondary.relationship}
-            phone={secondary.mobile}
-            email={secondary.email}
-          />
-        </section>
-      )}
+          {canEdit && !secondary && (
+            <IconButton
+              label="Add secondary carer"
+              icon={<Plus className="w-3.5 h-3.5" aria-hidden />}
+              onClick={() =>
+                setEditing({ kind: "secondary", initial: {} })
+              }
+            />
+          )}
+        </div>
+        {secondary ? (
+          <div className="flex flex-col gap-3">
+            <ContactRow
+              name={parentName(secondary)}
+              relationship={secondary.relationship}
+              phone={secondary.mobile}
+              email={secondary.email}
+            />
+            {canEdit && (
+              <div className="flex items-center gap-2">
+                <IconButton
+                  label="Edit secondary carer"
+                  icon={<Pencil className="w-3.5 h-3.5" aria-hidden />}
+                  onClick={() =>
+                    setEditing({
+                      kind: "secondary",
+                      initial: {
+                        firstName: secondary.firstName,
+                        surname: secondary.surname,
+                        relationship: secondary.relationship,
+                        mobile: secondary.mobile,
+                        email: secondary.email,
+                      },
+                    })
+                  }
+                />
+                <IconButton
+                  label="Remove secondary carer"
+                  icon={<Trash2 className="w-3.5 h-3.5" aria-hidden />}
+                  onClick={removeSecondary}
+                  variant="danger"
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted">No secondary carer recorded.</p>
+        )}
+      </section>
 
       {/* Emergency contacts */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Phone className="w-5 h-5 text-muted" aria-hidden />
-          <h3 className="text-lg font-semibold text-foreground">
-            Emergency Contacts
-          </h3>
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <Phone className="w-5 h-5 text-muted" aria-hidden />
+            <h3 className="text-lg font-semibold text-foreground">
+              Emergency Contacts
+            </h3>
+          </div>
+          {canEdit && (
+            <IconButton
+              label="Add emergency contact"
+              icon={<Plus className="w-3.5 h-3.5" aria-hidden />}
+              onClick={() =>
+                setEditing({ kind: "emergency", initial: {} })
+              }
+            />
+          )}
         </div>
         {emergencyContacts.length === 0 ? (
           <p className="text-sm text-muted">No emergency contacts recorded.</p>
@@ -184,6 +326,32 @@ export function RelationshipsTab({ child, canEdit }: RelationshipsTabProps) {
                   phone={c.phone}
                   email={c.email}
                 />
+                {canEdit && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <IconButton
+                      label={`Edit emergency contact ${c.name || i + 1}`}
+                      icon={<Pencil className="w-3.5 h-3.5" aria-hidden />}
+                      onClick={() =>
+                        setEditing({
+                          kind: "emergency",
+                          index: i,
+                          initial: {
+                            name: c.name,
+                            relationship: c.relationship,
+                            phone: c.phone,
+                            email: c.email,
+                          },
+                        })
+                      }
+                    />
+                    <IconButton
+                      label={`Remove emergency contact ${c.name || i + 1}`}
+                      icon={<Trash2 className="w-3.5 h-3.5" aria-hidden />}
+                      onClick={() => removeEmergency(i)}
+                      variant="danger"
+                    />
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -192,11 +360,22 @@ export function RelationshipsTab({ child, canEdit }: RelationshipsTabProps) {
 
       {/* Authorised pickups */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <ShieldCheck className="w-5 h-5 text-muted" aria-hidden />
-          <h3 className="text-lg font-semibold text-foreground">
-            Authorised Pickup
-          </h3>
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-muted" aria-hidden />
+            <h3 className="text-lg font-semibold text-foreground">
+              Authorised Pickup
+            </h3>
+          </div>
+          {canEdit && (
+            <IconButton
+              label="Add authorised pickup"
+              icon={<Plus className="w-3.5 h-3.5" aria-hidden />}
+              onClick={() =>
+                setEditing({ kind: "pickup", initial: {} })
+              }
+            />
+          )}
         </div>
         {authorisedPickup.length === 0 ? (
           <p className="text-sm text-muted">
@@ -214,24 +393,45 @@ export function RelationshipsTab({ child, canEdit }: RelationshipsTabProps) {
                   relationship={p.relationship}
                   phone={p.phone}
                 />
+                {canEdit && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <IconButton
+                      label={`Edit authorised pickup ${p.name || i + 1}`}
+                      icon={<Pencil className="w-3.5 h-3.5" aria-hidden />}
+                      onClick={() =>
+                        setEditing({
+                          kind: "pickup",
+                          index: i,
+                          initial: {
+                            name: p.name,
+                            relationship: p.relationship,
+                            phone: p.phone,
+                          },
+                        })
+                      }
+                    />
+                    <IconButton
+                      label={`Remove authorised pickup ${p.name || i + 1}`}
+                      icon={<Trash2 className="w-3.5 h-3.5" aria-hidden />}
+                      onClick={() => removePickup(i)}
+                      variant="danger"
+                    />
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      {canEdit && (
-        <div className="rounded-xl border border-dashed border-border bg-surface/40 p-4 text-sm text-muted">
-          To edit carer, emergency, or authorised-pickup details, use the
-          enrolment flow at{" "}
-          <Link
-            href={`/admin/enrolments/${enrolment.id}`}
-            className="text-brand underline underline-offset-2 hover:text-brand/80"
-          >
-            the enrolment record
-          </Link>
-          . Inline editing will ship in a later sub-project.
-        </div>
+      {editing && (
+        <RelationshipsEditDialog
+          open
+          onClose={() => setEditing(null)}
+          kind={editing.kind}
+          initial={editing.initial}
+          onSave={handleSave}
+        />
       )}
     </div>
   );
@@ -285,5 +485,35 @@ function ContactRow({
         )}
       </div>
     </div>
+  );
+}
+
+function IconButton({
+  label,
+  icon,
+  onClick,
+  variant = "default",
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void | Promise<void>;
+  variant?: "default" | "danger";
+}) {
+  const base =
+    "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors";
+  const palette =
+    variant === "danger"
+      ? "border-red-200 text-red-600 hover:bg-red-50"
+      : "border-border text-muted hover:bg-surface hover:text-foreground";
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={`${base} ${palette}`}
+    >
+      {icon}
+      <span>{label}</span>
+    </button>
   );
 }
