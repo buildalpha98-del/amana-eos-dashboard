@@ -8,6 +8,7 @@ import { DetailsTab } from "./tabs/DetailsTab";
 import { RoomDaysTab } from "./tabs/RoomDaysTab";
 import { RelationshipsTab } from "./tabs/RelationshipsTab";
 import { MedicalTab } from "./tabs/MedicalTab";
+import { AttendancesTab } from "./tabs/AttendancesTab";
 import type { ChildProfileRecord } from "./types";
 
 export type ChildProfileTabKey =
@@ -103,11 +104,7 @@ export function ChildProfileTabs({
           <RelationshipsTab child={child} canEdit={canEdit} />
         )}
         {active === "medical" && <MedicalTab child={child} canEdit={canEdit} />}
-        {active === "attendances" && (
-          <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted">
-            Attendances tab ships in Commit 10.
-          </div>
-        )}
+        {active === "attendances" && <AttendancesTab child={child} />}
       </div>
     </div>
   );
