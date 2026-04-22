@@ -19,6 +19,7 @@ const VALID_TABS: ReadonlySet<StaffProfileTabKey> = new Set([
   "timesheet",
   "compliance",
   "documents",
+  "contracts",
 ]);
 
 export async function canAccessProfile(
@@ -233,6 +234,7 @@ export default async function StaffProfilePage({ params, searchParams }: PagePro
       canEditEmployment={canEditEmployment}
       canManageCompliance={canManageCompliance}
       isSelf={isSelf}
+      isAdmin={isAdmin}
     />
   );
 }

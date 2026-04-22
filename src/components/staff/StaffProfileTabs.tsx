@@ -22,6 +22,7 @@ import {
   Clock,
   ShieldCheck,
   FileText,
+  FileSignature,
 } from "lucide-react";
 import { OverviewTab } from "@/components/staff/tabs/OverviewTab";
 import { PersonalTab } from "@/components/staff/tabs/PersonalTab";
@@ -30,6 +31,7 @@ import { LeaveTab } from "@/components/staff/tabs/LeaveTab";
 import { TimesheetTab } from "@/components/staff/tabs/TimesheetTab";
 import { ComplianceTab } from "@/components/staff/tabs/ComplianceTab";
 import { DocumentsTab } from "@/components/staff/tabs/DocumentsTab";
+import { ContractsTab } from "@/components/staff/tabs/ContractsTab";
 
 export type StaffProfileTabKey =
   | "overview"
@@ -38,7 +40,8 @@ export type StaffProfileTabKey =
   | "leave"
   | "timesheet"
   | "compliance"
-  | "documents";
+  | "documents"
+  | "contracts";
 
 interface TimesheetSummary {
   weekEnding: Date;
@@ -85,9 +88,10 @@ interface StaffProfileTabsProps {
   canEditEmployment: boolean;
   canManageCompliance: boolean;
   isSelf: boolean;
+  isAdmin: boolean;
 }
 
-const TABS: { key: StaffProfileTabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const BASE_TABS: { key: StaffProfileTabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "personal", label: "Personal", icon: UserIcon },
   { key: "employment", label: "Employment", icon: Briefcase },
@@ -97,6 +101,10 @@ const TABS: { key: StaffProfileTabKey; label: string; icon: React.ComponentType<
   { key: "documents", label: "Documents", icon: FileText },
 ];
 
+const ADMIN_ONLY_TABS: { key: StaffProfileTabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: "contracts", label: "Contracts", icon: FileSignature },
+];
+
 export function StaffProfileTabs({
   data,
   activeTab,
@@ -104,15 +112,21 @@ export function StaffProfileTabs({
   canEditEmployment,
   canManageCompliance,
   isSelf,
+  isAdmin,
 }: StaffProfileTabsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const params = useParams();
   const id = (params?.id as string) || data.targetUser.id;
 
+  const tabs = useMemo(
+    () => (isAdmin ? [...BASE_TABS, ...ADMIN_ONLY_TABS] : BASE_TABS),
+    [isAdmin],
+  );
+
   const active: StaffProfileTabKey = useMemo(() => {
-    return TABS.some((t) => t.key === activeTab) ? activeTab : "overview";
-  }, [activeTab]);
+    return tabs.some((t) => t.key === activeTab) ? activeTab : "overview";
+  }, [activeTab, tabs]);
 
   const handleSelect = useCallback(
     (key: StaffProfileTabKey) => {
@@ -134,7 +148,7 @@ export function StaffProfileTabs({
           role="tablist"
           aria-label="Staff profile tabs"
         >
-          {TABS.map((t) => {
+          {tabs.map((t) => {
             const Icon = t.icon;
             const isActive = active === t.key;
             return (
@@ -205,6 +219,9 @@ export function StaffProfileTabs({
           />
         )}
         {active === "documents" && <DocumentsTab documents={data.documents} />}
+        {active === "contracts" && isAdmin && (
+          <ContractsTab userId={data.targetUser.id} canEdit={isAdmin} />
+        )}
       </div>
     </div>
   );
