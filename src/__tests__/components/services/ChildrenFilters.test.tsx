@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { ChildrenFilters } from "@/components/services/ChildrenFilters";
 import type { ChildrenFilters as ChildrenFiltersType } from "@/hooks/useChildren";
 
@@ -39,7 +39,7 @@ describe("ChildrenFilters", () => {
     expect(roomSelect.disabled).toBe(true);
     expect(tagsSelect.disabled).toBe(true);
     expect(ccsSelect.disabled).toBe(true);
-    expect(roomSelect.textContent).toMatch(/n\/a/i);
+    expect(roomSelect.textContent).toMatch(/no values yet/i);
   });
 
   it("Clear button appears only when filters are active", () => {
@@ -114,5 +114,82 @@ describe("ChildrenFilters", () => {
       target: { value: "tue" },
     });
     expect(spy).toHaveBeenCalledWith({ day: "tue" });
+  });
+});
+
+describe("ChildrenFilters — ccs / room / tags options (4b)", () => {
+  const baseFilters = { serviceId: "s1", status: "current" as const };
+
+  it("enables the Room dropdown when roomOptions are supplied", () => {
+    render(
+      <ChildrenFilters
+        filters={baseFilters}
+        onChange={() => {}}
+        roomOptions={["R1", "R2"]}
+      />,
+    );
+    const select = screen.getByLabelText("Room filter") as HTMLSelectElement;
+    expect(select.disabled).toBe(false);
+    expect(Array.from(select.options).map((o) => o.value)).toContain("R1");
+  });
+
+  it("shows '(no values yet)' placeholder when roomOptions empty", () => {
+    render(
+      <ChildrenFilters
+        filters={baseFilters}
+        onChange={() => {}}
+        roomOptions={[]}
+      />,
+    );
+    // Regression: 4a shipped "(n/a)"; 4b switches to "(no values yet)".
+    // Scope the lookup to the Room select because CCS and Tags also render
+    // their own "(no values yet)" placeholder when their option arrays are
+    // empty (the default in this render).
+    const roomSelect = screen.getByLabelText("Room filter");
+    expect(within(roomSelect).getByText(/no values yet/i)).toBeInTheDocument();
+  });
+
+  it("enables the CCS dropdown when ccsStatusOptions are supplied", () => {
+    render(
+      <ChildrenFilters
+        filters={baseFilters}
+        onChange={() => {}}
+        ccsStatusOptions={["eligible", "pending"]}
+      />,
+    );
+    const select = screen.getByLabelText(
+      "CCS status filter",
+    ) as HTMLSelectElement;
+    expect(select.disabled).toBe(false);
+  });
+
+  it("enables the tags multi-select when tagOptions are supplied", () => {
+    render(
+      <ChildrenFilters
+        filters={baseFilters}
+        onChange={() => {}}
+        tagOptions={["siblings", "vip"]}
+      />,
+    );
+    const select = screen.getByLabelText("Tags filter") as HTMLSelectElement;
+    expect(select.disabled).toBe(false);
+    expect(select.multiple).toBe(true);
+  });
+
+  it("dispatches onChange with room value on selection", () => {
+    const onChange = vi.fn();
+    render(
+      <ChildrenFilters
+        filters={baseFilters}
+        onChange={onChange}
+        roomOptions={["R1", "R2"]}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Room filter"), {
+      target: { value: "R1" },
+    });
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ room: "R1" }),
+    );
   });
 });

@@ -14,10 +14,10 @@ const SORT_MAP: Record<string, { field: string; direction: "asc" | "desc" }> = {
 };
 
 /**
- * Days-of-week keys. Used for `?day=mon|tue|...` filtering. The Child model
- * does not yet expose a first-class day field, so filtering by day today is a
- * no-op at the SQL layer (see TODO below). We still accept + echo the query
- * param so the UI doesn't have to special-case it.
+ * Days-of-week keys. Used for `?day=mon|tue|...` filtering. Child has no
+ * first-class day column — the session days live inside
+ * `bookingPrefs.fortnightPattern` JSON — so this filter is applied in JS
+ * after the SQL fetch. See the post-fetch scan below.
  */
 const DAY_KEYS = new Set([
   "mon",
@@ -96,32 +96,26 @@ export const GET = withApiAuth(async (req) => {
     ];
   }
 
-  // Room filter — Child model has no first-class `room` column today; OWNA
-  // provides `ownaRoomName` for some records, so we use that when present.
-  // TODO(4b+): add a first-class `room` field or join on a Room model.
+  // Room filter — first-class Child.room column (4b). The old ownaRoomName
+  // fallback is intentionally dropped: Commit 3's UI derives room options
+  // only from Child.room, so filtering on ownaRoomName would let users
+  // pick a value that never matches.
   if (room) {
-    where.ownaRoomName = room;
+    where.room = room;
   }
 
-  // Day filter — currently a no-op at the DB layer. bookingPrefs is a Json
-  // blob so filtering by weekday requires application-level scanning; until a
-  // structured booking table exists we accept the param and skip SQL filtering.
-  // TODO(4b+): promote fortnightPattern days into a first-class column.
-  if (day && DAY_KEYS.has(day)) {
-    // intentional no-op — preserves API shape without breaking.
-  }
-
-  // CCS status — Child has no `ccsStatus` field yet; accept + ignore.
-  // TODO(4b+): add ccsStatus enum to Child when CCS pipeline lands.
+  // CCS status — first-class Child.ccsStatus column (4b).
   if (ccsStatus) {
-    // intentional no-op
+    where.ccsStatus = ccsStatus;
   }
 
-  // Tags — Child has no `tags` string[] field yet; accept + ignore.
-  // TODO(4b+): add `tags String[]` to Child and switch to `hasSome`.
+  // Tags — OR semantic via hasSome. Empty array skipped.
   if (tags.length > 0) {
-    // intentional no-op
+    where.tags = { hasSome: tags };
   }
+
+  // Day filter is applied after the DB fetch (see below) because
+  // bookingPrefs.fortnightPattern is JSON.
 
   const sortConfig = SORT_MAP[sortBy];
   const orderBy = sortConfig
@@ -149,10 +143,32 @@ export const GET = withApiAuth(async (req) => {
     prisma.child.count({ where }),
   ]);
 
+  // Day filter — applied after SQL fetch because fortnightPattern is JSON.
+  // Acceptable at <2000 children per service. When applied, `total` reflects
+  // the filtered result (not the DB count) so pagination stays honest.
+  let dayFiltered = children;
+  const dayFilterApplied = Boolean(day && DAY_KEYS.has(day));
+  if (dayFilterApplied) {
+    dayFiltered = children.filter((c) => {
+      const prefs = (c as unknown as { bookingPrefs?: unknown }).bookingPrefs as
+        | { fortnightPattern?: { week1?: Record<string, string[]>; week2?: Record<string, string[]> } }
+        | null
+        | undefined;
+      const fp = prefs?.fortnightPattern;
+      if (!fp) return false;
+      const weeks = [fp.week1, fp.week2].filter(Boolean) as Record<string, string[]>[];
+      return weeks.some((week) =>
+        Object.values(week).some(
+          (days) => Array.isArray(days) && days.includes(day),
+        ),
+      );
+    });
+  }
+
   // If the caller asked for hydrated parents, normalise them from the JSON
   // fields on the enrolment. Otherwise keep the existing response shape.
   const hydrated = includeParents
-    ? children.map((child) => {
+    ? dayFiltered.map((child) => {
         const enrolment = (child as unknown as { enrolment?: { primaryParent?: unknown; secondaryParent?: unknown } }).enrolment;
         const parents: NormalisedParent[] = [];
         const primary = toParent(enrolment?.primaryParent, true);
@@ -161,7 +177,10 @@ export const GET = withApiAuth(async (req) => {
         if (secondary) parents.push(secondary);
         return { ...child, parents };
       })
-    : children;
+    : dayFiltered;
 
-  return NextResponse.json({ children: hydrated, total });
+  return NextResponse.json({
+    children: hydrated,
+    total: dayFilterApplied ? dayFiltered.length : total,
+  });
 });

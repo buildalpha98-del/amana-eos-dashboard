@@ -11,7 +11,14 @@ import { logger } from "@/lib/logger";
 
 // GET /api/rocks — list rocks with optional quarter filter
 export const GET = withApiAuth(async (req, session) => {
-const scope = getServiceScope(session);
+  // Rocks are EOS-wide OKRs: coordinators and marketing retain cross-service
+  // visibility regardless of their serviceId. See 4b scope audit at
+  // docs/superpowers/plans/2026-04-22-services-daily-ops-4b-scope-audit.md#12.
+  const role = session!.user.role as string;
+  const scope =
+    role === "coordinator" || role === "marketing"
+      ? null
+      : getServiceScope(session);
   const stateScope = getStateScope(session);
   const { searchParams } = new URL(req.url);
   const quarter = searchParams.get("quarter");

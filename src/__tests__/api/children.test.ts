@@ -175,17 +175,18 @@ describe("GET /api/children — new filter params", () => {
     expect(call.orderBy).toEqual({ createdAt: "desc" });
   });
 
-  it("?room=Sunshine filters on ownaRoomName", async () => {
+  it("?room=Sunshine filters on Child.room (4b — dropped ownaRoomName fallback)", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.child.findMany.mockResolvedValue([]);
     prismaMock.child.count.mockResolvedValue(0);
 
     await GET(createRequest("GET", "/api/children?room=Sunshine"));
     const call = prismaMock.child.findMany.mock.calls[0][0];
-    expect(call.where.ownaRoomName).toBe("Sunshine");
+    expect(call.where.room).toBe("Sunshine");
+    expect(call.where.ownaRoomName).toBeUndefined();
   });
 
-  it("?day + ?ccsStatus + ?tags are accepted but currently no-op on the DB", async () => {
+  it("?ccsStatus + ?tags are forwarded to SQL (4b — previously no-op)", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.child.findMany.mockResolvedValue([]);
     prismaMock.child.count.mockResolvedValue(0);
@@ -193,16 +194,14 @@ describe("GET /api/children — new filter params", () => {
     const res = await GET(
       createRequest(
         "GET",
-        "/api/children?day=mon&ccsStatus=eligible&tags=special&tags=priority",
+        "/api/children?ccsStatus=eligible&tags=special&tags=priority",
       ),
     );
     expect(res.status).toBe(200);
 
     const call = prismaMock.child.findMany.mock.calls[0][0];
-    // These fields don't exist in the Child model yet. We just make sure we
-    // don't crash or add phantom where clauses for them.
-    expect(call.where.ccsStatus).toBeUndefined();
-    expect(call.where.tags).toBeUndefined();
+    expect(call.where.ccsStatus).toBe("eligible");
+    expect(call.where.tags).toEqual({ hasSome: ["special", "priority"] });
   });
 });
 

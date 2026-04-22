@@ -229,4 +229,19 @@ describe("GET /api/children/[id]/attendances", () => {
     expect(data.records).toEqual([]);
     expect(data.stats.attendances).toBe(0);
   });
+
+  it("400 when range exceeds 366 days (abuse guard)", async () => {
+    mockSession({ id: "u1", name: "Owner", role: "owner", serviceId: null });
+    prismaMock.child.findUnique.mockResolvedValue({
+      id: "child-1",
+      serviceId: null,
+    });
+    const req = createRequest(
+      "GET",
+      "/api/children/child-1/attendances?from=2024-01-01&to=2025-06-01",
+    );
+    const res = await GET(req, ctx({ id: "child-1" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/range/i);
+  });
 });

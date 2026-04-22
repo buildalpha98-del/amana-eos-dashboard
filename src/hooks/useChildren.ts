@@ -64,6 +64,43 @@ interface ChildrenResponse {
   total: number;
 }
 
+/**
+ * Derive distinct, sorted filter option lists from a children result set.
+ *
+ * Only considers `Child.room` — NOT `ownaRoomName`. The `/api/children`
+ * filter added in Commit 2 matches on `Child.room`, so surfacing OWNA-only
+ * values here would produce empty result sets when the user selects them.
+ *
+ * OWNA-synced services need a one-off backfill
+ * (`UPDATE "Child" SET "room" = "ownaRoomName" WHERE "room" IS NULL AND
+ * "ownaRoomName" IS NOT NULL;`) before their room dropdown populates.
+ */
+export function deriveFilterOptions(
+  children: Array<{
+    room?: string | null;
+    ccsStatus?: string | null;
+    tags?: string[] | null;
+  }>,
+): {
+  roomOptions: string[];
+  ccsStatusOptions: string[];
+  tagOptions: string[];
+} {
+  const rooms = new Set<string>();
+  const ccs = new Set<string>();
+  const tags = new Set<string>();
+  for (const c of children) {
+    if (c.room) rooms.add(c.room);
+    if (c.ccsStatus) ccs.add(c.ccsStatus);
+    for (const t of c.tags ?? []) tags.add(t);
+  }
+  return {
+    roomOptions: [...rooms].sort(),
+    ccsStatusOptions: [...ccs].sort(),
+    tagOptions: [...tags].sort(),
+  };
+}
+
 export interface ChildrenFilters {
   serviceId?: string;
   room?: string;
