@@ -1,7 +1,9 @@
 # Dashboard Bug-Fix & Feature-Completion Roadmap
 
 **Date**: 2026-04-20
-**Status**: In progress
+**Status**: 🟢 **9 of 10 sub-projects shipped** — only 8b remains outstanding
+**Last updated**: 2026-04-22 (post-#25 merge)
+**Current snapshot**: [`docs/superpowers/project-status-2026-04-22.md`](../project-status-2026-04-22.md)
 **Scope source**: Jayden's issue dump on 2026-04-20 (~50 user-reported items) + proactive codebase audit (4 investigation agents)
 
 ## Problem statement
@@ -19,18 +21,25 @@ Three verification questions answered, additional bugs catalogued. See session t
 
 ## Sub-project order and scope
 
-| # | Name | Type | Status | Spec |
-|---|------|------|--------|------|
+| # | Name | Type | Status | Merge |
+|---|------|------|--------|-------|
 | 0 | Investigation | read-only | ✅ done | (this doc) |
-| 1 | **P0 Visible Bug Batch** | bug fix | 🏗️ design | `2026-04-20-p0-bug-batch-design.md` |
-| 2 | Hygiene Sweep | systemic refactor | ⏳ queued | TBD |
-| 3 | Staff / People Module Rebuild | feature | ⏳ queued | TBD |
-| 4 | Services / Daily Ops Rebuild | feature | ⏳ queued | TBD |
-| 5 | Documents / Policies / Compliance | feature | ⏳ queued | TBD |
-| 6 | Contracts + Recruitment Rebuild | feature | ⏳ queued | TBD |
-| 7 | Portal & Enrolment Flow | feature | ⏳ queued | TBD |
-| 8 | AI / Queue / Onboarding / Meetings / Issues / Report Issue inbox | feature | ⏳ queued | TBD |
-| 9 | Scorecard + Contact Centre + Leadership Team Centre + Pulse admin visibility | feature | ⏳ queued | TBD |
+| 1 | P0 Visible Bug Batch | bug fix | ✅ shipped | `dd0a1d9` |
+| 2 | Hygiene Sweep | systemic refactor | ✅ shipped | `2ca8289` |
+| 3a | Staff — Profile + Compliance | feature | ✅ shipped | `39164df` |
+| 3b | Staff — Rostering | feature | ✅ shipped | `38fd0b2` |
+| 4a | Services / Daily Ops Part 1 | feature | ✅ shipped | `884ef6b` (PR #21) |
+| 4b | Services / Daily Ops Part 2 | feature | ✅ shipped | `e1b5642` (PR #23) |
+| 5 | Documents / Policies / Compliance | feature | ✅ shipped | `c3cf585` (PR #16) |
+| 6 | Contracts + Recruitment Rebuild | feature | ✅ shipped | `6fefa69` (PR #25) |
+| 7 | Portal & Enrolment Flow | feature | ✅ shipped | PR #15 |
+| 8a | Report Issue admin inbox | feature | ✅ shipped | `07bfc03` (PR #22) |
+| **8b** | AI drafts dashboard + meetings/onboarding decomposition + zero-test coverage | feature | **🚧 outstanding** | — |
+| 9 | Scorecard / Contact Centre / Leadership / Pulse admin | feature | ✅ shipped | — |
+
+Sub-project 4 split into **4a** + **4b**; sub-project 8 split into **8a** + **8b** — both for scope manageability. See the matching design docs under `docs/superpowers/specs/`.
+
+**Current state:** 1823 tests passing, 0 tsc errors, build clean.
 
 Ordering rationale: **1 first** — fastest restoration of broken flows. **2 next** — systemic hygiene gives every following sub-project a clean base. **3–9** prioritised by user-pain and dependency.
 
