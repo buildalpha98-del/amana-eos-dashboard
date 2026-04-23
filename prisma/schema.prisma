@@ -3254,6 +3254,7 @@ model CentreContact {
   conversations         Conversation[]
   enrolmentApplications EnrolmentApplication[] @relation("ContactEnrolmentApplications")
   authTokens            ParentAuthToken[]      @relation("ContactAuthTokens")
+  pushSubscriptions     PushSubscription[]     @relation("ContactPushSubscriptions")
   onboardingProgress    Json? // { profile, medical, documents, pickups, installed }
   parentPostLikes       ParentPostLike[]       @relation("ParentPostLikes")
   parentPostComments    ParentPostComment[]    @relation("ParentPostComments")
@@ -5244,13 +5245,16 @@ model UserNotification {
 // ============================================================
 
 model PushSubscription {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   userId    String? // Staff user
   familyId  String? // Parent CentreContact
-  endpoint  String   @unique
+  family    CentreContact? @relation("ContactPushSubscriptions", fields: [familyId], references: [id], onDelete: Cascade)
+  endpoint  String         @unique
   p256dh    String
   auth      String
-  createdAt DateTime @default(now())
+  userAgent String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
   @@index([userId])
   @@index([familyId])
