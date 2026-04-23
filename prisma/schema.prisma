@@ -5108,6 +5108,7 @@ model Message {
   id             String    @id @default(cuid())
   conversationId String
   body           String    @db.Text
+  attachmentUrls String[]  @default([])
   senderType     String // "staff" | "parent"
   senderId       String // User.id or CentreContact.id depending on senderType
   senderName     String // Denormalised for display
