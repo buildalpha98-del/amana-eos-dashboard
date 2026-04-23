@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useIssues, useBulkIssueAction } from "@/hooks/useIssues";
 import { useQuery } from "@tanstack/react-query";
-import { IssueCard } from "@/components/issues/IssueCard";
+import { IssueCard, type IssueCardOpenOpts } from "@/components/issues/IssueCard";
 import { IssueKanban } from "@/components/issues/IssueKanban";
 import { IssueDetailPanel } from "@/components/issues/IssueDetailPanel";
 import { CreateIssueModal } from "@/components/issues/CreateIssueModal";
@@ -51,6 +51,17 @@ const statusTabs = [
 export default function IssuesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detailFocus, setDetailFocus] = useState<IssueCardOpenOpts["focus"] | undefined>(undefined);
+
+  const openDetail = useCallback((id: string, opts?: IssueCardOpenOpts) => {
+    setSelectedId(id);
+    setDetailFocus(opts?.focus);
+  }, []);
+
+  const closeDetail = useCallback(() => {
+    setSelectedId(null);
+    setDetailFocus(undefined);
+  }, []);
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("");
@@ -412,7 +423,7 @@ export default function IssuesPage() {
         </div>
       ) : issues && issues.length > 0 ? (
         viewMode === "board" ? (
-          <IssueKanban issues={filteredIssues} onSelect={setSelectedId} showClosed={showArchived} />
+          <IssueKanban issues={filteredIssues} onSelect={openDetail} showClosed={showArchived} />
         ) : (
           /* List View with checkboxes */
           <div className="space-y-2">
@@ -447,7 +458,7 @@ export default function IssuesPage() {
                 <div className="flex-1 min-w-0">
                   <IssueCard
                     issue={issue}
-                    onClick={() => setSelectedId(issue.id)}
+                    onClick={(opts) => openDetail(issue.id, opts)}
                   />
                 </div>
               </div>
@@ -574,7 +585,8 @@ export default function IssuesPage() {
       <IssueDetailPanel
         open={!!selectedId}
         issueId={selectedId ?? ""}
-        onClose={() => setSelectedId(null)}
+        onClose={closeDetail}
+        focus={detailFocus}
       />
     </div>
   );

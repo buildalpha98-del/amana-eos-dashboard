@@ -41,10 +41,12 @@ export function IssueDetailPanel({
   open,
   issueId,
   onClose,
+  focus,
 }: {
   open: boolean;
   issueId: string;
   onClose: () => void;
+  focus?: "spawnedTodos";
 }) {
   const { data: issue, isLoading } = useIssue(issueId);
   const updateIssue = useUpdateIssue();
@@ -70,6 +72,22 @@ export function IssueDetailPanel({
       setResolution(issue.resolution || "");
     }
   }, [issue]);
+
+  // When opened with focus="spawnedTodos", scroll the list into view.
+  // Runs after the issue loads so the section is rendered.
+  useEffect(() => {
+    if (!open || !issue || focus !== "spawnedTodos") return;
+    const el =
+      typeof document !== "undefined"
+        ? document.getElementById("issue-spawned-todos")
+        : null;
+    if (!el) return;
+    // Defer to the next frame so the sheet transition doesn't fight the scroll.
+    const raf = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [open, issue, focus]);
 
   const { data: users } = useQuery<UserOption[]>({
     queryKey: ["users-list"],
@@ -460,7 +478,7 @@ export function IssueDetailPanel({
           </div>
 
           {/* Spawned Todos */}
-          <div>
+          <div id="issue-spawned-todos" className="scroll-mt-4">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-medium text-muted uppercase tracking-wider">
                 Spawned To-Dos{issue.spawnedTodos && issue.spawnedTodos.length > 0 ? ` (${issue.spawnedTodos.length})` : ""}

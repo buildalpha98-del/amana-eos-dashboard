@@ -21,7 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
 import type { IssueData } from "@/hooks/useIssues";
 import { useUpdateIssue } from "@/hooks/useIssues";
-import { IssueCard } from "./IssueCard";
+import { IssueCard, type IssueCardOpenOpts } from "./IssueCard";
 import type { IssueStatus } from "@prisma/client";
 import { AlertTriangle, MessageSquare, CheckCircle2, XCircle } from "lucide-react";
 
@@ -46,7 +46,7 @@ function DroppableColumn({
 }: {
   column: (typeof activeColumns)[0];
   issues: IssueData[];
-  onIssueClick: (id: string) => void;
+  onIssueClick: (id: string, opts?: IssueCardOpenOpts) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const Icon = column.icon;
@@ -77,7 +77,7 @@ function DroppableColumn({
             <SortableIssueCard
               key={issue.id}
               issue={issue}
-              onClick={() => onIssueClick(issue.id)}
+              onClick={(opts) => onIssueClick(issue.id, opts)}
             />
           ))}
         </SortableContext>
@@ -97,7 +97,7 @@ function SortableIssueCard({
   onClick,
 }: {
   issue: IssueData;
-  onClick: () => void;
+  onClick: (opts?: IssueCardOpenOpts) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: issue.id });
@@ -120,7 +120,7 @@ export function IssueKanban({
   showClosed = false,
 }: {
   issues: IssueData[];
-  onSelect: (id: string) => void;
+  onSelect: (id: string, opts?: IssueCardOpenOpts) => void;
   showClosed?: boolean;
 }) {
   const [activeIssue, setActiveIssue] = useState<IssueData | null>(null);
