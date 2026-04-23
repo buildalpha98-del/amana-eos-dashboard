@@ -220,6 +220,40 @@ describe("POST /api/audits/templates/[id]/apply", () => {
     expect(data.unknownServiceIds).toEqual(["svc-ghost"]);
   });
 
+  it("creates instances with totalItems: 0 when template has no items", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+
+    prismaMock.auditTemplate.findUnique.mockResolvedValue({
+      id: "tpl-1",
+      name: "Template 1",
+      scheduledMonths: [4],
+      items: [], // no checklist items yet
+    });
+
+    prismaMock.service.findMany.mockResolvedValue([
+      { id: "svc-1", name: "Service 1", status: "active" },
+    ]);
+
+    prismaMock.auditInstance.findUnique.mockResolvedValue(null);
+    prismaMock.auditInstance.create.mockResolvedValue({});
+
+    const req = createRequest(
+      "POST",
+      "/api/audits/templates/tpl-1/apply",
+      { body: { serviceIds: ["svc-1"], year: 2026 } },
+    );
+    const res = await APPLY_POST(req, ctx);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.created).toBe(1);
+
+    const createCall = prismaMock.auditInstance.create.mock.calls[0][0];
+    expect(createCall.data.totalItems).toBe(0);
+    // No responses seeded when template has no items
+    expect(createCall.data.responses.create).toEqual([]);
+  });
+
   it("writes an ActivityLog entry on success", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
 

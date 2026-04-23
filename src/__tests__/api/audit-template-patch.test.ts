@@ -203,4 +203,78 @@ describe("PATCH /api/audits/templates/[id] — respread flag", () => {
     const res = await TEMPLATE_PATCH(req, ctx);
     expect(res.status).toBe(409);
   });
+
+  it("never touches in-progress or completed instances on respread", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+
+    prismaMock.auditTemplate.update.mockResolvedValue({
+      id: "tpl-1",
+      name: "Template 1",
+      scheduledMonths: [3, 9],
+      items: [],
+      _count: { instances: 3 },
+    });
+
+    // findMany is called with status: "scheduled" — simulate the DB filter by
+    // returning only the scheduled instance, not the in_progress/completed ones.
+    // This proves the route uses the status filter; if it didn't, the mock would
+    // also return those rows and they'd get deleted.
+    prismaMock.auditInstance.findMany.mockImplementation((args: any) => {
+      expect(args.where.status).toBe("scheduled");
+      return Promise.resolve([
+        {
+          id: "inst-sched",
+          serviceId: "svc-1",
+          scheduledMonth: 5,
+          scheduledYear: futureDate.getFullYear(),
+          status: "scheduled",
+          dueDate: futureDate,
+        },
+      ]);
+    });
+    prismaMock.auditInstance.deleteMany.mockResolvedValue({ count: 1 });
+    prismaMock.auditInstance.findUnique.mockResolvedValue(null);
+    prismaMock.auditInstance.create.mockResolvedValue({});
+
+    const req = createRequest(
+      "PATCH",
+      "/api/audits/templates/tpl-1",
+      { body: { scheduledMonths: [3, 9], respreadFutureInstances: true } },
+    );
+    const res = await TEMPLATE_PATCH(req, ctx);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.respread.deleted).toBe(1);
+  });
+
+  it("never touches past-due instances on respread (dueDate filter)", async () => {
+    mockSession({ id: "admin-1", name: "Admin", role: "admin" });
+
+    prismaMock.auditTemplate.update.mockResolvedValue({
+      id: "tpl-1",
+      name: "Template 1",
+      scheduledMonths: [3, 9],
+      items: [],
+      _count: { instances: 1 },
+    });
+
+    prismaMock.auditInstance.findMany.mockImplementation((args: any) => {
+      // Confirm the route filters on dueDate >= now
+      expect(args.where.dueDate).toHaveProperty("gte");
+      // Simulate DB returning nothing because the only instance had a past dueDate
+      return Promise.resolve([]);
+    });
+
+    const req = createRequest(
+      "PATCH",
+      "/api/audits/templates/tpl-1",
+      { body: { scheduledMonths: [3, 9], respreadFutureInstances: true } },
+    );
+    const res = await TEMPLATE_PATCH(req, ctx);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.respread.deleted).toBe(0);
+    expect(data.respread.recreated).toBe(0);
+    expect(prismaMock.auditInstance.deleteMany).not.toHaveBeenCalled();
+  });
 });
