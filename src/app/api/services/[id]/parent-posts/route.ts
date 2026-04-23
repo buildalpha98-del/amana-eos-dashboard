@@ -38,11 +38,15 @@ export const GET = withApiAuth(async (req, session, context) => {
           child: { select: { id: true, firstName: true, surname: true } },
         },
       },
+      _count: { select: { likes: true, comments: true } },
     },
   });
 
   const hasMore = posts.length > limit;
-  const items = hasMore ? posts.slice(0, limit) : posts;
+  const items = (hasMore ? posts.slice(0, limit) : posts).map((p) => {
+    const { _count, ...rest } = p;
+    return { ...rest, likeCount: _count.likes, commentCount: _count.comments };
+  });
   const nextCursor = hasMore ? items[items.length - 1]?.id : undefined;
 
   return NextResponse.json({ items, nextCursor });

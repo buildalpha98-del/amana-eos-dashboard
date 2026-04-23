@@ -54,7 +54,14 @@ describe("GET /api/services/[id]/parent-posts", () => {
   it("returns posts for the correct service", async () => {
     mockSession({ id: "user-1", name: "Test", role: "admin", serviceId: SERVICE_ID });
     prismaMock.parentPost.findMany.mockResolvedValue([
-      { id: "p-1", title: "Test Post", content: "Hello", type: "observation", tags: [] },
+      {
+        id: "p-1",
+        title: "Test Post",
+        content: "Hello",
+        type: "observation",
+        tags: [],
+        _count: { likes: 3, comments: 2 },
+      },
     ]);
     const req = createRequest("GET", `/api/services/${SERVICE_ID}/parent-posts`);
     const res = await GET(req, context);
@@ -62,6 +69,8 @@ describe("GET /api/services/[id]/parent-posts", () => {
     const body = await res.json();
     expect(body.items).toHaveLength(1);
     expect(body.items[0].title).toBe("Test Post");
+    expect(body.items[0].likeCount).toBe(3);
+    expect(body.items[0].commentCount).toBe(2);
   });
 });
 
