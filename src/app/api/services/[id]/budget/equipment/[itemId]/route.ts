@@ -36,6 +36,30 @@ const { id, itemId } = await context!.params!;
   }
 
   const data = parsed.data;
+
+  // Enforce: the "Other" category needs a non-empty description.
+  // Applied to the merged post-update state so a PATCH can't leave the item
+  // in an invalid state by e.g. flipping category without clearing notes.
+  const effectiveCategory = data.category ?? existing.category;
+  const effectiveNotes =
+    data.notes !== undefined ? data.notes : existing.notes;
+  if (
+    effectiveCategory === "other" &&
+    (!effectiveNotes || effectiveNotes.trim().length === 0)
+  ) {
+    return NextResponse.json(
+      {
+        error: {
+          fieldErrors: {
+            notes: [
+              "Please describe what this item is — the Other category needs a description for later reporting.",
+            ],
+          },
+        },
+      },
+      { status: 400 }
+    );
+  }
   const updateData: Record<string, unknown> = {};
   if (data.name !== undefined) updateData.name = data.name;
   if (data.amount !== undefined) updateData.amount = data.amount;

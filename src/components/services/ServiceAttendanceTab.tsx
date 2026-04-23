@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { Fragment, useState, useMemo, useCallback, useEffect } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   Users,
@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   Printer,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImportWizard, type ColumnConfig } from "@/components/import/ImportWizard";
@@ -25,13 +26,22 @@ import {
   useAttendance,
   useAttendanceSummary,
   useBatchUpdateAttendance,
+  useCreateAttendance,
   type AttendanceInput,
 } from "@/hooks/useAttendance";
+import { useService } from "@/hooks/useServices";
+import {
+  SESSION_LABELS,
+  SESSION_ORDER,
+  BOOKING_TYPE_LABELS,
+} from "@/lib/session-labels";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { StatCard } from "@/components/ui/StatCard";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { AiButton } from "@/components/ui/AiButton";
+import { BookingInput } from "@/components/services/attendance/BookingInput";
+import type { SessionType } from "@prisma/client";
 import {
   LineChart,
   Line,
@@ -79,21 +89,57 @@ function formatDate(d: Date): string {
   return d.toISOString().split("T")[0];
 }
 
+function formatDayLabel(d: Date): string {
+  return d.toLocaleDateString("en-AU", { weekday: "short" });
+}
+
 function formatDateLabel(d: Date): string {
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
 
-type GridRow = {
-  day: string;
-  date: Date;
-  bsc: { enrolled: number; attended: number };
-  asc: { enrolled: number; attended: number };
-};
+/**
+ * Remember the Holiday Quest toggle state per centre so coordinators don't
+ * have to re-enable it every time during holiday weeks.
+ */
+function readLocalBool(key: string, defaultValue: boolean): boolean {
+  if (typeof window === "undefined") return defaultValue;
+  try {
+    const stored = window.localStorage.getItem(key);
+    return stored === null ? defaultValue : stored === "true";
+  } catch {
+    return defaultValue;
+  }
+}
 
-/** Build print-optimized HTML for attendance and trigger window.print() */
+function useLocalBoolPref(key: string, defaultValue: boolean) {
+  const [value, setValue] = useState<boolean>(() => readLocalBool(key, defaultValue));
+  const update = useCallback(
+    (v: boolean) => {
+      setValue(v);
+      if (typeof window === "undefined") return;
+      try {
+        window.localStorage.setItem(key, String(v));
+      } catch {
+        /* localStorage unavailable — state remains in-memory only */
+      }
+    },
+    [key]
+  );
+  return [value, update] as const;
+}
+
+type CellValues = { permanent: number; casual: number };
+
+function buildCellKey(dateStr: string, session: SessionType): string {
+  return `${dateStr}|${session}`;
+}
+
+/** Print-optimised HTML for the flipped attendance grid. */
 function printAttendance(
-  grid: GridRow[],
+  sessions: SessionType[],
+  cells: Record<string, CellValues>,
   weekDates: Date[],
+  capacity: number | null,
   serviceName?: string
 ) {
   const today = new Date().toLocaleDateString("en-AU", {
@@ -108,28 +154,53 @@ function printAttendance(
     year: "numeric",
   });
 
-  const printContainer = document.createElement("div");
-  printContainer.id = "print-attendance-container";
-  printContainer.className = "print-only";
+  const headerCells = weekDates
+    .map(
+      (d) =>
+        `<th>${formatDayLabel(d)} ${formatDateLabel(d)}</th>`
+    )
+    .join("");
 
-  let rows = "";
-  for (const row of grid) {
-    const dateLabel = row.date.toLocaleDateString("en-AU", {
-      day: "numeric",
-      month: "short",
-    });
-    rows += `
-      <tr>
-        <td style="font-weight: 600; text-align: left;">${row.day} ${dateLabel}</td>
-        <td>${row.bsc.enrolled}</td>
-        <td>${row.bsc.attended}</td>
-        <td>${row.asc.enrolled}</td>
-        <td>${row.asc.attended}</td>
-      </tr>
-    `;
-  }
+  const sessionRows = sessions
+    .map((session) => {
+      const permRow = weekDates
+        .map((d) => {
+          const v = cells[buildCellKey(formatDate(d), session)];
+          return `<td>${v?.permanent ?? 0}</td>`;
+        })
+        .join("");
+      const casualRow = weekDates
+        .map((d) => {
+          const v = cells[buildCellKey(formatDate(d), session)];
+          return `<td>${v?.casual ?? 0}</td>`;
+        })
+        .join("");
+      return `
+        <tr class="session-header"><td colspan="6">${SESSION_LABELS[session]}</td></tr>
+        <tr><td class="sub">${BOOKING_TYPE_LABELS.permanent}</td>${permRow}</tr>
+        <tr><td class="sub">${BOOKING_TYPE_LABELS.casual}</td>${casualRow}</tr>
+      `;
+    })
+    .join("");
 
-  printContainer.innerHTML = `
+  const totalsRow = weekDates
+    .map((d) => {
+      let t = 0;
+      for (const s of sessions) {
+        const v = cells[buildCellKey(formatDate(d), s)];
+        t += (v?.permanent ?? 0) + (v?.casual ?? 0);
+      }
+      return `<td>${t}</td>`;
+    })
+    .join("");
+  const capacityRow = weekDates
+    .map(() => `<td>${capacity ?? "—"}</td>`)
+    .join("");
+
+  const container = document.createElement("div");
+  container.id = "print-attendance-container";
+  container.className = "print-only";
+  container.innerHTML = `
     <div class="print-header">
       <div class="print-header-brand">Amana OSHC</div>
       <div class="print-header-subtitle">${serviceName || "Centre"} &mdash; Weekly Attendance</div>
@@ -137,39 +208,36 @@ function printAttendance(
     </div>
     <table class="print-attendance-table">
       <thead>
-        <tr>
-          <th style="text-align: left;">Day</th>
-          <th colspan="2">BSC (Before School)</th>
-          <th colspan="2">ASC (After School)</th>
-        </tr>
-        <tr>
-          <th></th>
-          <th>Permanent</th>
-          <th>Casual</th>
-          <th>Permanent</th>
-          <th>Casual</th>
-        </tr>
+        <tr><th style="text-align: left;">Session</th>${headerCells}</tr>
       </thead>
-      <tbody>
-        ${rows}
-      </tbody>
+      <tbody>${sessionRows}</tbody>
+      <tfoot>
+        <tr class="totals"><td class="sub">Total bookings</td>${totalsRow}</tr>
+        <tr class="capacity"><td class="sub">Approved places</td>${capacityRow}</tr>
+      </tfoot>
     </table>
     <div class="print-footer print-only">Amana OSHC - ${serviceName || "Centre"} - Printed ${today}</div>
   `;
 
-  document.body.appendChild(printContainer);
+  document.body.appendChild(container);
   window.print();
   setTimeout(() => {
-    document.body.removeChild(printContainer);
+    document.body.removeChild(container);
   }, 1000);
 }
 
 export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
-  const anomalyQC = useQueryClient();
+  const queryClient = useQueryClient();
   const [weekOffset, setWeekOffset] = useState(0);
-  const [showVC, setShowVC] = useState(false);
+  const [showHolidayQuest, setShowHolidayQuest] = useLocalBoolPref(
+    `attendance-show-holiday-quest:${serviceId}`,
+    false
+  );
   const [showImportAttendance, setShowImportAttendance] = useState(false);
   const [showPropagateConfirm, setShowPropagateConfirm] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">(
+    "idle"
+  );
   const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
   const from = formatDate(weekDates[0]);
   const to = formatDate(weekDates[4]);
@@ -180,6 +248,9 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
     d.setDate(d.getDate() - 91);
     return formatDate(d);
   }, []);
+
+  const { data: service } = useService(serviceId);
+  const approvedPlaces = service?.capacity ?? null;
 
   const { data: records, isLoading: loadingRecords } = useAttendance({
     serviceId,
@@ -195,6 +266,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
     });
 
   const batchUpdate = useBatchUpdateAttendance();
+  const singleUpsert = useCreateAttendance();
 
   const propagateMutation = useMutation({
     mutationFn: async () => {
@@ -210,7 +282,10 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
       return res.json();
     },
     onSuccess: (data) => {
-      toast({ description: `Permanent counts propagated to future weeks (${data.propagated} records)` });
+      toast({
+        description: `Permanent counts propagated to future weeks (${data.propagated} records)`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["budget-summary", serviceId] });
     },
     onError: () => {
       toast({ description: "Failed to propagate permanent counts" });
@@ -223,7 +298,9 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
   const { data: anomalies } = useQuery({
     queryKey: ["attendance-anomalies", serviceId],
     queryFn: async () => {
-      const res = await fetch(`/api/attendance/anomalies?serviceId=${serviceId}&dismissed=false`);
+      const res = await fetch(
+        `/api/attendance/anomalies?serviceId=${serviceId}&dismissed=false`
+      );
       if (!res.ok) return [];
       return res.json();
     },
@@ -235,7 +312,9 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dismissed: true }),
     });
-    anomalyQC.invalidateQueries({ queryKey: ["attendance-anomalies", serviceId] });
+    queryClient.invalidateQueries({
+      queryKey: ["attendance-anomalies", serviceId],
+    });
   };
 
   // Demand forecast state
@@ -260,7 +339,8 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
       setForecastExpanded(true);
     } catch (err) {
       toast({
-        description: err instanceof Error ? err.message : "Failed to generate forecast",
+        description:
+          err instanceof Error ? err.message : "Failed to generate forecast",
         variant: "destructive",
       });
     } finally {
@@ -268,69 +348,146 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
     }
   };
 
-  // Build editable grid state from server data
-  const [gridEdits, setGridEdits] = useState<Record<string, number>>({});
-
-  const grid: GridRow[] = useMemo(() => {
-    return weekDates.map((date, i) => {
-      const dateStr = formatDate(date);
-      const bscRecord = records?.find(
-        (r) =>
-          r.date.startsWith(dateStr) && r.sessionType === "bsc"
-      );
-      const ascRecord = records?.find(
-        (r) =>
-          r.date.startsWith(dateStr) && r.sessionType === "asc"
-      );
-
-      return {
-        day: DAYS[i],
-        date,
-        bsc: {
-          enrolled: gridEdits[`${dateStr}-bsc-enrolled`] ?? bscRecord?.enrolled ?? 0,
-          attended: gridEdits[`${dateStr}-bsc-attended`] ?? bscRecord?.attended ?? 0,
-        },
-        asc: {
-          enrolled: gridEdits[`${dateStr}-asc-enrolled`] ?? ascRecord?.enrolled ?? 0,
-          attended: gridEdits[`${dateStr}-asc-attended`] ?? ascRecord?.attended ?? 0,
-        },
-      };
-    });
-  }, [weekDates, records, gridEdits]);
-
-  const handleCellChange = useCallback(
-    (dateStr: string, session: string, field: string, value: number) => {
-      setGridEdits((prev) => ({ ...prev, [`${dateStr}-${session}-${field}`]: value }));
-    },
-    []
+  const visibleSessions = useMemo<SessionType[]>(
+    () =>
+      showHolidayQuest
+        ? SESSION_ORDER
+        : SESSION_ORDER.filter((s) => s !== "vc"),
+    [showHolidayQuest]
   );
 
-  const isDirty = Object.keys(gridEdits).length > 0;
+  // Build the cell map from server data + any unsaved edits
+  const [pendingEdits, setPendingEdits] = useState<Record<string, CellValues>>(
+    {}
+  );
 
+  const cells = useMemo<Record<string, CellValues>>(() => {
+    const out: Record<string, CellValues> = {};
+    for (const date of weekDates) {
+      const dateStr = formatDate(date);
+      for (const session of SESSION_ORDER) {
+        const key = buildCellKey(dateStr, session);
+        if (pendingEdits[key]) {
+          out[key] = pendingEdits[key];
+          continue;
+        }
+        const rec = records?.find(
+          (r) => r.date.startsWith(dateStr) && r.sessionType === session
+        );
+        out[key] = {
+          permanent: rec?.enrolled ?? 0,
+          casual: rec?.attended ?? 0,
+        };
+      }
+    }
+    return out;
+  }, [weekDates, records, pendingEdits]);
+
+  // Reset saved-indicator back to idle after a moment
+  useEffect(() => {
+    if (saveState !== "saved") return;
+    const t = setTimeout(() => setSaveState("idle"), 1500);
+    return () => clearTimeout(t);
+  }, [saveState]);
+
+  const findExistingRecord = useCallback(
+    (dateStr: string, session: SessionType) => {
+      return records?.find(
+        (r) => r.date.startsWith(dateStr) && r.sessionType === session
+      );
+    },
+    [records]
+  );
+
+  /** Commit a single cell edit: optimistic UI + POST upsert. */
+  const handleCellCommit = useCallback(
+    (
+      date: Date,
+      session: SessionType,
+      field: "permanent" | "casual",
+      next: number
+    ) => {
+      const dateStr = formatDate(date);
+      const key = buildCellKey(dateStr, session);
+      const existing = findExistingRecord(dateStr, session);
+      const current: CellValues = cells[key] ?? { permanent: 0, casual: 0 };
+      const updated: CellValues = { ...current, [field]: next };
+
+      setPendingEdits((prev) => ({ ...prev, [key]: updated }));
+      setSaveState("saving");
+
+      const payload: AttendanceInput = {
+        serviceId,
+        date: dateStr,
+        sessionType: session,
+        enrolled: updated.permanent,
+        attended: updated.casual,
+        capacity: existing?.capacity ?? 0,
+        casual: existing?.casual ?? 0,
+        absent: existing?.absent ?? 0,
+      };
+
+      singleUpsert.mutate(payload, {
+        onSuccess: () => {
+          // Clear the pending edit so the authoritative server value wins
+          // after the list query refetches.
+          setPendingEdits((prev) => {
+            const { [key]: _ignored, ...rest } = prev;
+            return rest;
+          });
+          setSaveState("saved");
+        },
+        onError: () => {
+          setSaveState("error");
+        },
+      });
+    },
+    [cells, findExistingRecord, serviceId, singleUpsert]
+  );
+
+  /** Save Week: batch upsert every visible cell as a safety net. */
   const handleSave = async () => {
     const inputs: AttendanceInput[] = [];
-    for (const row of grid) {
-      const dateStr = formatDate(row.date);
-      inputs.push({
-        serviceId,
-        date: dateStr,
-        sessionType: "bsc" as const,
-        enrolled: row.bsc.enrolled,
-        attended: row.bsc.attended,
-        capacity: 0,
-      });
-      inputs.push({
-        serviceId,
-        date: dateStr,
-        sessionType: "asc" as const,
-        enrolled: row.asc.enrolled,
-        attended: row.asc.attended,
-        capacity: 0,
-      });
+    for (const date of weekDates) {
+      const dateStr = formatDate(date);
+      for (const session of visibleSessions) {
+        const key = buildCellKey(dateStr, session);
+        const v = cells[key] ?? { permanent: 0, casual: 0 };
+        const existing = findExistingRecord(dateStr, session);
+        inputs.push({
+          serviceId,
+          date: dateStr,
+          sessionType: session,
+          enrolled: v.permanent,
+          attended: v.casual,
+          capacity: existing?.capacity ?? 0,
+          casual: existing?.casual ?? 0,
+          absent: existing?.absent ?? 0,
+        });
+      }
     }
-    await batchUpdate.mutateAsync(inputs);
-    setGridEdits({});
+    setSaveState("saving");
+    try {
+      await batchUpdate.mutateAsync(inputs);
+      setPendingEdits({});
+      setSaveState("saved");
+      toast({ description: "Week saved" });
+    } catch {
+      setSaveState("error");
+    }
   };
+
+  const dayTotals = useMemo(() => {
+    return weekDates.map((date) => {
+      const dateStr = formatDate(date);
+      let total = 0;
+      for (const session of visibleSessions) {
+        const v = cells[buildCellKey(dateStr, session)];
+        total += (v?.permanent ?? 0) + (v?.casual ?? 0);
+      }
+      return total;
+    });
+  }, [weekDates, visibleSessions, cells]);
 
   // Trend chart data from summary
   const chartData = useMemo(() => {
@@ -392,25 +549,32 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
             </span>
           </div>
           <div className="space-y-2">
-            {anomalies.map((a: { id: string; severity: string; message: string }) => (
-              <div key={a.id} className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className={cn("inline-block w-2 h-2 rounded-full", {
-                    "bg-red-500": a.severity === "high",
-                    "bg-amber-500": a.severity === "medium",
-                    "bg-yellow-400": a.severity === "low",
-                  })} />
-                  <span className="text-sm text-amber-900">{a.message}</span>
-                </div>
-                <button
-                  onClick={() => handleDismissAnomaly(a.id)}
-                  className="text-amber-400 hover:text-amber-600 shrink-0"
-                  title="Dismiss"
+            {anomalies.map(
+              (a: { id: string; severity: string; message: string }) => (
+                <div
+                  key={a.id}
+                  className="flex items-start justify-between gap-2"
                 >
-                  <span className="text-xs">Dismiss</span>
-                </button>
-              </div>
-            ))}
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn("inline-block w-2 h-2 rounded-full", {
+                        "bg-red-500": a.severity === "high",
+                        "bg-amber-500": a.severity === "medium",
+                        "bg-yellow-400": a.severity === "low",
+                      })}
+                    />
+                    <span className="text-sm text-amber-900">{a.message}</span>
+                  </div>
+                  <button
+                    onClick={() => handleDismissAnomaly(a.id)}
+                    className="text-amber-400 hover:text-amber-600 shrink-0"
+                    title="Dismiss"
+                  >
+                    <span className="text-xs">Dismiss</span>
+                  </button>
+                </div>
+              )
+            )}
           </div>
         </div>
       )}
@@ -428,11 +592,23 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 templateSlug="hr/roster-suggestions"
                 variables={{
                   centreName: serviceName || "This centre",
-                  attendanceData: grid
-                    .map((r) => `${r.day}: BSC ${r.bsc.enrolled + r.bsc.attended} / ASC ${r.asc.enrolled + r.asc.attended}`)
+                  attendanceData: weekDates
+                    .map((d) => {
+                      const dateStr = formatDate(d);
+                      const bsc = cells[buildCellKey(dateStr, "bsc")] ?? {
+                        permanent: 0,
+                        casual: 0,
+                      };
+                      const asc = cells[buildCellKey(dateStr, "asc")] ?? {
+                        permanent: 0,
+                        casual: 0,
+                      };
+                      return `${formatDayLabel(d)}: BSC ${bsc.permanent + bsc.casual} / ASC ${asc.permanent + asc.casual}`;
+                    })
                     .join(", "),
                   staffData: "Check current roster for staff details",
-                  regulations: "1:15 ratio (school-age), 50% diploma-qualified per session (VIC)",
+                  regulations:
+                    "1:15 ratio (school-age), 50% diploma-qualified per session (VIC)",
                 }}
                 onResult={(text) => {
                   setRosterSuggestion(text);
@@ -450,7 +626,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                   forecastLoading
                     ? "border-amber-300 text-amber-700 bg-amber-50"
                     : "border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100",
-                  "disabled:cursor-not-allowed",
+                  "disabled:cursor-not-allowed"
                 )}
               >
                 {forecastLoading ? (
@@ -530,7 +706,9 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 {forecast}
               </div>
               <p className="text-xs text-purple-500 mt-3">
-                AI-generated forecast based on 13 weeks of attendance data and recent enquiry trends. Use as a guide alongside your own centre knowledge.
+                AI-generated forecast based on 13 weeks of attendance data and
+                recent enquiry trends. Use as a guide alongside your own centre
+                knowledge.
               </p>
             </div>
           )}
@@ -571,7 +749,9 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 {rosterSuggestion}
               </div>
               <p className="text-xs text-purple-500 mt-3">
-                AI-generated roster suggestions based on attendance patterns and regulatory requirements. Review with your coordinator before implementing.
+                AI-generated roster suggestions based on attendance patterns
+                and regulatory requirements. Review with your coordinator
+                before implementing.
               </p>
             </div>
           )}
@@ -598,25 +778,43 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <Calendar className="w-4 h-4 text-brand" />
-              <span className="hidden sm:inline">Week Starting {weekDates[0].toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
-              <span className="sm:hidden">{weekDates[0].toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span>
+              <span className="hidden sm:inline">
+                Week Starting{" "}
+                {weekDates[0].toLocaleDateString("en-AU", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+              <span className="sm:hidden">
+                {weekDates[0].toLocaleDateString("en-AU", {
+                  day: "numeric",
+                  month: "short",
+                })}
+              </span>
             </h3>
             <div className="flex items-center gap-1 sm:gap-2">
               <button
-                onClick={() => { setWeekOffset((w) => w - 1); setGridEdits({}); }}
+                onClick={() => {
+                  setWeekOffset((w) => w - 1);
+                }}
                 className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
               >
                 ←
               </button>
               <button
-                onClick={() => { setWeekOffset(0); setGridEdits({}); }}
+                onClick={() => {
+                  setWeekOffset(0);
+                }}
                 className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
                 disabled={weekOffset === 0}
               >
                 Today
               </button>
               <button
-                onClick={() => { setWeekOffset((w) => w + 1); setGridEdits({}); }}
+                onClick={() => {
+                  setWeekOffset((w) => w + 1);
+                }}
                 className="px-2 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50"
                 disabled={weekOffset >= 0}
               >
@@ -633,7 +831,15 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
               Import CSV
             </button>
             <button
-              onClick={() => printAttendance(grid, weekDates, serviceName)}
+              onClick={() =>
+                printAttendance(
+                  visibleSessions,
+                  cells,
+                  weekDates,
+                  approvedPlaces,
+                  serviceName
+                )
+              }
               className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-border hover:bg-surface/50 text-muted"
               title="Print attendance"
             >
@@ -643,11 +849,12 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
             <label className="flex items-center gap-1.5 text-xs text-muted">
               <input
                 type="checkbox"
-                checked={showVC}
-                onChange={(e) => setShowVC(e.target.checked)}
+                checked={showHolidayQuest}
+                onChange={(e) => setShowHolidayQuest(e.target.checked)}
                 className="rounded border-border text-brand focus:ring-brand"
+                aria-label="Show Holiday Quest row"
               />
-              Show VC
+              Show Holiday Quest
             </label>
           </div>
         </div>
@@ -656,7 +863,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center gap-3 px-2 py-2">
-                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-8 w-32" />
                 <Skeleton className="h-8 flex-1" />
                 <Skeleton className="h-8 flex-1" />
                 <Skeleton className="h-8 flex-1 hidden sm:block" />
@@ -668,8 +875,8 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
           <>
             {/* Mobile: Card layout per day */}
             <div className="sm:hidden space-y-3">
-              {grid.map((row) => {
-                const dateStr = formatDate(row.date);
+              {weekDates.map((date) => {
+                const dateStr = formatDate(date);
                 return (
                   <div
                     key={dateStr}
@@ -677,125 +884,171 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-foreground">{row.day}</span>
-                        <span className="text-xs text-muted">{formatDateLabel(row.date)}</span>
-                      </div>
-                    </div>
-                    {(["bsc", "asc"] as const).map((session) => (
-                      <div key={session} className="space-y-1.5">
-                        <span className={cn(
-                          "text-xs font-semibold uppercase tracking-wider",
-                          session === "bsc" ? "text-blue-600" : "text-purple-600"
-                        )}>
-                          {session === "bsc" ? "BSC" : "ASC"}
+                        <span className="text-sm font-semibold text-foreground">
+                          {formatDayLabel(date)}
                         </span>
-                        <div className="grid grid-cols-2 gap-2">
-                          {(["enrolled", "attended"] as const).map((field) => (
-                            <div key={field}>
-                              <label className="text-[10px] text-muted uppercase">{field === "attended" ? "Casual" : "Perm."}</label>
-                              <input
-                                type="number"
-                                min={0}
-                                value={row[session][field]}
-                                onChange={(e) =>
-                                  handleCellChange(dateStr, session, field, parseInt(e.target.value) || 0)
-                                }
-                                className="w-full text-center text-sm border border-border rounded-md px-2 py-1.5 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
-                              />
-                            </div>
-                          ))}
-                        </div>
+                        <span className="text-xs text-muted">
+                          {formatDateLabel(date)}
+                        </span>
                       </div>
-                    ))}
+                      <span className="text-xs text-muted">
+                        Total{" "}
+                        <span className="font-semibold text-foreground">
+                          {visibleSessions.reduce((sum, s) => {
+                            const v = cells[buildCellKey(dateStr, s)] ?? {
+                              permanent: 0,
+                              casual: 0,
+                            };
+                            return sum + v.permanent + v.casual;
+                          }, 0)}
+                        </span>
+                      </span>
+                    </div>
+                    {visibleSessions.map((session) => {
+                      const v = cells[buildCellKey(dateStr, session)] ?? {
+                        permanent: 0,
+                        casual: 0,
+                      };
+                      return (
+                        <div key={session} className="space-y-1.5">
+                          <span className="text-xs font-semibold text-foreground">
+                            {SESSION_LABELS[session]}
+                          </span>
+                          <div className="grid grid-cols-2 gap-2">
+                            {(["permanent", "casual"] as const).map((field) => (
+                              <div key={field}>
+                                <label className="text-[10px] text-muted uppercase">
+                                  {BOOKING_TYPE_LABELS[field]}
+                                </label>
+                                <BookingInput
+                                  value={v[field]}
+                                  onCommit={(next) =>
+                                    handleCellCommit(date, session, field, next)
+                                  }
+                                  ariaLabel={`${SESSION_LABELS[session]} ${BOOKING_TYPE_LABELS[field]} bookings for ${dateStr}`}
+                                  className="w-full"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="text-[10px] text-muted">
+                      Approved places:{" "}
+                      <span className="font-medium text-foreground">
+                        {approvedPlaces ?? "—"}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Desktop: Full table */}
+            {/* Desktop: Sessions × Days table */}
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-2 px-2 text-xs font-medium text-muted w-24">
-                      Day
+                    <th className="text-left py-2 px-2 text-xs font-medium text-muted w-48">
+                      Session
                     </th>
-                    <th
-                      colSpan={2}
-                      className="text-center py-2 px-2 text-xs font-semibold text-blue-600 border-l border-border/50"
-                    >
-                      BSC (Before School)
-                    </th>
-                    <th
-                      colSpan={2}
-                      className="text-center py-2 px-2 text-xs font-semibold text-purple-600 border-l border-border/50"
-                    >
-                      ASC (After School)
-                    </th>
-                  </tr>
-                  <tr className="border-b border-border/50">
-                    <th className="text-left py-1 px-2 text-xs text-muted" />
-                    {["Permanent", "Casual Bookings"].map((h) => (
+                    {weekDates.map((d) => (
                       <th
-                        key={`bsc-${h}`}
-                        className="text-center py-1 px-1 text-xs text-muted border-l border-border/30"
+                        key={formatDate(d)}
+                        className="text-center py-2 px-2 text-xs font-medium text-muted border-l border-border/30"
                       >
-                        {h}
-                      </th>
-                    ))}
-                    {["Permanent", "Casual Bookings"].map((h) => (
-                      <th
-                        key={`asc-${h}`}
-                        className="text-center py-1 px-1 text-xs text-muted border-l border-border/30"
-                      >
-                        {h}
+                        <div className="font-semibold text-foreground">
+                          {formatDayLabel(d)}
+                        </div>
+                        <div className="text-[10px] text-muted font-normal">
+                          {formatDateLabel(d)}
+                        </div>
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {grid.map((row) => {
-                    const dateStr = formatDate(row.date);
-                    return (
-                      <tr key={dateStr} className="border-b border-border/30 hover:bg-surface/30">
-                        <td className="py-2 px-2">
-                          <span className="font-medium text-foreground">{row.day}</span>
-                          <div className="text-xs text-muted">{formatDateLabel(row.date)}</div>
+                  {visibleSessions.map((session) => (
+                    <Fragment key={session}>
+                      <tr className="bg-surface/40">
+                        <td
+                          colSpan={weekDates.length + 1}
+                          className="py-1.5 px-2 text-xs font-semibold text-foreground"
+                        >
+                          {SESSION_LABELS[session]}
                         </td>
-                        {(["bsc", "asc"] as const).map((session) =>
-                          (["enrolled", "attended"] as const).map((field) => (
-                            <td
-                              key={`${session}-${field}`}
-                              className="py-1 px-1 text-center border-l border-border/30"
-                            >
-                              <input
-                                type="number"
-                                min={0}
-                                value={row[session][field]}
-                                onChange={(e) =>
-                                  handleCellChange(
-                                    dateStr,
-                                    session,
-                                    field,
-                                    parseInt(e.target.value) || 0
-                                  )
-                                }
-                                className="w-16 text-center text-sm border border-border rounded-md px-1 py-1 focus:border-brand focus:ring-1 focus:ring-brand focus:outline-none"
-                              />
-                            </td>
-                          ))
-                        )}
                       </tr>
-                    );
-                  })}
+                      {(["permanent", "casual"] as const).map((field) => (
+                        <tr
+                          key={`${session}-${field}`}
+                          className="border-b border-border/30 hover:bg-surface/30"
+                        >
+                          <td className="py-1.5 px-2 pl-6 text-xs text-muted">
+                            {BOOKING_TYPE_LABELS[field]}
+                          </td>
+                          {weekDates.map((date) => {
+                            const dateStr = formatDate(date);
+                            const v = cells[buildCellKey(dateStr, session)] ?? {
+                              permanent: 0,
+                              casual: 0,
+                            };
+                            return (
+                              <td
+                                key={`${dateStr}-${session}-${field}`}
+                                className="py-1 px-1 text-center border-l border-border/30"
+                              >
+                                <BookingInput
+                                  value={v[field]}
+                                  onCommit={(next) =>
+                                    handleCellCommit(date, session, field, next)
+                                  }
+                                  ariaLabel={`${SESSION_LABELS[session]} ${BOOKING_TYPE_LABELS[field]} bookings for ${dateStr}`}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </Fragment>
+                  ))}
                 </tbody>
+                <tfoot>
+                  <tr className="border-t border-border bg-surface/30">
+                    <td className="py-2 px-2 text-xs font-semibold text-foreground">
+                      Total bookings
+                    </td>
+                    {dayTotals.map((total, i) => (
+                      <td
+                        key={`total-${i}`}
+                        className="py-2 px-1 text-center text-sm font-semibold text-foreground border-l border-border/30"
+                      >
+                        {total}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-2 text-xs font-medium text-muted">
+                      Approved places
+                    </td>
+                    {weekDates.map((date) => (
+                      <td
+                        key={`cap-${formatDate(date)}`}
+                        className="py-2 px-1 text-center text-sm text-muted border-l border-border/30"
+                      >
+                        {approvedPlaces ?? "—"}
+                      </td>
+                    ))}
+                  </tr>
+                </tfoot>
               </table>
             </div>
 
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
+            <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50 flex-wrap gap-2">
               <p className="text-xs text-muted flex items-center gap-1">
                 <Info className="w-3.5 h-3.5" />
-                Data auto-saves per cell on save. Upserts by date + session type.
+                Auto-saves when you leave each cell.
+                <SaveIndicator state={saveState} />
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -812,7 +1065,7 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={!isDirty || batchUpdate.isPending}
+                  disabled={batchUpdate.isPending}
                   className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-brand text-white hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {batchUpdate.isPending ? (
@@ -827,15 +1080,6 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
           </>
         )}
       </div>
-
-      {showVC && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-          <p className="text-sm text-amber-700">
-            Vacation Care tracking will use the same grid during school holiday periods.
-            Toggle on during holidays to enter VC data.
-          </p>
-        </div>
-      )}
 
       <ConfirmDialog
         open={showPropagateConfirm}
@@ -854,3 +1098,30 @@ export function ServiceAttendanceTab({ serviceId, serviceName }: Props) {
   );
 }
 
+function SaveIndicator({
+  state,
+}: {
+  state: "idle" | "saving" | "saved" | "error";
+}) {
+  if (state === "idle") return null;
+  if (state === "saving")
+    return (
+      <span className="inline-flex items-center gap-1 ml-2 text-muted">
+        <Loader2 className="w-3 h-3 animate-spin" />
+        Saving…
+      </span>
+    );
+  if (state === "saved")
+    return (
+      <span className="inline-flex items-center gap-1 ml-2 text-emerald-600">
+        <Check className="w-3 h-3" />
+        Saved
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1 ml-2 text-red-600">
+      <AlertTriangle className="w-3 h-3" />
+      Retry
+    </span>
+  );
+}

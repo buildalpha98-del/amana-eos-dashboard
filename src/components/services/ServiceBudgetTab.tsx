@@ -36,6 +36,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { CHART_COLORS } from "@/components/charts/chart-colors";
+import { SESSION_LABELS } from "@/lib/session-labels";
 
 // ── Constants ───────────────────────────────────────────────
 
@@ -323,7 +324,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                     <td className="py-2.5">
                       <span className="inline-flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.primary }} />
-                        Before School Care (BSC)
+                        {SESSION_LABELS.bsc}
                       </span>
                     </td>
                     <td className="py-2.5 text-right font-medium">
@@ -340,7 +341,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                     <td className="py-2.5">
                       <span className="inline-flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.accent }} />
-                        After School Care (ASC)
+                        {SESSION_LABELS.asc}
                       </span>
                     </td>
                     <td className="py-2.5 text-right font-medium">
@@ -357,7 +358,7 @@ export function ServiceBudgetTab({ serviceId }: { serviceId: string }) {
                     <td className="py-2.5">
                       <span className="inline-flex items-center gap-1.5">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS.success }} />
-                        Vacation Care (VC)
+                        {SESSION_LABELS.vc}
                       </span>
                     </td>
                     <td className="py-2.5 text-right font-medium">
@@ -661,14 +662,35 @@ function EquipmentModal({
       : new Date().toISOString().split("T")[0]
   );
   const [notes, setNotes] = useState(item?.notes || "");
+  const [notesError, setNotesError] = useState<string | null>(null);
+
+  const isOtherCategory = category === "other";
+  const notesMissing = isOtherCategory && !notes.trim();
+  const OTHER_NOTES_MESSAGE =
+    "Please describe what this item is — the Other category needs a description for later reporting.";
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+
+  const handleCategoryChange = (next: string) => {
+    setCategory(next);
+    if (next !== "other") setNotesError(null);
+  };
+
+  const handleNotesChange = (next: string) => {
+    setNotes(next);
+    if (notesError && next.trim()) setNotesError(null);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseFloat(amount);
     if (!name.trim() || isNaN(parsedAmount) || parsedAmount <= 0) {
       toast({ description: "Please enter a valid name and amount", variant: "destructive" });
+      return;
+    }
+
+    if (isOtherCategory && !notes.trim()) {
+      setNotesError(OTHER_NOTES_MESSAGE);
       return;
     }
 
@@ -752,7 +774,7 @@ function EquipmentModal({
               <label className="block text-xs font-medium text-foreground/80 mb-1">Category</label>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => handleCategoryChange(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
               >
                 {ALL_CATEGORIES.map((cat) => (
@@ -778,15 +800,36 @@ function EquipmentModal({
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-medium text-foreground/80 mb-1">Notes (optional)</label>
+            <label className="block text-xs font-medium text-foreground/80 mb-1">
+              Notes {isOtherCategory ? "(required)" : "(optional)"}
+            </label>
             <textarea
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional details..."
+              onChange={(e) => handleNotesChange(e.target.value)}
+              placeholder={
+                isOtherCategory
+                  ? "Please describe what this item is (e.g. cleaning vinegar, gift card for parent event)"
+                  : "Additional details..."
+              }
               rows={2}
               maxLength={500}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+              aria-required={isOtherCategory ? "true" : undefined}
+              aria-invalid={notesError ? "true" : undefined}
+              aria-describedby={notesError ? "purchase-notes-error" : undefined}
+              className={cn(
+                "w-full px-3 py-2 border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none",
+                notesError ? "border-red-400" : "border-border"
+              )}
             />
+            {notesError && (
+              <p
+                id="purchase-notes-error"
+                role="alert"
+                className="mt-1 text-xs text-red-600"
+              >
+                {notesError}
+              </p>
+            )}
           </div>
 
           {/* Actions */}
@@ -800,8 +843,8 @@ function EquipmentModal({
             </button>
             <button
               type="submit"
-              disabled={isPending}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50"
+              disabled={isPending || notesMissing}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

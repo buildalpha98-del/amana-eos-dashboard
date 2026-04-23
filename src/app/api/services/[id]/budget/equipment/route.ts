@@ -5,16 +5,29 @@ import { recalcFinancialsForWeek } from "@/lib/budget-helpers";
 import { withApiAuth } from "@/lib/server-auth";
 
 import { parseJsonBody } from "@/lib/api-error";
-const equipmentItemSchema = z.object({
-  name: z.string().min(1).max(200),
-  amount: z.number().positive(),
-  category: z.enum([
-    "groceries", "kitchen", "sports", "art_craft", "furniture",
-    "technology", "cleaning", "safety", "other",
-  ]),
-  date: z.string(),
-  notes: z.string().max(500).optional(),
-});
+const equipmentItemSchema = z
+  .object({
+    name: z.string().min(1).max(200),
+    amount: z.number().positive(),
+    category: z.enum([
+      "groceries", "kitchen", "sports", "art_craft", "furniture",
+      "technology", "cleaning", "safety", "other",
+    ]),
+    date: z.string(),
+    notes: z.string().max(500).optional(),
+  })
+  .refine(
+    (data) =>
+      data.category !== "other" ||
+      (typeof data.notes === "string" && data.notes.trim().length > 0),
+    {
+      message:
+        "Please describe what this item is — the Other category needs a description for later reporting.",
+      path: ["notes"],
+    }
+  );
+
+export { equipmentItemSchema };
 
 // GET /api/services/[id]/budget/equipment — list equipment items
 export const GET = withApiAuth(async (req, session, context) => {
