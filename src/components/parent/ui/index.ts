@@ -6,3 +6,4 @@ export { SectionLabel } from "./SectionLabel";
 export { WarmCTA } from "./WarmCTA";
 export { PullSheet, SNAP_POINTS } from "./PullSheet";
 export { SwipeActions } from "./SwipeActions";
+export { Lightbox } from "./Lightbox";
