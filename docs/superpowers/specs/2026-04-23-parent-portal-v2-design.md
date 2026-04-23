@@ -551,6 +551,51 @@ When this spec is fully shipped (commit 9 merged, flag removed):
 9. **Like action feels instant** — optimistic UI flips the heart in < 100ms perceived latency; failure rolls back within 2s with a destructive toast.
 10. **Comment count refresh for staff** — staff viewing `/services/[id]/parent-communication` sees comment-count increment within 30s of a parent posting a comment (React Query stale-time-based refresh, no realtime push needed).
 
+## Enrolment → Parent Account Wiring (added 2026-04-24)
+
+User flagged a gap during execution: when staff confirm an enrolment, the parent should automatically get a real portal account, receive an email invitation with a direct log-in link, and be able to edit all their data. Staff should also be able to resend that invite.
+
+### Current state (verified)
+
+- `EnrolmentSubmission` stores parent data in `primaryParent` / `secondaryParent` JSON (name, email, mobile, address, CRN, DOB, relationship, occupation, workplace, workPhone).
+- On `status → "processed"` (via `PATCH /api/enrolments/[id]`), existing `Child` records are activated and permanent bookings generated — but **no `CentreContact`** is auto-created for the parent.
+- `CentreContact` currently has `email`, `firstName`, `lastName`, `serviceId`, `subscribed`, `status` — **no CRN, DOB, mobile, address, relationship, occupation, workplace, workPhone**.
+- Approval email exists (`sendEnrolmentApprovedNotification`) but the parent portal link is generic (`/parent`) — no magic-link token included, so parents must request one manually.
+- `/parent/account` page only edits `phone`, `address`, and emergency contacts. Email is displayed but not editable.
+- No "resend invite" UI exists on the staff side.
+
+### Gaps to close (scope)
+
+1. **Extend `CentreContact` schema** with structured parent profile fields (DOB, mobile, crn, address JSON, relationship, occupation, workplace, workPhone).
+2. **On `EnrolmentSubmission` processed**: upsert `CentreContact` rows (primary + optional secondary) by `(email, serviceId)`, populating all structured fields from the submission JSON. Keep the JSON blobs as the source-of-truth for historical record; `CentreContact` becomes the editable live profile.
+3. **Welcome invite email with magic link**: add `sendParentWelcomeInvite(contactId)` that generates a `ParentAuthToken`, embeds the magic link, and emails the parent. Called automatically on approval for the primary parent (and secondary if email present).
+4. **Resend invite API + button**: new `POST /api/centre-contacts/[id]/resend-invite` staff endpoint. Renders the same welcome email with a new magic link. Surfaced on the staff `/enrolments/[id]` detail view and on the family profile view (if exists).
+5. **Extended parent Account page**: all new CentreContact fields are editable (except email — see #6). UI uses the new Chunk 1 primitives.
+6. **Change-email flow**: parent initiates; confirmation email is sent to the new address containing a magic-link that, when clicked, updates the CentreContact's email. No bare POST that swaps email in one call.
+7. **Password auth — explicitly out of scope for now**: parent auth is and remains magic-link only. The user mentioned "or password for the app" — since introducing password auth is a strategic change (requires rate-limiting, hashing, breach-pwned checks, recovery, lockouts), it gets its own future spec. The existing resend-invite flow covers the "I lost access" case.
+
+### Commits (appended to the plan — Chunk 2.5, before Chunk 3)
+
+| # | Commit subject | Category | Files |
+|---|---|---|---|
+| 2.5.1 | `feat(db): CentreContact profile fields (dob, mobile, crn, address, relationship, occupation, workplace, workPhone) + migration` | Schema | 2 |
+| 2.5.2 | `feat(enrolments): auto-upsert CentreContact for primary+secondary parents on submission processed + tests` | Feature | ~3 |
+| 2.5.3 | `feat(email): sendParentWelcomeInvite with magic-link + NotificationLog entry` | Feature | ~2 |
+| 2.5.4 | `feat(api): POST /api/centre-contacts/[id]/resend-invite (staff-side) + tests` | API | ~2 |
+| 2.5.5 | `feat(enrolments): Resend Invite button on /enrolments/[id] detail view` | Feature | ~2 |
+| 2.5.6 | `feat(parent): /parent/account v2 — editable CRN/DOB/mobile/address + change-email flow` | Feature | ~4 |
+
+### E2E coverage for this chunk
+
+- Extend existing Playwright specs: `enrolment-approval-e2e.spec.ts` — staff approves enrolment → CentreContact exists → welcome email logged → parent clicks magic link → lands on parent portal logged in.
+
+### Out of scope (explicit)
+
+- ❌ Password auth for parent portal (separate spec).
+- ❌ Multiple parents per child with different relationship roles beyond "primary" / "secondary" (separate scope discussion).
+- ❌ Parent-initiated account deletion / GDPR export.
+- ❌ CentreContact deduplication across services (a parent with 2 kids at 2 services gets 2 CentreContact rows — intentional, aligns with existing model).
+
 ## Future follow-ons (next brainstorms, not this spec)
 
 - **`amana-parent-mobile`** — Expo/React Native app in a new repo (or monorepo subpath) reusing the design tokens + component patterns from this spec. TestFlight + Play Internal. Pushes via APNs/FCM. Likely 8–12 weeks.
