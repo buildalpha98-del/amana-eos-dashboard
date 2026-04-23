@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   useAuditTemplates,
   useAuditTemplateDetail,
@@ -10,6 +10,7 @@ import {
   useDeleteTemplateItem,
   useUpdateTemplateItem,
   useReorderTemplateItems,
+  useAddTemplateItem,
   usePreviewCalendar,
   useImportCalendar,
   type AuditTemplateSummary,
@@ -41,6 +42,7 @@ import {
   Sprout,
   SlidersHorizontal,
   CalendarPlus,
+  Plus,
 } from "lucide-react";
 import { EditTemplateModal } from "@/components/audits/EditTemplateModal";
 import { ApplyToServicesModal } from "@/components/audits/ApplyToServicesModal";
@@ -238,6 +240,52 @@ function TemplateDetail({
   const deleteItem = useDeleteTemplateItem();
   const updateItem = useUpdateTemplateItem();
   const reorder = useReorderTemplateItems();
+  const addItem = useAddTemplateItem();
+
+  // Inline add-item form state
+  const [adding, setAdding] = useState(false);
+  const [newSection, setNewSection] = useState("");
+  const [newQuestion, setNewQuestion] = useState("");
+  const [newGuidance, setNewGuidance] = useState("");
+  const [newFormat, setNewFormat] = useState<string>("");
+  const questionRef = useRef<HTMLTextAreaElement>(null);
+
+  const resetAddForm = useCallback(() => {
+    setNewSection("");
+    setNewQuestion("");
+    setNewGuidance("");
+    setNewFormat("");
+  }, []);
+
+  const handleAddSave = useCallback(async () => {
+    const question = newQuestion.trim();
+    if (!question) return;
+    try {
+      await addItem.mutateAsync({
+        templateId,
+        question,
+        section: newSection.trim() || undefined,
+        guidance: newGuidance.trim() || undefined,
+        responseFormat: newFormat || undefined,
+      });
+      resetAddForm();
+      setAdding(false);
+    } catch {
+      // toast handled by mutation onError
+    }
+  }, [addItem, templateId, newQuestion, newSection, newGuidance, newFormat, resetAddForm]);
+
+  const handleAddCancel = useCallback(() => {
+    resetAddForm();
+    setAdding(false);
+  }, [resetAddForm]);
+
+  useEffect(() => {
+    if (adding) {
+      // autofocus the question textarea when the form opens
+      setTimeout(() => questionRef.current?.focus(), 10);
+    }
+  }, [adding]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -279,7 +327,7 @@ function TemplateDetail({
 
   return (
     <div className="border-t border-border bg-surface/50">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border gap-2">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-foreground/80">
             {items.length} Checklist Item{items.length !== 1 ? "s" : ""}
@@ -290,20 +338,104 @@ function TemplateDetail({
             </span>
           )}
         </div>
-        <button
-          onClick={onUpload}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
-        >
-          <Upload className="w-3.5 h-3.5" />
-          Upload Items
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAdding((a) => !a)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-brand border border-brand/20 rounded-lg hover:bg-brand/5 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Item
+          </button>
+          <button
+            onClick={onUpload}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            Upload Items
+          </button>
+        </div>
       </div>
+
+      {adding && (
+        <div
+          className="px-4 py-3 border-b border-border bg-brand/5 space-y-2"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") handleAddCancel();
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              e.preventDefault();
+              void handleAddSave();
+            }
+          }}
+        >
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={newSection}
+              onChange={(e) => setNewSection(e.target.value)}
+              placeholder="Section (optional)"
+              className="px-2 py-1 text-xs border border-border rounded focus:outline-none focus:ring-1 focus:ring-brand"
+            />
+            <select
+              value={newFormat}
+              onChange={(e) => setNewFormat(e.target.value)}
+              className="px-2 py-1 text-xs border border-border rounded focus:outline-none focus:ring-1 focus:ring-brand"
+            >
+              <option value="">Use template default</option>
+              <option value="yes_no">Yes / No</option>
+              <option value="rating_1_5">Rating 1–5</option>
+              <option value="compliant">Compliant</option>
+              <option value="reverse_yes_no">Reverse Y/N</option>
+              <option value="review_date">Review date</option>
+              <option value="inventory">Inventory</option>
+            </select>
+          </div>
+          <textarea
+            ref={questionRef}
+            value={newQuestion}
+            onChange={(e) => setNewQuestion(e.target.value)}
+            placeholder="Question *"
+            rows={2}
+            className="w-full px-2 py-1 text-sm border border-border rounded focus:outline-none focus:ring-1 focus:ring-brand"
+          />
+          <textarea
+            value={newGuidance}
+            onChange={(e) => setNewGuidance(e.target.value)}
+            placeholder="Guidance (optional)"
+            rows={1}
+            className="w-full px-2 py-1 text-xs border border-border rounded focus:outline-none focus:ring-1 focus:ring-brand"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void handleAddSave()}
+              disabled={!newQuestion.trim() || addItem.isPending}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-brand rounded hover:bg-brand-hover disabled:opacity-50"
+            >
+              {addItem.isPending ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Check className="w-3 h-3" />
+              )}
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={handleAddCancel}
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-muted bg-surface rounded hover:bg-border"
+            >
+              <X className="w-3 h-3" /> Cancel
+            </button>
+            <span className="text-[10px] text-muted ml-1">
+              ⌘/Ctrl+Enter to save · Esc to cancel
+            </span>
+          </div>
+        </div>
+      )}
 
       {items.length === 0 ? (
         <div className="text-center py-8 text-muted">
           <FileText className="w-8 h-8 mx-auto mb-2 text-muted/50" />
           <p className="text-sm">No checklist items yet</p>
-          <p className="text-xs mt-1">Upload a .docx file to import items</p>
+          <p className="text-xs mt-1">Click Add Item or upload a .docx file to import items</p>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
