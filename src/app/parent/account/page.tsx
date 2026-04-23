@@ -25,7 +25,15 @@ export default function AccountPage() {
   const { logout } = useParentAuth();
 
   // Form state
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [dob, setDob] = useState("");
+  const [crn, setCrn] = useState("");
+  const [relationship, setRelationship] = useState("");
+  const [occupation, setOccupation] = useState("");
+  const [workplace, setWorkplace] = useState("");
+  const [workPhone, setWorkPhone] = useState("");
   const [street, setStreet] = useState("");
   const [suburb, setSuburb] = useState("");
   const [state, setState] = useState("");
@@ -36,7 +44,15 @@ export default function AccountPage() {
   // Hydrate form from profile
   useEffect(() => {
     if (!profile) return;
+    setFirstName(profile.firstName ?? "");
+    setLastName(profile.lastName ?? "");
     setPhone(profile.phone ?? "");
+    setDob(profile.dob ?? "");
+    setCrn(profile.crn ?? "");
+    setRelationship(profile.relationship ?? "");
+    setOccupation(profile.occupation ?? "");
+    setWorkplace(profile.workplace ?? "");
+    setWorkPhone(profile.workPhone ?? "");
     setStreet(profile.address?.street ?? "");
     setSuburb(profile.address?.suburb ?? "");
     setState(profile.address?.state ?? "");
@@ -53,7 +69,15 @@ export default function AccountPage() {
 
   const handleSave = () => {
     const payload: UpdateAccountPayload = {
+      firstName: firstName.trim() || undefined,
+      lastName: lastName.trim() || undefined,
       phone,
+      dob: dob || undefined,
+      crn: crn.trim() || undefined,
+      relationship: relationship.trim() || undefined,
+      occupation: occupation.trim() || undefined,
+      workplace: workplace.trim() || undefined,
+      workPhone: workPhone.trim() || undefined,
       address: { street, suburb, state, postcode },
       emergencyContacts: contacts,
     };
@@ -114,14 +138,26 @@ export default function AccountPage() {
         </p>
       </div>
 
-      {/* Profile info (read-only) */}
+      {/* Profile (editable) */}
       <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
         <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
           Your Details
         </h2>
-        <div className="space-y-2">
-          <ReadOnlyField label="Name" value={`${profile.firstName} ${profile.lastName}`} />
-          <ReadOnlyField label="Email" value={profile.email} />
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="First Name" value={firstName} onChange={setFirstName} placeholder="First name" />
+            <FormField label="Last Name" value={lastName} onChange={setLastName} placeholder="Last name" />
+          </div>
+          <ReadOnlyField
+            label="Email"
+            value={profile.email}
+            note="To change your email, contact the centre — they can issue a new login link for the new address."
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Date of Birth" type="date" value={dob} onChange={setDob} placeholder="" />
+            <FormField label="CRN" value={crn} onChange={setCrn} placeholder="Centrelink CRN" />
+          </div>
+          <FormField label="Relationship to child" value={relationship} onChange={setRelationship} placeholder="Mother / Father / Guardian" />
         </div>
       </section>
 
@@ -132,7 +168,7 @@ export default function AccountPage() {
         </h2>
         <div className="space-y-4">
           <FormField
-            label="Phone"
+            label="Mobile"
             type="tel"
             value={phone}
             onChange={setPhone}
@@ -171,6 +207,18 @@ export default function AccountPage() {
               />
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Work (editable) */}
+      <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
+        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
+          Work
+        </h2>
+        <div className="space-y-3">
+          <FormField label="Occupation" value={occupation} onChange={setOccupation} placeholder="Your role" />
+          <FormField label="Workplace" value={workplace} onChange={setWorkplace} placeholder="Employer name" />
+          <FormField label="Work Phone" type="tel" value={workPhone} onChange={setWorkPhone} placeholder="Optional" />
         </div>
       </section>
 
@@ -318,11 +366,22 @@ function FormField({
   );
 }
 
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
+function ReadOnlyField({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: string;
+  note?: string;
+}) {
   return (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-xs text-[#7c7c8a]">{label}</span>
-      <span className="text-sm font-medium text-[#1a1a2e]">{value}</span>
+    <div className="space-y-1">
+      <div className="flex items-center justify-between py-1">
+        <span className="text-xs text-[#7c7c8a]">{label}</span>
+        <span className="text-sm font-medium text-[#1a1a2e]">{value}</span>
+      </div>
+      {note && <p className="text-[11px] text-[#7c7c8a] leading-snug">{note}</p>}
     </div>
   );
 }

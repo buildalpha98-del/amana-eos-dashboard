@@ -19,6 +19,13 @@ export interface ParentProfile {
   } | null;
   children: ParentChild[];
   emergencyContacts: EmergencyContact[];
+  // ── Extended profile (populated from CentreContact) ─────
+  dob: string | null; // YYYY-MM-DD
+  crn: string | null;
+  relationship: string | null;
+  occupation: string | null;
+  workplace: string | null;
+  workPhone: string | null;
 }
 
 export interface ParentChild {
@@ -68,6 +75,14 @@ export interface UpdateAccountPayload {
     phone: string;
     relationship: string;
   }[];
+  firstName?: string;
+  lastName?: string;
+  dob?: string; // YYYY-MM-DD
+  crn?: string;
+  relationship?: string;
+  occupation?: string;
+  workplace?: string;
+  workPhone?: string;
 }
 
 // ── Booking Types ───────────────────────────────────────

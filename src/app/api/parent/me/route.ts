@@ -100,6 +100,52 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     lastName = parts.slice(1).join(" ") || "";
   }
 
+  // Overlay structured profile fields from CentreContact (primary source of truth).
+  // If multiple contact rows exist (one per service), prefer the most-recently-
+  // updated one for the overlay.
+  const contactRow = await prisma.centreContact.findFirst({
+    where: { email: emailLower },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      firstName: true,
+      lastName: true,
+      mobile: true,
+      dob: true,
+      crn: true,
+      relationship: true,
+      occupation: true,
+      workplace: true,
+      workPhone: true,
+      address: true,
+    },
+  });
+  let profileDob: string | null = null;
+  let profileCrn: string | null = null;
+  let profileRelationship: string | null = null;
+  let profileOccupation: string | null = null;
+  let profileWorkplace: string | null = null;
+  let profileWorkPhone: string | null = null;
+  if (contactRow) {
+    if (contactRow.firstName) firstName = contactRow.firstName;
+    if (contactRow.lastName) lastName = contactRow.lastName;
+    if (contactRow.mobile) phone = contactRow.mobile;
+    if (contactRow.dob) profileDob = contactRow.dob.toISOString().slice(0, 10);
+    profileCrn = contactRow.crn;
+    profileRelationship = contactRow.relationship;
+    profileOccupation = contactRow.occupation;
+    profileWorkplace = contactRow.workplace;
+    profileWorkPhone = contactRow.workPhone;
+    const contactAddr = contactRow.address as Record<string, string> | null;
+    if (contactAddr && typeof contactAddr === "object") {
+      address = {
+        street: contactAddr.street || address?.street || "",
+        suburb: contactAddr.suburb || address?.suburb || "",
+        state: contactAddr.state || address?.state || "",
+        postcode: contactAddr.postcode || address?.postcode || "",
+      };
+    }
+  }
+
   // Build children list with medical info
   const children: Array<{
     id: string;
@@ -271,6 +317,12 @@ export const GET = withParentAuth(async (_req, { parent }) => {
     address,
     children,
     emergencyContacts,
+    dob: profileDob,
+    crn: profileCrn,
+    relationship: profileRelationship,
+    occupation: profileOccupation,
+    workplace: profileWorkplace,
+    workPhone: profileWorkPhone,
   });
 });
 
