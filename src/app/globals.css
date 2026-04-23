@@ -26,6 +26,33 @@
   --shadow-warm: 0 2px 8px -1px rgba(140, 120, 90, 0.08), 0 1px 2px rgba(140, 120, 90, 0.04);
   --shadow-warm-md: 0 4px 16px -2px rgba(140, 120, 90, 0.1), 0 2px 4px rgba(140, 120, 90, 0.04);
   --shadow-warm-lg: 0 12px 32px -4px rgba(140, 120, 90, 0.12), 0 4px 8px rgba(140, 120, 90, 0.04);
+
+  /* ─── Parent Portal v2 additions ────────────────────────── */
+
+  /* Radius scale — parent cards default to rounded-lg (20px) */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  /* Soft cream surfaces */
+  --color-cream-deep: #F5EFE7;
+  --color-cream-soft: #FFFDF9;
+  --color-brand-soft: rgba(0, 78, 100, 0.06);
+
+  /* Warm status palette */
+  --color-status-in-care-bg: #D4F4D4;
+  --color-status-in-care-fg: #1F5E1F;
+  --color-status-confirmed-bg: #E6F3F7;
+  --color-status-confirmed-fg: #004E64;
+  --color-status-pending-bg: #FFE9D6;
+  --color-status-pending-fg: #8B4513;
+  --color-status-alert-bg: #FFE4E4;
+  --color-status-alert-fg: #8B2525;
+
+  /* Overshoot easing for tap affordances */
+  --ease-spring-gentle: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ─── Base ──────────────────────────────────────────────── */
@@ -326,6 +353,19 @@ td, th {
   --color-sidebar: #0e0e16;
   --color-surface: #22222e;
   color-scheme: dark;
+
+  /* Parent Portal v2 — dark overrides */
+  --color-cream-deep: #1e1e28;
+  --color-cream-soft: #242430;
+  --color-brand-soft: rgba(254, 206, 0, 0.08);
+  --color-status-in-care-bg: #1e3a1e;
+  --color-status-in-care-fg: #9FD49F;
+  --color-status-confirmed-bg: #1c3440;
+  --color-status-confirmed-fg: #9CC5D3;
+  --color-status-pending-bg: #3a2a18;
+  --color-status-pending-fg: #E0B68A;
+  --color-status-alert-bg: #3a1e1e;
+  --color-status-alert-fg: #E09A9A;
 }
 
 .dark body {
@@ -367,6 +407,33 @@ td, th {
 
 .dark ::selection {
   background: rgba(254, 206, 0, 0.2);
+}
+
+/* ─── Warm card (parent portal v2) ──────────────────────── */
+
+@utility warm-card {
+  background: var(--color-cream-soft);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-warm);
+  padding: 1rem;
+  transition: transform 0.2s var(--ease-spring-gentle), box-shadow 0.2s ease;
+}
+
+/* ─── Parent portal press affordance ────────────────────── */
+
+.parent-portal a[role="button"]:active,
+.parent-portal button:not([disabled]):active,
+.parent-portal [role="button"]:active {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parent-portal a[role="button"]:active,
+  .parent-portal button:not([disabled]):active,
+  .parent-portal [role="button"]:active {
+    transform: none;
+  }
 }
 
 /* ─── Print Styles ──────────────────────────────────────── */
