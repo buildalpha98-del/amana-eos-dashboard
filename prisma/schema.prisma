@@ -584,7 +584,8 @@ model User {
   snippetAcks  SnippetAck[]  @relation("UserSnippetAcks")
 
   // ── Parent Portal Posts ──────────────────────────
-  parentPostsAuthored ParentPost[] @relation("PostAuthor")
+  parentPostsAuthored     ParentPost[]        @relation("PostAuthor")
+  parentPostStaffComments ParentPostComment[] @relation("ParentPostStaffComments")
 
   // ── Child Documents ───────────────────────────────
   uploadedChildDocuments ChildDocument[] @relation("UploadedChildDocuments")
@@ -3240,6 +3241,8 @@ model CentreContact {
   enrolmentApplications EnrolmentApplication[] @relation("ContactEnrolmentApplications")
   authTokens            ParentAuthToken[]      @relation("ContactAuthTokens")
   onboardingProgress    Json? // { profile, medical, documents, pickups, installed }
+  parentPostLikes       ParentPostLike[]       @relation("ParentPostLikes")
+  parentPostComments    ParentPostComment[]    @relation("ParentPostComments")
 
   @@unique([email, serviceId])
   @@index([serviceId])
@@ -5002,7 +5005,9 @@ model ParentPost {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  tags ParentPostChildTag[]
+  tags     ParentPostChildTag[]
+  likes    ParentPostLike[]
+  comments ParentPostComment[]
 
   @@index([serviceId])
   @@index([createdAt])
@@ -5017,6 +5022,36 @@ model ParentPostChildTag {
 
   @@unique([postId, childId])
   @@index([childId])
+}
+
+model ParentPostLike {
+  id        String        @id @default(cuid())
+  postId    String
+  post      ParentPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  likerId   String
+  liker     CentreContact @relation("ParentPostLikes", fields: [likerId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([postId, likerId])
+  @@index([postId])
+  @@index([likerId])
+}
+
+model ParentPostComment {
+  id             String         @id @default(cuid())
+  postId         String
+  post           ParentPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentAuthorId String?
+  parentAuthor   CentreContact? @relation("ParentPostComments", fields: [parentAuthorId], references: [id], onDelete: SetNull)
+  staffAuthorId  String?
+  staffAuthor    User?          @relation("ParentPostStaffComments", fields: [staffAuthorId], references: [id], onDelete: SetNull)
+  body           String         @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([postId, createdAt])
+  @@index([parentAuthorId])
+  @@index([staffAuthorId])
 }
 
 // ── Parent Notifications (In-App Bell) ──────────────────
