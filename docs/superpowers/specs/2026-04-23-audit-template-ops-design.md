@@ -45,6 +45,8 @@ Permission: all three restricted to `owner | head_office | admin` (matches exist
 | 4 | `feat(templates): inline "Add item" form on TemplateDetail` | Feature | 2 |
 | 5 | `test(audits): cover new apply route + respread flag on PATCH` | Tests | 1 |
 
+Per-commit tests: each feature commit (1–4) should ship with its own minimal test coverage inline. Commit 5 consolidates the broader cases (happy path permutations, all 401/403/400 variants, respread scenarios) in one file so the stack stays reviewable. This matches the project pattern used in the 4b stack.
+
 ~5 commits. No changes to calendar import, audit instances UI, audit results tab, or any cowork route.
 
 ## Key design decisions
@@ -64,25 +66,27 @@ Permission: all three restricted to `owner | head_office | admin` (matches exist
 ```ts
 {
   created: number;
-  skipped: number;     // existing instances that hit the @@unique
-  total: number;       // created + skipped
-  serviceIds: string[]; // echo for client-side invalidation
+  skipped: number;                  // existing instances that hit the @@unique
+  total: number;                    // created + skipped
+  serviceIds: string[];             // echo of valid services actually processed
+  unknownServiceIds?: string[];     // serviceIds that were filtered out (not found / inactive)
 }
 ```
 
 **Behaviour:**
 - If `months` omitted → use `template.scheduledMonths`
+- **Filter `serviceIds` upfront** against `Service.status === "active"`; any ids not found in the filtered set go into `unknownServiceIds`. The main loop runs only over the filtered set.
 - For each (service × month) pair:
   - Check `AuditInstance` uniqueness; skip if exists
-  - Create `AuditInstance` with `status: "scheduled"`, `dueDate = last day of month`, `totalItems = template.items.length`
+  - Create `AuditInstance` with `status: "scheduled"`, `dueDate = new Date(year, month, 0)` with `setHours(23, 59, 59, 999)` (matches calendar import exactly — gives last day of the scheduled month), `totalItems = template.items.length`
   - Bulk-seed `AuditItemResponse` records with `result: "not_answered"` (same pattern as calendar import, lines 216–232)
-- Wrap the per-month loop in a single `prisma.$transaction` per service so partial failures don't leave orphaned instances
+- Wrap each service's per-month loop in a single `prisma.$transaction` so partial failures don't leave orphaned instances. **Note**: this is an intentional upgrade over the calendar-import path (which does not use a transaction). Keep calendar-import behaviour unchanged — the upgrade applies only to the new `/apply` route.
 - Past-month skipping: **do not apply** the "skip months before current month" rule that the calendar import uses — on manual apply, user may legitimately want to backfill. Document this clearly.
-- Write `ActivityLog` entry: `action: "apply"`, `entityType: "AuditTemplate"`, `entityId: [id]`, `details: { serviceCount, year, months, created, skipped }`
+- Write `ActivityLog` entry: `action: "apply"`, `entityType: "AuditTemplate"`, `entityId: [id]`, `details: { serviceCount, year, months, created, skipped, unknownServiceCount }`. Plan step should verify `ActivityLog.action` is a free-string field (expected) — if it is enum-typed the value "apply" must be added first.
 
 **Roles:** `["owner", "head_office", "admin"]` via `withApiAuth`.
 
-**Rate limit:** default 60 req/min per user per endpoint (matches wrapper default).
+**Rate limit:** override to `{ max: 20, windowMs: 60000 }` — each call can write up to `services × months` rows in a transactional burst, so capping per-minute calls limits blast radius from a rogue script or double-click loop. Still generous for interactive use.
 
 ### Respread flag on `PATCH /api/audits/templates/[id]`
 
@@ -93,11 +97,12 @@ respreadFutureInstances?: boolean  // default false
 ```
 
 When `true` AND `scheduledMonths` present in the body AND the template has existing instances:
-- Scope: only instances with `dueDate >= today` (future only — past audits preserved)
-- For each future instance:
+- **Year scope**: respread applies to instances with `scheduledYear === currentYear OR scheduledYear > currentYear` (current year + all future years). Past years are untouched regardless of month. This matches the mental model "the calendar going forward".
+- **Month scope**: within the year scope, only instances with `dueDate >= today` AND `status === "scheduled"` are eligible. In-progress, completed, and past-due instances are never touched — this also protects against losing in-flight edits another user may be making to an `in_progress` instance.
+- For each eligible instance:
   - If instance's current `scheduledMonth` is in the new `scheduledMonths` array → leave alone
-  - Otherwise → delete the instance (cascade removes its `AuditItemResponse` rows)
-- Then re-generate instances in the new months for the same service/year (reusing apply logic, but only for services that had an instance before)
+  - Otherwise → delete the instance (`onDelete: Cascade` on `AuditItemResponse` removes child rows automatically — verified against `prisma/schema.prisma` line 3619)
+- Then re-generate instances in the new months for the same service/year combinations that had an instance before. Use the same `dueDate` formula and response-seeding pattern as `/apply`.
 
 **Why delete-and-recreate not update:** if a user was part-way through a January instance and we move it to March, keeping partial responses is confusing. Delete-and-recreate gives a fresh scheduled instance. In-progress and completed instances are never touched (filter on `status: "scheduled"` only).
 
@@ -134,13 +139,13 @@ New: `[edit] [apply] [upload]` cluster, still on the right. Icons with `title` t
 
 **UI sections:**
 1. Header: template name + template's `scheduledMonths` shown as read-only chips
-2. Service multi-select: checkbox list of active services (from `/api/services?limit=100`), with "Select all active" / "Clear" buttons; shows count (`3 of 10 selected`)
+2. Service multi-select: checkbox list of active services (fetched via the same pattern already used by `AuditEditModal` and `AuditCalendarTab` — `fetchApi<{ services?: ServiceOption[] } | ServiceOption[]>("/api/services?limit=100")` with array-or-object-payload normalisation). Plan step should first grep for a reusable multi-select component before hand-rolling — several pages (Rocks, Scorecard, Enquiries) likely have one. Include "Select all active" / "Clear" buttons; shows count (`3 of 10 selected`)
 3. Year: prev/current/next picker (same control as calendar upload modal)
 4. Months override:
    - Toggle: "Use custom months"
    - When off: muted helper text "Will use template's scheduled months: Jan, Jul"
    - When on: 12-month checkbox grid pre-filled with `scheduledMonths`
-5. Preview strip: `Will create up to {services × months} instances. Existing instances will be skipped.`
+5. Preview strip: `Will create up to {services × months} instances. Existing instances will be skipped.` When any selected month is earlier than `today` (within the selected year) show a subtle amber chip `Backfilling past months` so users don't do it by accident.
 6. Footer: Cancel + "Apply to {N} services"
 
 **Submit:** calls `useApplyTemplateToServices` → toast `Created {created} instance(s), skipped {skipped} duplicate(s)` → invalidate `audit-instances` query (all variants) + close modal.
