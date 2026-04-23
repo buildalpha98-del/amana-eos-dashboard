@@ -40,8 +40,10 @@ import {
   Calendar,
   Sprout,
   SlidersHorizontal,
+  CalendarPlus,
 } from "lucide-react";
 import { EditTemplateModal } from "@/components/audits/EditTemplateModal";
+import { ApplyToServicesModal } from "@/components/audits/ApplyToServicesModal";
 
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -831,6 +833,7 @@ export default function AuditTemplatesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [uploadTarget, setUploadTarget] = useState<{ id: string; name: string } | null>(null);
   const [editTarget, setEditTarget] = useState<AuditTemplateSummary | null>(null);
+  const [applyTarget, setApplyTarget] = useState<AuditTemplateSummary | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showCalendarUpload, setShowCalendarUpload] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -1057,6 +1060,16 @@ export default function AuditTemplatesPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      setApplyTarget(template);
+                    }}
+                    className="p-1.5 text-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors shrink-0"
+                    title="Apply to services"
+                  >
+                    <CalendarPlus className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setUploadTarget({ id: template.id, name: template.name });
                     }}
                     className="p-1.5 text-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors shrink-0"
@@ -1105,6 +1118,13 @@ export default function AuditTemplatesPage() {
         open={!!editTarget}
         onClose={() => setEditTarget(null)}
         template={editTarget}
+      />
+
+      {/* Apply to Services Modal */}
+      <ApplyToServicesModal
+        open={!!applyTarget}
+        onClose={() => setApplyTarget(null)}
+        template={applyTarget}
       />
     </div>
   );
