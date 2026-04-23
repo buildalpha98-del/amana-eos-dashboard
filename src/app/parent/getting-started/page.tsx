@@ -103,52 +103,56 @@ export default function GettingStartedPage() {
       <div>
         <Link
           href="/parent"
-          className="inline-flex items-center gap-1 text-sm text-[#004E64] hover:text-[#0A7E9E] font-medium transition-colors min-h-[44px]"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-[color:var(--color-brand)] hover:text-[color:var(--color-brand-light)] min-h-[44px]"
         >
           <ArrowLeft className="w-4 h-4" />
           Home
         </Link>
-        <h1 className="text-2xl font-heading font-bold text-[#1a1a2e] mt-2">
+        <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] mt-2 leading-tight">
           Get Set Up
         </h1>
-        <p className="text-sm text-[#7c7c8a] mt-1">
-          Complete these steps to get the most out of the Amana Parents app.
+        <p className="text-sm text-[color:var(--color-muted)] mt-1">
+          A few quick steps to get the most out of your portal.
         </p>
       </div>
 
       {/* Progress card */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-[#e8e4df]">
+      <div className="warm-card">
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              "w-12 h-12 rounded-full flex items-center justify-center",
-              allDone ? "bg-green-100" : "bg-[#FECE00]/20"
+              "w-12 h-12 rounded-full flex items-center justify-center shrink-0",
+              allDone
+                ? "bg-[color:var(--color-status-in-care-bg)]"
+                : "bg-[color:var(--color-accent)]/20",
             )}
           >
             {allDone ? (
-              <CheckCircle2 className="w-6 h-6 text-green-600" />
+              <CheckCircle2 className="w-6 h-6 text-[color:var(--color-status-in-care-fg)]" />
             ) : (
-              <Rocket className="w-6 h-6 text-[#004E64]" />
+              <Rocket className="w-6 h-6 text-[color:var(--color-brand)]" />
             )}
           </div>
           <div className="flex-1">
-            <p className="text-base font-heading font-bold text-[#1a1a2e]">
-              {allDone ? "All done!" : `${completedCount} of ${totalCount} steps complete`}
-            </p>
-            <p className="text-xs text-[#7c7c8a]">
+            <p className="text-base font-heading font-bold text-[color:var(--color-foreground)]">
               {allDone
-                ? "You're all set up. Welcome to Amana OSHC!"
-                : "Complete all steps to get the most out of the app."}
+                ? "All done!"
+                : `${completedCount} of ${totalCount} steps complete`}
+            </p>
+            <p className="text-xs text-[color:var(--color-muted)]">
+              {allDone
+                ? "You're all set up — welcome to Amana OSHC."
+                : "Finish up when you have a minute."}
             </p>
           </div>
         </div>
 
         {/* Progress bar */}
-        <div className="mt-3 h-2 bg-[#F2EDE8] rounded-full overflow-hidden">
+        <div className="mt-3 h-1.5 bg-[color:var(--color-cream-deep)] rounded-full overflow-hidden">
           <div
             className={cn(
               "h-full rounded-full transition-all duration-500",
-              allDone ? "bg-green-500" : "bg-[#004E64]"
+              allDone ? "bg-[color:var(--color-success)]" : "bg-[color:var(--color-brand)]",
             )}
             style={{ width: `${(completedCount / totalCount) * 100}%` }}
           />
@@ -180,17 +184,21 @@ export default function GettingStartedPage() {
               <Link
                 key={item.key}
                 href={item.href}
-                className="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df] hover:shadow-md hover:border-[#004E64]/20 transition-all active:scale-[0.99]"
+                className="warm-card flex items-center gap-3 hover:shadow-[var(--shadow-warm-md)] transition-shadow"
               >
-                <div className={cn("w-5 h-5 rounded-full border-2 shrink-0", "border-[#e8e4df]")} />
-                <div className="w-9 h-9 rounded-lg bg-[#F2EDE8] flex items-center justify-center shrink-0">
+                <div className="w-5 h-5 rounded-full border-2 border-[color:var(--color-border)] shrink-0" />
+                <div className="w-10 h-10 rounded-full bg-[color:var(--color-cream-deep)] flex items-center justify-center shrink-0">
                   <item.icon className={cn("w-5 h-5", item.iconColor)} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[#1a1a2e]">{item.title}</p>
-                  <p className="text-xs text-[#7c7c8a] mt-0.5">{item.description}</p>
+                  <p className="text-sm font-semibold text-[color:var(--color-foreground)]">
+                    {item.title}
+                  </p>
+                  <p className="text-xs text-[color:var(--color-muted)] mt-0.5">
+                    {item.description}
+                  </p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-[#7c7c8a] shrink-0" />
+                <ChevronRight className="w-4 h-4 text-[color:var(--color-muted)] shrink-0" />
               </Link>
             );
           }

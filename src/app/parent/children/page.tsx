@@ -1,35 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ChevronRight,
-  AlertCircle,
-  Calendar,
-  Plus,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { useParentChildren, type ParentChild } from "@/hooks/useParentPortal";
+import { KidPill, SectionLabel } from "@/components/parent/ui";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function ChildrenListPage() {
   const { data: children, isLoading, error } = useParentChildren();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
+          <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
             Your Children
           </h1>
-          <p className="text-sm text-[#7c7c8a] mt-1">
-            Tap a child to see attendance, medical info, and emergency contacts.
+          <p className="text-sm text-[color:var(--color-muted)] mt-1">
+            Tap a child to see attendance, medical info, and contacts.
           </p>
         </div>
         <Link
           href="/parent/children/new"
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#004E64] hover:bg-[#003D52] text-white text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] min-h-[44px] shrink-0"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[color:var(--color-brand)] text-white text-sm font-semibold rounded-full min-h-[44px] shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Enrol Sibling</span>
+          <span className="hidden sm:inline">Enrol sibling</span>
           <span className="sm:hidden">Enrol</span>
         </Link>
       </div>
@@ -37,22 +33,30 @@ export default function ChildrenListPage() {
       {isLoading ? (
         <ChildrenSkeleton />
       ) : error || !children ? (
-        <div className="bg-white rounded-xl p-6 text-center shadow-sm border border-[#e8e4df]">
-          <p className="text-[#7c7c8a] text-sm">
-            Unable to load children. Please try again later.
+        <div className="warm-card text-center py-8">
+          <p className="text-sm text-[color:var(--color-muted)]">
+            Couldn&apos;t load children. Please try again.
           </p>
         </div>
       ) : children.length === 0 ? (
-        <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
-          <p className="text-[#7c7c8a] text-sm">
-            No children are linked to your account yet. Contact your centre if
-            you believe this is an error.
+        <div className="warm-card text-center py-10">
+          <p className="text-sm text-[color:var(--color-muted)]">
+            No children linked yet. Contact your centre if this looks wrong.
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
+          <SectionLabel label={`${children.length} ${children.length === 1 ? "child" : "children"}`} />
           {children.map((child) => (
-            <ChildRow key={child.id} child={child} />
+            <KidPill
+              key={child.id}
+              child={{
+                id: child.id,
+                name: `${child.firstName} ${child.lastName}`,
+                subtitle: buildSubtitle(child),
+              }}
+              href={`/parent/children/${child.id}`}
+            />
           ))}
         </div>
       )}
@@ -60,66 +64,23 @@ export default function ChildrenListPage() {
   );
 }
 
-function ChildRow({ child }: { child: ParentChild }) {
-  const hasMedical =
-    child.medicalConditions.length > 0 || child.allergies.length > 0;
-
-  const medicalSummary = [
-    ...child.medicalConditions,
-    ...child.allergies.map((a) => `Allergy: ${a}`),
-  ]
-    .slice(0, 2)
-    .join(", ");
-
-  return (
-    <Link
-      href={`/parent/children/${child.id}`}
-      className="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df] hover:shadow-md hover:border-[#004E64]/20 transition-all active:scale-[0.99]"
-    >
-      {/* Avatar circle */}
-      <div className="w-12 h-12 rounded-full bg-[#004E64]/10 flex items-center justify-center flex-shrink-0">
-        <span className="text-lg font-heading font-bold text-[#004E64]">
-          {child.firstName[0]}
-          {child.lastName[0]}
-        </span>
-      </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <h3 className="text-base font-heading font-semibold text-[#1a1a2e] truncate">
-            {child.firstName} {child.lastName}
-          </h3>
-          {hasMedical && (
-            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-          )}
-        </div>
-        <p className="text-sm text-[#7c7c8a] truncate">
-          {[child.yearLevel, child.serviceName].filter(Boolean).join(" \u00B7 ")}
-        </p>
-        {medicalSummary && (
-          <p className="text-xs text-red-500/80 truncate mt-0.5">
-            {medicalSummary}
-          </p>
-        )}
-        <div className="flex items-center gap-1 mt-1 text-xs text-[#7c7c8a]">
-          <Calendar className="w-3 h-3" />
-          <span>
-            Attendance this week: {child.attendanceThisWeek.attended}/
-            {child.attendanceThisWeek.total} days
-          </span>
-        </div>
-      </div>
-
-      <ChevronRight className="w-5 h-5 text-[#7c7c8a] flex-shrink-0" />
-    </Link>
-  );
+function buildSubtitle(child: ParentChild): string {
+  const bits: string[] = [];
+  if (child.yearLevel) bits.push(child.yearLevel);
+  if (child.serviceName) bits.push(child.serviceName);
+  if (child.attendanceThisWeek) {
+    bits.push(
+      `${child.attendanceThisWeek.attended}/${child.attendanceThisWeek.total} this week`,
+    );
+  }
+  return bits.join(" · ");
 }
 
 function ChildrenSkeleton() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {[1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-24 w-full rounded-xl" />
+        <Skeleton key={i} className="h-20 rounded-[var(--radius-lg)]" />
       ))}
     </div>
   );
