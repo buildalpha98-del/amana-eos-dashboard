@@ -34,7 +34,7 @@ Visual direction was picked in the brainstorm: **"Soft & Human" layout** (warmer
 
 - Current tests: 700/700 passing, 46 test files (parent portal covered by existing route tests + one E2E spec).
 - Data model complete — zero schema changes required.
-- Existing APIs untouched: `/api/parent/profile`, `/api/parent/bookings`, `/api/parent/children/[id]`, `/api/parent/conversations`, `/api/parent/enrolment-applications`, `/api/parent/onboarding`.
+- Existing APIs untouched: `/api/parent/profile`, `/api/parent/bookings`, `/api/parent/children/[id]`, `/api/parent/messages`, `/api/parent/messages/[id]`, `/api/parent/enrolment-applications`, `/api/parent/onboarding`, `/api/parent/timeline`.
 - Existing hooks untouched: `useParentProfile`, `useParentBookings`, `useParentChild`, `useParentChildren`, `useParentConversations`, `useParentOnboarding`, `useParentEnrolmentApplications`. `useParentConversations` already returns `lastMessage` / `unreadCount` / `lastMessageAt` — Home preview needs no API change.
 - Auth untouched: `ParentAuthProvider`, magic-link issuance, `PARENT_JWT_SECRET` session cookie.
 - PWA untouched: `/parent-manifest.webmanifest` + apple-mobile-web-app title override.
@@ -50,7 +50,7 @@ Visual direction was picked in the brainstorm: **"Soft & Human" layout** (warmer
 | 1 | `feat(parent): design system tokens + 8 primitives under src/components/parent/ui/` | Foundation | ~11 |
 | 2 | `test(parent): unit tests for new primitives (Avatar incl. hydration stability, KidPill, SessionCard, StatusBadge, SectionLabel, WarmCTA, PullSheet, SwipeActions)` | Tests | ~8 |
 | 3 | `feat(db): ParentPostLike + ParentPostComment models + migration` | Schema | 2 (schema + migration) |
-| 4 | `feat(api): parent-posts like + comment routes (parent-side + staff-side counts)` | API | ~6 (routes + tests) |
+| 4 | `feat(api): parent-posts like + comment routes (parent like/unlike/list-comments/create-comment + staff reply + staff-delete + aggregate counts on existing endpoint + shared visibility/contact helpers)` | API | ~9 (6 routes + 2 helpers + extension + tests) |
 | 5 | `feat(parent): Home v2 behind NEXT_PUBLIC_PARENT_PORTAL_V2 flag` | Feature | ~4 |
 | 6 | `feat(parent): Child Detail / Attendance v2 behind flag` | Feature | ~4 |
 | 7 | `feat(parent): Bookings v2 + fast-book PullSheet behind flag` | Feature | ~5 |
@@ -61,7 +61,14 @@ Visual direction was picked in the brainstorm: **"Soft & Human" layout** (warmer
 | 12 | `test(parent): e2e specs for redesigned flows + cross-portal flows (book→rollcall, post→like→staff-sees-count)` | Tests | 3–4 |
 | 13 | `feat(parent): remove NEXT_PUBLIC_PARENT_PORTAL_V2 flag + delete v1 versions of the 4 redesigned pages` | Cleanup | ~5 |
 
-~13 commits. One schema migration (additive, two new models, no existing table touched). Four new API routes (two on parent side, two on staff side — all small). No existing hook signatures changed.
+~13 commits. One schema migration (additive, two new models, no existing table touched). Six new API routes (four parent-side, two staff-side) plus one aggregate-field extension to an existing staff endpoint. No existing hook signatures changed.
+
+**Commit sequencing notes:**
+- Commits 3 → 4 are a strict chain (schema must land before API).
+- Commit 9 (Timeline v2 UI) depends on commits 3 + 4 shipping.
+- Commits 5, 6, 7, 8 (Home, Child, Bookings, Messages v2) do **not** depend on the likes/comments work and can ship in any order or in parallel.
+- Commit 12 (E2E tests) depends on every feature commit it exercises — run last among feature commits.
+- Commit 13 (flag removal + cleanup) requires all four redesigned pages to be live and verified in prod for at least one staging window.
 
 ## End-to-end integration audit
 
@@ -69,8 +76,8 @@ Every redesigned flow must work cross-portal. Below is the current wiring state 
 
 | Flow | Parent action | Staff side | State | Required work |
 |---|---|---|---|---|
-| **Casual booking** | `POST /api/parent/bookings` → `Booking` record (`status: "requested"`, `type: "casual"`) | Coordinator email via `sendBookingRequestNotification`; appears on `/bookings` page; approve/decline updates status; confirmed bookings feed `/roll-call` attendance view | ✅ **Wired E2E** | E2E test only: parent books → staff sees on /bookings → confirm → appears in /roll-call for the booked date |
-| **Messaging** | `POST /api/parent/conversations/[id]/messages` | Staff replies from `/messaging` page; parent sees via `useParentConversations` | ✅ **Wired E2E** | E2E test only: bidirectional thread (parent sends → staff receives → staff replies → parent receives) |
+| **Casual booking** | `POST /api/parent/bookings` → `Booking` record (`status: "requested"`; `type` = `"casual"` for BSC/ASC or `"vacation_care"` for VC session days) | Coordinator email via `sendBookingRequestNotification`; appears on `/bookings` page; approve/decline updates status; confirmed bookings feed `/roll-call` attendance view | ✅ **Wired E2E** | E2E test only: parent books → staff sees on /bookings → confirm → appears in /roll-call for the booked date |
+| **Messaging** | `POST /api/parent/messages` (list) / `POST /api/parent/messages/[id]` (thread reply) | Staff replies from `/messaging` page; parent sees via `useParentConversations` | ✅ **Wired E2E** | E2E test only: bidirectional thread (parent sends → staff receives → staff replies → parent receives) |
 | **Attendance** | Parent checks `useParentChild` | Staff marks via `/roll-call` (sign in/out) → `Attendance` record → surfaces on parent Child Detail | ✅ **Wired E2E** | Covered by `parent-portal-attendance.spec.ts` |
 | **Staff post → parent timeline** | Parent views via `/api/parent/timeline` → `TimelineWidget` | Staff creates via `CreateParentPostForm` → `POST /api/services/[id]/parent-posts` → `ParentPost` record | ✅ **Wired E2E** (read-only) | E2E test: staff creates post → parent sees in timeline |
 | **Parent likes post** | Parent taps like → `POST /api/parent/posts/[id]/like` | Staff sees like count on `/services/[id]/parent-communication` | ❌ **Not wired** — no schema, no API, no UI | **New scope in this spec** — see "Likes & comments on parent posts" below |
@@ -165,7 +172,7 @@ All under `src/components/parent/ui/`, scoped to the parent portal. Each is <100
 | `Avatar` | Circle with initial or photo, deterministic gradient fill keyed off `seed`, 4 sizes | `name`, `seed?`, `size?: 'sm'\|'md'\|'lg'\|'xl'`, `src?` |
 | `KidPill` | Avatar + name + subtitle + right-side `StatusBadge`, tappable | `child`, `status?`, `href?`, `onPress?` |
 | `SessionCard` | Date tile (DAY / NUM) + label + sublabel + status; horizontal or list variant | `date`, `label`, `sublabel?`, `status`, `variant?` |
-| `StatusBadge` | Rounded-full pill, soft-palette variants | `variant: 'in-care' \| 'confirmed' \| 'requested' \| 'declined' \| 'new' \| 'overdue'` |
+| `StatusBadge` | Rounded-full pill, soft-palette variants | `variant: 'in-care' \| 'confirmed' \| 'requested' \| 'waitlisted' \| 'declined' \| 'new' \| 'overdue'` (covers the full `BookingStatus` enum's user-facing states; `waitlisted` and `absent_notified` fall back to `requested` styling if variant omitted) |
 | `SectionLabel` | Small uppercase label + optional right action ("View all") | `label`, `action?: { href: string, text: string }` |
 | `WarmCTA` | Gradient-accent call block (icon + title + sub + chevron) | `icon`, `title`, `sub?`, `href`, `tone?` |
 | `PullSheet` | `vaul`-based bottom sheet with snap points | `open`, `onOpenChange`, `snapPoints?`, `activeSnapPoint?`, `children` |
@@ -346,33 +353,48 @@ parentPostStaffComments  ParentPostComment[]  @relation("ParentPostStaffComments
 
 Migration: `npx prisma migrate dev --name add_parent_post_likes_and_comments` — purely additive, no data backfill needed.
 
-#### API routes (four new endpoints)
+#### API routes (five new endpoints + one aggregate extension)
 
 All new routes follow existing project conventions — parent routes use `withParentAuth`, staff routes use `withApiAuth`; all mutations validated via Zod.
 
+**Shared helpers (added once, reused by all routes):**
+
+- `src/lib/parent-post-visibility.ts` — `canParentAccessPost(parent: ParentJwtPayload, postId: string): Promise<{ post: ParentPost; allowed: boolean }>`. Encapsulates the existing visibility rule from `/api/parent/timeline` (post's `serviceId` ∈ parent's services from their `enrolmentIds` AND (post `isCommunity === true` OR post has a tag matching one of the parent's children)). One predicate, all four parent routes use it — eliminates drift.
+- `src/lib/parent-contact.ts` — `resolveParentContactForService(parent: ParentJwtPayload, serviceId: string): Promise<CentreContact | null>`. Mirrors the existing pattern in `/api/parent/messages` — looks up `CentreContact` by `(email.toLowerCase(), serviceId)`. All like/comment routes call this to get the `CentreContact.id` used as the `likerId` / `parentAuthorId`. Returns `null` → route responds 403 (not 500) — parent authenticated but has no contact record for the post's service.
+
 **Parent side:**
 
-1. `POST /api/parent/posts/[postId]/like` — toggle like.
-    - Verifies the parent has access to the post (same visibility rules as `/api/parent/timeline` — post's `serviceId` is in parent's `serviceIds`, and post is either `isCommunity` OR tags one of parent's children).
-    - Upsert on `(postId, likerId)` → create if missing; if existing, return 200 with `liked: true`.
+1. `POST /api/parent/posts/[postId]/like` — create like (idempotent upsert on `(postId, likerId)`).
+    - Flow: `canParentAccessPost` → 403 if not allowed. `resolveParentContactForService(parent, post.serviceId)` → 403 if null. Prisma `upsert` on the unique `(postId, likerId)` composite.
     - Response: `{ liked: true, likeCount: number }`
-    - Companion: `DELETE /api/parent/posts/[postId]/like` — removes the like.
-
-2. `GET /api/parent/posts/[postId]/comments` — list comments (paginated, cursor by `createdAt` desc).
-    - Same visibility check.
+2. `DELETE /api/parent/posts/[postId]/like` — remove like.
+    - Same auth + visibility. Prisma `deleteMany` (idempotent — returns 0 or 1 rows deleted).
+    - Response: `{ liked: false, likeCount: number }`
+3. `GET /api/parent/posts/[postId]/comments?cursor&limit` — list comments, cursor by `createdAt` desc, default limit 20, max 50 (via `safeLimit`).
     - Response: `{ items: Array<{ id, body, createdAt, authorName, authorType: 'parent' | 'staff', authorAvatar? }>, nextCursor?: string }`
-    - `authorName` is `CentreContact.name` for parent authors, `User.name` for staff. No PII leakage — only first name + last-initial.
-
-3. `POST /api/parent/posts/[postId]/comments` — create comment.
-    - Body: `{ body: string }` (Zod: min 1, max 2000).
-    - Rate-limited to 5/min per parent (existing `withParentAuth` infrastructure).
-    - Response: the created comment object.
+    - `authorName`: first name + last-initial only (`"Sarah K."`) — no full-name PII leakage. Same treatment for both parent and staff commenters.
+4. `POST /api/parent/posts/[postId]/comments` — create comment.
+    - Body (Zod): `{ body: z.string().trim().min(1).max(2000) }`.
+    - Auth: `canParentAccessPost` + `resolveParentContactForService`.
+    - Rate limit: **reuses the default `withParentAuth` limit of 60 req/min per parent per endpoint** (verified in `src/lib/parent-auth.ts` line 144). No per-route override needed — 60/min is already strict for comment creation at this product's scale.
+    - Response: the created comment object with author fields resolved.
 
 **Staff side:**
 
-4. Extend existing `GET /api/services/[id]/parent-posts` response to include `likeCount` and `commentCount` per post (aggregates via Prisma `_count`). This is additive — clients ignore unknown fields.
+5. `POST /api/services/[serviceId]/parent-posts/[postId]/comments` — staff reply to a comment thread on one of their service's posts.
+    - Auth: `withApiAuth` with role `owner | head_office | admin | coordinator` (matches existing `/api/services/[id]/parent-posts` permissions).
+    - Verifies `post.serviceId === serviceId` (route-param consistency) — 404 if mismatch.
+    - Writes a `ParentPostComment` with `staffAuthorId` populated, `parentAuthorId` null.
+    - Body (Zod): `{ body: z.string().trim().min(1).max(2000) }`.
+    - Response: created comment object.
+6. `DELETE /api/services/[serviceId]/parent-posts/[postId]/comments/[commentId]` — staff delete any comment on their service's post (moderation).
+    - Auth: same as above.
+    - Verifies comment's `postId === postId` and `post.serviceId === serviceId`.
+    - Response: `{ deleted: true }`.
 
-5. `POST /api/services/[id]/parent-posts/[postId]/comments` — staff reply to a comment thread on one of their service's posts. Reuses the same `ParentPostComment` table with `staffAuthorId` populated instead of `parentAuthorId`. Staff can comment on any post in their service.
+**Extension (not a new endpoint):**
+
+7. Existing `GET /api/services/[id]/parent-posts` response — add `likeCount: number` and `commentCount: number` per post (Prisma `_count` aggregate on the new `@@index([postId])` indexes). Additive field — existing clients ignore unknown fields.
 
 #### UI: parent side
 
@@ -388,11 +410,14 @@ All new routes follow existing project conventions — parent routes use `withPa
     - Expand to view full comment thread inline + staff-reply composer.
 - No new page — just additions to the existing view.
 
-#### Notifications
+#### Notifications — explicitly deferred to a follow-on spec
 
-- **Staff gets notified** when a parent comments on one of their service's posts — reuses the existing `ParentNotification` infrastructure in reverse (or creates a `StaffNotification` equivalent — check existing pattern before picking).
-- **Parent gets notified** when staff replies to a comment thread they started — via `ParentNotification` (existing `NotificationBell` picks it up).
-- First-implementation pragmatism: if the notification pattern is non-trivial, notifications can be a follow-on commit. Core like/comment functionality ships independently.
+Verified: `StaffNotification` model does not exist in the schema. Introducing staff-side in-app notifications is a non-trivial architectural decision (new model? email only? existing in-dashboard feed?) and does not belong in this spec.
+
+- **In this spec**: no new notifications for likes or comments. Staff discovers comments by opening the parent-communication view on their service, which already displays posts — updated comment counts and inline threads surface there.
+- **Follow-on spec (`parent-engagement-notifications`)**: staff notification for new comments (reuses coordinator-email pattern from bookings, and/or introduces `StaffNotification` model); parent notification for staff replies (via existing `ParentNotification` + `NotificationBell`).
+
+This keeps the current spec shippable and avoids "infrastructure without adoption" — we can measure engagement volume first and pick the right notification pattern based on actual data.
 
 ### Messages (`src/app/parent/messages/page.tsx` + `[id]/page.tsx`)
 
@@ -412,7 +437,7 @@ Conversational UX like iMessage, centre-branded.
 - Composer: pinned to bottom with `safe-area-inset-bottom`. Auto-growing textarea. Attach icon visible but disabled with tooltip "Attachments coming soon" (explicitly out of scope for v1). Send button appears only when text exists.
 - **Optimistic send**: on submit, message appears instantly with a pending tick (faded). Turns solid when server confirms. Implemented with React Query `useMutation.onMutate` → optimistic cache update; `onError` rolls back and shows a destructive toast.
 
-All data from existing `useParentConversations` + `POST /api/parent/conversations/[id]/messages` (already exists).
+All data from existing `useParentConversations` + `POST /api/parent/messages/[id]` (already exists).
 
 ### Passive-upgrade screens
 
@@ -453,7 +478,7 @@ Build-time flag + query-string override — ship each redesigned page when it's 
     }
     ```
 
-- **Cleanup (commit 9)**: when all four redesigned pages are live in prod, delete `HomeV1.tsx` / `ChildDetailV1.tsx` / `BookingsV1.tsx` / `MessagesV1.tsx` / `messages/[id]/ThreadV1.tsx`, inline `<HomeV2/>` logic back into `page.tsx` (rename to remove V2 suffix), and delete `useV2Flag`. ~5 files deleted, ~5 files simplified.
+- **Cleanup (commit 13)**: when all four redesigned pages are live in prod, delete `HomeV1.tsx` / `ChildDetailV1.tsx` / `BookingsV1.tsx` / `MessagesV1.tsx` / `messages/[id]/ThreadV1.tsx`, inline `<HomeV2/>` logic back into `page.tsx` (rename to remove V2 suffix), and delete `useV2Flag`. ~5 files deleted, ~5 files simplified.
 
 ## Testing
 
@@ -505,6 +530,10 @@ Instrumentation lives inside each redesigned page; no new analytics infrastructu
 - ❌ **Staff dashboard redesign.** Once parent patterns prove out, they'll inherit into the staff dashboard as a separate spec.
 - ❌ **Attachments in messaging.** Compose button visible but disabled with tooltip. Full attachment flow is a later phase.
 - ❌ **Cross-service booking or new session types.** Uses only session types each service already offers.
+- ❌ **Comment editing by the author, self-delete, or report-abuse.** v1 has staff-delete only (per moderation in commit 4). Author-edit / author-delete / report-abuse are deliberately out — they need their own policy discussion.
+- ❌ **Profanity filter / automated moderation on comments.** Length-limited (2000 chars) but no content filter. Separate spec if needed.
+- ❌ **Staff or parent notifications for likes/comments.** Explicitly deferred to the follow-on `parent-engagement-notifications` spec.
+- ❌ **Realtime (WebSocket/SSE) updates for comments or likes.** v1 uses React Query polling / stale-time. Realtime is a separate infra discussion.
 - ❌ **Percentage / cohort rollout.** The build-time flag does all-or-nothing per deployment. If cohort rollout becomes a requirement, it's a separate spec (needs Edge Config or similar runtime flag source).
 
 ## Success criteria
@@ -519,6 +548,8 @@ When this spec is fully shipped (commit 9 merged, flag removed):
 6. **All 700+ existing tests still pass.** New unit + E2E specs pass on CI.
 7. **No regression in existing staff-dashboard screens** (they don't share the parent primitives).
 8. **Fast-book completion rate** > 60% from the instrumentation above.
+9. **Like action feels instant** — optimistic UI flips the heart in < 100ms perceived latency; failure rolls back within 2s with a destructive toast.
+10. **Comment count refresh for staff** — staff viewing `/services/[id]/parent-communication` sees comment-count increment within 30s of a parent posting a comment (React Query stale-time-based refresh, no realtime push needed).
 
 ## Future follow-ons (next brainstorms, not this spec)
 
