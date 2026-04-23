@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import {
@@ -20,35 +20,38 @@ interface Props {
   template: AuditTemplateSummary | null;
 }
 
-export function EditTemplateModal({ open, onClose, template }: Props) {
+/**
+ * Thin wrapper that mounts the inner modal only when open+template are both
+ * set. This way the inner component's useState initialisers run fresh on each
+ * open, avoiding setState-in-effect patterns.
+ */
+export function EditTemplateModal(props: Props) {
+  if (!props.open || !props.template) return null;
+  return <EditTemplateModalInner {...props} template={props.template} />;
+}
+
+function EditTemplateModalInner({
+  onClose,
+  template,
+}: Omit<Props, "open" | "template"> & { template: AuditTemplateSummary }) {
   const updateMut = useUpdateTemplate();
 
-  const [name, setName] = useState("");
-  const [nqsReference, setNqsReference] = useState("");
-  const [qualityArea, setQualityArea] = useState(1);
-  const [frequency, setFrequency] = useState<"monthly" | "half_yearly" | "yearly">("monthly");
-  const [responseFormat, setResponseFormat] = useState("yes_no");
-  const [estimatedMinutes, setEstimatedMinutes] = useState<number | "">("");
-  const [scheduledMonths, setScheduledMonths] = useState<number[]>([]);
-  const [isActive, setIsActive] = useState(true);
+  const sortedTemplateMonths = [...template.scheduledMonths].sort((a, b) => a - b);
+
+  const [name, setName] = useState(template.name);
+  const [nqsReference, setNqsReference] = useState(template.nqsReference);
+  const [qualityArea, setQualityArea] = useState(template.qualityArea);
+  const [frequency, setFrequency] = useState<"monthly" | "half_yearly" | "yearly">(
+    template.frequency as "monthly" | "half_yearly" | "yearly",
+  );
+  const [responseFormat, setResponseFormat] = useState(template.responseFormat);
+  const [estimatedMinutes, setEstimatedMinutes] = useState<number | "">(
+    template.estimatedMinutes ?? "",
+  );
+  const [scheduledMonths, setScheduledMonths] = useState<number[]>(sortedTemplateMonths);
+  const [isActive, setIsActive] = useState(template.isActive);
   const [showRespreadConfirm, setShowRespreadConfirm] = useState(false);
-  const [initialScheduledMonths, setInitialScheduledMonths] = useState<number[]>([]);
-
-  useEffect(() => {
-    if (!template) return;
-    setName(template.name);
-    setNqsReference(template.nqsReference);
-    setQualityArea(template.qualityArea);
-    setFrequency(template.frequency as "monthly" | "half_yearly" | "yearly");
-    setResponseFormat(template.responseFormat);
-    setEstimatedMinutes(template.estimatedMinutes ?? "");
-    setScheduledMonths([...template.scheduledMonths].sort((a, b) => a - b));
-    setInitialScheduledMonths([...template.scheduledMonths].sort((a, b) => a - b));
-    setIsActive(template.isActive);
-    setShowRespreadConfirm(false);
-  }, [template, open]);
-
-  if (!open || !template) return null;
+  const [initialScheduledMonths] = useState<number[]>(sortedTemplateMonths);
 
   const monthsChanged =
     scheduledMonths.length !== initialScheduledMonths.length ||

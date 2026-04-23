@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { X, Loader2, AlertTriangle, CalendarPlus } from "lucide-react";
 import { toast } from "@/hooks/useToast";
@@ -29,7 +29,19 @@ interface Props {
   template: AuditTemplateSummary | null;
 }
 
-export function ApplyToServicesModal({ open, onClose, template }: Props) {
+/**
+ * Thin wrapper that mounts the inner modal only when open+template are set,
+ * so the inner component's useState initialisers run fresh on each open.
+ */
+export function ApplyToServicesModal(props: Props) {
+  if (!props.open || !props.template) return null;
+  return <ApplyToServicesModalInner {...props} template={props.template} />;
+}
+
+function ApplyToServicesModalInner({
+  onClose,
+  template,
+}: Omit<Props, "open" | "template"> & { template: AuditTemplateSummary }) {
   const applyMut = useApplyTemplateToServices();
 
   const { data: services = [], isLoading: servicesLoading } = useQuery<ServiceOption[]>({
@@ -44,28 +56,29 @@ export function ApplyToServicesModal({ open, onClose, template }: Props) {
     retry: 2,
   });
 
-  const now = new Date();
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [year, setYear] = useState(now.getFullYear());
-  const [overrideMonths, setOverrideMonths] = useState(false);
-  const [months, setMonths] = useState<number[]>([]);
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
 
-  useEffect(() => {
-    if (!open || !template) return;
-    setSelectedIds([]);
-    setYear(now.getFullYear());
-    setOverrideMonths(false);
-    setMonths([...template.scheduledMonths].sort((a, b) => a - b));
-  }, [open, template]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [year, setYear] = useState(currentYear);
+  const [overrideMonths, setOverrideMonths] = useState(false);
+  const [months, setMonths] = useState<number[]>(
+    [...template.scheduledMonths].sort((a, b) => a - b),
+  );
 
   const activeServices = useMemo(
     () => services.filter((s) => (s.status ?? "active") === "active"),
     [services],
   );
 
-  if (!open || !template) return null;
-
   const effectiveMonths = overrideMonths ? months : template.scheduledMonths;
+
+  // Warn if any selected month is in the past of the selected year
+  const hasBackfill = useMemo(() => {
+    if (year > currentYear) return false;
+    if (year < currentYear) return true;
+    return effectiveMonths.some((m) => m < currentMonth);
+  }, [year, effectiveMonths, currentYear, currentMonth]);
 
   const toggleService = (id: string) => {
     setSelectedIds((prev) =>
@@ -88,14 +101,6 @@ export function ApplyToServicesModal({ open, onClose, template }: Props) {
     !applyMut.isPending;
 
   const projected = selectedIds.length * effectiveMonths.length;
-
-  // Warn if any selected month is in the past of the selected year
-  const hasBackfill = useMemo(() => {
-    if (year > now.getFullYear()) return false;
-    if (year < now.getFullYear()) return true;
-    const currentMonth = now.getMonth() + 1;
-    return effectiveMonths.some((m) => m < currentMonth);
-  }, [year, effectiveMonths, now]);
 
   const handleApply = async () => {
     try {
@@ -224,7 +229,7 @@ export function ApplyToServicesModal({ open, onClose, template }: Props) {
           <div>
             <p className="text-sm font-medium text-foreground/80 mb-1.5">Year</p>
             <div className="flex items-center gap-2">
-              {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
+              {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
                 <button
                   key={y}
                   type="button"

@@ -21,11 +21,25 @@ vi.mock("@/lib/rate-limit", () => ({
 import { PATCH as TEMPLATE_PATCH } from "@/app/api/audits/templates/[id]/route";
 import { _clearUserActiveCache } from "@/lib/server-auth";
 
+interface FindUniqueArgs {
+  where: {
+    templateId_serviceId_scheduledMonth_scheduledYear: {
+      scheduledMonth: number;
+    };
+  };
+}
+
+interface FindManyArgs {
+  where: {
+    status?: string;
+    dueDate?: { gte?: Date };
+  };
+}
+
 describe("PATCH /api/audits/templates/[id] — respread flag", () => {
   const ctx = { params: Promise.resolve({ id: "tpl-1" }) };
   const today = new Date();
   const futureDate = new Date(today.getFullYear() + 1, 5, 15);
-  const pastDate = new Date(today.getFullYear() - 1, 5, 15);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -164,7 +178,7 @@ describe("PATCH /api/audits/templates/[id] — respread flag", () => {
     ]);
 
     // month 3 exists already; month 9 does not
-    prismaMock.auditInstance.findUnique.mockImplementation(({ where }: any) => {
+    prismaMock.auditInstance.findUnique.mockImplementation(({ where }: FindUniqueArgs) => {
       const month = where.templateId_serviceId_scheduledMonth_scheduledYear.scheduledMonth;
       return Promise.resolve(month === 3 ? { id: "existing-m3" } : null);
     });
@@ -219,7 +233,7 @@ describe("PATCH /api/audits/templates/[id] — respread flag", () => {
     // returning only the scheduled instance, not the in_progress/completed ones.
     // This proves the route uses the status filter; if it didn't, the mock would
     // also return those rows and they'd get deleted.
-    prismaMock.auditInstance.findMany.mockImplementation((args: any) => {
+    prismaMock.auditInstance.findMany.mockImplementation((args: FindManyArgs) => {
       expect(args.where.status).toBe("scheduled");
       return Promise.resolve([
         {
@@ -258,7 +272,7 @@ describe("PATCH /api/audits/templates/[id] — respread flag", () => {
       _count: { instances: 1 },
     });
 
-    prismaMock.auditInstance.findMany.mockImplementation((args: any) => {
+    prismaMock.auditInstance.findMany.mockImplementation((args: FindManyArgs) => {
       // Confirm the route filters on dueDate >= now
       expect(args.where.dueDate).toHaveProperty("gte");
       // Simulate DB returning nothing because the only instance had a past dueDate
