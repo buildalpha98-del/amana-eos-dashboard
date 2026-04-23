@@ -279,6 +279,84 @@ export function useUpdateTemplate() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
       queryClient.invalidateQueries({ queryKey: ["audit-template-detail", vars.id] });
+      queryClient.invalidateQueries({ queryKey: ["audit-instances"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+export interface ApplyTemplateResult {
+  created: number;
+  skipped: number;
+  total: number;
+  serviceIds: string[];
+  unknownServiceIds?: string[];
+}
+
+export function useApplyTemplateToServices() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      templateId,
+      serviceIds,
+      year,
+      months,
+    }: {
+      templateId: string;
+      serviceIds: string[];
+      year: number;
+      months?: number[];
+    }): Promise<ApplyTemplateResult> => {
+      return mutateApi(`/api/audits/templates/${templateId}/apply`, {
+        method: "POST",
+        body: { serviceIds, year, ...(months ? { months } : {}) },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audit-instances"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+export function useAddTemplateItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      templateId,
+      section,
+      question,
+      guidance,
+      responseFormat,
+    }: {
+      templateId: string;
+      section?: string;
+      question: string;
+      guidance?: string;
+      responseFormat?: string;
+    }) => {
+      return mutateApi(`/api/audits/templates/${templateId}/items`, {
+        method: "POST",
+        body: {
+          items: [
+            {
+              question,
+              ...(section ? { section } : {}),
+              ...(guidance ? { guidance } : {}),
+              ...(responseFormat ? { responseFormat } : {}),
+            },
+          ],
+        },
+      });
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["audit-template-detail", vars.templateId] });
+      queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });

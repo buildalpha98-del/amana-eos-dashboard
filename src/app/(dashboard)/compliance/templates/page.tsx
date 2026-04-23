@@ -39,7 +39,9 @@ import {
   Package,
   Calendar,
   Sprout,
+  SlidersHorizontal,
 } from "lucide-react";
+import { EditTemplateModal } from "@/components/audits/EditTemplateModal";
 
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -828,6 +830,7 @@ export default function AuditTemplatesPage() {
   const [freqFilter, setFreqFilter] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [uploadTarget, setUploadTarget] = useState<{ id: string; name: string } | null>(null);
+  const [editTarget, setEditTarget] = useState<AuditTemplateSummary | null>(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showCalendarUpload, setShowCalendarUpload] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -1044,6 +1047,16 @@ export default function AuditTemplatesPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      setEditTarget(template);
+                    }}
+                    className="p-1.5 text-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors shrink-0"
+                    title="Edit template"
+                  >
+                    <SlidersHorizontal className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setUploadTarget({ id: template.id, name: template.name });
                     }}
                     className="p-1.5 text-muted hover:text-brand hover:bg-brand/10 rounded-lg transition-colors shrink-0"
@@ -1086,6 +1099,13 @@ export default function AuditTemplatesPage() {
       {showCalendarUpload && (
         <CalendarUploadModal onClose={() => setShowCalendarUpload(false)} />
       )}
+
+      {/* Edit Template Modal */}
+      <EditTemplateModal
+        open={!!editTarget}
+        onClose={() => setEditTarget(null)}
+        template={editTarget}
+      />
     </div>
   );
 }
