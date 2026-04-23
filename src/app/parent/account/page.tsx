@@ -11,6 +11,7 @@ import { useParentAuth } from "@/components/parent/ParentAuthProvider";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
+import { EnableNotificationsCard } from "@/components/parent/EnableNotificationsCard";
 
 interface ContactForm {
   id?: string;
@@ -137,6 +138,8 @@ export default function AccountPage() {
           Update your contact details and emergency contacts.
         </p>
       </div>
+
+      <EnableNotificationsCard />
 
       {/* Profile (editable) */}
       <section className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">

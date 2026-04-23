@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -8,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { ParentAuthProvider, useParentAuth } from "@/components/parent/ParentAuthProvider";
 import { useParentConversations } from "@/hooks/useParentPortal";
 import { NotificationBell } from "@/components/parent/NotificationBell";
+import { registerParentServiceWorker } from "@/lib/push/register";
 
 const NAV_ITEMS = [
   { href: "/parent", label: "Home", icon: Home },
@@ -38,6 +40,13 @@ function ParentLayoutInner({ children }: { children: React.ReactNode }) {
     (sum, c) => sum + (c.unreadCount ?? 0),
     0,
   );
+
+  // Register the service worker once per authed parent session so push
+  // events can be delivered even when the portal tab is closed.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    registerParentServiceWorker().catch(() => {});
+  }, [isAuthenticated]);
 
   // On the login page, render children directly without shell
   if (pathname === "/parent/login") {
