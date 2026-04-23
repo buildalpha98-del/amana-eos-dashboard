@@ -97,13 +97,32 @@ describe("POST /api/queue/[id]/complete", () => {
     expect(call.data.completedBy).toBe("user-42");
   });
 
-  it("allows completion when caller is not the assignee (documented current behaviour — no ownership check)", async () => {
-    // NOTE: The current route does not restrict completion to the assignee.
-    // Any authenticated user can complete any todo. This test documents that
-    // behaviour so a future change introducing a 403 path is an explicit,
-    // intentional edit rather than a silent regression.
+  it("returns 403 when caller is not the assignee (non-admin role)", async () => {
     mockSession({ id: "other-user", name: "Other", role: "member" });
     prismaMock.user.findUnique.mockResolvedValue({ id: "other-user", active: true, role: "member" });
+    prismaMock.coworkTodo.findUnique.mockResolvedValue({
+      id: "todo-1",
+      assignedToId: "someone-else",
+      completed: false,
+    });
+
+    const req = createRequest("POST", "/api/queue/todo-1/complete");
+    const res = await POST(req, params);
+    expect(res.status).toBe(403);
+
+    const body = await res.json();
+    expect(body.error).toMatch(/forbidden/i);
+    // Ensure the update was NOT called — the 403 blocks it.
+    expect(prismaMock.coworkTodo.update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["owner"],
+    ["head_office"],
+    ["admin"],
+  ])("role %s can complete a todo assigned to someone else (admin override)", async (role) => {
+    mockSession({ id: "admin-user", name: "Admin", role: role as "owner" });
+    prismaMock.user.findUnique.mockResolvedValue({ id: "admin-user", active: true, role });
     prismaMock.coworkTodo.findUnique.mockResolvedValue({
       id: "todo-1",
       assignedToId: "someone-else",
@@ -112,11 +131,14 @@ describe("POST /api/queue/[id]/complete", () => {
     prismaMock.coworkTodo.update.mockResolvedValue({
       id: "todo-1",
       completed: true,
-      completedBy: "other-user",
+      completedBy: "admin-user",
     });
 
     const req = createRequest("POST", "/api/queue/todo-1/complete");
     const res = await POST(req, params);
     expect(res.status).toBe(200);
+
+    const call = prismaMock.coworkTodo.update.mock.calls[0][0];
+    expect(call.data.completedBy).toBe("admin-user");
   });
 });
