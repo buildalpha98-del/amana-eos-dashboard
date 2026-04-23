@@ -37,19 +37,22 @@ export const GET = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: "Service not found" }, { status: 404 });
   }
 
-  // Aggregate attendance by session type
+  // Aggregate attendance by session type.
+  // `enrolled` stores permanent bookings, `attended` stores casual bookings —
+  // groceries are consumed by every booked child regardless of booking type,
+  // so the breakdown must sum both.
   const attendanceAgg = await prisma.dailyAttendance.groupBy({
     by: ["sessionType"],
     where: {
       serviceId: id,
       date: { gte: from, lte: to },
     },
-    _sum: { attended: true },
+    _sum: { enrolled: true, attended: true },
   });
 
   const attendanceMap: Record<string, number> = { bsc: 0, asc: 0, vc: 0 };
   for (const a of attendanceAgg) {
-    attendanceMap[a.sessionType] = a._sum.attended || 0;
+    attendanceMap[a.sessionType] = (a._sum.enrolled || 0) + (a._sum.attended || 0);
   }
 
   const bscCost = attendanceMap.bsc * service.bscGroceryRate;
@@ -90,13 +93,14 @@ export const GET = withApiAuth(async (req, session, context) => {
     service
   );
 
-  // We need attendance per period too — query all daily records
+  // We need attendance per period too — query all daily records.
+  // Combine enrolled (permanent) + attended (casual) — same rationale as above.
   const dailyRecords = await prisma.dailyAttendance.findMany({
     where: {
       serviceId: id,
       date: { gte: from, lte: to },
     },
-    select: { date: true, sessionType: true, attended: true },
+    select: { date: true, sessionType: true, enrolled: true, attended: true },
   });
 
   // Fill attendance into period buckets
@@ -104,15 +108,16 @@ export const GET = withApiAuth(async (req, session, context) => {
     const bucketKey = getBucketKey(rec.date, period);
     const bucket = periods.find((p) => p.period === bucketKey);
     if (bucket) {
+      const bookings = rec.enrolled + rec.attended;
       if (rec.sessionType === "bsc") {
-        bucket.bscAttendance += rec.attended;
-        bucket.groceryCost += rec.attended * service.bscGroceryRate;
+        bucket.bscAttendance += bookings;
+        bucket.groceryCost += bookings * service.bscGroceryRate;
       } else if (rec.sessionType === "asc") {
-        bucket.ascAttendance += rec.attended;
-        bucket.groceryCost += rec.attended * service.ascGroceryRate;
+        bucket.ascAttendance += bookings;
+        bucket.groceryCost += bookings * service.ascGroceryRate;
       } else if (rec.sessionType === "vc") {
-        bucket.vcAttendance += rec.attended;
-        bucket.groceryCost += rec.attended * service.vcGroceryRate;
+        bucket.vcAttendance += bookings;
+        bucket.groceryCost += bookings * service.vcGroceryRate;
       }
       bucket.total = bucket.groceryCost + bucket.equipmentCost;
     }
