@@ -27,6 +27,7 @@ process.env.VAPID_SUBJECT = "mailto:test@example.com";
 // Dynamic import so env vars are in place at module-load.
 let sendPush: typeof import("@/lib/push/webPush").sendPush;
 let sendPushToContact: typeof import("@/lib/push/webPush").sendPushToContact;
+let sendPushToParentEmail: typeof import("@/lib/push/webPush").sendPushToParentEmail;
 
 beforeEach(async () => {
   vi.resetModules();
@@ -34,6 +35,7 @@ beforeEach(async () => {
   const mod = await import("@/lib/push/webPush");
   sendPush = mod.sendPush;
   sendPushToContact = mod.sendPushToContact;
+  sendPushToParentEmail = mod.sendPushToParentEmail;
 });
 
 describe("sendPush", () => {
@@ -141,5 +143,39 @@ describe("sendPushToContact", () => {
     });
     expect(res).toEqual({ sent: 0, removed: 0 });
     expect(prismaMock.pushSubscription.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("sendPushToParentEmail", () => {
+  it("returns 0/0 for an empty email", async () => {
+    const res = await sendPushToParentEmail("", { title: "t", body: "b" });
+    expect(res).toEqual({ sent: 0, removed: 0 });
+    expect(prismaMock.pushSubscription.findMany).not.toHaveBeenCalled();
+  });
+
+  it("normalises the email and queries via CentreContact.email", async () => {
+    prismaMock.pushSubscription.findMany.mockResolvedValueOnce([]);
+    await sendPushToParentEmail("  Parent@Example.COM ", {
+      title: "t",
+      body: "b",
+    });
+    const call = prismaMock.pushSubscription.findMany.mock.calls[0][0];
+    expect(call.where).toEqual({ family: { email: "parent@example.com" } });
+  });
+
+  it("dedupes by endpoint so a single device gets one push even if subscribed under multiple CentreContact rows", async () => {
+    prismaMock.pushSubscription.findMany.mockResolvedValueOnce([
+      { id: "s1", endpoint: "same-endpoint", p256dh: "k1", auth: "a1" },
+      { id: "s2", endpoint: "same-endpoint", p256dh: "k2", auth: "a2" },
+      { id: "s3", endpoint: "other-endpoint", p256dh: "k3", auth: "a3" },
+    ]);
+    sendNotification.mockResolvedValue(undefined);
+
+    const res = await sendPushToParentEmail("p@e.com", {
+      title: "t",
+      body: "b",
+    });
+    expect(sendNotification).toHaveBeenCalledTimes(2); // same-endpoint + other-endpoint
+    expect(res.sent).toBe(2);
   });
 });

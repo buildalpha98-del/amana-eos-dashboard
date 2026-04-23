@@ -8,6 +8,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { sendPushToParentEmail } from "@/lib/push/webPush";
 import { logger } from "@/lib/logger";
 import {
   bookingConfirmedEmail,
@@ -74,6 +75,14 @@ export async function notifyBookingConfirmed(bookingId: string) {
       body: `${booking.child.firstName}'s booking has been confirmed.`,
       link: "/parent/bookings",
     });
+
+    sendPushToParentEmail(email, {
+      title: "Booking confirmed",
+      body: `${booking.child.firstName}'s booking at ${booking.service.name} is confirmed.`,
+      url: "/parent/bookings",
+    }).catch((err) =>
+      logger.error("Failed to send booking confirmed push", { bookingId, err }),
+    );
   } catch (err) {
     logger.error("Failed to send booking confirmed notification", { bookingId, err });
   }
@@ -120,6 +129,14 @@ export async function notifyBookingCancelled(bookingId: string) {
       body: `${booking.child.firstName}'s booking has been cancelled.`,
       link: "/parent/bookings",
     });
+
+    sendPushToParentEmail(email, {
+      title: "Booking update",
+      body: `${booking.child.firstName}'s booking at ${booking.service.name} was cancelled.`,
+      url: "/parent/bookings",
+    }).catch((err) =>
+      logger.error("Failed to send booking cancelled push", { bookingId, err }),
+    );
   } catch (err) {
     logger.error("Failed to send booking cancelled notification", { bookingId, err });
   }
@@ -243,6 +260,16 @@ export async function notifyParentNewPost(
         body: postTitle,
         link: "/parent",
       });
+
+      // Only send the post TITLE — the body may contain
+      // child-specific detail we don't want in a push preview.
+      sendPushToParentEmail(email, {
+        title: `New ${typeLabel.toLowerCase()}`,
+        body: postTitle,
+        url: "/parent",
+      }).catch((err) =>
+        logger.error("Failed to send parent-post push", { postId, email, err }),
+      );
     }
   } catch (err) {
     logger.error("Failed to send post notifications", { postId, err });
