@@ -2,8 +2,28 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Plus, Megaphone, MessageCircle, Bell, Users, Pencil, Trash2 } from "lucide-react";
-import { useParentPosts, useDeleteParentPost, type ParentPost } from "@/hooks/useParentPosts";
+import {
+  Plus,
+  Megaphone,
+  MessageCircle,
+  Bell,
+  Users,
+  Pencil,
+  Trash2,
+  Heart,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  Send,
+} from "lucide-react";
+import {
+  useParentPosts,
+  useDeleteParentPost,
+  useStaffPostComments,
+  useStaffReplyToPost,
+  useDeleteStaffPostComment,
+  type ParentPost,
+} from "@/hooks/useParentPosts";
 import { CreateParentPostForm } from "@/components/services/CreateParentPostForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -12,6 +32,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { useSession } from "next-auth/react";
+import { cn } from "@/lib/utils";
 
 const typeIcons: Record<string, typeof Megaphone> = {
   observation: MessageCircle,
@@ -42,6 +63,7 @@ export default function ParentCommunicationPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingPost, setEditingPost] = useState<ParentPost | null>(null);
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
 
   if (error) return <ErrorState error={error} />;
 
@@ -156,6 +178,37 @@ export default function ParentCommunicationPage() {
                     })}
                   </time>
                 </div>
+
+                {/* Engagement bar */}
+                <div className="flex items-center gap-4 pt-3 border-t border-border">
+                  <span className="flex items-center gap-1.5 text-sm text-muted">
+                    <Heart className="w-4 h-4" />
+                    {post.likeCount ?? 0}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedPostId(expandedPostId === post.id ? null : post.id)
+                    }
+                    className="flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>
+                      {post.commentCount ?? 0}{" "}
+                      {(post.commentCount ?? 0) === 1 ? "comment" : "comments"}
+                    </span>
+                    {expandedPostId === post.id ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Inline comment thread */}
+                {expandedPostId === post.id && (
+                  <CommentThread serviceId={id} postId={post.id} />
+                )}
               </article>
             );
           })}
@@ -185,6 +238,111 @@ export default function ParentCommunicationPage() {
           }
         }}
       />
+    </div>
+  );
+}
+
+// ─── Staff comment thread ────────────────────────────────
+
+function CommentThread({ serviceId, postId }: { serviceId: string; postId: string }) {
+  const { data, isLoading } = useStaffPostComments(serviceId, postId);
+  const reply = useStaffReplyToPost(serviceId, postId);
+  const del = useDeleteStaffPostComment(serviceId, postId);
+  const [body, setBody] = useState("");
+
+  const handleSubmit = async () => {
+    const trimmed = body.trim();
+    if (!trimmed) return;
+    try {
+      await reply.mutateAsync(trimmed);
+      setBody("");
+    } catch {
+      // toast from hook
+    }
+  };
+
+  const items = [...(data?.items ?? [])].reverse(); // oldest first
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border space-y-3">
+      {isLoading ? (
+        <p className="text-xs text-muted">Loading comments…</p>
+      ) : items.length === 0 ? (
+        <p className="text-xs text-muted">No comments yet.</p>
+      ) : (
+        <ul className="space-y-2">
+          {items.map((c) => (
+            <li
+              key={c.id}
+              className="flex items-start gap-2 text-sm group"
+            >
+              <div
+                className={cn(
+                  "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0",
+                  c.authorType === "staff" ? "bg-brand" : "bg-accent",
+                )}
+              >
+                {c.authorName.charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xs font-semibold">{c.authorName}</span>
+                  {c.authorType === "staff" && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-brand/10 text-brand font-semibold">
+                      Staff
+                    </span>
+                  )}
+                  <span className="text-[11px] text-muted">
+                    {new Date(c.createdAt).toLocaleString("en-AU", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm("Remove this comment?")) {
+                        del.mutate(c.id);
+                      }
+                    }}
+                    className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-[11px] text-red-600 hover:text-red-700"
+                    aria-label="Remove comment"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="mt-0.5 whitespace-pre-wrap">{c.body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+        className="flex items-end gap-2"
+      >
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Reply as centre…"
+          rows={1}
+          className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-brand resize-none max-h-32 min-h-[40px]"
+        />
+        <Button
+          type="submit"
+          size="sm"
+          disabled={!body.trim() || reply.isPending}
+          iconLeft={<Send className="w-3.5 h-3.5" />}
+        >
+          Reply
+        </Button>
+      </form>
     </div>
   );
 }

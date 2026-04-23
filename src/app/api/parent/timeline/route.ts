@@ -54,12 +54,44 @@ export const GET = withParentAuth(async (req, { parent }) => {
           child: { select: { id: true, firstName: true, surname: true } },
         },
       },
+      _count: { select: { likes: true, comments: true } },
     },
   });
 
   const hasMore = posts.length > limit;
-  const items = hasMore ? posts.slice(0, limit) : posts;
-  const nextCursor = hasMore ? items[items.length - 1]?.id : undefined;
+  const raw = hasMore ? posts.slice(0, limit) : posts;
+  const nextCursor = hasMore ? raw[raw.length - 1]?.id : undefined;
+
+  // Determine which of these posts this parent has already liked. A parent has
+  // one CentreContact per service — resolve all of them up-front, then check
+  // ParentPostLike membership per post.
+  const contacts = serviceIds.length
+    ? await prisma.centreContact.findMany({
+        where: { email: parent.email.toLowerCase(), serviceId: { in: serviceIds } },
+        select: { id: true, serviceId: true },
+      })
+    : [];
+  const contactIds = contacts.map((c) => c.id);
+  const likes = contactIds.length
+    ? await prisma.parentPostLike.findMany({
+        where: {
+          likerId: { in: contactIds },
+          postId: { in: raw.map((p) => p.id) },
+        },
+        select: { postId: true },
+      })
+    : [];
+  const likedPostIds = new Set(likes.map((l) => l.postId));
+
+  const items = raw.map((p) => {
+    const { _count, ...rest } = p;
+    return {
+      ...rest,
+      likeCount: _count.likes,
+      commentCount: _count.comments,
+      likedByMe: likedPostIds.has(p.id),
+    };
+  });
 
   return NextResponse.json({ items, nextCursor });
 });

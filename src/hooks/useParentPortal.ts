@@ -543,6 +543,18 @@ export interface TimelinePost {
     id: string;
     child: { id: string; firstName: string; surname: string };
   }>;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+}
+
+export interface PostComment {
+  id: string;
+  body: string;
+  createdAt: string;
+  authorName: string;
+  authorType: "parent" | "staff";
+  authorAvatar?: string;
 }
 
 interface TimelineResponse {
@@ -563,6 +575,97 @@ export function useParentTimeline() {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: 30_000,
     retry: 2,
+  });
+}
+
+// ── Post engagement (like + comment) ─────────────────────
+
+interface LikeResponse {
+  liked: boolean;
+  likeCount: number;
+}
+
+export function useParentPostLikeToggle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, liked }: { postId: string; liked: boolean }) =>
+      mutateApi<LikeResponse>(`/api/parent/posts/${postId}/like`, {
+        method: liked ? "DELETE" : "POST",
+      }),
+    onMutate: async ({ postId, liked }) => {
+      // Optimistic update: flip likedByMe and adjust likeCount in all cached
+      // timeline pages.
+      await queryClient.cancelQueries({ queryKey: ["parent-timeline"] });
+      const previous = queryClient.getQueryData(["parent-timeline"]);
+      queryClient.setQueryData(["parent-timeline"], (old: any) => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: TimelineResponse) => ({
+            ...page,
+            items: page.items.map((item) =>
+              item.id === postId
+                ? {
+                    ...item,
+                    likedByMe: !liked,
+                    likeCount: item.likeCount + (liked ? -1 : 1),
+                  }
+                : item,
+            ),
+          })),
+        };
+      });
+      return { previous };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["parent-timeline"], context.previous);
+      }
+      toast({
+        variant: "destructive",
+        description: err.message || "Could not update like.",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["parent-timeline"] });
+    },
+  });
+}
+
+interface CommentsResponse {
+  items: PostComment[];
+  nextCursor?: string;
+}
+
+export function useParentPostComments(postId: string | null) {
+  return useQuery<CommentsResponse>({
+    queryKey: ["parent", "post-comments", postId],
+    queryFn: () =>
+      fetchApi<CommentsResponse>(`/api/parent/posts/${postId}/comments?limit=50`),
+    retry: 2,
+    staleTime: 15_000,
+    enabled: !!postId,
+  });
+}
+
+export function useCreateParentPostComment(postId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) =>
+      mutateApi<PostComment>(`/api/parent/posts/${postId}/comments`, {
+        method: "POST",
+        body: { body },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parent", "post-comments", postId] });
+      queryClient.invalidateQueries({ queryKey: ["parent-timeline"] });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Couldn't post comment.",
+      });
+    },
   });
 }
 
