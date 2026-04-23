@@ -3,6 +3,8 @@ import { z } from "zod";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
+import { isTodayOrFutureInServiceTz } from "@/lib/timezone";
+import { isTrustedBlobUrl } from "@/lib/trusted-urls";
 import { getParentChildIds } from "../route";
 
 // ---------------------------------------------------------------------------
@@ -11,8 +13,14 @@ import { getParentChildIds } from "../route";
 
 const markAbsentSchema = z.object({
   isIllness: z.boolean().optional().default(false),
-  medicalCertificateUrl: z.string().url().optional(),
-  notes: z.string().max(1000).optional(),
+  medicalCertificateUrl: z
+    .string()
+    .url()
+    .refine(isTrustedBlobUrl, {
+      message: "medicalCertificateUrl must be a URL issued by our upload endpoint",
+    })
+    .optional(),
+  notes: z.string().max(500).optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -54,6 +62,13 @@ export const PATCH = withParentAuth(async (req, ctx) => {
   if (booking.status !== "confirmed" && booking.status !== "requested") {
     throw ApiError.badRequest(
       `Cannot mark a ${booking.status} booking as absent`,
+    );
+  }
+
+  // Cannot mark a booking in the past — absence must be reported for today or later
+  if (!isTodayOrFutureInServiceTz(booking.date)) {
+    throw ApiError.badRequest(
+      "Cannot report an absence for a past booking. Contact your centre if the record is incorrect.",
     );
   }
 
