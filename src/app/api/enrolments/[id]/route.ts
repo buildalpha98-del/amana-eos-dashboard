@@ -5,6 +5,8 @@ import { withApiAuth } from "@/lib/server-auth";
 import { generateBookings } from "@/lib/booking-generator";
 import { logger } from "@/lib/logger";
 import { parseJsonBody } from "@/lib/api-error";
+import { upsertContactsFromSubmission } from "@/lib/enrolment-parent-contacts";
+import { sendParentWelcomeInvite } from "@/lib/notifications/parent-welcome";
 const patchEnrolmentSchema = z.object({
   status: z.enum(["submitted", "under_review", "processed", "rejected", "archived"], {
     error: "Invalid status. Must be one of: submitted, under_review, processed, rejected, archived",
@@ -49,14 +51,19 @@ const { id } = await context!.params!;
     updateData.processedAt = new Date();
   }
 
-  // Wrap enrolment update + child activation in a transaction for atomicity
-  const updated = await prisma.$transaction(async (tx) => {
+  // Wrap enrolment update + child activation + parent contact upsert in a transaction for atomicity
+  const { updated, contactsToInvite } = await prisma.$transaction(async (tx) => {
     const enrolment = await tx.enrolmentSubmission.update({
       where: { id },
       data: updateData,
     });
 
-    // When confirmed (processed), activate all Child records + generate bookings
+    // When confirmed (processed), activate children + generate bookings + create parent CentreContacts
+    let contactsToInvite: {
+      contactId: string;
+      childFirstName?: string;
+    }[] = [];
+
     if (parsed.data.status === "processed") {
       await tx.child.updateMany({
         where: { enrolmentId: id, status: "pending" },
@@ -66,7 +73,7 @@ const { id } = await context!.params!;
       // Auto-generate permanent bookings from bookingPrefs
       const children = await tx.child.findMany({
         where: { enrolmentId: id, status: "active" },
-        select: { id: true, serviceId: true, bookingPrefs: true },
+        select: { id: true, firstName: true, serviceId: true, bookingPrefs: true },
       });
 
       const allBookings = children.flatMap((child) => {
@@ -85,10 +92,44 @@ const { id } = await context!.params!;
           bookingsCreated: result.count,
         });
       }
+
+      // Upsert CentreContact rows for both parents (primary + secondary) based on
+      // the submission's JSON parent blobs. Only newly-created contacts trigger
+      // welcome-invite emails.
+      const { primary, secondary } = await upsertContactsFromSubmission(tx, {
+        id: enrolment.id,
+        serviceId: enrolment.serviceId,
+        primaryParent: enrolment.primaryParent,
+        secondaryParent: enrolment.secondaryParent,
+      });
+
+      const firstChildName = children[0]?.firstName;
+      if (primary?.created) {
+        contactsToInvite.push({ contactId: primary.id, childFirstName: firstChildName });
+      }
+      if (secondary?.created) {
+        contactsToInvite.push({ contactId: secondary.id, childFirstName: firstChildName });
+      }
+
+      logger.info("Enrolment processed — parent contacts upserted", {
+        enrolmentId: id,
+        primaryContactId: primary?.id,
+        primaryCreated: primary?.created,
+        secondaryContactId: secondary?.id,
+        secondaryCreated: secondary?.created,
+      });
     }
 
-    return enrolment;
+    return { updated: enrolment, contactsToInvite };
   });
+
+  // Fire-and-forget welcome emails for newly-created parent contacts (post-transaction
+  // so a slow email provider can't block the DB write)
+  for (const invite of contactsToInvite) {
+    sendParentWelcomeInvite(invite).catch((err) =>
+      logger.error("Welcome invite failed", { contactId: invite.contactId, err }),
+    );
+  }
 
   return NextResponse.json(updated);
 });

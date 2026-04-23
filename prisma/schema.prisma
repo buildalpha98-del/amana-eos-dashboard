@@ -3227,6 +3227,20 @@ model CentreContact {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  // ── Parent profile (populated from EnrolmentSubmission.primaryParent on approval) ──
+  dob          DateTime? @db.Date
+  mobile       String?
+  crn          String?
+  address      Json? // { street, suburb, state, postcode }
+  relationship String? // "Mother" | "Father" | "Guardian" | etc.
+  occupation   String?
+  workplace    String?
+  workPhone    String?
+  parentRole   String? // "primary" | "secondary"
+
+  // Link to any enrolment submission this contact was created from (provenance)
+  sourceEnrolmentId String?
+
   nurtureSteps          ParentNurtureStep[]    @relation("ContactNurtureSteps")
   npsResponses          NpsSurveyResponse[]    @relation("ContactNpsResponses")
   referralsMade         Referral[]             @relation("ReferrerContact")
