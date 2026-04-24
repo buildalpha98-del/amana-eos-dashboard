@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { GenerateNewsletterButton } from "./GenerateNewsletterButton";
 import {
   Bell,
   MessageCircle,
@@ -134,9 +135,12 @@ export function ServiceCommTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted">
-        Recent announcements and cascade messages relevant to this centre
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-muted">
+          Recent announcements and cascade messages relevant to this centre
+        </p>
+        <GenerateNewsletterButton serviceId={serviceId} />
+      </div>
 
       {feedItems.map((item) => {
         if (item.type === "announcement") {
