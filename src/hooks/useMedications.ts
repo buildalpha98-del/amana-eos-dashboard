@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { offlineQueue } from "@/lib/offline-queue";
 
 export type MedicationRoute =
   | "oral"
@@ -67,12 +68,32 @@ export interface LogDoseArgs {
 
 export function useLogDose(serviceId: string) {
   const qc = useQueryClient();
-  return useMutation<MedicationDose, Error, LogDoseArgs>({
-    mutationFn: (body) =>
-      mutateApi<MedicationDose>(`/api/services/${serviceId}/medications`, {
-        method: "POST",
-        body,
-      }),
+  return useMutation<MedicationDose | { queued: true }, Error, LogDoseArgs>({
+    mutationFn: async (body) => {
+      const url = `/api/services/${serviceId}/medications`;
+      try {
+        return await mutateApi<MedicationDose>(url, { method: "POST", body });
+      } catch (err) {
+        // Network error or 5xx — enqueue for later drain.
+        // 4xx bubbles up untouched (user input is wrong, no point queuing).
+        const msg = err instanceof Error ? err.message : "";
+        const isTransient =
+          msg.includes("NetworkError") ||
+          msg.toLowerCase().includes("failed to fetch") ||
+          msg.startsWith("HTTP 5");
+        if (!isTransient) throw err;
+        await offlineQueue.enqueue({
+          id: body.clientMutationId,
+          url,
+          method: "POST",
+          body: body as unknown as Record<string, unknown>,
+        });
+        toast({
+          description: "Dose saved offline — will sync when you're back online.",
+        });
+        return { queued: true as const };
+      }
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["medications", serviceId] });
     },

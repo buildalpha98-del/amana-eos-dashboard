@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { offlineQueue } from "@/lib/offline-queue";
 
 export type MtopOutcome =
   | "Identity"
@@ -79,12 +80,28 @@ export interface CreateObservationArgs {
 
 export function useCreateObservation(serviceId: string) {
   const qc = useQueryClient();
-  return useMutation<ObservationItem, Error, CreateObservationArgs>({
-    mutationFn: (body) =>
-      mutateApi<ObservationItem>(`/api/services/${serviceId}/observations`, {
-        method: "POST",
-        body,
-      }),
+  return useMutation<ObservationItem | { queued: true }, Error, CreateObservationArgs>({
+    mutationFn: async (body) => {
+      const url = `/api/services/${serviceId}/observations`;
+      try {
+        return await mutateApi<ObservationItem>(url, { method: "POST", body });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "";
+        const isTransient =
+          msg.includes("NetworkError") ||
+          msg.toLowerCase().includes("failed to fetch") ||
+          msg.startsWith("HTTP 5");
+        if (!isTransient || !body.clientMutationId) throw err;
+        await offlineQueue.enqueue({
+          id: body.clientMutationId,
+          url,
+          method: "POST",
+          body: body as unknown as Record<string, unknown>,
+        });
+        toast({ description: "Observation saved offline — will sync when you're back online." });
+        return { queued: true as const };
+      }
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["observations", serviceId] });
     },

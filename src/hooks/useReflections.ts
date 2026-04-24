@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { offlineQueue } from "@/lib/offline-queue";
 
 export interface ReflectionItem {
   id: string;
@@ -69,12 +70,28 @@ export interface CreateReflectionArgs {
 
 export function useCreateReflection(serviceId: string) {
   const qc = useQueryClient();
-  return useMutation<ReflectionItem, Error, CreateReflectionArgs>({
-    mutationFn: (body) =>
-      mutateApi<ReflectionItem>(`/api/services/${serviceId}/reflections`, {
-        method: "POST",
-        body,
-      }),
+  return useMutation<ReflectionItem | { queued: true }, Error, CreateReflectionArgs>({
+    mutationFn: async (body) => {
+      const url = `/api/services/${serviceId}/reflections`;
+      try {
+        return await mutateApi<ReflectionItem>(url, { method: "POST", body });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "";
+        const isTransient =
+          msg.includes("NetworkError") ||
+          msg.toLowerCase().includes("failed to fetch") ||
+          msg.startsWith("HTTP 5");
+        if (!isTransient || !body.clientMutationId) throw err;
+        await offlineQueue.enqueue({
+          id: body.clientMutationId,
+          url,
+          method: "POST",
+          body: body as unknown as Record<string, unknown>,
+        });
+        toast({ description: "Reflection saved offline — will sync when you're back online." });
+        return { queued: true as const };
+      }
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["reflections", serviceId] });
     },
