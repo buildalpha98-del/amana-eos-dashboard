@@ -2517,6 +2517,191 @@ DOCUMENT EXCERPTS:
 
 QUESTION: {{question}}`,
     },
+    // ── NQS / Staff Dashboard v2 templates (Phase 6 spec) ──
+    {
+      slug: "nqs/reflection-draft",
+      name: "Staff reflection drafter",
+      model: "claude-sonnet-4-20250514",
+      maxTokens: 1024,
+      variables: JSON.stringify([
+        "serviceName",
+        "weekSummary",
+        "recentObservations",
+        "recentIncidents",
+        "recentAudits",
+        "reflectionType",
+      ]),
+      promptTemplate: `You are an Australian OSHC educator drafting an NQS-aligned reflection.
+
+Service: {{serviceName}}
+Type: {{reflectionType}}
+This week at a glance: {{weekSummary}}
+
+Recent learning observations (last 7 days):
+{{recentObservations}}
+
+Recent incidents (last 7 days):
+{{recentIncidents}}
+
+Recent audit findings (last 7 days):
+{{recentAudits}}
+
+Draft a thoughtful, honest reflection that:
+- Describes what went well in concrete terms
+- Names something that didn't work and what you'll try next
+- Tags the relevant NQS Quality Area(s) where obvious
+- Stays under 180 words
+- Uses first-person plural ("we")
+- Is ready for the coordinator to edit and post — do NOT include headings or filler like "Here is the reflection:"`,
+    },
+    {
+      slug: "nqs/observation-draft",
+      name: "Learning observation drafter",
+      model: "claude-sonnet-4-20250514",
+      maxTokens: 800,
+      variables: JSON.stringify([
+        "childFirstName",
+        "childAge",
+        "shortNotes",
+        "interests",
+        "photoSummary",
+      ]),
+      promptTemplate: `You are an Australian OSHC educator writing a learning observation for a single child.
+
+Child: {{childFirstName}} (age {{childAge}})
+Known interests: {{interests}}
+What the educator noticed: {{shortNotes}}
+Photos attached: {{photoSummary}}
+
+Write a warm, specific observation narrative that:
+- Describes what the child did + how they engaged
+- Calls out relevant MTOP outcomes (Identity / Community / Wellbeing / Learners / Communicators) — max 2
+- Suggests a follow-up invitation to extend the learning
+- Uses Australian English + plain, parent-friendly language
+- Stays under 150 words
+- Does NOT mention other children by name`,
+    },
+    {
+      slug: "nqs/risk-hazards-draft",
+      name: "Risk assessment hazards drafter",
+      model: "claude-sonnet-4-20250514",
+      maxTokens: 800,
+      variables: JSON.stringify(["activityType", "location", "knownContext"]),
+      promptTemplate: `Draft the hazards table for an OSHC risk assessment.
+
+Activity type: {{activityType}}
+Location: {{location}}
+Known context: {{knownContext}}
+
+Return 4–8 hazards as a JSON array where each item has:
+  { "hazard": string, "likelihood": 1..5, "severity": 1..5, "controls": string }
+
+Use realistic NSW-regulated OSHC hazards (slips/falls, water, traffic, sun exposure,
+allergy/anaphylaxis, missing child, medical emergency, weather, equipment). Controls must
+describe the specific mitigation the service will apply, not generic advice.
+
+Respond with the JSON array only, no prose.`,
+    },
+    {
+      slug: "messaging/parent-reply",
+      name: "Parent message reply drafter",
+      model: "claude-sonnet-4-20250514",
+      maxTokens: 600,
+      variables: JSON.stringify([
+        "parentMessage",
+        "conversationHistory",
+        "childContext",
+        "tone",
+      ]),
+      promptTemplate: `Draft a professional reply to a parent's message for Amana OSHC.
+
+Parent's message:
+{{parentMessage}}
+
+Conversation history:
+{{conversationHistory}}
+
+Child context (may be empty):
+{{childContext}}
+
+Tone requested: {{tone}}
+
+Rules:
+- Warm, professional Australian English
+- Direct answer first, context second
+- ≤120 words unless the parent asked something that requires a longer explanation
+- Do not invent facts you don't have; flag anything uncertain with "I'll check and come back to you"
+- End with a brief sign-off that suits the conversation`,
+    },
+    {
+      slug: "incidents/report-draft",
+      name: "Incident report drafter",
+      model: "claude-sonnet-4-20250514",
+      maxTokens: 1024,
+      variables: JSON.stringify([
+        "childFirstName",
+        "childAge",
+        "timeOfIncident",
+        "locationOfIncident",
+        "shortFacts",
+      ]),
+      promptTemplate: `Draft an NSW-compliant OSHC incident report from short educator notes.
+
+Child: {{childFirstName}} (age {{childAge}})
+When: {{timeOfIncident}}
+Where: {{locationOfIncident}}
+Short facts supplied by educator:
+{{shortFacts}}
+
+Produce a report in these four sections (no headings — just clear paragraphs):
+1. Description of incident — what happened, factual and concise
+2. Action taken — immediate response, first aid, supervision changes
+3. Injury assessment — body part, severity, whether medical attention sought
+4. Follow-up — parent notified (yes/no + method + time), regulator notification required? (yes/no), any service-wide change to prevent recurrence
+
+Use Australian English. Do not speculate about cause. Do not include child's surname.`,
+    },
+    {
+      slug: "newsletter/weekly-draft",
+      name: "Weekly parent newsletter drafter",
+      model: "claude-sonnet-4-20250514",
+      maxTokens: 1600,
+      variables: JSON.stringify([
+        "serviceName",
+        "weekStart",
+        "weekEnd",
+        "programActivities",
+        "menu",
+        "upcomingEvents",
+        "topObservations",
+      ]),
+      promptTemplate: `Draft a warm, readable weekly newsletter for parents of {{serviceName}}.
+
+Week of {{weekStart}} – {{weekEnd}}.
+
+This week's program activities:
+{{programActivities}}
+
+This week's menu:
+{{menu}}
+
+Upcoming events:
+{{upcomingEvents}}
+
+Top parent-visible observations:
+{{topObservations}}
+
+Format the newsletter as Markdown with these sections:
+- A one-line greeting + week headline
+- **What we explored this week** — 3–5 bullet highlights from the program
+- **On the menu** — quick read of the week's meals (don't list every snack — group by day)
+- **Coming up** — events + reminders in the next fortnight
+- **Moments we loved** — 2–3 sentences riffing on the top observations (no child surnames)
+- Sign-off from the educator team
+
+Use Australian English, warm professional tone, ≤450 words total. Don't use emojis.
+Don't list every child by name. Don't invent events or meals — use only what's supplied.`,
+    },
   ];
 
   for (const tpl of aiTemplates) {
