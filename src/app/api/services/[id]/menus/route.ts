@@ -59,7 +59,8 @@ export const GET = withApiAuth(async (req, session, context) => {
 });
 
 // PUT /api/services/[id]/menus — upsert full week menu
-export const PUT = withApiAuth(async (req, session, context) => {
+export const PUT = withApiAuth(
+  async (req, session, context) => {
 const { id } = await context!.params!;
   const body = await parseJsonBody(req);
   const parsed = saveMenuSchema.safeParse(body);
@@ -135,4 +136,6 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(result);
-});
+  },
+  { roles: ["owner", "head_office", "admin", "coordinator"] },
+);
