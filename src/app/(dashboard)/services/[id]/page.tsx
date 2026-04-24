@@ -35,6 +35,7 @@ import {
   ChevronDown,
   Users,
   Sunrise,
+  Eye,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
@@ -57,6 +58,7 @@ import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRoste
 import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
 import { ServiceCasualBookingsTab } from "@/components/services/ServiceCasualBookingsTab";
 import { ServiceReflectionsTab } from "@/components/services/ServiceReflectionsTab";
+import { ServiceObservationsTab } from "@/components/services/ServiceObservationsTab";
 import { ServiceTabBarV2 } from "@/components/services/ServiceTabBarV2";
 import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -120,6 +122,7 @@ const tabGroups: TabGroup[] = [
     subTabs: [
       { key: "activities", label: "Activities", icon: LayoutList },
       { key: "menu", label: "Menu", icon: UtensilsCrossed },
+      { key: "observations", label: "Observations", icon: Eye },
     ],
   },
   {
@@ -504,6 +507,9 @@ export default function ServiceDetailPage() {
         )}
         {activeGroup === "program" && currentSubKey === "menu" && (
           <ServiceMenuTab serviceId={service.id} />
+        )}
+        {activeGroup === "program" && currentSubKey === "observations" && (
+          <ServiceObservationsTab serviceId={service.id} />
         )}
 
         {/* EOS group */}

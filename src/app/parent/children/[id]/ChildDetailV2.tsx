@@ -18,6 +18,7 @@ import {
   type ParentChild,
   type AttendanceDay,
 } from "@/hooks/useParentPortal";
+import { LearningJournalSection } from "./LearningJournalSection";
 import {
   Avatar,
   SectionLabel,
@@ -65,6 +66,9 @@ export default function ChildDetailV2() {
           <AttendanceStrip days={attendance ?? []} />
         )}
       </section>
+
+      {/* ─── Learning journal (observations) ──────────── */}
+      <LearningJournalSection childId={child.id} />
 
       {/* ─── Medical card ─────────────────────────────── */}
       <MedicalCard child={child} />
