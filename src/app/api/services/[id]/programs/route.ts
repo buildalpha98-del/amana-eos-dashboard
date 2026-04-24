@@ -74,7 +74,8 @@ export const GET = withApiAuth(async (req, session, context) => {
 });
 
 // POST /api/services/[id]/programs — create single activity
-export const POST = withApiAuth(async (req, session, context) => {
+export const POST = withApiAuth(
+  async (req, session, context) => {
 const { id } = await context!.params!;
   const body = await parseJsonBody(req);
   const parsed = activitySchema.safeParse(body);
@@ -117,10 +118,13 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(activity, { status: 201 });
-});
+  },
+  { roles: ["owner", "head_office", "admin", "coordinator"] },
+);
 
 // PUT /api/services/[id]/programs — bulk upsert (replace all for a week)
-export const PUT = withApiAuth(async (req, session, context) => {
+export const PUT = withApiAuth(
+  async (req, session, context) => {
 const { id } = await context!.params!;
   const body = await parseJsonBody(req);
   const parsed = bulkSchema.safeParse(body);
@@ -177,4 +181,6 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(result);
-});
+  },
+  { roles: ["owner", "head_office", "admin", "coordinator"] },
+);
