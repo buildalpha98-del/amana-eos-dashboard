@@ -405,6 +405,7 @@ export interface ConversationMessage {
   senderType: "staff" | "parent";
   senderName: string;
   body: string;
+  attachmentUrls: string[];
   isRead: boolean;
   createdAt: string;
 }
@@ -413,6 +414,7 @@ export interface CreateConversationPayload {
   subject: string;
   message: string;
   serviceId?: string;
+  attachmentUrls?: string[];
 }
 
 // ── Messaging Hooks ─────────────────────────────────────
@@ -463,10 +465,18 @@ export function useSendReply() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ conversationId, body }: { conversationId: string; body: string }) =>
+    mutationFn: ({
+      conversationId,
+      body,
+      attachmentUrls,
+    }: {
+      conversationId: string;
+      body: string;
+      attachmentUrls?: string[];
+    }) =>
       mutateApi(`/api/parent/messages/${conversationId}/reply`, {
         method: "POST",
-        body: { body },
+        body: { body, ...(attachmentUrls ? { attachmentUrls } : {}) },
       }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["parent", "messages", variables.conversationId] });

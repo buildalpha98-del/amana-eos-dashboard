@@ -5,6 +5,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
 import { logger } from "@/lib/logger";
+import { attachmentUrlsField } from "@/lib/schemas/message-attachments";
 
 // ---------------------------------------------------------------------------
 // GET — List conversations
@@ -63,12 +64,18 @@ export const GET = withApiAuth(async (req: NextRequest) => {
 // POST — Create a new conversation with first message
 // ---------------------------------------------------------------------------
 
-const createSchema = z.object({
-  familyId: z.string().min(1, "familyId is required"),
-  serviceId: z.string().min(1, "serviceId is required"),
-  subject: z.string().min(1, "Subject is required").max(200),
-  body: z.string().min(1, "Message body is required").max(5000),
-});
+const createSchema = z
+  .object({
+    familyId: z.string().min(1, "familyId is required"),
+    serviceId: z.string().min(1, "serviceId is required"),
+    subject: z.string().min(1, "Subject is required").max(200),
+    body: z.string().max(5000).default(""),
+    attachmentUrls: attachmentUrlsField,
+  })
+  .refine((d) => d.body.trim().length > 0 || d.attachmentUrls.length > 0, {
+    message: "Message body or attachments are required",
+    path: ["body"],
+  });
 
 export const POST = withApiAuth(async (req: NextRequest, session) => {
   const raw = await parseJsonBody(req);
@@ -77,7 +84,7 @@ export const POST = withApiAuth(async (req: NextRequest, session) => {
     throw ApiError.badRequest("Invalid conversation data", parsed.error.flatten().fieldErrors);
   }
 
-  const { familyId, serviceId, subject, body } = parsed.data;
+  const { familyId, serviceId, subject, body, attachmentUrls } = parsed.data;
 
   // Verify family and service exist
   const [family, service] = await Promise.all([
@@ -97,6 +104,7 @@ export const POST = withApiAuth(async (req: NextRequest, session) => {
       messages: {
         create: {
           body,
+          attachmentUrls,
           senderType: "staff",
           senderId: session.user!.id!,
           senderName: session.user!.name ?? "Staff",
