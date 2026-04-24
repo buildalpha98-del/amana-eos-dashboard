@@ -479,6 +479,7 @@ model User {
   seatAssignments               AccountabilitySeatAssignment[]
   todoTemplatesAssigned         TodoTemplate[]                 @relation("TemplateAssignee")
   todoTemplatesCreated          TodoTemplate[]                 @relation("TemplateCreator")
+  createdServiceEvents          ServiceEvent[]                 @relation("ServiceEventCreator")
 
   // ── Staff Profile Expansion ──────────────────────────────────
   phone             String?
@@ -1518,8 +1519,47 @@ model Service {
   // ── Sibling Enrolment Applications ────────────────
   enrolmentApplications EnrolmentApplication[] @relation("ServiceEnrolmentApplications")
 
+  // ── Service Events (excursions, incursions, etc.) ─
+  events ServiceEvent[] @relation("ServiceEvents")
+
   @@index([status])
   @@index([managerId])
+}
+
+enum ServiceEventType {
+  excursion
+  incursion
+  public_holiday
+  event
+  meeting
+  parent_engagement
+}
+
+model ServiceEvent {
+  id        String           @id @default(cuid())
+  serviceId String
+  service   Service          @relation("ServiceEvents", fields: [serviceId], references: [id], onDelete: Cascade)
+  eventType ServiceEventType
+  title     String
+  /// Event date (day-only — start/end time held separately).
+  date       DateTime @db.Date
+  startTime  DateTime?
+  endTime    DateTime?
+  notes      String?  @db.Text
+  /// Optional FK to a RiskAssessment that approves this event.
+  /// Nullable until a RiskAssessment is linked; required before creating
+  /// excursion events (enforced in the API route).
+  /// Kept as a nullable string (no FK relation) for now — the RiskAssessment
+  /// model is added in a later migration, at which point the relation is
+  /// formalised. Referential integrity is still enforced at the app layer.
+  riskAssessmentId String?
+  createdById      String
+  createdBy        User     @relation("ServiceEventCreator", fields: [createdById], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([serviceId, date])
+  @@index([eventType, date])
 }
 
 model ProjectTemplate {
