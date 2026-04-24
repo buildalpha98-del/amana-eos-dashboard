@@ -40,6 +40,8 @@ import { WidgetErrorBoundary } from "@/components/dashboard/WidgetErrorBoundary"
 import { MobileQuickActions } from "@/components/dashboard/MobileQuickActions";
 import { AiDraftsWidget } from "@/components/dashboard/AiDraftsWidget";
 import { ServicesBelowRatioCard } from "@/components/dashboard/ServicesBelowRatioCard";
+import { DashboardTodayStrip } from "@/components/dashboard/DashboardTodayStrip";
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 // Role-specific widgets
 import { CentrePerformanceOverview } from "@/components/dashboard/CentrePerformanceOverview";
@@ -297,8 +299,13 @@ function CommandCentreDashboard({
   const isAdmin = role === "admin";
   const isCoordinator = role === "coordinator";
 
+  const v2 = useStaffV2Flag();
+
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="max-w-7xl mx-auto space-y-8"
+    >
       {/* ── Greeting + Priority Stats + Quick Actions ──────── */}
       <div className="space-y-4 animate-widget-in">
         <div>
@@ -308,7 +315,19 @@ function CommandCentreDashboard({
           <p className="text-muted text-sm mt-1">{todayDate}</p>
         </div>
 
-        {data && (
+        {/* v2: compact "Today strip" at top */}
+        {v2 && data && (
+          <DashboardTodayStrip
+            counts={{
+              overdueTodos: data.actionItems.overdueTodos.length,
+              offTrackRocks: data.actionItems.overdueRocks.length,
+              openIssues: data.actionItems.idsIssues.length,
+              pendingQueue: pendingQueueCount,
+            }}
+          />
+        )}
+
+        {!v2 && data && (
           <PriorityStats
             overdueTodos={data.actionItems.overdueTodos.length}
             offTrackRocks={data.actionItems.overdueRocks.length}
