@@ -10,7 +10,13 @@ import {
   useSendReply,
   type ConversationMessage,
 } from "@/hooks/useParentPortal";
-import { Avatar } from "@/components/parent/ui";
+import {
+  Avatar,
+  AttachmentThumbnails,
+  MessageAttachmentGrid,
+  useMessageAttachments,
+  MAX_ATTACHMENTS,
+} from "@/components/parent/ui";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
@@ -29,6 +35,17 @@ export default function ThreadV2() {
   const [draft, setDraft] = useState("");
   const [optimistic, setOptimistic] = useState<OptimisticMessage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    attachments,
+    addFiles,
+    remove: removeAttachment,
+    reset: resetAttachments,
+    uploadedUrls,
+    isUploading: isAttachmentUploading,
+    canAddMore,
+  } = useMessageAttachments({ endpoint: "/api/parent/upload/image" });
 
   // Merge server messages + optimistic pending ones
   const messages = useMemo<OptimisticMessage[]>(() => {
@@ -62,24 +79,38 @@ export default function ThreadV2() {
     );
   }
 
+  const hasDraft = draft.trim().length > 0;
+  const hasAttachments = attachments.length > 0;
+  const canSend =
+    !isAttachmentUploading &&
+    !sendReply.isPending &&
+    (hasDraft || uploadedUrls.length > 0);
+
   const handleSend = async () => {
+    if (!canSend) return;
     const body = draft.trim();
-    if (!body) return;
+    const urlsSnapshot = uploadedUrls.slice();
     const tempId = `temp-${Date.now()}`;
     const pending: OptimisticMessage = {
       id: tempId,
       senderType: "parent",
       senderName: "You",
       body,
+      attachmentUrls: urlsSnapshot,
       isRead: true,
       createdAt: new Date().toISOString(),
       __optimistic: true,
     };
     setOptimistic((prev) => [...prev, pending]);
     setDraft("");
+    resetAttachments();
 
     try {
-      await sendReply.mutateAsync({ conversationId: id, body });
+      await sendReply.mutateAsync({
+        conversationId: id,
+        body,
+        attachmentUrls: urlsSnapshot.length > 0 ? urlsSnapshot : undefined,
+      });
       // Message confirmed — will be overwritten by next refetch
       setOptimistic((prev) => prev.filter((p) => p.id !== tempId));
       queryClient.invalidateQueries({ queryKey: ["parent", "messages", id] });
@@ -93,6 +124,12 @@ export default function ThreadV2() {
           err instanceof Error ? err.message : "Failed to send message.",
       });
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) addFiles(files);
+    e.target.value = "";
   };
 
   return (
@@ -155,44 +192,65 @@ export default function ThreadV2() {
           e.preventDefault();
           handleSend();
         }}
-        className="shrink-0 px-3 pt-2 pb-2 border-t border-[color:var(--color-border)] bg-[color:var(--color-cream-soft)] flex items-end gap-2"
+        className="shrink-0 px-3 pt-2 pb-2 border-t border-[color:var(--color-border)] bg-[color:var(--color-cream-soft)] space-y-2"
         style={{ paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom, 0px))" }}
       >
-        <button
-          type="button"
-          disabled
-          title="Attachments coming soon"
-          className="shrink-0 p-2 rounded-full text-[color:var(--color-muted)]/50 cursor-not-allowed min-h-[44px] min-w-[44px] flex items-center justify-center"
-          aria-label="Attach (coming soon)"
-        >
-          <Paperclip className="w-5 h-5" />
-        </button>
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && draft.trim()) {
-              e.preventDefault();
-              handleSend();
+        {hasAttachments && (
+          <AttachmentThumbnails
+            attachments={attachments}
+            onRemove={removeAttachment}
+          />
+        )}
+        <div className="flex items-end gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!canAddMore || sendReply.isPending}
+            title={
+              canAddMore
+                ? "Add photo"
+                : `Maximum ${MAX_ATTACHMENTS} images per message`
             }
-          }}
-          placeholder="Message"
-          rows={1}
-          className="flex-1 px-3 py-2 rounded-[var(--radius-md)] border-2 border-[color:var(--color-border)] bg-white text-sm focus:outline-none focus:border-[color:var(--color-brand)] resize-none max-h-32 min-h-[44px]"
-        />
-        <button
-          type="submit"
-          disabled={!draft.trim() || sendReply.isPending}
-          className={cn(
-            "shrink-0 rounded-full p-2.5 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center",
-            draft.trim()
-              ? "bg-[color:var(--color-brand)] text-white"
-              : "bg-[color:var(--color-border)] text-[color:var(--color-muted)]",
-          )}
-          aria-label="Send message"
-        >
-          <Send className="w-4 h-4" />
-        </button>
+            className="shrink-0 p-2 rounded-full text-[color:var(--color-brand)] hover:bg-[color:var(--color-cream-deep)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label="Add image attachment"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && canSend) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder={hasAttachments ? "Add a caption…" : "Message"}
+            rows={1}
+            className="flex-1 px-3 py-2 rounded-[var(--radius-md)] border-2 border-[color:var(--color-border)] bg-white text-sm focus:outline-none focus:border-[color:var(--color-brand)] resize-none max-h-32 min-h-[44px]"
+          />
+          <button
+            type="submit"
+            disabled={!canSend}
+            className={cn(
+              "shrink-0 rounded-full p-2.5 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center",
+              canSend
+                ? "bg-[color:var(--color-brand)] text-white"
+                : "bg-[color:var(--color-border)] text-[color:var(--color-muted)]",
+            )}
+            aria-label="Send message"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
       </form>
     </div>
   );
@@ -200,6 +258,10 @@ export default function ThreadV2() {
 
 function Bubble({ message }: { message: OptimisticMessage }) {
   const isParent = message.senderType === "parent";
+  const hasText = message.body && message.body.trim().length > 0;
+  const hasAttachments =
+    message.attachmentUrls && message.attachmentUrls.length > 0;
+  if (!hasText && !hasAttachments) return null;
   return (
     <div className={cn("flex", isParent ? "justify-end" : "justify-start")}>
       <div
@@ -211,7 +273,15 @@ function Bubble({ message }: { message: OptimisticMessage }) {
           message.__failed && "opacity-60",
         )}
       >
-        <div className="whitespace-pre-wrap break-words">{message.body}</div>
+        {hasText && (
+          <div className="whitespace-pre-wrap break-words">{message.body}</div>
+        )}
+        {hasAttachments && (
+          <MessageAttachmentGrid
+            urls={message.attachmentUrls}
+            tone={isParent ? "sent" : "received"}
+          />
+        )}
         {isParent && (
           <div className="flex items-center justify-end gap-1 mt-0.5 text-[10px] opacity-70">
             {message.__failed ? (
