@@ -19,6 +19,7 @@ import {
   type AttendanceDay,
 } from "@/hooks/useParentPortal";
 import { LearningJournalSection } from "./LearningJournalSection";
+import { MedicationLogSection } from "./MedicationLogSection";
 import {
   Avatar,
   SectionLabel,
@@ -72,6 +73,9 @@ export default function ChildDetailV2() {
 
       {/* ─── Medical card ─────────────────────────────── */}
       <MedicalCard child={child} />
+
+      {/* ─── Medication log ───────────────────────────── */}
+      <MedicationLogSection childId={child.id} />
 
       {/* ─── This week's menu (compact link to children page) ─── */}
       {child.serviceId && (

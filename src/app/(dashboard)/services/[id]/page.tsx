@@ -59,6 +59,7 @@ import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
 import { ServiceCasualBookingsTab } from "@/components/services/ServiceCasualBookingsTab";
 import { ServiceReflectionsTab } from "@/components/services/ServiceReflectionsTab";
 import { ServiceObservationsTab } from "@/components/services/ServiceObservationsTab";
+import { ServiceMedicationTab } from "@/components/services/ServiceMedicationTab";
 import { ServiceTabBarV2 } from "@/components/services/ServiceTabBarV2";
 import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -86,6 +87,7 @@ const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
   { key: "attendance", label: "Attendance", icon: ClipboardList },
   { key: "roll-call", label: "Roll Call", icon: ClipboardCheck },
   { key: "children", label: "Children", icon: Users },
+  { key: "medication", label: "Medication", icon: Activity },
   { key: "roster", label: "Weekly Roster", icon: CalendarDays },
   { key: "checklists", label: "Checklists", icon: ClipboardCheck },
 ];
@@ -494,6 +496,9 @@ export default function ServiceDetailPage() {
         )}
         {activeGroup === "daily" && currentSubKey === "checklists" && (
           <ServiceChecklistsTab serviceId={service.id} serviceName={service.name} />
+        )}
+        {activeGroup === "daily" && currentSubKey === "medication" && (
+          <ServiceMedicationTab serviceId={service.id} />
         )}
         {activeGroup === "daily" &&
           currentSubKey === "casual-bookings" &&
