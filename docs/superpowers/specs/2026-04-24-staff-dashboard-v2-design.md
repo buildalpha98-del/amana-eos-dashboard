@@ -34,6 +34,7 @@ Three threads:
 - **43 of 71 pages already use the shared `PageHeader`** — structural bones are decent; the redesign is more polish + primitive swap than rewrite for most.
 - **Services detail tabs (19 today)**: Attendance, Roll Call, Children, Weekly Roster, Checklists, Casual Bookings, Today, Overview, Daily Ops (group), Program (Activities + Menu), EOS (Scorecard / Rocks / Todos / Issues / Projects / Weekly Data), Audits, QIP, Comms, Budget, Financials. Five new tabs land here (Reflections, Observations, Medication, Risk, Ratios).
 - **NQS schema-level pieces already present**: `QualityImprovementPlan` + `QIPQualityArea` models, `ServiceQIPTab.tsx` UI, `AuditTemplate` / `AuditInstance`, `IncidentRecord`, `Policy`, `PhotoComplianceLog`. The redesign integrates around these, doesn't replace them.
+- **NOT present (must be added):** no `ServiceEvent` model and no `/api/services/[id]/events` route today — only `CalendarEvent` (centre-scoped, Microsoft sync). The excursion-gate feature needs a new service-scoped event model; commit 6.5 below adds it as a prerequisite to commit 15.
 
 ## In scope — stacked commits
 
@@ -49,6 +50,7 @@ Three threads:
 | 4 | `feat(ui): FilterBar primitive (chip filter row for list pages)` |
 | 5 | `feat(css): staff-dense tokens in globals.css (--radius-dense, --row-height-dense, --font-size-dense, --keyboard-focus-ring); drop .parent-portal scope on press-scale → data-v2 attr` |
 | 6 | `refactor(ui): token sweep + v2 polish on shared Button / Dialog / BottomSheet / ConfirmDialog / PageHeader / Skeleton / ExportButton / StatCard / HelpTooltip` |
+| 6.5 | `feat(db): ServiceEvent model (id, serviceId, eventType, title, date, startTime, endTime, notes, riskAssessmentId?, createdById) + migration; feat(api): /api/services/[id]/events GET+POST+PATCH+DELETE; feat(ai,hooks): extend useAiGenerate with 30s timeout + 2-retry + onMalformed callback` |
 
 ### Phase 2: NQS features + Services detail tab shell (~11 commits)
 
@@ -57,7 +59,7 @@ Schema, routes, and UI for the five NQS features. Bundled because four plug into
 | # | Commit subject |
 |---|---|
 | 7a | `feat(db): EducatorReflection + LearningObservation + MedicationAdministration + RiskAssessment + RatioSnapshot + ShiftHandover models + migration` |
-| 7b | `feat(db): Service.ratioSettings JSON column + AiTaskDraft.source String column + ParentPostType "newsletter" enum addition + MedicationAdministration.clientMutationId @unique + migration` |
+| 7b | `feat(db): Service.ratioSettings JSON column + AiTaskDraft.source String + AiTaskDraft.targetId String? + ParentPostType "newsletter" enum addition + clientMutationId String @unique on MedicationAdministration/EducatorReflection/LearningObservation + migration` |
 | 8 | `feat(services): tab shell v2 — grouped pill-chips, denser sub-pills, Today as default landing` |
 | 9 | `feat(api): /api/services/[id]/reflections (GET list, POST create, PATCH/DELETE) + tests` |
 | 10 | `feat(services): Reflections tab UI (timeline view, create modal, QA multi-select, mood tag)` |
@@ -67,7 +69,8 @@ Schema, routes, and UI for the five NQS features. Bundled because four plug into
 | 14 | `feat(services): Medication tab UI (today view + log-dose modal) + parent medication-log read on /parent/children/[id]` |
 | 15 | `feat(api): /api/services/[id]/risk-assessments (CRUD + approve endpoint) + excursion-booking validation hook + tests` |
 | 16 | `feat(services): Risk tab UI (hazards table, likelihood×severity matrix, approval workflow)` |
-| 17 | `feat(api): /api/services/[id]/ratios (computed live + snapshot capture) + /api/cron/ratio-capture hourly + tests; feat(services): Ratio widget on Today tab + Ratios sub-tab + /dashboard "services below ratio" alert` |
+| 17a | `feat(api): /api/services/[id]/ratios (computed live + snapshot capture) + /api/cron/ratio-capture hourly (verifyCronSecret + acquireCronLock) + tests` |
+| 17b | `feat(services): live Ratio widget on Services Today tab + Ratios sub-tab (historical DataTable) + /dashboard "services below ratio" alert card` |
 
 ### Phase 3: High-traffic EOS rebuilds (~6 commits)
 
@@ -99,7 +102,7 @@ Schema, routes, and UI for the five NQS features. Bundled because four plug into
 | 31 | `feat(dashboard): Queue v2 (inbox with bulk-select + keyboard nav; AI draft panel unchanged)` |
 | 32 | `feat(dashboard): Settings v2 (section-based left-nav + right-detail, searchable)` |
 
-### Phase 6: AI drafting + newsletter + shift handover (~8 commits)
+### Phase 6: AI drafting + newsletter + shift handover + passive polish (~12 commits)
 
 | # | Commit subject |
 |---|---|
@@ -108,7 +111,7 @@ Schema, routes, and UI for the five NQS features. Bundled because four plug into
 | 35 | `feat(ai): Risk-hazards template (reads activity type + location) + AiButton on hazards editor` |
 | 36 | `feat(ai): Parent message reply template (reads parent msg + conversation history + child context) + AiButton in messaging thread` |
 | 37 | `feat(ai): Incident report template (reads short facts + child + time/location) + AiButton on incident create` |
-| 38 | `feat(db): ParentPostType adds "newsletter"; feat(ai): weekly-newsletter template (reads program activities + menu + events + optional top observations) + "Generate Newsletter" button on Services Comms tab + publish flow (creates community ParentPost, fires parent push)` |
+| 38 | `feat(ai): weekly-newsletter template (reads program activities + menu + events + optional top observations) + "Generate Newsletter" button on Services Comms tab + publish flow (creates community ParentPost with type="newsletter", fires parent push). ParentPostType enum addition already landed in commit 7b.` |
 | 39 | `feat(services): Shift handover notes — Services Today tab widget, free-text + mention next coordinator, auto-clears after 48h (no schema — uses ephemeral Json field on Service.dailyOps blob or new lightweight ShiftHandover model)` |
 | 40a | `feat(dashboard): passive polish pass — Home + EOS sections (my-portal, getting-started, vision)` |
 | 40b | `feat(dashboard): passive polish pass — Operations section (financials, billing, compliance, policies, incidents, holiday-quest, knowledge, reports, performance)` |
@@ -125,7 +128,7 @@ Schema, routes, and UI for the five NQS features. Bundled because four plug into
 | 43 | `test(e2e): Playwright specs for 5 NQS features + AI draft flows + offline round-trip for the 4 queued actions` |
 | 44 | `feat(dashboard): remove NEXT_PUBLIC_STAFF_DASHBOARD_V2 flag + delete *V1 files (once verification bar met — see Rollout section)` |
 
-~44 commits total. No changes to authentication/role system; all features use existing `withApiAuth`.
+~49 commits total (Phase 1: 7; Phase 2: 12 including 6.5 + 7a + 7b + 17a/b split; Phase 3: 6; Phase 4: 5; Phase 5: 4; Phase 6: 12; Phase 7: 4). No changes to authentication/role system; all features use existing `withApiAuth`.
 
 ## Key design decisions
 
@@ -321,7 +324,7 @@ Routes:
 
 UI: new **Risk** tab on `/services/[id]` under Compliance group. List with `StatusBadge` (Draft / Pending / Approved). Create form: hazards table — add rows, each with 1–5 likelihood × 1–5 severity dropdowns (computed risk score: product, colour-coded) + controls free-text, attachments upload, activity type dropdown, date picker. Submitting notifies coordinators. Approval flow: one click by coordinator+.
 
-**Excursion-event gate (not parent-booking gate)**: `BookingType` enum has no `excursion` value today — excursions are modelled as `ServiceEvent` with `eventType="excursion"` (see `src/lib/api/_lib/constants.ts` `EVENT_TYPES`). The gate fires on the staff-side **event creation path** (`POST /api/services/[id]/events` when `eventType="excursion"`), NOT on parent booking POSTs. Parent casual bookings continue to auto-confirm through `checkCasualBookingAllowed` unchanged. Staff creating an excursion event with a date on or after today gets a 400 unless a `RiskAssessment` exists for `(serviceId, date, activityType="excursion")` with `approvedAt` set. Error message: "Approved risk assessment required before creating an excursion event."
+**Excursion-event gate (not parent-booking gate)**: `BookingType` enum has no `excursion` value, and there is no `ServiceEvent` model today — the `EVENT_TYPES` constant in `src/app/api/_lib/constants.ts` is just a string-literal list. Commit 6.5 adds the `ServiceEvent` Prisma model + CRUD routes as a prerequisite. The gate fires on the staff-side event-creation path (`POST /api/services/[id]/events` with `eventType="excursion"`), NOT on parent booking POSTs. Parent casual bookings continue to auto-confirm through `checkCasualBookingAllowed` unchanged. Staff creating an excursion event with a date on or after today gets a 400 unless a `RiskAssessment` exists for `(serviceId, date, activityType="excursion")` with `approvedAt` set — enforced by a check reading `event.riskAssessmentId` (optional FK added in the `ServiceEvent` model). Error message: "Approved risk assessment required before creating an excursion event."
 
 #### Ratio tracking (QA2.2 + QA4.1)
 
@@ -347,7 +350,11 @@ model RatioSnapshot {
 
 Plus a new JSON field `Service.ratioSettings` (migration in commit 7b) holding per-session NQS minimums. Federal OSHC default: `{ bsc: { ratio: "1:15" }, asc: { ratio: "1:15" }, vc: { ratio: "1:15" } }`. Each service can override through `/settings/services/[id]` if their NQS registration specifies different ratios.
 
-**Live-ratio data model (bounded, not perfect):** true "live signed-in-right-now" staff state doesn't exist in the current schema — `RosterShift` stores HH:mm scheduled times, and there's no `StaffSignIn` model. For v1, "live ratio" is **approximated as: (rostered-now staff count) × (currently-in-care children count)** — where rostered-now = `RosterShift` rows with `date=today && startTime ≤ now && endTime > now`, and currently-in-care = `AttendanceRecord` rows with `signInTime IS NOT NULL AND signOutTime IS NULL`. This is close-enough for Today-tab display and hourly snapshots; true precision (staff sign-in/out) is queued as a follow-on spec (`StaffAttendance` model) and explicitly out of scope here. The `RatioSnapshot.notes` field records whether a snapshot used the approximation or the future precise model, so historical data stays interpretable.
+**Live-ratio data model (bounded, not perfect):** true "live signed-in-right-now" staff state doesn't exist in the current schema — `RosterShift` stores HH:mm `shiftStart`/`shiftEnd` strings, and there's no `StaffAttendance` model. For v1, "live ratio" is **approximated as: (rostered-now staff count) × (currently-in-care children count)** — where:
+- `rostered-now` = `RosterShift` rows with `date = today AND shiftStart ≤ HH:mm(now) AND shiftEnd > HH:mm(now)` — string comparison works because both sides are zero-padded `"HH:mm"`.
+- `currently-in-care` = `AttendanceRecord` rows with `serviceId = X AND date = today AND signInTime IS NOT NULL AND signOutTime IS NULL`.
+
+This is close-enough for Today-tab display and hourly snapshots. True precision (staff sign-in/out) is queued as a follow-on spec (`StaffAttendance` model) and explicitly out of scope here. The `RatioSnapshot.notes` field records whether a snapshot used the approximation or the future precise model, so historical data stays interpretable.
 
 Routes:
 - `GET /api/services/[id]/ratios?date=YYYY-MM-DD&sessionType=` — computes live ratio from `DailyAttendance` + `Roster` snapshot data; returns current ratio + today's historical snapshots
@@ -376,13 +383,14 @@ Pattern: AI drafts → staff reviews in `AiDraftReviewPanel` → edits → commi
 
 New `source` values: `"reflection" | "observation" | "risk-hazards" | "parent-reply" | "incident" | "weekly-newsletter"`.
 
-**Reliability + UX guarantees (all six reuse `useAiGenerate`):**
-- 30s per-call timeout (existing default)
-- 2 retries on network failure (existing default)
-- Malformed markdown surfaces in the review panel as raw text with a "Regenerate" button — never silently drops
+**Reliability + UX guarantees (all six use the extended `useAiGenerate`):**
+- 30s per-call timeout — **new behaviour added in commit 6.5** (today `useAiGenerate` has no timeout; raw AbortController only)
+- 2 retries on network failure — **new behaviour added in commit 6.5** (no existing retry logic)
+- `onMalformed` callback — **new in commit 6.5**; surfaces raw output in the review panel as text with a "Regenerate" button; never silently drops
 - Closing the modal mid-stream discards the pending draft (no persisted half-generations); staff re-opens and re-triggers
 - Rate-limited at 10 generations/min/user/template via `withApiAuth`'s per-endpoint limiter (each template = its own endpoint path)
 - Newsletter generation hits the most tables (program + menu + events + observations) — tolerated, but wrapped in a single Prisma `$transaction` for consistent snapshots
+- Each template has a Zod-validated output shape (`ReflectionDraftOutput`, `ObservationDraftOutput`, etc.) — unit tests assert round-trip against a frozen fixture so shape drift is caught early
 
 ### Weekly newsletter publish flow
 
@@ -410,7 +418,11 @@ Mechanism:
 4. `src/components/layout/PendingSyncChip.tsx` — top-bar chip showing queued-mutation count + click-to-review list
 5. On reconnect (window `online` event OR service worker `sync`), flushes queue in order. Each flush result updates a local "synced" status.
 
-**Conflict strategy**: append-only semantics on all four actions — a second sign-in for the same (childId, sessionType, date) is rejected by the existing unique constraint server-side, so the client just drops the dupe. Observations / Reflections are creates-only (no offline editing). Medication is append-only (each dose is a row).
+**Conflict strategy**:
+- **Roll Call sign-in/out** — relies on the existing `@@unique([childId, serviceId, date, sessionType])` on `AttendanceRecord`. Second offline submit of the "same" sign-in returns 409 from the server; the client treats 409 as **success** (the state we wanted is already there) and drops the queued entry. Retry loop never loops on 409.
+- **Medication** — dedupe via `clientMutationId String @unique` (added in commit 7b). Server `INSERT … ON CONFLICT (clientMutationId) DO NOTHING` returns 200 either way; client treats 200 as success. Two offline devices with independently-generated UUIDs each produce a row, which matches physical reality (they both administered the dose).
+- **Observations / Reflections** — creates-only (no offline editing). Also use `clientMutationId` pattern for retry safety — added to both schemas in commit 7b (update: `clientMutationId` applies to all four offline-supported models, not just Medication).
+- All four IndexedDB queue rows carry the `clientMutationId` in the `body` field so the server sees it on flush.
 
 Tests: unit tests for the queue + hook. E2E test uses Playwright's `context.setOffline(true)` to simulate a flight mode sign-in/out, then asserts sync on reconnect.
 
@@ -480,6 +492,12 @@ Phases 1–7 land in order but don't block each other strictly. NQS features (ph
 - **Manual smoke** — real-device test on each v2 page before its commit lands in prod. Tablet in particular for Roll Call + Observations.
 - **Parent portal regression** — run the parent portal E2E suite after Phase 1 (primitive promotion) to confirm nothing broke.
 
+## Schema conventions
+
+The 6 new models use `String` fields for small closed enums (`type`, `route`, `sessionType`, `activityType`) to keep the migration flat. Per CLAUDE.md: Zod schemas at the API boundary enforce the allowed values — `z.enum(["weekly", "monthly", "critical", "team"])` etc. — so the type safety holds. Converting to Prisma enums post-launch is a one-migration refactor that can happen in a follow-on spec if the allowed-values list settles.
+
+All new models use `DateTime` (not `@db.Date` unless the field represents a calendar date only, like `RiskAssessment.date` and `RatioSnapshot.date`). Timezone handling matches existing convention (`DailyAttendance.date` precedent).
+
 ## Out of scope (explicit)
 
 - ❌ **Native mobile app for staff.** Still queued as a separate future spec.
@@ -503,7 +521,7 @@ Phases 1–7 land in order but don't block each other strictly. NQS features (ph
 5. Every excursion booking in prod has an approved risk assessment attached (API-enforced).
 6. Current ratio visible on Services Today tab for every service at a glance.
 7. Weekly newsletter published by ≥1 service/week average across all services after 1 month.
-8. 2287 existing tests still pass + ≥200 new unit/integration + 7 new E2E specs pass on CI.
+8. No net test regressions against the pre-spec SHA (`17ffa71`). Deleted tests have replacements. ≥200 new unit/integration + 7 new E2E specs pass on CI.
 9. No parent portal regression (their design system changes only in promotion, no behaviour change).
 10. Staff report v2 "feels faster" — measured via **Vercel Speed Insights** (already enabled in the project) LCP median ≤2.5s on `/dashboard` + `/scorecard` over a 7-day window post-launch, and a manual timing harness asserting Scorecard cell-edit tab-nav <50ms P95 (Chrome DevTools Performance profile on a mid-tier laptop).
 
