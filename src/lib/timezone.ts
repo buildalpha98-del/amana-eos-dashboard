@@ -75,3 +75,29 @@ export function getMondayUtc(date: Date = new Date(), tz: string = SERVICE_TZ): 
   // Use UTC to avoid any system-timezone interference
   return new Date(Date.UTC(local.year, local.month - 1, mondayDay));
 }
+
+/**
+ * Midnight UTC of today in the service timezone, suitable for comparing
+ * Prisma `@db.Date` columns (which are stored as UTC midnight of the local day).
+ */
+export function getTodayUtcFromServiceTz(
+  date: Date = new Date(),
+  tz: string = SERVICE_TZ,
+): Date {
+  const local = getLocalDateParts(date, tz);
+  return new Date(Date.UTC(local.year, local.month - 1, local.day));
+}
+
+/**
+ * True when `bookingDate` (a UTC-midnight Date or ISO string representing the
+ * service-timezone local day) falls on or after today in the service timezone.
+ */
+export function isTodayOrFutureInServiceTz(
+  bookingDate: Date | string,
+  now: Date = new Date(),
+  tz: string = SERVICE_TZ,
+): boolean {
+  const target = new Date(bookingDate);
+  if (Number.isNaN(target.getTime())) return false;
+  return target.getTime() >= getTodayUtcFromServiceTz(now, tz).getTime();
+}
