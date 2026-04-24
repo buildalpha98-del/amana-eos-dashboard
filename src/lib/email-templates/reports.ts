@@ -614,3 +614,73 @@ export function pulseSurveyEmail(
 
   return { subject, html };
 }
+
+// ─── Weekly Marketing Report (Sprint 2 — Marketing Cockpit) ──
+
+export interface WeeklyMarketingReportEmailData {
+  weekStart: string;
+  weekEnd: string;
+  akramName: string;
+  wins?: string | null;
+  blockers?: string | null;
+  nextWeekTop3?: string | null;
+  bodyHtml: string;
+  dashboardUrl: string;
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function section(title: string, body: string | null | undefined): string {
+  const trimmed = (body ?? "").trim();
+  if (!trimmed) return "";
+  const safe = escapeHtml(trimmed).replace(/\n/g, "<br/>");
+  return `
+    <h3 style="margin:24px 0 8px;color:#111827;font-size:15px;font-weight:600;">${title}</h3>
+    <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">${safe}</p>
+  `;
+}
+
+export function weeklyMarketingReportEmail(
+  recipientName: string,
+  data: WeeklyMarketingReportEmailData,
+) {
+  const subject = `Weekly Marketing Report — ${data.weekStart} to ${data.weekEnd}`;
+
+  const html = baseLayout(`
+    <h2 style="margin:0 0 8px;color:${BRAND_COLOR};font-size:20px;font-weight:700;">
+      Weekly Marketing Report
+    </h2>
+    <p style="margin:0 0 4px;color:#6b7280;font-size:13px;">
+      ${escapeHtml(data.weekStart)} &rarr; ${escapeHtml(data.weekEnd)}
+    </p>
+    <p style="margin:0 0 20px;color:#6b7280;font-size:13px;">
+      Prepared by ${escapeHtml(data.akramName)}
+    </p>
+
+    <p style="margin:0 0 12px;color:#374151;font-size:14px;line-height:1.6;">
+      Hi ${escapeHtml(recipientName)}, here's this week's marketing summary across all centres.
+    </p>
+
+    ${section("Wins", data.wins)}
+    ${section("Blockers", data.blockers)}
+    ${section("Next Week's Top 3", data.nextWeekTop3)}
+
+    <h3 style="margin:24px 0 8px;color:#111827;font-size:15px;font-weight:600;">Full Report</h3>
+    <div style="color:#374151;font-size:14px;line-height:1.6;">
+      ${data.bodyHtml}
+    </div>
+
+    <div style="margin-top:24px;">
+      ${buttonHtml("Open Cockpit", data.dashboardUrl)}
+    </div>
+  `);
+
+  return { subject, html };
+}
