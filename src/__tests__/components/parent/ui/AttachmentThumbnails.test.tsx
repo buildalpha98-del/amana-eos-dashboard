@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { AttachmentThumbnails } from "@/components/parent/ui/AttachmentThumbnails";
-import type { MessageAttachment } from "@/components/parent/ui/useMessageAttachments";
+import { AttachmentThumbnails } from "@/components/ui/v2";
+import type { MessageAttachment } from "@/components/ui/v2";
 
 if (typeof URL.createObjectURL !== "function") {
   URL.createObjectURL = () => "blob:preview";

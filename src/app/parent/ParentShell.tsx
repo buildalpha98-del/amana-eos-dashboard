@@ -75,7 +75,7 @@ function ParentShellInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="parent-portal min-h-screen bg-[#FFFAE6]">
+    <div data-v2="parent" className="parent-portal min-h-screen bg-[#FFFAE6]">
       {/* ─── Header ─────────────────────────────────────────── */}
       <header className="fixed top-0 inset-x-0 h-14 bg-[#004E64] z-30 flex items-center justify-between px-4 shadow-md">
         <Link href="/parent" className="flex items-center gap-2">

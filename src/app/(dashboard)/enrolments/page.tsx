@@ -18,6 +18,7 @@ import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -37,6 +38,7 @@ const STATUS_BADGE: Record<string, { label: string; color: string }> = {
 };
 
 export default function EnrolmentsPage() {
+  const v2 = useStaffV2Flag();
   const [view, setView] = useState<"submissions" | "sibling">("submissions");
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
@@ -67,7 +69,10 @@ export default function EnrolmentsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="space-y-6"
+    >
       {/* Header */}
       <PageHeader
         title="Enrolments"

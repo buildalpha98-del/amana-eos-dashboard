@@ -20,6 +20,15 @@ vi.mock("@/components/services/ServiceTodayPanel", () => ({
   },
 }));
 
+// RatioWidget and ShiftHandoverWidget both use React Query + the offline
+// queue. Stub them here — their own test suites cover behaviour.
+vi.mock("@/components/services/RatioWidget", () => ({
+  RatioWidget: () => <div data-testid="ratio-stub" />,
+}));
+vi.mock("@/components/services/ShiftHandoverWidget", () => ({
+  ShiftHandoverWidget: () => <div data-testid="handover-stub" />,
+}));
+
 import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
 
 // ─── Tests ───────────────────────────────────────────────────────

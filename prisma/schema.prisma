@@ -139,6 +139,7 @@ enum ParentPostType {
   observation
   announcement
   reminder
+  newsletter
 }
 
 enum ActivityCategory {
@@ -535,6 +536,16 @@ model User {
   seatAssignments               AccountabilitySeatAssignment[]
   todoTemplatesAssigned         TodoTemplate[]                 @relation("TemplateAssignee")
   todoTemplatesCreated          TodoTemplate[]                 @relation("TemplateCreator")
+  createdServiceEvents          ServiceEvent[]                 @relation("ServiceEventCreator")
+
+  // ── NQS back-refs ─────────────────────────────────
+  staffReflections           StaffReflection[]          @relation("StaffReflections")
+  learningObservations       LearningObservation[]      @relation("LearningObservations")
+  medicationAdministrations  MedicationAdministration[] @relation("MedicationAdministered")
+  medicationWitnesses        MedicationAdministration[] @relation("MedicationWitnessed")
+  staffRiskAssessments       RiskAssessment[]           @relation("RiskAssessments")
+  riskAssessmentApprovals    RiskAssessment[]           @relation("RiskAssessmentApprovals")
+  shiftHandovers             ShiftHandover[]            @relation("ShiftHandovers")
 
   // ── Staff Profile Expansion ──────────────────────────────────
   phone             String?
@@ -1576,6 +1587,12 @@ model Service {
   lastPrincipalVisit         DateTime?
   buildAlphaKidsActive       Boolean   @default(false)
 
+  /// NQS minimum ratios per session type.
+  /// Shape: { bsc: { ratio: "1:15" }, asc: { ratio: "1:15" }, vc: { ratio: "1:15" } }
+  /// Null means the federal-default `{ bsc: "1:15", asc: "1:15", vc: "1:15" }` applies
+  /// (resolved by the ratio API route — `@default` isn't supported for Json).
+  ratioSettings Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1693,6 +1710,17 @@ model Service {
   // ── Sibling Enrolment Applications ────────────────
   enrolmentApplications EnrolmentApplication[] @relation("ServiceEnrolmentApplications")
 
+  // ── Service Events (excursions, incursions, etc.) ─
+  events ServiceEvent[] @relation("ServiceEvents")
+
+  // ── NQS Models ───────────────────────────────────
+  reflections     StaffReflection[]          @relation("ServiceReflections")
+  observations    LearningObservation[]      @relation("ServiceObservations")
+  medications     MedicationAdministration[] @relation("ServiceMedications")
+  riskAssessments RiskAssessment[]           @relation("ServiceRiskAssessments")
+  ratioSnapshots  RatioSnapshot[]            @relation("ServiceRatios")
+  handovers       ShiftHandover[]            @relation("ServiceHandovers")
+
   // ── Marketing Cockpit (Sprint 2) ──────────────
   centreAvatar             CentreAvatar?
   vendorBriefs             VendorBrief[]             @relation("ServiceVendorBriefs")
@@ -1700,6 +1728,186 @@ model Service {
 
   @@index([status])
   @@index([managerId])
+}
+
+enum ServiceEventType {
+  excursion
+  incursion
+  public_holiday
+  event
+  meeting
+  parent_engagement
+}
+
+model ServiceEvent {
+  id        String           @id @default(cuid())
+  serviceId String
+  service   Service          @relation("ServiceEvents", fields: [serviceId], references: [id], onDelete: Cascade)
+  eventType ServiceEventType
+  title     String
+  /// Event date (day-only — start/end time held separately).
+  date       DateTime @db.Date
+  startTime  DateTime?
+  endTime    DateTime?
+  notes      String?  @db.Text
+  /// Optional FK to a RiskAssessment that approves this event.
+  /// Nullable until a RiskAssessment is linked; required before creating
+  /// excursion events (enforced in the API route).
+  /// Kept as a nullable string (no FK relation) for now — the RiskAssessment
+  /// model is added in a later migration, at which point the relation is
+  /// formalised. Referential integrity is still enforced at the app layer.
+  riskAssessmentId String?
+  createdById      String
+  createdBy        User     @relation("ServiceEventCreator", fields: [createdById], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([serviceId, date])
+  @@index([eventType, date])
+}
+
+// ============================================================
+// NQS (National Quality Standard) Models
+// ============================================================
+
+/// Educator/staff reflections — weekly/monthly/critical/team. NQS QA1.3.
+/// Named `StaffReflection` to avoid clashing with legacy `EducatorReflection`
+/// (centreId-based, owned by the Cowork ingest pipeline). The public "Reflection"
+/// UX / API naming stays parent-facing; this is the internal model name.
+model StaffReflection {
+  id                   String   @id @default(cuid())
+  serviceId            String
+  authorId             String
+  type                 String   // "weekly" | "monthly" | "critical" | "team"
+  title                String
+  content              String   @db.Text
+  qualityAreas         Int[]    @default([])
+  linkedObservationIds String[] @default([])
+  mood                 String?  // "positive" | "neutral" | "concern"
+  /// UUID generated by the client for offline-queue dedupe.
+  clientMutationId     String?  @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  service Service @relation("ServiceReflections", fields: [serviceId], references: [id], onDelete: Cascade)
+  author  User    @relation("StaffReflections", fields: [authorId], references: [id])
+
+  @@index([serviceId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+/// Individual-child learning observations — MTOP outcomes + interests + photos. NQS QA1.1/1.2.
+model LearningObservation {
+  id              String   @id @default(cuid())
+  childId         String
+  serviceId       String
+  authorId        String
+  title           String
+  narrative       String   @db.Text
+  mtopOutcomes    String[] @default([]) // Identity | Community | Wellbeing | Learners | Communicators
+  interests       String[] @default([])
+  mediaUrls       String[] @default([])
+  visibleToParent Boolean  @default(false)
+  /// UUID generated by the client for offline-queue dedupe.
+  clientMutationId String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  child   Child   @relation("ChildObservations", fields: [childId], references: [id], onDelete: Cascade)
+  service Service @relation("ServiceObservations", fields: [serviceId], references: [id], onDelete: Cascade)
+  author  User    @relation("LearningObservations", fields: [authorId], references: [id])
+
+  @@index([childId, createdAt])
+  @@index([serviceId, createdAt])
+}
+
+/// Medication Administration Record (MAR). NQS QA2.1. Dual sign-off for injections.
+model MedicationAdministration {
+  id               String   @id @default(cuid())
+  childId          String
+  serviceId        String
+  medicationName   String
+  dose             String
+  route            String   // oral | topical | inhaled | injection | other
+  administeredAt   DateTime
+  administeredById String
+  /// Required when route = "injection" (server-side Zod).
+  witnessedById    String?
+  parentConsentUrl String?
+  notes            String?  @db.Text
+  /// UUID generated by the client for offline-queue dedupe.
+  clientMutationId String   @unique
+  createdAt        DateTime @default(now())
+
+  child          Child   @relation("ChildMedications", fields: [childId], references: [id], onDelete: Cascade)
+  service        Service @relation("ServiceMedications", fields: [serviceId], references: [id], onDelete: Cascade)
+  administeredBy User    @relation("MedicationAdministered", fields: [administeredById], references: [id])
+  witnessedBy    User?   @relation("MedicationWitnessed", fields: [witnessedById], references: [id])
+
+  @@index([childId, administeredAt])
+  @@index([serviceId, administeredAt])
+}
+
+/// Risk assessments for routine / incursion / excursion / special activities. NQS QA2.2.
+/// Required (when approved) for excursion ServiceEvents.
+model RiskAssessment {
+  id             String    @id @default(cuid())
+  serviceId      String
+  authorId       String
+  title          String
+  activityType   String // routine | incursion | excursion | special
+  date           DateTime  @db.Date
+  location       String?
+  /// Array<{ hazard, likelihood: 1..5, severity: 1..5, controls }>
+  hazards        Json
+  approvedById   String?
+  approvedAt     DateTime?
+  attachmentUrls String[]  @default([])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  service    Service @relation("ServiceRiskAssessments", fields: [serviceId], references: [id], onDelete: Cascade)
+  author     User    @relation("RiskAssessments", fields: [authorId], references: [id])
+  approvedBy User?   @relation("RiskAssessmentApprovals", fields: [approvedById], references: [id])
+
+  @@index([serviceId, date])
+}
+
+/// Hourly-or-on-change educator:child ratio snapshot. NQS QA2.2 + QA4.1.
+/// Live ratio for v1 = (rostered-now count) × (currently-in-care count) —
+/// true precision (StaffAttendance) is a follow-on spec.
+model RatioSnapshot {
+  id            String   @id @default(cuid())
+  serviceId     String
+  date          DateTime @db.Date
+  sessionType   String   // bsc | asc | vc
+  capturedAt    DateTime
+  educatorCount Int
+  childCount    Int
+  ratioText     String   // "1:10"
+  belowRatio    Boolean
+  educatorIds   String[] @default([])
+  notes         String?
+
+  service Service @relation("ServiceRatios", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, date, sessionType])
+}
+
+/// Short-lived shift handover notes between coordinators. Auto-expire after 48h.
+model ShiftHandover {
+  id               String   @id @default(cuid())
+  serviceId        String
+  authorId         String
+  content          String   @db.Text
+  mentionedUserIds String[] @default([])
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  service Service @relation("ServiceHandovers", fields: [serviceId], references: [id], onDelete: Cascade)
+  author  User    @relation("ShiftHandovers", fields: [authorId], references: [id])
+
+  @@index([serviceId, expiresAt])
 }
 
 model ProjectTemplate {
@@ -4500,6 +4708,16 @@ model AiTaskDraft {
   content  String @db.Text // The AI-generated draft content (markdown)
   metadata Json? // Extra context (email recipients, template used, etc.)
 
+  /// Discriminator for where this draft came from.
+  /// e.g. "todo" | "marketing_task" | "cowork_todo" | "ticket" | "issue" |
+  /// "reflection" | "observation" | "parent_reply" | "incident" | "newsletter".
+  /// Redundant with the *Id foreign keys above for the first five, but
+  /// mandatory once we add polymorphic draft sources (reflections etc.) that
+  /// don't have an *Id column here.
+  source   String @default("todo")
+  /// Optional free-form target ID for non-FK sources (e.g. a reflection ID).
+  targetId String?
+
   status       String    @default("ready") // "ready" | "accepted" | "edited" | "dismissed"
   reviewedAt   DateTime?
   reviewedById String?
@@ -4879,6 +5097,10 @@ model Child {
   postTags           ParentPostChildTag[] @relation("ChildPostTags")
   attendanceRecords  AttendanceRecord[]   @relation("ChildAttendance")
   statementLineItems StatementLineItem[]  @relation("ChildStatementLines")
+
+  // ── NQS relations ─────────────────────────────────
+  observations LearningObservation[]      @relation("ChildObservations")
+  medications  MedicationAdministration[] @relation("ChildMedications")
 
   @@index([enrolmentId])
   @@index([serviceId])

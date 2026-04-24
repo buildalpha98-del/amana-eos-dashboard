@@ -11,12 +11,14 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { MeetingListView } from "@/components/meetings/MeetingListView";
 import { ActiveMeetingView } from "@/components/meetings/ActiveMeetingView";
 import { StartMeetingDialog } from "@/components/meetings/StartMeetingDialog";
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 // ============================================================
 // Main Page Component
 // ============================================================
 
 export default function MeetingsPage() {
+  const v2 = useStaffV2Flag();
   const [activeMeetingId, setActiveMeetingId] = useState<string | null>(null);
   const [showStartDialog, setShowStartDialog] = useState(false);
 
@@ -80,7 +82,7 @@ export default function MeetingsPage() {
   }
 
   return (
-    <>
+    <div {...(v2 ? { "data-v2": "staff" } : {})}>
       <MeetingListView
         meetings={meetings || []}
         onStartNew={handleStartNew}
@@ -93,6 +95,6 @@ export default function MeetingsPage() {
           isPending={createMeeting.isPending}
         />
       )}
-    </>
+    </div>
   );
 }

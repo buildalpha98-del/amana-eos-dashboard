@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { Lightbox } from "@/components/parent/ui/Lightbox";
+import { Lightbox } from "@/components/ui/v2";
 
 const urls = [
   "https://abc.public.blob.vercel-storage.com/a.jpg",

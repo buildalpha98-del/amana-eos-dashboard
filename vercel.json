@@ -248,6 +248,14 @@
     {
       "path": "/api/cron/cleanup-tokens",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/ratio-capture",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/handover-cleanup",
+      "schedule": "30 13 * * *"
     }
   ]
 }

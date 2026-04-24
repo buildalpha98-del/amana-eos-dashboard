@@ -19,8 +19,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { AiButton } from "@/components/ui/AiButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 export default function ScorecardPage() {
+  const v2 = useStaffV2Flag();
   const { data: scorecard, isLoading, error, refetch } = useScorecard();
   const [showAddMeasurable, setShowAddMeasurable] = useState(false);
   const [editingMeasurable, setEditingMeasurable] = useState<MeasurableData | null>(null);
@@ -106,7 +108,10 @@ export default function ScorecardPage() {
   }, [scorecard, tab]);
 
   return (
-    <div className="max-w-full mx-auto">
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="max-w-full mx-auto"
+    >
       {/* Header */}
       <PageHeader
         title="Scorecard"

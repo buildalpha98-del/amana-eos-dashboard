@@ -35,6 +35,7 @@ import {
   ChevronDown,
   Users,
   Sunrise,
+  Eye,
 } from "lucide-react";
 import { ServiceOverviewTab } from "@/components/services/ServiceOverviewTab";
 import { ServiceScorecardTab } from "@/components/services/ServiceScorecardTab";
@@ -56,6 +57,13 @@ import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
 import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
 import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
 import { ServiceCasualBookingsTab } from "@/components/services/ServiceCasualBookingsTab";
+import { ServiceReflectionsTab } from "@/components/services/ServiceReflectionsTab";
+import { ServiceObservationsTab } from "@/components/services/ServiceObservationsTab";
+import { ServiceMedicationTab } from "@/components/services/ServiceMedicationTab";
+import { ServiceRiskTab } from "@/components/services/ServiceRiskTab";
+import { ServiceRatiosTab } from "@/components/services/RatioWidget";
+import { ServiceTabBarV2 } from "@/components/services/ServiceTabBarV2";
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 import { isAdminRole } from "@/lib/role-permissions";
 
 /* ------------------------------------------------------------------ */
@@ -81,6 +89,8 @@ const DAILY_OPS_BASE_SUBTABS: SubTab[] = [
   { key: "attendance", label: "Attendance", icon: ClipboardList },
   { key: "roll-call", label: "Roll Call", icon: ClipboardCheck },
   { key: "children", label: "Children", icon: Users },
+  { key: "medication", label: "Medication", icon: Activity },
+  { key: "ratios", label: "Ratios", icon: Users },
   { key: "roster", label: "Weekly Roster", icon: CalendarDays },
   { key: "checklists", label: "Checklists", icon: ClipboardCheck },
 ];
@@ -117,6 +127,7 @@ const tabGroups: TabGroup[] = [
     subTabs: [
       { key: "activities", label: "Activities", icon: LayoutList },
       { key: "menu", label: "Menu", icon: UtensilsCrossed },
+      { key: "observations", label: "Observations", icon: Eye },
     ],
   },
   {
@@ -139,6 +150,8 @@ const tabGroups: TabGroup[] = [
     subTabs: [
       { key: "audits", label: "Audits", icon: ShieldCheck },
       { key: "qip", label: "QIP", icon: ClipboardCheck },
+      { key: "reflections", label: "Reflections", icon: Target },
+      { key: "risk", label: "Risk", icon: ShieldCheck },
       { key: "comms", label: "Comms", icon: Radio },
     ],
   },
@@ -169,6 +182,7 @@ export default function ServiceDetailPage() {
   const { data: session } = useSession();
   const role = session?.user?.role as Role | undefined;
   const { data: service, isLoading, isError } = useService(id);
+  const v2 = useStaffV2Flag();
   const { data: users } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["users-list"],
     queryFn: async () => {
@@ -288,7 +302,10 @@ export default function ServiceDetailPage() {
     statusBadgeStyles[service.status] || statusBadgeStyles.closed;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="max-w-7xl mx-auto space-y-6"
+    >
       <Breadcrumb
         items={[
           { label: "Services", href: "/services" },
@@ -329,115 +346,128 @@ export default function ServiceDetailPage() {
         </span>
       </div>
 
-      {/* ── Mobile Tab Dropdown (< sm) ───────────────────────── */}
-      <div className="sm:hidden relative">
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-card border border-border rounded-xl text-sm font-medium text-foreground"
-        >
-          <div className="flex items-center gap-2">
-            {(() => {
-              const Icon = currentGroup.icon;
-              return <Icon className="w-4 h-4 text-brand" />;
-            })()}
-            <span>{currentGroup.label}</span>
-            {getBadge(activeGroup) > 0 && (
-              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white">
-                {getBadge(activeGroup)}
-              </span>
-            )}
-          </div>
-          <ChevronDown
-            className={cn(
-              "w-4 h-4 text-muted transition-transform",
-              mobileMenuOpen && "rotate-180"
-            )}
-          />
-        </button>
-        {mobileMenuOpen && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-20 py-1">
-            {visibleGroups.map((g) => {
-              const Icon = g.icon;
-              const badge = getBadge(g.key);
-              return (
-                <button
-                  key={g.key}
-                  onClick={() => handleGroupChange(g.key)}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
-                    activeGroup === g.key
-                      ? "text-brand bg-brand/5"
-                      : "text-muted hover:bg-surface/50"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="flex-1 text-left">{g.label}</span>
-                  {badge > 0 && (
-                    <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white">
-                      {badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ── Desktop Tab Bar (≥ sm) ───────────────────────────── */}
-      <div className="hidden sm:block border-b border-border">
-        <nav className="flex gap-0 -mb-px">
-          {visibleGroups.map((g) => {
-            const Icon = g.icon;
-            const isActive = activeGroup === g.key;
-            const badge = getBadge(g.key);
-            return (
-              <button
-                key={g.key}
-                onClick={() => handleGroupChange(g.key)}
-                className={cn(
-                  "flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors",
-                  isActive
-                    ? "border-brand text-brand"
-                    : "border-transparent text-muted hover:text-foreground/80 hover:border-border"
-                )}
-              >
-                <Icon className="w-4 h-4" />
-                {g.label}
-                {badge > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white ml-1">
-                    {badge}
+      {v2 ? (
+        <ServiceTabBarV2
+          groups={visibleGroups}
+          activeGroup={activeGroup}
+          onGroupChange={handleGroupChange}
+          activeSub={currentSubKey}
+          onSubChange={handleSubTabChange}
+          badgeFor={getBadge}
+        />
+      ) : (
+        <>
+          {/* ── Mobile Tab Dropdown (< sm) ───────────────────────── */}
+          <div className="sm:hidden relative">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-card border border-border rounded-xl text-sm font-medium text-foreground"
+            >
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const Icon = currentGroup.icon;
+                  return <Icon className="w-4 h-4 text-brand" />;
+                })()}
+                <span>{currentGroup.label}</span>
+                {getBadge(activeGroup) > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white">
+                    {getBadge(activeGroup)}
                   </span>
                 )}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* ── Sub-Tab Pills (when group has subtabs) ───────────── */}
-      {currentGroup.subTabs.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {currentGroup.subTabs.map((sub) => {
-            const SubIcon = sub.icon;
-            const isActive = currentSubKey === sub.key;
-            return (
-              <button
-                key={sub.key}
-                onClick={() => handleSubTabChange(sub.key)}
+              </div>
+              <ChevronDown
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border transition-colors",
-                  isActive
-                    ? "bg-brand text-white border-brand"
-                    : "bg-card text-muted border-border hover:bg-surface/50"
+                  "w-4 h-4 text-muted transition-transform",
+                  mobileMenuOpen && "rotate-180"
                 )}
-              >
-                <SubIcon className="w-3.5 h-3.5" />
-                {sub.label}
-              </button>
-            );
-          })}
-        </div>
+              />
+            </button>
+            {mobileMenuOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg z-20 py-1">
+                {visibleGroups.map((g) => {
+                  const Icon = g.icon;
+                  const badge = getBadge(g.key);
+                  return (
+                    <button
+                      key={g.key}
+                      onClick={() => handleGroupChange(g.key)}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
+                        activeGroup === g.key
+                          ? "text-brand bg-brand/5"
+                          : "text-muted hover:bg-surface/50"
+                      )}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="flex-1 text-left">{g.label}</span>
+                      {badge > 0 && (
+                        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white">
+                          {badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ── Desktop Tab Bar (≥ sm) ───────────────────────────── */}
+          <div className="hidden sm:block border-b border-border">
+            <nav className="flex gap-0 -mb-px">
+              {visibleGroups.map((g) => {
+                const Icon = g.icon;
+                const isActive = activeGroup === g.key;
+                const badge = getBadge(g.key);
+                return (
+                  <button
+                    key={g.key}
+                    onClick={() => handleGroupChange(g.key)}
+                    className={cn(
+                      "flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors",
+                      isActive
+                        ? "border-brand text-brand"
+                        : "border-transparent text-muted hover:text-foreground/80 hover:border-border"
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {g.label}
+                    {badge > 0 && (
+                      <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold bg-red-500 text-white ml-1">
+                        {badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* ── Sub-Tab Pills (when group has subtabs) ───────────── */}
+          {currentGroup.subTabs.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {currentGroup.subTabs.map((sub) => {
+                const SubIcon = sub.icon;
+                const isActive = currentSubKey === sub.key;
+                return (
+                  <button
+                    key={sub.key}
+                    onClick={() => handleSubTabChange(sub.key)}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full border transition-colors",
+                      isActive
+                        ? "bg-brand text-white border-brand"
+                        : "bg-card text-muted border-border hover:bg-surface/50"
+                    )}
+                  >
+                    <SubIcon className="w-3.5 h-3.5" />
+                    {sub.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Tab Content ──────────────────────────────────────── */}
@@ -471,6 +501,12 @@ export default function ServiceDetailPage() {
         {activeGroup === "daily" && currentSubKey === "checklists" && (
           <ServiceChecklistsTab serviceId={service.id} serviceName={service.name} />
         )}
+        {activeGroup === "daily" && currentSubKey === "medication" && (
+          <ServiceMedicationTab serviceId={service.id} />
+        )}
+        {activeGroup === "daily" && currentSubKey === "ratios" && (
+          <ServiceRatiosTab serviceId={service.id} />
+        )}
         {activeGroup === "daily" &&
           currentSubKey === "casual-bookings" &&
           canSeeCasualBookings && (
@@ -483,6 +519,9 @@ export default function ServiceDetailPage() {
         )}
         {activeGroup === "program" && currentSubKey === "menu" && (
           <ServiceMenuTab serviceId={service.id} />
+        )}
+        {activeGroup === "program" && currentSubKey === "observations" && (
+          <ServiceObservationsTab serviceId={service.id} />
         )}
 
         {/* EOS group */}
@@ -516,6 +555,12 @@ export default function ServiceDetailPage() {
         )}
         {activeGroup === "compliance" && currentSubKey === "qip" && (
           <ServiceQIPTab serviceId={service.id} />
+        )}
+        {activeGroup === "compliance" && currentSubKey === "reflections" && (
+          <ServiceReflectionsTab serviceId={service.id} />
+        )}
+        {activeGroup === "compliance" && currentSubKey === "risk" && (
+          <ServiceRiskTab serviceId={service.id} />
         )}
         {activeGroup === "compliance" && currentSubKey === "comms" && (
           <ServiceCommTab serviceId={service.id} />

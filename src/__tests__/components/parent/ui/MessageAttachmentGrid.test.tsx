@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { MessageAttachmentGrid } from "@/components/parent/ui/MessageAttachmentGrid";
+import { MessageAttachmentGrid } from "@/components/ui/v2";
 
 if (typeof URL.createObjectURL !== "function") {
   URL.createObjectURL = () => "blob:preview";

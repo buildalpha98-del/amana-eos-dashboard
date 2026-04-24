@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
-import { SwipeActions } from "@/components/parent/ui/SwipeActions";
+import { SwipeActions } from "@/components/ui/v2";
 
 describe("SwipeActions", () => {
   it("renders children", () => {

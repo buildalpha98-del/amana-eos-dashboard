@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
-import { KidPill } from "@/components/parent/ui/KidPill";
+import { KidPill } from "@/components/ui/v2";
 
 describe("KidPill", () => {
   const child = { id: "c1", name: "Sophia", subtitle: "Year 2 · Fitzroy North" };
