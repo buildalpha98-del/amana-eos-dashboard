@@ -48,7 +48,10 @@ const statusTabs = [
   { key: "closed", label: "Closed", icon: XCircle, color: "text-muted" },
 ] as const;
 
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
+
 export default function IssuesPage() {
+  const v2 = useStaffV2Flag();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailFocus, setDetailFocus] = useState<IssueCardOpenOpts["focus"] | undefined>(undefined);
@@ -210,7 +213,10 @@ export default function IssuesPage() {
   void boardColumns;
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="max-w-7xl mx-auto"
+    >
       {/* Header */}
       <PageHeader
         title="Issues"
