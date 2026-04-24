@@ -7,6 +7,8 @@ export { WarmCTA } from "./WarmCTA";
 export { PullSheet, SNAP_POINTS } from "./PullSheet";
 export { SwipeActions } from "./SwipeActions";
 
+export { DataTable, type ColumnDef, type DataTableProps } from "./DataTable";
+
 export { Lightbox } from "./Lightbox";
 
 export { MessageAttachmentGrid } from "./MessageAttachmentGrid";
