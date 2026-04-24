@@ -59,19 +59,49 @@ export const POST = withApiAuth(
 
     const data = parsed.data;
 
-    // Excursion gate: require an approved RiskAssessment.
-    // The RiskAssessment table lands in a later migration; until then we only
-    // enforce that a `riskAssessmentId` is supplied for excursion events.
-    // Once RiskAssessment exists, we additionally verify `approvedAt != null`
-    // AND that the assessment matches (serviceId, date, activityType=excursion).
+    // Excursion gate — verify linked RiskAssessment exists, is approved, and
+    // matches this service + date + activityType="excursion".
     if (data.eventType === "excursion") {
       if (!data.riskAssessmentId) {
         throw ApiError.badRequest(
           "Approved risk assessment required before creating an excursion event.",
         );
       }
-      // TODO(phase-2): once RiskAssessment model exists, verify existence +
-      // approvedAt + matching service/date/type here.
+      const ra = await prisma.riskAssessment.findUnique({
+        where: { id: data.riskAssessmentId },
+        select: {
+          id: true,
+          serviceId: true,
+          activityType: true,
+          date: true,
+          approvedAt: true,
+        },
+      });
+      if (!ra || ra.serviceId !== id) {
+        throw ApiError.badRequest(
+          "Approved risk assessment required before creating an excursion event.",
+        );
+      }
+      if (!ra.approvedAt) {
+        throw ApiError.badRequest(
+          "Risk assessment must be approved before the excursion event can be created.",
+        );
+      }
+      if (ra.activityType !== "excursion") {
+        throw ApiError.badRequest(
+          "Linked risk assessment is not tagged as an excursion.",
+        );
+      }
+      // Date must match (both @db.Date, compare on day only)
+      const sameDay =
+        ra.date.getUTCFullYear() === new Date(data.date).getUTCFullYear() &&
+        ra.date.getUTCMonth() === new Date(data.date).getUTCMonth() &&
+        ra.date.getUTCDate() === new Date(data.date).getUTCDate();
+      if (!sameDay) {
+        throw ApiError.badRequest(
+          "Risk assessment date must match the excursion event date.",
+        );
+      }
     }
 
     const created = await prisma.$transaction(async (tx) => {

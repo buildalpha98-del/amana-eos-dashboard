@@ -172,6 +172,13 @@ describe("POST /api/services/[id]/events", () => {
       role: "owner",
     });
     prismaMock.service.findUnique.mockResolvedValue({ id: "s1" });
+    prismaMock.riskAssessment.findUnique.mockResolvedValue({
+      id: "cjxxxxxxxxxxxxxxxxxxxxxxx",
+      serviceId: "s1",
+      activityType: "excursion",
+      date: new Date(Date.UTC(2026, 4, 15)),
+      approvedAt: new Date(),
+    });
     prismaMock.serviceEvent.create.mockResolvedValue({
       id: "e2",
       serviceId: "s1",
