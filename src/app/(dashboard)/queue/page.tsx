@@ -39,6 +39,7 @@ import { exportToCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { FilterPresets } from "@/components/ui/FilterPresets";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 const SEATS = [
   "marketing",
@@ -227,6 +228,7 @@ function TodoCard({
 }
 
 export default function QueuePage() {
+  const v2 = useStaffV2Flag();
   const { data: session } = useSession();
   const [seatFilter, setSeatFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -288,7 +290,10 @@ export default function QueuePage() {
   const todoCount = data?.counts.todos || 0;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="max-w-5xl mx-auto space-y-6"
+    >
       {/* Header */}
       <PageHeader
         title={queueView === "all" ? "All Queues" : "My Queue"}
