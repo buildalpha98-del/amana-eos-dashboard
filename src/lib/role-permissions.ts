@@ -71,6 +71,7 @@ export const allPages = [
   "/financials",
   "/performance",
   "/services",
+  "/services/[id]",
   "/projects",
   "/tickets",
   "/marketing",
@@ -304,6 +305,13 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/help",
     "/directory",
     "/queue",
+    // Staff on-shift tools — gated to their assigned service by the Service
+    // detail page's membership check (staff without a serviceId get a 403
+    // from every /api/services/[id]/* route).
+    "/services",
+    "/services/[id]",
+    "/roll-call",
+    "/bookings",
   ],
 };
 
