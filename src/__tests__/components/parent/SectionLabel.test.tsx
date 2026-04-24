@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import { SectionLabel } from "@/components/parent/ui/SectionLabel";
+import { SectionLabel } from "@/components/ui/v2";
 
 describe("SectionLabel", () => {
   it("renders the label", () => {

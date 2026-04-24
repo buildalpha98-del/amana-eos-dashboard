@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import { SessionCard } from "@/components/parent/ui/SessionCard";
+import { SessionCard } from "@/components/ui/v2";
 
 describe("SessionCard", () => {
   // Friday Apr 24 2026 in en-AU locale

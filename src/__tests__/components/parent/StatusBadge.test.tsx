@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import { StatusBadge } from "@/components/parent/ui/StatusBadge";
+import { StatusBadge } from "@/components/ui/v2";
 
 describe("StatusBadge", () => {
   it.each([

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import { WarmCTA } from "@/components/parent/ui/WarmCTA";
+import { WarmCTA } from "@/components/ui/v2";
 import { Plus } from "lucide-react";
 
 describe("WarmCTA", () => {

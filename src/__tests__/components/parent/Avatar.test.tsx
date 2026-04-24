@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import { Avatar, gradientFor } from "@/components/parent/ui/Avatar";
+import { Avatar, gradientFor } from "@/components/ui/v2";
 
 describe("Avatar", () => {
   it("renders initial from name when no src", () => {

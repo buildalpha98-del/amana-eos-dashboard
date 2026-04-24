@@ -1,28 +1,9 @@
-export { Avatar, AVATAR_GRADIENTS, gradientFor } from "./Avatar";
-export { KidPill } from "./KidPill";
-export { SessionCard } from "./SessionCard";
-export { StatusBadge, type StatusVariant } from "./StatusBadge";
-export { SectionLabel } from "./SectionLabel";
-export { WarmCTA } from "./WarmCTA";
-export { PullSheet, SNAP_POINTS } from "./PullSheet";
-export { SwipeActions } from "./SwipeActions";
+/**
+ * Backward-compat re-export for parent portal v2 primitives.
+ *
+ * Canonical location is now `@/components/ui/v2`. Existing parent-portal
+ * code imports from this path and continues to work. New staff-dashboard
+ * code should import directly from `@/components/ui/v2`.
+ */
 
-export { Lightbox } from "./Lightbox";
-
-export { MessageAttachmentGrid } from "./MessageAttachmentGrid";
-export type { MessageAttachmentGridProps } from "./MessageAttachmentGrid";
-
-export { AttachmentThumbnails } from "./AttachmentThumbnails";
-export type { AttachmentThumbnailsProps } from "./AttachmentThumbnails";
-
-export {
-  useMessageAttachments,
-  MAX_ATTACHMENTS,
-  MAX_ATTACHMENT_SIZE,
-} from "./useMessageAttachments";
-export type {
-  MessageAttachment,
-  AttachmentStatus,
-  UseMessageAttachmentsOptions,
-  UseMessageAttachmentsResult,
-} from "./useMessageAttachments";
+export * from "@/components/ui/v2";

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
-import { PullSheet } from "@/components/parent/ui/PullSheet";
+import { PullSheet } from "@/components/ui/v2";
 
 describe("PullSheet", () => {
   it("renders children when open", () => {
