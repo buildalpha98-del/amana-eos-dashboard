@@ -73,7 +73,8 @@ self.addEventListener("push", (event) => {
       body: payload.body || "",
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
-      data: { url: payload.url || "/dashboard" },
+      tag: payload.tag,
+      data: { url: payload.url || "/parent" },
     };
 
     event.waitUntil(self.registration.showNotification(title, options));
@@ -85,7 +86,7 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const url = event.notification.data?.url || "/dashboard";
+  const url = event.notification.data?.url || "/parent";
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })

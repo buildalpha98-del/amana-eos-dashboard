@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
 import { parentEmailLayout, baseLayout, buttonHtml } from "@/lib/email-templates/base";
+import { sendPushToContact } from "@/lib/push/webPush";
 import { logger } from "@/lib/logger";
 
 const PORTAL_URL = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
@@ -87,6 +88,15 @@ export async function sendNewMessageNotification(
         relatedId: messageId,
         relatedType: "Message",
       });
+
+      // Keep the payload lean — subject only, no body preview.
+      sendPushToContact(conversation.family.id, {
+        title: `New message from ${serviceName}`,
+        body: subject,
+        url: `/parent/messages/${conversation.id}`,
+      }).catch((err) =>
+        logger.error("Failed to send new message push", { messageId, err }),
+      );
     } else {
       const coordinator = await getServiceCoordinatorEmail(conversation.service.id);
       if (!coordinator) {
