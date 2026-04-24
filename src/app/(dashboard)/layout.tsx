@@ -18,6 +18,7 @@ import { KeyboardShortcuts } from "@/components/layout/KeyboardShortcuts";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
 import { cn } from "@/lib/utils";
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 export default function DashboardLayout({
   children,
@@ -38,9 +39,13 @@ export default function DashboardLayout({
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { collapsed } = useSidebar();
+  const v2 = useStaffV2Flag();
 
   return (
-    <div className="min-h-screen">
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="min-h-screen"
+    >
       <NavigationProgress />
       {/* Skip to main content — visible only on keyboard focus */}
       <a
