@@ -48,7 +48,8 @@ export function Sparkline({
   const latestFromReversed = nums[nums.length - 1]; // but points are built from reversed, so last plotted = last of reversed non-null
   const trending =
     goalValue !== undefined ? latestFromReversed >= goalValue : true;
-  const strokeColor = color ?? (trending ? "#10B981" : "#EF4444");
+  const strokeColor =
+    color ?? (trending ? "var(--color-success, #10B981)" : "var(--color-danger, #EF4444)");
 
   return (
     <svg width={width} height={height} className="inline-block">
@@ -59,7 +60,7 @@ export function Sparkline({
           y1={goalY}
           x2={width - pad}
           y2={goalY}
-          stroke="#9CA3AF"
+          stroke="var(--color-muted, #9CA3AF)"
           strokeWidth="0.5"
           strokeDasharray="2,2"
         />

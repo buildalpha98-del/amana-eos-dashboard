@@ -77,7 +77,7 @@ export function StickyTable({
     if (!thead) return;
 
     if (isScrolled) {
-      thead.style.boxShadow = "0 2px 4px -1px rgba(0, 0, 0, 0.1)";
+      thead.style.boxShadow = "var(--shadow-warm-sm)";
     } else {
       thead.style.boxShadow = "none";
     }
@@ -113,7 +113,7 @@ export function StickyTable({
       <div
         className={cn(
           "absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none sm:hidden",
-          "flex items-center gap-1 px-2 py-1 rounded-full bg-gray-900/70 text-white text-xs font-medium",
+          "flex items-center gap-1 px-2 py-1 rounded-full bg-[color:var(--color-brand)]/80 text-white text-xs font-medium",
           "transition-opacity duration-500",
           showScrollHint ? "opacity-100" : "opacity-0"
         )}
