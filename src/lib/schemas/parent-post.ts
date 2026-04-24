@@ -36,7 +36,7 @@ export const createParentPostSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title too long"),
   content: z.string().min(1, "Content is required").max(5000, "Content too long"),
   type: z.enum(parentPostTypes).default("observation"),
-  mediaUrls: z.array(safeMediaUrl).max(10, "Maximum 10 media files").default([]),
+  mediaUrls: z.array(safeMediaUrl).max(6, "Maximum 6 media files").default([]),
   isCommunity: z.boolean().default(false),
   childIds: z.array(z.string().min(1)).max(200, "Too many children tagged").default([]),
 });
@@ -47,7 +47,7 @@ export const updateParentPostSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title too long").optional(),
   content: z.string().min(1, "Content is required").max(5000, "Content too long").optional(),
   type: z.enum(parentPostTypes).optional(),
-  mediaUrls: z.array(safeMediaUrl).max(10, "Maximum 10 media files").optional(),
+  mediaUrls: z.array(safeMediaUrl).max(6, "Maximum 6 media files").optional(),
   isCommunity: z.boolean().optional(),
   childIds: z.array(z.string().min(1)).max(200, "Too many children tagged").optional(),
 });

@@ -18,7 +18,8 @@ import {
   useCreateParentPostComment,
   type TimelinePost,
 } from "@/hooks/useParentPortal";
-import { Avatar, PullSheet, SectionLabel } from "@/components/parent/ui";
+import { Avatar, PullSheet, SectionLabel, Lightbox } from "@/components/parent/ui";
+import { TimelinePostMedia } from "./TimelinePostMedia";
 import { cn } from "@/lib/utils";
 
 const typeIcons: Record<string, typeof Megaphone> = {
@@ -86,6 +87,7 @@ function TimelineCard({
   onOpenComments: () => void;
 }) {
   const likeToggle = useParentPostLikeToggle();
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const TypeIcon = typeIcons[post.type] ?? MessageCircle;
   const badgeClass = typeBadge[post.type] ?? "bg-gray-50 text-gray-600";
   const dateStr = new Date(post.createdAt).toLocaleDateString("en-AU", {
@@ -94,6 +96,7 @@ function TimelineCard({
     hour: "2-digit",
     minute: "2-digit",
   });
+  const mediaUrls = post.mediaUrls ?? [];
 
   const handleLike = () => {
     likeToggle.mutate({ postId: post.id, liked: post.likedByMe });
@@ -125,6 +128,9 @@ function TimelineCard({
           <p className="text-sm text-[color:var(--color-foreground)]/80 mt-1 whitespace-pre-wrap">
             {post.content}
           </p>
+          {mediaUrls.length > 0 && (
+            <TimelinePostMedia urls={mediaUrls} onOpen={setOpenIndex} />
+          )}
           {post.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {post.tags.map((tag) => (
@@ -178,6 +184,13 @@ function TimelineCard({
           </div>
         </div>
       </div>
+      {mediaUrls.length > 0 && (
+        <Lightbox
+          urls={mediaUrls}
+          openIndex={openIndex}
+          onClose={() => setOpenIndex(null)}
+        />
+      )}
     </article>
   );
 }

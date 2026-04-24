@@ -17,7 +17,9 @@ import {
   PullSheet,
   SwipeActions,
 } from "@/components/parent/ui";
+import { MarkAbsentSheet } from "@/components/parent/MarkAbsentSheet";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { isTodayOrFutureInServiceTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 
 type Tab = "upcoming" | "past" | "requests";
@@ -35,6 +37,7 @@ export default function BookingsV2() {
   const [sheetOpen, setSheetOpen] = useState(
     searchParams.get("new") === "1",
   );
+  const [absentBooking, setAbsentBooking] = useState<BookingRecord | null>(null);
 
   const period: "upcoming" | "past" = tab === "past" ? "past" : "upcoming";
   const { data, isLoading } = useParentBookings(period);
@@ -102,7 +105,12 @@ export default function BookingsV2() {
             <SectionLabel label={group.label} />
             <div className="space-y-2.5">
               {group.items.map((b) => (
-                <BookingRow key={b.id} booking={b} allowModify={tab === "upcoming"} />
+                <BookingRow
+                  key={b.id}
+                  booking={b}
+                  allowModify={tab === "upcoming"}
+                  onMarkAbsent={() => setAbsentBooking(b)}
+                />
               ))}
             </div>
           </section>
@@ -122,6 +130,12 @@ export default function BookingsV2() {
 
       {/* Fast-book sheet */}
       <FastBookSheet open={sheetOpen} onOpenChange={setSheetOpen} />
+
+      {/* Mark Absent sheet */}
+      <MarkAbsentSheet
+        booking={absentBooking}
+        onClose={() => setAbsentBooking(null)}
+      />
     </div>
   );
 }
@@ -180,9 +194,11 @@ const SESSION_LABELS: Record<"bsc" | "asc" | "vc", string> = {
 function BookingRow({
   booking,
   allowModify,
+  onMarkAbsent,
 }: {
   booking: BookingRecord;
   allowModify: boolean;
+  onMarkAbsent: () => void;
 }) {
   const cancel = useCancelBooking();
   const statusVariant =
@@ -207,28 +223,29 @@ function BookingRow({
 
   if (!allowModify) return card;
 
-  return (
-    <SwipeActions
-      actions={[
-        {
-          label: "Cancel",
-          tone: "danger",
-          onPress: () => {
-            if (
-              typeof window !== "undefined" &&
-              window.confirm(
-                `Cancel ${booking.child.firstName}'s session on ${new Date(booking.date).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}?`,
-              )
-            ) {
-              cancel.mutate(booking.id);
-            }
-          },
-        },
-      ]}
-    >
-      {card}
-    </SwipeActions>
-  );
+  const canMarkAbsent =
+    booking.status === "confirmed" && isTodayOrFutureInServiceTz(booking.date);
+
+  const actions: Parameters<typeof SwipeActions>[0]["actions"] = [];
+  if (canMarkAbsent) {
+    actions.push({ label: "Mark absent", tone: "neutral", onPress: onMarkAbsent });
+  }
+  actions.push({
+    label: "Cancel",
+    tone: "danger",
+    onPress: () => {
+      if (
+        typeof window !== "undefined" &&
+        window.confirm(
+          `Cancel ${booking.child.firstName}'s session on ${new Date(booking.date).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}?`,
+        )
+      ) {
+        cancel.mutate(booking.id);
+      }
+    },
+  });
+
+  return <SwipeActions actions={actions}>{card}</SwipeActions>;
 }
 
 // ─── Empty state ─────────────────────────────────────────

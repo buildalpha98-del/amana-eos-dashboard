@@ -105,7 +105,7 @@ export function MessageAttachmentGrid({
         })}
       </div>
 
-      <Lightbox urls={urls} index={openIndex} onChange={setOpenIndex} />
+      <Lightbox urls={urls} openIndex={openIndex} onClose={() => setOpenIndex(null)} />
     </>
   );
 }

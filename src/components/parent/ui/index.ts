@@ -8,7 +8,6 @@ export { PullSheet, SNAP_POINTS } from "./PullSheet";
 export { SwipeActions } from "./SwipeActions";
 
 export { Lightbox } from "./Lightbox";
-export type { LightboxProps } from "./Lightbox";
 
 export { MessageAttachmentGrid } from "./MessageAttachmentGrid";
 export type { MessageAttachmentGridProps } from "./MessageAttachmentGrid";
