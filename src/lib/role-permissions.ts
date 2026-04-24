@@ -180,6 +180,13 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/help",
     "/directory",
     "/queue",
+    // Granted for Marketing Coordinator cockpit (Sprint 1):
+    "/scorecard",
+    "/holiday-quest",
+    "/knowledge",
+    "/leave",
+    "/settings",
+    "/assistant",
   ],
   coordinator: [
     "/dashboard",

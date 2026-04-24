@@ -61,7 +61,27 @@ export interface NavItem {
    * if the role has this feature (in addition to `canAccessPage`).
    */
   feature?: Feature;
+  /**
+   * Optional role allowlist. When set, only users with a role in this list
+   * will see the item in the sidebar. When omitted, the item is visible to
+   * all roles that pass `canAccessPage`. This is a sidebar-visibility control
+   * only — it does not restrict URL access (use role-permissions for that).
+   */
+  roles?: Role[];
 }
+
+// ── Role allowlists ───────────────────────────────────────
+// Explicit sets used to keep the nav declarations readable.
+// Owner is NOT included in these because owner bypasses the roles
+// filter entirely in filterNavItems() — owners see all items.
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const LEADERSHIP_ROLES: Role[] = ["head_office", "admin"];
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const OPERATIONAL_ROLES: Role[] = ["head_office", "admin", "coordinator", "member", "staff"];
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const MARKETING_ACCESS: Role[] = ["marketing"];
+const ALL_NON_MARKETING: Role[] = ["head_office", "admin", "coordinator", "member", "staff"];
 
 /**
  * Single source of truth for the app's navigation items.
@@ -75,63 +95,63 @@ export const navItems: NavItem[] = [
   { href: "/getting-started", label: "Getting Started", icon: Rocket, section: "Home", tooltip: "Your onboarding checklist — get up to speed quickly" },
 
   // ── EOS — pure EOS methodology ────────────────────────────
-  { href: "/vision", label: "Vision / V-TO", icon: Eye, section: "EOS", tooltip: "Vision/Traction Organiser — your long-term goals & strategic plan" },
-  { href: "/rocks", label: "Rocks", icon: Mountain, section: "EOS", tooltip: "Quarterly priorities — 90-day goals for the team" },
+  { href: "/vision", label: "Vision / V-TO", icon: Eye, section: "EOS", tooltip: "Vision/Traction Organiser — your long-term goals & strategic plan", roles: ALL_NON_MARKETING },
+  { href: "/rocks", label: "Rocks", icon: Mountain, section: "EOS", tooltip: "Quarterly priorities — 90-day goals for the team", roles: ALL_NON_MARKETING },
   { href: "/scorecard", label: "Scorecard", icon: BarChart3, section: "EOS", tooltip: "Weekly measurables & KPIs" },
-  { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS", tooltip: "7-day action items from weekly meetings" },
-  { href: "/issues", label: "Issues", icon: AlertCircle, section: "EOS", tooltip: "Issues List — track & solve using IDS (Identify, Discuss, Solve)" },
-  { href: "/meetings", label: "Meetings", icon: Presentation, section: "EOS", tooltip: "Weekly L10 meetings" },
+  { href: "/todos", label: "To-Dos", icon: CheckSquare, section: "EOS", tooltip: "7-day action items from weekly meetings", roles: ALL_NON_MARKETING },
+  { href: "/issues", label: "Issues", icon: AlertCircle, section: "EOS", tooltip: "Issues List — track & solve using IDS (Identify, Discuss, Solve)", roles: ALL_NON_MARKETING },
+  { href: "/meetings", label: "Meetings", icon: Presentation, section: "EOS", tooltip: "Weekly L10 meetings", roles: ALL_NON_MARKETING },
 
   // ── Operations — day-to-day running ───────────────────────
-  { href: "/services", label: "Services", icon: Building2, section: "Operations" },
-  { href: "/roll-call", label: "Roll Call", icon: ClipboardList, section: "Operations", tooltip: "Daily attendance sign-in and sign-out" },
-  { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents" },
-  { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations" },
-  { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families" },
-  { href: "/performance", label: "Performance", icon: Trophy, section: "Operations" },
-  { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations" },
-  { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists" },
-  { href: "/policies", label: "Policies", icon: Shield, section: "Operations", tooltip: "Policy management & compliance" },
-  { href: "/incidents", label: "Incidents", icon: AlertTriangle, section: "Operations", tooltip: "Safety incident tracking" },
+  { href: "/services", label: "Services", icon: Building2, section: "Operations", roles: ALL_NON_MARKETING },
+  { href: "/roll-call", label: "Roll Call", icon: ClipboardList, section: "Operations", tooltip: "Daily attendance sign-in and sign-out", roles: ALL_NON_MARKETING },
+  { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents", roles: ALL_NON_MARKETING },
+  { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations", roles: ALL_NON_MARKETING },
+  { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families", roles: ALL_NON_MARKETING },
+  { href: "/performance", label: "Performance", icon: Trophy, section: "Operations", roles: ALL_NON_MARKETING },
+  { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations", roles: ALL_NON_MARKETING },
+  { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists", roles: ALL_NON_MARKETING },
+  { href: "/policies", label: "Policies", icon: Shield, section: "Operations", tooltip: "Policy management & compliance", roles: ALL_NON_MARKETING },
+  { href: "/incidents", label: "Incidents", icon: AlertTriangle, section: "Operations", tooltip: "Safety incident tracking", roles: ALL_NON_MARKETING },
   { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator" },
   { href: "/knowledge", label: "Knowledge Base", icon: BookOpen, section: "Operations", tooltip: "Ask questions about your policies, procedures and documents" },
 
   // ── Growth — pipeline, parents & outreach ─────────────────
-  { href: "/messaging", label: "Messages", icon: MessageSquare, section: "Growth", tooltip: "Send and receive messages with families" },
-  { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place" },
-  { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions" },
-  { href: "/children", label: "Children", icon: Users, section: "Growth", tooltip: "Browse all enrolled children across services" },
-  { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management" },
+  { href: "/messaging", label: "Messages", icon: MessageSquare, section: "Growth", tooltip: "Send and receive messages with families", roles: ALL_NON_MARKETING },
+  { href: "/contact-centre", label: "Contact Centre", icon: Inbox, section: "Growth", tooltip: "Enquiries, support tickets, and VAPI call logs in one place", roles: ALL_NON_MARKETING },
+  { href: "/enrolments", label: "Enrolments", icon: ClipboardList, section: "Growth", tooltip: "Review and process parent enrolment submissions", roles: ALL_NON_MARKETING },
+  { href: "/children", label: "Children", icon: Users, section: "Growth", tooltip: "Browse all enrolled children across services", roles: ALL_NON_MARKETING },
+  { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management", roles: ALL_NON_MARKETING },
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Growth" },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" },
-  { href: "/conversions", label: "Conversions", icon: Repeat, section: "Growth", tooltip: "Track casual-to-regular booking conversions" },
+  { href: "/conversions", label: "Conversions", icon: Repeat, section: "Growth", tooltip: "Track casual-to-regular booking conversions", roles: ALL_NON_MARKETING },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
 
   // ── People — HR & workforce ───────────────────────────────
-  { href: "/team", label: "Team", icon: Users, section: "People" },
-  { href: "/recruitment", label: "Recruitment", icon: Briefcase, section: "People", tooltip: "Track vacancies, candidates & staff referrals" },
-  { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding" },
-  { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view" },
-  { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "People", tooltip: "Import OWNA rosters, approve & export to Xero" },
+  { href: "/team", label: "Team", icon: Users, section: "People", roles: ALL_NON_MARKETING },
+  { href: "/recruitment", label: "Recruitment", icon: Briefcase, section: "People", tooltip: "Track vacancies, candidates & staff referrals", roles: ALL_NON_MARKETING },
+  { href: "/onboarding", label: "Staff Lifecycle", icon: GraduationCap, section: "People", tooltip: "Onboarding, LMS & offboarding", roles: ALL_NON_MARKETING },
+  { href: "/contracts", label: "Contracts", icon: FileSignature, section: "People", tooltip: "Employment contracts & award rates", feature: "contracts.view", roles: ALL_NON_MARKETING },
+  { href: "/timesheets", label: "Timesheets", icon: ClipboardList, section: "People", tooltip: "Import OWNA rosters, approve & export to Xero", roles: ALL_NON_MARKETING },
   { href: "/leave", label: "Leave", icon: CalendarDays, section: "People", tooltip: "Request & manage staff leave" },
   { href: "/directory", label: "Staff Directory", icon: Contact, section: "People", tooltip: "Find and connect with your team" },
 
   // ── Admin — config, strategy & utilities ──────────────────
-  { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment" },
-  { href: "/reports", label: "Reports", icon: BarChart3, section: "Operations", tooltip: "Attendance, booking, revenue, enrolment, and medical reports" },
+  { href: "/leadership", label: "Leadership", icon: Crown, section: "Admin", tooltip: "Org-wide KPIs, rocks rollup, coordinator leaderboard, and pulse sentiment", roles: ALL_NON_MARKETING },
+  { href: "/reports", label: "Reports", icon: BarChart3, section: "Operations", tooltip: "Attendance, booking, revenue, enrolment, and medical reports", roles: ALL_NON_MARKETING },
   { href: "/settings", label: "Settings", icon: Settings, section: "Admin" },
   { href: "/documents", label: "Documents", icon: FileText, section: "Admin" },
-  { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Admin", tooltip: "What-if scenario modelling & financial projections" },
-  { href: "/data-room", label: "Data Room", icon: FolderLock, section: "Admin", tooltip: "Due diligence document tracker & exit readiness scoring" },
-  { href: "/reports/board", label: "Board Reports", icon: FileSpreadsheet, section: "Admin", tooltip: "Monthly board & investor report generator" },
+  { href: "/scenarios", label: "Scenarios", icon: Calculator, section: "Admin", tooltip: "What-if scenario modelling & financial projections", roles: ALL_NON_MARKETING },
+  { href: "/data-room", label: "Data Room", icon: FolderLock, section: "Admin", tooltip: "Due diligence document tracker & exit readiness scoring", roles: ALL_NON_MARKETING },
+  { href: "/reports/board", label: "Board Reports", icon: FileSpreadsheet, section: "Admin", tooltip: "Monthly board & investor report generator", roles: ALL_NON_MARKETING },
   { href: "/assistant", label: "AI Assistant", icon: Bot, section: "Admin", tooltip: "Ask questions about your dashboard data" },
   { href: "/guides", label: "Quick-Start Guides", icon: BookOpenCheck, section: "Admin", tooltip: "Printable role-specific quick-start guides" },
   { href: "/help", label: "Help Centre", icon: HelpCircle, section: "Admin", tooltip: "FAQ and knowledge base — find answers to common questions" },
-  { href: "/automations", label: "Automations", icon: Activity, section: "Admin", tooltip: "Monitor the health and cadence of all automated tasks" },
-  { href: "/audit-log", label: "Audit Log", icon: ScrollText, section: "Admin", tooltip: "Security audit trail — who did what and when" },
-  { href: "/admin/feedback", label: "Feedback Inbox", icon: Bug, section: "Admin", tooltip: "Triage staff-submitted bug reports, feature requests, and questions" },
-  { href: "/admin/ai-drafts", label: "AI Drafts", icon: Bot, section: "Admin", tooltip: "Review and bulk-triage all AI-generated task drafts across the organisation" },
-  { href: "/tools/ccs-calculator", label: "CCS Calculator", icon: Wrench, section: "Admin", tooltip: "Child Care Subsidy cost estimator" },
+  { href: "/automations", label: "Automations", icon: Activity, section: "Admin", tooltip: "Monitor the health and cadence of all automated tasks", roles: ALL_NON_MARKETING },
+  { href: "/audit-log", label: "Audit Log", icon: ScrollText, section: "Admin", tooltip: "Security audit trail — who did what and when", roles: ALL_NON_MARKETING },
+  { href: "/admin/feedback", label: "Feedback Inbox", icon: Bug, section: "Admin", tooltip: "Triage staff-submitted bug reports, feature requests, and questions", roles: ALL_NON_MARKETING },
+  { href: "/admin/ai-drafts", label: "AI Drafts", icon: Bot, section: "Admin", tooltip: "Review and bulk-triage all AI-generated task drafts across the organisation", roles: ALL_NON_MARKETING },
+  { href: "/tools/ccs-calculator", label: "CCS Calculator", icon: Wrench, section: "Admin", tooltip: "Child Care Subsidy cost estimator", roles: ALL_NON_MARKETING },
   { href: "/tools/the-amana-way", label: "The Amana Way", icon: BookOpenCheck, section: "Admin", tooltip: "Interactive educator induction handbook" },
   { href: "/tools/amana-way-one-pager", label: "Amana Way One Pager", icon: FileText, section: "Admin", tooltip: "The Amana Way at a glance — printable one-pager" },
   { href: "/tools/employee-handbook", label: "Employee Handbook", icon: BookOpen, section: "Admin", tooltip: "Full employee induction handbook with policies and procedures" },
@@ -147,10 +167,15 @@ export const pageTitlesFromNav: Record<string, string> = Object.fromEntries(
 
 /**
  * Filter nav items by role: must pass `canAccessPage` AND (if tagged) the
- * `hasFeature` gate. Keeps role logic in one place so Sidebar stays declarative.
+ * `hasFeature` gate AND (if tagged) the `roles` allowlist. Keeps role logic
+ * in one place so Sidebar stays declarative.
  *
  * Feature-gated items are hidden from the sidebar even if the role technically
  * has URL access — acts as a belt-and-suspenders visibility control.
+ *
+ * `owner` always bypasses the `roles` allowlist (owners see every item they
+ * can access by page/feature). The `roles` field is sidebar-visibility only —
+ * URL-level access is still governed by `canAccessPage`.
  */
 export function filterNavItems(
   items: readonly NavItem[],
@@ -159,6 +184,9 @@ export function filterNavItems(
   return items.filter((item) => {
     if (!canAccessPage(role, item.href)) return false;
     if (item.feature && !hasFeature(role, item.feature)) return false;
+    if (item.roles && role && role !== "owner" && !item.roles.includes(role)) {
+      return false;
+    }
     return true;
   });
 }

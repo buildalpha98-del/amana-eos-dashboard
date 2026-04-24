@@ -58,3 +58,75 @@ describe("filterNavItems", () => {
     expect(filtered.some((i) => i.href === "/dashboard")).toBe(true);
   });
 });
+
+// ─── Sprint 1: role allowlist on nav items ─────────────────
+describe("filterNavItems — role allowlist (Sprint 1)", () => {
+  describe("marketing role", () => {
+    const marketingFiltered = filterNavItems(navItems, "marketing" as Role);
+    const hrefs = marketingFiltered.map((i) => i.href);
+
+    it.each([
+      "/crm",
+      "/contact-centre",
+      "/enrolments",
+      "/children",
+      "/conversions",
+      "/messaging",
+    ])("excludes out-of-scope nav item %s", (href) => {
+      expect(hrefs).not.toContain(href);
+    });
+
+    it.each([
+      "/marketing",
+      "/communication",
+      "/projects",
+      "/scorecard",
+      "/holiday-quest",
+    ])("includes Akram's cockpit nav item %s", (href) => {
+      expect(hrefs).toContain(href);
+    });
+
+    it("hides every item tagged with ALL_NON_MARKETING roles", () => {
+      // Spot-check a handful of ALL_NON_MARKETING items across sections.
+      for (const href of ["/vision", "/rocks", "/services", "/financials", "/team", "/leadership", "/automations"]) {
+        expect(hrefs).not.toContain(href);
+      }
+    });
+  });
+
+  describe("owner role — bypass", () => {
+    it("sees every item that survives canAccessPage + feature checks, including role-gated ones", () => {
+      const ownerFiltered = filterNavItems(navItems, "owner" as Role);
+      const hrefs = ownerFiltered.map((i) => i.href);
+      // Owner bypasses roles — they see items tagged with ALL_NON_MARKETING too.
+      for (const href of ["/vision", "/rocks", "/crm", "/contact-centre", "/leadership", "/automations"]) {
+        expect(hrefs).toContain(href);
+      }
+    });
+
+    it("result length is at least as large as the coordinator/marketing filtered result", () => {
+      const owner = filterNavItems(navItems, "owner" as Role).length;
+      const marketing = filterNavItems(navItems, "marketing" as Role).length;
+      const coordinator = filterNavItems(navItems, "coordinator" as Role).length;
+      expect(owner).toBeGreaterThan(marketing);
+      expect(owner).toBeGreaterThanOrEqual(coordinator);
+    });
+  });
+
+  describe("coordinator role — unaffected by sprint 1 changes", () => {
+    const coordinatorFiltered = filterNavItems(navItems, "coordinator" as Role);
+    const hrefs = coordinatorFiltered.map((i) => i.href);
+
+    it.each(["/messaging", "/contact-centre", "/enrolments"])(
+      "still includes %s (ALL_NON_MARKETING doesn't hide for coordinators)",
+      (href) => {
+        expect(hrefs).toContain(href);
+      },
+    );
+
+    it("still excludes pages coordinator can't access via canAccessPage", () => {
+      // /financials isn't in coordinator's rolePageAccess — stays hidden.
+      expect(hrefs).not.toContain("/financials");
+    });
+  });
+});

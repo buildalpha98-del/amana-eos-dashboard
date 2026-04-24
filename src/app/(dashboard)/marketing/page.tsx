@@ -1,23 +1,20 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useMemo, Suspense } from "react";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
 import {
   BarChart3,
   FolderOpen,
   FileText,
   Calendar,
   TrendingUp,
-  Upload,
   CheckSquare,
   Flame,
-  Gift,
   Wrench,
-  Mail,
   Workflow,
 } from "lucide-react";
-import Link from "next/link";
 import { MarketingTabs } from "@/components/marketing/MarketingTabs";
-import { OverviewTab } from "@/components/marketing/OverviewTab";
 import { CampaignsTab } from "@/components/marketing/CampaignsTab";
 import { CampaignDetailPanel } from "@/components/marketing/CampaignDetailPanel";
 import { PostsTab } from "@/components/marketing/PostsTab";
@@ -30,11 +27,7 @@ import { KPIsTab } from "@/components/marketing/KPIsTab";
 import { AssetsTab } from "@/components/marketing/AssetsTab";
 import { TemplatesTab } from "@/components/marketing/TemplatesTab";
 import { HashtagsTab } from "@/components/marketing/HashtagsTab";
-import { ImportCalendarModal } from "@/components/marketing/ImportCalendarModal";
-import { CoverageTab } from "@/components/marketing/CoverageTab";
-import { TermCalendarTab } from "@/components/marketing/TermCalendarTab";
 import { OccupancyHeatmap } from "@/components/marketing/OccupancyHeatmap";
-import { DraftsQueue } from "@/components/marketing/DraftsQueue";
 import { CentreWorkloadDashboard } from "@/components/marketing/CentreWorkloadDashboard";
 import { LaunchTracker } from "@/components/marketing/LaunchTracker";
 import { ReferralsTab } from "@/components/marketing/ReferralsTab";
@@ -49,10 +42,12 @@ import { SequencesTab } from "@/components/marketing/SequencesTab";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 /* ------------------------------------------------------------------ */
-/* Tab definitions — consolidated from 16 → 8 primary tabs            */
+/* Tab definitions — Tasks and Growth are hidden for the marketing    */
+/* role (see Sprint 1 plan). Overview content is a placeholder until  */
+/* Sprint 2 ships the cockpit.                                        */
 /* ------------------------------------------------------------------ */
 
-const tabs = [
+const ALL_TABS = [
   { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "campaigns", label: "Campaigns", icon: FolderOpen },
@@ -64,12 +59,24 @@ const tabs = [
   { key: "toolkit", label: "Toolkit", icon: Wrench },
 ];
 
+const MARKETING_HIDDEN_TABS = new Set(["tasks", "growth"]);
+
 export default function MarketingPage() {
-  const [activeTab, setActiveTab] = useState("overview");
+  const { data: session } = useSession();
+  const isMarketingRole = session?.user?.role === "marketing";
+
+  const tabs = useMemo(
+    () =>
+      isMarketingRole
+        ? ALL_TABS.filter((t) => !MARKETING_HIDDEN_TABS.has(t.key))
+        : ALL_TABS,
+    [isMarketingRole],
+  );
+
+  const [rawActiveTab, setActiveTab] = useState("overview");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [showImport, setShowImport] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [showQuickPost, setShowQuickPost] = useState(false);
   const [showQuickTask, setShowQuickTask] = useState(false);
@@ -79,28 +86,24 @@ export default function MarketingPage() {
   const [toolkitView, setToolkitView] = useState<"assets" | "templates" | "email" | "hashtags" | "kpis" | "workload">("assets");
   const [growthView, setGrowthView] = useState<"occupancy" | "referrals" | "launch">("occupancy");
 
+  // If the stored tab has been hidden for this role, render Overview instead.
+  // Derived — avoids setState-in-effect render cascade.
+  const activeTab =
+    isMarketingRole && MARKETING_HIDDEN_TABS.has(rawActiveTab)
+      ? "overview"
+      : rawActiveTab;
+
   return (
     <div className="max-w-7xl mx-auto">
       <PageHeader
         title="Marketing"
         description="Manage campaigns, posts, and content across all platforms"
-        secondaryActions={[
-          { label: "Import Calendar", icon: Upload, onClick: () => setShowImport(true) },
-        ]}
       >
-        <div className="flex items-center gap-3">
-          <ServiceFilter
-            value={selectedServiceId}
-            onChange={setSelectedServiceId}
-          />
-          <Link
-            href="/marketing/email/compose"
-            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-hover transition-colors"
-          >
-            <Mail className="h-4 w-4" />
-            Compose Email
-          </Link>
-        </div>
+        <ServiceFilter
+          value={selectedServiceId}
+          onChange={setSelectedServiceId}
+          hideStatePills
+        />
       </PageHeader>
 
       {/* Tabs */}
@@ -108,16 +111,25 @@ export default function MarketingPage() {
 
       {/* Tab Content */}
       <div className="mt-6">
-        {/* ---- Overview: includes Drafts Queue inline ---- */}
+        {/* ---- Overview: placeholder until Sprint 2 cockpit ---- */}
         {activeTab === "overview" && (
-          <OverviewTab
-            serviceId={selectedServiceId}
-            onSelectTask={setSelectedTaskId}
-          />
+          <div className="rounded-xl border border-border bg-card p-8 text-center">
+            <BarChart3 className="mx-auto h-10 w-10 text-muted" />
+            <h3 className="mt-4 text-lg font-semibold text-foreground">
+              Your cockpit is coming in the next release
+            </h3>
+            <p className="mt-2 text-sm text-muted">
+              See your{" "}
+              <Link href="/scorecard" className="text-brand hover:underline">
+                scorecard
+              </Link>{" "}
+              for now.
+            </p>
+          </div>
         )}
 
-        {/* ---- Tasks ---- */}
-        {activeTab === "tasks" && (
+        {/* ---- Tasks (hidden for marketing role) ---- */}
+        {activeTab === "tasks" && !isMarketingRole && (
           <TasksTab
             onSelectTask={setSelectedTaskId}
             serviceId={selectedServiceId}
@@ -153,8 +165,8 @@ export default function MarketingPage() {
           />
         )}
 
-        {/* ---- Growth: Occupancy / Referrals / Launch ---- */}
-        {activeTab === "growth" && (
+        {/* ---- Growth (hidden for marketing role) ---- */}
+        {activeTab === "growth" && !isMarketingRole && (
           <div className="space-y-6">
             {/* Sub-nav pills */}
             <div className="flex items-center gap-2">
@@ -268,12 +280,6 @@ export default function MarketingPage() {
           onClose={() => setSelectedTaskId(null)}
         />
       )}
-
-      {/* Import Content Calendar Modal */}
-      <ImportCalendarModal
-        open={showImport}
-        onClose={() => setShowImport(false)}
-      />
 
       {/* Quick Add FAB */}
       <QuickAddFAB

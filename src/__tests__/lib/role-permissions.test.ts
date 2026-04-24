@@ -86,8 +86,15 @@ describe("rolePageAccess", () => {
     expect(allowed).toContain("/crm");
     expect(allowed).toContain("/communication");
     expect(allowed).toContain("/enquiries");
+    // Sprint 1 cockpit grants — visible in Akram's sidebar.
+    expect(allowed).toContain("/scorecard");
+    expect(allowed).toContain("/holiday-quest");
+    expect(allowed).toContain("/knowledge");
+    expect(allowed).toContain("/leave");
+    expect(allowed).toContain("/settings");
+    expect(allowed).toContain("/assistant");
+    // Still scoped out — marketing does NOT touch these.
     expect(allowed).not.toContain("/financials");
-    expect(allowed).not.toContain("/settings");
     expect(allowed).not.toContain("/team");
     expect(allowed).not.toContain("/rocks");
   });
