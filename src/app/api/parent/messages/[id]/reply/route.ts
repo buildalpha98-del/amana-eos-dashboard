@@ -5,6 +5,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
 import { logger } from "@/lib/logger";
+import { attachmentUrlsField } from "@/lib/schemas/message-attachments";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -36,9 +37,15 @@ async function getParentContactIds(
 // POST — Parent replies to a conversation
 // ---------------------------------------------------------------------------
 
-const replySchema = z.object({
-  body: z.string().min(1, "Message is required").max(5000),
-});
+const replySchema = z
+  .object({
+    body: z.string().max(5000).default(""),
+    attachmentUrls: attachmentUrlsField,
+  })
+  .refine((d) => d.body.trim().length > 0 || d.attachmentUrls.length > 0, {
+    message: "Message or attachments are required",
+    path: ["body"],
+  });
 
 export const POST = withParentAuth(async (req, ctx) => {
   const params = await ctx.params;
@@ -85,6 +92,7 @@ export const POST = withParentAuth(async (req, ctx) => {
       data: {
         conversationId: id,
         body: parsed.data.body,
+        attachmentUrls: parsed.data.attachmentUrls,
         senderType: "parent",
         senderId: conversation.familyId,
         senderName: senderName || "Parent",

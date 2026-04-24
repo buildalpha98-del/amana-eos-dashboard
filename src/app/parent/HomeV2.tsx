@@ -17,6 +17,7 @@ import {
   type StatusVariant,
 } from "@/components/parent/ui";
 import { TimelineWidget } from "@/components/parent/TimelineWidget";
+import { InstallBanner } from "@/components/parent/InstallBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 import {
@@ -77,6 +78,9 @@ export default function ParentHomeV2() {
 
   return (
     <div className="space-y-7">
+      {/* PWA install banner — only renders when eligible */}
+      <InstallBanner />
+
       {/* ─── Greeting ─────────────────────────────────── */}
       <header>
         <h1 className="text-[26px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight tracking-[-0.01em]">

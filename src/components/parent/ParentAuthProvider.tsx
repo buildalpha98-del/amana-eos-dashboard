@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useParentInstallEffects } from "@/hooks/useParentInstallEffects";
 
 interface ParentAuthContext {
   isAuthenticated: boolean;
@@ -50,6 +51,8 @@ export function ParentAuthProvider({ children }: { children: ReactNode }) {
       router.replace("/parent/login");
     }
   }, [pathname, router]);
+
+  useParentInstallEffects(isAuthenticated);
 
   const logout = async () => {
     // Call the logout API to clear the httpOnly `parent-session` JWT cookie

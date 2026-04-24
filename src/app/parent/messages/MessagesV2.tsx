@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { Plus, MessageCircle } from "lucide-react";
+import { Paperclip, Plus, MessageCircle } from "lucide-react";
 import {
   useParentConversations,
   useCreateConversation,
@@ -11,9 +11,10 @@ import {
 } from "@/hooks/useParentPortal";
 import {
   Avatar,
+  AttachmentThumbnails,
   PullSheet,
-  WarmCTA,
-  SectionLabel,
+  useMessageAttachments,
+  MAX_ATTACHMENTS,
 } from "@/components/parent/ui";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
@@ -141,9 +142,20 @@ function ComposeSheet({
 }) {
   const { data: children } = useParentChildren();
   const create = useCreateConversation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [serviceId, setServiceId] = useState<string | undefined>(undefined);
+
+  const {
+    attachments,
+    addFiles,
+    remove: removeAttachment,
+    reset: resetAttachments,
+    uploadedUrls,
+    isUploading: isAttachmentUploading,
+    canAddMore,
+  } = useMessageAttachments({ endpoint: "/api/parent/upload/image" });
 
   const services = Array.from(
     new Map(
@@ -151,17 +163,36 @@ function ComposeSheet({
     ).values(),
   );
 
+  const hasBody = message.trim().length > 0 || uploadedUrls.length > 0;
+  const canSubmit =
+    !!subject.trim() &&
+    hasBody &&
+    !create.isPending &&
+    !isAttachmentUploading;
+
   const handleSubmit = async () => {
-    if (!subject.trim() || !message.trim()) return;
+    if (!canSubmit) return;
     try {
-      await create.mutateAsync({ subject, message, serviceId });
+      await create.mutateAsync({
+        subject,
+        message: message.trim(),
+        serviceId,
+        attachmentUrls: uploadedUrls.length > 0 ? uploadedUrls : undefined,
+      });
       setSubject("");
       setMessage("");
       setServiceId(undefined);
+      resetAttachments();
       onOpenChange(false);
     } catch {
       // onError toast handled by the hook
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) addFiles(files);
+    e.target.value = "";
   };
 
   return (
@@ -213,19 +244,61 @@ function ComposeSheet({
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Say hi…"
+            placeholder={attachments.length > 0 ? "Add a caption…" : "Say hi…"}
             rows={5}
             className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border-2 border-[color:var(--color-border)] bg-[color:var(--color-cream-soft)] text-sm focus:outline-none focus:border-[color:var(--color-brand)] min-h-[120px] resize-none"
           />
         </div>
 
+        {attachments.length > 0 && (
+          <AttachmentThumbnails
+            attachments={attachments}
+            onRemove={removeAttachment}
+          />
+        )}
+
+        <div className="flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!canAddMore || create.isPending}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-semibold text-[color:var(--color-brand)] hover:bg-[color:var(--color-cream-deep)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors min-h-[40px]"
+            aria-label="Add image attachment"
+            title={
+              canAddMore
+                ? "Add photo"
+                : `Maximum ${MAX_ATTACHMENTS} images per message`
+            }
+          >
+            <Paperclip className="w-4 h-4" />
+            Add photo
+          </button>
+          {attachments.length > 0 && (
+            <span className="text-xs text-[color:var(--color-muted)]">
+              {attachments.length} of {MAX_ATTACHMENTS}
+            </span>
+          )}
+        </div>
+
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!subject.trim() || !message.trim() || create.isPending}
+          disabled={!canSubmit}
           className="w-full py-3 rounded-[var(--radius-md)] bg-[color:var(--color-brand)] text-white font-semibold disabled:opacity-50 min-h-[44px]"
         >
-          {create.isPending ? "Sending…" : "Send"}
+          {create.isPending || isAttachmentUploading
+            ? isAttachmentUploading
+              ? "Uploading…"
+              : "Sending…"
+            : "Send"}
         </button>
       </div>
     </PullSheet>

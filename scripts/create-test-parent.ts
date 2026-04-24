@@ -13,7 +13,7 @@
  */
 
 import { Prisma, PrismaClient } from "@prisma/client";
-import * as crypto from "crypto";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -70,7 +70,7 @@ async function main() {
             postcode: "3068",
           },
         },
-        secondaryParent: Prisma.DbNull,
+        secondaryParent: Prisma.JsonNull,
         children: [
           {
             firstName: CHILD_FIRST,
