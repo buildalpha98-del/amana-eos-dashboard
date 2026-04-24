@@ -11,6 +11,13 @@ export { DataTable, type ColumnDef, type DataTableProps } from "./DataTable";
 
 export { CommandMenu, type CommandMenuProps } from "./CommandMenu";
 
+export {
+  FilterBar,
+  type FilterBarProps,
+  type FilterDef,
+  type FilterOption,
+} from "./FilterBar";
+
 export { Lightbox } from "./Lightbox";
 
 export { MessageAttachmentGrid } from "./MessageAttachmentGrid";
