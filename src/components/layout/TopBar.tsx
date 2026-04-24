@@ -11,6 +11,7 @@ import { CommandPalette } from "./CommandPalette";
 import { navItems } from "@/lib/nav-config";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { useRecentPages } from "@/hooks/useRecentPages";
+import { OfflineSyncBadge } from "./OfflineSyncBadge";
 
 const CentreSwitcher = dynamic(
   () => import("./CentreSwitcher").then((m) => m.CentreSwitcher),
@@ -195,6 +196,7 @@ export function TopBar() {
         </div>
 
         <div className="flex items-center gap-2">
+          <OfflineSyncBadge />
           <button
             data-tour="search"
             onClick={() => setSearchOpen(true)}
