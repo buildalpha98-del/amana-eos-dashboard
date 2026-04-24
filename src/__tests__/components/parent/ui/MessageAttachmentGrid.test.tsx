@@ -70,6 +70,6 @@ describe("MessageAttachmentGrid", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeTruthy();
-    expect(dialog.getAttribute("aria-label")).toBe("Attachment viewer");
+    expect(dialog.getAttribute("aria-label")).toBe("Photo viewer");
   });
 });
