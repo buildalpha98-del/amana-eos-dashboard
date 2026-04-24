@@ -183,13 +183,18 @@ export const POST = withParentAuth(async (req, { parent }) => {
         select: { id: true },
       });
 
+      // Auto-confirm: checkCasualBookingAllowed (above) has already verified
+      // every policy constraint (session enabled, day allowed, cut-off met,
+      // spots available). If those pass, the booking is valid — no reason to
+      // make parents wait for manual approval. Coordinator is still notified
+      // for awareness.
       return tx.booking.create({
         data: {
           childId,
           serviceId,
           date: bookingDate,
           sessionType,
-          status: "requested",
+          status: "confirmed",
           type: "casual",
           fee,
           requestedById: contact?.id ?? null,

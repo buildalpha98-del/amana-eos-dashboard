@@ -249,7 +249,7 @@ export function useRequestBooking() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["parent", "bookings"] });
-      toast({ description: "Booking request submitted" });
+      toast({ description: "Booking confirmed" });
     },
     onError: (err: Error) => {
       toast({
