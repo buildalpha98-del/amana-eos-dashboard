@@ -39,6 +39,7 @@ import { DashboardStateKPI } from "@/components/dashboard/DashboardStateKPI";
 import { WidgetErrorBoundary } from "@/components/dashboard/WidgetErrorBoundary";
 import { MobileQuickActions } from "@/components/dashboard/MobileQuickActions";
 import { AiDraftsWidget } from "@/components/dashboard/AiDraftsWidget";
+import { ServicesBelowRatioCard } from "@/components/dashboard/ServicesBelowRatioCard";
 
 // Role-specific widgets
 import { CentrePerformanceOverview } from "@/components/dashboard/CentrePerformanceOverview";
@@ -321,6 +322,11 @@ function CommandCentreDashboard({
         {/* AI Drafts Ready Widget */}
         <WidgetErrorBoundary widgetName="AI Drafts">
           <AiDraftsWidget />
+        </WidgetErrorBoundary>
+
+        {/* Services below ratio — live alert from hourly snapshots */}
+        <WidgetErrorBoundary widgetName="Below Ratio">
+          <ServicesBelowRatioCard />
         </WidgetErrorBoundary>
       </div>
 
