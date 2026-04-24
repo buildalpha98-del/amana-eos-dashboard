@@ -9,6 +9,8 @@ export { SwipeActions } from "./SwipeActions";
 
 export { DataTable, type ColumnDef, type DataTableProps } from "./DataTable";
 
+export { CommandMenu, type CommandMenuProps } from "./CommandMenu";
+
 export { Lightbox } from "./Lightbox";
 
 export { MessageAttachmentGrid } from "./MessageAttachmentGrid";
