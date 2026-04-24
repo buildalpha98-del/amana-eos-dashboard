@@ -12,8 +12,8 @@
  * - Prints the one-click login URL
  */
 
-import { PrismaClient } from "@prisma/client";
-import crypto from "crypto";
+import { Prisma, PrismaClient } from "@prisma/client";
+import * as crypto from "crypto";
 
 const prisma = new PrismaClient();
 
@@ -70,7 +70,7 @@ async function main() {
             postcode: "3068",
           },
         },
-        secondaryParent: null,
+        secondaryParent: Prisma.DbNull,
         children: [
           {
             firstName: CHILD_FIRST,
