@@ -43,7 +43,7 @@ Three threads:
 
 | # | Commit subject |
 |---|---|
-| 1 | `refactor(ui): promote parent/ui primitives to ui/v2 with barrel re-exports + parent/ui re-exports for BC` |
+| 1 | `refactor(ui): promote parent/ui primitives to ui/v2 + jscodeshift codemod for KidPill → PersonPill renames (keeps parent/ui re-exports for BC; dry-run + apply in one commit)` |
 | 2 | `feat(ui): DataTable primitive (dense, sticky header/col, virtualized, keyboard nav, selection, per-column sort)` |
 | 3 | `feat(ui): CommandMenu primitive (⌘K palette — nav to any of 71 pages + 30 common actions)` |
 | 4 | `feat(ui): FilterBar primitive (chip filter row for list pages)` |
@@ -56,7 +56,8 @@ Schema, routes, and UI for the five NQS features. Bundled because four plug into
 
 | # | Commit subject |
 |---|---|
-| 7 | `feat(db): EducatorReflection + LearningObservation + MedicationAdministration + RiskAssessment + RatioSnapshot models + migration` |
+| 7a | `feat(db): EducatorReflection + LearningObservation + MedicationAdministration + RiskAssessment + RatioSnapshot + ShiftHandover models + migration` |
+| 7b | `feat(db): Service.ratioSettings JSON column + AiTaskDraft.source String column + ParentPostType "newsletter" enum addition + MedicationAdministration.clientMutationId @unique + migration` |
 | 8 | `feat(services): tab shell v2 — grouped pill-chips, denser sub-pills, Today as default landing` |
 | 9 | `feat(api): /api/services/[id]/reflections (GET list, POST create, PATCH/DELETE) + tests` |
 | 10 | `feat(services): Reflections tab UI (timeline view, create modal, QA multi-select, mood tag)` |
@@ -109,7 +110,11 @@ Schema, routes, and UI for the five NQS features. Bundled because four plug into
 | 37 | `feat(ai): Incident report template (reads short facts + child + time/location) + AiButton on incident create` |
 | 38 | `feat(db): ParentPostType adds "newsletter"; feat(ai): weekly-newsletter template (reads program activities + menu + events + optional top observations) + "Generate Newsletter" button on Services Comms tab + publish flow (creates community ParentPost, fires parent push)` |
 | 39 | `feat(services): Shift handover notes — Services Today tab widget, free-text + mention next coordinator, auto-clears after 48h (no schema — uses ephemeral Json field on Service.dailyOps blob or new lightweight ShiftHandover model)` |
-| 40 | `feat(dashboard): bulk passive polish — remaining ~55 pages get token swap + primitive substitution (Button/Dialog/StatusBadge/SectionLabel) in one large PR` |
+| 40a | `feat(dashboard): passive polish pass — Home + EOS sections (my-portal, getting-started, vision)` |
+| 40b | `feat(dashboard): passive polish pass — Operations section (financials, billing, compliance, policies, incidents, holiday-quest, knowledge, reports, performance)` |
+| 40c | `feat(dashboard): passive polish pass — Growth section (crm, marketing, communication, messaging, children, conversions, projects)` |
+| 40d | `feat(dashboard): passive polish pass — People section (recruitment, onboarding, contracts, leave, directory)` |
+| 40e | `feat(dashboard): passive polish pass — Admin section (leadership, data-room, scenarios, assistant, help, guides, automations, audit-log, admin/*, tools/*)` |
 
 ### Phase 7: Offline + cleanup (~4 commits)
 
@@ -118,7 +123,7 @@ Schema, routes, and UI for the five NQS features. Bundled because four plug into
 | 41 | `feat(offline): extend service worker with IndexedDB mutation queue + useOfflineMutation hook + "Pending sync" top-bar chip + retry UI` |
 | 42 | `feat(offline): wire useOfflineMutation into Roll Call sign-in/out + Observation create + Medication administration + Reflection create (append-only semantics)` |
 | 43 | `test(e2e): Playwright specs for 5 NQS features + AI draft flows + offline round-trip for the 4 queued actions` |
-| 44 | `feat(dashboard): remove NEXT_PUBLIC_STAFF_DASHBOARD_V2 flag + delete *V1 files (once all 16 rebuilds are verified in prod)` |
+| 44 | `feat(dashboard): remove NEXT_PUBLIC_STAFF_DASHBOARD_V2 flag + delete *V1 files (once verification bar met — see Rollout section)` |
 
 ~44 commits total. No changes to authentication/role system; all features use existing `withApiAuth`.
 
@@ -157,7 +162,7 @@ New primitives added in `src/components/ui/v2/`:
 | Primitive | Purpose |
 |---|---|
 | `DataTable<TRow>` | Virtualized (`@tanstack/react-virtual`), keyboard-nav (`j`/`k` row, `tab`/`shift+tab` col, `enter` open-row, `space` select, `shift+space` range-select), sticky header + sticky first column, per-column sort, row selection, empty/loading states. Props: `rows`, `columns: ColumnDef<TRow>[]`, `getRowId`, `onRowAction`, `selectable`, `onSelectionChange`. |
-| `CommandMenu` | ⌘K palette. Fuzzy-matched nav to any of 71 pages (driven by `nav-config.ts`) + 30 common actions (e.g. "Log observation", "Sign in child", "Create rock", "New reflection", "Generate newsletter"). Action handlers plug in via a `useCommandAction({ id, label, icon, shortcut, handler })` hook that any page can call. |
+| `CommandMenu` | ⌘K palette. Fuzzy-matched nav to any of 71 pages (driven by `nav-config.ts`). Actions live in a **static registry at `src/lib/command-actions.ts`** — a module-level list, not mount-time registration. Each action declares `{ id, label, icon, shortcut, predicate: (ctx) => boolean, handler: (ctx, router) => void }`. `predicate` gates by role (`ctx.role`) and optional route context (`ctx.pathname`). This avoids both dead-code risk (actions declared by unmounted pages disappearing) and ghost-action risk (unmounted-page actions running). Dispatch is always via `router.push` or a fire-and-forget `fetch`; actions never take mutable references to page-scoped state. |
 | `FilterBar` | Chip-row filters with 4 filter types: single-select enum, multi-select enum, date range, search. Serializes to query string for URL-backed filter state. |
 
 ### Flag + v1/v2 switcher
@@ -241,24 +246,28 @@ Routes (parent):
 
 UI (staff): new **Observations** tab on `/services/[id]` under the Program group (sibling to Activities + Menu). `FilterBar`: child / MTOP outcome / author / date range. Create modal: child picker, rich-text narrative, MTOP multi-select chips (5 outcomes), interest tags (free-form), photo upload (reuse `/api/upload/image`), "visible to parent" toggle.
 
-UI (parent): new **Learning Journal** tab on `/parent/children/[id]` (v2). Chronological stream of observations for that child. Tap for full detail.
+UI (parent): the current `/parent/children/[id]` v2 is a single-scroll page (hero → 14-day strip → medical → menu link → sticky action bar) with no tab chrome. Two options, pick one in the plan:
+- **(A, recommended)** Add a new **Learning Journal section** inline into the scroll, below the 14-day strip and above the medical card. Chronological stream of observations for that child; shows most recent 5 + "View all" link to a new `/parent/children/[id]/journal` page that lists the full history.
+- **(B)** Retrofit the page with tab chrome (Attendance / Medical / Journal / Gallery) — bigger UX change; higher risk of disrupting parent muscle memory; not recommended for v1.
+Commit 12 ships option (A) only.
 
 #### Medication Administration Record (QA2.1)
 
 ```prisma
 model MedicationAdministration {
-  id                String   @id @default(cuid())
-  childId           String
-  serviceId         String
-  medicationName    String
-  dose              String
-  route             String   // "oral" | "topical" | "inhaled" | "injection" | "other"
-  administeredAt    DateTime
-  administeredById  String   // User
-  witnessedById     String?  // User — required when medication route is "injection" or category is "schedule4plus"
-  parentConsentUrl  String?
-  notes             String?  @db.Text
-  createdAt         DateTime @default(now())
+  id                 String   @id @default(cuid())
+  childId            String
+  serviceId          String
+  medicationName     String
+  dose               String
+  route              String   // "oral" | "topical" | "inhaled" | "injection" | "other"
+  administeredAt     DateTime
+  administeredById   String   // User
+  witnessedById      String?  // User — required when route is "injection"
+  parentConsentUrl   String?
+  notes              String?  @db.Text
+  clientMutationId   String   @unique  // client-generated UUID for offline-queue dedupe
+  createdAt          DateTime @default(now())
 
   child          Child @relation(fields: [childId], references: [id], onDelete: Cascade)
   service        Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
@@ -269,6 +278,8 @@ model MedicationAdministration {
   @@index([serviceId, administeredAt])
 }
 ```
+
+The `clientMutationId` unique index is the dedupe key for offline resync — the client generates a UUID when the user taps "Log dose," attaches it to the mutation payload, and the server `INSERT … ON CONFLICT (clientMutationId) DO NOTHING`. Two offline devices logging "the same" 2pm dose still each get their own UUID, so they appear as two doses (reality check for staff to reconcile); a single device's flaky retry produces exactly one row. Witness requirement is scoped to `route="injection"` for v1 — the earlier "schedule4plus" branch was dropped because the schema has no drug-category field. A future `MedicationAdministration.category` column can refine this.
 
 Routes:
 - `GET /api/services/[id]/medications?date=YYYY-MM-DD&childId=`
@@ -310,7 +321,7 @@ Routes:
 
 UI: new **Risk** tab on `/services/[id]` under Compliance group. List with `StatusBadge` (Draft / Pending / Approved). Create form: hazards table — add rows, each with 1–5 likelihood × 1–5 severity dropdowns (computed risk score: product, colour-coded) + controls free-text, attachments upload, activity type dropdown, date picker. Submitting notifies coordinators. Approval flow: one click by coordinator+.
 
-**Excursion booking gate**: when any booking with `type="excursion"` is created, API blocks unless a `RiskAssessment` exists for `(serviceId, date, activityType="excursion")` AND `approvedAt` is set. 400 response with clear message: "Approved risk assessment required before creating excursion bookings."
+**Excursion-event gate (not parent-booking gate)**: `BookingType` enum has no `excursion` value today — excursions are modelled as `ServiceEvent` with `eventType="excursion"` (see `src/lib/api/_lib/constants.ts` `EVENT_TYPES`). The gate fires on the staff-side **event creation path** (`POST /api/services/[id]/events` when `eventType="excursion"`), NOT on parent booking POSTs. Parent casual bookings continue to auto-confirm through `checkCasualBookingAllowed` unchanged. Staff creating an excursion event with a date on or after today gets a 400 unless a `RiskAssessment` exists for `(serviceId, date, activityType="excursion")` with `approvedAt` set. Error message: "Approved risk assessment required before creating an excursion event."
 
 #### Ratio tracking (QA2.2 + QA4.1)
 
@@ -334,7 +345,9 @@ model RatioSnapshot {
 }
 ```
 
-Plus a new JSON field on `Service.ratioSettings` holding per-session NQS minimums (federal defaults for OSHC: 1:15 for school-aged, adjustable if a service has different NQS registration).
+Plus a new JSON field `Service.ratioSettings` (migration in commit 7b) holding per-session NQS minimums. Federal OSHC default: `{ bsc: { ratio: "1:15" }, asc: { ratio: "1:15" }, vc: { ratio: "1:15" } }`. Each service can override through `/settings/services/[id]` if their NQS registration specifies different ratios.
+
+**Live-ratio data model (bounded, not perfect):** true "live signed-in-right-now" staff state doesn't exist in the current schema — `RosterShift` stores HH:mm scheduled times, and there's no `StaffSignIn` model. For v1, "live ratio" is **approximated as: (rostered-now staff count) × (currently-in-care children count)** — where rostered-now = `RosterShift` rows with `date=today && startTime ≤ now && endTime > now`, and currently-in-care = `AttendanceRecord` rows with `signInTime IS NOT NULL AND signOutTime IS NULL`. This is close-enough for Today-tab display and hourly snapshots; true precision (staff sign-in/out) is queued as a follow-on spec (`StaffAttendance` model) and explicitly out of scope here. The `RatioSnapshot.notes` field records whether a snapshot used the approximation or the future precise model, so historical data stays interpretable.
 
 Routes:
 - `GET /api/services/[id]/ratios?date=YYYY-MM-DD&sessionType=` — computes live ratio from `DailyAttendance` + `Roster` snapshot data; returns current ratio + today's historical snapshots
@@ -359,7 +372,17 @@ Pattern: AI drafts → staff reviews in `AiDraftReviewPanel` → edits → commi
 | Incident report | `incident-draft` | educator's short facts + child profile + time/location + incident type | Compliant incident report narrative |
 | Weekly newsletter | `weekly-newsletter` | past week's Activities (Program tab) + this week's + next week's Menu + scheduled events + top 3 observations (with `visibleToParent=true`) + service philosophy snippets | Full newsletter in markdown with sections: "This week we explored…" / "On the menu…" / "Coming up…" / "A reflection from the team…" |
 
-All six templates are additive — no changes to existing AI infra. New source values in the `AiTaskDraft.source` discriminated union: `"reflection" | "observation" | "risk-hazards" | "parent-reply" | "incident" | "weekly-newsletter"`.
+**Schema change required:** `AiTaskDraft` today has no `source` column — it uses nullable polymorphic FKs (`todoId`, `marketingTaskId`, `coworkTodoId`, `ticketId`, `issueId`). The six new surfaces don't fit the existing FK shape cleanly (a reflection-draft would need a `reflectionId` FK, but the reflection doesn't exist yet when the draft is created). Commit 7b adds a `source String` column to `AiTaskDraft` and a generic `targetId String?` column to carry the entity ID once created. The existing FK columns stay as-is for backward compat with the 5 current surfaces.
+
+New `source` values: `"reflection" | "observation" | "risk-hazards" | "parent-reply" | "incident" | "weekly-newsletter"`.
+
+**Reliability + UX guarantees (all six reuse `useAiGenerate`):**
+- 30s per-call timeout (existing default)
+- 2 retries on network failure (existing default)
+- Malformed markdown surfaces in the review panel as raw text with a "Regenerate" button — never silently drops
+- Closing the modal mid-stream discards the pending draft (no persisted half-generations); staff re-opens and re-triggers
+- Rate-limited at 10 generations/min/user/template via `withApiAuth`'s per-endpoint limiter (each template = its own endpoint path)
+- Newsletter generation hits the most tables (program + menu + events + observations) — tolerated, but wrapped in a single Prisma `$transaction` for consistent snapshots
 
 ### Weekly newsletter publish flow
 
@@ -415,7 +438,7 @@ model ShiftHandover {
 Routes:
 - `GET /api/services/[id]/handovers` — returns non-expired handovers
 - `POST /api/services/[id]/handovers` — Zod: `{ content, mentionedUserIds? }`; sets `expiresAt = now + 48h`
-- Cron `GET /api/cron/handover-cleanup` daily — deletes expired
+- `GET /api/cron/handover-cleanup` daily — deletes expired. Uses `verifyCronSecret` + `acquireCronLock` per repo convention. Idempotent — missed days self-heal on next run (expired rows just pile up until the next successful run, then get bulk-deleted).
 
 UI: widget on Services Today tab showing latest 3 non-expired handovers + "Leave a handover" button. Creating a handover with `mentionedUserIds` fires an in-app notification to the mentioned staff.
 
@@ -425,8 +448,19 @@ Same flag pattern as parent portal. `NEXT_PUBLIC_STAFF_DASHBOARD_V2` + `?v2=1/0`
 
 - **Dev**: flag on.
 - **Staging**: flag on.
-- **Prod**: flag off until each phase lands + is verified via `?v2=1` override in a production-built preview, then flip for everyone.
-- **Cleanup (last commit)**: delete `*V1.tsx` files, remove flag reads, remove env var. Only done once phases 1–6 have been verified live in prod.
+- **Prod rollout per phase**:
+  1. Phase merges to main → Vercel deploys to prod → flag stays off.
+  2. Jayden + 1 coordinator verify the new pages via `?v2=1` override for 48h on a real prod build.
+  3. Flag flipped on for everyone.
+  4. 7 days of prod with flag on; no critical bug filed against any v2 page in that window.
+  5. Phase is "verified."
+- **Verification bar for commit 44 (flag removal + V1 deletion)**:
+  - **All 16 deep-rebuild pages** have passed step 5 above.
+  - **No open critical bug** on any v2 page.
+  - **Parent portal E2E suite** still green against v2-as-default.
+  - Sign-off: Jayden, in writing (PR description).
+  - If any condition fails, commit 44 waits.
+- **Optional soft rollout** (not required): hold the staff-dashboard flag ON for 20% of coordinators (via role + seeded list) for 48h before full flip. Useful if a phase touches Scorecard or Roll Call — heavier daily workflows. Out of scope for v1 unless a phase warrants.
 
 Phases 1–7 land in order but don't block each other strictly. NQS features (phase 2) can ship before the EOS rebuilds (phase 3) if we prioritize the OSHC-completeness story. Recommended order as listed.
 
@@ -471,7 +505,7 @@ Phases 1–7 land in order but don't block each other strictly. NQS features (ph
 7. Weekly newsletter published by ≥1 service/week average across all services after 1 month.
 8. 2287 existing tests still pass + ≥200 new unit/integration + 7 new E2E specs pass on CI.
 9. No parent portal regression (their design system changes only in promotion, no behaviour change).
-10. Staff report v2 "feels faster" — measurable via LCP + time-to-first-interaction on Dashboard and Scorecard (target LCP ≤2.5s on mid-tier laptop, cell-edit nav <50ms).
+10. Staff report v2 "feels faster" — measured via **Vercel Speed Insights** (already enabled in the project) LCP median ≤2.5s on `/dashboard` + `/scorecard` over a 7-day window post-launch, and a manual timing harness asserting Scorecard cell-edit tab-nav <50ms P95 (Chrome DevTools Performance profile on a mid-tier laptop).
 
 ## Future follow-ons (next brainstorms, not this spec)
 
