@@ -2,6 +2,7 @@
 
 import { ServiceTodayPanel } from "./ServiceTodayPanel";
 import { RatioWidget } from "./RatioWidget";
+import { ShiftHandoverWidget } from "./ShiftHandoverWidget";
 
 interface ServiceTodayTabProps {
   serviceId: string;
@@ -26,6 +27,7 @@ export function ServiceTodayTab({ serviceId }: ServiceTodayTabProps) {
         </h3>
         <RatioWidget serviceId={serviceId} compact />
       </div>
+      <ShiftHandoverWidget serviceId={serviceId} />
       <ServiceTodayPanel serviceId={serviceId} />
     </div>
   );
