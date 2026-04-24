@@ -285,6 +285,62 @@ enum MarketingTaskPriority {
 }
 
 // ============================================================
+// Marketing Cockpit (Sprint 2) — Enums
+// ============================================================
+
+enum MarketingPostFormat {
+  feed
+  carousel
+  story
+  reel
+}
+
+enum VendorBriefType {
+  signage
+  uniform
+  print_collateral
+  merchandise
+  event_supplies
+  other
+}
+
+enum VendorBriefStatus {
+  draft
+  brief_sent
+  awaiting_ack
+  awaiting_quote
+  quote_received
+  approved
+  ordered
+  delivered
+  installed
+  cancelled
+}
+
+enum WeeklyReportStatus {
+  draft
+  reviewed
+  sent
+}
+
+enum ContentTeamRole {
+  content_creator
+  video_editor
+  designer
+  copywriter
+  community_manager
+}
+
+enum ContentTeamStatus {
+  prospect
+  interview
+  hired
+  onboarding
+  active
+  departed
+}
+
+// ============================================================
 // Employment Hero Replacement — HR Enums
 // ============================================================
 
@@ -611,6 +667,20 @@ model User {
   proposedShiftSwaps  ShiftSwapRequest[] @relation("ProposedShiftSwaps")
   targetShiftSwaps    ShiftSwapRequest[] @relation("TargetShiftSwaps")
   approvedShiftSwaps  ShiftSwapRequest[] @relation("ApprovedShiftSwaps")
+
+  // ── Marketing Cockpit (Sprint 2) ─────────────────
+  contentTeamRole   ContentTeamRole?
+  contentTeamStatus ContentTeamStatus?
+
+  centreAvatarsUpdated           CentreAvatar[]            @relation("CentreAvatarUpdater")
+  centreAvatarsReviewed          CentreAvatar[]            @relation("CentreAvatarReviewer")
+  vendorBriefsEscalated          VendorBrief[]             @relation("VendorBriefEscalatedTo")
+  vendorBriefsOwned              VendorBrief[]             @relation("VendorBriefOwner")
+  whatsappPostsAsCoordinator     WhatsAppCoordinatorPost[] @relation("WhatsAppCoordinator")
+  whatsappPostsRecorded          WhatsAppCoordinatorPost[] @relation("WhatsAppRecorder")
+  weeklyMarketingReportsDrafted  WeeklyMarketingReport[]   @relation("WeeklyReportDrafter")
+  weeklyMarketingReportsReviewed WeeklyMarketingReport[]   @relation("WeeklyReportReviewer")
+  weeklyMarketingReportsSent     WeeklyMarketingReport[]   @relation("WeeklyReportSender")
 
   @@index([serviceId])
 }
@@ -1005,6 +1075,7 @@ model MarketingPost {
   canvaDesignId      String? // Canva design ID (e.g., "DAGoPem3X54")
   canvaDesignUrl     String? // Direct edit URL in Canva
   canvaExportUrl     String? // Exported image URL for publishing
+  format             MarketingPostFormat?
   pillar             String?
   assigneeId         String?
   assignee           User?                  @relation("MarketingPostAssignee", fields: [assigneeId], references: [id])
@@ -1129,6 +1200,107 @@ model MarketingHashtagSet {
   @@index([category])
 }
 
+// ============================================================
+// Marketing Cockpit (Sprint 2) — Models
+// ============================================================
+
+model CentreAvatar {
+  id               String    @id @default(cuid())
+  serviceId        String    @unique
+  service          Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  content          Json?
+  lastUpdatedAt    DateTime  @default(now())
+  lastUpdatedById  String?
+  lastUpdatedBy    User?     @relation("CentreAvatarUpdater", fields: [lastUpdatedById], references: [id], onDelete: SetNull)
+  lastReviewedAt   DateTime?
+  lastReviewedById String?
+  lastReviewedBy   User?     @relation("CentreAvatarReviewer", fields: [lastReviewedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([lastUpdatedAt])
+}
+
+model VendorBrief {
+  id         String            @id @default(cuid())
+  title      String
+  type       VendorBriefType
+  status     VendorBriefStatus @default(draft)
+  serviceId  String?
+  service    Service?          @relation("ServiceVendorBriefs", fields: [serviceId], references: [id], onDelete: SetNull)
+  ownerId    String?
+  owner      User?             @relation("VendorBriefOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  vendorName String?
+  notes      String?           @db.Text
+
+  targetTermStart DateTime?
+  briefSentAt     DateTime?
+  acknowledgedAt  DateTime?
+  quoteReceivedAt DateTime?
+  approvedAt      DateTime?
+  orderedAt       DateTime?
+  deliveredAt     DateTime?
+
+  escalatedAt       DateTime?
+  escalatedToUserId String?
+  escalatedTo       User?     @relation("VendorBriefEscalatedTo", fields: [escalatedToUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([serviceId])
+  @@index([targetTermStart])
+  @@index([briefSentAt])
+  @@index([escalatedAt])
+}
+
+model WhatsAppCoordinatorPost {
+  id            String    @id @default(cuid())
+  serviceId     String
+  service       Service   @relation("ServiceWhatsAppPosts", fields: [serviceId], references: [id], onDelete: Cascade)
+  postedDate    DateTime  @db.Date
+  posted        Boolean   @default(false)
+  coordinatorId String?
+  coordinator   User?     @relation("WhatsAppCoordinator", fields: [coordinatorId], references: [id], onDelete: SetNull)
+  recordedById  String?
+  recordedBy    User?     @relation("WhatsAppRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([serviceId, postedDate])
+  @@index([postedDate])
+}
+
+model WeeklyMarketingReport {
+  id           String             @id @default(cuid())
+  weekStart    DateTime           @unique @db.Date
+  weekEnd      DateTime           @db.Date
+  status       WeeklyReportStatus @default(draft)
+  kpiSnapshot  Json
+  draftBody    String?            @db.Text
+  wins         String?            @db.Text
+  blockers     String?            @db.Text
+  nextWeekTop3 String?            @db.Text
+
+  draftedAt    DateTime?
+  draftedById  String?
+  draftedBy    User?     @relation("WeeklyReportDrafter", fields: [draftedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  reviewedById String?
+  reviewedBy   User?     @relation("WeeklyReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  sentAt       DateTime?
+  sentById     String?
+  sentBy       User?     @relation("WeeklyReportSender", fields: [sentById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([weekStart])
+}
+
 model SchoolComm {
   id           String    @id @default(cuid())
   serviceId    String
@@ -1143,12 +1315,15 @@ model SchoolComm {
   sentById     String?
   sentBy       User?     @relation("SchoolCommSender", fields: [sentById], references: [id], onDelete: SetNull)
   termWeek     Int? // Which term week this relates to (1-10)
+  year         Int? // School year (e.g., 2026)
+  term         Int? // Term number (1-4)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   @@index([serviceId])
   @@index([status])
   @@index([type])
+  @@index([year, term])
 }
 
 model PhotoComplianceLog {
@@ -1517,6 +1692,11 @@ model Service {
 
   // ── Sibling Enrolment Applications ────────────────
   enrolmentApplications EnrolmentApplication[] @relation("ServiceEnrolmentApplications")
+
+  // ── Marketing Cockpit (Sprint 2) ──────────────
+  centreAvatar             CentreAvatar?
+  vendorBriefs             VendorBrief[]             @relation("ServiceVendorBriefs")
+  whatsappCoordinatorPosts WhatsAppCoordinatorPost[] @relation("ServiceWhatsAppPosts")
 
   @@index([status])
   @@index([managerId])

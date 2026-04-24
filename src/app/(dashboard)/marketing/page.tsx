@@ -2,7 +2,6 @@
 
 import { useState, useMemo, Suspense } from "react";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
 import {
   BarChart3,
   FolderOpen,
@@ -14,6 +13,7 @@ import {
   Wrench,
   Workflow,
 } from "lucide-react";
+import { MarketingCockpit } from "@/components/marketing/MarketingCockpit";
 import { MarketingTabs } from "@/components/marketing/MarketingTabs";
 import { CampaignsTab } from "@/components/marketing/CampaignsTab";
 import { CampaignDetailPanel } from "@/components/marketing/CampaignDetailPanel";
@@ -111,22 +111,8 @@ export default function MarketingPage() {
 
       {/* Tab Content */}
       <div className="mt-6">
-        {/* ---- Overview: placeholder until Sprint 2 cockpit ---- */}
-        {activeTab === "overview" && (
-          <div className="rounded-xl border border-border bg-card p-8 text-center">
-            <BarChart3 className="mx-auto h-10 w-10 text-muted" />
-            <h3 className="mt-4 text-lg font-semibold text-foreground">
-              Your cockpit is coming in the next release
-            </h3>
-            <p className="mt-2 text-sm text-muted">
-              See your{" "}
-              <Link href="/scorecard" className="text-brand hover:underline">
-                scorecard
-              </Link>{" "}
-              for now.
-            </p>
-          </div>
-        )}
+        {/* ---- Overview: Marketing Cockpit (Sprint 2) ---- */}
+        {activeTab === "overview" && <MarketingCockpit />}
 
         {/* ---- Tasks (hidden for marketing role) ---- */}
         {activeTab === "tasks" && !isMarketingRole && (
