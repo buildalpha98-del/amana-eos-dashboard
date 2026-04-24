@@ -123,6 +123,7 @@ export const navItems: NavItem[] = [
   { href: "/children", label: "Children", icon: Users, section: "Growth", tooltip: "Browse all enrolled children across services", roles: ALL_NON_MARKETING },
   { href: "/crm", label: "CRM", icon: Target, section: "Growth", tooltip: "Sales pipeline & lead management", roles: ALL_NON_MARKETING },
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Growth" },
+  { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Growth", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" },
   { href: "/conversions", label: "Conversions", icon: Repeat, section: "Growth", tooltip: "Track casual-to-regular booking conversions", roles: ALL_NON_MARKETING },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },

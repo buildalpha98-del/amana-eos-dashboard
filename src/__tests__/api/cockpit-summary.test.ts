@@ -32,6 +32,7 @@ function setupDefaults() {
   prismaMock.whatsAppCoordinatorPost.count.mockResolvedValue(0);
   prismaMock.whatsAppCoordinatorPost.findMany.mockResolvedValue([]);
   prismaMock.centreAvatar.findMany.mockResolvedValue([]);
+  prismaMock.centreAvatarInsight.count.mockResolvedValue(0);
   prismaMock.vendorBrief.count.mockResolvedValue(0);
   prismaMock.vendorBrief.findMany.mockResolvedValue([]);
   prismaMock.weeklyMarketingReport.findFirst.mockResolvedValue(null);

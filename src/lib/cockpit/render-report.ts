@@ -73,6 +73,9 @@ export function renderWeeklyReportMarkdown(snapshot: CockpitSummary): string {
       rows.push(`- ${s.serviceName} — ${s.daysStale}d stale`);
     }
   }
+  if (t.centreIntel.pendingInsightsCount > 0) {
+    rows.push(`Pending insights to review: ${t.centreIntel.pendingInsightsCount}`);
+  }
   rows.push("");
 
   rows.push(`## AI Drafts`);

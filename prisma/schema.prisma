@@ -539,13 +539,13 @@ model User {
   createdServiceEvents          ServiceEvent[]                 @relation("ServiceEventCreator")
 
   // ── NQS back-refs ─────────────────────────────────
-  staffReflections           StaffReflection[]          @relation("StaffReflections")
-  learningObservations       LearningObservation[]      @relation("LearningObservations")
-  medicationAdministrations  MedicationAdministration[] @relation("MedicationAdministered")
-  medicationWitnesses        MedicationAdministration[] @relation("MedicationWitnessed")
-  staffRiskAssessments       RiskAssessment[]           @relation("RiskAssessments")
-  riskAssessmentApprovals    RiskAssessment[]           @relation("RiskAssessmentApprovals")
-  shiftHandovers             ShiftHandover[]            @relation("ShiftHandovers")
+  staffReflections          StaffReflection[]          @relation("StaffReflections")
+  learningObservations      LearningObservation[]      @relation("LearningObservations")
+  medicationAdministrations MedicationAdministration[] @relation("MedicationAdministered")
+  medicationWitnesses       MedicationAdministration[] @relation("MedicationWitnessed")
+  staffRiskAssessments      RiskAssessment[]           @relation("RiskAssessments")
+  riskAssessmentApprovals   RiskAssessment[]           @relation("RiskAssessmentApprovals")
+  shiftHandovers            ShiftHandover[]            @relation("ShiftHandovers")
 
   // ── Staff Profile Expansion ──────────────────────────────────
   phone             String?
@@ -685,6 +685,7 @@ model User {
 
   centreAvatarsUpdated           CentreAvatar[]            @relation("CentreAvatarUpdater")
   centreAvatarsReviewed          CentreAvatar[]            @relation("CentreAvatarReviewer")
+  centreAvatarsOpened            CentreAvatar[]            @relation("CentreAvatarOpener")
   vendorBriefsEscalated          VendorBrief[]             @relation("VendorBriefEscalatedTo")
   vendorBriefsOwned              VendorBrief[]             @relation("VendorBriefOwner")
   whatsappPostsAsCoordinator     WhatsAppCoordinatorPost[] @relation("WhatsAppCoordinator")
@@ -692,6 +693,14 @@ model User {
   weeklyMarketingReportsDrafted  WeeklyMarketingReport[]   @relation("WeeklyReportDrafter")
   weeklyMarketingReportsReviewed WeeklyMarketingReport[]   @relation("WeeklyReportReviewer")
   weeklyMarketingReportsSent     WeeklyMarketingReport[]   @relation("WeeklyReportSender")
+
+  // ── Centre Avatars (Sprint 3) ─────────────────────
+  centreAvatarInsightsCreated          CentreAvatarInsight[]            @relation("CentreAvatarInsightCreatedBy")
+  centreAvatarCampaignLogsCreated      CentreAvatarCampaignLog[]        @relation("CentreAvatarCampaignLogCreatedBy")
+  centreAvatarCheckInsAsCoordinator    CentreAvatarCoordinatorCheckIn[] @relation("CentreAvatarCheckInCoordinator")
+  centreAvatarCheckInsCreated          CentreAvatarCoordinatorCheckIn[] @relation("CentreAvatarCheckInCreatedBy")
+  centreAvatarSchoolLiaisonLogsCreated CentreAvatarSchoolLiaisonLog[]   @relation("CentreAvatarSchoolLiaisonCreatedBy")
+  centreAvatarUpdateLogs               CentreAvatarUpdateLog[]          @relation("CentreAvatarUpdateLogUpdatedBy")
 
   @@index([serviceId])
 }
@@ -1069,6 +1078,7 @@ model MarketingCampaign {
   tasks                 MarketingTask[]
   activationAssignments CampaignActivationAssignment[]
   termCalendarEntries   TermCalendarEntry[]            @relation("TermCalendarCampaign")
+  centreAvatarLogs      CentreAvatarCampaignLog[]      @relation("MarketingCampaignCentreAvatarLog")
 
   @@index([status])
   @@index([startDate])
@@ -1216,20 +1226,177 @@ model MarketingHashtagSet {
 // ============================================================
 
 model CentreAvatar {
-  id               String    @id @default(cuid())
-  serviceId        String    @unique
-  service          Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  content          Json?
-  lastUpdatedAt    DateTime  @default(now())
-  lastUpdatedById  String?
-  lastUpdatedBy    User?     @relation("CentreAvatarUpdater", fields: [lastUpdatedById], references: [id], onDelete: SetNull)
+  id        String  @id @default(cuid())
+  serviceId String  @unique
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  version Int @default(1)
+
+  snapshot     Json?
+  parentAvatar Json?
+  programmeMix Json?
+  assetLibrary Json?
+
+  lastUpdatedAt   DateTime @default(now())
+  lastUpdatedById String?
+  lastUpdatedBy   User?    @relation("CentreAvatarUpdater", fields: [lastUpdatedById], references: [id], onDelete: SetNull)
+
   lastReviewedAt   DateTime?
   lastReviewedById String?
   lastReviewedBy   User?     @relation("CentreAvatarReviewer", fields: [lastReviewedById], references: [id], onDelete: SetNull)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+
+  lastFullReviewAt DateTime?
+
+  lastOpenedAt   DateTime?
+  lastOpenedById String?
+  lastOpenedBy   User?     @relation("CentreAvatarOpener", fields: [lastOpenedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  insights            CentreAvatarInsight[]
+  campaignLog         CentreAvatarCampaignLog[]
+  coordinatorCheckIns CentreAvatarCoordinatorCheckIn[]
+  schoolLiaisonLog    CentreAvatarSchoolLiaisonLog[]
+  updateLog           CentreAvatarUpdateLog[]
 
   @@index([lastUpdatedAt])
+}
+
+enum CentreAvatarInsightSource {
+  coordinator_checkin
+  parent_conversation
+  parent_feedback
+  complaint
+  compliment
+  social_comment_or_dm
+  whatsapp_message
+  enrolment_conversation
+  exit_conversation
+  other
+}
+
+enum CentreAvatarInsightStatus {
+  pending_review
+  approved
+  dismissed
+}
+
+enum CentreAvatarInsightHarvestSource {
+  nps_survey_response
+  quick_feedback
+  parent_feedback
+  manual
+}
+
+model CentreAvatarInsight {
+  id             String       @id @default(cuid())
+  centreAvatarId String
+  centreAvatar   CentreAvatar @relation(fields: [centreAvatarId], references: [id], onDelete: Cascade)
+
+  occurredAt     DateTime
+  source         CentreAvatarInsightSource
+  insight        String                    @db.Text
+  impactOnAvatar String?                   @db.Text
+
+  status         CentreAvatarInsightStatus         @default(approved)
+  harvestedFrom  CentreAvatarInsightHarvestSource?
+  sourceRecordId String?
+
+  createdById String?
+  createdBy   User?   @relation("CentreAvatarInsightCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([harvestedFrom, sourceRecordId], name: "harvest_dedup")
+  @@index([centreAvatarId, occurredAt])
+  @@index([status])
+}
+
+model CentreAvatarCampaignLog {
+  id             String       @id @default(cuid())
+  centreAvatarId String
+  centreAvatar   CentreAvatar @relation(fields: [centreAvatarId], references: [id], onDelete: Cascade)
+
+  occurredAt   DateTime
+  campaignName String
+  contentUsed  String?  @db.Text
+  result       String?  @db.Text
+  learnings    String?  @db.Text
+
+  marketingCampaignId String?
+  marketingCampaign   MarketingCampaign? @relation("MarketingCampaignCentreAvatarLog", fields: [marketingCampaignId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("CentreAvatarCampaignLogCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([centreAvatarId, occurredAt])
+  @@index([marketingCampaignId])
+}
+
+model CentreAvatarCoordinatorCheckIn {
+  id             String       @id @default(cuid())
+  centreAvatarId String
+  centreAvatar   CentreAvatar @relation(fields: [centreAvatarId], references: [id], onDelete: Cascade)
+
+  occurredAt      DateTime
+  topicsDiscussed String    @db.Text
+  actionItems     String?   @db.Text
+  followUpDate    DateTime?
+
+  coordinatorUserId String?
+  coordinator       User?   @relation("CentreAvatarCheckInCoordinator", fields: [coordinatorUserId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("CentreAvatarCheckInCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([centreAvatarId, occurredAt])
+  @@index([followUpDate])
+}
+
+model CentreAvatarSchoolLiaisonLog {
+  id             String       @id @default(cuid())
+  centreAvatarId String
+  centreAvatar   CentreAvatar @relation(fields: [centreAvatarId], references: [id], onDelete: Cascade)
+
+  occurredAt  DateTime
+  contactName String
+  purpose     String   @db.Text
+  outcome     String?  @db.Text
+  nextStep    String?  @db.Text
+
+  schoolCommId String?
+  schoolComm   SchoolComm? @relation("SchoolCommCentreAvatarLiaison", fields: [schoolCommId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("CentreAvatarSchoolLiaisonCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([centreAvatarId, occurredAt])
+}
+
+model CentreAvatarUpdateLog {
+  id             String       @id @default(cuid())
+  centreAvatarId String
+  centreAvatar   CentreAvatar @relation(fields: [centreAvatarId], references: [id], onDelete: Cascade)
+
+  occurredAt      DateTime @default(now())
+  sectionsChanged String[]
+  summary         String   @db.Text
+
+  updatedById String
+  updatedBy   User   @relation("CentreAvatarUpdateLogUpdatedBy", fields: [updatedById], references: [id], onDelete: Cascade)
+
+  @@index([centreAvatarId, occurredAt])
 }
 
 model VendorBrief {
@@ -1267,18 +1434,18 @@ model VendorBrief {
 }
 
 model WhatsAppCoordinatorPost {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
   serviceId     String
-  service       Service   @relation("ServiceWhatsAppPosts", fields: [serviceId], references: [id], onDelete: Cascade)
-  postedDate    DateTime  @db.Date
-  posted        Boolean   @default(false)
+  service       Service  @relation("ServiceWhatsAppPosts", fields: [serviceId], references: [id], onDelete: Cascade)
+  postedDate    DateTime @db.Date
+  posted        Boolean  @default(false)
   coordinatorId String?
-  coordinator   User?     @relation("WhatsAppCoordinator", fields: [coordinatorId], references: [id], onDelete: SetNull)
+  coordinator   User?    @relation("WhatsAppCoordinator", fields: [coordinatorId], references: [id], onDelete: SetNull)
   recordedById  String?
-  recordedBy    User?     @relation("WhatsAppRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  recordedBy    User?    @relation("WhatsAppRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
   notes         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@unique([serviceId, postedDate])
   @@index([postedDate])
@@ -1330,6 +1497,8 @@ model SchoolComm {
   term         Int? // Term number (1-4)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  centreAvatarLiaisonLogs CentreAvatarSchoolLiaisonLog[] @relation("SchoolCommCentreAvatarLiaison")
 
   @@index([serviceId])
   @@index([status])
@@ -1740,16 +1909,16 @@ enum ServiceEventType {
 }
 
 model ServiceEvent {
-  id        String           @id @default(cuid())
-  serviceId String
-  service   Service          @relation("ServiceEvents", fields: [serviceId], references: [id], onDelete: Cascade)
-  eventType ServiceEventType
-  title     String
+  id               String           @id @default(cuid())
+  serviceId        String
+  service          Service          @relation("ServiceEvents", fields: [serviceId], references: [id], onDelete: Cascade)
+  eventType        ServiceEventType
+  title            String
   /// Event date (day-only — start/end time held separately).
-  date       DateTime @db.Date
-  startTime  DateTime?
-  endTime    DateTime?
-  notes      String?  @db.Text
+  date             DateTime         @db.Date
+  startTime        DateTime?
+  endTime          DateTime?
+  notes            String?          @db.Text
   /// Optional FK to a RiskAssessment that approves this event.
   /// Nullable until a RiskAssessment is linked; required before creating
   /// excursion events (enforced in the API route).
@@ -1758,9 +1927,9 @@ model ServiceEvent {
   /// formalised. Referential integrity is still enforced at the app layer.
   riskAssessmentId String?
   createdById      String
-  createdBy        User     @relation("ServiceEventCreator", fields: [createdById], references: [id])
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdBy        User             @relation("ServiceEventCreator", fields: [createdById], references: [id])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   @@index([serviceId, date])
   @@index([eventType, date])
@@ -1778,12 +1947,12 @@ model StaffReflection {
   id                   String   @id @default(cuid())
   serviceId            String
   authorId             String
-  type                 String   // "weekly" | "monthly" | "critical" | "team"
+  type                 String // "weekly" | "monthly" | "critical" | "team"
   title                String
   content              String   @db.Text
   qualityAreas         Int[]    @default([])
   linkedObservationIds String[] @default([])
-  mood                 String?  // "positive" | "neutral" | "concern"
+  mood                 String? // "positive" | "neutral" | "concern"
   /// UUID generated by the client for offline-queue dedupe.
   clientMutationId     String?  @unique
   createdAt            DateTime @default(now())
@@ -1798,20 +1967,20 @@ model StaffReflection {
 
 /// Individual-child learning observations — MTOP outcomes + interests + photos. NQS QA1.1/1.2.
 model LearningObservation {
-  id              String   @id @default(cuid())
-  childId         String
-  serviceId       String
-  authorId        String
-  title           String
-  narrative       String   @db.Text
-  mtopOutcomes    String[] @default([]) // Identity | Community | Wellbeing | Learners | Communicators
-  interests       String[] @default([])
-  mediaUrls       String[] @default([])
-  visibleToParent Boolean  @default(false)
+  id               String   @id @default(cuid())
+  childId          String
+  serviceId        String
+  authorId         String
+  title            String
+  narrative        String   @db.Text
+  mtopOutcomes     String[] @default([]) // Identity | Community | Wellbeing | Learners | Communicators
+  interests        String[] @default([])
+  mediaUrls        String[] @default([])
+  visibleToParent  Boolean  @default(false)
   /// UUID generated by the client for offline-queue dedupe.
   clientMutationId String?  @unique
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   child   Child   @relation("ChildObservations", fields: [childId], references: [id], onDelete: Cascade)
   service Service @relation("ServiceObservations", fields: [serviceId], references: [id], onDelete: Cascade)
@@ -1828,7 +1997,7 @@ model MedicationAdministration {
   serviceId        String
   medicationName   String
   dose             String
-  route            String   // oral | topical | inhaled | injection | other
+  route            String // oral | topical | inhaled | injection | other
   administeredAt   DateTime
   administeredById String
   /// Required when route = "injection" (server-side Zod).
@@ -1880,11 +2049,11 @@ model RatioSnapshot {
   id            String   @id @default(cuid())
   serviceId     String
   date          DateTime @db.Date
-  sessionType   String   // bsc | asc | vc
+  sessionType   String // bsc | asc | vc
   capturedAt    DateTime
   educatorCount Int
   childCount    Int
-  ratioText     String   // "1:10"
+  ratioText     String // "1:10"
   belowRatio    Boolean
   educatorIds   String[] @default([])
   notes         String?
@@ -4714,7 +4883,7 @@ model AiTaskDraft {
   /// Redundant with the *Id foreign keys above for the first five, but
   /// mandatory once we add polymorphic draft sources (reflections etc.) that
   /// don't have an *Id column here.
-  source   String @default("todo")
+  source   String  @default("todo")
   /// Optional free-form target ID for non-FK sources (e.g. a reflection ID).
   targetId String?
 

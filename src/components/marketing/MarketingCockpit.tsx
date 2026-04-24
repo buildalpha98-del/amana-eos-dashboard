@@ -457,6 +457,15 @@ function CentreIntelTile({ data }: { data: CockpitSummary["tiles"]["centreIntel"
           {data.stale.length} stale ({data.stale[0].serviceName} {data.stale[0].daysStale}d)
         </div>
       )}
+      {data.pendingInsightsCount > 0 && (
+        <Link
+          href="/centre-avatars"
+          className="mt-2 flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
+        >
+          <Sparkles className="h-3 w-3" />
+          {data.pendingInsightsCount} insight{data.pendingInsightsCount === 1 ? "" : "s"} to review \u2192
+        </Link>
+      )}
     </TileCard>
   );
 }

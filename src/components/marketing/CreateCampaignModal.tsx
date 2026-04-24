@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useCreateCampaign } from "@/hooks/useMarketing";
 import type { MarketingPlatform, MarketingCampaignType } from "@prisma/client";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
+import { CampaignGateModal, type CampaignGateBlocker } from "./CampaignGateModal";
+import { fetchApi } from "@/lib/fetch-api";
 
 const CAMPAIGN_TYPES: MarketingCampaignType[] = [
   "campaign",
@@ -34,6 +37,8 @@ export function CreateCampaignModal({
   onClose: () => void;
 }) {
   const createCampaign = useCreateCampaign();
+  const { data: session } = useSession();
+  const isOwner = session?.user?.role === "owner";
 
   const [name, setName] = useState("");
   const [type, setType] = useState<MarketingCampaignType>("campaign");
@@ -48,6 +53,9 @@ export function CreateCampaignModal({
   const [location, setLocation] = useState("");
   const [deliverables, setDeliverables] = useState("");
   const [error, setError] = useState("");
+  const [gateBlockers, setGateBlockers] = useState<CampaignGateBlocker[]>([]);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateChecking, setGateChecking] = useState(false);
 
   const resetForm = () => {
     setName("");
@@ -78,15 +86,7 @@ export function CreateCampaignModal({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!name.trim()) {
-      setError("Campaign name is required.");
-      return;
-    }
-
+  const submitCampaign = () => {
     createCampaign.mutate(
       {
         name: name.trim(),
@@ -111,6 +111,69 @@ export function CreateCampaignModal({
         },
       }
     );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!name.trim()) {
+      setError("Campaign name is required.");
+      return;
+    }
+
+    // Portfolio-wide campaigns (no service selection) bypass the Avatar gate.
+    if (serviceIds.length === 0) {
+      submitCampaign();
+      return;
+    }
+
+    setGateChecking(true);
+    try {
+      const statuses = await Promise.all(
+        serviceIds.map((id) =>
+          fetchApi<{
+            serviceId: string;
+            serviceName: string;
+            open: boolean;
+            lastOpenedAt: string | null;
+            lastOpenedBy: string | null;
+          }>(`/api/centre-avatars/${id}/gate-status`),
+        ),
+      );
+      const blockers: CampaignGateBlocker[] = statuses
+        .filter((s) => !s.open)
+        .map((s) => ({
+          serviceId: s.serviceId,
+          serviceName: s.serviceName,
+          lastOpenedAt: s.lastOpenedAt,
+          lastOpenedBy: s.lastOpenedBy,
+        }));
+      setGateChecking(false);
+      if (blockers.length === 0) {
+        submitCampaign();
+        return;
+      }
+      setGateBlockers(blockers);
+      setGateOpen(true);
+    } catch (err) {
+      setGateChecking(false);
+      setError(
+        err instanceof Error
+          ? `Gate check failed: ${err.message}`
+          : "Could not verify Centre Avatar freshness.",
+      );
+    }
+  };
+
+  const handleGateSkip = () => {
+    setGateOpen(false);
+    setGateBlockers([]);
+    submitCampaign();
+  };
+
+  const handleGateClose = () => {
+    setGateOpen(false);
   };
 
   if (!open) return null;
@@ -352,15 +415,27 @@ export function CreateCampaignModal({
               </button>
               <button
                 type="submit"
-                disabled={createCampaign.isPending}
+                disabled={createCampaign.isPending || gateChecking}
                 className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
               >
-                {createCampaign.isPending ? "Creating..." : "Create Campaign"}
+                {gateChecking
+                  ? "Checking Avatars..."
+                  : createCampaign.isPending
+                    ? "Creating..."
+                    : "Create Campaign"}
               </button>
             </div>
           </form>
         </div>
       </div>
+
+      <CampaignGateModal
+        open={gateOpen}
+        blockers={gateBlockers}
+        isOwner={isOwner}
+        onClose={handleGateClose}
+        onSkip={handleGateSkip}
+      />
     </>
   );
 }

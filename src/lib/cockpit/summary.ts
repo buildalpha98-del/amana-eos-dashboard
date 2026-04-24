@@ -79,6 +79,7 @@ export type CockpitSummary = {
     centreIntel: {
       fresh: RagMetric;
       stale: Array<{ serviceId: string; serviceName: string; lastUpdatedAt: string; daysStale: number }>;
+      pendingInsightsCount: number;
     };
   };
   aiDrafts: {
@@ -136,6 +137,7 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
     engagementPosts,
     announcementPosts,
     centreAvatars,
+    centreAvatarPendingInsights,
     aiDraftsPending,
     vendorBriefsInFlight,
     vendorBriefsAckSla,
@@ -247,6 +249,9 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
     prisma.centreAvatar.findMany({
       select: { serviceId: true, lastUpdatedAt: true, service: { select: { name: true } } },
     }),
+
+    // Pending harvested insights across all avatars
+    prisma.centreAvatarInsight.count({ where: { status: "pending_review" } }),
 
     // AI drafts pending review, routed to Akram via parent task
     marketingUserId
@@ -437,6 +442,7 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
   const centreIntel = {
     fresh: buildRagMetric({ current: fresh, target: 10, floor: 8 }),
     stale: staleList,
+    pendingInsightsCount: centreAvatarPendingInsights,
   };
 
   // ── AI drafts summary ────────────────────────────────────────
