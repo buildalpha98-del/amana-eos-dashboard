@@ -21,6 +21,7 @@ import {
 } from "@/hooks/useParentPortal";
 import { DailyInfoWidgets } from "@/components/parent/DailyInfoWidgets";
 import { TimelineWidget } from "@/components/parent/TimelineWidget";
+import { InstallBanner } from "@/components/parent/InstallBanner";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,9 @@ export default function ParentHomeV1() {
 
   return (
     <div className="space-y-6">
+      {/* PWA install banner — only renders when eligible */}
+      <InstallBanner />
+
       {/* Greeting */}
       <div>
         <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">

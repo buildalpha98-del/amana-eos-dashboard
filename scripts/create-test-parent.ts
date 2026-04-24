@@ -70,7 +70,7 @@ async function main() {
             postcode: "3068",
           },
         },
-        secondaryParent: Prisma.DbNull,
+        secondaryParent: Prisma.JsonNull,
         children: [
           {
             firstName: CHILD_FIRST,

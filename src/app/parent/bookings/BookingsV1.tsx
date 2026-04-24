@@ -13,20 +13,15 @@ import {
 import {
   useParentBookings,
   useParentChildren,
-  useMarkAbsent,
   useCancelBooking,
   type BookingRecord,
 } from "@/hooks/useParentPortal";
 import { BookingCalendar } from "@/components/parent/BookingCalendar";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { RequestBookingDialog } from "@/components/parent/RequestBookingDialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/Dialog";
+import { MarkAbsentSheet } from "@/components/parent/MarkAbsentSheet";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { isTodayOrFutureInServiceTz } from "@/lib/timezone";
 import { cn } from "@/lib/utils";
 
 type Tab = "upcoming" | "past";
@@ -48,7 +43,6 @@ const SESSION_STYLES: Record<string, { bg: string; text: string }> = {
 export default function BookingsV1() {
   const [activeTab, setActiveTab] = useState<Tab>("upcoming");
   const { data, isLoading } = useParentBookings(activeTab);
-  const markAbsent = useMarkAbsent();
   const cancelBooking = useCancelBooking();
 
   const [showRequestDialog, setShowRequestDialog] = useState(false);
@@ -56,14 +50,6 @@ export default function BookingsV1() {
   const [cancelTarget, setCancelTarget] = useState<BookingRecord | null>(null);
   const [view, setView] = useState<"list" | "calendar">("list");
   const { data: children } = useParentChildren();
-
-  const handleMarkAbsent = (isIllness: boolean) => {
-    if (!absentBooking) return;
-    markAbsent.mutate(
-      { bookingId: absentBooking.id, isIllness },
-      { onSuccess: () => setAbsentBooking(null) }
-    );
-  };
 
   const handleCancel = () => {
     if (!cancelTarget) return;
@@ -215,33 +201,11 @@ export default function BookingsV1() {
         onOpenChange={setShowRequestDialog}
       />
 
-      {/* Mark Absent Dialog — custom two-action dialog */}
-      {absentBooking && (
-        <Dialog open={!!absentBooking} onOpenChange={(open) => !open && setAbsentBooking(null)}>
-          <DialogContent>
-            <DialogTitle>Mark as Absent</DialogTitle>
-            <DialogDescription>
-              Is {absentBooking.child.firstName}&apos;s absence due to illness?
-            </DialogDescription>
-            <div className="flex flex-col gap-2 mt-4">
-              <button
-                onClick={() => handleMarkAbsent(true)}
-                disabled={markAbsent.isPending}
-                className="w-full py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50 min-h-[48px]"
-              >
-                Yes, Due to Illness
-              </button>
-              <button
-                onClick={() => handleMarkAbsent(false)}
-                disabled={markAbsent.isPending}
-                className="w-full py-3 px-4 bg-[#F2EDE8] hover:bg-[#e8e4df] text-[#1a1a2e] text-sm font-semibold rounded-xl transition-all disabled:opacity-50 min-h-[48px]"
-              >
-                No, Other Reason
-              </button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Mark Absent sheet */}
+      <MarkAbsentSheet
+        booking={absentBooking}
+        onClose={() => setAbsentBooking(null)}
+      />
 
       {/* Cancel Booking Confirmation */}
       {cancelTarget && (
@@ -278,8 +242,8 @@ function BookingCard({
 
   const canMarkAbsent =
     isUpcoming &&
-    (booking.status === "confirmed" || booking.status === "requested") &&
-    isWithinDays(booking.date, 7);
+    booking.status === "confirmed" &&
+    isTodayOrFutureInServiceTz(booking.date);
 
   const canCancel =
     isUpcoming &&
@@ -340,10 +304,10 @@ function BookingCard({
           {canMarkAbsent && (
             <button
               onClick={onMarkAbsent}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-red-500 hover:text-red-700 transition-colors min-h-[44px]"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#7c7c8a] hover:text-[#1a1a2e] transition-colors min-h-[44px]"
             >
               <AlertTriangle className="w-3.5 h-3.5" />
-              Mark Absent
+              Mark absent
             </button>
           )}
           {canCancel && (
@@ -382,13 +346,6 @@ function groupByDate(bookings: BookingRecord[]) {
     dateLabel: formatter.format(new Date(dateStr)),
     items,
   }));
-}
-
-function isWithinDays(dateStr: string, days: number): boolean {
-  const target = new Date(dateStr);
-  const now = new Date();
-  const diff = target.getTime() - now.getTime();
-  return diff >= 0 && diff <= days * 24 * 60 * 60 * 1000;
 }
 
 function isMoreThanHoursAway(dateStr: string, hours: number): boolean {
