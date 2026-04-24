@@ -40,13 +40,13 @@ function getSecret(): Uint8Array {
 // ---------------------------------------------------------------------------
 
 /**
- * Sign a JWT for a parent session. Expires in 7 days.
+ * Sign a JWT for a parent session. Expires in 30 days.
  */
 export async function signParentJwt(payload: ParentJwtPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime("30d")
     .sign(getSecret());
 }
 

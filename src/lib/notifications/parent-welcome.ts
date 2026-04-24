@@ -4,7 +4,7 @@
  * Invite" button).
  *
  * Uses the same ParentMagicLink table + /api/parent/auth/verify endpoint
- * as the self-serve login flow, but with a longer 7-day TTL so parents
+ * as the self-serve login flow, but with a longer 30-day TTL so parents
  * who don't check email every day still have a valid link.
  */
 
@@ -15,7 +15,7 @@ import { logger } from "@/lib/logger";
 import crypto from "crypto";
 
 const PORTAL_URL = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
-const WELCOME_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const WELCOME_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 async function issueWelcomeMagicLink(email: string): Promise<string> {
   const token = crypto.randomBytes(32).toString("hex");
@@ -82,7 +82,7 @@ export async function sendParentWelcomeInvite(
          </p>
          <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
            Tap the button below to log straight into your Amana OSHC parent portal.
-           This link is valid for 7 days.
+           This link is valid for 30 days.
          </p>`
       : `<h2 style="margin:0 0 12px;color:#111827;font-size:18px;font-weight:600;">
            Welcome to ${centreName}
@@ -97,7 +97,7 @@ export async function sendParentWelcomeInvite(
            keep all your details up to date.
          </p>
          <p style="margin:0 0 16px;color:#6b7280;font-size:14px;line-height:1.6;">
-           This link is valid for 7 days. After that, you can always request a fresh
+           This link is valid for 30 days. After that, you can always request a fresh
            link from the portal login page.
          </p>`;
 

@@ -112,7 +112,7 @@ export const GET = withApiHandler(async (req: NextRequest) => {
   // Set cookies and redirect. Use ?v2=1 for new parents during the v2 rollout
   // window so the welcome experience is always the redesigned one.
   const response = NextResponse.redirect(`${baseUrl}/parent?v2=1`);
-  const cookieMaxAge = 7 * 24 * 60 * 60; // 7 days
+  const cookieMaxAge = 30 * 24 * 60 * 60; // 30 days — matches the parent JWT expiration
 
   // httpOnly session cookie (not readable by JS — secure)
   response.cookies.set("parent-session", jwt, {
