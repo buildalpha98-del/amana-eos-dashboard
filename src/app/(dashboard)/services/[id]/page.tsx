@@ -56,6 +56,7 @@ import { ServiceChildrenTab } from "@/components/services/ServiceChildrenTab";
 import { ServiceWeeklyRosterTab } from "@/components/services/ServiceWeeklyRosterTab";
 import { ServiceTodayTab } from "@/components/services/ServiceTodayTab";
 import { ServiceCasualBookingsTab } from "@/components/services/ServiceCasualBookingsTab";
+import { ServiceReflectionsTab } from "@/components/services/ServiceReflectionsTab";
 import { ServiceTabBarV2 } from "@/components/services/ServiceTabBarV2";
 import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 import { isAdminRole } from "@/lib/role-permissions";
@@ -141,6 +142,7 @@ const tabGroups: TabGroup[] = [
     subTabs: [
       { key: "audits", label: "Audits", icon: ShieldCheck },
       { key: "qip", label: "QIP", icon: ClipboardCheck },
+      { key: "reflections", label: "Reflections", icon: Target },
       { key: "comms", label: "Comms", icon: Radio },
     ],
   },
@@ -535,6 +537,9 @@ export default function ServiceDetailPage() {
         )}
         {activeGroup === "compliance" && currentSubKey === "qip" && (
           <ServiceQIPTab serviceId={service.id} />
+        )}
+        {activeGroup === "compliance" && currentSubKey === "reflections" && (
+          <ServiceReflectionsTab serviceId={service.id} />
         )}
         {activeGroup === "compliance" && currentSubKey === "comms" && (
           <ServiceCommTab serviceId={service.id} />
