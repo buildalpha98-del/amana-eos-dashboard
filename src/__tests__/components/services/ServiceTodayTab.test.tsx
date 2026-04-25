@@ -25,6 +25,9 @@ vi.mock("@/components/services/ServiceTodayPanel", () => ({
 vi.mock("@/components/services/RatioWidget", () => ({
   RatioWidget: () => <div data-testid="ratio-stub" />,
 }));
+vi.mock("@/components/services/ServiceActivityWidget", () => ({
+  ServiceActivityWidget: () => <div data-testid="activity-stub" />,
+}));
 vi.mock("@/components/services/ShiftHandoverWidget", () => ({
   ShiftHandoverWidget: () => <div data-testid="handover-stub" />,
 }));
