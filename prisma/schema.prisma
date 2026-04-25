@@ -3900,6 +3900,9 @@ model CentreContact {
   // OWNA legacy mapping — populated when OWNA family sync is wired
   ownaFamilyId String? @unique
 
+  // SMS opt-in — required before broadcast SMS dispatch (Spam Act 2003 compliance)
+  smsOptIn Boolean @default(false)
+
   nurtureSteps          ParentNurtureStep[]    @relation("ContactNurtureSteps")
   npsResponses          NpsSurveyResponse[]    @relation("ContactNpsResponses")
   referralsMade         Referral[]             @relation("ReferrerContact")
@@ -5827,15 +5830,19 @@ model Message {
 }
 
 model Broadcast {
-  id             String   @id @default(cuid())
-  serviceId      String
-  subject        String
-  body           String   @db.Text
-  sentById       String // User.id
-  sentByName     String
-  recipientCount Int      @default(0)
-  sentAt         DateTime @default(now())
-  createdAt      DateTime @default(now())
+  id                String   @id @default(cuid())
+  serviceId         String
+  subject           String
+  body              String   @db.Text
+  /// Channels to dispatch on: "email" | "sms" | "push". Pre-G broadcasts
+  /// default to email-only; new ones can opt into multi-channel send.
+  channels          String[] @default(["email"])
+  sentById          String // User.id
+  sentByName        String
+  recipientCount    Int      @default(0)
+  smsRecipientCount Int      @default(0)
+  sentAt            DateTime @default(now())
+  createdAt         DateTime @default(now())
 
   service Service @relation(fields: [serviceId], references: [id])
   sentBy  User    @relation("BroadcastSentBy", fields: [sentById], references: [id])

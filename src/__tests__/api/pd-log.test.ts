@@ -126,10 +126,11 @@ describe("POST /api/users/[id]/pd-log", () => {
     // Auth wrapper looks up the session user (u1) for active check, then the
     // route looks up the target user (u-missing). Different IDs need different
     // results to isolate the 404 path from the 401 path.
-    prismaMock.user.findUnique.mockImplementation(({ where }) =>
-      where.id === "u-missing"
-        ? Promise.resolve(null)
-        : Promise.resolve({ active: true }),
+    prismaMock.user.findUnique.mockImplementation(
+      (args: { where: { id: string } }) =>
+        args.where.id === "u-missing"
+          ? Promise.resolve(null)
+          : Promise.resolve({ active: true }),
     );
     const req = createRequest("POST", "/api/users/u-missing/pd-log", {
       body: {

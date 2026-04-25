@@ -2,7 +2,10 @@ import { prisma } from "@/lib/prisma";
 import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
 import { parentEmailLayout, baseLayout, buttonHtml } from "@/lib/email-templates/base";
 import { sendPushToContact } from "@/lib/push/webPush";
+import { sendSms } from "@/lib/sms";
 import { logger } from "@/lib/logger";
+
+export type BroadcastChannel = "email" | "sms" | "push";
 
 const PORTAL_URL = process.env.NEXTAUTH_URL ?? "https://amanaoshc.company";
 
@@ -138,9 +141,19 @@ export async function sendNewMessageNotification(
   }
 }
 
+/**
+ * Dispatch a broadcast to families across one or more channels. Email is
+ * the legacy default — when `channels` is omitted we fall back to that for
+ * backward compatibility with pre-G call sites.
+ *
+ * SMS dispatch filters on `CentreContact.smsOptIn=true && mobile != null`;
+ * Spam Act 2003 compliance is enforced here (NOT in the API route) so any
+ * future caller that sends a broadcast can't accidentally bypass it.
+ */
 export async function sendBroadcastNotification(
   broadcastId: string,
   familyIds: string[],
+  channels: BroadcastChannel[] = ["email"],
 ): Promise<void> {
   try {
     const broadcast = await prisma.broadcast.findUnique({
@@ -157,52 +170,104 @@ export async function sendBroadcastNotification(
 
     const families = await prisma.centreContact.findMany({
       where: { id: { in: familyIds } },
-      select: { id: true, firstName: true, lastName: true, email: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        mobile: true,
+        smsOptIn: true,
+      },
     });
 
     const serviceName = broadcast.service.name;
 
-    const results = await Promise.allSettled(
-      families.map(async (family) => {
-        if (!family.email) return;
+    // ── Email channel ─────────────────────────────────────────
+    if (channels.includes("email")) {
+      const emailResults = await Promise.allSettled(
+        families.map(async (family) => {
+          if (!family.email) return;
 
-        const parentName = [family.firstName, family.lastName]
-          .filter(Boolean)
-          .join(" ") || "Parent";
+          const parentName = [family.firstName, family.lastName]
+            .filter(Boolean)
+            .join(" ") || "Parent";
 
-        await sendNotificationEmail({
-          to: family.email,
-          toName: parentName,
-          subject: `Message from ${serviceName} — ${broadcast.subject}`,
-          html: parentEmailLayout(`
-            <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-              Assalamu Alaikum ${parentName},
-            </p>
-            <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
-              ${broadcast.body}
-            </p>
-            ${buttonHtml("Open Parent Portal", `${PORTAL_URL}/parent`)}
-            <p style="margin:24px 0 0;color:#1a1a2e;font-size:15px;line-height:1.6;">
-              Jazak Allahu Khairan,<br/>
-              The Amana OSHC Team
-            </p>
-          `),
-          type: "broadcast",
-          relatedId: broadcastId,
-          relatedType: "Broadcast",
+          await sendNotificationEmail({
+            to: family.email,
+            toName: parentName,
+            subject: `Message from ${serviceName} — ${broadcast.subject}`,
+            html: parentEmailLayout(`
+              <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+                Assalamu Alaikum ${parentName},
+              </p>
+              <p style="margin:0 0 16px;color:#1a1a2e;font-size:15px;line-height:1.6;">
+                ${broadcast.body}
+              </p>
+              ${buttonHtml("Open Parent Portal", `${PORTAL_URL}/parent`)}
+              <p style="margin:24px 0 0;color:#1a1a2e;font-size:15px;line-height:1.6;">
+                Jazak Allahu Khairan,<br/>
+                The Amana OSHC Team
+              </p>
+            `),
+            type: "broadcast",
+            relatedId: broadcastId,
+            relatedType: "Broadcast",
+          });
+        }),
+      );
+
+      const failed = emailResults.filter((r) => r.status === "rejected").length;
+      if (failed > 0) {
+        logger.warn("sendBroadcastNotification: some emails failed", {
+          broadcastId,
+          total: families.length,
+          failed,
         });
-      }),
-    );
-
-    const failed = results.filter((r) => r.status === "rejected").length;
-    if (failed > 0) {
-      logger.warn("sendBroadcastNotification: some emails failed", {
-        broadcastId,
-        total: families.length,
-        failed,
-      });
+      }
     }
+
+    // ── SMS channel ───────────────────────────────────────────
+    if (channels.includes("sms")) {
+      const smsRecipients = families
+        .filter((f) => f.smsOptIn && f.mobile)
+        .map((f) => ({ number: f.mobile as string, contactId: f.id }));
+
+      if (smsRecipients.length === 0) {
+        logger.info("sendBroadcastNotification: no SMS-eligible recipients", {
+          broadcastId,
+        });
+      } else {
+        // Body is plain text — SMS strips HTML. Sender is a SenderID per
+        // MessageMedia conventions; we deliberately do not include the URL
+        // (deep links require care with shorteners + AU SMS opt-out rules).
+        const smsBody = `${serviceName}: ${broadcast.subject} — ${stripHtml(broadcast.body)}`.slice(
+          0,
+          1000,
+        );
+        const result = await sendSms({ to: smsRecipients, body: smsBody });
+        if (!result.ok) {
+          logger.warn("sendBroadcastNotification: SMS dispatch returned soft failure", {
+            broadcastId,
+            reason: result.reason,
+            recipients: smsRecipients.length,
+          });
+        }
+      }
+    }
+
+    // ── Push channel (placeholder hook — kept for parity with channel union) ──
+    // The existing parent push system fires from other code paths; explicit
+    // broadcast push will land alongside the parent-post-photos work in a
+    // follow-up commit. Listed here for channel completeness.
   } catch (err) {
     logger.error("sendBroadcastNotification failed", { broadcastId, error: err });
   }
+}
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
