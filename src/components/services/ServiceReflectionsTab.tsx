@@ -26,6 +26,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/Dialog";
+import { AiButton } from "@/components/ui/AiButton";
 
 const QA_OPTIONS: readonly { value: number; label: string }[] = [
   { value: 1, label: "QA1 · Educational program" },
@@ -288,13 +289,34 @@ function CreateReflectionDialog({
         </Field>
 
         <Field label="Reflection">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={6}
-            placeholder="What happened, what went well, what would you change?"
-            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)] resize-y"
-          />
+          <div className="space-y-1.5">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={6}
+              placeholder="What happened, what went well, what would you change?"
+              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)] resize-y"
+            />
+            <div className="flex justify-end">
+              <AiButton
+                size="sm"
+                templateSlug="nqs/reflection-draft"
+                section="reflections"
+                metadata={{ serviceId, type }}
+                variables={{
+                  serviceName: serviceId,
+                  weekSummary: title || "(weekly reflection)",
+                  recentObservations: "(see service observations tab)",
+                  recentIncidents: "(see service incidents tab)",
+                  recentAudits: "(see service audits tab)",
+                  reflectionType: type,
+                }}
+                onResult={(text) => setContent(text)}
+                label="Draft with AI"
+                disabled={!title.trim()}
+              />
+            </div>
+          </div>
         </Field>
 
         <Field label="Quality areas">
