@@ -202,6 +202,10 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/issues",
     "/meetings",
     "/services",
+    // Read-only view of their own centre's Avatar (write actions enforced
+    // server-side per route). The list page /centre-avatars is intentionally
+    // omitted — coordinators go straight to their own service.
+    "/centre-avatars/[serviceId]",
     "/activity-library",
     "/communication",
     "/compliance",

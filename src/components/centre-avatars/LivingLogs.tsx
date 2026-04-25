@@ -43,9 +43,11 @@ const INSIGHT_SOURCES: CentreAvatarInsightSource[] = [
 export function InsightsLog({
   serviceId,
   insights,
+  readOnly = false,
 }: {
   serviceId: string;
   insights: InsightRow[];
+  readOnly?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const add = useAddInsight();
@@ -65,6 +67,7 @@ export function InsightsLog({
       }
       onAdd={() => setAdding((v) => !v)}
       adding={adding}
+      readOnly={readOnly}
     >
       {adding && (
         <InsightAddForm
@@ -121,7 +124,7 @@ export function InsightsLog({
                     </p>
                   )}
                 </div>
-                {i.status === "pending_review" && (
+                {i.status === "pending_review" && !readOnly && (
                   <div className="flex shrink-0 gap-1">
                     <button
                       type="button"
@@ -247,9 +250,11 @@ function InsightAddForm({
 export function CampaignLog({
   serviceId,
   campaigns,
+  readOnly = false,
 }: {
   serviceId: string;
   campaigns: CampaignLogRow[];
+  readOnly?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const add = useAddCampaignLog();
@@ -260,6 +265,7 @@ export function CampaignLog({
       description="Past campaigns run against this centre — content, outcomes, learnings."
       onAdd={() => setAdding((v) => !v)}
       adding={adding}
+      readOnly={readOnly}
     >
       {adding && (
         <CampaignAddForm
@@ -468,9 +474,11 @@ function CheckInAddForm({
 export function SchoolLiaisonLog({
   serviceId,
   liaisons,
+  readOnly = false,
 }: {
   serviceId: string;
   liaisons: LiaisonRow[];
+  readOnly?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const add = useAddSchoolLiaison();
@@ -481,6 +489,7 @@ export function SchoolLiaisonLog({
       description="Conversations with school contacts — principal, marketing, newsletter editors."
       onAdd={() => setAdding((v) => !v)}
       adding={adding}
+      readOnly={readOnly}
     >
       {adding && (
         <LiaisonAddForm
@@ -621,12 +630,14 @@ function LogSection({
   description,
   onAdd,
   adding,
+  readOnly = false,
   children,
 }: {
   title: string;
   description: string;
   onAdd: () => void;
   adding: boolean;
+  readOnly?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -636,13 +647,15 @@ function LogSection({
           <h2 className="text-base font-semibold text-foreground">{title}</h2>
           <p className="mt-0.5 text-xs text-muted">{description}</p>
         </div>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
-        >
-          <Plus className="h-3.5 w-3.5" /> {adding ? "Close" : "Add"}
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={onAdd}
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+          >
+            <Plus className="h-3.5 w-3.5" /> {adding ? "Close" : "Add"}
+          </button>
+        )}
       </div>
       <div className="mt-4 space-y-3">{children}</div>
     </section>

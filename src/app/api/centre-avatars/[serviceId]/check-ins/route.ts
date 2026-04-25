@@ -24,6 +24,16 @@ export const POST = withApiAuth(
   async (req, session, context) => {
     const { serviceId } = await (context as unknown as RouteCtx).params;
 
+    // Coordinators can only log check-ins for their own service.
+    if (
+      session.user.role === "coordinator" &&
+      session.user.serviceId !== serviceId
+    ) {
+      throw ApiError.forbidden(
+        "Coordinators can only log check-ins for their own centre",
+      );
+    }
+
     const raw = await parseJsonBody(req);
     const parsed = checkInSchema.safeParse(raw);
     if (!parsed.success) {
@@ -63,5 +73,5 @@ export const POST = withApiAuth(
 
     return NextResponse.json({ checkIn: row });
   },
-  { roles: ["marketing", "owner"] },
+  { roles: ["marketing", "owner", "coordinator"] },
 );

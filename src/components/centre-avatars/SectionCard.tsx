@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Code2, Pencil, X } from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import { useIsMobile } from "@/hooks/useMediaQuery";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/Sheet";
 import type { SectionKey } from "@/lib/centre-avatar/sections";
 import { SnapshotForm } from "./forms/SnapshotForm";
 import { ParentAvatarForm } from "./forms/ParentAvatarForm";
@@ -41,6 +43,7 @@ export function SectionCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [mode, setMode] = useState<"form" | "json">("form");
+  const isMobile = useIsMobile();
 
   const startEdit = () => {
     setMode("form");
@@ -66,72 +69,117 @@ export function SectionCard({
     }
   };
 
-  return (
-    <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">{title}</h2>
-          {description && <p className="mt-0.5 text-xs text-muted">{description}</p>}
-        </div>
-        <div className="flex items-center gap-2">
-          {extraHeader}
-          {editing && !readOnly && (
-            <>
-              <button
-                type="button"
-                onClick={() => setMode(mode === "form" ? "json" : "form")}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
-                aria-pressed={mode === "json"}
-                title={mode === "form" ? "Switch to raw JSON" : "Switch to form"}
-              >
-                <Code2 className="h-3.5 w-3.5" />
-                {mode === "form" ? "Raw JSON" : "Form"}
-              </button>
-              <button
-                type="button"
-                onClick={cancel}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
-              >
-                <X className="h-3.5 w-3.5" /> Cancel
-              </button>
-            </>
-          )}
-          {!editing && !readOnly && (
-            <button
-              type="button"
-              onClick={startEdit}
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
-            >
-              <Pencil className="h-3.5 w-3.5" /> Edit
-            </button>
-          )}
-        </div>
-      </div>
+  // Editing on mobile happens inside a full-width sheet (see render below).
+  // Editing on desktop happens inline. The card body always shows the
+  // readonly summary; the inline editor only renders on desktop.
+  const editorBody = mode === "form" ? (
+    <SectionFormDispatch
+      sectionKey={sectionKey}
+      content={content}
+      onSave={handleSave}
+      onCancel={cancel}
+      isSaving={isSaving}
+    />
+  ) : (
+    <RawJsonEditor
+      title={title}
+      content={content}
+      onSave={handleSave}
+      onCancel={cancel}
+      isSaving={isSaving}
+    />
+  );
 
-      <div className="mt-4">
-        {editing && !readOnly ? (
-          mode === "form" ? (
-            <SectionFormDispatch
-              sectionKey={sectionKey}
-              content={content}
-              onSave={handleSave}
-              onCancel={cancel}
-              isSaving={isSaving}
-            />
+  const modeToggle = (
+    <button
+      type="button"
+      onClick={() => setMode(mode === "form" ? "json" : "form")}
+      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+      aria-pressed={mode === "json"}
+      title={mode === "form" ? "Switch to raw JSON" : "Switch to form"}
+    >
+      <Code2 className="h-3.5 w-3.5" />
+      {mode === "form" ? "Raw JSON" : "Form"}
+    </button>
+  );
+
+  return (
+    <>
+      <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">{title}</h2>
+            {description && <p className="mt-0.5 text-xs text-muted">{description}</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            {extraHeader}
+            {/* Desktop edit affordances */}
+            {editing && !readOnly && !isMobile && (
+              <>
+                {modeToggle}
+                <button
+                  type="button"
+                  onClick={cancel}
+                  className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+                >
+                  <X className="h-3.5 w-3.5" /> Cancel
+                </button>
+              </>
+            )}
+            {!editing && !readOnly && (
+              <button
+                type="button"
+                onClick={startEdit}
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4">
+          {editing && !readOnly && !isMobile ? (
+            editorBody
           ) : (
-            <RawJsonEditor
-              title={title}
-              content={content}
-              onSave={handleSave}
-              onCancel={cancel}
-              isSaving={isSaving}
-            />
-          )
-        ) : (
-          <SectionReadonly sectionKey={sectionKey} content={content} />
-        )}
-      </div>
-    </section>
+            <SectionReadonly sectionKey={sectionKey} content={content} />
+          )}
+        </div>
+      </section>
+
+      {/* Mobile editor lives in a full-width sheet so a long form is usable
+          on a phone. Sticky header carries the mode toggle + cancel. */}
+      {isMobile && !readOnly && (
+        <Sheet
+          open={editing}
+          onOpenChange={(o) => {
+            if (!o) cancel();
+          }}
+        >
+          <SheetContent
+            side="right"
+            width="max-w-2xl"
+            className="flex flex-col"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-card px-4 py-3">
+              <SheetTitle className="text-base font-semibold">{title}</SheetTitle>
+              <div className="flex items-center gap-2">
+                {modeToggle}
+                <button
+                  type="button"
+                  onClick={cancel}
+                  className="rounded-md p-1.5 text-muted hover:bg-surface hover:text-foreground"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4">{editorBody}</div>
+          </SheetContent>
+        </Sheet>
+      )}
+    </>
   );
 }
 

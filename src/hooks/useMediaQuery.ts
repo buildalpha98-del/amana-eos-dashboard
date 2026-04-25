@@ -1,0 +1,36 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+/**
+ * Subscribes to a CSS media query. Safe to call during SSR (returns false on
+ * the server, then updates after hydration). Use for layout shifts that don't
+ * need to be perfect on the first paint.
+ *
+ * @example
+ * const isMobile = useMediaQuery("(max-width: 639px)");
+ */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    if (typeof window.matchMedia !== "function") return false;
+    return window.matchMedia(query).matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (typeof window.matchMedia !== "function") return;
+    const mql = window.matchMedia(query);
+    const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
+    setMatches(mql.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, [query]);
+
+  return matches;
+}
+
+/** Tailwind's `sm` breakpoint is 640px — anything below is "mobile" here. */
+export function useIsMobile(): boolean {
+  return useMediaQuery("(max-width: 639px)");
+}

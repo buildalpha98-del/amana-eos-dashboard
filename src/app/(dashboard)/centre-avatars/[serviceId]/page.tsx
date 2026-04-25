@@ -2,6 +2,7 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -40,6 +41,11 @@ export default function CentreAvatarDetailPage({
   params: Promise<{ serviceId: string }>;
 }) {
   const { serviceId } = use(params);
+  const { data: session } = useSession();
+  const role = session?.user?.role;
+  const isCoordinator = role === "coordinator";
+  const canEditSections = role === "owner" || role === "marketing";
+
   const { data: avatar, isLoading, error, refetch } = useCentreAvatar(serviceId);
   const openMut = useOpenCentreAvatar();
   const markReviewed = useMarkCentreAvatarReviewed();
@@ -47,12 +53,15 @@ export default function CentreAvatarDetailPage({
   const [claudeOpen, setClaudeOpen] = useState(false);
 
   // Stamp the Avatar as "opened" on mount — this is the campaign gate signal.
+  // Only marketing/owner triggers this since the gate is for them. Coordinators
+  // viewing their own centre don't move the gate.
   useEffect(() => {
     if (!serviceId) return;
+    if (!canEditSections) return;
     openMut.mutate(serviceId);
     // Intentionally run once per serviceId
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceId]);
+  }, [serviceId, canEditSections]);
 
   const pendingInsightsCount = useMemo(
     () => (avatar?.insights ?? []).filter((i) => i.status === "pending_review").length,
@@ -102,12 +111,14 @@ export default function CentreAvatarDetailPage({
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <Link
-        href="/centre-avatars"
-        className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to all Centre Avatars
-      </Link>
+      {!isCoordinator && (
+        <Link
+          href="/centre-avatars"
+          className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to all Centre Avatars
+        </Link>
+      )}
 
       <PageHeader
         title={avatar.serviceName}
@@ -116,14 +127,25 @@ export default function CentreAvatarDetailPage({
             ? `${avatar.state} · v${avatar.version}`
             : `v${avatar.version}`
         }
-        primaryAction={{
-          label: "Mark reviewed",
-          icon: CheckCircle2,
-          onClick: handleMarkReviewed,
-          loading: markReviewed.isPending,
-          variant: "secondary",
-        }}
+        primaryAction={
+          canEditSections
+            ? {
+                label: "Mark reviewed",
+                icon: CheckCircle2,
+                onClick: handleMarkReviewed,
+                loading: markReviewed.isPending,
+                variant: "secondary",
+              }
+            : undefined
+        }
       />
+
+      {isCoordinator && (
+        <div className="rounded-lg border border-brand/20 bg-brand/5 px-4 py-2 text-xs text-brand">
+          You&apos;re viewing this Avatar as the centre coordinator. You can read
+          everything and log check-ins. Marketing edits the sections.
+        </div>
+      )}
 
       {/* Meta banner */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-xs">
@@ -163,6 +185,7 @@ export default function CentreAvatarDetailPage({
         content={avatar.snapshot}
         onSave={saveSection("snapshot")}
         isSaving={updateSection.isPending}
+        readOnly={!canEditSections}
       />
 
       {/* Section 2 — Parent Avatar (with Claude prompt helper) */}
@@ -173,14 +196,17 @@ export default function CentreAvatarDetailPage({
         content={avatar.parentAvatar}
         onSave={saveSection("parentAvatar")}
         isSaving={updateSection.isPending}
+        readOnly={!canEditSections}
         extraHeader={
-          <button
-            type="button"
-            onClick={() => setClaudeOpen(true)}
-            className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
-          >
-            <Sparkles className="h-3.5 w-3.5" /> Draft with Claude
-          </button>
+          canEditSections ? (
+            <button
+              type="button"
+              onClick={() => setClaudeOpen(true)}
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+            >
+              <Sparkles className="h-3.5 w-3.5" /> Draft with Claude
+            </button>
+          ) : undefined
         }
       />
       <ClaudePromptModal
@@ -198,19 +224,34 @@ export default function CentreAvatarDetailPage({
         content={avatar.programmeMix}
         onSave={saveSection("programmeMix")}
         isSaving={updateSection.isPending}
+        readOnly={!canEditSections}
       />
 
-      {/* Section 4 — Insights Log */}
-      <InsightsLog serviceId={serviceId} insights={avatar.insights} />
+      {/* Section 4 — Insights Log (coordinators see read-only — marketing
+          drives intake decisions) */}
+      <InsightsLog
+        serviceId={serviceId}
+        insights={avatar.insights}
+        readOnly={isCoordinator}
+      />
 
-      {/* Section 5 — Campaign Log */}
-      <CampaignLog serviceId={serviceId} campaigns={avatar.campaignLog} />
+      {/* Section 5 — Campaign Log (coordinators read-only) */}
+      <CampaignLog
+        serviceId={serviceId}
+        campaigns={avatar.campaignLog}
+        readOnly={isCoordinator}
+      />
 
-      {/* Section 6 — Coordinator Check-Ins */}
+      {/* Section 6 — Coordinator Check-Ins (coordinator CAN write here for
+          their own centre — that's the point of this log) */}
       <CheckInsLog serviceId={serviceId} checkIns={avatar.coordinatorCheckIns} />
 
-      {/* Section 7 — School Liaison Log */}
-      <SchoolLiaisonLog serviceId={serviceId} liaisons={avatar.schoolLiaisonLog} />
+      {/* Section 7 — School Liaison Log (coordinators read-only) */}
+      <SchoolLiaisonLog
+        serviceId={serviceId}
+        liaisons={avatar.schoolLiaisonLog}
+        readOnly={isCoordinator}
+      />
 
       {/* Section 8 — Asset Library */}
       <SectionCard
@@ -220,6 +261,7 @@ export default function CentreAvatarDetailPage({
         content={avatar.assetLibrary}
         onSave={saveSection("assetLibrary")}
         isSaving={updateSection.isPending}
+        readOnly={!canEditSections}
       />
 
       {/* Section 9 — Update Log */}
