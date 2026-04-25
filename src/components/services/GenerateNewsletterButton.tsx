@@ -76,7 +76,9 @@ export function GenerateNewsletterButton({ serviceId }: { serviceId: string }) {
         onClick={() => generate.mutate()}
         disabled={generate.isPending}
         className={cn(
-          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)]",
+          "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
+          // Tablet tap target
+          "min-h-[44px]",
           "bg-gradient-to-r from-[color:var(--color-brand)] to-[color:var(--color-brand-light)]",
           "text-white text-[13px] font-medium",
           "hover:opacity-90 transition-opacity",
@@ -105,7 +107,7 @@ export function GenerateNewsletterButton({ serviceId }: { serviceId: string }) {
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
               />
             </label>
             <label className="block">
@@ -116,7 +118,7 @@ export function GenerateNewsletterButton({ serviceId }: { serviceId: string }) {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={16}
-                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)] resize-y font-mono"
+                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] resize-y font-mono"
               />
             </label>
             <div className="flex items-center justify-between gap-2 pt-2">
@@ -132,7 +134,7 @@ export function GenerateNewsletterButton({ serviceId }: { serviceId: string }) {
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="px-3 py-1.5 text-sm font-medium text-[color:var(--color-muted)]"
+                  className="min-h-[44px] px-4 py-2 text-sm font-medium text-[color:var(--color-muted)]"
                 >
                   Close
                 </button>
@@ -145,13 +147,14 @@ export function GenerateNewsletterButton({ serviceId }: { serviceId: string }) {
                   }
                   onClick={() => publish.mutate()}
                   className={cn(
-                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)]",
+                    "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
+                    "min-h-[44px]",
                     "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
                     "hover:bg-[color:var(--color-brand-hover)]",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
                   )}
                 >
-                  <Send className="w-3.5 h-3.5" />
+                  <Send className="w-4 h-4" />
                   {publish.isPending ? "Publishing…" : "Publish to parents"}
                 </button>
               </div>

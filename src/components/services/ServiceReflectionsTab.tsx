@@ -163,7 +163,10 @@ function BrandButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)]",
+        "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
+        // 44px min height — tablet tap target. Educators on iPad shouldn't
+        // need to aim.
+        "min-h-[44px]",
         "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
         "hover:bg-[color:var(--color-brand-hover)] transition-colors",
         "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -274,7 +277,7 @@ function CreateReflectionDialog({
           <select
             value={type}
             onChange={(e) => setType(e.target.value as ReflectionItem["type"])}
-            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
           >
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
@@ -288,7 +291,7 @@ function CreateReflectionDialog({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="What's this reflection about?"
-            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
           />
         </Field>
 
@@ -299,7 +302,7 @@ function CreateReflectionDialog({
               onChange={(e) => setContent(e.target.value)}
               rows={6}
               placeholder="What happened, what went well, what would you change?"
-              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)] resize-y"
+              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] resize-y"
             />
             <div className="flex justify-end">
               <AiButton
@@ -391,7 +394,7 @@ function CreateReflectionDialog({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 text-sm font-medium text-[color:var(--color-muted)]"
+            className="min-h-[44px] px-4 py-2 text-sm font-medium text-[color:var(--color-muted)]"
           >
             Cancel
           </button>

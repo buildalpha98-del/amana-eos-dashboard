@@ -285,7 +285,7 @@ function CreateObservationDialog({
             <select
               value={childId}
               onChange={(e) => setChildId(e.target.value)}
-              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
             >
               <option value="">Select a child…</option>
               {childrenData?.map((c) => (
@@ -301,7 +301,7 @@ function CreateObservationDialog({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Short headline (e.g. Block play and sharing)"
-              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
             />
           </Field>
 
@@ -312,7 +312,7 @@ function CreateObservationDialog({
                 onChange={(e) => setNarrative(e.target.value)}
                 rows={5}
                 placeholder="What happened, what did the child do, what were they learning?"
-                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)] resize-y"
+                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] resize-y"
               />
               <div className="flex justify-end">
                 <AiButton
@@ -377,7 +377,7 @@ function CreateObservationDialog({
               value={interests}
               onChange={(e) => setInterests(e.target.value)}
               placeholder="e.g. Lego, animals, drawing"
-              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
             />
           </Field>
 
@@ -407,7 +407,7 @@ function CreateObservationDialog({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-sm font-medium text-[color:var(--color-muted)]"
+              className="min-h-[44px] px-4 py-2 text-sm font-medium text-[color:var(--color-muted)]"
             >
               Cancel
             </button>
@@ -458,7 +458,9 @@ function BrandButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)]",
+        "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
+        // Tablet tap target — 44px min height
+        "min-h-[44px]",
         "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
         "hover:bg-[color:var(--color-brand-hover)] transition-colors",
         "disabled:opacity-50 disabled:cursor-not-allowed",
