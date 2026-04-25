@@ -3,7 +3,27 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
-import { parseJsonBody } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
+
+/**
+ * Coordinators can complete audits, but only for the service they're
+ * assigned to. Org-wide roles (owner / head_office / admin) bypass this
+ * check; member ("Centre Director") also bypasses since they're already
+ * scoped at the user-management level.
+ */
+function ensureCoordCanTouchAudit(
+  role: string,
+  userServiceId: string | null | undefined,
+  auditServiceId: string,
+) {
+  if (role !== "coordinator") return;
+  if (!userServiceId || userServiceId !== auditServiceId) {
+    throw ApiError.forbidden(
+      "Coordinators can only work on audits for their own service.",
+    );
+  }
+}
+
 const patchSchema = z.object({
   action: z.enum(["start", "complete", "skip"]).optional(),
   strengths: z.string().optional(),
@@ -81,6 +101,13 @@ const { id } = await context!.params!;
   if (!instance) {
     return NextResponse.json({ error: "Audit not found" }, { status: 404 });
   }
+
+  // Coordinators must be on the audit's own service.
+  ensureCoordCanTouchAudit(
+    session!.user.role ?? "",
+    (session!.user as { serviceId?: string | null }).serviceId,
+    instance.serviceId,
+  );
 
   const data: Record<string, unknown> = {};
 
@@ -170,4 +197,10 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(updated);
-}, { roles: ["owner", "admin", "member"] });
+}, {
+  // Coordinators can complete audits assigned to their service. Member
+  // ("Centre Director") + admin tier always allowed. The
+  // `ensureCoordCanTouchAudit` check inside the handler enforces the
+  // own-service constraint for coordinators.
+  roles: ["owner", "head_office", "admin", "coordinator", "member"],
+});

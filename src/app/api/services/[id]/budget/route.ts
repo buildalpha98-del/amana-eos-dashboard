@@ -2,10 +2,34 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getMonthlyBudget } from "@/lib/budget-helpers";
 import { withApiAuth } from "@/lib/server-auth";
+import { ApiError } from "@/lib/api-error";
+
+/**
+ * Head office allocates the budget envelope; coordinators fill in line items
+ * for their own service. Owner / head_office / admin can edit any service;
+ * coordinator can only touch the service they're assigned to.
+ */
+export function ensureCoordOwnService(
+  role: string,
+  userServiceId: string | null | undefined,
+  serviceId: string,
+) {
+  if (role !== "coordinator") return;
+  if (!userServiceId || userServiceId !== serviceId) {
+    throw ApiError.forbidden(
+      "Coordinators can only access the budget for their own service.",
+    );
+  }
+}
 
 // GET /api/services/[id]/budget — budget summary with grocery calc + equipment totals
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
+  ensureCoordOwnService(
+    session.user.role ?? "",
+    (session.user as { serviceId?: string | null }).serviceId,
+    id,
+  );
   const url = new URL(req.url);
 
   // Default range: current Australian FY (Jul 1 – today)
@@ -166,7 +190,11 @@ export const GET = withApiAuth(async (req, session, context) => {
       vc: service.vcGroceryRate,
     },
   });
-}, { roles: ["owner", "head_office", "admin"] });
+}, {
+  // Coordinators can read their own service's budget; admin tier sees any.
+  // The own-service check fires inline above for coordinators.
+  roles: ["owner", "head_office", "admin", "coordinator"],
+});
 
 // ── Helpers ─────────────────────────────────────────────────
 

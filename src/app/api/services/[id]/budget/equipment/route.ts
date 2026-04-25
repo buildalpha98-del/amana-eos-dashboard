@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { recalcFinancialsForWeek } from "@/lib/budget-helpers";
 import { withApiAuth } from "@/lib/server-auth";
+import { ensureCoordOwnService } from "../route";
 
 import { parseJsonBody } from "@/lib/api-error";
 const equipmentItemSchema = z
@@ -32,6 +33,11 @@ export { equipmentItemSchema };
 // GET /api/services/[id]/budget/equipment — list equipment items
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
+  ensureCoordOwnService(
+    session.user.role ?? "",
+    (session.user as { serviceId?: string | null }).serviceId,
+    id,
+  );
   const url = new URL(req.url);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
@@ -54,11 +60,16 @@ export const GET = withApiAuth(async (req, session, context) => {
   });
 
   return NextResponse.json(items);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "coordinator"] });
 
 // POST /api/services/[id]/budget/equipment — create equipment item
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
+  ensureCoordOwnService(
+    session.user.role ?? "",
+    (session.user as { serviceId?: string | null }).serviceId,
+    id,
+  );
   const body = await parseJsonBody(req);
   const parsed = equipmentItemSchema.safeParse(body);
 
@@ -107,4 +118,4 @@ const { id } = await context!.params!;
   await recalcFinancialsForWeek(id, new Date(data.date));
 
   return NextResponse.json(item, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "coordinator"] });
