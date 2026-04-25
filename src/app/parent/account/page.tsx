@@ -40,6 +40,7 @@ export default function AccountPage() {
   const [state, setState] = useState("");
   const [postcode, setPostcode] = useState("");
   const [contacts, setContacts] = useState<ContactForm[]>([]);
+  const [smsOptIn, setSmsOptIn] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   // Hydrate form from profile
@@ -66,6 +67,7 @@ export default function AccountPage() {
         relationship: c.relationship,
       }))
     );
+    setSmsOptIn(profile.smsOptIn);
   }, [profile]);
 
   const handleSave = () => {
@@ -79,6 +81,7 @@ export default function AccountPage() {
       occupation: occupation.trim() || undefined,
       workplace: workplace.trim() || undefined,
       workPhone: workPhone.trim() || undefined,
+      smsOptIn,
       address: { street, suburb, state, postcode },
       emergencyContacts: contacts,
     };
@@ -177,6 +180,21 @@ export default function AccountPage() {
             onChange={setPhone}
             placeholder="0400 000 000"
           />
+
+          <label className="flex items-start gap-3 py-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={smsOptIn}
+              onChange={(e) => setSmsOptIn(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-[#e8e4df] text-[#004E64] focus:ring-[#004E64]"
+            />
+            <span className="text-sm text-[#1a1a2e]">
+              <strong>Receive SMS reminders</strong> from your service. Required
+              for any text-message updates — without this, you&apos;ll only
+              receive emails and in-app notifications. Standard SMS rates may
+              apply.
+            </span>
+          </label>
 
           <div className="border-t border-[#e8e4df] pt-4">
             <p className="text-xs font-medium text-[#7c7c8a] mb-3">Address</p>

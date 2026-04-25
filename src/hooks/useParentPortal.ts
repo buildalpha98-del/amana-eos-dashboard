@@ -26,6 +26,7 @@ export interface ParentProfile {
   occupation: string | null;
   workplace: string | null;
   workPhone: string | null;
+  smsOptIn: boolean;
 }
 
 export interface ParentChild {
@@ -83,6 +84,7 @@ export interface UpdateAccountPayload {
   occupation?: string;
   workplace?: string;
   workPhone?: string;
+  smsOptIn?: boolean;
 }
 
 // ── Booking Types ───────────────────────────────────────

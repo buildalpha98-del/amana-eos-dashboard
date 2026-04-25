@@ -44,13 +44,17 @@ export interface ConversationDetail {
   messages: MessageItem[];
 }
 
+export type BroadcastChannel = "email" | "sms" | "push";
+
 export interface BroadcastItem {
   id: string;
   serviceId: string;
   subject: string;
   body: string;
+  channels: BroadcastChannel[];
   sentByName: string;
   recipientCount: number;
+  smsRecipientCount: number;
   sentAt: string;
   service: { id: string; name: string };
 }
@@ -169,14 +173,24 @@ export function useBroadcasts(serviceId?: string) {
 export function useSendBroadcast() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { serviceId: string; subject: string; body: string }) =>
+    mutationFn: (payload: {
+      serviceId: string;
+      subject: string;
+      body: string;
+      channels?: BroadcastChannel[];
+    }) =>
       mutateApi<BroadcastItem>("/api/messaging/broadcasts", {
         method: "POST",
         body: payload,
       }),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["messaging", "broadcasts"] });
-      toast({ description: `Broadcast sent to ${data.recipientCount} families` });
+      const smsNote = data.smsRecipientCount > 0
+        ? ` (${data.smsRecipientCount} via SMS)`
+        : "";
+      toast({
+        description: `Broadcast sent to ${data.recipientCount} families${smsNote}`,
+      });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -191,6 +205,8 @@ export interface FamilyOption {
   firstName: string | null;
   lastName: string | null;
   email: string | null;
+  mobile: string | null;
+  smsOptIn: boolean;
   serviceId: string;
   service: { id: string; name: string };
 }

@@ -20,6 +20,8 @@ export const GET = withApiAuth(async (req: NextRequest) => {
       firstName: true,
       lastName: true,
       email: true,
+      mobile: true,
+      smsOptIn: true,
       serviceId: true,
       service: { select: { id: true, name: true } },
     },

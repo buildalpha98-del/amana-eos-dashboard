@@ -34,6 +34,7 @@ const updateAccountSchema = z.object({
   occupation: z.string().trim().max(120).optional(),
   workplace: z.string().trim().max(120).optional(),
   workPhone: z.string().trim().max(40).optional(),
+  smsOptIn: z.boolean().optional(),
 });
 
 export const PATCH = withParentAuth(async (req, { parent }) => {
@@ -55,6 +56,7 @@ export const PATCH = withParentAuth(async (req, { parent }) => {
     occupation,
     workplace,
     workPhone,
+    smsOptIn,
   } = parsed.data;
 
   if (parent.enrolmentIds.length === 0) {
@@ -74,6 +76,7 @@ export const PATCH = withParentAuth(async (req, { parent }) => {
   if (occupation !== undefined) contactUpdate.occupation = occupation || null;
   if (workplace !== undefined) contactUpdate.workplace = workplace || null;
   if (workPhone !== undefined) contactUpdate.workPhone = workPhone || null;
+  if (smsOptIn !== undefined) contactUpdate.smsOptIn = smsOptIn;
   if (address !== undefined) contactUpdate.address = address;
 
   if (Object.keys(contactUpdate).length > 0) {
