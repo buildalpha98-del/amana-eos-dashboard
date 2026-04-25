@@ -21,6 +21,7 @@ import {
   useCreateReflection,
   type ReflectionItem,
 } from "@/hooks/useReflections";
+import { useReflectionAiContext } from "@/hooks/useAiContext";
 import {
   Dialog,
   DialogContent,
@@ -239,6 +240,9 @@ function CreateReflectionDialog({
   onClose: () => void;
 }) {
   const create = useCreateReflection(serviceId);
+  // Lazy — fires once when the dialog opens, then served from cache for any
+  // re-clicks of "Draft with AI" within 5 minutes.
+  const { data: aiContext } = useReflectionAiContext(serviceId);
   const [type, setType] = useState<ReflectionItem["type"]>("weekly");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -304,11 +308,19 @@ function CreateReflectionDialog({
                 section="reflections"
                 metadata={{ serviceId, type }}
                 variables={{
-                  serviceName: serviceId,
-                  weekSummary: title || "(weekly reflection)",
-                  recentObservations: "(see service observations tab)",
-                  recentIncidents: "(see service incidents tab)",
-                  recentAudits: "(see service audits tab)",
+                  serviceName: aiContext?.serviceName ?? "this service",
+                  weekSummary:
+                    aiContext?.weekSummary ??
+                    "(loading attendance summary…)",
+                  recentObservations:
+                    aiContext?.recentObservations ??
+                    "(loading recent observations…)",
+                  recentIncidents:
+                    aiContext?.recentIncidents ??
+                    "(loading recent incidents…)",
+                  recentAudits:
+                    aiContext?.recentAudits ??
+                    "(loading recent audits…)",
                   reflectionType: type,
                 }}
                 onResult={(text) => setContent(text)}
