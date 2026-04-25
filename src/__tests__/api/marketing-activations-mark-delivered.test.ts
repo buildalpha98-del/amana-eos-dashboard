@@ -97,7 +97,7 @@ describe("POST /api/marketing/activations/[id]/mark-delivered", () => {
 });
 
 describe("GET /api/marketing/activations", () => {
-  it("returns activations list for marketing", async () => {
+  it("returns activations list and unassigned campaigns for marketing", async () => {
     mockSession({ id: "akram", name: "Akram", role: "marketing" });
     prismaMock.campaignActivationAssignment.findMany.mockResolvedValue([
       {
@@ -105,16 +105,51 @@ describe("GET /api/marketing/activations", () => {
         status: "pending",
         activationDeliveredAt: null,
         budget: 200,
-        campaign: { id: "c1", name: "Open Day", type: "event", startDate: null, endDate: null },
+        campaign: { id: "c1", name: "Open Day", type: "event", startDate: null, endDate: null, status: "draft" },
         service: { id: "s1", name: "Centre A", code: "AAA" },
         recapPosts: [],
       },
     ]);
+    prismaMock.marketingCampaign.findMany.mockResolvedValue([]);
     const res = await LIST_GET(createRequest("GET", "/api/marketing/activations"));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.activations).toHaveLength(1);
     expect(data.activations[0].recapPostId).toBeNull();
+    expect(data.unassignedCampaigns).toEqual([]);
+  });
+
+  it("surfaces relevant campaigns with no assignments under unassignedCampaigns", async () => {
+    mockSession({ id: "akram", name: "Akram", role: "marketing" });
+    prismaMock.campaignActivationAssignment.findMany.mockResolvedValue([]);
+    prismaMock.marketingCampaign.findMany.mockResolvedValue([
+      {
+        id: "c-launch",
+        name: "Centre A launch",
+        type: "launch",
+        status: "draft",
+        startDate: new Date("2026-05-15T00:00:00Z"),
+        endDate: null,
+        activationAssignments: [],
+      },
+      {
+        id: "c-assigned",
+        name: "Open Day",
+        type: "event",
+        status: "scheduled",
+        startDate: null,
+        endDate: null,
+        activationAssignments: [{ id: "a-1" }],
+      },
+    ]);
+    const res = await LIST_GET(createRequest("GET", "/api/marketing/activations"));
+    const data = await res.json();
+    expect(data.unassignedCampaigns).toHaveLength(1);
+    expect(data.unassignedCampaigns[0].id).toBe("c-launch");
+    expect(data.unassignedCampaigns[0].name).toBe("Centre A launch");
+    // Filter passed to prisma should restrict types
+    const findArgs = prismaMock.marketingCampaign.findMany.mock.calls[0][0];
+    expect(findArgs.where.type.in).toEqual(["event", "launch", "activation"]);
   });
 
   it("403 for non-marketing role", async () => {

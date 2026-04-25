@@ -7,10 +7,24 @@ export interface ActivationRow {
   status: string;
   activationDeliveredAt: string | null;
   budget: number | null;
-  campaign: { id: string; name: string; type: string; startDate: string | null; endDate: string | null };
+  campaign: { id: string; name: string; type: string; startDate: string | null; endDate: string | null; status: string };
   service: { id: string; name: string; code: string };
   recapPostId: string | null;
   recapPostStatus: string | null;
+}
+
+export interface UnassignedCampaign {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export interface ActivationsResponse {
+  activations: ActivationRow[];
+  unassignedCampaigns: UnassignedCampaign[];
 }
 
 const KEY = "marketing-activations";
@@ -20,9 +34,9 @@ function destructive(err: Error) {
 }
 
 export function useActivations() {
-  return useQuery<{ activations: ActivationRow[] }>({
+  return useQuery<ActivationsResponse>({
     queryKey: [KEY],
-    queryFn: () => fetchApi<{ activations: ActivationRow[] }>("/api/marketing/activations"),
+    queryFn: () => fetchApi<ActivationsResponse>("/api/marketing/activations"),
     retry: 2,
     staleTime: 30_000,
   });
