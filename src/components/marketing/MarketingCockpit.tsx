@@ -441,11 +441,26 @@ function ActivationsTile({ data }: { data: CockpitSummary["tiles"]["activations"
 
 function WhatsAppTile({ data }: { data: CockpitSummary["tiles"]["whatsapp"] }) {
   return (
-    <TileCard title="WhatsApp" icon={MessageCircle}>
-      <MetricRow label="Coordinator posts (7d)" {...data.coordinator} />
-      <MetricRow label="Engagement" {...data.engagement} />
-      <MetricRow label="Announcements" {...data.announcements} />
-    </TileCard>
+    <Link
+      href="/communication/whatsapp-compliance"
+      className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
+      aria-label="Open WhatsApp compliance dashboard"
+    >
+      <TileCard title="WhatsApp" icon={MessageCircle}>
+        <MetricRow label="Coordinator posts (week)" {...data.coordinator} />
+        <MetricRow label="Engagement" {...data.engagement} />
+        <MetricRow label="Announcements" {...data.announcements} />
+        {data.patternsFlagged > 0 && (
+          <div
+            className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700 border border-red-200"
+            title="Coordinator(s) below floor for two consecutive weeks"
+          >
+            <span aria-hidden>🚩</span>
+            {data.patternsFlagged} pattern{data.patternsFlagged === 1 ? "" : "s"} flagged
+          </div>
+        )}
+      </TileCard>
+    </Link>
   );
 }
 

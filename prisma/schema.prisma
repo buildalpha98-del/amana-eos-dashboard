@@ -705,6 +705,7 @@ model User {
   vendorContact                  VendorContact?            @relation("VendorContactUser")
   whatsappPostsAsCoordinator     WhatsAppCoordinatorPost[] @relation("WhatsAppCoordinator")
   whatsappPostsRecorded          WhatsAppCoordinatorPost[] @relation("WhatsAppRecorder")
+  whatsappNetworkPostsRecorded   WhatsAppNetworkPost[]     @relation("WhatsAppNetworkPostRecordedBy")
   weeklyMarketingReportsDrafted  WeeklyMarketingReport[]   @relation("WeeklyReportDrafter")
   weeklyMarketingReportsReviewed WeeklyMarketingReport[]   @relation("WeeklyReportReviewer")
   weeklyMarketingReportsSent     WeeklyMarketingReport[]   @relation("WeeklyReportSender")
@@ -1141,8 +1142,9 @@ model MarketingPost {
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
 
-  tasks     MarketingTask[]
-  revisions MarketingPostRevision[]
+  tasks                MarketingTask[]
+  revisions            MarketingPostRevision[]
+  whatsappNetworkPosts WhatsAppNetworkPost[]   @relation("MarketingPostWhatsAppNetwork")
 
   @@index([platform])
   @@index([status])
@@ -1511,21 +1513,60 @@ model VendorContact {
 }
 
 model WhatsAppCoordinatorPost {
-  id            String   @id @default(cuid())
-  serviceId     String
-  service       Service  @relation("ServiceWhatsAppPosts", fields: [serviceId], references: [id], onDelete: Cascade)
-  postedDate    DateTime @db.Date
-  posted        Boolean  @default(false)
-  coordinatorId String?
-  coordinator   User?    @relation("WhatsAppCoordinator", fields: [coordinatorId], references: [id], onDelete: SetNull)
-  recordedById  String?
-  recordedBy    User?    @relation("WhatsAppRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String                 @id @default(cuid())
+  serviceId        String
+  service          Service                @relation("ServiceWhatsAppPosts", fields: [serviceId], references: [id], onDelete: Cascade)
+  postedDate       DateTime               @db.Date
+  posted           Boolean                @default(false)
+  notPostingReason WhatsAppNonPostReason?
+  coordinatorId    String?
+  coordinator      User?                  @relation("WhatsAppCoordinator", fields: [coordinatorId], references: [id], onDelete: SetNull)
+  recordedById     String?
+  recordedBy       User?                  @relation("WhatsAppRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  notes            String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
 
   @@unique([serviceId, postedDate])
   @@index([postedDate])
+}
+
+enum WhatsAppNonPostReason {
+  coordinator_on_leave
+  coordinator_sick
+  school_closure
+  public_holiday
+  technical_issue
+  forgot_or_missed
+  unknown
+  other
+}
+
+enum WhatsAppNetworkGroup {
+  engagement
+  announcements
+}
+
+model WhatsAppNetworkPost {
+  id         String               @id @default(cuid())
+  group      WhatsAppNetworkGroup
+  postedAt   DateTime
+  recordedAt DateTime             @default(now())
+
+  recordedById String
+  recordedBy   User   @relation("WhatsAppNetworkPostRecordedBy", fields: [recordedById], references: [id])
+
+  topic String?
+  notes String?
+
+  marketingPostId String?
+  marketingPost   MarketingPost? @relation("MarketingPostWhatsAppNetwork", fields: [marketingPostId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([group, postedAt])
+  @@index([recordedById, postedAt])
 }
 
 model WeeklyMarketingReport {

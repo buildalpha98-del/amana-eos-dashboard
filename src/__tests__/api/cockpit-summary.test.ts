@@ -31,6 +31,7 @@ function setupDefaults() {
   prismaMock.campaignActivationAssignment.findMany.mockResolvedValue([]);
   prismaMock.whatsAppCoordinatorPost.count.mockResolvedValue(0);
   prismaMock.whatsAppCoordinatorPost.findMany.mockResolvedValue([]);
+  prismaMock.whatsAppNetworkPost.count.mockResolvedValue(0);
   prismaMock.centreAvatar.findMany.mockResolvedValue([]);
   prismaMock.centreAvatarInsight.count.mockResolvedValue(0);
   prismaMock.vendorBrief.count.mockResolvedValue(0);
@@ -85,6 +86,10 @@ describe("GET /api/marketing/cockpit/summary", () => {
       weeklyReport: expect.any(Object),
       priorities: [],
     });
+    // Sprint 5 — WhatsApp tile thresholds and patterns
+    expect(body.tiles.whatsapp.coordinator.target).toBe(50);
+    expect(body.tiles.whatsapp.coordinator.floor).toBe(35);
+    expect(body.tiles.whatsapp.patternsFlagged).toBe(0);
   });
 
   it("aggregates feed/story/reel counts from MarketingPost", async () => {

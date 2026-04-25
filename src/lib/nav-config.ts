@@ -14,6 +14,7 @@ import {
   Trophy,
   FileText,
   MessageSquare,
+  MessageCircle,
   ScrollText,
   Megaphone,
   Radio,
@@ -127,6 +128,7 @@ export const navItems: NavItem[] = [
   { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Growth", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] },
   { href: "/marketing/vendor-briefs", label: "Vendor & Printing", icon: Package, section: "Growth", tooltip: "Brief Jinan, track SLAs, prep for next term", roles: ["marketing"] },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" },
+  { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Growth", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] },
   { href: "/conversions", label: "Conversions", icon: Repeat, section: "Growth", tooltip: "Track casual-to-regular booking conversions", roles: ALL_NON_MARKETING },
   { href: "/projects", label: "Projects", icon: FolderKanban, section: "Growth" },
 

@@ -75,6 +75,7 @@ export type CockpitSummary = {
       coordinator: RagMetric;
       engagement: RagMetric;
       announcements: RagMetric;
+      patternsFlagged: number;
     };
     centreIntel: {
       fresh: RagMetric;
@@ -241,9 +242,19 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
       },
     }),
 
-    // Engagement/Announcements — placeholder (no tagging yet)
-    Promise.resolve(0),
-    Promise.resolve(0),
+    // Engagement / Announcements — Akram's network posts this week
+    prisma.whatsAppNetworkPost.count({
+      where: {
+        group: "engagement",
+        postedAt: { gte: week.start, lte: week.end },
+      },
+    }),
+    prisma.whatsAppNetworkPost.count({
+      where: {
+        group: "announcements",
+        postedAt: { gte: week.start, lte: week.end },
+      },
+    }),
 
     // Centre avatars
     prisma.centreAvatar.findMany({
@@ -420,10 +431,13 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
   };
 
   // ── WhatsApp tile ────────────────────────────────────────────
+  // Network-wide coordinator target = 50 (10 centres × 5 weekdays). Floor = 35.
+  // Patterns count is filled in below after escalations are computed.
   const whatsapp = {
-    coordinator: buildRagMetric({ current: whatsappCoordPosts, target: 70, floor: 50 }),
+    coordinator: buildRagMetric({ current: whatsappCoordPosts, target: 50, floor: 35 }),
     engagement: buildRagMetric({ current: engagementPosts, target: 3, floor: 2 }),
     announcements: buildRagMetric({ current: announcementPosts, target: 2, floor: 2 }),
+    patternsFlagged: 0,
   };
 
   // ── Centre Intelligence tile ─────────────────────────────────
@@ -502,18 +516,23 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
       bucket.set(post.serviceId, { name: post.service.name, count: 1 });
     }
   }
+  // Per-coordinator floor: 4/5 weekday posts. Below for two consecutive weeks → flag.
+  const COORD_WEEKLY_FLOOR = 4;
+  let whatsappPatternsCount = 0;
   for (const s of services) {
     const thisWk = perServiceThisWeek.get(s.id)?.count ?? 0;
     const lastWk = perServiceLastWeek.get(s.id)?.count ?? 0;
-    if (thisWk < 5 && lastWk < 5) {
+    if (thisWk < COORD_WEEKLY_FLOOR && lastWk < COORD_WEEKLY_FLOOR) {
       escalations.push({
         type: "whatsapp_2wk_pattern",
         serviceId: s.id,
         serviceName: s.name,
-        context: `${s.name} coordinator <5/7 posts for 2 weeks`,
+        context: `${s.name} coordinator <${COORD_WEEKLY_FLOOR}/5 posts for 2 weeks`,
       });
+      whatsappPatternsCount++;
     }
   }
+  whatsapp.patternsFlagged = whatsappPatternsCount;
 
   // ── Weekly report banner state ───────────────────────────────
   const readyToSendWindow =
