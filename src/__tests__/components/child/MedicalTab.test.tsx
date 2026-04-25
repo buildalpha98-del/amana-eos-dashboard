@@ -77,7 +77,7 @@ describe("MedicalTab", () => {
     });
     render(<MedicalTab child={child} canEdit={true} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Edit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Edit medical details/i }));
 
     const anaphylaxis = screen.getByLabelText(/Anaphylaxis/i) as HTMLInputElement;
     const asthma = screen.getByLabelText(/Asthma/i) as HTMLInputElement;
@@ -97,7 +97,7 @@ describe("MedicalTab", () => {
       medicareRef: "1",
     });
     render(<MedicalTab child={child} canEdit={true} />);
-    fireEvent.click(screen.getByRole("button", { name: /Edit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Edit medical details/i }));
 
     const numberInput = screen.getByDisplayValue("1234567890");
     expect(numberInput).toBeTruthy();
@@ -110,7 +110,7 @@ describe("MedicalTab", () => {
   it("renders vaccination status dropdown with current value selected", () => {
     const child = makeChild({ vaccinationStatus: "overdue" });
     render(<MedicalTab child={child} canEdit={true} />);
-    fireEvent.click(screen.getByRole("button", { name: /Edit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Edit medical details/i }));
 
     const select = screen.getByLabelText(/Vaccination/i) as HTMLSelectElement;
     expect(select.value).toBe("overdue");
@@ -133,7 +133,7 @@ describe("MedicalTab", () => {
     });
     render(<MedicalTab child={child} canEdit={true} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Edit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Edit medical details/i }));
 
     // Toggle anaphylaxis on
     const anaphylaxis = screen.getByLabelText(/Anaphylaxis/i) as HTMLInputElement;
@@ -172,7 +172,7 @@ describe("MedicalTab", () => {
     mutateApi.mockRejectedValueOnce(new Error("Forbidden"));
     render(<MedicalTab child={makeChild()} canEdit={true} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Edit/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Edit medical details/i }));
     const anaphylaxis = screen.getByLabelText(/Anaphylaxis/i) as HTMLInputElement;
     fireEvent.click(anaphylaxis);
 

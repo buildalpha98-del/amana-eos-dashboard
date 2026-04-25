@@ -6,6 +6,7 @@ import { Loader2, Pencil, Save, X } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { mutateApi } from "@/lib/fetch-api";
 import type { ChildProfileRecord } from "../types";
+import { ChildCustodyCard } from "./ChildCustodyCard";
 
 interface MedicalTabProps {
   child: ChildProfileRecord;
@@ -210,6 +211,7 @@ export function MedicalTab({ child, canEdit }: MedicalTabProps) {
             <button
               type="button"
               onClick={() => setEditing(true)}
+              aria-label="Edit medical details"
               className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border border-border text-foreground hover:bg-surface transition-colors"
             >
               <Pencil className="w-3.5 h-3.5" />
@@ -344,6 +346,9 @@ export function MedicalTab({ child, canEdit }: MedicalTabProps) {
           Medical details can only be edited by coordinators and admins.
         </p>
       )}
+
+      {/* Custody arrangements — same tab, separate card; admin-managed */}
+      <ChildCustodyCard child={child} canEdit={canEdit} />
     </div>
   );
 }
