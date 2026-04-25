@@ -38,6 +38,17 @@ const patchSchema = z.object({
     .enum(["up_to_date", "overdue", "exempt", "unknown"])
     .optional()
     .nullable(),
+  nextImmunisationDue: z.string().datetime().optional().nullable(),
+  // Custody / guardianship (admin-set, surfaced on sign-out + medical)
+  custodyArrangements: z
+    .object({
+      type: z.enum(["shared", "sole", "court_order", "informal"]),
+      primaryGuardian: z.string().max(200).optional(),
+      details: z.string().max(2000).optional(),
+      courtOrderUrl: z.string().url().optional(),
+    })
+    .nullable()
+    .optional(),
   // Room/Days tab — fortnight pattern & other booking prefs JSON blob
   bookingPrefs: z.record(z.string(), z.unknown()).optional(),
 });
@@ -49,6 +60,8 @@ const RESTRICTED_KEYS = [
   "medicareExpiry",
   "medicareRef",
   "vaccinationStatus",
+  "nextImmunisationDue",
+  "custodyArrangements",
   "bookingPrefs",
 ] as const;
 
@@ -61,6 +74,7 @@ const DATE_FIELDS = new Set<string>([
   "enrolmentDate",
   "exitDate",
   "medicareExpiry",
+  "nextImmunisationDue",
 ]);
 
 export const GET = withApiAuth(async (req, session, context) => {

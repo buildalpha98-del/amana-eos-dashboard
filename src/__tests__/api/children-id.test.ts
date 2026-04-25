@@ -318,6 +318,90 @@ describe("PATCH /api/children/[id] — validation", () => {
     const res = await PATCH(req, ctx({ id: "child-1" }));
     expect(res.status).toBe(400);
   });
+
+  // ── OWNA gap close — Phase D: custody + immunisation ──
+  it("admin patching nextImmunisationDue → 200 + Date coercion", async () => {
+    mockSession({ id: "u1", name: "Admin", role: "admin", serviceId: null });
+    prismaMock.child.update.mockResolvedValue({
+      id: "child-1",
+      serviceId: "svc-1",
+      bookingPrefs: null,
+    });
+    const req = createRequest("PATCH", "/api/children/child-1", {
+      body: { nextImmunisationDue: "2026-09-15T00:00:00.000Z" },
+    });
+    const res = await PATCH(req, ctx({ id: "child-1" }));
+    expect(res.status).toBe(200);
+    const updateCall = prismaMock.child.update.mock.calls[0]?.[0];
+    expect(updateCall?.data?.nextImmunisationDue).toBeInstanceOf(Date);
+  });
+
+  it("staff patching nextImmunisationDue → 403 (restricted)", async () => {
+    mockSession({ id: "u1", name: "Staff", role: "staff", serviceId: "svc-1" });
+    const req = createRequest("PATCH", "/api/children/child-1", {
+      body: { nextImmunisationDue: "2026-09-15T00:00:00.000Z" },
+    });
+    const res = await PATCH(req, ctx({ id: "child-1" }));
+    expect(res.status).toBe(403);
+  });
+
+  it("admin patching custodyArrangements → 200", async () => {
+    mockSession({ id: "u1", name: "Admin", role: "admin", serviceId: null });
+    prismaMock.child.update.mockResolvedValue({
+      id: "child-1",
+      serviceId: "svc-1",
+      bookingPrefs: null,
+    });
+    const req = createRequest("PATCH", "/api/children/child-1", {
+      body: {
+        custodyArrangements: {
+          type: "shared",
+          primaryGuardian: "Jane Doe",
+          details: "50/50 alternating weeks",
+        },
+      },
+    });
+    const res = await PATCH(req, ctx({ id: "child-1" }));
+    expect(res.status).toBe(200);
+  });
+
+  it("staff patching custodyArrangements → 403 (restricted)", async () => {
+    mockSession({ id: "u1", name: "Staff", role: "staff", serviceId: "svc-1" });
+    const req = createRequest("PATCH", "/api/children/child-1", {
+      body: {
+        custodyArrangements: { type: "shared" },
+      },
+    });
+    const res = await PATCH(req, ctx({ id: "child-1" }));
+    expect(res.status).toBe(403);
+  });
+
+  it("rejects invalid custodyArrangements.type enum (400)", async () => {
+    mockSession({ id: "u1", name: "Admin", role: "admin", serviceId: null });
+    const req = createRequest("PATCH", "/api/children/child-1", {
+      body: {
+        custodyArrangements: { type: "invalid_value" },
+      },
+    });
+    const res = await PATCH(req, ctx({ id: "child-1" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("admin can clear custodyArrangements with null", async () => {
+    mockSession({ id: "u1", name: "Admin", role: "admin", serviceId: null });
+    prismaMock.child.update.mockResolvedValue({
+      id: "child-1",
+      serviceId: "svc-1",
+      bookingPrefs: null,
+    });
+    const req = createRequest("PATCH", "/api/children/child-1", {
+      body: { custodyArrangements: null },
+    });
+    const res = await PATCH(req, ctx({ id: "child-1" }));
+    expect(res.status).toBe(200);
+    const updateCall = prismaMock.child.update.mock.calls[0]?.[0];
+    expect(updateCall?.data?.custodyArrangements).toBeNull();
+  });
 });
 
 describe("GET /api/children/[id]", () => {

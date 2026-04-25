@@ -58,6 +58,8 @@ function makeChild(
     medicareExpiry: null,
     medicareRef: null,
     vaccinationStatus: null,
+    nextImmunisationDue: null,
+    custodyArrangements: null,
     ccsStatus: null,
     room: null,
     tags: [],

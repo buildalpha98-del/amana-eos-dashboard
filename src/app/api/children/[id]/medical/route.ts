@@ -29,6 +29,7 @@ const updateMedicalSchema = z.object({
   anaphylaxisActionPlan: z.boolean().optional(),
   dietaryRequirements: z.array(z.string()).optional(),
   additionalNeeds: z.string().nullable().optional(),
+  nextImmunisationDue: z.string().datetime().nullable().optional(),
 });
 
 export const GET = withApiAuth(async (req, session, context) => {
@@ -45,6 +46,7 @@ export const GET = withApiAuth(async (req, session, context) => {
       anaphylaxisActionPlan: true,
       dietaryRequirements: true,
       additionalNeeds: true,
+      nextImmunisationDue: true,
       serviceId: true,
     },
   });
@@ -74,9 +76,21 @@ export const PUT = withApiAuth(async (req, session, context) => {
 
   if (!existing) throw ApiError.notFound("Child not found");
 
+  // Coerce ISO date string to Date for Prisma
+  const { nextImmunisationDue, ...restData } = parsed.data;
+  const data = {
+    ...restData,
+    ...(nextImmunisationDue !== undefined
+      ? {
+          nextImmunisationDue:
+            nextImmunisationDue === null ? null : new Date(nextImmunisationDue),
+        }
+      : {}),
+  };
+
   const updated = await prisma.child.update({
     where: { id },
-    data: parsed.data,
+    data,
     select: {
       id: true,
       medicalConditions: true,
@@ -84,6 +98,7 @@ export const PUT = withApiAuth(async (req, session, context) => {
       anaphylaxisActionPlan: true,
       dietaryRequirements: true,
       additionalNeeds: true,
+      nextImmunisationDue: true,
     },
   });
 

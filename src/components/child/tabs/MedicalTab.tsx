@@ -35,6 +35,7 @@ interface FormState {
   medicareExpiry: string; // YYYY-MM-DD
   medicareRef: string;
   vaccinationStatus: "" | VaccinationStatus;
+  nextImmunisationDue: string; // YYYY-MM-DD
 }
 
 function toDateInput(date: Date | string | null | undefined): string {
@@ -83,6 +84,7 @@ function buildInitial(child: ChildProfileRecord): FormState {
     medicareRef: child.medicareRef ?? "",
     vaccinationStatus:
       (child.vaccinationStatus as "" | VaccinationStatus) ?? "",
+    nextImmunisationDue: toDateInput(child.nextImmunisationDue),
   };
 }
 
@@ -154,6 +156,10 @@ export function MedicalTab({ child, canEdit }: MedicalTabProps) {
     if (form.vaccinationStatus !== initial.vaccinationStatus) {
       diff.vaccinationStatus =
         form.vaccinationStatus === "" ? null : form.vaccinationStatus;
+    }
+    // nextImmunisationDue
+    if (form.nextImmunisationDue !== initial.nextImmunisationDue) {
+      diff.nextImmunisationDue = toIsoOrNull(form.nextImmunisationDue);
     }
 
     if (Object.keys(diff).length === 0) {
@@ -294,6 +300,12 @@ export function MedicalTab({ child, canEdit }: MedicalTabProps) {
                 }
                 options={VACCINATION_OPTIONS}
               />
+              <Input
+                type="date"
+                label="Next immunisation due"
+                value={form.nextImmunisationDue}
+                onChange={(v) => update("nextImmunisationDue", v)}
+              />
             </div>
           </div>
         ) : (
@@ -318,6 +330,10 @@ export function MedicalTab({ child, canEdit }: MedicalTabProps) {
             <Field
               label="Vaccination status"
               value={vaccinationLabel(child.vaccinationStatus)}
+            />
+            <Field
+              label="Next immunisation due"
+              value={formatDateDisplay(child.nextImmunisationDue)}
             />
           </dl>
         )}

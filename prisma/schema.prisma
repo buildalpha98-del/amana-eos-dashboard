@@ -3875,6 +3875,9 @@ model CentreContact {
   // Link to any enrolment submission this contact was created from (provenance)
   sourceEnrolmentId String?
 
+  // OWNA legacy mapping — populated when OWNA family sync is wired
+  ownaFamilyId String? @unique
+
   nurtureSteps          ParentNurtureStep[]    @relation("ContactNurtureSteps")
   npsResponses          NpsSurveyResponse[]    @relation("ContactNpsResponses")
   referralsMade         Referral[]             @relation("ReferrerContact")
@@ -5347,6 +5350,9 @@ model Child {
   medicareExpiry        DateTime?
   medicareRef           String?
   vaccinationStatus     String?
+  nextImmunisationDue   DateTime?            @db.Date
+  // ── Custody / guardianship (admin-set, surfaced on sign-out + medical) ──
+  custodyArrangements   Json? // { type: "shared" | "sole" | "court_order" | "informal", primaryGuardian?, details?, courtOrderUrl? }
   // ── CCS + room + tags (first-class filter dimensions, 4b) ──
   ccsStatus             String? // "eligible" | "pending" | "ineligible" — documented values, free-text for forward compat
   room                  String? // dashboard-controlled room label; decoupled from OWNA's ownaRoomName
@@ -5380,6 +5386,7 @@ model Child {
   @@index([ownaChildId])
   @@index([serviceId, ccsStatus])
   @@index([serviceId, room])
+  @@index([serviceId, nextImmunisationDue])
 }
 
 // ── Sequences (Parent Nurture + CRM Outreach) ───────────────

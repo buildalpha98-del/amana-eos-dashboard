@@ -15,6 +15,7 @@ export interface ChildMedical {
   anaphylaxisActionPlan: boolean;
   dietaryRequirements: string[];
   additionalNeeds: string | null;
+  nextImmunisationDue: string | null;
   serviceId: string | null;
   availableConditions: string[];
   availableDietary: string[];
@@ -43,6 +44,7 @@ export function useUpdateChildMedical() {
       anaphylaxisActionPlan?: boolean;
       dietaryRequirements?: string[];
       additionalNeeds?: string | null;
+      nextImmunisationDue?: string | null;
     }) => {
       return mutateApi<ChildMedical>(`/api/children/${childId}/medical`, {
         method: "PUT",
