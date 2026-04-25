@@ -19,7 +19,7 @@ vi.mock("@/hooks/useToast", () => ({
   useToast: () => ({ toast: toastSpy }),
 }));
 
-const mutateApiMock = vi.fn(() => Promise.resolve({}));
+const mutateApiMock = vi.fn((..._args: unknown[]) => Promise.resolve({}));
 vi.mock("@/lib/fetch-api", () => ({
   fetchApi: vi.fn(() => Promise.resolve([])),
   mutateApi: (...args: unknown[]) => mutateApiMock(...args),
