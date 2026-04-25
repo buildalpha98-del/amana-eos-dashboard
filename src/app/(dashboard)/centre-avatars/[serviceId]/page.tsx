@@ -20,7 +20,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SectionCard } from "@/components/centre-avatars/SectionCard";
-import { ClaudePromptModal } from "@/components/centre-avatars/ClaudePromptModal";
+import { AiGenerateModal } from "@/components/centre-avatars/AiGenerateModal";
 import {
   CampaignLog,
   CheckInsLog,
@@ -50,7 +50,7 @@ export default function CentreAvatarDetailPage({
   const openMut = useOpenCentreAvatar();
   const markReviewed = useMarkCentreAvatarReviewed();
   const updateSection = useUpdateCentreAvatarSection();
-  const [claudeOpen, setClaudeOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   // Stamp the Avatar as "opened" on mount — this is the campaign gate signal.
   // Only marketing/owner triggers this since the gate is for them. Coordinators
@@ -201,19 +201,29 @@ export default function CentreAvatarDetailPage({
           canEditSections ? (
             <button
               type="button"
-              onClick={() => setClaudeOpen(true)}
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+              onClick={() => setAiOpen(true)}
+              className="inline-flex items-center gap-1 rounded-md border border-brand/30 bg-brand/5 px-2.5 py-1.5 text-xs font-medium text-brand hover:bg-brand/10"
             >
-              <Sparkles className="h-3.5 w-3.5" /> Draft with Claude
+              <Sparkles className="h-3.5 w-3.5" /> Draft with AI
             </button>
           ) : undefined
         }
       />
-      <ClaudePromptModal
-        open={claudeOpen}
-        onClose={() => setClaudeOpen(false)}
+      <AiGenerateModal
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        serviceId={serviceId}
         centreName={avatar.serviceName}
-        snapshot={avatar.snapshot}
+        isApplying={updateSection.isPending}
+        onApply={async (proposed) => {
+          await updateSection.mutateAsync({
+            serviceId,
+            section: "parentAvatar",
+            content: proposed,
+            changeSummary: "AI-drafted from snapshot",
+          });
+          toast({ description: "Parent avatar applied." });
+        }}
       />
 
       {/* Section 3 — Programme Mix */}

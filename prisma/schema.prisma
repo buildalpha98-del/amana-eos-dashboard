@@ -642,6 +642,7 @@ model User {
   // ── AI Usage ───────────────────────────────────────
   aiUsageLogs    AiUsage[]     @relation("AiUsageLogs")
   reviewedDrafts AiTaskDraft[] @relation("DraftReviewer")
+  aiGenerations  AiGenerationCache[] @relation("AiGenerationCacheUser")
 
   // ── Email Templates ──────────────────────────────
   emailTemplates EmailTemplate[] @relation("EmailTemplateCreator")
@@ -4905,6 +4906,32 @@ model AiTaskDraft {
   @@index([issueId])
   @@index([status])
   @@index([createdAt])
+}
+
+/// Cached output for AI generations keyed by (kind, inputHash). Used by the
+/// hybrid AI provider (anthropic + groq) to avoid re-generating identical
+/// prompts within a TTL window. Pulled from on cache hit; written on miss.
+///
+/// `kind` examples: "centre_avatar.parent_avatar".
+/// `inputHash` is a sha256 of the canonicalised input payload.
+model AiGenerationCache {
+  id           String   @id @default(cuid())
+  kind         String
+  inputHash    String
+  output       Json
+  provider     String // "anthropic" | "groq"
+  modelId      String
+  costUsd      Float    @default(0)
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  generatedById String?
+  generatedBy   User?   @relation("AiGenerationCacheUser", fields: [generatedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  @@unique([kind, inputHash])
+  @@index([kind])
+  @@index([expiresAt])
 }
 
 // ── Phase 2 AI Models ──────────────────────────────────────

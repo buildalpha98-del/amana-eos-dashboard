@@ -111,9 +111,15 @@ describe("rolePageAccess", () => {
     expect(allowed).not.toContain("/team");
   });
 
-  it("member has same access as coordinator", () => {
-    // member and coordinator have the same page list
-    expect(rolePageAccess.member).toEqual(rolePageAccess.coordinator);
+  it("member access is a subset of coordinator access", () => {
+    // Coordinator access is a superset of member's — everywhere a member can
+    // go, a coordinator can too. The reverse isn't required (e.g. coordinators
+    // see /centre-avatars/[serviceId] for their own service; members don't).
+    const memberPages = new Set(rolePageAccess.member);
+    const coordPages = new Set(rolePageAccess.coordinator);
+    for (const page of memberPages) {
+      expect(coordPages.has(page)).toBe(true);
+    }
   });
 
   it("staff has very limited access", () => {
