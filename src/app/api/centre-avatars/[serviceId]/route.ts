@@ -21,8 +21,18 @@ type RouteCtx = { params: Promise<{ serviceId: string }> };
  * liaison, update log).
  */
 export const GET = withApiAuth(
-  async (_req, _session, context) => {
+  async (_req, session, context) => {
     const { serviceId } = await (context as unknown as RouteCtx).params;
+
+    // Coordinators can only read their own service's Avatar.
+    if (
+      session.user.role === "coordinator" &&
+      session.user.serviceId !== serviceId
+    ) {
+      throw ApiError.forbidden(
+        "Coordinators can only view their own centre's Avatar",
+      );
+    }
 
     const avatar = await prisma.centreAvatar.findUnique({
       where: { serviceId },
@@ -95,7 +105,9 @@ export const GET = withApiAuth(
       },
     });
   },
-  { roles: ["marketing", "owner", "admin", "head_office"] },
+  {
+    roles: ["marketing", "owner", "admin", "head_office", "coordinator"],
+  },
 );
 
 /**

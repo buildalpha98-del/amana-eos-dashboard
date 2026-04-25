@@ -15,6 +15,7 @@ import { Plus, Sparkles, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FilterBar } from "@/components/ui/v2/FilterBar";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
+import { AiButton } from "@/components/ui/AiButton";
 import { fetchApi } from "@/lib/fetch-api";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -286,13 +287,39 @@ function CreateObservationDialog({
           </Field>
 
           <Field label="Narrative">
-            <textarea
-              value={narrative}
-              onChange={(e) => setNarrative(e.target.value)}
-              rows={5}
-              placeholder="What happened, what did the child do, what were they learning?"
-              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)] resize-y"
-            />
+            <div className="space-y-1.5">
+              <textarea
+                value={narrative}
+                onChange={(e) => setNarrative(e.target.value)}
+                rows={5}
+                placeholder="What happened, what did the child do, what were they learning?"
+                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)] resize-y"
+              />
+              <div className="flex justify-end">
+                <AiButton
+                  size="sm"
+                  templateSlug="nqs/observation-draft"
+                  section="observations"
+                  metadata={{ serviceId, childId }}
+                  variables={{
+                    childFirstName:
+                      childrenData?.find((c) => c.id === childId)?.firstName ?? "the child",
+                    childAge: "",
+                    shortNotes: title || "(short note from educator)",
+                    interests:
+                      interests.split(",").map((s) => s.trim()).filter(Boolean).join(", ") ||
+                      "(none recorded yet)",
+                    photoSummary:
+                      mediaUrls.split(",").filter((s) => s.trim()).length > 0
+                        ? `${mediaUrls.split(",").filter((s) => s.trim()).length} photo(s)`
+                        : "no photos",
+                  }}
+                  onResult={(text) => setNarrative(text)}
+                  label="Draft with AI"
+                  disabled={!childId || !title.trim()}
+                />
+              </div>
+            </div>
           </Field>
 
           <Field label="MTOP outcomes">

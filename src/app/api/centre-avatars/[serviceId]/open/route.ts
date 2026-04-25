@@ -21,15 +21,20 @@ export const POST = withApiAuth(
     });
     if (!avatar) throw ApiError.notFound("Centre Avatar not found for that service");
 
+    const now = new Date();
     await prisma.centreAvatar.update({
       where: { id: avatar.id },
       data: {
-        lastOpenedAt: new Date(),
+        lastOpenedAt: now,
         lastOpenedById: session.user.id,
       },
     });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      lastOpenedAt: now.toISOString(),
+      lastOpenedById: session.user.id,
+    });
   },
   { roles: ["marketing", "owner", "admin", "head_office"] },
 );

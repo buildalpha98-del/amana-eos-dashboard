@@ -80,6 +80,60 @@ export function DataEntryCell({
     handleSave();
   }, [handleSave]);
 
+  /**
+   * Arrow-key navigation across the scorecard grid.
+   *
+   * Saves the current cell, then locates the adjacent data-entry cell
+   * (marker `data-scorecard-cell`) and clicks it to enter edit mode.
+   * Skips header columns / action columns since they don't carry the
+   * marker. Wraps within a row but does NOT wrap row→row to avoid
+   * accidental jumps to a measurable on the wrong line.
+   */
+  const moveFocus = useCallback(
+    (direction: "left" | "right" | "up" | "down") => {
+      const td = inputRef.current?.closest("td");
+      if (!td) return;
+      const row = td.parentElement;
+      if (!row) return;
+
+      const cellsInRow = Array.from(
+        row.querySelectorAll<HTMLTableCellElement>("td[data-scorecard-cell]"),
+      );
+      const colIdx = cellsInRow.indexOf(td as HTMLTableCellElement);
+
+      let target: HTMLTableCellElement | null = null;
+
+      if (direction === "left") {
+        target = cellsInRow[colIdx - 1] ?? null;
+      } else if (direction === "right") {
+        target = cellsInRow[colIdx + 1] ?? null;
+      } else {
+        // up / down — jump to the same column in the next sibling row that
+        // still has data-entry cells. Walk until we find one or run out.
+        const step = direction === "up" ? "previousElementSibling" : "nextElementSibling";
+        let candidateRow = row[step] as HTMLElement | null;
+        while (candidateRow) {
+          const cells = Array.from(
+            candidateRow.querySelectorAll<HTMLTableCellElement>("td[data-scorecard-cell]"),
+          );
+          if (cells.length > 0) {
+            target = cells[colIdx] ?? cells[cells.length - 1];
+            break;
+          }
+          candidateRow = candidateRow[step] as HTMLElement | null;
+        }
+      }
+
+      if (target) {
+        // Defer click until React has flushed our save's state update so we
+        // don't enter edit mode on the new cell while the old one is still
+        // mid-save.
+        setTimeout(() => target?.click(), 0);
+      }
+    },
+    [],
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter" || e.key === "Tab") {
@@ -88,13 +142,54 @@ export function DataEntryCell({
           e.preventDefault();
         }
         handleSave();
+        return;
       }
       if (e.key === "Escape") {
         e.preventDefault();
         handleCancel();
+        return;
+      }
+      if (
+        e.key === "ArrowLeft" ||
+        e.key === "ArrowRight" ||
+        e.key === "ArrowUp" ||
+        e.key === "ArrowDown"
+      ) {
+        const input = e.currentTarget;
+        // `<input type="number">` does NOT support selectionStart/end in most
+        // browsers — both return null. We treat number inputs as "always at
+        // boundary" so arrow keys always navigate. For text-like inputs
+        // (defensive — currently only number), require the cursor to actually
+        // be at the start (for ArrowLeft/Up) or end (for ArrowRight/Down) so
+        // multi-digit values can still be edited mid-value with arrow keys.
+        const supportsSelection =
+          input.selectionStart !== null && input.selectionEnd !== null;
+        const atStart =
+          !supportsSelection ||
+          (input.selectionStart === 0 && input.selectionEnd === 0);
+        const atEnd =
+          !supportsSelection ||
+          (input.selectionStart === input.value.length &&
+            input.selectionEnd === input.value.length);
+        if (
+          ((e.key === "ArrowLeft" || e.key === "ArrowUp") && atStart) ||
+          ((e.key === "ArrowRight" || e.key === "ArrowDown") && atEnd)
+        ) {
+          e.preventDefault();
+          handleSave();
+          const dir =
+            e.key === "ArrowLeft"
+              ? "left"
+              : e.key === "ArrowRight"
+                ? "right"
+                : e.key === "ArrowUp"
+                  ? "up"
+                  : "down";
+          moveFocus(dir);
+        }
       }
     },
-    [handleSave, handleCancel]
+    [handleSave, handleCancel, moveFocus]
   );
 
   const formatValue = (val: number) => {
@@ -107,7 +202,7 @@ export function DataEntryCell({
 
   if (editing) {
     return (
-      <td className="px-1 py-1">
+      <td className="px-1 py-1" data-scorecard-cell="">
         <input
           ref={inputRef}
           type="number"
@@ -125,6 +220,7 @@ export function DataEntryCell({
   if (entry) {
     return (
       <td
+        data-scorecard-cell=""
         onClick={() => {
           cancelledRef.current = false;
           setValue(String(entry.value));
@@ -148,6 +244,7 @@ export function DataEntryCell({
   // Empty cell
   return (
     <td
+      data-scorecard-cell=""
       onClick={() => {
         cancelledRef.current = false;
         setValue("");

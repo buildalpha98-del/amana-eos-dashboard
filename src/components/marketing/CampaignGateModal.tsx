@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, ExternalLink, X } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, ExternalLink, RefreshCw, X } from "lucide-react";
 import Link from "next/link";
 
 export type CampaignGateBlocker = {
@@ -27,13 +28,27 @@ export function CampaignGateModal({
   isOwner,
   onClose,
   onSkip,
+  onRecheck,
 }: {
   open: boolean;
   blockers: CampaignGateBlocker[];
   isOwner: boolean;
   onClose: () => void;
   onSkip: () => void;
+  onRecheck?: () => Promise<void> | void;
 }) {
+  const [rechecking, setRechecking] = useState(false);
+
+  const handleRecheck = async () => {
+    if (!onRecheck) return;
+    setRechecking(true);
+    try {
+      await onRecheck();
+    } finally {
+      setRechecking(false);
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -118,15 +133,28 @@ export function CampaignGateModal({
             >
               Cancel
             </button>
-            {isOwner && (
-              <button
-                type="button"
-                onClick={onSkip}
-                className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
-              >
-                Skip gate (owner)
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {onRecheck && (
+                <button
+                  type="button"
+                  onClick={handleRecheck}
+                  disabled={rechecking}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand/30 bg-brand/5 px-4 py-2 text-sm font-medium text-brand transition-colors hover:bg-brand/10 disabled:opacity-50"
+                >
+                  <RefreshCw className={`h-4 w-4 ${rechecking ? "animate-spin" : ""}`} />
+                  {rechecking ? "Re-checking..." : "Re-check"}
+                </button>
+              )}
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={onSkip}
+                  className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
+                >
+                  Skip gate (owner)
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

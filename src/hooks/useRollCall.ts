@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/useToast";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { offlineQueue } from "@/lib/offline-queue";
 
 // ── Types ────────────────────────────────────────────────
 
@@ -57,6 +58,21 @@ interface RollCallActionPayload {
   notes?: string;
 }
 
+/**
+ * Generate a UUID even on browsers/contexts without `crypto.randomUUID()`.
+ * Roll call runs on tablets in flight mode — older webviews may not have it.
+ */
+function genUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 // ── Hooks ────────────────────────────────────────────────
 
 export function useRollCall(serviceId: string, date: string, sessionType: string) {
@@ -76,11 +92,41 @@ export function useUpdateRollCall() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: RollCallActionPayload) =>
-      mutateApi("/api/attendance/roll-call", {
-        method: "POST",
-        body: payload,
-      }),
+    mutationFn: async (payload: RollCallActionPayload) => {
+      // Stamp the action with the educator's local time + a UUID so:
+      //   1. Offline replays preserve the original sign-in time (server clamps
+      //      anything older than 24h)
+      //   2. Activity logs can correlate replays back to the original tap
+      const enriched = {
+        ...payload,
+        occurredAt: new Date().toISOString(),
+        clientMutationId: genUuid(),
+      };
+      const url = "/api/attendance/roll-call";
+      try {
+        return await mutateApi(url, { method: "POST", body: enriched });
+      } catch (err) {
+        // Queue on transient failures only. Validation 4xx (e.g. unknown
+        // child) bubbles up so the educator sees an immediate red toast.
+        const msg = err instanceof Error ? err.message : "";
+        const isTransient =
+          msg.includes("NetworkError") ||
+          msg.toLowerCase().includes("failed to fetch") ||
+          msg.startsWith("HTTP 5");
+        if (!isTransient) throw err;
+        await offlineQueue.enqueue({
+          id: enriched.clientMutationId,
+          url,
+          method: "POST",
+          body: enriched,
+        });
+        toast({
+          description:
+            "Saved offline — will sync when you're back online.",
+        });
+        return { queued: true as const };
+      }
+    },
     // Optimistic update
     onMutate: async (variables) => {
       const key = ["roll-call", variables.serviceId, variables.date, variables.sessionType];

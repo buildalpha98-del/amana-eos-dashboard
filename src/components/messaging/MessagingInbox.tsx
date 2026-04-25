@@ -38,6 +38,7 @@ import {
   useMessageAttachments,
   MAX_ATTACHMENTS,
 } from "@/components/parent/ui";
+import { AiButton } from "@/components/ui/AiButton";
 
 // ── Status Tabs ────────────────────────────────────────────
 
@@ -497,16 +498,44 @@ function ConversationThread({
           >
             <Paperclip className="w-5 h-5" />
           </button>
-          <textarea
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              attachments.length > 0 ? "Add a caption…" : "Type a message..."
-            }
-            rows={3}
-            className="flex-1 px-3 py-2.5 border border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
-          />
+          <div className="flex-1 flex flex-col gap-1.5">
+            <textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                attachments.length > 0 ? "Add a caption…" : "Type a message..."
+              }
+              rows={3}
+              className="w-full px-3 py-2.5 border border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
+            />
+            <div className="flex justify-end">
+              <AiButton
+                size="sm"
+                templateSlug="messaging/parent-reply"
+                section="messaging"
+                metadata={{
+                  conversationId,
+                  serviceId: conversation.service.id,
+                }}
+                variables={{
+                  parentMessage:
+                    [...conversation.messages]
+                      .reverse()
+                      .find((m) => m.senderType === "parent")?.body ??
+                    "(no recent parent message)",
+                  conversationHistory: conversation.messages
+                    .slice(-6)
+                    .map((m) => `${m.senderType}: ${m.body}`)
+                    .join("\n"),
+                  childContext: "",
+                  tone: "warm professional",
+                }}
+                onResult={(text) => setReplyText(text)}
+                label="Draft reply"
+              />
+            </div>
+          </div>
           <button
             onClick={handleSend}
             disabled={!canSend}

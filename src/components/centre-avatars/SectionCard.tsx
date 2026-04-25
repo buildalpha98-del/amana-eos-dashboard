@@ -1,48 +1,260 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Save, X, Loader2 } from "lucide-react";
+import { Code2, Pencil, X } from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import { useIsMobile } from "@/hooks/useMediaQuery";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/Sheet";
+import type { SectionKey } from "@/lib/centre-avatar/sections";
+import { SnapshotForm } from "./forms/SnapshotForm";
+import { ParentAvatarForm } from "./forms/ParentAvatarForm";
+import { ProgrammeMixForm } from "./forms/ProgrammeMixForm";
+import { AssetLibraryForm } from "./forms/AssetLibraryForm";
+import { SectionReadonly } from "./SectionReadonly";
 
 /**
- * Generic section editor for the 4 JSON sections of a Centre Avatar
- * (snapshot, parentAvatar, programmeMix, assetLibrary).
+ * Section editor for the 4 content sections of a Centre Avatar.
  *
- * v1 UX: readonly JSON-ish view by default, "Edit" flips to a JSON textarea
- * you can save. The shape is enforced server-side against the section's Zod
- * schema — any invalid JSON or shape mismatch surfaces as a toast.
+ * - Default mode is a structured form (per-section, schema-shaped) — the
+ *   primary path for Akram and the marketing team.
+ * - "Raw JSON" mode is an advanced toggle for Jayden / engineers when a
+ *   shape change needs to be made by hand.
+ * - Section-specific readonly summary is shown when not editing.
  */
 export function SectionCard({
+  sectionKey,
   title,
   description,
   content,
   onSave,
   isSaving,
   extraHeader,
-  children,
+  readOnly = false,
 }: {
+  sectionKey: SectionKey;
   title: string;
   description?: string;
   content: unknown;
   onSave: (next: Record<string, unknown>) => Promise<void> | void;
   isSaving: boolean;
   extraHeader?: React.ReactNode;
-  children?: React.ReactNode;
+  /** When true, hide all edit affordances and only show the readonly summary. */
+  readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<string>(() => JSON.stringify(content ?? {}, null, 2));
-  const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<"form" | "json">("form");
+  const isMobile = useIsMobile();
 
   const startEdit = () => {
-    setDraft(JSON.stringify(content ?? {}, null, 2));
-    setError(null);
+    setMode("form");
     setEditing(true);
   };
 
   const cancel = () => {
     setEditing(false);
-    setError(null);
   };
+
+  const handleSave = async (next: Record<string, unknown>) => {
+    try {
+      await onSave(next);
+      setEditing(false);
+      toast({ description: `${title} saved.` });
+    } catch (err) {
+      // The mutation hook already toasts on error; surface inline too so the
+      // user sees it in the form context.
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "Save failed.",
+      });
+    }
+  };
+
+  // Editing on mobile happens inside a full-width sheet (see render below).
+  // Editing on desktop happens inline. The card body always shows the
+  // readonly summary; the inline editor only renders on desktop.
+  const editorBody = mode === "form" ? (
+    <SectionFormDispatch
+      sectionKey={sectionKey}
+      content={content}
+      onSave={handleSave}
+      onCancel={cancel}
+      isSaving={isSaving}
+    />
+  ) : (
+    <RawJsonEditor
+      title={title}
+      content={content}
+      onSave={handleSave}
+      onCancel={cancel}
+      isSaving={isSaving}
+    />
+  );
+
+  const modeToggle = (
+    <button
+      type="button"
+      onClick={() => setMode(mode === "form" ? "json" : "form")}
+      className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+      aria-pressed={mode === "json"}
+      title={mode === "form" ? "Switch to raw JSON" : "Switch to form"}
+    >
+      <Code2 className="h-3.5 w-3.5" />
+      {mode === "form" ? "Raw JSON" : "Form"}
+    </button>
+  );
+
+  return (
+    <>
+      <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">{title}</h2>
+            {description && <p className="mt-0.5 text-xs text-muted">{description}</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            {extraHeader}
+            {/* Desktop edit affordances */}
+            {editing && !readOnly && !isMobile && (
+              <>
+                {modeToggle}
+                <button
+                  type="button"
+                  onClick={cancel}
+                  className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+                >
+                  <X className="h-3.5 w-3.5" /> Cancel
+                </button>
+              </>
+            )}
+            {!editing && !readOnly && (
+              <button
+                type="button"
+                onClick={startEdit}
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4">
+          {editing && !readOnly && !isMobile ? (
+            editorBody
+          ) : (
+            <SectionReadonly sectionKey={sectionKey} content={content} />
+          )}
+        </div>
+      </section>
+
+      {/* Mobile editor lives in a full-width sheet so a long form is usable
+          on a phone. Sticky header carries the mode toggle + cancel. */}
+      {isMobile && !readOnly && (
+        <Sheet
+          open={editing}
+          onOpenChange={(o) => {
+            if (!o) cancel();
+          }}
+        >
+          <SheetContent
+            side="right"
+            width="max-w-2xl"
+            className="flex flex-col"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-card px-4 py-3">
+              <SheetTitle className="text-base font-semibold">{title}</SheetTitle>
+              <div className="flex items-center gap-2">
+                {modeToggle}
+                <button
+                  type="button"
+                  onClick={cancel}
+                  className="rounded-md p-1.5 text-muted hover:bg-surface hover:text-foreground"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4">{editorBody}</div>
+          </SheetContent>
+        </Sheet>
+      )}
+    </>
+  );
+}
+
+function SectionFormDispatch({
+  sectionKey,
+  content,
+  onSave,
+  onCancel,
+  isSaving,
+}: {
+  sectionKey: SectionKey;
+  content: unknown;
+  onSave: (next: Record<string, unknown>) => Promise<void>;
+  onCancel: () => void;
+  isSaving: boolean;
+}) {
+  switch (sectionKey) {
+    case "snapshot":
+      return (
+        <SnapshotForm
+          initial={content as never}
+          onSave={onSave}
+          onCancel={onCancel}
+          isSaving={isSaving}
+        />
+      );
+    case "parentAvatar":
+      return (
+        <ParentAvatarForm
+          initial={content as never}
+          onSave={onSave}
+          onCancel={onCancel}
+          isSaving={isSaving}
+        />
+      );
+    case "programmeMix":
+      return (
+        <ProgrammeMixForm
+          initial={content as never}
+          onSave={onSave}
+          onCancel={onCancel}
+          isSaving={isSaving}
+        />
+      );
+    case "assetLibrary":
+      return (
+        <AssetLibraryForm
+          initial={content as never}
+          onSave={onSave}
+          onCancel={onCancel}
+          isSaving={isSaving}
+        />
+      );
+  }
+}
+
+/**
+ * Raw JSON fallback — preserves the v1 power-user editor for cases the form
+ * can't represent (e.g. one-off cleanups, schema migrations).
+ */
+function RawJsonEditor({
+  title,
+  content,
+  onSave,
+  onCancel,
+  isSaving,
+}: {
+  title: string;
+  content: unknown;
+  onSave: (next: Record<string, unknown>) => Promise<void>;
+  onCancel: () => void;
+  isSaving: boolean;
+}) {
+  const [draft, setDraft] = useState<string>(() => JSON.stringify(content ?? {}, null, 2));
+  const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
     setError(null);
@@ -57,114 +269,73 @@ export function SectionCard({
       setError("Top-level value must be an object.");
       return;
     }
+    await onSave(parsed as Record<string, unknown>);
+  };
+
+  const format = () => {
     try {
-      await onSave(parsed as Record<string, unknown>);
-      setEditing(false);
-      toast({ description: `${title} saved.` });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed.");
+      const parsed = draft.trim() === "" ? {} : JSON.parse(draft);
+      setDraft(JSON.stringify(parsed, null, 2));
+      setError(null);
+    } catch {
+      setError("Can't format — JSON is invalid.");
     }
   };
 
   return (
-    <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">{title}</h2>
-          {description && (
-            <p className="mt-0.5 text-xs text-muted">{description}</p>
-          )}
-        </div>
+    <div>
+      <textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && (e.key === "Enter" || e.key === "s")) {
+            e.preventDefault();
+            void save();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            onCancel();
+          }
+        }}
+        spellCheck={false}
+        rows={18}
+        autoFocus
+        aria-label={`${title} JSON editor`}
+        className="w-full rounded-lg border border-border bg-surface/40 px-3 py-2 text-xs font-mono focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+      />
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <p className="text-[11px] text-muted">
+          <kbd className="rounded bg-surface px-1 py-0.5 font-mono">⌘</kbd>
+          <kbd className="ml-0.5 rounded bg-surface px-1 py-0.5 font-mono">↵</kbd> save ·{" "}
+          <kbd className="rounded bg-surface px-1 py-0.5 font-mono">Esc</kbd> cancel
+        </p>
         <div className="flex items-center gap-2">
-          {extraHeader}
-          {editing ? (
-            <>
-              <button
-                type="button"
-                onClick={cancel}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
-              >
-                <X className="h-3.5 w-3.5" /> Cancel
-              </button>
-              <button
-                type="button"
-                onClick={save}
-                disabled={isSaving}
-                className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-hover disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Save className="h-3.5 w-3.5" />
-                )}
-                Save
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={startEdit}
-              className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
-            >
-              <Pencil className="h-3.5 w-3.5" /> Edit
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={format}
+            className="rounded-md border border-border bg-card px-2 py-1 text-[11px] font-medium text-foreground/80 hover:bg-surface"
+          >
+            Format
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-surface"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={isSaving}
+            className="rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
         </div>
       </div>
-
-      <div className="mt-4">
-        {editing ? (
-          <>
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                // Cmd/Ctrl+Enter or Cmd/Ctrl+S → save; Esc → cancel
-                if ((e.metaKey || e.ctrlKey) && (e.key === "Enter" || e.key === "s")) {
-                  e.preventDefault();
-                  void save();
-                } else if (e.key === "Escape") {
-                  e.preventDefault();
-                  cancel();
-                }
-              }}
-              spellCheck={false}
-              rows={18}
-              autoFocus
-              aria-label={`${title} JSON editor`}
-              className="w-full rounded-lg border border-border bg-surface/40 px-3 py-2 text-xs font-mono focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-            />
-            <p className="mt-1 text-[11px] text-muted">
-              <kbd className="rounded bg-surface px-1 py-0.5 font-mono">⌘</kbd>
-              <kbd className="ml-0.5 rounded bg-surface px-1 py-0.5 font-mono">↵</kbd> save ·
-              <kbd className="ml-1.5 rounded bg-surface px-1 py-0.5 font-mono">Esc</kbd> cancel
-            </p>
-            {error && (
-              <p className="mt-2 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-700">
-                {error}
-              </p>
-            )}
-          </>
-        ) : (
-          children ?? <JsonReadonly value={content} />
-        )}
-      </div>
-    </section>
-  );
-}
-
-export function JsonReadonly({ value }: { value: unknown }) {
-  const s = JSON.stringify(value ?? {}, null, 2);
-  if (s === "{}") {
-    return (
-      <p className="text-xs italic text-muted">
-        Empty — click Edit to start filling this section in.
-      </p>
-    );
-  }
-  return (
-    <pre className="max-h-96 overflow-auto rounded-lg bg-surface/40 p-3 text-xs leading-relaxed text-foreground/80">
-      {s}
-    </pre>
+      {error && (
+        <p className="mt-2 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</p>
+      )}
+    </div>
   );
 }

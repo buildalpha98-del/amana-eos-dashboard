@@ -20,6 +20,8 @@ import {
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/Dialog";
 import { FilterBar } from "@/components/ui/v2/FilterBar";
+import { AiButton } from "@/components/ui/AiButton";
+import { toast } from "@/hooks/useToast";
 import {
   useRiskAssessments,
   useCreateRiskAssessment,
@@ -347,22 +349,68 @@ function CreateDialog({
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center justify-between mb-1 gap-2">
               <span className="block text-[11px] font-semibold uppercase tracking-wide text-[color:var(--color-muted)]">
                 Hazards
               </span>
-              <button
-                type="button"
-                onClick={() =>
-                  setHazards((prev) => [
-                    ...prev,
-                    { hazard: "", likelihood: 1, severity: 1, controls: "" },
-                  ])
-                }
-                className="text-[11px] font-medium text-[color:var(--color-brand)]"
-              >
-                + Add hazard
-              </button>
+              <div className="flex items-center gap-2">
+                <AiButton
+                  size="sm"
+                  templateSlug="nqs/risk-hazards-draft"
+                  section="risk-assessments"
+                  metadata={{ serviceId, activityType }}
+                  variables={{
+                    activityType,
+                    location: location || "(unspecified)",
+                    knownContext: title || "(no extra context)",
+                  }}
+                  onResult={(text) => {
+                    try {
+                      const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+                      const parsed = JSON.parse(cleaned);
+                      if (!Array.isArray(parsed)) throw new Error("expected array");
+                      const safe: Hazard[] = parsed
+                        .filter((p) => p && typeof p === "object")
+                        .slice(0, 25)
+                        .map((p) => ({
+                          hazard: String(p.hazard ?? "").slice(0, 200),
+                          likelihood: Math.max(1, Math.min(5, Number(p.likelihood) || 1)),
+                          severity: Math.max(1, Math.min(5, Number(p.severity) || 1)),
+                          controls: String(p.controls ?? "").slice(0, 500),
+                        }))
+                        .filter((h) => h.hazard && h.controls);
+                      if (safe.length > 0) {
+                        setHazards(safe);
+                        toast({ description: `Drafted ${safe.length} hazards — review and edit before saving.` });
+                      } else {
+                        toast({
+                          variant: "destructive",
+                          description: "AI returned no usable hazards — try again with a clearer activity description.",
+                        });
+                      }
+                    } catch {
+                      toast({
+                        variant: "destructive",
+                        description: "AI didn't return valid JSON — please add hazards manually.",
+                      });
+                    }
+                  }}
+                  label="Suggest hazards"
+                  disabled={!activityType}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setHazards((prev) => [
+                      ...prev,
+                      { hazard: "", likelihood: 1, severity: 1, controls: "" },
+                    ])
+                  }
+                  className="text-[11px] font-medium text-[color:var(--color-brand)]"
+                >
+                  + Add hazard
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               {hazards.map((h, i) => {
