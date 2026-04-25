@@ -193,7 +193,9 @@ function RiskCard({
             onClick={() => approve.mutate({ raId: ra.id })}
             disabled={approve.isPending}
             className={cn(
-              "inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-[var(--radius-sm)]",
+              "inline-flex items-center gap-1 px-3 py-1.5 text-[12px] font-medium rounded-[var(--radius-sm)]",
+              // Tablet tap target — approval is a one-shot action
+              "min-h-[44px]",
               "bg-emerald-600 text-white hover:bg-emerald-700 transition-colors",
               "disabled:opacity-50",
             )}
@@ -308,7 +310,7 @@ function CreateDialog({
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
                 placeholder="e.g. Zoo excursion — prep"
               />
             </Field>
@@ -320,7 +322,7 @@ function CreateDialog({
                     e.target.value as RiskAssessmentItem["activityType"],
                   )
                 }
-                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
               >
                 <option value="routine">Routine</option>
                 <option value="incursion">Incursion</option>
@@ -335,14 +337,14 @@ function CreateDialog({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
               />
             </Field>
             <Field label="Location">
               <input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+                className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
                 placeholder="Optional"
               />
             </Field>
@@ -435,7 +437,7 @@ function CreateDialog({
                           updateHazard(i, { hazard: e.target.value })
                         }
                         placeholder="Hazard"
-                        className="flex-1 rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm"
+                        className="flex-1 rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm min-h-[44px]"
                       />
                       {hazards.length > 1 && (
                         <button
@@ -469,7 +471,7 @@ function CreateDialog({
                         updateHazard(i, { controls: e.target.value })
                       }
                       placeholder="Controls / mitigation"
-                      className="w-full mt-2 rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm"
+                      className="w-full mt-2 rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm min-h-[44px]"
                     />
                   </div>
                 );
@@ -481,7 +483,7 @@ function CreateDialog({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-sm font-medium text-[color:var(--color-muted)]"
+              className="min-h-[44px] px-4 py-2 text-sm font-medium text-[color:var(--color-muted)]"
             >
               Cancel
             </button>
@@ -557,7 +559,9 @@ function BrandButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)]",
+        "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
+        // Tablet tap target
+        "min-h-[44px]",
         "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
         "hover:bg-[color:var(--color-brand-hover)] transition-colors",
         "disabled:opacity-50 disabled:cursor-not-allowed",

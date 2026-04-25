@@ -81,7 +81,7 @@ export function ShiftHandoverWidget({ serviceId }: { serviceId: string }) {
             onChange={(e) => setDraft(e.target.value)}
             rows={3}
             placeholder="What should the next shift know? Meds due, behaviour to watch, parent to call back…"
-            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-white resize-y"
+            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-white resize-y"
           />
           <div className="flex justify-end">
             <button
@@ -89,13 +89,15 @@ export function ShiftHandoverWidget({ serviceId }: { serviceId: string }) {
               disabled={!draft.trim() || create.isPending}
               onClick={() => create.mutate(draft.trim())}
               className={cn(
-                "inline-flex items-center gap-1 px-2.5 py-1 rounded-[var(--radius-sm)]",
-                "bg-[color:var(--color-brand)] text-white text-[12px] font-medium",
+                "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
+                // Tablet tap target
+                "min-h-[44px]",
+                "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
                 "hover:bg-[color:var(--color-brand-hover)] transition-colors",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
               )}
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send className="w-4 h-4" />
               {create.isPending ? "Saving…" : "Save handover"}
             </button>
           </div>

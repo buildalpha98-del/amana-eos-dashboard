@@ -140,12 +140,14 @@ export function ServiceMedicationTab({ serviceId }: { serviceId: string }) {
                     type="button"
                     onClick={() => setLogFor(c)}
                     className={cn(
-                      "inline-flex items-center gap-1 px-2.5 py-1 rounded-[var(--radius-sm)]",
-                      "bg-[color:var(--color-brand)] text-white text-[12px] font-medium shrink-0",
+                      "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
+                      // Medication is a high-stakes tablet action — 44px min
+                      "min-h-[44px]",
+                      "bg-[color:var(--color-brand)] text-white text-[13px] font-medium shrink-0",
                       "hover:bg-[color:var(--color-brand-hover)] transition-colors",
                     )}
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4" />
                     Log dose
                   </button>
                 </div>
@@ -233,7 +235,7 @@ function LogDoseDialog({
               value={medicationName}
               onChange={(e) => setMedicationName(e.target.value)}
               placeholder="e.g. Ventolin, Paracetamol, EpiPen"
-              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
             />
           </Field>
           <Field label="Dose">
@@ -241,14 +243,14 @@ function LogDoseDialog({
               value={dose}
               onChange={(e) => setDose(e.target.value)}
               placeholder="e.g. 5ml, 2 puffs, 300mcg"
-              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
             />
           </Field>
           <Field label="Route">
             <select
               value={route}
               onChange={(e) => setRoute(e.target.value as MedicationRoute)}
-              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
             >
               <option value="oral">Oral</option>
               <option value="topical">Topical</option>
@@ -264,7 +266,7 @@ function LogDoseDialog({
               value={witnessedById}
               onChange={(e) => setWitnessedById(e.target.value)}
               className={cn(
-                "w-full rounded-[var(--radius-sm)] border px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]",
+                "w-full rounded-[var(--radius-sm)] border px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]",
                 witnessRequired && !witnessedById
                   ? "border-[color:var(--color-danger)]"
                   : "border-[color:var(--color-border)]",
@@ -283,14 +285,14 @@ function LogDoseDialog({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)] resize-y"
+              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px] resize-y"
             />
           </Field>
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-sm font-medium text-[color:var(--color-muted)]"
+              className="min-h-[44px] px-4 py-2 text-sm font-medium text-[color:var(--color-muted)]"
             >
               Cancel
             </button>
@@ -299,7 +301,7 @@ function LogDoseDialog({
               onClick={submit}
               disabled={!valid || log.isPending}
               className={cn(
-                "px-3 py-1.5 rounded-[var(--radius-sm)]",
+                "min-h-[44px] px-4 py-2 rounded-[var(--radius-sm)]",
                 "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
                 "hover:bg-[color:var(--color-brand-hover)] transition-colors",
                 "disabled:opacity-50 disabled:cursor-not-allowed",

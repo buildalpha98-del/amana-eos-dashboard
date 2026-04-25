@@ -3,6 +3,7 @@
 import { ServiceTodayPanel } from "./ServiceTodayPanel";
 import { RatioWidget } from "./RatioWidget";
 import { ShiftHandoverWidget } from "./ShiftHandoverWidget";
+import { ServiceActivityWidget } from "./ServiceActivityWidget";
 
 interface ServiceTodayTabProps {
   serviceId: string;
@@ -28,6 +29,7 @@ export function ServiceTodayTab({ serviceId }: ServiceTodayTabProps) {
         <RatioWidget serviceId={serviceId} compact />
       </div>
       <ShiftHandoverWidget serviceId={serviceId} />
+      <ServiceActivityWidget serviceId={serviceId} />
       <ServiceTodayPanel serviceId={serviceId} />
     </div>
   );

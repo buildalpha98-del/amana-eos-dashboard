@@ -21,6 +21,7 @@ import {
   useCreateReflection,
   type ReflectionItem,
 } from "@/hooks/useReflections";
+import { useReflectionAiContext } from "@/hooks/useAiContext";
 import {
   Dialog,
   DialogContent,
@@ -162,7 +163,10 @@ function BrandButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)]",
+        "inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-sm)]",
+        // 44px min height — tablet tap target. Educators on iPad shouldn't
+        // need to aim.
+        "min-h-[44px]",
         "bg-[color:var(--color-brand)] text-white text-[13px] font-medium",
         "hover:bg-[color:var(--color-brand-hover)] transition-colors",
         "disabled:opacity-50 disabled:cursor-not-allowed",
@@ -239,6 +243,9 @@ function CreateReflectionDialog({
   onClose: () => void;
 }) {
   const create = useCreateReflection(serviceId);
+  // Lazy — fires once when the dialog opens, then served from cache for any
+  // re-clicks of "Draft with AI" within 5 minutes.
+  const { data: aiContext } = useReflectionAiContext(serviceId);
   const [type, setType] = useState<ReflectionItem["type"]>("weekly");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -270,7 +277,7 @@ function CreateReflectionDialog({
           <select
             value={type}
             onChange={(e) => setType(e.target.value as ReflectionItem["type"])}
-            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
           >
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
@@ -284,7 +291,7 @@ function CreateReflectionDialog({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="What's this reflection about?"
-            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)]"
+            className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] min-h-[44px]"
           />
         </Field>
 
@@ -295,7 +302,7 @@ function CreateReflectionDialog({
               onChange={(e) => setContent(e.target.value)}
               rows={6}
               placeholder="What happened, what went well, what would you change?"
-              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-2 py-1.5 text-sm bg-[color:var(--color-cream-deep)] resize-y"
+              className="w-full rounded-[var(--radius-sm)] border border-[color:var(--color-border)] px-3 py-2.5 text-sm bg-[color:var(--color-cream-deep)] resize-y"
             />
             <div className="flex justify-end">
               <AiButton
@@ -304,11 +311,19 @@ function CreateReflectionDialog({
                 section="reflections"
                 metadata={{ serviceId, type }}
                 variables={{
-                  serviceName: serviceId,
-                  weekSummary: title || "(weekly reflection)",
-                  recentObservations: "(see service observations tab)",
-                  recentIncidents: "(see service incidents tab)",
-                  recentAudits: "(see service audits tab)",
+                  serviceName: aiContext?.serviceName ?? "this service",
+                  weekSummary:
+                    aiContext?.weekSummary ??
+                    "(loading attendance summary…)",
+                  recentObservations:
+                    aiContext?.recentObservations ??
+                    "(loading recent observations…)",
+                  recentIncidents:
+                    aiContext?.recentIncidents ??
+                    "(loading recent incidents…)",
+                  recentAudits:
+                    aiContext?.recentAudits ??
+                    "(loading recent audits…)",
                   reflectionType: type,
                 }}
                 onResult={(text) => setContent(text)}
@@ -379,7 +394,7 @@ function CreateReflectionDialog({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 text-sm font-medium text-[color:var(--color-muted)]"
+            className="min-h-[44px] px-4 py-2 text-sm font-medium text-[color:var(--color-muted)]"
           >
             Cancel
           </button>
