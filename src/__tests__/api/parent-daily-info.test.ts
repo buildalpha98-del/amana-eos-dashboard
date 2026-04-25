@@ -69,46 +69,57 @@ describe("GET /api/parent/daily-info", () => {
   });
 
   it("returns menu items and program activities when available", async () => {
-    prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
-      { serviceId: "svc-1" },
-    ]);
+    // Pin "now" to a known weekday — the route returns empty arrays on
+    // weekends (no menu/program rows for Sat/Sun in OSHC). Without this,
+    // the test was flaky and failed every Saturday + Sunday CI run.
+    // Wednesday 2026-04-22 12:00 AEST is reliably a weekday across DST.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-22T02:00:00.000Z"));
 
-    prismaMock.menuWeek.findMany.mockResolvedValue([
-      {
-        id: "mw-1",
-        items: [
-          { slot: "morning_tea", description: "Fruit platter", allergens: ["nuts"] },
-          { slot: "lunch", description: "Pasta", allergens: [] },
-        ],
-      },
-    ]);
+    try {
+      prismaMock.enrolmentSubmission.findMany.mockResolvedValue([
+        { serviceId: "svc-1" },
+      ]);
 
-    prismaMock.programActivity.findMany.mockResolvedValue([
-      {
-        id: "pa-1",
-        title: "Art class",
-        description: "Painting",
-        startTime: "15:30",
-        endTime: "16:30",
-        location: "Art room",
-        staffName: "Sarah",
-        programmeBrand: null,
-      },
-    ]);
+      prismaMock.menuWeek.findMany.mockResolvedValue([
+        {
+          id: "mw-1",
+          items: [
+            { slot: "morning_tea", description: "Fruit platter", allergens: ["nuts"] },
+            { slot: "lunch", description: "Pasta", allergens: [] },
+          ],
+        },
+      ]);
 
-    const req = createRequest("GET", "/api/parent/daily-info");
-    const res = await GET(req, undefined as never);
-    expect(res.status).toBe(200);
-    const body = await res.json();
+      prismaMock.programActivity.findMany.mockResolvedValue([
+        {
+          id: "pa-1",
+          title: "Art class",
+          description: "Painting",
+          startTime: "15:30",
+          endTime: "16:30",
+          location: "Art room",
+          staffName: "Sarah",
+          programmeBrand: null,
+        },
+      ]);
 
-    // Menu should have items
-    if (body.todayMenu) {
-      expect(body.todayMenu.items.length).toBeGreaterThanOrEqual(1);
-      expect(body.todayMenu.items[0].description).toBeDefined();
+      const req = createRequest("GET", "/api/parent/daily-info");
+      const res = await GET(req, undefined as never);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+
+      // Menu should have items
+      if (body.todayMenu) {
+        expect(body.todayMenu.items.length).toBeGreaterThanOrEqual(1);
+        expect(body.todayMenu.items[0].description).toBeDefined();
+      }
+
+      // Program should have activities
+      expect(body.todayProgram).toHaveLength(1);
+      expect(body.todayProgram[0].title).toBe("Art class");
+    } finally {
+      vi.useRealTimers();
     }
-
-    // Program should have activities
-    expect(body.todayProgram).toHaveLength(1);
-    expect(body.todayProgram[0].title).toBe("Art class");
   });
 });
