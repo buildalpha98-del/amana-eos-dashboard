@@ -67,6 +67,7 @@ export const GET = withApiAuth(async (req, session) => {
           medical: true,
           dietary: true,
           yearLevel: true,
+          custodyArrangements: true,
         },
       },
     },
@@ -113,6 +114,7 @@ export const GET = withApiAuth(async (req, session) => {
           id: true, firstName: true, surname: true, photo: true,
           medicalConditions: true, dietaryRequirements: true, anaphylaxisActionPlan: true,
           medicationDetails: true, medical: true, dietary: true, yearLevel: true,
+          custodyArrangements: true,
         },
       });
       if (child) {

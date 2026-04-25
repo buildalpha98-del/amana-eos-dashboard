@@ -19,6 +19,14 @@ export interface RollCallChild {
   medical: Record<string, unknown> | null;
   dietary: Record<string, unknown> | null;
   yearLevel: string | null;
+  /// Custody arrangements — surfaced as a chip in the roll-call cell so
+  /// staff see pickup restrictions before a sign-out happens.
+  custodyArrangements: {
+    type: "shared" | "sole" | "court_order" | "informal";
+    primaryGuardian?: string;
+    details?: string;
+    courtOrderUrl?: string;
+  } | null;
 }
 
 export interface RollCallEntry {
