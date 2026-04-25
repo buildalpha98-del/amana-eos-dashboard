@@ -528,7 +528,16 @@ function ConversationThread({
                     .slice(-6)
                     .map((m) => `${m.senderType}: ${m.body}`)
                     .join("\n"),
-                  childContext: "",
+                  childContext: (() => {
+                    const fam =
+                      [
+                        conversation.family.firstName,
+                        conversation.family.lastName,
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || "the family";
+                    return `Family: ${fam}. Service: ${conversation.service.name}.`;
+                  })(),
                   tone: "warm professional",
                 }}
                 onResult={(text) => setReplyText(text)}

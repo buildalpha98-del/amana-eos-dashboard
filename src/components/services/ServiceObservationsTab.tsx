@@ -203,20 +203,39 @@ function CreateObservationDialog({
 }) {
   const create = useCreateObservation(serviceId);
 
-  // Children list for this service
+  // Children list for this service. Includes `dob` so we can compute age
+  // for the AI observation drafter.
   const { data: childrenData } = useQuery<{
     id: string;
     firstName: string;
     surname: string;
+    dob: string | null;
   }[]>({
     queryKey: ["service-children", serviceId],
     queryFn: () =>
-      fetchApi<{ id: string; firstName: string; surname: string }[]>(
-        `/api/children?service=${serviceId}`,
-      ),
+      fetchApi<{
+        id: string;
+        firstName: string;
+        surname: string;
+        dob: string | null;
+      }[]>(`/api/children?service=${serviceId}`),
     retry: 2,
     staleTime: 60_000,
   });
+
+  /** Years since dob, or empty string if dob is missing/unparseable. */
+  function ageFromDob(dob: string | null | undefined): string {
+    if (!dob) return "";
+    const birth = new Date(dob);
+    if (Number.isNaN(birth.getTime())) return "";
+    const now = new Date();
+    let years = now.getFullYear() - birth.getFullYear();
+    const beforeBirthday =
+      now.getMonth() < birth.getMonth() ||
+      (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate());
+    if (beforeBirthday) years -= 1;
+    return years > 0 ? `${years}` : "";
+  }
 
   const [childId, setChildId] = useState("");
   const [title, setTitle] = useState("");
@@ -304,7 +323,9 @@ function CreateObservationDialog({
                   variables={{
                     childFirstName:
                       childrenData?.find((c) => c.id === childId)?.firstName ?? "the child",
-                    childAge: "",
+                    childAge: ageFromDob(
+                      childrenData?.find((c) => c.id === childId)?.dob,
+                    ),
                     shortNotes: title || "(short note from educator)",
                     interests:
                       interests.split(",").map((s) => s.trim()).filter(Boolean).join(", ") ||
