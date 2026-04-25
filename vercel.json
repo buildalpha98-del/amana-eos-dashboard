@@ -10,6 +10,18 @@
       "schedule": "0 22 * * 1-5"
     },
     {
+      "path": "/api/cron/tuesday-claude-prompter",
+      "schedule": "0 22 * * 1"
+    },
+    {
+      "path": "/api/cron/draft-activation-recap",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/newsletter-placement-chase",
+      "schedule": "0 22 * * 1"
+    },
+    {
       "path": "/api/cron/attendance-alerts",
       "schedule": "0 20 * * *"
     },

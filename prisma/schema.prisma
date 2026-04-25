@@ -1101,46 +1101,48 @@ model MarketingCampaign {
 }
 
 model MarketingPost {
-  id                 String                 @id @default(cuid())
-  title              String
-  platform           MarketingPlatform
-  status             MarketingPostStatus    @default(draft)
-  scheduledDate      DateTime?
-  content            String?                @db.Text
-  notes              String?                @db.Text
-  designLink         String?
-  canvaDesignId      String? // Canva design ID (e.g., "DAGoPem3X54")
-  canvaDesignUrl     String? // Direct edit URL in Canva
-  canvaExportUrl     String? // Exported image URL for publishing
-  format             MarketingPostFormat?
-  pillar             String?
-  assigneeId         String?
-  assignee           User?                  @relation("MarketingPostAssignee", fields: [assigneeId], references: [id])
-  campaignId         String?
-  campaign           MarketingCampaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  likes              Int                    @default(0)
-  comments           Int                    @default(0)
-  shares             Int                    @default(0)
-  reach              Int                    @default(0)
-  recurring          MarketingRecurrence    @default(none)
-  recurringParentId  String?
-  recurringParent    MarketingPost?         @relation("RecurringPosts", fields: [recurringParentId], references: [id])
-  recurringChildren  MarketingPost[]        @relation("RecurringPosts")
-  clonedFromId       String?
-  clonedFrom         MarketingPost?         @relation("PostClones", fields: [clonedFromId], references: [id])
-  clones             MarketingPost[]        @relation("PostClones")
-  services           MarketingPostService[]
-  externalPostId     String?
-  externalUrl        String?
-  engagementSyncedAt DateTime?
-  deliveryLogId      String?
-  approvedById       String?
-  approvedBy         User?                  @relation("MarketingPostApprover", fields: [approvedById], references: [id])
-  approvedAt         DateTime?
-  rejectionReason    String?                @db.Text
-  deleted            Boolean                @default(false)
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
+  id                   String                        @id @default(cuid())
+  title                String
+  platform             MarketingPlatform
+  status               MarketingPostStatus           @default(draft)
+  scheduledDate        DateTime?
+  content              String?                       @db.Text
+  notes                String?                       @db.Text
+  designLink           String?
+  canvaDesignId        String? // Canva design ID (e.g., "DAGoPem3X54")
+  canvaDesignUrl       String? // Direct edit URL in Canva
+  canvaExportUrl       String? // Exported image URL for publishing
+  format               MarketingPostFormat?
+  pillar               String?
+  assigneeId           String?
+  assignee             User?                         @relation("MarketingPostAssignee", fields: [assigneeId], references: [id])
+  campaignId           String?
+  campaign             MarketingCampaign?            @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  likes                Int                           @default(0)
+  comments             Int                           @default(0)
+  shares               Int                           @default(0)
+  reach                Int                           @default(0)
+  recurring            MarketingRecurrence           @default(none)
+  recurringParentId    String?
+  recurringParent      MarketingPost?                @relation("RecurringPosts", fields: [recurringParentId], references: [id])
+  recurringChildren    MarketingPost[]               @relation("RecurringPosts")
+  clonedFromId         String?
+  clonedFrom           MarketingPost?                @relation("PostClones", fields: [clonedFromId], references: [id])
+  clones               MarketingPost[]               @relation("PostClones")
+  services             MarketingPostService[]
+  externalPostId       String?
+  externalUrl          String?
+  engagementSyncedAt   DateTime?
+  deliveryLogId        String?
+  approvedById         String?
+  approvedBy           User?                         @relation("MarketingPostApprover", fields: [approvedById], references: [id])
+  approvedAt           DateTime?
+  rejectionReason      String?                       @db.Text
+  deleted              Boolean                       @default(false)
+  recapForActivationId String?
+  recapForActivation   CampaignActivationAssignment? @relation("MarketingPostRecapFor", fields: [recapForActivationId], references: [id], onDelete: SetNull)
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
 
   tasks                MarketingTask[]
   revisions            MarketingPostRevision[]
@@ -1152,6 +1154,7 @@ model MarketingPost {
   @@index([campaignId])
   @@index([scheduledDate])
   @@index([externalPostId])
+  @@index([recapForActivationId])
 }
 
 model MarketingPostRevision {
@@ -1789,23 +1792,27 @@ model MarketingTaskTemplateItem {
 }
 
 model CampaignActivationAssignment {
-  id            String            @id @default(cuid())
-  campaignId    String
-  campaign      MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  serviceId     String
-  service       Service           @relation("ServiceActivations", fields: [serviceId], references: [id], onDelete: Cascade)
-  assigned      Boolean           @default(true)
-  coordinatorId String?
-  coordinator   User?             @relation("ActivationCoordinator", fields: [coordinatorId], references: [id])
-  budget        Float?
-  notes         String?           @db.Text
-  status        String            @default("pending")
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id                    String            @id @default(cuid())
+  campaignId            String
+  campaign              MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  serviceId             String
+  service               Service           @relation("ServiceActivations", fields: [serviceId], references: [id], onDelete: Cascade)
+  assigned              Boolean           @default(true)
+  coordinatorId         String?
+  coordinator           User?             @relation("ActivationCoordinator", fields: [coordinatorId], references: [id])
+  budget                Float?
+  notes                 String?           @db.Text
+  status                String            @default("pending")
+  activationDeliveredAt DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  recapPosts MarketingPost[] @relation("MarketingPostRecapFor")
 
   @@unique([campaignId, serviceId])
   @@index([campaignId])
   @@index([serviceId])
+  @@index([activationDeliveredAt])
 }
 
 // ============================================================

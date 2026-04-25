@@ -1,0 +1,125 @@
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { prismaMock } from "../helpers/prisma-mock";
+import { mockSession, mockNoSession } from "../helpers/auth-mock";
+import { createRequest } from "../helpers/request";
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    withRequestId: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  },
+  generateRequestId: () => "test-req-id",
+}));
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn(() => ({ limited: false })),
+}));
+
+import { POST } from "@/app/api/marketing/activations/[id]/mark-delivered/route";
+import { GET as LIST_GET } from "@/app/api/marketing/activations/route";
+import { _clearUserActiveCache } from "@/lib/server-auth";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  _clearUserActiveCache();
+  prismaMock.user.findUnique.mockResolvedValue({ active: true });
+});
+
+describe("POST /api/marketing/activations/[id]/mark-delivered", () => {
+  it("401 unauth", async () => {
+    mockNoSession();
+    const res = await POST(
+      createRequest("POST", "/api/marketing/activations/x/mark-delivered", { body: {} }),
+      { params: Promise.resolve({ id: "x" }) },
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("403 staff role", async () => {
+    mockSession({ id: "u", name: "Staff", role: "staff" });
+    const res = await POST(
+      createRequest("POST", "/api/marketing/activations/x/mark-delivered", { body: {} }),
+      { params: Promise.resolve({ id: "x" }) },
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("404 missing", async () => {
+    mockSession({ id: "akram", name: "Akram", role: "marketing" });
+    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue(null);
+    const res = await POST(
+      createRequest("POST", "/api/marketing/activations/missing/mark-delivered", { body: {} }),
+      { params: Promise.resolve({ id: "missing" }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("sets activationDeliveredAt to now and status delivered", async () => {
+    mockSession({ id: "akram", name: "Akram", role: "marketing" });
+    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({ id: "act-1" });
+    const now = new Date("2026-04-26T10:00:00Z");
+    prismaMock.campaignActivationAssignment.update.mockResolvedValue({
+      id: "act-1",
+      activationDeliveredAt: now,
+      status: "delivered",
+    });
+    const res = await POST(
+      createRequest("POST", "/api/marketing/activations/act-1/mark-delivered", { body: {} }),
+      { params: Promise.resolve({ id: "act-1" }) },
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.status).toBe("delivered");
+    expect(data.activationDeliveredAt).toBe(now.toISOString());
+    const updateArg = prismaMock.campaignActivationAssignment.update.mock.calls[0][0];
+    expect(updateArg.data.status).toBe("delivered");
+  });
+
+  it("undoes delivery when undo: true", async () => {
+    mockSession({ id: "akram", name: "Akram", role: "marketing" });
+    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({ id: "act-1" });
+    prismaMock.campaignActivationAssignment.update.mockResolvedValue({
+      id: "act-1",
+      activationDeliveredAt: null,
+      status: "pending",
+    });
+    const res = await POST(
+      createRequest("POST", "/api/marketing/activations/act-1/mark-delivered", { body: { undo: true } }),
+      { params: Promise.resolve({ id: "act-1" }) },
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.activationDeliveredAt).toBeNull();
+    expect(data.status).toBe("pending");
+  });
+});
+
+describe("GET /api/marketing/activations", () => {
+  it("returns activations list for marketing", async () => {
+    mockSession({ id: "akram", name: "Akram", role: "marketing" });
+    prismaMock.campaignActivationAssignment.findMany.mockResolvedValue([
+      {
+        id: "act-1",
+        status: "pending",
+        activationDeliveredAt: null,
+        budget: 200,
+        campaign: { id: "c1", name: "Open Day", type: "event", startDate: null, endDate: null },
+        service: { id: "s1", name: "Centre A", code: "AAA" },
+        recapPosts: [],
+      },
+    ]);
+    const res = await LIST_GET(createRequest("GET", "/api/marketing/activations"));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.activations).toHaveLength(1);
+    expect(data.activations[0].recapPostId).toBeNull();
+  });
+
+  it("403 for non-marketing role", async () => {
+    mockSession({ id: "u", name: "Staff", role: "staff" });
+    const res = await LIST_GET(createRequest("GET", "/api/marketing/activations"));
+    expect(res.status).toBe(403);
+  });
+});

@@ -468,6 +468,11 @@ function CentreIntelTile({ data }: { data: CockpitSummary["tiles"]["centreIntel"
   return (
     <TileCard title="Centre Intelligence" icon={Users}>
       <MetricRow label="Fresh avatars (<30d)" {...data.fresh} />
+      {data.focusAvatar && (
+        <div className="pt-1 text-xs font-medium text-foreground">
+          This week&apos;s focus: {data.focusAvatar.serviceName}
+        </div>
+      )}
       {data.stale.length > 0 && (
         <div className="pt-1 text-xs text-muted">
           {data.stale.length} stale ({data.stale[0].serviceName} {data.stale[0].daysStale}d)

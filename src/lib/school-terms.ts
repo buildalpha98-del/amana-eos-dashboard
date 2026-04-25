@@ -92,3 +92,42 @@ export function getNextTerm(date: Date = new Date()): SchoolTerm {
   }
   return getTermsForYear(current.year + 1)[0];
 }
+
+const NEWSLETTER_CHASE_DAY_MS = 24 * 60 * 60 * 1000;
+
+export interface NewsletterChaseEligibility {
+  eligible: boolean;
+  currentTerm: { year: number; number: 1 | 2 | 3 | 4 } | null;
+  nextTerm: { year: number; number: 1 | 2 | 3 | 4 } | null;
+  weeksUntilTermEnd: number | null;
+}
+
+/**
+ * Whether `date` falls in a newsletter-chase week — defined as the last 1–2
+ * full weeks of the *current* term. Holidays-between-terms return ineligible.
+ *
+ * Returns rich context so the cron can build a prompt without re-resolving terms.
+ */
+export function isNewsletterChaseWeek(date: Date = new Date()): NewsletterChaseEligibility {
+  const year = date.getFullYear();
+  const terms = getTermsForYear(year);
+  const inTerm = terms.find((t) => date >= t.startsOn && date <= t.endsOn);
+
+  if (!inTerm) {
+    return { eligible: false, currentTerm: null, nextTerm: null, weeksUntilTermEnd: null };
+  }
+
+  const msUntilEnd = inTerm.endsOn.getTime() - date.getTime();
+  const daysUntilEnd = Math.floor(msUntilEnd / NEWSLETTER_CHASE_DAY_MS);
+  // Bucket "weeks remaining": 0–6 days left → 1, 7–13 → 2, 14–20 → 3, etc.
+  const weeksUntilEnd = Math.floor(daysUntilEnd / 7) + 1;
+
+  const next = getNextTerm(date);
+
+  return {
+    eligible: weeksUntilEnd === 1 || weeksUntilEnd === 2,
+    currentTerm: { year: inTerm.year, number: inTerm.term },
+    nextTerm: { year: next.year, number: next.term },
+    weeksUntilTermEnd: weeksUntilEnd,
+  };
+}

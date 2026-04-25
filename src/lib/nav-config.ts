@@ -48,6 +48,7 @@ import {
   CalendarCheck,
   Receipt,
   Bug,
+  Mail,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
@@ -127,6 +128,8 @@ export const navItems: NavItem[] = [
   { href: "/marketing", label: "Marketing", icon: Megaphone, section: "Growth" },
   { href: "/centre-avatars", label: "Centre Avatars", icon: UserCircle, section: "Growth", tooltip: "Family profile of each centre \u2014 who we serve, what they want", roles: ["marketing", "head_office", "admin"] },
   { href: "/marketing/vendor-briefs", label: "Vendor & Printing", icon: Package, section: "Growth", tooltip: "Brief Jinan, track SLAs, prep for next term", roles: ["marketing"] },
+  { href: "/marketing/activations", label: "Activations", icon: CalendarCheck, section: "Growth", tooltip: "Mark activations delivered to trigger recap drafts", roles: ["marketing"] },
+  { href: "/marketing/newsletter-chase", label: "Newsletter Chase", icon: Mail, section: "Growth", tooltip: "Pre-drafted newsletter chase emails (last 1–2 weeks of term)", roles: ["marketing"] },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" },
   { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Growth", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] },
   { href: "/conversions", label: "Conversions", icon: Repeat, section: "Growth", tooltip: "Track casual-to-regular booking conversions", roles: ALL_NON_MARKETING },

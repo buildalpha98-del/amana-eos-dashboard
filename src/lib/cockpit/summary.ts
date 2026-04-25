@@ -15,6 +15,7 @@ import { buildRagMetric, type RagMetric, type RagStatus } from "@/lib/rag-status
 import { getCurrentTerm, getNextTerm, type SchoolTerm } from "@/lib/school-terms";
 import type { WeekWindow } from "@/lib/cockpit/week";
 import { getWeekWindow } from "@/lib/cockpit/week";
+import { getFocusAvatarSlimForWeek } from "@/lib/avatar-focus-rotation";
 
 // CTA compliance heuristic — if caption matches any of these, we consider a CTA present.
 const CTA_PATTERNS = [
@@ -81,6 +82,7 @@ export type CockpitSummary = {
       fresh: RagMetric;
       stale: Array<{ serviceId: string; serviceName: string; lastUpdatedAt: string; daysStale: number }>;
       pendingInsightsCount: number;
+      focusAvatar: { serviceId: string; serviceName: string } | null;
     };
   };
   aiDrafts: {
@@ -453,10 +455,12 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
     }))
     .sort((a, b) => b.daysStale - a.daysStale);
 
+  const focusAvatar = await getFocusAvatarSlimForWeek(now);
   const centreIntel = {
     fresh: buildRagMetric({ current: fresh, target: 10, floor: 8 }),
     stale: staleList,
     pendingInsightsCount: centreAvatarPendingInsights,
+    focusAvatar,
   };
 
   // ── AI drafts summary ────────────────────────────────────────
