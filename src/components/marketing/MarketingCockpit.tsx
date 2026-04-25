@@ -24,6 +24,7 @@ import {
   type WeeklyReportDetail,
 } from "@/hooks/useCockpit";
 import type { CockpitSummary } from "@/lib/cockpit/summary";
+import { nextTermWithin } from "@/lib/vendor-brief/term-dates";
 import type { RagStatus } from "@/lib/rag-status";
 import { Skeleton } from "@/components/ui/Skeleton";
 
@@ -503,6 +504,14 @@ function AiDraftsCard({ data }: { data: CockpitSummary["aiDrafts"] }) {
 }
 
 function VendorTile({ data }: { data: CockpitSummary["vendorBriefs"] }) {
+  // Sprint 4: drill-down links into /marketing/vendor-briefs.
+  // Counts → in-flight tab. SLA watch entry → in-flight tab + open detail.
+  // Missing-next-term → term-readiness tab with the next term selected.
+  const nextTerm = nextTermWithin(12);
+  const termReadinessHref = nextTerm
+    ? `/marketing/vendor-briefs?tab=term-readiness&termYear=${nextTerm.year}&termNumber=${nextTerm.term}`
+    : "/marketing/vendor-briefs?tab=term-readiness";
+
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -510,23 +519,30 @@ function VendorTile({ data }: { data: CockpitSummary["vendorBriefs"] }) {
         Vendor Briefs
       </div>
       <div className="mt-2 flex items-baseline gap-4 text-sm">
-        <div>
+        <Link
+          href="/marketing/vendor-briefs?tab=in-flight"
+          className="rounded hover:underline"
+        >
           <span className="text-foreground font-semibold">{data.inFlight}</span>{" "}
           <span className="text-muted">in flight</span>
-        </div>
-        <div>
+        </Link>
+        <Link href={termReadinessHref} className="rounded hover:underline">
           <span className="text-foreground font-semibold">{data.missingForNextTerm}</span>{" "}
           <span className="text-muted">missing next term</span>
-        </div>
+        </Link>
       </div>
       {data.slaWatch.length > 0 && (
         <div className="mt-2 space-y-1">
           {data.slaWatch.map((s) => (
-            <div key={s.id} className="text-xs text-amber-700 flex items-center gap-1">
+            <Link
+              key={s.id}
+              href={`/marketing/vendor-briefs?tab=in-flight&open=${s.id}`}
+              className="flex items-center gap-1 rounded text-xs text-amber-700 hover:bg-amber-50"
+            >
               <AlertTriangle className="h-3 w-3" />
               <span className="truncate">{s.title}</span>
               <span className="text-muted">— {s.daysOverdue}d overdue</span>
-            </div>
+            </Link>
           ))}
         </div>
       )}

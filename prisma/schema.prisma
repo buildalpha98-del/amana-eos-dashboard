@@ -318,6 +318,19 @@ enum VendorBriefStatus {
   cancelled
 }
 
+/// Term-readiness checklist category for VendorBrief. Sprint 4 covers print
+/// + physical items prepped 6+ weeks before a term starts. Other channels
+/// (newsletter, social, activations) get their own term-readiness layer in
+/// a future sprint via TermCalendarEntry.
+enum TermReadinessCategory {
+  flyers
+  banners
+  signage
+  holiday_programme_materials
+  enrolment_posters
+  other_print
+}
+
 enum WeeklyReportStatus {
   draft
   reviewed
@@ -640,8 +653,8 @@ model User {
   checkedItems        DailyChecklistItem[] @relation("ChecklistItemCheckedBy")
 
   // ── AI Usage ───────────────────────────────────────
-  aiUsageLogs    AiUsage[]     @relation("AiUsageLogs")
-  reviewedDrafts AiTaskDraft[] @relation("DraftReviewer")
+  aiUsageLogs    AiUsage[]           @relation("AiUsageLogs")
+  reviewedDrafts AiTaskDraft[]       @relation("DraftReviewer")
   aiGenerations  AiGenerationCache[] @relation("AiGenerationCacheUser")
 
   // ── Email Templates ──────────────────────────────
@@ -689,6 +702,7 @@ model User {
   centreAvatarsOpened            CentreAvatar[]            @relation("CentreAvatarOpener")
   vendorBriefsEscalated          VendorBrief[]             @relation("VendorBriefEscalatedTo")
   vendorBriefsOwned              VendorBrief[]             @relation("VendorBriefOwner")
+  vendorContact                  VendorContact?            @relation("VendorContactUser")
   whatsappPostsAsCoordinator     WhatsAppCoordinatorPost[] @relation("WhatsAppCoordinator")
   whatsappPostsRecorded          WhatsAppCoordinatorPost[] @relation("WhatsAppRecorder")
   weeklyMarketingReportsDrafted  WeeklyMarketingReport[]   @relation("WeeklyReportDrafter")
@@ -1401,28 +1415,55 @@ model CentreAvatarUpdateLog {
 }
 
 model VendorBrief {
-  id         String            @id @default(cuid())
-  title      String
-  type       VendorBriefType
-  status     VendorBriefStatus @default(draft)
-  serviceId  String?
-  service    Service?          @relation("ServiceVendorBriefs", fields: [serviceId], references: [id], onDelete: SetNull)
-  ownerId    String?
-  owner      User?             @relation("VendorBriefOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  vendorName String?
-  notes      String?           @db.Text
+  id          String            @id @default(cuid())
+  /// Human-readable brief number — e.g. "VB-2026-0042". Auto-generated on
+  /// create via generateBriefNumber(); unique across all briefs. Used in the
+  /// UI as the primary identifier and shown to vendors.
+  briefNumber String            @unique
+  title       String
+  type        VendorBriefType
+  status      VendorBriefStatus @default(draft)
+  serviceId   String?
+  service     Service?          @relation("ServiceVendorBriefs", fields: [serviceId], references: [id], onDelete: SetNull)
+  ownerId     String?
+  owner       User?             @relation("VendorBriefOwner", fields: [ownerId], references: [id], onDelete: SetNull)
 
-  targetTermStart DateTime?
-  briefSentAt     DateTime?
-  acknowledgedAt  DateTime?
-  quoteReceivedAt DateTime?
-  approvedAt      DateTime?
-  orderedAt       DateTime?
-  deliveredAt     DateTime?
+  /// Legacy free-text vendor name (Sprint 2). Sprint 4 prefers the FK
+  /// vendorContactId below. Kept nullable for back-compat with stub rows.
+  vendorName      String?
+  vendorContactId String?
+  vendorContact   VendorContact? @relation("VendorBriefContact", fields: [vendorContactId], references: [id], onDelete: SetNull)
+
+  /// Free-form notes (Sprint 2). Sprint 4 adds a dedicated structured body
+  /// + specifications + delivery address.
+  notes           String? @db.Text
+  briefBody       String? @db.Text
+  specifications  String? @db.Text
+  quantity        Int?
+  deliveryAddress String? @db.Text
+
+  /// Term-readiness fields. Null for one-off / ad-hoc briefs.
+  termReadinessCategory TermReadinessCategory?
+  termYear              Int?
+  termNumber            Int?
+
+  targetTermStart  DateTime?
+  deliveryDeadline DateTime?
+  briefSentAt      DateTime?
+  acknowledgedAt   DateTime?
+  quoteReceivedAt  DateTime?
+  quoteApprovedAt  DateTime?
+  approvedAt       DateTime?
+  orderedAt        DateTime?
+  deliveredAt      DateTime?
+  installedAt      DateTime?
 
   escalatedAt       DateTime?
   escalatedToUserId String?
   escalatedTo       User?     @relation("VendorBriefEscalatedTo", fields: [escalatedToUserId], references: [id], onDelete: SetNull)
+  escalationReason  String?   @db.Text
+
+  cancellationReason String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1432,6 +1473,41 @@ model VendorBrief {
   @@index([targetTermStart])
   @@index([briefSentAt])
   @@index([escalatedAt])
+  @@index([termYear, termNumber, termReadinessCategory])
+  @@index([vendorContactId])
+}
+
+/// Vendor contacts — Jinan (internal Operations Manager) plus future
+/// external print/signage/merch suppliers. Briefs FK to this table so the
+/// dashboard can default the right contact for each brief type.
+model VendorContact {
+  id      String  @id @default(cuid())
+  name    String
+  email   String?
+  phone   String?
+  /// "Amana OSHC" for internal contacts (Jinan). External vendor company
+  /// name (e.g. "Quickprint") for third parties. Null = unknown / personal.
+  company String?
+  role    String?
+
+  /// Hint to the UI: for these brief types, this contact is the default.
+  defaultForTypes VendorBriefType[] @default([])
+
+  active Boolean @default(true)
+
+  notes String? @db.Text
+
+  /// Optional FK to a User account (Jinan has one as Operations Manager;
+  /// external vendors don't).
+  userId String? @unique
+  user   User?   @relation("VendorContactUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  briefs VendorBrief[] @relation("VendorBriefContact")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
 }
 
 model WhatsAppCoordinatorPost {
@@ -4915,19 +4991,19 @@ model AiTaskDraft {
 /// `kind` examples: "centre_avatar.parent_avatar".
 /// `inputHash` is a sha256 of the canonicalised input payload.
 model AiGenerationCache {
-  id           String   @id @default(cuid())
-  kind         String
-  inputHash    String
-  output       Json
-  provider     String // "anthropic" | "groq"
-  modelId      String
-  costUsd      Float    @default(0)
-  inputTokens  Int      @default(0)
-  outputTokens Int      @default(0)
+  id            String   @id @default(cuid())
+  kind          String
+  inputHash     String
+  output        Json
+  provider      String // "anthropic" | "groq"
+  modelId       String
+  costUsd       Float    @default(0)
+  inputTokens   Int      @default(0)
+  outputTokens  Int      @default(0)
   generatedById String?
-  generatedBy   User?   @relation("AiGenerationCacheUser", fields: [generatedById], references: [id], onDelete: SetNull)
-  createdAt    DateTime @default(now())
-  expiresAt    DateTime
+  generatedBy   User?    @relation("AiGenerationCacheUser", fields: [generatedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
 
   @@unique([kind, inputHash])
   @@index([kind])
