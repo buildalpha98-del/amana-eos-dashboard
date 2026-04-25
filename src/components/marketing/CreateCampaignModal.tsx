@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useCreateCampaign } from "@/hooks/useMarketing";
@@ -113,25 +113,16 @@ export function CreateCampaignModal({
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!name.trim()) {
-      setError("Campaign name is required.");
-      return;
-    }
-
-    // Portfolio-wide campaigns (no service selection) bypass the Avatar gate.
-    if (serviceIds.length === 0) {
-      submitCampaign();
-      return;
-    }
-
-    setGateChecking(true);
-    try {
+  // Reusable gate check — used by the form submit AND by the "Re-check"
+  // button on the gate modal AND by the window-focus listener when the user
+  // comes back from "Open Avatar" in another tab.
+  const runGateCheck = useCallback(
+    async (
+      ids: string[],
+    ): Promise<{ ok: boolean; blockers: CampaignGateBlocker[] }> => {
+      if (ids.length === 0) return { ok: true, blockers: [] };
       const statuses = await Promise.all(
-        serviceIds.map((id) =>
+        ids.map((id) =>
           fetchApi<{
             serviceId: string;
             serviceName: string;
@@ -149,8 +140,66 @@ export function CreateCampaignModal({
           lastOpenedAt: s.lastOpenedAt,
           lastOpenedBy: s.lastOpenedBy,
         }));
+      return { ok: blockers.length === 0, blockers };
+    },
+    [],
+  );
+
+  // When the gate modal is open and the user comes back to this tab (e.g.
+  // after clicking "Open" → opening the avatar in a new tab → returning),
+  // automatically re-run the gate check. Removes the "have to close & reopen"
+  // friction the reviewer flagged.
+  useEffect(() => {
+    if (!gateOpen) return;
+    const handler = () => {
+      void runGateCheck(serviceIds).then(({ ok, blockers }) => {
+        if (ok) {
+          setGateOpen(false);
+          setGateBlockers([]);
+          submitCampaign();
+        } else {
+          setGateBlockers(blockers);
+        }
+      });
+    };
+    window.addEventListener("focus", handler);
+    return () => window.removeEventListener("focus", handler);
+    // submitCampaign isn't memoised but only fires once per ok-transition;
+    // disabling the lint here keeps the listener stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gateOpen, serviceIds, runGateCheck]);
+
+  const handleRecheck = async () => {
+    const { ok, blockers } = await runGateCheck(serviceIds);
+    if (ok) {
+      setGateOpen(false);
+      setGateBlockers([]);
+      submitCampaign();
+    } else {
+      setGateBlockers(blockers);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!name.trim()) {
+      setError("Campaign name is required.");
+      return;
+    }
+
+    // Portfolio-wide campaigns (no service selection) bypass the Avatar gate.
+    if (serviceIds.length === 0) {
+      submitCampaign();
+      return;
+    }
+
+    setGateChecking(true);
+    try {
+      const { ok, blockers } = await runGateCheck(serviceIds);
       setGateChecking(false);
-      if (blockers.length === 0) {
+      if (ok) {
         submitCampaign();
         return;
       }
@@ -435,6 +484,7 @@ export function CreateCampaignModal({
         isOwner={isOwner}
         onClose={handleGateClose}
         onSkip={handleGateSkip}
+        onRecheck={handleRecheck}
       />
     </>
   );

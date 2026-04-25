@@ -147,11 +147,22 @@ export function useCentreAvatar(serviceId: string | null | undefined) {
 // ---------------------------------------------------------------------------
 
 export function useOpenCentreAvatar() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (serviceId: string) =>
-      mutateApi<{ ok: boolean }>(`/api/centre-avatars/${serviceId}/open`, {
+      mutateApi<{
+        ok: boolean;
+        lastOpenedAt: string;
+        lastOpenedById: string;
+      }>(`/api/centre-avatars/${serviceId}/open`, {
         method: "POST",
       }),
+    onSuccess: (_data, serviceId) => {
+      // Invalidate gate-status so any open campaign modal sees the fresh stamp.
+      // Also invalidate the avatar detail so its lastOpenedAt updates inline.
+      qc.invalidateQueries({ queryKey: ["gate-status", serviceId] });
+      qc.invalidateQueries({ queryKey: ["centre-avatar", serviceId] });
+    },
     onError: onMutationError,
   });
 }

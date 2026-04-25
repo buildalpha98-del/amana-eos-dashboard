@@ -157,6 +157,7 @@ export default function CentreAvatarDetailPage({
 
       {/* Section 1 — Snapshot */}
       <SectionCard
+        sectionKey="snapshot"
         title="1. Centre snapshot"
         description="Official details, coordinator, school contacts, numbers, parent drivers."
         content={avatar.snapshot}
@@ -166,6 +167,7 @@ export default function CentreAvatarDetailPage({
 
       {/* Section 2 — Parent Avatar (with Claude prompt helper) */}
       <SectionCard
+        sectionKey="parentAvatar"
         title="2. Parent avatar"
         description="Who the typical family is, what they want, what stops them enrolling."
         content={avatar.parentAvatar}
@@ -190,6 +192,7 @@ export default function CentreAvatarDetailPage({
 
       {/* Section 3 — Programme Mix */}
       <SectionCard
+        sectionKey="programmeMix"
         title="3. Programme mix"
         description="What's working, what's not, what's missing, programmes we run."
         content={avatar.programmeMix}
@@ -211,6 +214,7 @@ export default function CentreAvatarDetailPage({
 
       {/* Section 8 — Asset Library */}
       <SectionCard
+        sectionKey="assetLibrary"
         title="8. Asset library"
         description="Photos, videos, testimonials, consent list, gaps in media."
         content={avatar.assetLibrary}
