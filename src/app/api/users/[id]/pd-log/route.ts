@@ -53,50 +53,58 @@ export const GET = withApiAuth(async (req, session, context) => {
 
 /**
  * POST /api/users/[id]/pd-log
- * Create a PD record. Admin-only (matches qualifications route).
+ * Create a PD record. Admin can create for anyone; staff can self-record.
  */
-export const POST = withApiAuth(
-  async (req, session, context) => {
-    const { id } = await context!.params!;
+export const POST = withApiAuth(async (req, session, context) => {
+  const { id } = await context!.params!;
+  const role = session!.user.role ?? "";
+  const viewerId = session!.user.id;
 
-    const user = await prisma.user.findUnique({ where: { id } });
-    if (!user) throw ApiError.notFound("User not found");
+  if (!isAdminRole(role) && viewerId !== id) {
+    throw ApiError.forbidden();
+  }
 
-    const body = await parseJsonBody(req);
-    const parsed = createPdRecordSchema.safeParse(body);
-    if (!parsed.success) {
-      throw ApiError.badRequest(
-        "Validation failed",
-        parsed.error.flatten().fieldErrors,
-      );
-    }
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) throw ApiError.notFound("User not found");
 
-    const record = await prisma.professionalDevelopmentRecord.create({
-      data: {
-        userId: id,
-        title: parsed.data.title,
-        type: parsed.data.type,
-        hours: parsed.data.hours,
-        completedAt: new Date(parsed.data.completedAt),
-        provider: parsed.data.provider ?? null,
-        attachmentUrl: parsed.data.attachmentUrl ?? null,
-        notes: parsed.data.notes ?? null,
+  const body = await parseJsonBody(req);
+  const parsed = createPdRecordSchema.safeParse(body);
+  if (!parsed.success) {
+    throw ApiError.badRequest(
+      "Validation failed",
+      parsed.error.flatten().fieldErrors,
+    );
+  }
+
+  const record = await prisma.professionalDevelopmentRecord.create({
+    data: {
+      userId: id,
+      title: parsed.data.title,
+      type: parsed.data.type,
+      hours: parsed.data.hours,
+      completedAt: new Date(parsed.data.completedAt),
+      provider: parsed.data.provider ?? null,
+      attachmentUrl: parsed.data.attachmentUrl ?? null,
+      notes: parsed.data.notes ?? null,
+    },
+  });
+
+  await prisma.activityLog.create({
+    data: {
+      userId: viewerId,
+      action: "create",
+      entityType: "ProfessionalDevelopmentRecord",
+      entityId: record.id,
+      details: {
+        title: record.title,
+        type: record.type,
+        forUserId: id,
+        selfRecord: viewerId === id,
       },
-    });
+    },
+  });
 
-    await prisma.activityLog.create({
-      data: {
-        userId: session!.user.id,
-        action: "create",
-        entityType: "ProfessionalDevelopmentRecord",
-        entityId: record.id,
-        details: { title: record.title, type: record.type, forUserId: id },
-      },
-    });
-
-    return NextResponse.json({ ...record, hours: Number(record.hours) }, {
-      status: 201,
-    });
-  },
-  { roles: ["owner", "head_office", "admin"] },
-);
+  return NextResponse.json({ ...record, hours: Number(record.hours) }, {
+    status: 201,
+  });
+});

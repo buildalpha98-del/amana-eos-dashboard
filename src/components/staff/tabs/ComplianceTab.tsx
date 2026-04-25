@@ -9,6 +9,8 @@ interface ComplianceTabProps {
   qualifications: StaffQualification[];
   certificates: ComplianceCertificate[];
   canManage: boolean;
+  /** True when the viewer is looking at their own profile. Enables self-record on PD log. */
+  isSelf: boolean;
 }
 
 function formatDate(d: Date | null | undefined): string {
@@ -25,7 +27,7 @@ function humanize(value: string | null | undefined): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function ComplianceTab({ userId, qualifications, certificates, canManage }: ComplianceTabProps) {
+export function ComplianceTab({ userId, qualifications, certificates, canManage, isSelf }: ComplianceTabProps) {
   return (
     <div className="space-y-6">
       {/* Qualifications */}
@@ -111,8 +113,9 @@ export function ComplianceTab({ userId, qualifications, certificates, canManage 
         )}
       </div>
 
-      {/* Professional Development log — OWNA gap F */}
-      <PdLogSection userId={userId} canManage={canManage} />
+      {/* Professional Development log — OWNA gap F. canManage gates admin
+          edits; isSelf gates self-recording (staff log their own CPD hours). */}
+      <PdLogSection userId={userId} canManage={canManage} isSelf={isSelf} />
     </div>
   );
 }

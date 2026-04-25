@@ -79,7 +79,7 @@ describe("POST /api/users/[id]/pd-log", () => {
     expect(prismaMock.professionalDevelopmentRecord.create).toHaveBeenCalled();
   });
 
-  it("staff creating PD record → 403", async () => {
+  it("staff creating PD record for someone else → 403", async () => {
     mockSession({ id: "u1", name: "Staff", role: "staff", serviceId: "svc-1" });
     const req = createRequest("POST", "/api/users/u-target/pd-log", {
       body: {
@@ -91,6 +91,32 @@ describe("POST /api/users/[id]/pd-log", () => {
     });
     const res = await POST(req, ctx({ id: "u-target" }));
     expect(res.status).toBe(403);
+  });
+
+  it("staff self-recording → 201", async () => {
+    mockSession({
+      id: "u-target",
+      name: "Self",
+      role: "staff",
+      serviceId: "svc-1",
+    });
+    const req = createRequest("POST", "/api/users/u-target/pd-log", {
+      body: {
+        title: "Self-recorded webinar",
+        type: "online",
+        hours: 1,
+        completedAt: "2026-04-01T00:00:00.000Z",
+      },
+    });
+    const res = await POST(req, ctx({ id: "u-target" }));
+    expect(res.status).toBe(201);
+    expect(prismaMock.activityLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          details: expect.objectContaining({ selfRecord: true }),
+        }),
+      }),
+    );
   });
 
   it("rejects invalid type enum (400)", async () => {
@@ -210,13 +236,39 @@ describe("PATCH/DELETE /api/users/[id]/pd-log/[recordId]", () => {
     expect(res.status).toBe(200);
   });
 
-  it("staff PATCH → 403", async () => {
+  it("staff PATCHing someone else's record → 403", async () => {
     mockSession({ id: "u1", name: "Staff", role: "staff", serviceId: "svc-1" });
     const req = createRequest("PATCH", "/api/users/u-target/pd-log/pd-1", {
       body: { hours: 3.0 },
     });
     const res = await PATCH(req, ctx({ id: "u-target", recordId: "pd-1" }));
     expect(res.status).toBe(403);
+  });
+
+  it("staff PATCHing own record → 200", async () => {
+    mockSession({
+      id: "u-target",
+      name: "Self",
+      role: "staff",
+      serviceId: "svc-1",
+    });
+    const req = createRequest("PATCH", "/api/users/u-target/pd-log/pd-1", {
+      body: { hours: 3.0 },
+    });
+    const res = await PATCH(req, ctx({ id: "u-target", recordId: "pd-1" }));
+    expect(res.status).toBe(200);
+  });
+
+  it("staff DELETING own record → 200", async () => {
+    mockSession({
+      id: "u-target",
+      name: "Self",
+      role: "staff",
+      serviceId: "svc-1",
+    });
+    const req = createRequest("DELETE", "/api/users/u-target/pd-log/pd-1");
+    const res = await DELETE(req, ctx({ id: "u-target", recordId: "pd-1" }));
+    expect(res.status).toBe(200);
   });
 
   it("PATCH on record belonging to different user → 404", async () => {

@@ -35,10 +35,16 @@ function formatDate(s: string | null | undefined): string {
 export function PdLogSection({
   userId,
   canManage,
+  isSelf = false,
 }: {
   userId: string;
+  /** Admin manage — can edit/delete anyone's records. */
   canManage: boolean;
+  /** Viewer is looking at own profile — can self-record + edit/delete own. */
+  isSelf?: boolean;
 }) {
+  // Either path lets the user add new entries + delete their own.
+  const canAdd = canManage || isSelf;
   const { data, isLoading } = usePdRecords(userId);
   const createMutation = useCreatePdRecord();
   const deleteMutation = useDeletePdRecord();
@@ -94,7 +100,7 @@ export function PdLogSection({
             </span>
           </p>
         </div>
-        {canManage && !adding && (
+        {canAdd && !adding && (
           <button
             type="button"
             onClick={() => setAdding(true)}
@@ -223,7 +229,7 @@ export function PdLogSection({
       ) : !data || data.length === 0 ? (
         <p className="text-sm text-muted">
           No professional development recorded.
-          {canManage && " Add the first entry above."}
+          {canAdd && " Add the first entry above."}
         </p>
       ) : (
         <ul className="divide-y divide-border">
@@ -262,7 +268,7 @@ export function PdLogSection({
                   Certificate
                 </a>
               )}
-              {canManage && (
+              {(canManage || isSelf) && (
                 <button
                   type="button"
                   onClick={() => {

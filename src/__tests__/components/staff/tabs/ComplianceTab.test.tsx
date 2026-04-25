@@ -52,7 +52,7 @@ function makeCert(overrides: Record<string, unknown> = {}) {
 describe("ComplianceTab", () => {
   it("shows empty messages when nothing uploaded", () => {
     const { container } = render(
-      <ComplianceTab userId="u-test" qualifications={[]} certificates={[]} canManage={false} />,
+      <ComplianceTab userId="u-test" qualifications={[]} certificates={[]} canManage={false} isSelf={false} />,
     );
     expect(container.textContent).toContain("No qualifications recorded");
     expect(container.textContent).toContain("No certificates uploaded");
@@ -63,6 +63,7 @@ describe("ComplianceTab", () => {
       <ComplianceTab userId="u-test" qualifications={[makeQual()]}
         certificates={[]}
         canManage={false}
+            isSelf={false}
       />,
     );
     expect(container.textContent).toContain("HLTAID011 First Aid");
@@ -76,6 +77,7 @@ describe("ComplianceTab", () => {
       <ComplianceTab userId="u-test" qualifications={[]}
         certificates={[makeCert()]}
         canManage={false}
+            isSelf={false}
       />,
     );
     expect(container.textContent).toContain("WWCC VIC");
@@ -86,14 +88,14 @@ describe("ComplianceTab", () => {
 
   it("hides the Add qualification button when canManage is false", () => {
     const { container } = render(
-      <ComplianceTab userId="u-test" qualifications={[]} certificates={[]} canManage={false} />,
+      <ComplianceTab userId="u-test" qualifications={[]} certificates={[]} canManage={false} isSelf={false} />,
     );
     expect(container.textContent).not.toContain("Add qualification");
   });
 
   it("shows the Add qualification button when canManage is true", () => {
     const { container } = render(
-      <ComplianceTab userId="u-test" qualifications={[]} certificates={[]} canManage={true} />,
+      <ComplianceTab userId="u-test" qualifications={[]} certificates={[]} canManage={true} isSelf={false} />,
     );
     expect(container.textContent).toContain("Add qualification");
   });
@@ -103,6 +105,7 @@ describe("ComplianceTab", () => {
       <ComplianceTab userId="u-test" qualifications={[]}
         certificates={[makeCert()]}
         canManage={false}
+            isSelf={false}
       />,
     );
     expect(container.textContent).not.toContain("Replace");
@@ -114,6 +117,7 @@ describe("ComplianceTab", () => {
       <ComplianceTab userId="u-test" qualifications={[]}
         certificates={[makeCert()]}
         canManage={true}
+            isSelf={false}
       />,
     );
     expect(container.textContent).toContain("Replace");

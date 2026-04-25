@@ -217,6 +217,7 @@ export function StaffProfileTabs({
             qualifications={data.qualifications}
             certificates={data.certificates}
             canManage={canManageCompliance}
+            isSelf={isSelf}
           />
         )}
         {active === "documents" && <DocumentsTab documents={data.documents} />}
