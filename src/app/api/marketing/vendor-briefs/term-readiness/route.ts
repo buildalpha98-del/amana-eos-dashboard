@@ -7,7 +7,7 @@ import { briefIncludeFor, toListItem } from "@/lib/vendor-brief/list-item";
 import { termStartDate, weeksUntil } from "@/lib/vendor-brief/term-dates";
 import { TermReadinessCategory } from "@prisma/client";
 
-const ROLES: ("marketing" | "owner")[] = ["marketing", "owner"];
+const ROLES: ("marketing" | "owner" | "head_office" | "admin")[] = ["marketing", "owner", "head_office", "admin"];
 
 const ALL_CATEGORIES: TermReadinessCategory[] = [
   TermReadinessCategory.flyers,

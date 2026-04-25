@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -507,7 +507,7 @@ function VendorTile({ data }: { data: CockpitSummary["vendorBriefs"] }) {
   // Sprint 4: drill-down links into /marketing/vendor-briefs.
   // Counts → in-flight tab. SLA watch entry → in-flight tab + open detail.
   // Missing-next-term → term-readiness tab with the next term selected.
-  const nextTerm = nextTermWithin(12);
+  const nextTerm = useMemo(() => nextTermWithin(12), []);
   const termReadinessHref = nextTerm
     ? `/marketing/vendor-briefs?tab=term-readiness&termYear=${nextTerm.year}&termNumber=${nextTerm.term}`
     : "/marketing/vendor-briefs?tab=term-readiness";

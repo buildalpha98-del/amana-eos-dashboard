@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api-error";
 import { briefIncludeFor, toListItem } from "@/lib/vendor-brief/list-item";
 
-const ROLES: ("marketing" | "owner")[] = ["marketing", "owner"];
+const ROLES: ("marketing" | "owner" | "head_office" | "admin")[] = ["marketing", "owner", "head_office", "admin"];
 
 type RouteCtx = { params: Promise<{ id: string }> };
 

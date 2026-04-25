@@ -7,7 +7,7 @@ import { briefIncludeFor, toListItem } from "@/lib/vendor-brief/list-item";
 import { TermReadinessCategory, VendorBriefType } from "@prisma/client";
 import { isTerminal } from "@/lib/vendor-brief/transitions";
 
-const ROLES: ("marketing" | "owner")[] = ["marketing", "owner"];
+const ROLES: ("marketing" | "owner" | "head_office" | "admin")[] = ["marketing", "owner", "head_office", "admin"];
 
 type RouteCtx = { params: Promise<{ id: string }> };
 

@@ -275,6 +275,106 @@ describe("POST /api/marketing/vendor-briefs/[id]/transition", () => {
     );
     expect(res.status).toBe(400);
   });
+
+  it("appends to existing notes on non-cancellation transition (preserves prior content)", async () => {
+    mockSession({ id: "m1", name: "Akram", role: "marketing" });
+    prismaMock.vendorBrief.findUnique.mockResolvedValue({
+      id: "vb1",
+      type: "print_collateral",
+      status: "awaiting_quote",
+      notes: "Earlier ops note from yesterday",
+      briefSentAt: new Date(),
+      acknowledgedAt: new Date(),
+      quoteReceivedAt: null,
+      quoteApprovedAt: null,
+      approvedAt: null,
+      orderedAt: null,
+      deliveredAt: null,
+      installedAt: null,
+    });
+    prismaMock.vendorBrief.update.mockResolvedValue({
+      ...baseBrief,
+      status: "quote_received",
+    });
+
+    await POST_TRANSITION(
+      createRequest("POST", "/api/marketing/vendor-briefs/vb1/transition", {
+        body: {
+          toStatus: "quote_received",
+          notes: "Quote came back at $1,200",
+        },
+      }),
+      ctx("vb1"),
+    );
+
+    const updateCall = prismaMock.vendorBrief.update.mock.calls[0][0] as {
+      data: { notes: string };
+    };
+    expect(updateCall.data.notes).toContain("Earlier ops note from yesterday");
+    expect(updateCall.data.notes).toContain("Quote came back at $1,200");
+  });
+
+  it("rejects 'installed' for non-signage briefs (server-side guard)", async () => {
+    mockSession({ id: "m1", name: "Akram", role: "marketing" });
+    prismaMock.vendorBrief.findUnique.mockResolvedValue({
+      id: "vb1",
+      type: "uniform",
+      status: "delivered",
+      notes: null,
+      briefSentAt: new Date(),
+      acknowledgedAt: new Date(),
+      quoteReceivedAt: new Date(),
+      quoteApprovedAt: new Date(),
+      approvedAt: new Date(),
+      orderedAt: new Date(),
+      deliveredAt: new Date(),
+      installedAt: null,
+    });
+
+    const res = await POST_TRANSITION(
+      createRequest("POST", "/api/marketing/vendor-briefs/vb1/transition", {
+        body: { toStatus: "installed" },
+      }),
+      ctx("vb1"),
+    );
+    expect(res.status).toBe(400);
+    expect(prismaMock.vendorBrief.update).not.toHaveBeenCalled();
+  });
+
+  it("permits head_office role on transition (widened from marketing+owner)", async () => {
+    prismaMock.user.findUnique.mockImplementation(async (args: { where?: { id?: string } } | undefined) => {
+      if (args?.where?.id === "h1")
+        return { id: "h1", role: "head_office", active: true };
+      return null;
+    });
+    mockSession({ id: "h1", name: "Daniel", role: "head_office" });
+    prismaMock.vendorBrief.findUnique.mockResolvedValue({
+      id: "vb1",
+      type: "print_collateral",
+      status: "draft",
+      notes: null,
+      briefSentAt: null,
+      acknowledgedAt: null,
+      quoteReceivedAt: null,
+      quoteApprovedAt: null,
+      approvedAt: null,
+      orderedAt: null,
+      deliveredAt: null,
+      installedAt: null,
+    });
+    prismaMock.vendorBrief.update.mockResolvedValue({
+      ...baseBrief,
+      status: "brief_sent",
+    });
+
+    const res = await POST_TRANSITION(
+      createRequest("POST", "/api/marketing/vendor-briefs/vb1/transition", {
+        body: { toStatus: "brief_sent" },
+      }),
+      ctx("vb1"),
+    );
+    expect(res.status).toBe(200);
+  });
 });
 
 describe("POST /api/marketing/vendor-briefs/[id]/escalate", () => {

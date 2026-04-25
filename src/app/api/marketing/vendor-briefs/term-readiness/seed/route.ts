@@ -14,7 +14,7 @@ import {
   type Service,
 } from "@prisma/client";
 
-const ROLES: ("marketing" | "owner")[] = ["marketing", "owner"];
+const ROLES: ("marketing" | "owner" | "head_office" | "admin")[] = ["marketing", "owner", "head_office", "admin"];
 
 const ALL_CATEGORIES: TermReadinessCategory[] = [
   TermReadinessCategory.flyers,

@@ -11,7 +11,7 @@ import {
 } from "@/lib/vendor-brief/transitions";
 import { VendorBriefStatus } from "@prisma/client";
 
-const ROLES: ("marketing" | "owner")[] = ["marketing", "owner"];
+const ROLES: ("marketing" | "owner" | "head_office" | "admin")[] = ["marketing", "owner", "head_office", "admin"];
 
 type RouteCtx = { params: Promise<{ id: string }> };
 
@@ -43,7 +43,9 @@ export const POST = withApiAuth(
       where: { id },
       select: {
         id: true,
+        type: true,
         status: true,
+        notes: true,
         briefSentAt: true,
         acknowledgedAt: true,
         quoteReceivedAt: true,
@@ -59,6 +61,14 @@ export const POST = withApiAuth(
     if (!isValidTransition(existing.status, toStatus)) {
       throw ApiError.badRequest(
         `Cannot transition from ${existing.status} to ${toStatus}.`,
+      );
+    }
+
+    // `installed` only makes semantic sense for signage. Server-side guard
+    // so the UI can't accidentally surface it for uniforms / merch / print.
+    if (toStatus === "installed" && existing.type !== "signage") {
+      throw ApiError.badRequest(
+        "Only signage briefs can be marked installed.",
       );
     }
 
@@ -80,9 +90,12 @@ export const POST = withApiAuth(
       data.cancellationReason = notes!.trim();
     } else if (notes?.trim()) {
       // Append to existing notes for non-cancellation transitions.
+      // `notes` is in the select clause, so existing.notes is the real
+      // prior content. The earlier unsafe cast was hiding a missing
+      // select field — fixed.
       const stamp = new Date().toISOString();
-      data.notes = (existing as { notes?: string | null }).notes
-        ? `${(existing as { notes?: string | null }).notes}\n\n— ${stamp}: ${notes.trim()}`
+      data.notes = existing.notes
+        ? `${existing.notes}\n\n— ${stamp}: ${notes.trim()}`
         : `${stamp}: ${notes.trim()}`;
     }
 

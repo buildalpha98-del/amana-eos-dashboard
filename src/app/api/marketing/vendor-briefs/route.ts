@@ -17,7 +17,7 @@ import {
   VendorBriefType,
 } from "@prisma/client";
 
-const ROLES: ("marketing" | "owner")[] = ["marketing", "owner"];
+const ROLES: ("marketing" | "owner" | "head_office" | "admin")[] = ["marketing", "owner", "head_office", "admin"];
 
 const TERMINAL_STATUSES: VendorBriefStatus[] = [
   "delivered",

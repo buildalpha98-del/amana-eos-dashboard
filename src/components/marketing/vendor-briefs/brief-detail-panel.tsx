@@ -28,10 +28,25 @@ const NEXT_STATUSES: Record<VendorBriefStatus, VendorBriefStatus | null> = {
   quote_received: "approved",
   approved: "ordered",
   ordered: "delivered",
+  // delivered → installed only for signage; nextStatusFor() filters by type.
   delivered: "installed",
   installed: null,
   cancelled: null,
 };
+
+/**
+ * Computes the next status for a brief, filtering type-specific moves.
+ * `installed` is signage-only — for uniforms / merch / print / event /
+ * other, `delivered` is terminal.
+ */
+function nextStatusFor(
+  status: VendorBriefStatus,
+  type: string,
+): VendorBriefStatus | null {
+  const next = NEXT_STATUSES[status];
+  if (next === "installed" && type !== "signage") return null;
+  return next;
+}
 
 const NEXT_LABELS: Record<VendorBriefStatus, string> = {
   draft: "Mark as sent",
@@ -87,7 +102,7 @@ export function BriefDetailPanel({
 
   const advanceStatus = async () => {
     if (!brief) return;
-    const next = NEXT_STATUSES[brief.status];
+    const next = nextStatusFor(brief.status, brief.type);
     if (!next) return;
     try {
       await transition.mutateAsync({ id: brief.id, toStatus: next });
@@ -319,7 +334,7 @@ export function BriefDetailPanel({
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap gap-2">
-                    {NEXT_STATUSES[brief.status] && (
+                    {nextStatusFor(brief.status, brief.type) && (
                       <button
                         onClick={advanceStatus}
                         disabled={transition.isPending}
