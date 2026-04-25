@@ -118,10 +118,27 @@ export function SectionCard({
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                // Cmd/Ctrl+Enter or Cmd/Ctrl+S → save; Esc → cancel
+                if ((e.metaKey || e.ctrlKey) && (e.key === "Enter" || e.key === "s")) {
+                  e.preventDefault();
+                  void save();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  cancel();
+                }
+              }}
               spellCheck={false}
               rows={18}
+              autoFocus
+              aria-label={`${title} JSON editor`}
               className="w-full rounded-lg border border-border bg-surface/40 px-3 py-2 text-xs font-mono focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
+            <p className="mt-1 text-[11px] text-muted">
+              <kbd className="rounded bg-surface px-1 py-0.5 font-mono">⌘</kbd>
+              <kbd className="ml-0.5 rounded bg-surface px-1 py-0.5 font-mono">↵</kbd> save ·
+              <kbd className="ml-1.5 rounded bg-surface px-1 py-0.5 font-mono">Esc</kbd> cancel
+            </p>
             {error && (
               <p className="mt-2 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-700">
                 {error}

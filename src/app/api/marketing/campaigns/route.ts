@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { parseJsonBody } from "@/lib/api-error";
+import { parseJsonBody, ApiError } from "@/lib/api-error";
+import { isGateOpen } from "@/lib/centre-avatar/freshness";
 const createCampaignSchema = z.object({
   name: z.string().min(1, "Name is required"),
   type: z
@@ -79,6 +80,42 @@ const body = await parseJsonBody(req);
   }
 
   const { serviceIds, ...campaignData } = parsed.data;
+
+  // Server-enforce the Centre Avatar campaign gate. Owner bypasses for emergencies;
+  // head_office/admin/marketing must have opened each selected service's Avatar
+  // within the last 7 days.
+  if (serviceIds && serviceIds.length > 0 && session!.user.role !== "owner") {
+    const avatars = await prisma.centreAvatar.findMany({
+      where: { serviceId: { in: serviceIds } },
+      select: {
+        serviceId: true,
+        lastOpenedAt: true,
+        lastOpenedById: true,
+        service: { select: { name: true } },
+      },
+    });
+
+    const closed: string[] = [];
+    for (const sid of serviceIds) {
+      const a = avatars.find((x) => x.serviceId === sid);
+      // Missing Avatar = closed gate (forces operator to create+open one first)
+      if (!a) {
+        closed.push(sid);
+        continue;
+      }
+      if (!isGateOpen(a.lastOpenedAt, a.lastOpenedById, session!.user.id)) {
+        closed.push(a.service?.name || sid);
+      }
+    }
+
+    if (closed.length > 0) {
+      throw new ApiError(
+        403,
+        `Centre Avatar gate not satisfied for: ${closed.join(", ")}. Open each centre's Avatar before creating a campaign.`,
+        { closedFor: closed },
+      );
+    }
+  }
 
   const campaign = await prisma.marketingCampaign.create({
     data: {

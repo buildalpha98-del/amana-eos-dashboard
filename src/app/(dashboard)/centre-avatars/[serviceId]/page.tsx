@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -53,6 +53,11 @@ export default function CentreAvatarDetailPage({
     // Intentionally run once per serviceId
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceId]);
+
+  const pendingInsightsCount = useMemo(
+    () => (avatar?.insights ?? []).filter((i) => i.status === "pending_review").length,
+    [avatar?.insights],
+  );
 
   const handleMarkReviewed = async () => {
     try {
@@ -142,11 +147,10 @@ export default function CentreAvatarDetailPage({
             {avatar.lastReviewedBy?.name ? ` · ${avatar.lastReviewedBy.name}` : ""}
           </span>
         )}
-        {avatar.insights.filter((i) => i.status === "pending_review").length > 0 && (
+        {pendingInsightsCount > 0 && (
           <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 font-medium text-amber-700">
             <Sparkles className="h-3 w-3" />
-            {avatar.insights.filter((i) => i.status === "pending_review").length} pending insight
-            {avatar.insights.filter((i) => i.status === "pending_review").length === 1 ? "" : "s"}
+            {pendingInsightsCount} pending insight{pendingInsightsCount === 1 ? "" : "s"}
           </span>
         )}
       </div>

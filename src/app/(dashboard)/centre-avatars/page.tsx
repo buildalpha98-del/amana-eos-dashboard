@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useCentreAvatars, type CentreAvatarSummary } from "@/hooks/useCentreAvatars";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Target, AlertCircle, Clock, Sparkles } from "lucide-react";
+import { Target, AlertCircle, Clock, Sparkles, X } from "lucide-react";
+
+type FilterMode = "all" | "fresh" | "needs-review" | "pending-insights";
 
 const FRESHNESS_META = {
   fresh: { label: "Fresh", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
@@ -17,16 +19,7 @@ const FRESHNESS_META = {
 
 export default function CentreAvatarsPage() {
   const { data: avatars, isLoading, error, refetch } = useCentreAvatars();
-
-  const grouped = useMemo(() => {
-    const map = new Map<string, CentreAvatarSummary[]>();
-    for (const a of avatars ?? []) {
-      const key = a.state ?? "Other";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(a);
-    }
-    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [avatars]);
+  const [filter, setFilter] = useState<FilterMode>("all");
 
   const totals = useMemo(() => {
     if (!avatars) return { total: 0, fresh: 0, aging: 0, stale: 0, pendingInsights: 0 };
@@ -41,6 +34,37 @@ export default function CentreAvatarsPage() {
     );
   }, [avatars]);
 
+  const filteredAvatars = useMemo(() => {
+    if (!avatars) return [];
+    switch (filter) {
+      case "fresh":
+        return avatars.filter((a) => a.freshness === "fresh");
+      case "needs-review":
+        return avatars.filter((a) => a.freshness !== "fresh");
+      case "pending-insights":
+        return avatars.filter((a) => a.pendingInsightsCount > 0);
+      default:
+        return avatars;
+    }
+  }, [avatars, filter]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, CentreAvatarSummary[]>();
+    for (const a of filteredAvatars) {
+      const key = a.state ?? "Other";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(a);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [filteredAvatars]);
+
+  const filterLabel: Record<FilterMode, string> = {
+    "all": "all centres",
+    "fresh": "fresh centres only",
+    "needs-review": "centres needing review",
+    "pending-insights": "centres with pending insights",
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <PageHeader
@@ -48,13 +72,57 @@ export default function CentreAvatarsPage() {
         description="The family profile of each centre — who we serve, what they want, how we earn their loyalty."
       />
 
-      {/* Summary stats */}
+      {/* Summary stats — clickable filters */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatTile icon={Target} label="Total Avatars" value={totals.total} tone="default" />
-        <StatTile icon={Clock} label="Fresh" value={totals.fresh} tone="fresh" />
-        <StatTile icon={AlertCircle} label="Aging / Stale" value={totals.aging + totals.stale} tone="warn" />
-        <StatTile icon={Sparkles} label="Pending Insights" value={totals.pendingInsights} tone={totals.pendingInsights > 0 ? "warn" : "default"} />
+        <StatTile
+          icon={Target}
+          label="Total Avatars"
+          value={totals.total}
+          tone="default"
+          active={filter === "all"}
+          onClick={() => setFilter("all")}
+        />
+        <StatTile
+          icon={Clock}
+          label="Fresh"
+          value={totals.fresh}
+          tone="fresh"
+          active={filter === "fresh"}
+          onClick={() => setFilter(filter === "fresh" ? "all" : "fresh")}
+        />
+        <StatTile
+          icon={AlertCircle}
+          label="Aging / Stale"
+          value={totals.aging + totals.stale}
+          tone="warn"
+          active={filter === "needs-review"}
+          onClick={() => setFilter(filter === "needs-review" ? "all" : "needs-review")}
+        />
+        <StatTile
+          icon={Sparkles}
+          label="Pending Insights"
+          value={totals.pendingInsights}
+          tone={totals.pendingInsights > 0 ? "warn" : "default"}
+          active={filter === "pending-insights"}
+          onClick={() => setFilter(filter === "pending-insights" ? "all" : "pending-insights")}
+        />
       </div>
+
+      {filter !== "all" && (
+        <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-xs">
+          <span className="text-muted">Filtered by:</span>
+          <span className="font-medium text-foreground">{filterLabel[filter]}</span>
+          <span className="text-muted">·</span>
+          <span className="font-medium tabular-nums">{filteredAvatars.length} of {totals.total}</span>
+          <button
+            type="button"
+            onClick={() => setFilter("all")}
+            className="ml-auto inline-flex items-center gap-1 rounded-md border border-border px-2 py-0.5 text-xs hover:bg-surface"
+          >
+            <X className="h-3 w-3" /> Clear
+          </button>
+        </div>
+      )}
 
       {error && (
         <ErrorState
@@ -76,7 +144,16 @@ export default function CentreAvatarsPage() {
         <EmptyState
           icon={Target}
           title="No Centre Avatars yet"
-          description="Run the seed script to populate one Avatar per service."
+          description="One Avatar per service should appear here. Ask Jayden to seed the database — then refresh."
+          variant="inline"
+        />
+      )}
+
+      {!error && !isLoading && (avatars?.length ?? 0) > 0 && filteredAvatars.length === 0 && (
+        <EmptyState
+          icon={Target}
+          title="No centres match this filter"
+          description="Try a different stat tile, or clear the filter to see everything."
           variant="inline"
         />
       )}
@@ -143,11 +220,15 @@ function StatTile({
   label,
   value,
   tone,
+  active = false,
+  onClick,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: number;
   tone: "default" | "fresh" | "warn";
+  active?: boolean;
+  onClick?: () => void;
 }) {
   const toneClasses =
     tone === "fresh"
@@ -155,14 +236,34 @@ function StatTile({
       : tone === "warn"
         ? "text-amber-700 bg-amber-50 border-amber-100"
         : "text-foreground bg-card border-border";
+
+  const ringClass = active ? "ring-2 ring-brand ring-offset-1 ring-offset-background" : "";
+
+  if (!onClick) {
+    return (
+      <div className={`rounded-xl border p-4 ${toneClasses}`}>
+        <div className="flex items-center gap-2 text-xs font-medium opacity-80">
+          <Icon className="h-3.5 w-3.5" />
+          {label}
+        </div>
+        <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`rounded-xl border p-4 ${toneClasses}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`text-left rounded-xl border p-4 transition-all hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${toneClasses} ${ringClass}`}
+    >
       <div className="flex items-center gap-2 text-xs font-medium opacity-80">
         <Icon className="h-3.5 w-3.5" />
         {label}
       </div>
       <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
-    </div>
+    </button>
   );
 }
 

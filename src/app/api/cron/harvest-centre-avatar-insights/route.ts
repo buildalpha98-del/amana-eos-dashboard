@@ -28,7 +28,10 @@ export const POST = withApiHandler(async (req: NextRequest) => {
 
   try {
     const now = new Date();
-    const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    // 26h lookback gives a 2h overlap with the previous run. Idempotency is
+    // guaranteed by the @@unique([harvestedFrom, sourceRecordId]) constraint
+    // (P2002 swallowed below), so overlap is free — gaps are not.
+    const since = new Date(now.getTime() - 26 * 60 * 60 * 1000);
 
     const avatars = await prisma.centreAvatar.findMany({
       select: { id: true, serviceId: true, service: { select: { code: true } } },

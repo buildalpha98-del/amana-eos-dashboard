@@ -2,11 +2,20 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchApi, mutateApi } from "@/lib/fetch-api";
+import { toast } from "@/hooks/useToast";
 import type { AvatarFreshness } from "@/lib/centre-avatar/freshness";
 import type {
   CentreAvatarInsightSource,
   CentreAvatarInsightStatus,
 } from "@prisma/client";
+
+// Shared destructive-toast handler — every mutation in this file must use it
+// per the global "no silent mutation failures" rule.
+const onMutationError = (err: Error) =>
+  toast({
+    variant: "destructive",
+    description: err.message || "Something went wrong",
+  });
 
 // ---------------------------------------------------------------------------
 // Types
@@ -143,6 +152,7 @@ export function useOpenCentreAvatar() {
       mutateApi<{ ok: boolean }>(`/api/centre-avatars/${serviceId}/open`, {
         method: "POST",
       }),
+    onError: onMutationError,
   });
 }
 
@@ -168,6 +178,7 @@ export function useUpdateCentreAvatarSection() {
       qc.invalidateQueries({ queryKey: ["centre-avatar", v.serviceId] });
       qc.invalidateQueries({ queryKey: ["centre-avatars"] });
     },
+    onError: onMutationError,
   });
 }
 
@@ -183,6 +194,7 @@ export function useMarkCentreAvatarReviewed() {
       qc.invalidateQueries({ queryKey: ["centre-avatar", serviceId] });
       qc.invalidateQueries({ queryKey: ["centre-avatars"] });
     },
+    onError: onMutationError,
   });
 }
 
@@ -206,6 +218,7 @@ export function useApproveInsight() {
       qc.invalidateQueries({ queryKey: ["centre-avatar", v.serviceId] });
       qc.invalidateQueries({ queryKey: ["centre-avatars"] });
     },
+    onError: onMutationError,
   });
 }
 
@@ -227,6 +240,7 @@ export function useDismissInsight() {
       qc.invalidateQueries({ queryKey: ["centre-avatar", v.serviceId] });
       qc.invalidateQueries({ queryKey: ["centre-avatars"] });
     },
+    onError: onMutationError,
   });
 }
 
@@ -249,7 +263,9 @@ export function useAddInsight() {
       ),
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["centre-avatar", v.serviceId] });
+      qc.invalidateQueries({ queryKey: ["centre-avatars"] });
     },
+    onError: onMutationError,
   });
 }
 
@@ -274,7 +290,9 @@ export function useAddCampaignLog() {
       ),
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["centre-avatar", v.serviceId] });
+      qc.invalidateQueries({ queryKey: ["centre-avatars"] });
     },
+    onError: onMutationError,
   });
 }
 
@@ -298,7 +316,9 @@ export function useAddCheckIn() {
       ),
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["centre-avatar", v.serviceId] });
+      qc.invalidateQueries({ queryKey: ["centre-avatars"] });
     },
+    onError: onMutationError,
   });
 }
 
@@ -323,6 +343,8 @@ export function useAddSchoolLiaison() {
       ),
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["centre-avatar", v.serviceId] });
+      qc.invalidateQueries({ queryKey: ["centre-avatars"] });
     },
+    onError: onMutationError,
   });
 }

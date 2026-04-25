@@ -40,6 +40,11 @@ export const POST = withApiAuth(
       return NextResponse.json({ ok: true, alreadyApproved: true });
     }
 
+    // NOTE: triage actions (approve/dismiss) intentionally do NOT bump
+    // `lastUpdatedAt`. Freshness reflects "when did the avatar's content last
+    // change" — approving a harvested signal isn't a content edit, so it
+    // shouldn't reset the freshness clock. The audit trail captures the action
+    // via the update log.
     await prisma.$transaction(async (tx) => {
       await tx.centreAvatarInsight.update({
         where: { id },
@@ -56,10 +61,6 @@ export const POST = withApiAuth(
         userId: session.user.id,
         sectionsChanged: ["insights"],
         summary: "Approved harvested insight",
-      });
-      await tx.centreAvatar.update({
-        where: { id: insight.centreAvatar.id },
-        data: { lastUpdatedAt: new Date(), lastUpdatedById: session.user.id },
       });
     });
 
