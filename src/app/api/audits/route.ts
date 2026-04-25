@@ -173,5 +173,8 @@ export const POST = withApiAuth(
 
     return NextResponse.json(instance, { status: 201 });
   },
-  { roles: ["owner", "admin", "member"] },
+  // Allocation lives with admin-tier roles. Coordinators do NOT schedule
+  // their own audits — head office / admin assign them, then coordinators
+  // complete (PATCH start/complete + PATCH responses are gated separately).
+  { roles: ["owner", "head_office", "admin", "member"] },
 );
