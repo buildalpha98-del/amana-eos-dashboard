@@ -1,9 +1,11 @@
 import type { StaffQualification, ComplianceCertificate } from "@prisma/client";
 import { CertStatusBadge } from "@/components/staff/CertStatusBadge";
 import { CertActionBar } from "@/components/compliance/CertActionBar";
+import { PdLogSection } from "@/components/staff/PdLogSection";
 import { Download } from "lucide-react";
 
 interface ComplianceTabProps {
+  userId: string;
   qualifications: StaffQualification[];
   certificates: ComplianceCertificate[];
   canManage: boolean;
@@ -23,7 +25,7 @@ function humanize(value: string | null | undefined): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function ComplianceTab({ qualifications, certificates, canManage }: ComplianceTabProps) {
+export function ComplianceTab({ userId, qualifications, certificates, canManage }: ComplianceTabProps) {
   return (
     <div className="space-y-6">
       {/* Qualifications */}
@@ -108,6 +110,9 @@ export function ComplianceTab({ qualifications, certificates, canManage }: Compl
           </ul>
         )}
       </div>
+
+      {/* Professional Development log — OWNA gap F */}
+      <PdLogSection userId={userId} canManage={canManage} />
     </div>
   );
 }
