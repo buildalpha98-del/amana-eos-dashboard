@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import type { ActivationRow } from "@/hooks/useActivations";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/Sheet";
 import { LifecycleStepper } from "./LifecycleStepper";
-import { ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { CoordinatorTodoForm } from "@/components/marketing/coordinator-todos/CoordinatorTodoForm";
+import { ExternalLink, Send } from "lucide-react";
 
 interface ActivationDetailPanelProps {
   activation: ActivationRow | null;
@@ -27,6 +30,7 @@ function fmtDate(ts: string | null): string {
 }
 
 export function ActivationDetailPanel({ activation, onClose }: ActivationDetailPanelProps) {
+  const [todoOpen, setTodoOpen] = useState(false);
   return (
     <Sheet open={!!activation} onOpenChange={(o) => !o && onClose()}>
       <SheetContent>
@@ -109,6 +113,32 @@ export function ActivationDetailPanel({ activation, onClose }: ActivationDetailP
                   </pre>
                 </section>
               )}
+
+              <section>
+                <h4 className="text-xs font-semibold text-muted mb-2 uppercase tracking-wide">Push a todo to {activation.service.name}&apos;s coordinator</h4>
+                {todoOpen ? (
+                  <div className="rounded-md border border-border bg-surface p-3">
+                    <CoordinatorTodoForm
+                      initialServiceIds={[activation.service.id]}
+                      lockServices
+                      activationId={activation.id}
+                      initialTitle={`${activation.title} — coordinator action`}
+                      initialDescription="Please action this for the upcoming activation. Reply in the todo when done."
+                      onCreated={() => setTodoOpen(false)}
+                      onCancel={() => setTodoOpen(false)}
+                    />
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    iconLeft={<Send className="w-4 h-4" />}
+                    onClick={() => setTodoOpen(true)}
+                  >
+                    Send to coordinator
+                  </Button>
+                )}
+              </section>
             </div>
           </>
         )}
