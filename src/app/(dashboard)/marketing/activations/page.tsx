@@ -1,4 +1,4 @@
-import ActivationsContent from "@/components/marketing/ActivationsContent";
+import ActivationsContent from "@/components/marketing/activations/ActivationsContent";
 
 export const metadata = {
   title: "Activations — Amana EOS",

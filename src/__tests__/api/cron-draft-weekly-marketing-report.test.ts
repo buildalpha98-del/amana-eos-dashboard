@@ -46,6 +46,11 @@ function setupEmptyDatabase() {
     status: "draft",
     weekStart: new Date(),
   });
+  // Sprint 7+8 — content team milestone resolution + team output count
+  prismaMock.user.findMany.mockResolvedValue([]);
+  prismaMock.marketingPost.count.mockResolvedValue(0);
+  prismaMock.whatsAppNetworkPost.count.mockResolvedValue(0);
+  prismaMock.centreAvatarInsight.count.mockResolvedValue(0);
 }
 
 function authed() {

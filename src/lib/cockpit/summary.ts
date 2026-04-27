@@ -16,6 +16,7 @@ import { getCurrentTerm, getNextTerm, type SchoolTerm } from "@/lib/school-terms
 import type { WeekWindow } from "@/lib/cockpit/week";
 import { getWeekWindow } from "@/lib/cockpit/week";
 import { getFocusAvatarSlimForWeek } from "@/lib/avatar-focus-rotation";
+import { resolveAllMilestones, pickCurrentMilestone } from "@/lib/content-team-milestones";
 
 // CTA compliance heuristic — if caption matches any of these, we consider a CTA present.
 const CTA_PATTERNS = [
@@ -58,6 +59,8 @@ export type CockpitSummary = {
       teamOutput: number;
       briefs24h: { current: number; target: number; floor: number; status: RagStatus };
       claudeThisWeek: boolean;
+      activeMembers: number;
+      currentMilestone: { key: "day60" | "day90" | "day120"; label: string; status: "on_track" | "at_risk" | "overdue" | "complete"; daysUntilTarget: number } | null;
     };
     schoolLiaison: {
       termPlacements: RagMetric;
@@ -71,6 +74,8 @@ export type CockpitSummary = {
     activations: {
       termActivations: RagMetric;
       recapRate: { current: number; target: number; floor: number; status: RagStatus } | null;
+      avgAttendance: number | null;
+      happeningThisWeek: number;
     };
     whatsapp: {
       coordinator: RagMetric;
@@ -218,20 +223,35 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
       orderBy: { name: "asc" },
     }),
 
-    // Activations for this term — filter campaigns type event/launch with startDate in term
+    // Activations for this term — prefer denormalised termYear/termNumber set on
+    // the assignment; fall back to campaign.startDate for legacy rows.
     prisma.campaignActivationAssignment.findMany({
       where: {
-        campaign: {
-          deleted: false,
-          type: { in: ["event", "launch"] },
-          startDate: { gte: term.startsOn, lte: term.endsOn },
-        },
+        campaign: { deleted: false },
+        OR: [
+          { termYear: term.year, termNumber: term.term },
+          {
+            AND: [
+              { termYear: null },
+              {
+                campaign: {
+                  type: { in: ["event", "launch", "activation"] },
+                  startDate: { gte: term.startsOn, lte: term.endsOn },
+                },
+              },
+            ],
+          },
+        ],
       },
       select: {
         id: true,
         campaignId: true,
         serviceId: true,
-        status: true,
+        lifecycleStage: true,
+        scheduledFor: true,
+        activationDeliveredAt: true,
+        recapPublishedAt: true,
+        actualAttendance: true,
         campaign: { select: { startDate: true, endDate: true, type: true } },
       },
     }),
@@ -398,9 +418,38 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
   ).length;
   const briefs24Rate = briefs24Total === 0 ? 1 : briefs24Under / briefs24Total;
 
+  // Resolve hiring milestones from content-team members.
+  const teamMembersForMilestones = await prisma.user.findMany({
+    where: { contentTeamRole: { not: null } },
+    select: { id: true, contentTeamRole: true, contentTeamStatus: true },
+  });
+  const memberIds = teamMembersForMilestones.map((m) => m.id);
+  const oneWeekAgoMs = now.getTime() - 7 * DAY_MS;
+  const teamOutputCount = memberIds.length === 0
+    ? 0
+    : await prisma.marketingPost.count({
+        where: {
+          deleted: false,
+          assigneeId: { in: memberIds },
+          createdAt: { gte: new Date(oneWeekAgoMs) },
+        },
+      });
+  const activeMembers = teamMembersForMilestones.filter(
+    (m) => m.contentTeamStatus === "onboarding" || m.contentTeamStatus === "active",
+  ).length;
+  const milestoneInputs = teamMembersForMilestones.map((m) => ({
+    contentTeamRole: m.contentTeamRole,
+    contentTeamStatus: m.contentTeamStatus,
+  }));
+  const { milestones: resolvedMilestones } = resolveAllMilestones(milestoneInputs, now);
+  const currentMilestone = pickCurrentMilestone(resolvedMilestones);
+  const hiresCurrent = currentMilestone.hiredRoles.length;
+  const hiresTarget = currentMilestone.requiredRoles.length;
+  const hiresFloor = Math.max(1, hiresTarget - 1);
+
   const contentTeam = {
-    hires: buildRagMetric({ current: hires, target: 3, floor: 2 }),
-    teamOutput: 0, // Informational only — populated when team-created posts tracked (Sprint 8)
+    hires: buildRagMetric({ current: hiresCurrent, target: hiresTarget, floor: hiresFloor }),
+    teamOutput: teamOutputCount,
     briefs24h: {
       current: Number(briefs24Rate.toFixed(2)),
       target: 0.9,
@@ -409,6 +458,13 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
         briefs24Rate >= 0.9 ? ("green" as const) : briefs24Rate >= 0.75 ? ("amber" as const) : ("red" as const),
     },
     claudeThisWeek: claudeDrafts > 0,
+    activeMembers,
+    currentMilestone: {
+      key: currentMilestone.key,
+      label: currentMilestone.label,
+      status: currentMilestone.status,
+      daysUntilTarget: currentMilestone.daysUntilTarget,
+    },
   };
 
   // ── School Liaison tile ──────────────────────────────────────
@@ -427,9 +483,43 @@ export async function computeCockpitSummary(input: SummaryInput = {}): Promise<C
   };
 
   // ── Activations tile ─────────────────────────────────────────
+  const RECAP_WINDOW_MS = 48 * 60 * 60 * 1000;
+  const SEVEN_DAYS_MS = 7 * DAY_MS;
+  const deliveredOrRecap = activations.filter(
+    (a) => a.lifecycleStage === "delivered" || a.lifecycleStage === "recap_published",
+  );
+  const inFlightThisWeek = activations.filter((a) => {
+    if (!a.scheduledFor) return false;
+    if (a.lifecycleStage === "delivered" || a.lifecycleStage === "recap_published" || a.lifecycleStage === "cancelled") {
+      return false;
+    }
+    const ms = a.scheduledFor.getTime() - now.getTime();
+    return ms >= 0 && ms <= SEVEN_DAYS_MS;
+  });
+  const recapsInWindow = deliveredOrRecap.filter((a) => {
+    if (!a.activationDeliveredAt || !a.recapPublishedAt) return false;
+    return a.recapPublishedAt.getTime() - a.activationDeliveredAt.getTime() <= RECAP_WINDOW_MS;
+  });
+  const attendanceSamples = deliveredOrRecap
+    .map((a) => a.actualAttendance)
+    .filter((n): n is number => typeof n === "number" && n >= 0);
+  const avgAttendance = attendanceSamples.length
+    ? Math.round(attendanceSamples.reduce((s, n) => s + n, 0) / attendanceSamples.length)
+    : null;
+  const recapRate = deliveredOrRecap.length > 0
+    ? buildRagMetric({
+        current: recapsInWindow.length / deliveredOrRecap.length,
+        target: 0.9,
+        floor: 0.7,
+      })
+    : null;
+
+  const deliveredCount = deliveredOrRecap.length;
   const activationsTile = {
-    termActivations: buildRagMetric({ current: activations.length, target: 20, floor: 15 }),
-    recapRate: null as { current: number; target: number; floor: number; status: RagStatus } | null,
+    termActivations: buildRagMetric({ current: deliveredCount, target: 20, floor: 15 }),
+    recapRate,
+    avgAttendance,
+    happeningThisWeek: inFlightThisWeek.length,
   };
 
   // ── WhatsApp tile ────────────────────────────────────────────

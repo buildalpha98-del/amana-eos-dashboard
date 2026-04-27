@@ -93,6 +93,24 @@ export function getNextTerm(date: Date = new Date()): SchoolTerm {
   return getTermsForYear(current.year + 1)[0];
 }
 
+/**
+ * Strictly resolve a date to a term, or return null if the date is in a school
+ * holiday window. Different from `getCurrentTerm` which always returns a term
+ * (rolling forward to the next one). Use this when you need to know whether a
+ * date actually falls inside a defined term — e.g. when stamping `termYear`/
+ * `termNumber` on an activation scheduled during the holidays.
+ */
+export function getTermForDate(date: Date): { year: number; number: 1 | 2 | 3 | 4 } | null {
+  const year = date.getFullYear();
+  const candidates = [
+    ...getTermsForYear(year - 1),
+    ...getTermsForYear(year),
+    ...getTermsForYear(year + 1),
+  ];
+  const match = candidates.find((t) => date >= t.startsOn && date <= t.endsOn);
+  return match ? { year: match.year, number: match.term } : null;
+}
+
 const NEWSLETTER_CHASE_DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface NewsletterChaseEligibility {

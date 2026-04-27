@@ -38,6 +38,9 @@ function setupDefaults() {
   prismaMock.vendorBrief.findMany.mockResolvedValue([]);
   prismaMock.weeklyMarketingReport.findFirst.mockResolvedValue(null);
   prismaMock.weeklyMarketingReport.findUnique.mockResolvedValue(null);
+  // Sprint 7+8 — content team milestone resolution + team output count
+  prismaMock.user.findMany.mockResolvedValue([]);
+  prismaMock.marketingPost.count.mockResolvedValue(0);
 }
 
 describe("GET /api/marketing/cockpit/summary", () => {

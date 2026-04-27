@@ -343,6 +343,7 @@ enum ContentTeamRole {
   designer
   copywriter
   community_manager
+  photographer
 }
 
 enum ContentTeamStatus {
@@ -351,6 +352,7 @@ enum ContentTeamStatus {
   hired
   onboarding
   active
+  paused
   departed
 }
 
@@ -694,8 +696,11 @@ model User {
   approvedShiftSwaps  ShiftSwapRequest[] @relation("ApprovedShiftSwaps")
 
   // ── Marketing Cockpit (Sprint 2) ─────────────────
-  contentTeamRole   ContentTeamRole?
-  contentTeamStatus ContentTeamStatus?
+  contentTeamRole        ContentTeamRole?
+  contentTeamStatus      ContentTeamStatus?
+  contentTeamStartedAt   DateTime?
+  contentTeamPausedAt    DateTime?
+  contentTeamPauseReason String?
 
   centreAvatarsUpdated           CentreAvatar[]            @relation("CentreAvatarUpdater")
   centreAvatarsReviewed          CentreAvatar[]            @relation("CentreAvatarReviewer")
@@ -719,6 +724,7 @@ model User {
   centreAvatarUpdateLogs               CentreAvatarUpdateLog[]          @relation("CentreAvatarUpdateLogUpdatedBy")
 
   @@index([serviceId])
+  @@index([contentTeamRole, contentTeamStatus])
 }
 
 model PasswordResetToken {
@@ -1792,20 +1798,47 @@ model MarketingTaskTemplateItem {
 }
 
 model CampaignActivationAssignment {
-  id                    String            @id @default(cuid())
-  campaignId            String
-  campaign              MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  serviceId             String
-  service               Service           @relation("ServiceActivations", fields: [serviceId], references: [id], onDelete: Cascade)
-  assigned              Boolean           @default(true)
-  coordinatorId         String?
-  coordinator           User?             @relation("ActivationCoordinator", fields: [coordinatorId], references: [id])
-  budget                Float?
-  notes                 String?           @db.Text
-  status                String            @default("pending")
+  id            String            @id @default(cuid())
+  campaignId    String
+  campaign      MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  serviceId     String
+  service       Service           @relation("ServiceActivations", fields: [serviceId], references: [id], onDelete: Cascade)
+  assigned      Boolean           @default(true)
+  coordinatorId String?
+  coordinator   User?             @relation("ActivationCoordinator", fields: [coordinatorId], references: [id])
+  budget        Float?
+  notes         String?           @db.Text
+
+  /// Lifecycle stage. Sprint 7 replaces the loose Sprint-2 `status` string.
+  lifecycleStage ActivationLifecycleStage @default(concept)
+
+  /// What kind of activation. Drives recap template + expected attendance ranges.
+  activationType ActivationType?
+
+  /// Lifecycle timestamps. Each represents the moment the stage was entered.
+  conceptApprovedAt     DateTime?
+  logisticsStartedAt    DateTime?
+  finalPushStartedAt    DateTime?
   activationDeliveredAt DateTime?
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  recapPublishedAt      DateTime?
+
+  /// When the activation is/was scheduled to happen (vs. activationDeliveredAt = when it actually did).
+  scheduledFor DateTime?
+
+  expectedAttendance Int?
+  actualAttendance   Int?
+  enquiriesGenerated Int?
+
+  /// Term metadata — denormalised for fast term-grid queries.
+  /// Derived from scheduledFor (or campaign.startDate fallback) at write time.
+  termYear   Int?
+  termNumber Int?
+
+  cancelledAt        DateTime?
+  cancellationReason String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   recapPosts MarketingPost[] @relation("MarketingPostRecapFor")
 
@@ -1813,6 +1846,30 @@ model CampaignActivationAssignment {
   @@index([campaignId])
   @@index([serviceId])
   @@index([activationDeliveredAt])
+  @@index([lifecycleStage])
+  @@index([termYear, termNumber])
+  @@index([scheduledFor])
+}
+
+enum ActivationType {
+  free_breakfast
+  parent_info_session
+  expert_talk
+  programme_taster
+  holiday_quest_preview
+  open_day
+  community_event
+  other
+}
+
+enum ActivationLifecycleStage {
+  concept
+  approved
+  logistics
+  final_push
+  delivered
+  recap_published
+  cancelled
 }
 
 // ============================================================

@@ -56,14 +56,20 @@ describe("POST /api/marketing/activations/[id]/mark-delivered", () => {
     expect(res.status).toBe(404);
   });
 
-  it("sets activationDeliveredAt to now and status delivered", async () => {
+  it("sets activationDeliveredAt to now and lifecycle to delivered", async () => {
     mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({ id: "act-1" });
+    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({
+      id: "act-1",
+      lifecycleStage: "final_push",
+      finalPushStartedAt: new Date("2026-04-25"),
+      logisticsStartedAt: new Date("2026-04-22"),
+      conceptApprovedAt: new Date("2026-04-20"),
+    });
     const now = new Date("2026-04-26T10:00:00Z");
     prismaMock.campaignActivationAssignment.update.mockResolvedValue({
       id: "act-1",
       activationDeliveredAt: now,
-      status: "delivered",
+      lifecycleStage: "delivered",
     });
     const res = await POST(
       createRequest("POST", "/api/marketing/activations/act-1/mark-delivered", { body: {} }),
@@ -74,16 +80,23 @@ describe("POST /api/marketing/activations/[id]/mark-delivered", () => {
     expect(data.status).toBe("delivered");
     expect(data.activationDeliveredAt).toBe(now.toISOString());
     const updateArg = prismaMock.campaignActivationAssignment.update.mock.calls[0][0];
-    expect(updateArg.data.status).toBe("delivered");
+    expect(updateArg.data.lifecycleStage).toBe("delivered");
+    expect(updateArg.data.activationDeliveredAt).toBeInstanceOf(Date);
   });
 
   it("undoes delivery when undo: true", async () => {
     mockSession({ id: "akram", name: "Akram", role: "marketing" });
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({ id: "act-1" });
+    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({
+      id: "act-1",
+      lifecycleStage: "delivered",
+      finalPushStartedAt: new Date("2026-04-25"),
+      logisticsStartedAt: new Date("2026-04-22"),
+      conceptApprovedAt: new Date("2026-04-20"),
+    });
     prismaMock.campaignActivationAssignment.update.mockResolvedValue({
       id: "act-1",
       activationDeliveredAt: null,
-      status: "pending",
+      lifecycleStage: "final_push",
     });
     const res = await POST(
       createRequest("POST", "/api/marketing/activations/act-1/mark-delivered", { body: { undo: true } }),
@@ -92,7 +105,7 @@ describe("POST /api/marketing/activations/[id]/mark-delivered", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.activationDeliveredAt).toBeNull();
-    expect(data.status).toBe("pending");
+    expect(data.status).toBe("final_push");
   });
 });
 

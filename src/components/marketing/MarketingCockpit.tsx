@@ -395,17 +395,34 @@ function BrandSocialTile({ data }: { data: CockpitSummary["tiles"]["brandSocial"
 }
 
 function ContentTeamTile({ data }: { data: CockpitSummary["tiles"]["contentTeam"] }) {
+  const milestoneText = data.currentMilestone
+    ? `${data.currentMilestone.label} · ${data.currentMilestone.daysUntilTarget >= 0
+        ? `${data.currentMilestone.daysUntilTarget}d left`
+        : `${-data.currentMilestone.daysUntilTarget}d overdue`}`
+    : null;
   return (
-    <TileCard title="Content Team" icon={Users}>
-      <MetricRow label="Team hires" {...data.hires} />
-      <MetricRow label="Briefs approved <24h" {...data.briefs24h} unit="pct" />
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted">Claude drafts this week</span>
-        <span className={data.claudeThisWeek ? "text-green-600 font-semibold" : "text-amber-600"}>
-          {data.claudeThisWeek ? "Yes" : "None"}
-        </span>
-      </div>
-    </TileCard>
+    <Link
+      href="/marketing/team"
+      className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
+      aria-label="Open Content Team"
+    >
+      <TileCard title="Content Team" icon={Users}>
+        <MetricRow label="Hires (current milestone)" {...data.hires} />
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted">Output last week</span>
+          <span className="font-semibold text-foreground">
+            {data.teamOutput} <span className="text-muted font-normal">posts</span>
+          </span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted">Active</span>
+          <span className="font-semibold text-foreground">{data.activeMembers}</span>
+        </div>
+        {milestoneText && (
+          <div className="text-xs text-muted pt-1">{milestoneText}</div>
+        )}
+      </TileCard>
+    </Link>
   );
 }
 
@@ -430,12 +447,32 @@ function SchoolLiaisonTile({ data }: { data: CockpitSummary["tiles"]["schoolLiai
 
 function ActivationsTile({ data }: { data: CockpitSummary["tiles"]["activations"] }) {
   return (
-    <TileCard title="Activations" icon={TrendingUp}>
-      <MetricRow label="Term activations" {...data.termActivations} />
-      {data.recapRate && (
-        <MetricRow label="Recap rate" {...data.recapRate} unit="pct" />
-      )}
-    </TileCard>
+    <Link
+      href="/marketing/activations"
+      className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
+      aria-label="Open Activations"
+    >
+      <TileCard title="Activations" icon={TrendingUp}>
+        <MetricRow label="Term delivered" {...data.termActivations} />
+        {data.recapRate && (
+          <MetricRow label="Recap <48h" {...data.recapRate} unit="pct" />
+        )}
+        {data.avgAttendance !== null && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted">Avg attendance</span>
+            <span className="font-semibold text-foreground">{data.avgAttendance}</span>
+          </div>
+        )}
+        {data.happeningThisWeek > 0 && (
+          <div
+            className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 border border-amber-200"
+            title="Activations scheduled to happen within the next 7 days"
+          >
+            🗓 {data.happeningThisWeek} happening this week
+          </div>
+        )}
+      </TileCard>
+    </Link>
   );
 }
 

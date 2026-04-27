@@ -119,7 +119,7 @@ async function buildContext(focus: FocusAvatar, now: Date): Promise<ContextBundl
         },
       },
       select: {
-        status: true,
+        lifecycleStage: true,
         campaign: { select: { name: true, type: true, startDate: true } },
       },
       take: 10,
@@ -138,7 +138,7 @@ async function buildContext(focus: FocusAvatar, now: Date): Promise<ContextBundl
   const pastActivations = activations.length === 0
     ? `${FALLBACK} (none recorded for ${term.year} Term ${term.term})`
     : activations
-        .map((a) => `${a.campaign.name} (${a.campaign.type}, status: ${a.status})`)
+        .map((a) => `${a.campaign.name} (${a.campaign.type}, stage: ${a.lifecycleStage})`)
         .join("; ");
 
   return {
