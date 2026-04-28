@@ -13,6 +13,8 @@ import {
   useSectionShortcuts,
 } from "./FormPrimitives";
 import type { ProgrammeMix } from "@/lib/centre-avatar/sections";
+import { useAutosave, useUnsavedChangesWarning } from "@/hooks/useAutosave";
+import { AutosaveStatus } from "../AutosaveStatus";
 
 type ProgrammeRow = NonNullable<ProgrammeMix["programmes"]>[number];
 
@@ -55,15 +57,17 @@ export function ProgrammeMixForm({
     set("programmes", programmes.filter((_, i) => i !== idx));
   };
 
-  const save = () => {
+  const save = async () => {
     // Drop rows that have no name (the only required field) before saving.
     const filteredProgrammes = programmes.filter((p) => (p.name ?? "").trim().length > 0);
     const normalised = { ...draft, programmes: filteredProgrammes };
     const cleaned = stripEmpty(normalised);
-    void onSave(cleaned as Record<string, unknown>);
+    await onSave(cleaned as Record<string, unknown>);
   };
 
-  const onKeyDown = useSectionShortcuts({ save, cancel: onCancel });
+  const autosave = useAutosave(draft, save);
+  useUnsavedChangesWarning(autosave.status === "dirty" || autosave.status === "saving");
+  const onKeyDown = useSectionShortcuts({ save: () => void save(), cancel: onCancel });
 
   return (
     <div className="space-y-4" onKeyDown={onKeyDown}>
@@ -164,7 +168,10 @@ export function ProgrammeMixForm({
         </div>
       </Field>
 
-      <FormActions onSave={save} onCancel={onCancel} isSaving={isSaving} />
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
+        <AutosaveStatus status={autosave.status} lastSavedAt={autosave.lastSavedAt} errorMessage={autosave.errorMessage} />
+        <FormActions onSave={() => void save()} onCancel={onCancel} isSaving={isSaving || autosave.status === "saving"} />
+      </div>
     </div>
   );
 }

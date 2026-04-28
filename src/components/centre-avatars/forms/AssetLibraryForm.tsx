@@ -8,6 +8,8 @@ import {
   useSectionShortcuts,
 } from "./FormPrimitives";
 import type { AssetLibrary } from "@/lib/centre-avatar/sections";
+import { useAutosave, useUnsavedChangesWarning } from "@/hooks/useAutosave";
+import { AutosaveStatus } from "../AutosaveStatus";
 
 export function AssetLibraryForm({
   initial,
@@ -25,12 +27,14 @@ export function AssetLibraryForm({
   const set = <K extends keyof AssetLibrary>(k: K, v: AssetLibrary[K]) =>
     setDraft((d) => ({ ...d, [k]: v }));
 
-  const save = () => {
+  const save = async () => {
     const cleaned = stripEmpty(draft);
-    void onSave(cleaned as Record<string, unknown>);
+    await onSave(cleaned as Record<string, unknown>);
   };
 
-  const onKeyDown = useSectionShortcuts({ save, cancel: onCancel });
+  const autosave = useAutosave(draft, save);
+  useUnsavedChangesWarning(autosave.status === "dirty" || autosave.status === "saving");
+  const onKeyDown = useSectionShortcuts({ save: () => void save(), cancel: onCancel });
 
   return (
     <div className="space-y-3" onKeyDown={onKeyDown}>
@@ -96,7 +100,10 @@ export function AssetLibraryForm({
         hint="What's missing — e.g. need fresh outdoor playtime photos, no testimonials from migrant families."
       />
 
-      <FormActions onSave={save} onCancel={onCancel} isSaving={isSaving} />
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
+        <AutosaveStatus status={autosave.status} lastSavedAt={autosave.lastSavedAt} errorMessage={autosave.errorMessage} />
+        <FormActions onSave={() => void save()} onCancel={onCancel} isSaving={isSaving || autosave.status === "saving"} />
+      </div>
     </div>
   );
 }

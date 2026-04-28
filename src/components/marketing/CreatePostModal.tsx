@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useCreatePost, useCampaigns } from "@/hooks/useMarketing";
+import { useUnsavedChangesWarning } from "@/hooks/useAutosave";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
 import { AiButton } from "@/components/ui/AiButton";
 
@@ -79,7 +80,30 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
     setError("");
   }
 
+  const hasContent =
+    !!title.trim() ||
+    !!content.trim() ||
+    !!notes.trim() ||
+    !!designLink.trim() ||
+    !!canvaDesignUrl.trim() ||
+    !!pillar.trim() ||
+    !!assigneeId ||
+    !!campaignId ||
+    serviceIds.length > 0;
+  useUnsavedChangesWarning(open && hasContent);
+
   function handleClose() {
+    if (hasContent) {
+      const confirmed = window.confirm(
+        "Discard this draft post? Anything you've typed will be lost.",
+      );
+      if (!confirmed) return;
+    }
+    resetForm();
+    onClose();
+  }
+
+  function handleCloseAfterSubmit() {
     resetForm();
     onClose();
   }
@@ -116,7 +140,7 @@ export function CreatePostModal({ open, onClose, defaultDate }: CreatePostModalP
       },
       {
         onSuccess: () => {
-          handleClose();
+          handleCloseAfterSubmit();
         },
         onError: (err) => {
           setError(err instanceof Error ? err.message : "Failed to create post.");

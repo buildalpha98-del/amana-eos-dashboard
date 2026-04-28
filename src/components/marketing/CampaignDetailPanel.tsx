@@ -10,6 +10,7 @@ import {
   useAddCampaignComment,
   useMarketingTasks,
 } from "@/hooks/useMarketing";
+import { useUnsavedChangesWarning } from "@/hooks/useAutosave";
 import type { MarketingPlatform } from "@prisma/client";
 import { StatusBadge } from "./StatusBadge";
 import { PlatformBadge } from "./PlatformBadge";
@@ -119,6 +120,20 @@ export function CampaignDetailPanel({
     updateCampaign.mutate({ id: campaignId, [field]: value });
   };
 
+  // Detect unsaved changes in editable text fields. Selects/dates save on
+  // change so are never dirty. Text + textareas save on blur — if the user
+  // closes the tab mid-typing, we want a "you have unsaved changes" prompt.
+  const hasUnsavedTextChanges = !!campaign && (
+    (name !== campaign.name) ||
+    (goal !== (campaign.goal || "")) ||
+    (notes !== (campaign.notes || "")) ||
+    (designLink !== (campaign.designLink || "")) ||
+    (location !== (campaign.location || "")) ||
+    (deliverables !== (campaign.deliverables || "")) ||
+    (budget !== (campaign.budget != null ? String(campaign.budget) : ""))
+  );
+  useUnsavedChangesWarning(hasUnsavedTextChanges);
+
   const handleNameBlur = () => {
     setEditingName(false);
     if (name && name !== campaign?.name) {
@@ -211,6 +226,12 @@ export function CampaignDetailPanel({
             )}
           </div>
           <div className="ml-3 flex items-center gap-2">
+            {hasUnsavedTextChanges && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-medium text-amber-700" title="Click outside the field or press Tab to save.">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                Unsaved
+              </span>
+            )}
             <button
               onClick={handleDelete}
               className={`rounded-lg p-2 transition-colors ${

@@ -9,6 +9,7 @@ import {
   useVendorContacts,
   type CreateBriefInput,
 } from "@/hooks/useVendorBriefs";
+import { useUnsavedChangesWarning } from "@/hooks/useAutosave";
 import {
   TermReadinessCategory,
   VendorBriefType,
@@ -94,6 +95,26 @@ export function NewBriefModal({
   const [termCategory, setTermCategory] = useState<TermReadinessCategory>(
     prefill?.termReadinessCategory ?? "flyers",
   );
+
+  const hasContent =
+    !!title.trim() ||
+    !!briefBody.trim() ||
+    !!specifications.trim() ||
+    !!deliveryAddress.trim() ||
+    !!quantity ||
+    !!deliveryDeadline ||
+    !!vendorContactId;
+  useUnsavedChangesWarning(open && hasContent);
+
+  const requestClose = () => {
+    if (hasContent) {
+      const confirmed = window.confirm(
+        "Discard this draft brief? Anything you've typed will be lost.",
+      );
+      if (!confirmed) return;
+    }
+    onClose();
+  };
 
   // Reset form when modal opens with new prefill
   useEffect(() => {
@@ -182,7 +203,7 @@ export function NewBriefModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-[60] bg-black/40" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 z-[60] bg-black/40" onClick={requestClose} aria-hidden="true" />
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
         <div
           className="flex w-full max-w-2xl flex-col rounded-xl bg-card shadow-xl"
@@ -195,7 +216,7 @@ export function NewBriefModal({
             <h2 id="new-brief-title" className="text-lg font-semibold">
               New Vendor Brief
             </h2>
-            <button onClick={onClose} className="rounded-lg p-1.5 text-muted hover:bg-surface" aria-label="Close">
+            <button onClick={requestClose} className="rounded-lg p-1.5 text-muted hover:bg-surface" aria-label="Close">
               <X className="h-5 w-5" />
             </button>
           </div>
@@ -359,7 +380,7 @@ export function NewBriefModal({
           <div className="flex items-center justify-between gap-2 border-t border-border px-6 py-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground/80 hover:bg-surface"
             >
               Cancel

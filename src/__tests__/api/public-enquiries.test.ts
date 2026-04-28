@@ -86,7 +86,7 @@ describe("POST /api/public/enquiries", () => {
 
   it("links sourceActivationId when utmCampaign matches a known short code", async () => {
     prismaMock.service.findUnique.mockResolvedValue({ id: "s-1", status: "active" });
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({ id: "a-1" });
+    prismaMock.qrCode.findUnique.mockResolvedValue({ activationId: "a-1" });
     prismaMock.parentEnquiry.create.mockResolvedValue({ id: "e-1" });
     const res = await ENQ_POST(
       createRequest("POST", "/api/public/enquiries", {

@@ -10,6 +10,7 @@ import {
   type SectionKey,
 } from "@/lib/centre-avatar/sections";
 import { classifyFreshness, daysSince } from "@/lib/centre-avatar/freshness";
+import { deepMergeSection } from "@/lib/centre-avatar/deep-merge";
 
 type RouteCtx = { params: Promise<{ serviceId: string }> };
 
@@ -144,6 +145,12 @@ export const PATCH = withApiAuth(
     const avatar = await prisma.centreAvatar.findUnique({ where: { serviceId } });
     if (!avatar) throw ApiError.notFound("Centre Avatar not found for that service");
 
+    // Deep-merge new content over existing section data so partial payloads
+    // (e.g. a form that only sends one subsection) can never wipe sibling
+    // fields. Use `null` in the payload to explicitly clear a field.
+    const previousSection = (avatar as Record<string, unknown>)[section as SectionKey];
+    const merged = deepMergeSection(previousSection, sectionParsed.data);
+
     const now = new Date();
     const summary = changeSummary?.trim() || `Edited ${SECTION_LABELS[section as SectionKey]}`;
 
@@ -151,7 +158,7 @@ export const PATCH = withApiAuth(
       prisma.centreAvatar.update({
         where: { id: avatar.id },
         data: {
-          [section]: sectionParsed.data,
+          [section]: merged as never,
           lastUpdatedAt: now,
           lastUpdatedById: session.user.id,
         },

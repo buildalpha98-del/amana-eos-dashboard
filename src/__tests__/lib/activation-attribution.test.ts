@@ -15,19 +15,19 @@ describe("resolveActivationFromUtm", () => {
   });
 
   it("returns null when shortCode has no match", async () => {
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue(null);
+    prismaMock.qrCode.findUnique.mockResolvedValue(null);
     expect(await resolveActivationFromUtm("nope")).toBeNull();
   });
 
   it("returns activation id when shortCode matches", async () => {
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({ id: "a-1" });
+    prismaMock.qrCode.findUnique.mockResolvedValue({ activationId: "a-1" });
     expect(await resolveActivationFromUtm("abc1234")).toBe("a-1");
   });
 
   it("trims whitespace", async () => {
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({ id: "a-1" });
+    prismaMock.qrCode.findUnique.mockResolvedValue({ activationId: "a-1" });
     expect(await resolveActivationFromUtm("  abc1234  ")).toBe("a-1");
-    const findArgs = prismaMock.campaignActivationAssignment.findUnique.mock.calls[0][0];
-    expect(findArgs.where.qrShortCode).toBe("abc1234");
+    const findArgs = prismaMock.qrCode.findUnique.mock.calls[0][0];
+    expect(findArgs.where.shortCode).toBe("abc1234");
   });
 });

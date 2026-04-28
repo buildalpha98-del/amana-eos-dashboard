@@ -10,6 +10,8 @@ import {
   useSectionShortcuts,
 } from "./FormPrimitives";
 import type { ParentAvatar } from "@/lib/centre-avatar/sections";
+import { useAutosave, useUnsavedChangesWarning } from "@/hooks/useAutosave";
+import { AutosaveStatus } from "../AutosaveStatus";
 
 export function ParentAvatarForm({
   initial,
@@ -40,12 +42,14 @@ export function ParentAvatarForm({
       },
     }));
 
-  const save = () => {
+  const save = async () => {
     const cleaned = stripEmpty(draft);
-    void onSave(cleaned as Record<string, unknown>);
+    await onSave(cleaned as Record<string, unknown>);
   };
 
-  const onKeyDown = useSectionShortcuts({ save, cancel: onCancel });
+  const autosave = useAutosave(draft, save);
+  useUnsavedChangesWarning(autosave.status === "dirty" || autosave.status === "saving");
+  const onKeyDown = useSectionShortcuts({ save: () => void save(), cancel: onCancel });
 
   return (
     <div className="space-y-4" onKeyDown={onKeyDown}>
@@ -224,7 +228,10 @@ export function ParentAvatarForm({
         hint="What's happening in this neighbourhood that affects parent decisions."
       />
 
-      <FormActions onSave={save} onCancel={onCancel} isSaving={isSaving} />
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
+        <AutosaveStatus status={autosave.status} lastSavedAt={autosave.lastSavedAt} errorMessage={autosave.errorMessage} />
+        <FormActions onSave={() => void save()} onCancel={onCancel} isSaving={isSaving || autosave.status === "saving"} />
+      </div>
     </div>
   );
 }
