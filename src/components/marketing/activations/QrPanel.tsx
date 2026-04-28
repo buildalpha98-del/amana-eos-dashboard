@@ -143,44 +143,44 @@ export function QrPanel({ activationId, serviceName }: QrPanelProps) {
 
       {qr.data && (
         <>
-          <div className="rounded-md border border-border bg-card p-3 flex flex-col sm:flex-row gap-3 items-start">
+          <div className="rounded-md border border-border bg-card p-3 flex gap-3 items-start">
             <div
-              className="shrink-0 w-32 h-32 rounded-md border border-border bg-white p-1 flex items-center justify-center"
+              className="shrink-0 w-24 h-24 rounded border border-border bg-white p-0.5 [&_svg]:w-full [&_svg]:h-full"
               dangerouslySetInnerHTML={{ __html: qr.data.svg }}
               aria-label={`QR code for ${serviceName}`}
               role="img"
             />
             <div className="flex-1 min-w-0 space-y-2 text-sm">
-              <div>
-                <div className="text-xs text-muted">Short URL</div>
+              <div className="min-w-0">
+                <div className="text-[10px] text-muted uppercase tracking-wide mb-0.5">Short URL</div>
                 <a
                   href={qr.data.scanUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-xs text-brand hover:underline break-all inline-flex items-center gap-1"
+                  title={qr.data.scanUrl}
+                  className="font-mono text-xs text-brand hover:underline flex items-center gap-1 min-w-0"
                 >
-                  {qr.data.scanUrl}
+                  <span className="truncate">{qr.data.scanUrl.replace(/^https?:\/\//, "")}</span>
                   <ExternalLink className="w-3 h-3 shrink-0" aria-hidden />
                 </a>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="secondary" onClick={copyUrl} iconLeft={<Copy className="w-3.5 h-3.5" />}>
-                  Copy URL
+              <div className="flex flex-wrap gap-1.5">
+                <Button size="sm" variant="secondary" onClick={copyUrl} iconLeft={<Copy className="w-3.5 h-3.5" />} className="text-xs">
+                  Copy
                 </Button>
-                <Button size="sm" variant="secondary" onClick={download} iconLeft={<Download className="w-3.5 h-3.5" />}>
-                  Download PNG
+                <Button size="sm" variant="secondary" onClick={download} iconLeft={<Download className="w-3.5 h-3.5" />} className="text-xs">
+                  PNG
                 </Button>
-                <Button size="sm" variant="secondary" onClick={regenerate} iconLeft={<RefreshCw className="w-3.5 h-3.5" />} loading={patch.isPending}>
-                  New code
+                <Button size="sm" variant="secondary" onClick={regenerate} iconLeft={<RefreshCw className="w-3.5 h-3.5" />} loading={patch.isPending} className="text-xs">
+                  Rotate
                 </Button>
-              </div>
-              <div className="text-[11px] text-muted">
-                Print this QR on flyers or display it at the event. Scans are tracked anonymously
-                (no raw IPs stored). Enquiries from the parent portal are auto-linked back via{" "}
-                <code className="text-[10px]">utm_campaign</code>.
               </div>
             </div>
           </div>
+          <p className="text-[11px] text-muted -mt-1">
+            Print this on flyers or show at the event. Scans are tracked anonymously (no raw IPs).
+            Parent-portal enquiries auto-link via <code className="text-[10px]">utm_campaign</code>.
+          </p>
 
           {/* Destination URL editor */}
           <div className="rounded-md border border-border p-3 text-sm">

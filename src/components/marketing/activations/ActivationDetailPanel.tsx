@@ -34,15 +34,15 @@ export function ActivationDetailPanel({ activation, onClose }: ActivationDetailP
   const [todoOpen, setTodoOpen] = useState(false);
   return (
     <Sheet open={!!activation} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent>
+      <SheetContent width="max-w-2xl" className="p-6 overflow-y-auto">
         {activation && (
           <>
-            <SheetTitle>{activation.title}</SheetTitle>
-            <SheetDescription>
+            <SheetTitle className="text-base font-semibold pr-8">{activation.title}</SheetTitle>
+            <SheetDescription className="text-xs text-muted">
               {activation.service.name} · {activation.activationType ? TYPE_LABEL[activation.activationType] ?? activation.activationType : "Type not set"}
             </SheetDescription>
 
-            <div className="mt-4 space-y-5">
+            <div className="mt-5 space-y-6">
               <section>
                 <h4 className="text-xs font-semibold text-muted mb-2 uppercase tracking-wide">Lifecycle</h4>
                 <LifecycleStepper activation={activation} />

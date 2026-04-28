@@ -16,6 +16,17 @@ const TIMESTAMP_FIELD: Record<Exclude<ActivationLifecycleStage, "concept" | "can
   recap_published: "recapPublishedAt",
 };
 
+/** Compact labels for the stepper cells where space is tight. */
+const STAGE_LABEL_SHORT: Record<ActivationLifecycleStage, string> = {
+  concept: "Concept",
+  approved: "Approved",
+  logistics: "Logistics",
+  final_push: "Final push",
+  delivered: "Delivered",
+  recap_published: "Recap",
+  cancelled: "Cancelled",
+};
+
 function fmt(ts: string | null): string {
   if (!ts) return "";
   return new Date(ts).toLocaleDateString("en-AU", { day: "2-digit", month: "short" });
@@ -104,7 +115,8 @@ export function LifecycleStepper({ activation }: LifecycleStepperProps) {
           return (
             <li
               key={stage}
-              className={`rounded-md border p-2 text-center text-[11px] ${
+              title={STAGE_LABEL[stage]}
+              className={`rounded-md border px-1.5 py-2 text-center ${
                 completed
                   ? "border-green-200 bg-green-50 text-green-900"
                   : active
@@ -119,33 +131,38 @@ export function LifecycleStepper({ activation }: LifecycleStepperProps) {
                   <Circle className="w-3.5 h-3.5" aria-hidden />
                 )}
               </div>
-              <div className="leading-tight">{STAGE_LABEL[stage]}</div>
-              {ts && <div className="text-[10px] text-muted mt-0.5">{fmt(ts)}</div>}
+              <div className="text-[10px] leading-tight truncate">{STAGE_LABEL_SHORT[stage]}</div>
+              {ts && <div className="text-[9px] text-muted mt-0.5 truncate">{fmt(ts)}</div>}
             </li>
           );
         })}
       </ol>
 
-      <div className="flex flex-wrap gap-2">
-        {STAGE_ORDER.slice(currentIdx + 1).map((stage) => (
-          <Button
-            key={stage}
-            size="sm"
-            variant={pendingStage === stage ? "primary" : "secondary"}
-            onClick={() => setPendingStage(pendingStage === stage ? null : stage)}
-            disabled={transition.isPending}
-          >
-            Mark {STAGE_LABEL[stage]}
-          </Button>
-        ))}
+      <div className="flex flex-wrap gap-1.5">
+        {STAGE_ORDER.slice(currentIdx + 1).map((stage, i) => {
+          const isNext = i === 0;
+          return (
+            <Button
+              key={stage}
+              size="sm"
+              variant={pendingStage === stage ? "primary" : isNext ? "primary" : "secondary"}
+              onClick={() => setPendingStage(pendingStage === stage ? null : stage)}
+              disabled={transition.isPending}
+              className="text-xs"
+            >
+              {isNext ? "→ " : ""}Mark {STAGE_LABEL_SHORT[stage]}
+            </Button>
+          );
+        })}
         <Button
           size="sm"
           variant="secondary"
           onClick={() => setPendingStage("cancelled")}
           disabled={transition.isPending}
           iconLeft={<X className="w-3.5 h-3.5" />}
+          className="text-xs ml-auto"
         >
-          Cancel activation
+          Cancel
         </Button>
       </div>
 
