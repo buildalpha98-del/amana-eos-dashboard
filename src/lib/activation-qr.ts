@@ -51,8 +51,8 @@ function generateRawCode(): string {
 export async function generateUniqueShortCode(maxAttempts = 5): Promise<string> {
   for (let i = 0; i < maxAttempts; i++) {
     const candidate = generateRawCode();
-    const existing = await prisma.campaignActivationAssignment.findUnique({
-      where: { qrShortCode: candidate },
+    const existing = await prisma.qrCode.findUnique({
+      where: { shortCode: candidate },
       select: { id: true },
     });
     if (!existing) return candidate;
@@ -61,7 +61,31 @@ export async function generateUniqueShortCode(maxAttempts = 5): Promise<string> 
 }
 
 /**
- * SHA-256 of (ip + secret salt). Stored in ActivationScan.ipHash so we can
+ * Extract Vercel-provided geolocation from request headers. Returns nulls
+ * for fields that aren't present (local dev, non-Vercel deploy).
+ */
+export function geolocationFromRequest(req: Request): {
+  country: string | null;
+  region: string | null;
+  city: string | null;
+} {
+  const decode = (v: string | null) => {
+    if (!v) return null;
+    try {
+      return decodeURIComponent(v);
+    } catch {
+      return v;
+    }
+  };
+  return {
+    country: decode(req.headers.get("x-vercel-ip-country")),
+    region: decode(req.headers.get("x-vercel-ip-country-region")),
+    city: decode(req.headers.get("x-vercel-ip-city")),
+  };
+}
+
+/**
+ * SHA-256 of (ip + secret salt). Stored in QrScan.ipHash so we can
  * dedupe scans without retaining raw IPs.
  */
 export function hashIp(ip: string | null | undefined): string | null {

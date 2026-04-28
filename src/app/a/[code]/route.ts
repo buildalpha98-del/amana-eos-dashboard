@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import {
   buildDestinationWithUtm,
   clientIpFromRequest,
+  geolocationFromRequest,
   hashIp,
   publicBaseUrl,
 } from "@/lib/activation-qr";
@@ -11,57 +12,59 @@ import {
 const FALLBACK_PATH = "/enquire";
 
 /**
- * Public QR scan route. Records the scan, then redirects to either the
- * activation's configured destinationUrl or a generic fallback enquiry page.
+ * Public QR scan route. Records the scan in QrScan, then redirects to the
+ * QR's destinationUrl with utm_source/medium/campaign appended.
  *
- * No auth — anyone with the QR can hit this. We do basic per-request scan
- * logging (IP hash, user-agent, referrer) for analytics.
+ * No auth — anyone with the QR can hit this. Per-scan we log:
+ *   - Anonymous IP hash (no raw IPs)
+ *   - User-agent
+ *   - Referrer
+ *   - Country / region / city (Vercel headers, best effort)
  */
 export async function GET(
   req: NextRequest,
   context: { params: Promise<{ code: string }> },
 ) {
   const { code } = await context.params;
-  if (!code) {
-    return NextResponse.redirect(new URL(FALLBACK_PATH, publicBaseUrl()));
-  }
+  if (!code) return NextResponse.redirect(`${publicBaseUrl()}${FALLBACK_PATH}`);
 
-  const activation = await prisma.campaignActivationAssignment.findUnique({
-    where: { qrShortCode: code },
+  const qr = await prisma.qrCode.findUnique({
+    where: { shortCode: code },
     select: {
       id: true,
-      qrShortCode: true,
-      qrDestinationUrl: true,
-      service: { select: { id: true, name: true, code: true } },
+      shortCode: true,
+      destinationUrl: true,
+      active: true,
+      service: { select: { id: true, name: true } },
     },
   });
 
-  if (!activation) {
-    // Unknown code — redirect to a generic landing page rather than 404.
+  if (!qr) {
     return NextResponse.redirect(`${publicBaseUrl()}${FALLBACK_PATH}`);
   }
 
-  // Best-effort scan log; never fail the redirect on logging issues.
+  // Best-effort scan logging — never block the redirect on logging issues.
   const ipHash = hashIp(clientIpFromRequest(req));
   const userAgent = req.headers.get("user-agent")?.slice(0, 500) ?? null;
   const referrer = req.headers.get("referer")?.slice(0, 500) ?? null;
-  prisma.activationScan
+  const geo = geolocationFromRequest(req);
+  prisma.qrScan
     .create({
       data: {
-        activationId: activation.id,
+        qrCodeId: qr.id,
         ipHash,
         userAgent,
         referrer,
+        country: geo.country,
+        region: geo.region,
+        city: geo.city,
       },
     })
-    .catch((err) => {
-      logger.error("activation-scan log failed", { activationId: activation.id, err });
-    });
+    .catch((err) => logger.error("qr-scan log failed", { qrCodeId: qr.id, err }));
 
-  // Build the redirect destination.
-  const fallback = `${publicBaseUrl()}${FALLBACK_PATH}?serviceId=${activation.service.id}`;
-  const destination = activation.qrDestinationUrl?.trim() || fallback;
-  const final = buildDestinationWithUtm(destination, code);
-
-  return NextResponse.redirect(final);
+  // If the QR has been archived, still resolve the scan but route to a fallback
+  // so old printed flyers don't 404.
+  const fallback = `${publicBaseUrl()}${FALLBACK_PATH}${qr.service ? `?serviceId=${qr.service.id}` : ""}`;
+  const destination = qr.active && qr.destinationUrl ? qr.destinationUrl : fallback;
+  return NextResponse.redirect(buildDestinationWithUtm(destination, code));
 }

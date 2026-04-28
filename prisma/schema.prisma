@@ -711,6 +711,7 @@ model User {
   whatsappPostsAsCoordinator     WhatsAppCoordinatorPost[] @relation("WhatsAppCoordinator")
   whatsappPostsRecorded          WhatsAppCoordinatorPost[] @relation("WhatsAppRecorder")
   whatsappNetworkPostsRecorded   WhatsAppNetworkPost[]     @relation("WhatsAppNetworkPostRecordedBy")
+  qrCodesCreated                 QrCode[]                  @relation("QrCodeCreatedBy")
   weeklyMarketingReportsDrafted  WeeklyMarketingReport[]   @relation("WeeklyReportDrafter")
   weeklyMarketingReportsReviewed WeeklyMarketingReport[]   @relation("WeeklyReportReviewer")
   weeklyMarketingReportsSent     WeeklyMarketingReport[]   @relation("WeeklyReportSender")
@@ -1837,18 +1838,14 @@ model CampaignActivationAssignment {
   cancelledAt        DateTime?
   cancellationReason String?   @db.Text
 
-  /// Trackable QR short code. Public scan URL = `${NEXTAUTH_URL}/a/${qrShortCode}`.
-  /// Unique across all activations; generated lazily when the QR panel is opened.
-  qrShortCode      String? @unique
-  /// Where the scan redirects to. Defaults to a generic landing page if null.
-  qrDestinationUrl String?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  recapPosts       MarketingPost[]  @relation("MarketingPostRecapFor")
-  scans            ActivationScan[]
-  sourcedEnquiries ParentEnquiry[]  @relation("EnquiryFromActivation")
+  recapPosts       MarketingPost[] @relation("MarketingPostRecapFor")
+  /// QR codes Akram has created and (optionally) linked to this activation.
+  /// One activation can have multiple QRs (e.g. one per flyer batch).
+  qrCodes          QrCode[]        @relation("QrCodeForActivation")
+  sourcedEnquiries ParentEnquiry[] @relation("EnquiryFromActivation")
 
   @@unique([campaignId, serviceId])
   @@index([campaignId])
@@ -1859,17 +1856,58 @@ model CampaignActivationAssignment {
   @@index([scheduledFor])
 }
 
-model ActivationScan {
-  id           String                       @id @default(cuid())
-  activationId String
-  activation   CampaignActivationAssignment @relation(fields: [activationId], references: [id], onDelete: Cascade)
-  scannedAt    DateTime                     @default(now())
-  /// SHA-256 hash of the IP address (privacy — no raw IPs stored).
-  ipHash       String?
-  userAgent    String?
-  referrer     String?
+/// Standalone trackable QR code. Created from /marketing/qr-codes or from
+/// the activation panel; can be linked to an activation/service for context
+/// but doesn't have to be.
+model QrCode {
+  id             String  @id @default(cuid())
+  /// 7-char URL slug. Public scan URL = `${NEXTAUTH_URL}/a/${shortCode}`.
+  shortCode      String  @unique
+  /// Akram's label for this QR — e.g. "Minarah College Term 2 flyer batch A".
+  name           String
+  description    String? @db.Text
+  /// Where the scan redirects to. Required.
+  destinationUrl String
+  /// Soft-archive flag; archived codes still resolve scans (so old flyers
+  /// don't suddenly 404) but are hidden from the default management view.
+  active         Boolean @default(true)
 
-  @@index([activationId, scannedAt])
+  /// Optional context tags.
+  activationId String?
+  activation   CampaignActivationAssignment? @relation("QrCodeForActivation", fields: [activationId], references: [id], onDelete: SetNull)
+  serviceId    String?
+  service      Service?                      @relation("QrCodeForService", fields: [serviceId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("QrCodeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  scans QrScan[]
+
+  @@index([active])
+  @@index([activationId])
+  @@index([serviceId])
+  @@index([createdById])
+}
+
+model QrScan {
+  id        String   @id @default(cuid())
+  qrCodeId  String
+  qrCode    QrCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  scannedAt DateTime @default(now())
+
+  /// SHA-256 of (ip|secret) — never stores raw IPs. Used to count uniques.
+  ipHash    String?
+  userAgent String?
+  referrer  String?
+  /// Vercel-provided geolocation (best-effort). All optional.
+  country   String?
+  region    String?
+  city      String?
+
+  @@index([qrCodeId, scannedAt])
 }
 
 enum ActivationType {
@@ -1990,6 +2028,7 @@ model Service {
   programActivities     ProgramActivity[]              @relation("ServicePrograms")
   menuWeeks             MenuWeek[]                     @relation("ServiceMenus")
   todoTemplates         TodoTemplate[]                 @relation("ServiceTemplates")
+  qrCodes               QrCode[]                       @relation("QrCodeForService")
   marketingPosts        MarketingPostService[]         @relation("ServiceMarketingPosts")
   marketingCampaigns    MarketingCampaignService[]     @relation("ServiceMarketingCampaigns")
   marketingTasks        MarketingTask[]                @relation("ServiceMarketingTasks")

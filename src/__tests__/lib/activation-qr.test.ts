@@ -7,6 +7,7 @@ import {
   generateUniqueShortCode,
   hashIp,
   clientIpFromRequest,
+  geolocationFromRequest,
 } from "@/lib/activation-qr";
 
 beforeEach(() => {
@@ -51,22 +52,39 @@ describe("buildDestinationWithUtm", () => {
 
 describe("generateUniqueShortCode", () => {
   it("returns a 7-char code on first try when no collision", async () => {
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue(null);
+    prismaMock.qrCode.findUnique.mockResolvedValue(null);
     const code = await generateUniqueShortCode();
     expect(code).toHaveLength(7);
     expect(/^[a-z0-9]+$/.test(code)).toBe(true);
   });
   it("retries on collision", async () => {
-    prismaMock.campaignActivationAssignment.findUnique
+    prismaMock.qrCode.findUnique
       .mockResolvedValueOnce({ id: "existing" })
       .mockResolvedValueOnce(null);
     const code = await generateUniqueShortCode();
     expect(code).toHaveLength(7);
-    expect(prismaMock.campaignActivationAssignment.findUnique).toHaveBeenCalledTimes(2);
+    expect(prismaMock.qrCode.findUnique).toHaveBeenCalledTimes(2);
   });
   it("throws after max attempts", async () => {
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({ id: "x" });
+    prismaMock.qrCode.findUnique.mockResolvedValue({ id: "x" });
     await expect(generateUniqueShortCode(2)).rejects.toThrow(/unique/);
+  });
+});
+
+describe("geolocationFromRequest", () => {
+  it("returns nulls when no Vercel headers present", () => {
+    const req = new Request("https://x");
+    expect(geolocationFromRequest(req)).toEqual({ country: null, region: null, city: null });
+  });
+  it("decodes URL-encoded headers", () => {
+    const req = new Request("https://x", {
+      headers: {
+        "x-vercel-ip-country": "AU",
+        "x-vercel-ip-country-region": "NSW",
+        "x-vercel-ip-city": "Sydney",
+      },
+    });
+    expect(geolocationFromRequest(req)).toEqual({ country: "AU", region: "NSW", city: "Sydney" });
   });
 });
 

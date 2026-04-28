@@ -49,6 +49,7 @@ import {
   Receipt,
   Bug,
   Mail,
+  QrCode,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 import { canAccessPage, hasFeature, type Feature } from "@/lib/role-permissions";
@@ -131,6 +132,7 @@ export const navItems: NavItem[] = [
   { href: "/marketing/activations", label: "Activations", icon: CalendarCheck, section: "Growth", tooltip: "Lifecycle stepper, term grid, recap tracking", roles: ["marketing"] },
   { href: "/marketing/team", label: "Content Team", icon: Users, section: "Growth", tooltip: "Hiring milestones, output, role status", roles: ["marketing"] },
   { href: "/marketing/coordinator-todos", label: "Coordinator Todos", icon: CheckSquare, section: "Growth", tooltip: "Push tasks to centre coordinators", roles: ["marketing"] },
+  { href: "/marketing/qr-codes", label: "QR Hub", icon: QrCode, section: "Growth", tooltip: "Create + track scannable QR codes for activations", roles: ["marketing"] },
   { href: "/marketing/newsletter-chase", label: "Newsletter Chase", icon: Mail, section: "Growth", tooltip: "Pre-drafted newsletter chase emails (last 1–2 weeks of term)", roles: ["marketing"] },
   { href: "/communication", label: "Communication", icon: Radio, section: "Growth" },
   { href: "/communication/whatsapp-compliance", label: "WhatsApp Compliance", icon: MessageCircle, section: "Growth", tooltip: "Daily 5-min check-in: coordinator + network group posts.", roles: ["marketing"] },

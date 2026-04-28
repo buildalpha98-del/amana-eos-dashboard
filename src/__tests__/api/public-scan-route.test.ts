@@ -12,7 +12,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   process.env.NEXTAUTH_URL = "https://amanaoshc.company";
   process.env.NEXTAUTH_SECRET = "test-secret";
-  prismaMock.activationScan.create.mockResolvedValue({ id: "scan-1" });
+  prismaMock.qrScan.create.mockResolvedValue({ id: "scan-1" });
 });
 
 function buildReq(headers: Record<string, string> = {}) {
@@ -20,19 +20,20 @@ function buildReq(headers: Record<string, string> = {}) {
 }
 
 describe("GET /a/[code]", () => {
-  it("redirects to fallback when code unknown", async () => {
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue(null);
+  it("redirects to fallback /enquire when code unknown", async () => {
+    prismaMock.qrCode.findUnique.mockResolvedValue(null);
     const res = await GET(buildReq(), { params: Promise.resolve({ code: "missing" }) });
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toContain("/enquire");
   });
 
-  it("redirects to destination URL with utm params appended when configured", async () => {
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({
-      id: "a-1",
-      qrShortCode: "abc1234",
-      qrDestinationUrl: "https://amanaoshc.company/enquire?serviceId=s-1",
-      service: { id: "s-1", name: "Centre A", code: "AAA" },
+  it("redirects to destination URL with utm params appended", async () => {
+    prismaMock.qrCode.findUnique.mockResolvedValue({
+      id: "qr-1",
+      shortCode: "abc1234",
+      destinationUrl: "https://amanaoshc.company/enquire?serviceId=s-1",
+      active: true,
+      service: { id: "s-1", name: "Centre A" },
     });
     const res = await GET(buildReq({ "user-agent": "iPhone" }), { params: Promise.resolve({ code: "abc1234" }) });
     expect(res.status).toBe(307);
@@ -43,12 +44,13 @@ describe("GET /a/[code]", () => {
     expect(location).toContain("serviceId=s-1");
   });
 
-  it("redirects to fallback enquire page with serviceId pre-filled when no destination", async () => {
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({
-      id: "a-1",
-      qrShortCode: "abc1234",
-      qrDestinationUrl: null,
-      service: { id: "s-1", name: "Centre A", code: "AAA" },
+  it("falls back when QR is archived (still resolves the scan)", async () => {
+    prismaMock.qrCode.findUnique.mockResolvedValue({
+      id: "qr-1",
+      shortCode: "abc1234",
+      destinationUrl: "https://example.com/special",
+      active: false,
+      service: { id: "s-1", name: "Centre A" },
     });
     const res = await GET(buildReq(), { params: Promise.resolve({ code: "abc1234" }) });
     const location = res.headers.get("location") ?? "";
@@ -57,25 +59,34 @@ describe("GET /a/[code]", () => {
     expect(location).toContain("utm_campaign=abc1234");
   });
 
-  it("logs a scan with hashed IP when x-forwarded-for present", async () => {
-    prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({
-      id: "a-1",
-      qrShortCode: "abc1234",
-      qrDestinationUrl: null,
-      service: { id: "s-1", name: "Centre A", code: "AAA" },
+  it("logs a scan with hashed IP, user-agent, and geolocation when headers present", async () => {
+    prismaMock.qrCode.findUnique.mockResolvedValue({
+      id: "qr-1",
+      shortCode: "abc1234",
+      destinationUrl: "https://example.com/dest",
+      active: true,
+      service: null,
     });
     await GET(
-      buildReq({ "x-forwarded-for": "203.0.113.5", "user-agent": "iPhone" }),
+      buildReq({
+        "x-forwarded-for": "203.0.113.5",
+        "user-agent": "iPhone",
+        "x-vercel-ip-country": "AU",
+        "x-vercel-ip-country-region": "VIC",
+        "x-vercel-ip-city": "Melbourne",
+      }),
       { params: Promise.resolve({ code: "abc1234" }) },
     );
-    // give the fire-and-forget logging a tick
     await new Promise((r) => setTimeout(r, 10));
-    expect(prismaMock.activationScan.create).toHaveBeenCalledWith(
+    expect(prismaMock.qrScan.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          activationId: "a-1",
+          qrCodeId: "qr-1",
           userAgent: "iPhone",
           ipHash: expect.any(String),
+          country: "AU",
+          region: "VIC",
+          city: "Melbourne",
         }),
       }),
     );

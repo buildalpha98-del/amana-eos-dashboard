@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/
 import { LifecycleStepper } from "./LifecycleStepper";
 import { Button } from "@/components/ui/Button";
 import { CoordinatorTodoForm } from "@/components/marketing/coordinator-todos/CoordinatorTodoForm";
-import { QrPanel } from "./QrPanel";
+import { ActivationQrLink } from "./ActivationQrLink";
 import { ExternalLink, Send } from "lucide-react";
 
 interface ActivationDetailPanelProps {
@@ -115,7 +115,7 @@ export function ActivationDetailPanel({ activation, onClose }: ActivationDetailP
                 </section>
               )}
 
-              <QrPanel activationId={activation.id} serviceName={activation.service.name} />
+              <ActivationQrLink activationId={activation.id} serviceId={activation.service.id} title={activation.title} />
 
               <section>
                 <h4 className="text-xs font-semibold text-muted mb-2 uppercase tracking-wide">Push a todo to {activation.service.name}&apos;s coordinator</h4>

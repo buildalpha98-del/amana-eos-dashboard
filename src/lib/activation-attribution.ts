@@ -1,12 +1,14 @@
 import { prisma } from "@/lib/prisma";
 
 /**
- * Resolve a `utm_campaign` value to a `CampaignActivationAssignment.id` if it
- * matches a known QR short code. Returns null on no match (don't block enquiry
- * creation if the param is malformed or stale).
+ * Resolve a `utm_campaign` value (= a QR short code) to its
+ * `CampaignActivationAssignment.id` if the QR is linked to one.
+ * Returns null on no match (don't block enquiry creation if the param is
+ * malformed, stale, or the QR isn't activation-linked).
  *
  * Used by enquiry-creation routes to populate `sourceActivationId` for QR
- * attribution.
+ * attribution. After Sprint 8's QR Hub redesign, QR codes are standalone;
+ * we look them up by `QrCode.shortCode` and read `QrCode.activationId`.
  */
 export async function resolveActivationFromUtm(
   utmCampaign: string | null | undefined,
@@ -14,9 +16,9 @@ export async function resolveActivationFromUtm(
   if (!utmCampaign || typeof utmCampaign !== "string") return null;
   const trimmed = utmCampaign.trim();
   if (!trimmed) return null;
-  const activation = await prisma.campaignActivationAssignment.findUnique({
-    where: { qrShortCode: trimmed },
-    select: { id: true },
+  const qr = await prisma.qrCode.findUnique({
+    where: { shortCode: trimmed },
+    select: { activationId: true },
   });
-  return activation?.id ?? null;
+  return qr?.activationId ?? null;
 }
