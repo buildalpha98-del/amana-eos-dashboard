@@ -1837,10 +1837,18 @@ model CampaignActivationAssignment {
   cancelledAt        DateTime?
   cancellationReason String?   @db.Text
 
+  /// Trackable QR short code. Public scan URL = `${NEXTAUTH_URL}/a/${qrShortCode}`.
+  /// Unique across all activations; generated lazily when the QR panel is opened.
+  qrShortCode      String? @unique
+  /// Where the scan redirects to. Defaults to a generic landing page if null.
+  qrDestinationUrl String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  recapPosts MarketingPost[] @relation("MarketingPostRecapFor")
+  recapPosts       MarketingPost[]  @relation("MarketingPostRecapFor")
+  scans            ActivationScan[]
+  sourcedEnquiries ParentEnquiry[]  @relation("EnquiryFromActivation")
 
   @@unique([campaignId, serviceId])
   @@index([campaignId])
@@ -1849,6 +1857,19 @@ model CampaignActivationAssignment {
   @@index([lifecycleStage])
   @@index([termYear, termNumber])
   @@index([scheduledFor])
+}
+
+model ActivationScan {
+  id           String                       @id @default(cuid())
+  activationId String
+  activation   CampaignActivationAssignment @relation(fields: [activationId], references: [id], onDelete: Cascade)
+  scannedAt    DateTime                     @default(now())
+  /// SHA-256 hash of the IP address (privacy — no raw IPs stored).
+  ipHash       String?
+  userAgent    String?
+  referrer     String?
+
+  @@index([activationId, scannedAt])
 }
 
 enum ActivationType {
@@ -4395,34 +4416,38 @@ model AuditItemResponse {
 // ============================================================
 
 model ParentEnquiry {
-  id               String    @id @default(cuid())
-  serviceId        String
-  service          Service   @relation(fields: [serviceId], references: [id])
-  parentName       String
-  parentEmail      String?
-  parentPhone      String?
-  childName        String?
-  childAge         Int?
-  childrenDetails  Json? // Array of {name, age} for multiple children
-  channel          String // phone, email, whatsapp, walkin, referral, website
-  parentDriver     String? // homework, quran, enrichment, working_parent, traffic, sports
-  stage            String    @default("new_enquiry") // new_enquiry, info_sent, nurturing, form_started, enrolled, first_session, day3, week2, month1, retained, cold
-  stageChangedAt   DateTime  @default(now())
-  nextActionDue    DateTime?
-  ccsEducated      Boolean   @default(false)
-  formStarted      Boolean   @default(false)
-  formCompleted    Boolean   @default(false)
-  firstSessionDate DateTime?
-  referralId       String?
-  referral         Referral? @relation(fields: [referralId], references: [id])
-  assigneeId       String?
-  assignee         User?     @relation("EnquiryAssignee", fields: [assigneeId], references: [id])
-  notes            String?   @db.Text
-  deleted          Boolean   @default(false)
-  ownaEnquiryId    String?   @unique
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  lastEmailSentAt  DateTime?
+  id                 String                        @id @default(cuid())
+  serviceId          String
+  service            Service                       @relation(fields: [serviceId], references: [id])
+  parentName         String
+  parentEmail        String?
+  parentPhone        String?
+  childName          String?
+  childAge           Int?
+  childrenDetails    Json? // Array of {name, age} for multiple children
+  channel            String // phone, email, whatsapp, walkin, referral, website
+  parentDriver       String? // homework, quran, enrichment, working_parent, traffic, sports
+  /// QR-attribution: when an enquiry comes from a scanned activation QR
+  /// (utm_campaign query param matching a known qrShortCode).
+  sourceActivationId String?
+  sourceActivation   CampaignActivationAssignment? @relation("EnquiryFromActivation", fields: [sourceActivationId], references: [id], onDelete: SetNull)
+  stage              String                        @default("new_enquiry") // new_enquiry, info_sent, nurturing, form_started, enrolled, first_session, day3, week2, month1, retained, cold
+  stageChangedAt     DateTime                      @default(now())
+  nextActionDue      DateTime?
+  ccsEducated        Boolean                       @default(false)
+  formStarted        Boolean                       @default(false)
+  formCompleted      Boolean                       @default(false)
+  firstSessionDate   DateTime?
+  referralId         String?
+  referral           Referral?                     @relation(fields: [referralId], references: [id])
+  assigneeId         String?
+  assignee           User?                         @relation("EnquiryAssignee", fields: [assigneeId], references: [id])
+  notes              String?                       @db.Text
+  deleted            Boolean                       @default(false)
+  ownaEnquiryId      String?                       @unique
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  lastEmailSentAt    DateTime?
 
   // Waitlist fields
   waitlistPosition  Int?

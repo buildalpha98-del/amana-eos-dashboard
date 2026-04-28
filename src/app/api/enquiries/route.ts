@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 import { logger } from "@/lib/logger";
+import { resolveActivationFromUtm } from "@/lib/activation-attribution";
 const childSchema = z.object({
   name: z.string().min(1),
   age: z.number().int().min(3).max(16).optional().nullable(),
@@ -25,6 +26,8 @@ const createEnquirySchema = z.object({
     .nullable(),
   assigneeId: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  /** Optional QR short code from the scan URL — links the enquiry back to its activation. */
+  utmCampaign: z.string().max(64).optional().nullable(),
 });
 
 // GET /api/enquiries — list enquiries with filters
@@ -96,6 +99,8 @@ export const POST = withApiAuth(async (req) => {
     childAge = children[0].age || null; // Store first child's age for backward compat
   }
 
+  const sourceActivationId = await resolveActivationFromUtm(data.utmCampaign ?? null);
+
   const enquiry = await prisma.parentEnquiry.create({
     data: {
       serviceId: data.serviceId,
@@ -109,6 +114,7 @@ export const POST = withApiAuth(async (req) => {
       parentDriver: data.parentDriver || null,
       assigneeId: data.assigneeId || null,
       notes: data.notes || null,
+      sourceActivationId,
       stageChangedAt: new Date(),
     },
     include: {
