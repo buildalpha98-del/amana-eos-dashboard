@@ -8,7 +8,7 @@ import {
   publicBaseUrl,
 } from "@/lib/activation-qr";
 
-const FALLBACK_PATH = "/parent/enquire";
+const FALLBACK_PATH = "/enquire";
 
 /**
  * Public QR scan route. Records the scan, then redirects to either the

@@ -24,14 +24,14 @@ describe("GET /a/[code]", () => {
     prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue(null);
     const res = await GET(buildReq(), { params: Promise.resolve({ code: "missing" }) });
     expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toContain("/parent/enquire");
+    expect(res.headers.get("location")).toContain("/enquire");
   });
 
   it("redirects to destination URL with utm params appended when configured", async () => {
     prismaMock.campaignActivationAssignment.findUnique.mockResolvedValue({
       id: "a-1",
       qrShortCode: "abc1234",
-      qrDestinationUrl: "https://amanaoshc.company/parent/enquire?serviceId=s-1",
+      qrDestinationUrl: "https://amanaoshc.company/enquire?serviceId=s-1",
       service: { id: "s-1", name: "Centre A", code: "AAA" },
     });
     const res = await GET(buildReq({ "user-agent": "iPhone" }), { params: Promise.resolve({ code: "abc1234" }) });
@@ -52,7 +52,7 @@ describe("GET /a/[code]", () => {
     });
     const res = await GET(buildReq(), { params: Promise.resolve({ code: "abc1234" }) });
     const location = res.headers.get("location") ?? "";
-    expect(location).toContain("/parent/enquire");
+    expect(location).toContain("/enquire");
     expect(location).toContain("serviceId=s-1");
     expect(location).toContain("utm_campaign=abc1234");
   });

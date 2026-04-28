@@ -203,7 +203,7 @@ export function QrPanel({ activationId, serviceName }: QrPanelProps) {
                   type="url"
                   value={destDraft}
                   onChange={(e) => setDestDraft(e.target.value)}
-                  placeholder="https://amanaoshc.company/parent/enquire?serviceId=…"
+                  placeholder="https://amanaoshc.company/enquire?serviceId=…"
                   className="w-full rounded-md border border-border bg-card p-2 text-sm font-mono"
                 />
                 <div className="flex items-center justify-end gap-2">
