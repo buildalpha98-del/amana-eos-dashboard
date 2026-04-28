@@ -15,12 +15,14 @@ import { AutosaveStatus } from "../AutosaveStatus";
 
 export function ParentAvatarForm({
   initial,
-  onSave,
+  onAutoSave,
+  onExplicitSave,
   onCancel,
   isSaving,
 }: {
   initial: ParentAvatar | null;
-  onSave: (next: Record<string, unknown>) => void | Promise<void>;
+  onAutoSave: (next: Record<string, unknown>) => void | Promise<void>;
+  onExplicitSave: (next: Record<string, unknown>) => void | Promise<void>;
   onCancel: () => void;
   isSaving: boolean;
 }) {
@@ -42,14 +44,16 @@ export function ParentAvatarForm({
       },
     }));
 
-  const save = async () => {
+  const persist = async (target: (next: Record<string, unknown>) => void | Promise<void>) => {
     const cleaned = stripEmpty(draft);
-    await onSave(cleaned as Record<string, unknown>);
+    await target(cleaned as Record<string, unknown>);
   };
+  const autoSave = () => persist(onAutoSave);
+  const explicitSave = () => persist(onExplicitSave);
 
-  const autosave = useAutosave(draft, save);
+  const autosave = useAutosave(draft, autoSave);
   useUnsavedChangesWarning(autosave.status === "dirty" || autosave.status === "saving");
-  const onKeyDown = useSectionShortcuts({ save: () => void save(), cancel: onCancel });
+  const onKeyDown = useSectionShortcuts({ save: () => void explicitSave(), cancel: onCancel });
 
   return (
     <div className="space-y-4" onKeyDown={onKeyDown}>
@@ -230,7 +234,7 @@ export function ParentAvatarForm({
 
       <div className="flex items-center justify-between gap-2 pt-2 border-t border-border">
         <AutosaveStatus status={autosave.status} lastSavedAt={autosave.lastSavedAt} errorMessage={autosave.errorMessage} />
-        <FormActions onSave={() => void save()} onCancel={onCancel} isSaving={isSaving || autosave.status === "saving"} />
+        <FormActions onSave={() => void explicitSave()} onCancel={onCancel} isSaving={isSaving || autosave.status === "saving"} />
       </div>
     </div>
   );

@@ -359,8 +359,13 @@ export function FormActions({
 // ---------------------------------------------------------------------------
 
 /**
- * Trim everything in a payload before saving — empty strings become null,
- * empty objects/arrays are dropped.
+ * Trim a payload before saving. Critically: a field the user CLEARED must
+ * become `null` in the payload (NOT a missing key), otherwise the server's
+ * deep-merge will preserve the old value and the user's deletion is silently
+ * undone. So:
+ *   - empty strings → `null` (preserves the key as a clear-signal)
+ *   - empty arrays  → kept as `[]` (so deep-merge replaces the array)
+ *   - missing keys are still missing (deep-merge preserves siblings)
  */
 export function stripEmpty<T>(input: T): T {
   if (input === null || input === undefined) return input;
@@ -378,9 +383,9 @@ export function stripEmpty<T>(input: T): T {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
       const cleaned = stripEmpty(v);
-      if (cleaned === null || cleaned === undefined) continue;
-      if (Array.isArray(cleaned) && cleaned.length === 0) continue;
-      if (typeof cleaned === "object" && !Array.isArray(cleaned) && Object.keys(cleaned).length === 0) continue;
+      // Keep nulls — they're explicit clear-signals for the server-side merge.
+      // Drop only undefined (uninitialized) values.
+      if (cleaned === undefined) continue;
       out[k] = cleaned;
     }
     return out as T;

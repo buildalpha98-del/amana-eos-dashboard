@@ -54,14 +54,18 @@ export function SectionCard({
     setEditing(false);
   };
 
-  const handleSave = async (next: Record<string, unknown>) => {
+  // Autosave saves silently without closing the editor — Akram is mid-typing.
+  // Explicit Save (button click) closes the editor + toasts.
+  const handleAutoSave = async (next: Record<string, unknown>) => {
+    await onSave(next);
+  };
+
+  const handleExplicitSave = async (next: Record<string, unknown>) => {
     try {
       await onSave(next);
       setEditing(false);
       toast({ description: `${title} saved.` });
     } catch (err) {
-      // The mutation hook already toasts on error; surface inline too so the
-      // user sees it in the form context.
       toast({
         variant: "destructive",
         description: err instanceof Error ? err.message : "Save failed.",
@@ -76,7 +80,8 @@ export function SectionCard({
     <SectionFormDispatch
       sectionKey={sectionKey}
       content={content}
-      onSave={handleSave}
+      onAutoSave={handleAutoSave}
+      onExplicitSave={handleExplicitSave}
       onCancel={cancel}
       isSaving={isSaving}
     />
@@ -84,7 +89,7 @@ export function SectionCard({
     <RawJsonEditor
       title={title}
       content={content}
-      onSave={handleSave}
+      onSave={handleExplicitSave}
       onCancel={cancel}
       isSaving={isSaving}
     />
@@ -186,13 +191,15 @@ export function SectionCard({
 function SectionFormDispatch({
   sectionKey,
   content,
-  onSave,
+  onAutoSave,
+  onExplicitSave,
   onCancel,
   isSaving,
 }: {
   sectionKey: SectionKey;
   content: unknown;
-  onSave: (next: Record<string, unknown>) => Promise<void>;
+  onAutoSave: (next: Record<string, unknown>) => Promise<void>;
+  onExplicitSave: (next: Record<string, unknown>) => Promise<void>;
   onCancel: () => void;
   isSaving: boolean;
 }) {
@@ -201,7 +208,8 @@ function SectionFormDispatch({
       return (
         <SnapshotForm
           initial={content as never}
-          onSave={onSave}
+          onAutoSave={onAutoSave}
+          onExplicitSave={onExplicitSave}
           onCancel={onCancel}
           isSaving={isSaving}
         />
@@ -210,7 +218,8 @@ function SectionFormDispatch({
       return (
         <ParentAvatarForm
           initial={content as never}
-          onSave={onSave}
+          onAutoSave={onAutoSave}
+          onExplicitSave={onExplicitSave}
           onCancel={onCancel}
           isSaving={isSaving}
         />
@@ -219,7 +228,8 @@ function SectionFormDispatch({
       return (
         <ProgrammeMixForm
           initial={content as never}
-          onSave={onSave}
+          onAutoSave={onAutoSave}
+          onExplicitSave={onExplicitSave}
           onCancel={onCancel}
           isSaving={isSaving}
         />
@@ -228,7 +238,8 @@ function SectionFormDispatch({
       return (
         <AssetLibraryForm
           initial={content as never}
-          onSave={onSave}
+          onAutoSave={onAutoSave}
+          onExplicitSave={onExplicitSave}
           onCancel={onCancel}
           isSaving={isSaving}
         />
