@@ -14,8 +14,10 @@ import {
   MoreVertical,
   StickyNote,
   Loader2,
+  Plus,
 } from "lucide-react";
 import { useRollCall, useUpdateRollCall, type RollCallEntry } from "@/hooks/useRollCall";
+import { useChildren } from "@/hooks/useChildren";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -99,6 +101,12 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
   const [date, setDateState] = useState(initialDate);
   const [sessionType, setSessionType] = useState("asc");
   const [search, setSearch] = useState("");
+  // Walk-in flow: educators + directors should be able to add a child to
+  // today's roll call when they show up without a booking. The roll-call
+  // POST endpoint already creates a fresh AttendanceRecord on sign_in
+  // (no Booking required), and the GET surfaces walk-ins under
+  // bookingType="casual". This dialog wires the UI half.
+  const [showAddChild, setShowAddChild] = useState(false);
 
   // Keep URL in sync when the user changes the date picker. Using a ref to
   // avoid re-syncing on first render (the URL already has the initial date, or
@@ -212,6 +220,16 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
                 className="w-full pl-9 pr-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
               />
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAddChild(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand text-white text-sm font-medium hover:bg-brand-hover transition-colors min-h-[44px]"
+              title="Sign in a child who isn't on the booking list (walk-in)"
+            >
+              <Plus className="w-4 h-4" />
+              Add Child
+            </button>
           </div>
 
           {/* ── Summary Cards ──────────────────────────────── */}
@@ -259,7 +277,161 @@ export function ServiceRollCallTab({ serviceId }: ServiceRollCallTabProps) {
       {view === "weekly" && <ServiceWeeklyRollCallGrid serviceId={serviceId} />}
 
       {view === "monthly" && <ServiceMonthlyRollCallView serviceId={serviceId} />}
+
+      {showAddChild && (
+        <AddChildDialog
+          serviceId={serviceId}
+          date={date}
+          sessionType={sessionType}
+          existingChildIds={new Set(entries.map((e) => e.childId))}
+          onClose={() => setShowAddChild(false)}
+          onSignIn={(childId) =>
+            handleAction(childId, "sign_in", undefined)
+          }
+          isPending={updateRollCall.isPending}
+        />
+      )}
     </div>
+  );
+}
+
+// ── Add Child Dialog (walk-in flow) ──────────────────────
+//
+// Shown when the educator/director hits "Add Child" on the daily roll
+// call. Lists every active child enrolled at this service, minus those
+// already on today's roll call. Selecting one signs them in via the
+// existing POST /api/attendance/roll-call endpoint with action="sign_in",
+// which creates a fresh AttendanceRecord without needing a Booking row.
+// The walk-in then surfaces in the GET response under bookingType="casual"
+// and blends into the regular roll-call list.
+
+function AddChildDialog({
+  serviceId,
+  date,
+  sessionType,
+  existingChildIds,
+  onClose,
+  onSignIn,
+  isPending,
+}: {
+  serviceId: string;
+  date: string;
+  sessionType: string;
+  existingChildIds: Set<string>;
+  onClose: () => void;
+  onSignIn: (childId: string) => void;
+  isPending: boolean;
+}) {
+  const [search, setSearch] = useState("");
+  const { data, isLoading } = useChildren({
+    serviceId,
+    status: "current",
+  });
+
+  const candidates = useMemo(() => {
+    const all = data?.children ?? [];
+    const q = search.trim().toLowerCase();
+    return all
+      .filter((c) => !existingChildIds.has(c.id))
+      .filter((c) => {
+        if (!q) return true;
+        const fn = (c.firstName ?? "").toLowerCase();
+        const sn = (c.surname ?? "").toLowerCase();
+        return fn.includes(q) || sn.includes(q) || `${fn} ${sn}`.includes(q);
+      })
+      .sort((a, b) => {
+        const sn = (a.surname ?? "").localeCompare(b.surname ?? "");
+        if (sn !== 0) return sn;
+        return (a.firstName ?? "").localeCompare(b.firstName ?? "");
+      });
+  }, [data, search, existingChildIds]);
+
+  const dateLabel = new Date(date).toLocaleDateString("en-AU", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  const sessionLabel = SESSION_LABELS[sessionType] ?? sessionType.toUpperCase();
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent>
+        <DialogTitle className="text-base font-semibold text-foreground">
+          Add child to {sessionLabel} · {dateLabel}
+        </DialogTitle>
+        <p className="text-xs text-muted mt-1 mb-3">
+          Pick an enrolled child to sign in. They'll appear on the roll call as
+          a walk-in (no booking required).
+        </p>
+
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name…"
+            autoFocus
+            className="w-full pl-9 pr-3 py-2 border border-border rounded-lg text-foreground bg-card text-sm focus:ring-2 focus:ring-brand focus:border-transparent min-h-[44px]"
+          />
+        </div>
+
+        <div className="max-h-[50vh] overflow-y-auto -mx-2">
+          {isLoading ? (
+            <div className="p-4 space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : candidates.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-muted text-center">
+              {search.trim()
+                ? "No matching children."
+                : "Every enrolled child is already on the roll call."}
+            </p>
+          ) : (
+            <ul className="px-2 space-y-1">
+              {candidates.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSignIn(c.id);
+                      onClose();
+                    }}
+                    disabled={isPending}
+                    className={cn(
+                      "w-full text-left px-3 py-2 rounded-lg text-sm",
+                      "hover:bg-surface transition-colors min-h-[44px]",
+                      "flex items-center gap-2 disabled:opacity-50",
+                    )}
+                  >
+                    <span className="font-medium text-foreground">
+                      {c.firstName} {c.surname}
+                    </span>
+                    {c.yearLevel && (
+                      <span className="text-xs text-muted">
+                        · {c.yearLevel}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="flex justify-end pt-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[44px] px-4 py-2 text-sm font-medium text-muted"
+          >
+            Cancel
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
