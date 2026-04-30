@@ -2,13 +2,14 @@
 
 import { useCallback, useMemo } from "react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
-import { User, CalendarDays, Users, Heart, ListChecks } from "lucide-react";
+import { User, CalendarDays, Users, Heart, ListChecks, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DetailsTab } from "./tabs/DetailsTab";
 import { RoomDaysTab } from "./tabs/RoomDaysTab";
 import { RelationshipsTab } from "./tabs/RelationshipsTab";
 import { MedicalTab } from "./tabs/MedicalTab";
 import { AttendancesTab } from "./tabs/AttendancesTab";
+import { ChildDocumentsTab } from "@/components/children/ChildDocumentsTab";
 import type { ChildProfileRecord } from "./types";
 
 export type ChildProfileTabKey =
@@ -16,7 +17,8 @@ export type ChildProfileTabKey =
   | "room"
   | "relationships"
   | "medical"
-  | "attendances";
+  | "attendances"
+  | "documents";
 
 interface ChildProfileTabsProps {
   child: ChildProfileRecord;
@@ -34,6 +36,7 @@ const TABS: {
   { key: "relationships", label: "Relationships", icon: Users },
   { key: "medical", label: "Medical", icon: Heart },
   { key: "attendances", label: "Attendances", icon: ListChecks },
+  { key: "documents", label: "Documents", icon: Paperclip },
 ];
 
 export function ChildProfileTabs({
@@ -105,6 +108,7 @@ export function ChildProfileTabs({
         )}
         {active === "medical" && <MedicalTab child={child} canEdit={canEdit} />}
         {active === "attendances" && <AttendancesTab child={child} />}
+        {active === "documents" && <ChildDocumentsTab childId={child.id} />}
       </div>
     </div>
   );

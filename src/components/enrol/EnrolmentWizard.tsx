@@ -380,8 +380,8 @@ export function EnrolmentWizard({
         <div className="text-center text-white/60 text-sm">
           <p>
             Questions? Contact us at{" "}
-            <a href="mailto:info@amanaoshc.com.au" className="text-white/80 underline">
-              info@amanaoshc.com.au
+            <a href="mailto:enrolment@amanaoshc.com.au" className="text-white/80 underline">
+              enrolment@amanaoshc.com.au
             </a>
           </p>
         </div>

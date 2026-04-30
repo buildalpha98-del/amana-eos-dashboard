@@ -12,6 +12,7 @@ const VALID_TABS: ReadonlySet<ChildProfileTabKey> = new Set([
   "relationships",
   "medical",
   "attendances",
+  "documents",
 ]);
 
 function coerceTab(value: string | undefined): ChildProfileTabKey {
