@@ -6,6 +6,7 @@ import { cn, formatDateAU, getWeekStart } from "@/lib/utils";
 import { CheckSquare, Plus, X, Calendar, ArrowUpDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
+import { useServiceMembers } from "@/hooks/useServiceMembers";
 
 interface TodoData {
   id: string;
@@ -64,14 +65,11 @@ export function ServiceTodosTab({ serviceId }: { serviceId: string }) {
     },
   });
 
-  const { data: users = [] } = useQuery<UserOption[]>({
-    queryKey: ["users-list"],
-    queryFn: async () => {
-      const res = await fetch("/api/users");
-      if (!res.ok) return [];
-      return res.json();
-    },
-  });
+  // 2026-04-30: scope assignees to people actually assigned to this service
+  // (was showing every active user in the org). Per training-session feedback,
+  // todos are a service-internal coordination tool — picking someone from
+  // another centre was almost always a mistake.
+  const { data: users = [] } = useServiceMembers(serviceId);
 
   const createTodo = useMutation({
     mutationFn: async (data: Record<string, unknown>) => {
