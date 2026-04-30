@@ -1,5 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { CENTRE_AVATAR_STARTER_DATA } from "../src/lib/seed/centre-avatar-starter-data";
 
 const prisma = new PrismaClient();
 
@@ -2725,6 +2726,31 @@ Don't list every child by name. Don't invent events or meals — use only what's
     });
   }
   console.log(`Seeded ${aiTemplates.length} AI prompt templates`);
+
+  // ── Centre Avatars ─────────────────────────────────────────────
+  // Idempotent: creates one CentreAvatar per Service if missing.
+  // Existing avatars (with Akram's hand-edited data) are PRESERVED.
+  const allServices = await prisma.service.findMany({
+    select: { id: true, name: true },
+  });
+  let avatarsCreated = 0;
+  for (const svc of allServices) {
+    const existing = await prisma.centreAvatar.findUnique({
+      where: { serviceId: svc.id },
+      select: { id: true },
+    });
+    if (existing) continue;
+    const starter = CENTRE_AVATAR_STARTER_DATA[svc.name];
+    await prisma.centreAvatar.create({
+      data: {
+        serviceId: svc.id,
+        snapshot: starter ? (starter as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
+        lastUpdatedAt: new Date(),
+      },
+    });
+    avatarsCreated += 1;
+  }
+  console.log(`Seeded ${avatarsCreated} new CentreAvatars (preserved ${allServices.length - avatarsCreated} existing)`);
 
   console.log("\nSeed complete!");
 }
