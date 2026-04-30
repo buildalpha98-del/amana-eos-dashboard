@@ -68,6 +68,58 @@ export interface CreateReflectionArgs {
   clientMutationId?: string;
 }
 
+export interface UpdateReflectionArgs {
+  reflectionId: string;
+  type?: ReflectionItem["type"];
+  title?: string;
+  content?: string;
+  qualityAreas?: number[];
+  mood?: ReflectionItem["mood"];
+  linkedObservationIds?: string[];
+}
+
+export function useUpdateReflection(serviceId: string) {
+  const qc = useQueryClient();
+  return useMutation<ReflectionItem, Error, UpdateReflectionArgs>({
+    mutationFn: async ({ reflectionId, ...body }) =>
+      mutateApi<ReflectionItem>(
+        `/api/services/${serviceId}/reflections/${reflectionId}`,
+        { method: "PATCH", body },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reflections", serviceId] });
+      toast({ description: "Reflection updated" });
+    },
+    onError: (err) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Failed to update reflection",
+      });
+    },
+  });
+}
+
+export function useDeleteReflection(serviceId: string) {
+  const qc = useQueryClient();
+  return useMutation<{ ok: true }, Error, { reflectionId: string }>({
+    mutationFn: async ({ reflectionId }) =>
+      mutateApi<{ ok: true }>(
+        `/api/services/${serviceId}/reflections/${reflectionId}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reflections", serviceId] });
+      toast({ description: "Reflection deleted" });
+    },
+    onError: (err) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Failed to delete reflection",
+      });
+    },
+  });
+}
+
 export function useCreateReflection(serviceId: string) {
   const qc = useQueryClient();
   return useMutation<ReflectionItem | { queued: true }, Error, CreateReflectionArgs>({

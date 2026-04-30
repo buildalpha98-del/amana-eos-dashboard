@@ -92,11 +92,19 @@ describe("Feature-level authorization", () => {
     expect(hasFeature("staff", "leave.approve")).toBe(false);
   });
 
-  it("coordinator has member permissions plus compliance.create", () => {
+  // 2026-04-30: coordinator role was collapsed into member. Member now
+  // owns the post-merge feature set (compliance.create, onboarding.create,
+  // attendance.* — formerly coordinator-only). The old assertion that
+  // "member does NOT have compliance.create" is obsolete and would fight
+  // the role consolidation. Replaced with a sanity check on the merged
+  // permission set.
+  it("member (post-coordinator-collapse) inherits compliance.create + onboarding.create", () => {
     expect(hasFeature("member", "compliance.view")).toBe(true);
     expect(hasFeature("member", "compliance.create")).toBe(true);
-    expect(hasFeature("member", "compliance.view")).toBe(true);
-    expect(hasFeature("member", "compliance.create")).toBe(false);
+    expect(hasFeature("member", "onboarding.create")).toBe(true);
+    // sanity: member still doesn't get admin-only features
+    expect(hasFeature("member", "users.create")).toBe(false);
+    expect(hasFeature("member", "settings.view")).toBe(false);
   });
 });
 
