@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
+import { useServiceMembers } from "@/hooks/useServiceMembers";
 
 interface MeasurableData {
   id: string;
@@ -69,15 +70,10 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
     },
   });
 
-  // Fetch users
-  const { data: users } = useQuery<UserOption[]>({
-    queryKey: ["users-list"],
-    queryFn: async () => {
-      const res = await fetch("/api/users");
-      if (!res.ok) return [];
-      return res.json();
-    },
-  });
+  // 2026-04-30: scope measurable-owner picker to service members only.
+  // Was returning every active user in the org — service-level scorecards
+  // shouldn't be assigning org-wide.
+  const { data: users } = useServiceMembers(serviceId);
 
   // Build entry lookup: measurableId -> weekKey -> entry
   const entryLookup = useMemo(() => {

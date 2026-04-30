@@ -6,6 +6,7 @@ import { cn, getWeekStart } from "@/lib/utils";
 import { AlertCircle, Plus, X, ArrowRight, CheckSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
+import { useServiceMembers } from "@/hooks/useServiceMembers";
 
 interface IssueData {
   id: string;
@@ -71,13 +72,12 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
     },
   });
 
-  const { data: users = [] } = useQuery<UserOption[]>({
-    queryKey: ["users-list"],
-    queryFn: async () => {
-      const res = await fetch("/api/users");
-      if (!res.ok) return [];
-      return res.json();
-    },
+  // 2026-04-30: scope owner picker to service members + State Manager so
+  // service-level issues can be escalated up the chain (per training-session
+  // feedback). Owner / Admin remain reachable via the cross-service
+  // /issues page.
+  const { data: users = [] } = useServiceMembers(serviceId, {
+    includeStateManagers: true,
   });
 
   const createIssue = useMutation({

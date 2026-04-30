@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { getCurrentQuarter } from "@/lib/utils";
 import { Mountain, Plus, User, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useServiceMembers } from "@/hooks/useServiceMembers";
 
 interface RockData {
   id: string;
@@ -78,14 +79,8 @@ export function ServiceRocksTab({ serviceId }: { serviceId: string }) {
     },
   });
 
-  const { data: users } = useQuery<UserOption[]>({
-    queryKey: ["users-list"],
-    queryFn: async () => {
-      const res = await fetch("/api/users");
-      if (!res.ok) return [];
-      return res.json();
-    },
-  });
+  // 2026-04-30: scope owner picker to service members only.
+  const { data: users } = useServiceMembers(serviceId);
 
   const filteredRocks = rocks?.filter((r) => r.quarter === selectedQuarter) ?? [];
   const quarterOptions = getQuarterOptions();
