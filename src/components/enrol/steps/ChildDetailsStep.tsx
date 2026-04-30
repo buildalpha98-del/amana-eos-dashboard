@@ -82,6 +82,12 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
     });
   };
 
+  const batchUpdateChild = (index: number, fields: Partial<ChildDetails>) => {
+    const children = [...data.children];
+    children[index] = { ...children[index], ...fields };
+    updateData({ children });
+  };
+
   return (
     <div className="space-y-8">
       {data.children.map((child, i) => (
@@ -167,13 +173,14 @@ export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }
                 value={child.postcode}
                 onChange={(v) => {
                   const digits = v.replace(/\D/g, "").slice(0, 4);
-                  updateChild(i, "postcode", digits);
                   if (digits.length === 4) {
                     const state = stateFromPostcode(digits);
-                    if (state) updateChild(i, "state", state);
+                    batchUpdateChild(i, state ? { postcode: digits, state } : { postcode: digits });
+                  } else {
+                    updateChild(i, "postcode", digits);
                   }
                 }}
-                maxLength={5}
+                maxLength={4}
                 inputMode="numeric"
                 pattern="[0-9]*"
               />

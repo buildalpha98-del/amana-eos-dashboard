@@ -145,7 +145,17 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
       doc.text("Booking Preferences", margin, y);
       y += 5;
       const sessions = bp.sessionTypes as string[] | undefined;
-      if (sessions?.length) row("Sessions", sessions.join(", ").toUpperCase());
+      const days = bp.days as Record<string, string[]> | undefined;
+      const SESSION_LABELS: Record<string, string> = { bsc: "Before School Care", asc: "After School Care", vc: "Vacation Care" };
+      if (sessions?.length) {
+        for (const st of sessions) {
+          const sessionDays = days?.[st];
+          const dayStr = sessionDays?.length
+            ? sessionDays.map((d) => d.charAt(0).toUpperCase() + d.slice(1)).join(", ")
+            : "Days not specified";
+          row(SESSION_LABELS[st] || st.toUpperCase(), dayStr);
+        }
+      }
       row("Booking Type", bp.bookingType as string);
       row("Start Date", bp.startDate as string);
       row("Requirements", bp.requirements as string);
@@ -195,7 +205,7 @@ export async function generateEnrolmentPdf(submission: EnrolmentSubmission): Pro
     doc.setTextColor(0, 78, 100);
     doc.text("Authorised Pickup", margin, y);
     y += 5;
-    pickup.forEach((p) => row(p.name as string, p.relationship as string));
+    pickup.forEach((p) => row(p.name as string, `${p.relationship}${p.phone ? ` — ${p.phone}` : ""}`));
   }
 
   // ── Consents ──

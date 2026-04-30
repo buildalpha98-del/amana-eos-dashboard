@@ -70,7 +70,7 @@ export const POST = withApiAuth(async (req) => {
     }).catch((err) => logger.error("Failed to mark contact as withdrawn for exit survey", { err, contactId: data.contactId }));
   }
 
-  const surveyUrl = `${process.env.NEXTAUTH_URL || "https://amana-eos-dashboard.vercel.app"}/survey/exit/${surveyToken}`;
+  const surveyUrl = `${process.env.NEXTAUTH_URL || "https://amanaoshc.company"}/survey/exit/${surveyToken}`;
 
   // Send exit survey email if email available
   if (data.contactEmail) {

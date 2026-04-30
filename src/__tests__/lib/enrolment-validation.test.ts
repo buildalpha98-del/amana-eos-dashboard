@@ -70,7 +70,7 @@ const enrolmentBodySchema = z.object({
   }).passthrough().optional(),
   medicals: z.array(z.object({}).passthrough()).default([]),
   emergencyContacts: z.array(z.object({ name: z.string().default(""), relationship: z.string().default(""), phone: z.string().default(""), email: z.string().default("") })).default([]),
-  authorisedPickup: z.array(z.object({ name: z.string().min(1), relationship: z.string().min(1) })).default([]),
+  authorisedPickup: z.array(z.object({ name: z.string().min(1), relationship: z.string().min(1), phone: z.string().default("") })).default([]),
   consents: consentsSchema,
   courtOrders: z.boolean().default(false),
   courtOrderFiles: z.array(z.object({ filename: z.string(), url: z.string() })).default([]),

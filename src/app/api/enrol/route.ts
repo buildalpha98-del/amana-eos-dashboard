@@ -100,6 +100,7 @@ const emergencyContactSchema = z.object({
 const authorisedPersonSchema = z.object({
   name: z.string().min(1),
   relationship: z.string().min(1),
+  phone: z.string().default(""),
 });
 
 const consentsSchema = z.object({

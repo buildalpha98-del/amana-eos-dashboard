@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { EnrolmentFormData, EmergencyContact, AuthorisedPerson, EMPTY_EMERGENCY } from "../types";
+import { EnrolmentFormData, EmergencyContact, AuthorisedPerson, EMPTY_EMERGENCY, RELATIONSHIP_OPTIONS } from "../types";
 
 interface Props {
   data: EnrolmentFormData;
@@ -65,7 +65,7 @@ export function EmergencyStep({ data, updateData }: Props) {
   };
 
   const addPickup = () => {
-    updateData({ authorisedPickup: [...data.authorisedPickup, { name: "", relationship: "" }] });
+    updateData({ authorisedPickup: [...data.authorisedPickup, { name: "", relationship: "", phone: "" }] });
   };
 
   const removePickup = (index: number) => {
@@ -100,7 +100,22 @@ export function EmergencyStep({ data, updateData }: Props) {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Full Name" value={contact.name} onChange={(v) => updateContact(i, "name", v)} required={i === 0} />
-              <Input label="Relationship" value={contact.relationship} onChange={(v) => updateContact(i, "relationship", v)} required={i === 0} />
+              <div>
+                <label className="block text-sm font-medium text-foreground/80 mb-1">
+                  Relationship
+                  {i === 0 && <span className="text-red-500 ml-0.5">*</span>}
+                </label>
+                <select
+                  value={contact.relationship}
+                  onChange={(e) => updateContact(i, "relationship", e.target.value)}
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
+                >
+                  <option value="">Select...</option>
+                  {RELATIONSHIP_OPTIONS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
               <Input label="Phone" value={contact.phone} onChange={(v) => updateContact(i, "phone", v)} type="tel" required={i === 0} />
               <Input label="Email" value={contact.email} onChange={(v) => updateContact(i, "email", v)} type="email" />
             </div>
@@ -127,9 +142,22 @@ export function EmergencyStep({ data, updateData }: Props) {
         </p>
 
         {data.authorisedPickup.map((person, i) => (
-          <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3 items-end">
+          <div key={i} className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-3 items-end">
             <Input label="Full Name" value={person.name} onChange={(v) => updatePickup(i, "name", v)} />
-            <Input label="Relationship" value={person.relationship} onChange={(v) => updatePickup(i, "relationship", v)} />
+            <div>
+              <label className="block text-sm font-medium text-foreground/80 mb-1">Relationship</label>
+              <select
+                value={person.relationship}
+                onChange={(e) => updatePickup(i, "relationship", e.target.value)}
+                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand bg-card"
+              >
+                <option value="">Select...</option>
+                {RELATIONSHIP_OPTIONS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+            <Input label="Phone" value={person.phone} onChange={(v) => updatePickup(i, "phone", v)} type="tel" />
             <button
               type="button"
               onClick={() => removePickup(i)}

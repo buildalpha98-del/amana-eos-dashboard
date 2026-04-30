@@ -45,6 +45,9 @@ export interface EnrolmentSubmission {
   privacyAccepted: boolean;
   debitAgreement: boolean;
   courtOrders: boolean;
+  courtOrderFiles?: Array<{ filename: string; url: string }> | null;
+  medicalFiles?: Array<{ childIndex: number; type: string; filename: string; url: string }> | null;
+  documentUploads?: Array<{ childIndex: number; type: string; filename: string; url: string }> | null;
   status: string;
   processedAt: string | null;
   notes: string | null;

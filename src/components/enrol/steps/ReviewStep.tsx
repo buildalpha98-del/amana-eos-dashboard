@@ -170,7 +170,7 @@ export function ReviewStep({ data, updateData, onSubmit, submitting }: Props) {
           <>
             <p className="font-semibold text-foreground mt-3 mb-1">Authorised Pickup</p>
             {data.authorisedPickup.map((p, i) => (
-              <Field key={i} label={p.name} value={p.relationship} />
+              <Field key={i} label={p.name} value={`${p.relationship}${p.phone ? ` — ${p.phone}` : ""}`} />
             ))}
           </>
         )}
