@@ -6,10 +6,20 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
 import { parseJsonBody } from "@/lib/api-error";
+// 2026-04-30: documentType is server-derived from the service's state.
+// NSW services use "sat" (Self-Assessment Tool); everywhere else uses
+// "qip" (Quality Improvement Plan). Clients don't pass it. The optional
+// override is kept for migrations / data fixups that need to force a
+// specific type.
 const createQipSchema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
-  documentType: z.string().default("qip"),
+  documentType: z.enum(["qip", "sat"]).optional(),
 });
+
+/** NSW services use SAT (Self-Assessment Tool). Everywhere else is QIP. */
+function deriveDocumentType(state: string | null | undefined): "qip" | "sat" {
+  return state === "NSW" ? "sat" : "qip";
+}
 
 const QA_NAMES = [
   "Educational Program and Practice",
@@ -70,7 +80,7 @@ export const POST = withApiAuth(async (req, session) => {
       );
     }
 
-    const { serviceId, documentType } = parsed.data;
+    const { serviceId, documentType: explicitType } = parsed.data;
 
     // Get service state
     const service = await prisma.service.findUnique({
@@ -91,6 +101,10 @@ export const POST = withApiAuth(async (req, session) => {
         { status: 409 },
       );
     }
+
+    // Server-derived. NSW → "sat", others → "qip". An explicit override
+    // wins (used by migrations/backfills); the UI no longer sends one.
+    const documentType = explicitType ?? deriveDocumentType(service.state);
 
     const qip = await prisma.qualityImprovementPlan.create({
       data: {
@@ -115,4 +129,7 @@ export const POST = withApiAuth(async (req, session) => {
     logger.error("QIP POST", { err });
     return NextResponse.json({ error: "Failed to create QIP" }, { status: 500 });
   }
-}, { roles: ["owner", "head_office", "admin"] });
+  // 2026-04-30: added "member" so Centre Directors can create their own
+  // QIP/SAT. Previously they got a 403 the moment they hit "Create QIP" —
+  // surfaced in the training session as "QIP action failure".
+}, { roles: ["owner", "head_office", "admin", "member"] });
