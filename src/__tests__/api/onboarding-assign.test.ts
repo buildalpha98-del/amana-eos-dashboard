@@ -54,6 +54,55 @@ describe("GET /api/onboarding/assign", () => {
     expect(whereArg.userId).toBe("target-user");
   });
 
+  // ── Regression: 2026-04-29 confidentiality bug ─────────────────
+  // Before the fix, every non-`staff` role saw every other staff member's
+  // assignments because the route only scoped for role==="staff".
+  it.each([
+    ["member", "u-member"],
+    ["coordinator", "u-coord"],
+    ["marketing", "u-marketing"],
+  ])("%s can only see their own assignments (regression)", async (role, id) => {
+    mockSession({ id, name: role, role, serviceId: "svc-1" });
+    prismaMock.user.findUnique.mockResolvedValue({ id, active: true, role });
+    prismaMock.staffOnboarding.findMany.mockResolvedValue([]);
+
+    // Even when query asks for another user, role scope wins
+    const req = createRequest("GET", "/api/onboarding/assign?userId=other-user");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+
+    const whereArg = prismaMock.staffOnboarding.findMany.mock.calls[0][0].where;
+    expect(whereArg.userId).toBe(id);
+  });
+
+  it("head_office can filter by userId (admin-tier override)", async () => {
+    mockSession({ id: "u-ho", name: "HO", role: "head_office" });
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u-ho", active: true, role: "head_office" });
+    prismaMock.staffOnboarding.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/onboarding/assign?userId=target-user");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+
+    const whereArg = prismaMock.staffOnboarding.findMany.mock.calls[0][0].where;
+    expect(whereArg.userId).toBe("target-user");
+  });
+
+  it("owner without filter sees all assignments", async () => {
+    mockSession({ id: "u-owner", name: "Owner", role: "owner" });
+    prismaMock.user.findUnique.mockResolvedValue({ id: "u-owner", active: true, role: "owner" });
+    prismaMock.staffOnboarding.findMany.mockResolvedValue([
+      { id: "a1", userId: "u-other" },
+    ]);
+
+    const req = createRequest("GET", "/api/onboarding/assign");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+
+    const whereArg = prismaMock.staffOnboarding.findMany.mock.calls[0][0].where;
+    expect(whereArg.userId).toBeUndefined();
+  });
+
   it("admin without filter sees all assignments", async () => {
     mockSession({ id: "u-admin", name: "Admin", role: "admin" });
     prismaMock.user.findUnique.mockResolvedValue({ id: "u-admin", active: true, role: "admin" });

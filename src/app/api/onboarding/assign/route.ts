@@ -17,13 +17,21 @@ const progressSchema = z.object({
 });
 
 // GET /api/onboarding/assign — list assignments (optionally filtered by userId)
+//
+// Scoping (added 2026-04-29 to close confidentiality bug — previously only
+// `staff` was scoped, so members and coordinators saw every other staff
+// member's onboarding assignments):
+//   - owner / head_office / admin : full access; can pass ?userId= to filter
+//   - everyone else (marketing / coordinator / member / staff) : forced to
+//     their own user ID. The ?userId= query param is ignored unless it
+//     matches session.user.id.
 export const GET = withApiAuth(async (req, session) => {
-const { searchParams } = new URL(req.url);
+  const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
+  const role = session!.user.role as string;
+  const isAdminLike = role === "owner" || role === "head_office" || role === "admin";
 
-  // Staff can only see their own assignments
-  const targetUserId =
-    session!.user.role === "staff" ? session!.user.id : userId;
+  const targetUserId = isAdminLike ? userId : session!.user.id;
 
   const where: Record<string, unknown> = {};
   if (targetUserId) where.userId = targetUserId;
