@@ -160,3 +160,37 @@ describe("GET /api/children — centre scope enforcement", () => {
     expect(call.where.serviceId).toBe("svc-x");
   });
 });
+
+// ── 2026-04-29: status="current" widening regression ────────────────
+describe("GET /api/children — status=current widened to active+pending", () => {
+  beforeEach(() => {
+    _clearUserActiveCache();
+    vi.clearAllMocks();
+    setupActiveUser();
+    mockSession({ id: "u-owner", name: "Owner", role: "owner" });
+  });
+
+  it("status=current → where.status = { in: ['active', 'pending'] }", async () => {
+    await GET(createRequest("GET", "/api/children?status=current"));
+    const call = prismaMock.child.findMany.mock.calls[0][0];
+    expect(call.where.status).toEqual({ in: ["active", "pending"] });
+  });
+
+  it("status=all → no status filter", async () => {
+    await GET(createRequest("GET", "/api/children?status=all"));
+    const call = prismaMock.child.findMany.mock.calls[0][0];
+    expect(call.where.status).toBeUndefined();
+  });
+
+  it("status=withdrawn → exact match (unchanged behaviour)", async () => {
+    await GET(createRequest("GET", "/api/children?status=withdrawn"));
+    const call = prismaMock.child.findMany.mock.calls[0][0];
+    expect(call.where.status).toBe("withdrawn");
+  });
+
+  it("status=pending alone → exact match (lets admins see only pending)", async () => {
+    await GET(createRequest("GET", "/api/children?status=pending"));
+    const call = prismaMock.child.findMany.mock.calls[0][0];
+    expect(call.where.status).toBe("pending");
+  });
+});
