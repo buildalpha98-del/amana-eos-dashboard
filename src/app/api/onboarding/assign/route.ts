@@ -17,13 +17,21 @@ const progressSchema = z.object({
 });
 
 // GET /api/onboarding/assign — list assignments (optionally filtered by userId)
+//
+// Scoping (added 2026-04-29 to close confidentiality bug — previously only
+// `staff` was scoped, so members and coordinators saw every other staff
+// member's onboarding assignments):
+//   - owner / head_office / admin : full access; can pass ?userId= to filter
+//   - everyone else (marketing / coordinator / member / staff) : forced to
+//     their own user ID. The ?userId= query param is ignored unless it
+//     matches session.user.id.
 export const GET = withApiAuth(async (req, session) => {
-const { searchParams } = new URL(req.url);
+  const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
+  const role = session!.user.role as string;
+  const isAdminLike = role === "owner" || role === "head_office" || role === "admin";
 
-  // Staff can only see their own assignments
-  const targetUserId =
-    session!.user.role === "staff" ? session!.user.id : userId;
+  const targetUserId = isAdminLike ? userId : session!.user.id;
 
   const where: Record<string, unknown> = {};
   if (targetUserId) where.userId = targetUserId;
@@ -50,6 +58,79 @@ const { searchParams } = new URL(req.url);
     },
     orderBy: { createdAt: "desc" },
   });
+
+  // ── Lazy task backfill (added 2026-04-29) ──────────────────────
+  // The original assignment-creation flow snapshots pack.tasks into per-row
+  // progress entries. If admin then ADDS new tasks to the pack later, those
+  // tasks aren't in any pre-existing assignment's progress array — the
+  // assignee sees "0/0 tasks" or a stale completion fraction. This lazy
+  // backfill detects the mismatch on read (pack.tasks > progress rows) and
+  // creates the missing progress rows, then returns the patched payload.
+  const stale = assignments.filter(
+    (a) => (a.pack?._count?.tasks ?? 0) > (a.progress?.length ?? 0),
+  );
+  if (stale.length > 0) {
+    // One bulk fetch for all stale packs' task IDs (avoids N+1 in the common
+    // case where multiple assignees share the same pack).
+    const stalePackIds = Array.from(new Set(stale.map((a) => a.packId)));
+    const stalePacks = await prisma.onboardingPack.findMany({
+      where: { id: { in: stalePackIds } },
+      include: { tasks: { select: { id: true } } },
+    });
+    const taskIdsByPack = new Map(
+      stalePacks.map((p) => [p.id, p.tasks.map((t) => t.id)]),
+    );
+
+    // Build the createMany payload: one row per (assignment, missing task).
+    const rowsToCreate: { onboardingId: string; taskId: string; completed: boolean }[] = [];
+    for (const assignment of stale) {
+      const allTaskIds = taskIdsByPack.get(assignment.packId) ?? [];
+      const existingTaskIds = new Set(assignment.progress.map((p) => p.taskId));
+      for (const taskId of allTaskIds) {
+        if (!existingTaskIds.has(taskId)) {
+          rowsToCreate.push({
+            onboardingId: assignment.id,
+            taskId,
+            completed: false,
+          });
+        }
+      }
+    }
+    if (rowsToCreate.length > 0) {
+      await prisma.staffOnboardingProgress.createMany({
+        data: rowsToCreate,
+        skipDuplicates: true,
+      });
+      // Re-fetch only the affected assignments so the response reflects
+      // the new progress rows. Cheaper than re-fetching everything.
+      const refetched = await prisma.staffOnboarding.findMany({
+        where: { id: { in: stale.map((a) => a.id) } },
+        include: {
+          user: { select: { id: true, name: true, email: true, avatar: true } },
+          pack: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              service: { select: { id: true, name: true, code: true } },
+              _count: { select: { tasks: true } },
+            },
+          },
+          progress: {
+            include: {
+              task: { select: { id: true, title: true, category: true, isRequired: true, sortOrder: true } },
+            },
+            orderBy: { task: { sortOrder: "asc" } },
+          },
+        },
+      });
+      const refetchedById = new Map(refetched.map((a) => [a.id, a]));
+      for (let i = 0; i < assignments.length; i++) {
+        const fresh = refetchedById.get(assignments[i].id);
+        if (fresh) assignments[i] = fresh;
+      }
+    }
+  }
 
   return NextResponse.json(assignments);
 });

@@ -109,7 +109,10 @@ describe("GET /api/children — filters (4b)", () => {
     const call = prismaMock.child.findMany.mock.calls[0][0];
     expect(call.where).toMatchObject({
       serviceId: "s1",
-      status: "active",
+      // 2026-04-29: status=current widened to active+pending (kids attending
+      // OR awaiting enrolment processing — both are "current" to a Centre
+      // Director's view).
+      status: { in: ["active", "pending"] },
       ccsStatus: "pending",
       tags: { hasSome: ["vip"] },
     });

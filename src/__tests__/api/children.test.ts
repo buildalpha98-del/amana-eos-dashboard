@@ -109,7 +109,7 @@ describe("GET /api/children — new filter params", () => {
     expect(call.where.serviceId).toBe("svc-42");
   });
 
-  it("?status=current maps to status=active", async () => {
+  it("?status=current maps to status in (active, pending) — widened 2026-04-29", async () => {
     mockSession({ id: "admin-1", name: "Admin", role: "admin" });
     prismaMock.child.findMany.mockResolvedValue([]);
     prismaMock.child.count.mockResolvedValue(0);
@@ -120,7 +120,10 @@ describe("GET /api/children — new filter params", () => {
     expect(res.status).toBe(200);
 
     const call = prismaMock.child.findMany.mock.calls[0][0];
-    expect(call.where.status).toBe("active");
+    // Pre-2026-04-29 this was status="active" only, which hid newly-approved
+    // enrolments still sitting at "pending". Widened so Centre Directors
+    // see kids who are attending OR awaiting enrolment processing.
+    expect(call.where.status).toEqual({ in: ["active", "pending"] });
   });
 
   it("?status=all does NOT set where.status", async () => {

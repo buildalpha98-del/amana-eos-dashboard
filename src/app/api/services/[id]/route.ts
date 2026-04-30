@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { sessionTimesSchema } from "@/lib/service-settings";
+import { getCentreScope } from "@/lib/centre-scope";
 import { z } from "zod";
 
 const patchSchema = z.object({
@@ -47,6 +48,15 @@ const patchSchema = z.object({
 export const GET = withApiAuth(
   async (_req, session, context) => {
     const { id } = await context!.params!;
+
+    // Centre-scope enforcement (added 2026-04-29 — was missing entirely;
+    // every authenticated user could fetch any service detail). Owner /
+    // head_office / admin see everything; coordinator/member/staff/
+    // marketing get a 403 unless the requested service is in their scope.
+    const { serviceIds: scopedServiceIds } = await getCentreScope(session);
+    if (scopedServiceIds !== null && !scopedServiceIds.includes(id)) {
+      throw ApiError.forbidden();
+    }
 
     const service = await prisma.service.findUnique({
       where: { id },

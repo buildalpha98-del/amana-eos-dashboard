@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { primaryParentSchema } from "@/lib/schemas/json-fields";
+import { getCentreScope, applyCentreFilter } from "@/lib/centre-scope";
 
 /**
  * Sort keys we accept from clients. Anything else falls back to `createdAt desc`.
@@ -58,9 +59,16 @@ function toParent(raw: unknown, isPrimary: boolean): NormalisedParent | null {
   };
 }
 
-export const GET = withApiAuth(async (req) => {
+export const GET = withApiAuth(async (req, session) => {
   const url = new URL(req.url);
   const params = url.searchParams;
+
+  // Centre-scope enforcement (added 2026-04-29 — was missing entirely; any
+  // authenticated user could fetch every child system-wide). Uses the same
+  // helper as the services list, so member/staff/marketing get a single-
+  // service filter, coordinators get their assigned + managed services,
+  // owner/head_office stay unscoped, admin filters by state below.
+  const { serviceIds: scopedServiceIds } = await getCentreScope(session);
 
   const search = params.get("search") || "";
   const statusParam = params.get("status") || "";
@@ -75,17 +83,40 @@ export const GET = withApiAuth(async (req) => {
 
   const where: Record<string, unknown> = {};
 
-  // status=current (alias for "active"), status=withdrawn, status=all
+  // status filter:
+  //   "current" → kids currently relevant to the centre (active + pending)
+  //                — broadened 2026-04-29 from active-only because
+  //                  newly-approved enrolments often sit at "pending" until
+  //                  the admin marks the enrolment "processed", which meant
+  //                  Centre Directors saw zero children in their service's
+  //                  Children tab right after approving an enrolment.
+  //   "withdrawn" → kids no longer attending
+  //   "all"       → no status filter
+  //   otherwise   → exact match (e.g., "pending" or "active" alone)
   if (statusParam) {
     if (statusParam === "current") {
-      where.status = "active";
+      where.status = { in: ["active", "pending"] };
     } else if (statusParam !== "all") {
       where.status = statusParam;
     }
   }
 
+  // Apply centre scope FIRST (security boundary). If the caller also passes
+  // ?serviceId= and they're a scoped role, intersect: the filter ID must be
+  // in their allowed set, else they see nothing.
+  applyCentreFilter(where, scopedServiceIds);
   if (serviceId) {
-    where.serviceId = serviceId;
+    if (scopedServiceIds === null) {
+      // Unscoped role (owner/head_office/admin) — accept the filter directly.
+      where.serviceId = serviceId;
+    } else if (scopedServiceIds.includes(serviceId)) {
+      // Scoped role asking for a service they're allowed to see — narrow.
+      where.serviceId = serviceId;
+    } else {
+      // Scoped role asking for a service they're NOT allowed to see — return
+      // nothing rather than 403, to keep the list page silently filtered.
+      where.serviceId = "__no_access__";
+    }
   }
 
   if (search) {

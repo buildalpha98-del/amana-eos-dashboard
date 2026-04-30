@@ -77,8 +77,10 @@ export default function OnboardingPage() {
 
   // Data
   const { data: packs = [], isLoading: packsLoading } = useOnboardingPacks();
+  // Only admin-tier roles see all assignments; everyone else sees only their own.
+  // Backend enforces this same rule too (defence-in-depth) — see /api/onboarding/assign.
   const { data: assignments = [], isLoading: assignmentsLoading } = useOnboardingAssignments(
-    isStaff ? session?.user?.id : undefined
+    isAdmin ? undefined : session?.user?.id
   );
   const { data: courses = [], isLoading: coursesLoading } = useLMSCourses();
   const { data: users = [] } = useQuery<UserOption[]>({

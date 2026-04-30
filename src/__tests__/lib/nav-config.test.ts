@@ -37,9 +37,12 @@ describe("filterNavItems", () => {
     expect(filtered.some((i) => i.href === "/contracts")).toBe(true);
   });
 
-  it("includes /contracts for member (has contracts.view + rolePageAccess)", () => {
+  // 2026-04-29: /contracts removed from member's rolePageAccess as part of
+  // the cross-service-tab cleanup (Centre Directors don't manage contracts —
+  // that's an HR / admin concern). canAccessPage returns false → nav hides it.
+  it("excludes /contracts for member (cross-service HR surface)", () => {
     const filtered = filterNavItems(navItems, "member" as Role);
-    expect(filtered.some((i) => i.href === "/contracts")).toBe(true);
+    expect(filtered.some((i) => i.href === "/contracts")).toBe(false);
   });
 
   it("returns a new array (does not mutate input)", () => {
@@ -127,6 +130,59 @@ describe("filterNavItems — role allowlist (Sprint 1)", () => {
     it("still excludes pages coordinator can't access via canAccessPage", () => {
       // /financials isn't in coordinator's rolePageAccess — stays hidden.
       expect(hrefs).not.toContain("/financials");
+    });
+  });
+
+  // ─── 2026-04-29: member nav cleanup ────────────────────────
+  // Centre Directors (member role) had access to a long list of cross-
+  // service tabs that didn't match their actual workflow. After training
+  // session feedback we trimmed their rolePageAccess to focus on their
+  // single centre + EOS participation.
+  describe("member role — single-centre cleanup", () => {
+    const memberFiltered = filterNavItems(navItems, "member" as Role);
+    const hrefs = memberFiltered.map((i) => i.href);
+
+    it.each([
+      "/messaging",         // CRM-tier cross-service direct messages
+      "/contact-centre",    // CRM cross-service inbox
+      "/communication",     // Cross-service comms hub
+      "/enquiries",         // CRM
+      "/conversions",       // Analytics
+      "/enrolments",        // Cross-service list (use service detail instead)
+      "/children",          // Cross-service list (use service detail instead)
+      "/roll-call",         // 404 — lives inside service detail
+      "/bookings",          // Cross-service (use service detail)
+      "/billing",           // Cross-service (use service Finance tab)
+      "/reports",           // Cross-service analytics
+      "/timesheets",        // Cross-service HR
+      "/contracts",         // Cross-service HR
+      "/compliance/templates", // Admin audit-template config
+      "/holiday-quest",     // Marketing planner
+    ])("excludes cross-service / out-of-scope nav item %s", (href) => {
+      expect(hrefs).not.toContain(href);
+    });
+
+    it.each([
+      "/dashboard",
+      "/services",          // their primary surface — drill in for everything
+      "/onboarding",
+      "/compliance",
+      "/policies",
+      "/incidents",
+      "/leave",
+      "/knowledge",
+      "/queue",
+      "/my-portal",
+      // /profile is reachable but not surfaced in the sidebar nav (avatar menu).
+    ])("still includes core nav item %s", (href) => {
+      expect(hrefs).toContain(href);
+    });
+
+    it("/services/[id] sub-paths inherit access via prefix match", () => {
+      // canAccessPage uses pathMatches() which treats "/services" as a prefix
+      // match for "/services/abc". Service detail (and its Roll Call /
+      // Bookings / Children / Billing tabs) stay reachable.
+      // (No nav item for /services/[id] — verified in canAccessPage tests.)
     });
   });
 });

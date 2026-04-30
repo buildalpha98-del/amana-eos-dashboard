@@ -13,7 +13,9 @@ import {
 } from "@/hooks/useLMS";
 import { ModuleEditor } from "@/components/lms/ModuleEditor";
 import { StaffModuleRow } from "@/components/lms/StaffModuleRow";
+import { QuizQuestionView } from "@/components/onboarding/QuizQuestionView";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { parseQuiz } from "@/lib/quiz-parser";
 import {
   GraduationCap,
   BookOpen,
@@ -32,8 +34,6 @@ import {
   HelpCircle,
   ExternalLink,
   ListChecks,
-  Eye,
-  EyeOff,
   Play,
   Trash2,
   UserPlus,
@@ -359,45 +359,16 @@ function StaffCourseViewer({
                       </div>
                     )}
 
-                    {/* Quiz content */}
+                    {/* Quiz content — multi-choice w/ legacy Q/A fallback */}
                     {mod.type === "quiz" && mod.content && (
                       <div className="bg-surface/50 rounded-lg p-4 border border-border space-y-4">
-                        {mod.content.split(/\n(?=Q\d|Question)/i).filter(q => q.trim()).map((qa, i) => {
-                          const lines = qa.split("\n").filter(l => l.trim());
-                          const question = lines[0];
-                          const answer = lines.slice(1).join("\n");
-                          const key = `${mod.id}-${i}`;
-                          const isRevealed = revealedAnswers.has(key);
-
-                          return (
-                            <div key={i} className="space-y-1.5">
-                              <p className="text-sm font-medium text-foreground">{question}</p>
-                              {answer && (
-                                <div>
-                                  <button
-                                    onClick={() => {
-                                      setRevealedAnswers(prev => {
-                                        const next = new Set(prev);
-                                        if (next.has(key)) next.delete(key);
-                                        else next.add(key);
-                                        return next;
-                                      });
-                                    }}
-                                    className="text-xs text-brand hover:underline flex items-center gap-1"
-                                  >
-                                    {isRevealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                                    {isRevealed ? "Hide Answer" : "Show Answer"}
-                                  </button>
-                                  {isRevealed && (
-                                    <p className="text-sm text-muted mt-1.5 pl-3 border-l-2 border-brand/20 whitespace-pre-wrap">
-                                      {answer}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                        {parseQuiz(mod.content).map((q, i) => (
+                          <QuizQuestionView
+                            key={`${mod.id}-${i}`}
+                            questionKey={`${mod.id}-${i}`}
+                            question={q}
+                          />
+                        ))}
                       </div>
                     )}
 
