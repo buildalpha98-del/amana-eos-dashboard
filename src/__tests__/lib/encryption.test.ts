@@ -54,7 +54,16 @@ describe("encrypt / decrypt", () => {
   it("throws on tampered ciphertext (modified encrypted portion)", () => {
     const encrypted = encrypt("secret");
     const [iv, enc, tag] = encrypted.split(":");
-    const tampered = [iv, "ff" + enc.slice(2), tag].join(":");
+    // 2026-04-30: deterministic byte-flip via XOR. Earlier this test simply
+    // overwrote the first byte with "ff" — which collided with the
+    // original byte ~1/256 of the time (random IV → random ciphertext),
+    // producing an identical "tampered" string and a flaky pass.
+    // XOR-flipping every bit guarantees the byte changes regardless of
+    // its original value, and AES-GCM's auth tag will always reject it.
+    const firstByte = parseInt(enc.slice(0, 2), 16);
+    const flippedByte = (firstByte ^ 0xff).toString(16).padStart(2, "0");
+    const tampered = [iv, flippedByte + enc.slice(2), tag].join(":");
+    expect(tampered).not.toBe(encrypted); // pre-condition: bytes really differ
     expect(() => decrypt(tampered)).toThrow();
   });
 
