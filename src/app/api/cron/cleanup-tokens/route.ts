@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyCronSecret } from "@/lib/cron-guard";
+import { acquireCronLock, verifyCronSecret } from "@/lib/cron-guard";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
@@ -13,29 +13,45 @@ export const GET = withApiHandler(async (req) => {
   const auth = verifyCronSecret(req);
   if (auth) return auth.error;
 
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const guard = await acquireCronLock("cleanup-tokens", "daily");
+  if (!guard.acquired) {
+    return NextResponse.json({ message: guard.reason, skipped: true });
+  }
 
-  const [magicLinkResult, authTokenResult] = await Promise.all([
-    prisma.parentMagicLink.deleteMany({
-      where: { expiresAt: { lt: cutoff } },
-    }),
-    prisma.parentAuthToken.deleteMany({
-      where: { expiresAt: { lt: cutoff } },
-    }),
-  ]);
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const total = magicLinkResult.count + authTokenResult.count;
+    const [magicLinkResult, authTokenResult] = await Promise.all([
+      prisma.parentMagicLink.deleteMany({
+        where: { expiresAt: { lt: cutoff } },
+      }),
+      prisma.parentAuthToken.deleteMany({
+        where: { expiresAt: { lt: cutoff } },
+      }),
+    ]);
 
-  logger.info("Token cleanup completed", {
-    magicLinksDeleted: magicLinkResult.count,
-    authTokensDeleted: authTokenResult.count,
-    total,
-  });
+    const total = magicLinkResult.count + authTokenResult.count;
 
-  return NextResponse.json({
-    success: true,
-    deleted: total,
-    magicLinks: magicLinkResult.count,
-    authTokens: authTokenResult.count,
-  });
+    logger.info("Token cleanup completed", {
+      magicLinksDeleted: magicLinkResult.count,
+      authTokensDeleted: authTokenResult.count,
+      total,
+    });
+
+    await guard.complete({
+      magicLinksDeleted: magicLinkResult.count,
+      authTokensDeleted: authTokenResult.count,
+      total,
+    });
+
+    return NextResponse.json({
+      success: true,
+      deleted: total,
+      magicLinks: magicLinkResult.count,
+      authTokens: authTokenResult.count,
+    });
+  } catch (err) {
+    await guard.fail(err);
+    throw err;
+  }
 });

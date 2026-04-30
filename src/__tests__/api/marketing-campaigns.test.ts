@@ -25,6 +25,7 @@ function setupActiveUserMock() {
   prismaMock.user.findUnique.mockReset();
   prismaMock.user.findUnique.mockImplementation(async (args: any) => {
     if (args?.where?.id === "user-1") return { active: true, id: "user-1", role: "owner" };
+    if (args?.where?.id === "marketing-1") return { active: true, id: "marketing-1", role: "marketing" };
     return null;
   });
 }
@@ -86,6 +87,106 @@ describe("POST /api/marketing/campaigns", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toBeDefined();
+  });
+
+  it("returns 403 when non-owner tries to create with serviceIds and Avatar gate is closed", async () => {
+    mockSession({ id: "marketing-1", name: "Akram", role: "marketing" });
+
+    // No avatar exists for the requested service → gate closed
+    prismaMock.centreAvatar.findMany.mockResolvedValue([]);
+
+    const req = createRequest("POST", "/api/marketing/campaigns", {
+      body: { name: "Locked", type: "campaign", serviceIds: ["svc-1"] },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toMatch(/Avatar gate not satisfied/i);
+    expect(prismaMock.marketingCampaign.create).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 when non-owner tries to create and Avatar was opened by a different user", async () => {
+    mockSession({ id: "marketing-1", name: "Akram", role: "marketing" });
+
+    prismaMock.centreAvatar.findMany.mockResolvedValue([
+      {
+        serviceId: "svc-1",
+        lastOpenedAt: new Date(),
+        lastOpenedById: "someone-else",
+        service: { name: "Greystanes" },
+      },
+    ]);
+
+    const req = createRequest("POST", "/api/marketing/campaigns", {
+      body: { name: "Locked", type: "campaign", serviceIds: ["svc-1"] },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(403);
+    expect(prismaMock.marketingCampaign.create).not.toHaveBeenCalled();
+  });
+
+  it("allows non-owner to create when Avatar gate is open for all selected services", async () => {
+    mockSession({ id: "marketing-1", name: "Akram", role: "marketing" });
+
+    prismaMock.centreAvatar.findMany.mockResolvedValue([
+      {
+        serviceId: "svc-1",
+        lastOpenedAt: new Date(),
+        lastOpenedById: "marketing-1",
+        service: { name: "Greystanes" },
+      },
+    ]);
+    prismaMock.marketingCampaign.create.mockResolvedValue({
+      id: "camp-1",
+      name: "Open Day",
+      type: "campaign",
+      status: "draft",
+    });
+    prismaMock.marketingCampaignService.createMany.mockResolvedValue({ count: 1 });
+    prismaMock.marketingCampaign.findUnique.mockResolvedValue({
+      id: "camp-1",
+      name: "Open Day",
+      type: "campaign",
+      _count: { posts: 0, comments: 0 },
+      services: [],
+    });
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("POST", "/api/marketing/campaigns", {
+      body: { name: "Open Day", type: "campaign", serviceIds: ["svc-1"] },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+  });
+
+  it("owner bypasses the Avatar gate even when no Avatars are open", async () => {
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+
+    // Owner doesn't even need an avatar to exist
+    prismaMock.centreAvatar.findMany.mockResolvedValue([]);
+    prismaMock.marketingCampaign.create.mockResolvedValue({
+      id: "camp-2",
+      name: "Emergency Push",
+      type: "campaign",
+      status: "draft",
+    });
+    prismaMock.marketingCampaignService.createMany.mockResolvedValue({ count: 1 });
+    prismaMock.marketingCampaign.findUnique.mockResolvedValue({
+      id: "camp-2",
+      name: "Emergency Push",
+      type: "campaign",
+      _count: { posts: 0, comments: 0 },
+      services: [],
+    });
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("POST", "/api/marketing/campaigns", {
+      body: { name: "Emergency Push", type: "campaign", serviceIds: ["svc-1"] },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    // Avatar findMany should NOT have been called (owner short-circuits)
+    expect(prismaMock.centreAvatar.findMany).not.toHaveBeenCalled();
   });
 
   it("returns 201 with valid campaign data", async () => {

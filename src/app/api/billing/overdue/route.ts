@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const postSchema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
   parentName: z.string().min(1, "parentName is required"),
@@ -117,7 +118,7 @@ const scope = getServiceScope(session);
  */
 export const POST = withApiAuth(async (req, session) => {
 try {
-    const raw = await req.json();
+    const raw = await parseJsonBody(req);
     const parsed = postSchema.safeParse(raw);
     if (!parsed.success) {
       return NextResponse.json(

@@ -247,6 +247,11 @@ export function usePulses(weekOf?: string, userId?: string) {
       );
     },
     retry: 2,
+    // Keep pulse data stable — prevents background refetches from returning
+    // a new object reference mid-typing, which would otherwise fire the load
+    // effect in WeeklyPulseTab and reset the user's in-progress input.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -346,6 +351,45 @@ export function usePulseSummary(weekOf: string) {
       );
     },
     enabled: !!weekOf,
+    retry: 2,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WEEKLY PULSE — ADMIN VIEW (anonymous)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface PulseServiceRow {
+  serviceId: string;
+  serviceName: string;
+  serviceCode: string;
+  totalUsers: number;
+  submitted: number;
+  positive: number;
+  neutral: number;
+  concerning: number;
+  blockerCount: number;
+}
+
+export interface PulseAdminSummary {
+  weekOf: string;
+  org: {
+    totalUsers: number;
+    submitted: number;
+    positive: number;
+    neutral: number;
+    concerning: number;
+    blockerCount: number;
+  };
+  byService: PulseServiceRow[];
+}
+
+export function usePulseAdminSummary(weekOf: string, enabled: boolean) {
+  return useQuery<PulseAdminSummary>({
+    queryKey: ["pulse-admin-summary", weekOf],
+    queryFn: () =>
+      fetchApi<PulseAdminSummary>(`/api/communication/pulse/admin-summary?weekOf=${weekOf}`),
+    enabled: enabled && !!weekOf,
     retry: 2,
   });
 }

@@ -75,13 +75,17 @@ const statusConfig = {
   },
 };
 
+export interface IssueCardOpenOpts {
+  focus?: "spawnedTodos";
+}
+
 export function IssueCard({
   issue,
   onClick,
   isDragging,
 }: {
   issue: IssueData;
-  onClick: () => void;
+  onClick: (opts?: IssueCardOpenOpts) => void;
   isDragging?: boolean;
 }) {
   const p = priorityConfig[issue.priority];
@@ -96,7 +100,7 @@ export function IssueCard({
 
   return (
     <div
-      onClick={onClick}
+      onClick={() => onClick()}
       className={cn(
         "w-full text-left p-4 rounded-xl border transition-all hover:shadow-md cursor-pointer group/card",
         issue.status === "closed" ? "opacity-60" : "",
@@ -158,12 +162,20 @@ export function IssueCard({
               </span>
             )}
 
-            {/* Spawned Todos count */}
+            {/* Spawned Todos count — clickable, opens detail focused on the list */}
             {issue._count.spawnedTodos > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs text-muted">
+              <button
+                type="button"
+                aria-label={`${issue._count.spawnedTodos} spawned todos`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick({ focus: "spawnedTodos" });
+                }}
+                className="inline-flex items-center gap-1 text-xs text-muted rounded-full px-1.5 py-0.5 hover:bg-surface hover:text-foreground focus:outline-none focus:ring-2 focus:ring-brand transition-colors cursor-pointer"
+              >
                 <CheckSquare className="w-3 h-3" />
                 {issue._count.spawnedTodos}
-              </span>
+              </button>
             )}
 
             {/* Days open badge */}

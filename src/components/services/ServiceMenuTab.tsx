@@ -306,6 +306,15 @@ export function ServiceMenuTab({ serviceId }: { serviceId: string }) {
             )}
             Upload Menu
           </button>
+          <a
+            href={`/services/${serviceId}/menu/print?weekStart=${weekKey}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-card border border-border rounded-lg hover:bg-surface/50 transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            Print
+          </a>
           <AiButton
             templateSlug="services/menu-planner"
             variables={{

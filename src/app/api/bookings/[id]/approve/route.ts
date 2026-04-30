@@ -3,6 +3,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendBookingConfirmedNotification } from "@/lib/notifications/bookings";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/bookings/[id]/approve
@@ -39,7 +40,7 @@ export const POST = withApiAuth(
     });
 
     // Fire and forget
-    sendBookingConfirmedNotification(bookingId).catch(() => {});
+    sendBookingConfirmedNotification(bookingId).catch((err) => logger.error("Failed to send booking-confirmed notification", { err, bookingId }));
 
     return NextResponse.json(updated);
   },

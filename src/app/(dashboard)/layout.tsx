@@ -19,6 +19,21 @@ import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { MobileTabBar } from "@/components/layout/MobileTabBar";
 import { cn } from "@/lib/utils";
 
+/**
+ * Layout-level v2 flag — env-var only.
+ *
+ * We deliberately do NOT call `useStaffV2Flag()` here because that hook reads
+ * `useSearchParams()`, which forces every child page on the dashboard out of
+ * static prerendering and breaks the build (Next.js requires a Suspense
+ * boundary around any layout that touches search params).
+ *
+ * Per-page `?v2=1` URL overrides still work — every individual page that
+ * cares about v2 visual treatment calls `useStaffV2Flag()` itself. The layout
+ * just sets the global token cascade based on the env-var default.
+ */
+const STAFF_V2_DEFAULT =
+  process.env.NEXT_PUBLIC_STAFF_DASHBOARD_V2 === "true";
+
 export default function DashboardLayout({
   children,
 }: {
@@ -40,7 +55,10 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const { collapsed } = useSidebar();
 
   return (
-    <div className="min-h-screen">
+    <div
+      {...(STAFF_V2_DEFAULT ? { "data-v2": "staff" } : {})}
+      className="min-h-screen"
+    >
       <NavigationProgress />
       {/* Skip to main content — visible only on keyboard focus */}
       <a

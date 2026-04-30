@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { logger } from "@/lib/logger";
 // POST /api/timesheets/[id]/approve — approve a submitted timesheet
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
@@ -39,6 +41,29 @@ const { id } = await context!.params!;
       details: { weekEnding: timesheet.weekEnding },
     },
   });
+
+  // Notify the submitting user. Observational — log failures but keep the response
+  // successful. Timesheets have no `userId`; the submitter is tracked via
+  // `submittedById`, so we notify that user.
+  try {
+    if (timesheet.submittedById) {
+      const weekEndingStr = new Date(timesheet.weekEnding).toISOString().slice(0, 10);
+      await prisma.userNotification.create({
+        data: {
+          userId: timesheet.submittedById,
+          type: NOTIFICATION_TYPES.TIMESHEET_APPROVED,
+          title: "Timesheet approved",
+          body: `Your timesheet for week ending ${weekEndingStr} was approved`,
+          link: `/timesheets?id=${id}`,
+        },
+      });
+    }
+  } catch (err) {
+    logger.error("Failed to create timesheet-approved notification", {
+      err,
+      timesheetId: id,
+    });
+  }
 
   return NextResponse.json(updated);
 }, { roles: ["owner", "head_office", "admin"] });

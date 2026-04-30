@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendNotificationEmail } from "@/lib/notifications/sendEmail";
+import { sendPushToParentEmail } from "@/lib/push/webPush";
 import { logger } from "@/lib/logger";
 
 const BRAND_COLOR = "#004E64";
@@ -99,6 +100,14 @@ export async function sendSignInNotification(
       relatedId: childId,
       relatedType: "Child",
     });
+
+    sendPushToParentEmail(parent.email, {
+      title: `${child.firstName} is in care`,
+      body: `Signed in at ${service.name} · ${time}`,
+      url: `/parent/children/${childId}`,
+    }).catch((err) =>
+      logger.error("Failed to send sign-in push", { childId, err }),
+    );
   } catch (err) {
     logger.error("Failed to send sign-in notification", { childId, err });
   }
@@ -145,6 +154,14 @@ export async function sendSignOutNotification(
       relatedId: childId,
       relatedType: "Child",
     });
+
+    sendPushToParentEmail(parent.email, {
+      title: `${child.firstName} has been signed out`,
+      body: `${service.name} · ${time}`,
+      url: `/parent/children/${childId}`,
+    }).catch((err) =>
+      logger.error("Failed to send sign-out push", { childId, err }),
+    );
   } catch (err) {
     logger.error("Failed to send sign-out notification", { childId, err });
   }

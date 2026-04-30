@@ -4,6 +4,8 @@ import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
+import { logger } from "@/lib/logger";
+import { attachmentUrlsField } from "@/lib/schemas/message-attachments";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -90,11 +92,17 @@ export const GET = withParentAuth(async (_req, { parent }) => {
 // POST — Create a new conversation with first message
 // ---------------------------------------------------------------------------
 
-const createConversationSchema = z.object({
-  subject: z.string().min(1, "Subject is required").max(200),
-  message: z.string().min(1, "Message is required").max(5000),
-  serviceId: z.string().optional(),
-});
+const createConversationSchema = z
+  .object({
+    subject: z.string().min(1, "Subject is required").max(200),
+    message: z.string().max(5000).default(""),
+    serviceId: z.string().optional(),
+    attachmentUrls: attachmentUrlsField,
+  })
+  .refine((d) => d.message.trim().length > 0 || d.attachmentUrls.length > 0, {
+    message: "Message or attachments are required",
+    path: ["message"],
+  });
 
 export const POST = withParentAuth(async (req, { parent }) => {
   const body = await parseJsonBody(req);
@@ -106,7 +114,7 @@ export const POST = withParentAuth(async (req, { parent }) => {
     );
   }
 
-  const { subject, message, serviceId } = parsed.data;
+  const { subject, message, serviceId, attachmentUrls } = parsed.data;
 
   // Resolve parent's CentreContact(s)
   const enrolments = await prisma.enrolmentSubmission.findMany({
@@ -153,6 +161,7 @@ export const POST = withParentAuth(async (req, { parent }) => {
       messages: {
         create: {
           body: message,
+          attachmentUrls,
           senderType: "parent",
           senderId: contact.id,
           senderName,
@@ -170,7 +179,7 @@ export const POST = withParentAuth(async (req, { parent }) => {
   // Fire and forget notification to coordinator
   const firstMessage = conversation.messages[0];
   if (firstMessage) {
-    sendNewMessageNotification(firstMessage.id).catch(() => {});
+    sendNewMessageNotification(firstMessage.id).catch((err) => logger.error("Failed to send new message notification", { err, messageId: firstMessage.id }));
   }
 
   return NextResponse.json(conversation, { status: 201 });

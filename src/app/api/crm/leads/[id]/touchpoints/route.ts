@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { hasFeature } from "@/lib/role-permissions";
-import type { Role, TouchpointType } from "@prisma/client";
+import { hasFeature, parseRole } from "@/lib/role-permissions";
+import type { TouchpointType } from "@prisma/client";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const TOUCHPOINT_TYPES: TouchpointType[] = [
   "email_sent", "call", "meeting", "note", "stage_change", "auto_email",
 ];
@@ -17,7 +18,8 @@ const createTouchpointSchema = z.object({
 
 // GET /api/crm/leads/[id]/touchpoints
 export const GET = withApiAuth(async (req, session, context) => {
-if (!hasFeature(session!.user.role as Role, "crm.view")) {
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "crm.view")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -36,12 +38,13 @@ if (!hasFeature(session!.user.role as Role, "crm.view")) {
 
 // POST /api/crm/leads/[id]/touchpoints
 export const POST = withApiAuth(async (req, session, context) => {
-if (!hasFeature(session!.user.role as Role, "crm.create")) {
+  const role = parseRole(session!.user.role);
+  if (!role || !hasFeature(role, "crm.create")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createTouchpointSchema.safeParse(body);
 
   if (!parsed.success) {

@@ -139,6 +139,7 @@ enum ParentPostType {
   observation
   announcement
   reminder
+  newsletter
 }
 
 enum ActivityCategory {
@@ -282,6 +283,77 @@ enum MarketingTaskPriority {
   high
   medium
   low
+}
+
+// ============================================================
+// Marketing Cockpit (Sprint 2) — Enums
+// ============================================================
+
+enum MarketingPostFormat {
+  feed
+  carousel
+  story
+  reel
+}
+
+enum VendorBriefType {
+  signage
+  uniform
+  print_collateral
+  merchandise
+  event_supplies
+  other
+}
+
+enum VendorBriefStatus {
+  draft
+  brief_sent
+  awaiting_ack
+  awaiting_quote
+  quote_received
+  approved
+  ordered
+  delivered
+  installed
+  cancelled
+}
+
+/// Term-readiness checklist category for VendorBrief. Sprint 4 covers print
+/// + physical items prepped 6+ weeks before a term starts. Other channels
+/// (newsletter, social, activations) get their own term-readiness layer in
+/// a future sprint via TermCalendarEntry.
+enum TermReadinessCategory {
+  flyers
+  banners
+  signage
+  holiday_programme_materials
+  enrolment_posters
+  other_print
+}
+
+enum WeeklyReportStatus {
+  draft
+  reviewed
+  sent
+}
+
+enum ContentTeamRole {
+  content_creator
+  video_editor
+  designer
+  copywriter
+  community_manager
+  photographer
+}
+
+enum ContentTeamStatus {
+  prospect
+  interview
+  hired
+  onboarding
+  active
+  paused
+  departed
 }
 
 // ============================================================
@@ -479,6 +551,16 @@ model User {
   seatAssignments               AccountabilitySeatAssignment[]
   todoTemplatesAssigned         TodoTemplate[]                 @relation("TemplateAssignee")
   todoTemplatesCreated          TodoTemplate[]                 @relation("TemplateCreator")
+  createdServiceEvents          ServiceEvent[]                 @relation("ServiceEventCreator")
+
+  // ── NQS back-refs ─────────────────────────────────
+  staffReflections          StaffReflection[]          @relation("StaffReflections")
+  learningObservations      LearningObservation[]      @relation("LearningObservations")
+  medicationAdministrations MedicationAdministration[] @relation("MedicationAdministered")
+  medicationWitnesses       MedicationAdministration[] @relation("MedicationWitnessed")
+  staffRiskAssessments      RiskAssessment[]           @relation("RiskAssessments")
+  riskAssessmentApprovals   RiskAssessment[]           @relation("RiskAssessmentApprovals")
+  shiftHandovers            ShiftHandover[]            @relation("ShiftHandovers")
 
   // ── Staff Profile Expansion ──────────────────────────────────
   phone             String?
@@ -573,8 +655,9 @@ model User {
   checkedItems        DailyChecklistItem[] @relation("ChecklistItemCheckedBy")
 
   // ── AI Usage ───────────────────────────────────────
-  aiUsageLogs    AiUsage[]     @relation("AiUsageLogs")
-  reviewedDrafts AiTaskDraft[] @relation("DraftReviewer")
+  aiUsageLogs    AiUsage[]           @relation("AiUsageLogs")
+  reviewedDrafts AiTaskDraft[]       @relation("DraftReviewer")
+  aiGenerations  AiGenerationCache[] @relation("AiGenerationCacheUser")
 
   // ── Email Templates ──────────────────────────────
   emailTemplates EmailTemplate[] @relation("EmailTemplateCreator")
@@ -584,7 +667,8 @@ model User {
   snippetAcks  SnippetAck[]  @relation("UserSnippetAcks")
 
   // ── Parent Portal Posts ──────────────────────────
-  parentPostsAuthored ParentPost[] @relation("PostAuthor")
+  parentPostsAuthored     ParentPost[]        @relation("PostAuthor")
+  parentPostStaffComments ParentPostComment[] @relation("ParentPostStaffComments")
 
   // ── Child Documents ───────────────────────────────
   uploadedChildDocuments ChildDocument[] @relation("UploadedChildDocuments")
@@ -601,7 +685,47 @@ model User {
   // ── Sibling Enrolment Reviews ───────────────────
   reviewedEnrolmentApplications EnrolmentApplication[] @relation("EnrolmentReviewedBy")
 
+  // ── In-App Notifications ──────────────────────────
+  notifications UserNotification[] @relation("UserNotifications")
+
+  // ── Staff Rostering ──────────────────────────────
+  rosterShifts        RosterShift[]      @relation("UserRosterShifts")
+  createdRosterShifts RosterShift[]      @relation("CreatedRosterShifts")
+  proposedShiftSwaps  ShiftSwapRequest[] @relation("ProposedShiftSwaps")
+  targetShiftSwaps    ShiftSwapRequest[] @relation("TargetShiftSwaps")
+  approvedShiftSwaps  ShiftSwapRequest[] @relation("ApprovedShiftSwaps")
+
+  // ── Marketing Cockpit (Sprint 2) ─────────────────
+  contentTeamRole        ContentTeamRole?
+  contentTeamStatus      ContentTeamStatus?
+  contentTeamStartedAt   DateTime?
+  contentTeamPausedAt    DateTime?
+  contentTeamPauseReason String?
+
+  centreAvatarsUpdated           CentreAvatar[]            @relation("CentreAvatarUpdater")
+  centreAvatarsReviewed          CentreAvatar[]            @relation("CentreAvatarReviewer")
+  centreAvatarsOpened            CentreAvatar[]            @relation("CentreAvatarOpener")
+  vendorBriefsEscalated          VendorBrief[]             @relation("VendorBriefEscalatedTo")
+  vendorBriefsOwned              VendorBrief[]             @relation("VendorBriefOwner")
+  vendorContact                  VendorContact?            @relation("VendorContactUser")
+  whatsappPostsAsCoordinator     WhatsAppCoordinatorPost[] @relation("WhatsAppCoordinator")
+  whatsappPostsRecorded          WhatsAppCoordinatorPost[] @relation("WhatsAppRecorder")
+  whatsappNetworkPostsRecorded   WhatsAppNetworkPost[]     @relation("WhatsAppNetworkPostRecordedBy")
+  qrCodesCreated                 QrCode[]                  @relation("QrCodeCreatedBy")
+  weeklyMarketingReportsDrafted  WeeklyMarketingReport[]   @relation("WeeklyReportDrafter")
+  weeklyMarketingReportsReviewed WeeklyMarketingReport[]   @relation("WeeklyReportReviewer")
+  weeklyMarketingReportsSent     WeeklyMarketingReport[]   @relation("WeeklyReportSender")
+
+  // ── Centre Avatars (Sprint 3) ─────────────────────
+  centreAvatarInsightsCreated          CentreAvatarInsight[]            @relation("CentreAvatarInsightCreatedBy")
+  centreAvatarCampaignLogsCreated      CentreAvatarCampaignLog[]        @relation("CentreAvatarCampaignLogCreatedBy")
+  centreAvatarCheckInsAsCoordinator    CentreAvatarCoordinatorCheckIn[] @relation("CentreAvatarCheckInCoordinator")
+  centreAvatarCheckInsCreated          CentreAvatarCoordinatorCheckIn[] @relation("CentreAvatarCheckInCreatedBy")
+  centreAvatarSchoolLiaisonLogsCreated CentreAvatarSchoolLiaisonLog[]   @relation("CentreAvatarSchoolLiaisonCreatedBy")
+  centreAvatarUpdateLogs               CentreAvatarUpdateLog[]          @relation("CentreAvatarUpdateLogUpdatedBy")
+
   @@index([serviceId])
+  @@index([contentTeamRole, contentTeamStatus])
 }
 
 model PasswordResetToken {
@@ -732,8 +856,9 @@ model Todo {
   completedAt DateTime?
   updatedAt   DateTime   @updatedAt
 
-  assignees TodoAssignee[] @relation("TodoAssignees")
-  aiDrafts  AiTaskDraft[]  @relation("TodoAiDraft")
+  assignees  TodoAssignee[] @relation("TodoAssignees")
+  aiDrafts   AiTaskDraft[]  @relation("TodoAiDraft")
+  sourceCall VapiCall?      @relation("TodoFromCall")
 
   @@index([assigneeId])
   @@index([rockId])
@@ -976,54 +1101,59 @@ model MarketingCampaign {
   tasks                 MarketingTask[]
   activationAssignments CampaignActivationAssignment[]
   termCalendarEntries   TermCalendarEntry[]            @relation("TermCalendarCampaign")
+  centreAvatarLogs      CentreAvatarCampaignLog[]      @relation("MarketingCampaignCentreAvatarLog")
 
   @@index([status])
   @@index([startDate])
 }
 
 model MarketingPost {
-  id                 String                 @id @default(cuid())
-  title              String
-  platform           MarketingPlatform
-  status             MarketingPostStatus    @default(draft)
-  scheduledDate      DateTime?
-  content            String?                @db.Text
-  notes              String?                @db.Text
-  designLink         String?
-  canvaDesignId      String? // Canva design ID (e.g., "DAGoPem3X54")
-  canvaDesignUrl     String? // Direct edit URL in Canva
-  canvaExportUrl     String? // Exported image URL for publishing
-  pillar             String?
-  assigneeId         String?
-  assignee           User?                  @relation("MarketingPostAssignee", fields: [assigneeId], references: [id])
-  campaignId         String?
-  campaign           MarketingCampaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  likes              Int                    @default(0)
-  comments           Int                    @default(0)
-  shares             Int                    @default(0)
-  reach              Int                    @default(0)
-  recurring          MarketingRecurrence    @default(none)
-  recurringParentId  String?
-  recurringParent    MarketingPost?         @relation("RecurringPosts", fields: [recurringParentId], references: [id])
-  recurringChildren  MarketingPost[]        @relation("RecurringPosts")
-  clonedFromId       String?
-  clonedFrom         MarketingPost?         @relation("PostClones", fields: [clonedFromId], references: [id])
-  clones             MarketingPost[]        @relation("PostClones")
-  services           MarketingPostService[]
-  externalPostId     String?
-  externalUrl        String?
-  engagementSyncedAt DateTime?
-  deliveryLogId      String?
-  approvedById       String?
-  approvedBy         User?                  @relation("MarketingPostApprover", fields: [approvedById], references: [id])
-  approvedAt         DateTime?
-  rejectionReason    String?                @db.Text
-  deleted            Boolean                @default(false)
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
+  id                   String                        @id @default(cuid())
+  title                String
+  platform             MarketingPlatform
+  status               MarketingPostStatus           @default(draft)
+  scheduledDate        DateTime?
+  content              String?                       @db.Text
+  notes                String?                       @db.Text
+  designLink           String?
+  canvaDesignId        String? // Canva design ID (e.g., "DAGoPem3X54")
+  canvaDesignUrl       String? // Direct edit URL in Canva
+  canvaExportUrl       String? // Exported image URL for publishing
+  format               MarketingPostFormat?
+  pillar               String?
+  assigneeId           String?
+  assignee             User?                         @relation("MarketingPostAssignee", fields: [assigneeId], references: [id])
+  campaignId           String?
+  campaign             MarketingCampaign?            @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  likes                Int                           @default(0)
+  comments             Int                           @default(0)
+  shares               Int                           @default(0)
+  reach                Int                           @default(0)
+  recurring            MarketingRecurrence           @default(none)
+  recurringParentId    String?
+  recurringParent      MarketingPost?                @relation("RecurringPosts", fields: [recurringParentId], references: [id])
+  recurringChildren    MarketingPost[]               @relation("RecurringPosts")
+  clonedFromId         String?
+  clonedFrom           MarketingPost?                @relation("PostClones", fields: [clonedFromId], references: [id])
+  clones               MarketingPost[]               @relation("PostClones")
+  services             MarketingPostService[]
+  externalPostId       String?
+  externalUrl          String?
+  engagementSyncedAt   DateTime?
+  deliveryLogId        String?
+  approvedById         String?
+  approvedBy           User?                         @relation("MarketingPostApprover", fields: [approvedById], references: [id])
+  approvedAt           DateTime?
+  rejectionReason      String?                       @db.Text
+  deleted              Boolean                       @default(false)
+  recapForActivationId String?
+  recapForActivation   CampaignActivationAssignment? @relation("MarketingPostRecapFor", fields: [recapForActivationId], references: [id], onDelete: SetNull)
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
 
-  tasks     MarketingTask[]
-  revisions MarketingPostRevision[]
+  tasks                MarketingTask[]
+  revisions            MarketingPostRevision[]
+  whatsappNetworkPosts WhatsAppNetworkPost[]   @relation("MarketingPostWhatsAppNetwork")
 
   @@index([platform])
   @@index([status])
@@ -1031,6 +1161,7 @@ model MarketingPost {
   @@index([campaignId])
   @@index([scheduledDate])
   @@index([externalPostId])
+  @@index([recapForActivationId])
 }
 
 model MarketingPostRevision {
@@ -1117,6 +1248,365 @@ model MarketingHashtagSet {
   @@index([category])
 }
 
+// ============================================================
+// Marketing Cockpit (Sprint 2) — Models
+// ============================================================
+
+model CentreAvatar {
+  id        String  @id @default(cuid())
+  serviceId String  @unique
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  version Int @default(1)
+
+  snapshot     Json?
+  parentAvatar Json?
+  programmeMix Json?
+  assetLibrary Json?
+
+  lastUpdatedAt   DateTime @default(now())
+  lastUpdatedById String?
+  lastUpdatedBy   User?    @relation("CentreAvatarUpdater", fields: [lastUpdatedById], references: [id], onDelete: SetNull)
+
+  lastReviewedAt   DateTime?
+  lastReviewedById String?
+  lastReviewedBy   User?     @relation("CentreAvatarReviewer", fields: [lastReviewedById], references: [id], onDelete: SetNull)
+
+  lastFullReviewAt DateTime?
+
+  lastOpenedAt   DateTime?
+  lastOpenedById String?
+  lastOpenedBy   User?     @relation("CentreAvatarOpener", fields: [lastOpenedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  insights            CentreAvatarInsight[]
+  campaignLog         CentreAvatarCampaignLog[]
+  coordinatorCheckIns CentreAvatarCoordinatorCheckIn[]
+  schoolLiaisonLog    CentreAvatarSchoolLiaisonLog[]
+  updateLog           CentreAvatarUpdateLog[]
+
+  @@index([lastUpdatedAt])
+}
+
+enum CentreAvatarInsightSource {
+  coordinator_checkin
+  parent_conversation
+  parent_feedback
+  complaint
+  compliment
+  social_comment_or_dm
+  whatsapp_message
+  enrolment_conversation
+  exit_conversation
+  other
+}
+
+enum CentreAvatarInsightStatus {
+  pending_review
+  approved
+  dismissed
+}
+
+enum CentreAvatarInsightHarvestSource {
+  nps_survey_response
+  quick_feedback
+  parent_feedback
+  manual
+}
+
+model CentreAvatarInsight {
+  id             String       @id @default(cuid())
+  centreAvatarId String
+  centreAvatar   CentreAvatar @relation(fields: [centreAvatarId], references: [id], onDelete: Cascade)
+
+  occurredAt     DateTime
+  source         CentreAvatarInsightSource
+  insight        String                    @db.Text
+  impactOnAvatar String?                   @db.Text
+
+  status         CentreAvatarInsightStatus         @default(approved)
+  harvestedFrom  CentreAvatarInsightHarvestSource?
+  sourceRecordId String?
+
+  createdById String?
+  createdBy   User?   @relation("CentreAvatarInsightCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([harvestedFrom, sourceRecordId], name: "harvest_dedup")
+  @@index([centreAvatarId, occurredAt])
+  @@index([status])
+}
+
+model CentreAvatarCampaignLog {
+  id             String       @id @default(cuid())
+  centreAvatarId String
+  centreAvatar   CentreAvatar @relation(fields: [centreAvatarId], references: [id], onDelete: Cascade)
+
+  occurredAt   DateTime
+  campaignName String
+  contentUsed  String?  @db.Text
+  result       String?  @db.Text
+  learnings    String?  @db.Text
+
+  marketingCampaignId String?
+  marketingCampaign   MarketingCampaign? @relation("MarketingCampaignCentreAvatarLog", fields: [marketingCampaignId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("CentreAvatarCampaignLogCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([centreAvatarId, occurredAt])
+  @@index([marketingCampaignId])
+}
+
+model CentreAvatarCoordinatorCheckIn {
+  id             String       @id @default(cuid())
+  centreAvatarId String
+  centreAvatar   CentreAvatar @relation(fields: [centreAvatarId], references: [id], onDelete: Cascade)
+
+  occurredAt      DateTime
+  topicsDiscussed String    @db.Text
+  actionItems     String?   @db.Text
+  followUpDate    DateTime?
+
+  coordinatorUserId String?
+  coordinator       User?   @relation("CentreAvatarCheckInCoordinator", fields: [coordinatorUserId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("CentreAvatarCheckInCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([centreAvatarId, occurredAt])
+  @@index([followUpDate])
+}
+
+model CentreAvatarSchoolLiaisonLog {
+  id             String       @id @default(cuid())
+  centreAvatarId String
+  centreAvatar   CentreAvatar @relation(fields: [centreAvatarId], references: [id], onDelete: Cascade)
+
+  occurredAt  DateTime
+  contactName String
+  purpose     String   @db.Text
+  outcome     String?  @db.Text
+  nextStep    String?  @db.Text
+
+  schoolCommId String?
+  schoolComm   SchoolComm? @relation("SchoolCommCentreAvatarLiaison", fields: [schoolCommId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("CentreAvatarSchoolLiaisonCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([centreAvatarId, occurredAt])
+}
+
+model CentreAvatarUpdateLog {
+  id             String       @id @default(cuid())
+  centreAvatarId String
+  centreAvatar   CentreAvatar @relation(fields: [centreAvatarId], references: [id], onDelete: Cascade)
+
+  occurredAt      DateTime @default(now())
+  sectionsChanged String[]
+  summary         String   @db.Text
+
+  updatedById String
+  updatedBy   User   @relation("CentreAvatarUpdateLogUpdatedBy", fields: [updatedById], references: [id], onDelete: Cascade)
+
+  @@index([centreAvatarId, occurredAt])
+}
+
+model VendorBrief {
+  id          String            @id @default(cuid())
+  /// Human-readable brief number — e.g. "VB-2026-0042". Auto-generated on
+  /// create via generateBriefNumber(); unique across all briefs. Used in the
+  /// UI as the primary identifier and shown to vendors.
+  briefNumber String            @unique
+  title       String
+  type        VendorBriefType
+  status      VendorBriefStatus @default(draft)
+  serviceId   String?
+  service     Service?          @relation("ServiceVendorBriefs", fields: [serviceId], references: [id], onDelete: SetNull)
+  ownerId     String?
+  owner       User?             @relation("VendorBriefOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  /// Legacy free-text vendor name (Sprint 2). Sprint 4 prefers the FK
+  /// vendorContactId below. Kept nullable for back-compat with stub rows.
+  vendorName      String?
+  vendorContactId String?
+  vendorContact   VendorContact? @relation("VendorBriefContact", fields: [vendorContactId], references: [id], onDelete: SetNull)
+
+  /// Free-form notes (Sprint 2). Sprint 4 adds a dedicated structured body
+  /// + specifications + delivery address.
+  notes           String? @db.Text
+  briefBody       String? @db.Text
+  specifications  String? @db.Text
+  quantity        Int?
+  deliveryAddress String? @db.Text
+
+  /// Term-readiness fields. Null for one-off / ad-hoc briefs.
+  termReadinessCategory TermReadinessCategory?
+  termYear              Int?
+  termNumber            Int?
+
+  targetTermStart  DateTime?
+  deliveryDeadline DateTime?
+  briefSentAt      DateTime?
+  acknowledgedAt   DateTime?
+  quoteReceivedAt  DateTime?
+  quoteApprovedAt  DateTime?
+  approvedAt       DateTime?
+  orderedAt        DateTime?
+  deliveredAt      DateTime?
+  installedAt      DateTime?
+
+  escalatedAt       DateTime?
+  escalatedToUserId String?
+  escalatedTo       User?     @relation("VendorBriefEscalatedTo", fields: [escalatedToUserId], references: [id], onDelete: SetNull)
+  escalationReason  String?   @db.Text
+
+  cancellationReason String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([serviceId])
+  @@index([targetTermStart])
+  @@index([briefSentAt])
+  @@index([escalatedAt])
+  @@index([termYear, termNumber, termReadinessCategory])
+  @@index([vendorContactId])
+}
+
+/// Vendor contacts — Jinan (internal Operations Manager) plus future
+/// external print/signage/merch suppliers. Briefs FK to this table so the
+/// dashboard can default the right contact for each brief type.
+model VendorContact {
+  id      String  @id @default(cuid())
+  name    String
+  email   String?
+  phone   String?
+  /// "Amana OSHC" for internal contacts (Jinan). External vendor company
+  /// name (e.g. "Quickprint") for third parties. Null = unknown / personal.
+  company String?
+  role    String?
+
+  /// Hint to the UI: for these brief types, this contact is the default.
+  defaultForTypes VendorBriefType[] @default([])
+
+  active Boolean @default(true)
+
+  notes String? @db.Text
+
+  /// Optional FK to a User account (Jinan has one as Operations Manager;
+  /// external vendors don't).
+  userId String? @unique
+  user   User?   @relation("VendorContactUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  briefs VendorBrief[] @relation("VendorBriefContact")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+}
+
+model WhatsAppCoordinatorPost {
+  id               String                 @id @default(cuid())
+  serviceId        String
+  service          Service                @relation("ServiceWhatsAppPosts", fields: [serviceId], references: [id], onDelete: Cascade)
+  postedDate       DateTime               @db.Date
+  posted           Boolean                @default(false)
+  notPostingReason WhatsAppNonPostReason?
+  coordinatorId    String?
+  coordinator      User?                  @relation("WhatsAppCoordinator", fields: [coordinatorId], references: [id], onDelete: SetNull)
+  recordedById     String?
+  recordedBy       User?                  @relation("WhatsAppRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+  notes            String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  @@unique([serviceId, postedDate])
+  @@index([postedDate])
+}
+
+enum WhatsAppNonPostReason {
+  coordinator_on_leave
+  coordinator_sick
+  school_closure
+  public_holiday
+  technical_issue
+  forgot_or_missed
+  unknown
+  other
+}
+
+enum WhatsAppNetworkGroup {
+  engagement
+  announcements
+}
+
+model WhatsAppNetworkPost {
+  id         String               @id @default(cuid())
+  group      WhatsAppNetworkGroup
+  postedAt   DateTime
+  recordedAt DateTime             @default(now())
+
+  recordedById String
+  recordedBy   User   @relation("WhatsAppNetworkPostRecordedBy", fields: [recordedById], references: [id])
+
+  topic String?
+  notes String?
+
+  marketingPostId String?
+  marketingPost   MarketingPost? @relation("MarketingPostWhatsAppNetwork", fields: [marketingPostId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([group, postedAt])
+  @@index([recordedById, postedAt])
+}
+
+model WeeklyMarketingReport {
+  id           String             @id @default(cuid())
+  weekStart    DateTime           @unique @db.Date
+  weekEnd      DateTime           @db.Date
+  status       WeeklyReportStatus @default(draft)
+  kpiSnapshot  Json
+  draftBody    String?            @db.Text
+  wins         String?            @db.Text
+  blockers     String?            @db.Text
+  nextWeekTop3 String?            @db.Text
+
+  draftedAt    DateTime?
+  draftedById  String?
+  draftedBy    User?     @relation("WeeklyReportDrafter", fields: [draftedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  reviewedById String?
+  reviewedBy   User?     @relation("WeeklyReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  sentAt       DateTime?
+  sentById     String?
+  sentBy       User?     @relation("WeeklyReportSender", fields: [sentById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([weekStart])
+}
+
 model SchoolComm {
   id           String    @id @default(cuid())
   serviceId    String
@@ -1131,12 +1621,17 @@ model SchoolComm {
   sentById     String?
   sentBy       User?     @relation("SchoolCommSender", fields: [sentById], references: [id], onDelete: SetNull)
   termWeek     Int? // Which term week this relates to (1-10)
+  year         Int? // School year (e.g., 2026)
+  term         Int? // Term number (1-4)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  centreAvatarLiaisonLogs CentreAvatarSchoolLiaisonLog[] @relation("SchoolCommCentreAvatarLiaison")
 
   @@index([serviceId])
   @@index([status])
   @@index([type])
+  @@index([year, term])
 }
 
 model PhotoComplianceLog {
@@ -1314,13 +1809,126 @@ model CampaignActivationAssignment {
   coordinator   User?             @relation("ActivationCoordinator", fields: [coordinatorId], references: [id])
   budget        Float?
   notes         String?           @db.Text
-  status        String            @default("pending")
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+
+  /// Lifecycle stage. Sprint 7 replaces the loose Sprint-2 `status` string.
+  lifecycleStage ActivationLifecycleStage @default(concept)
+
+  /// What kind of activation. Drives recap template + expected attendance ranges.
+  activationType ActivationType?
+
+  /// Lifecycle timestamps. Each represents the moment the stage was entered.
+  conceptApprovedAt     DateTime?
+  logisticsStartedAt    DateTime?
+  finalPushStartedAt    DateTime?
+  activationDeliveredAt DateTime?
+  recapPublishedAt      DateTime?
+
+  /// When the activation is/was scheduled to happen (vs. activationDeliveredAt = when it actually did).
+  scheduledFor DateTime?
+
+  expectedAttendance Int?
+  actualAttendance   Int?
+  enquiriesGenerated Int?
+
+  /// Term metadata — denormalised for fast term-grid queries.
+  /// Derived from scheduledFor (or campaign.startDate fallback) at write time.
+  termYear   Int?
+  termNumber Int?
+
+  cancelledAt        DateTime?
+  cancellationReason String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recapPosts       MarketingPost[] @relation("MarketingPostRecapFor")
+  /// QR codes Akram has created and (optionally) linked to this activation.
+  /// One activation can have multiple QRs (e.g. one per flyer batch).
+  qrCodes          QrCode[]        @relation("QrCodeForActivation")
+  sourcedEnquiries ParentEnquiry[] @relation("EnquiryFromActivation")
 
   @@unique([campaignId, serviceId])
   @@index([campaignId])
   @@index([serviceId])
+  @@index([activationDeliveredAt])
+  @@index([lifecycleStage])
+  @@index([termYear, termNumber])
+  @@index([scheduledFor])
+}
+
+/// Standalone trackable QR code. Created from /marketing/qr-codes or from
+/// the activation panel; can be linked to an activation/service for context
+/// but doesn't have to be.
+model QrCode {
+  id             String  @id @default(cuid())
+  /// 7-char URL slug. Public scan URL = `${NEXTAUTH_URL}/a/${shortCode}`.
+  shortCode      String  @unique
+  /// Akram's label for this QR — e.g. "Minarah College Term 2 flyer batch A".
+  name           String
+  description    String? @db.Text
+  /// Where the scan redirects to. Required.
+  destinationUrl String
+  /// Soft-archive flag; archived codes still resolve scans (so old flyers
+  /// don't suddenly 404) but are hidden from the default management view.
+  active         Boolean @default(true)
+
+  /// Optional context tags.
+  activationId String?
+  activation   CampaignActivationAssignment? @relation("QrCodeForActivation", fields: [activationId], references: [id], onDelete: SetNull)
+  serviceId    String?
+  service      Service?                      @relation("QrCodeForService", fields: [serviceId], references: [id], onDelete: SetNull)
+
+  createdById String?
+  createdBy   User?   @relation("QrCodeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  scans QrScan[]
+
+  @@index([active])
+  @@index([activationId])
+  @@index([serviceId])
+  @@index([createdById])
+}
+
+model QrScan {
+  id        String   @id @default(cuid())
+  qrCodeId  String
+  qrCode    QrCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  scannedAt DateTime @default(now())
+
+  /// SHA-256 of (ip|secret) — never stores raw IPs. Used to count uniques.
+  ipHash    String?
+  userAgent String?
+  referrer  String?
+  /// Vercel-provided geolocation (best-effort). All optional.
+  country   String?
+  region    String?
+  city      String?
+
+  @@index([qrCodeId, scannedAt])
+}
+
+enum ActivationType {
+  free_breakfast
+  parent_info_session
+  expert_talk
+  programme_taster
+  holiday_quest_preview
+  open_day
+  community_event
+  other
+}
+
+enum ActivationLifecycleStage {
+  concept
+  approved
+  logistics
+  final_push
+  delivered
+  recap_published
+  cancelled
 }
 
 // ============================================================
@@ -1328,37 +1936,44 @@ model CampaignActivationAssignment {
 // ============================================================
 
 model Service {
-  id                    String        @id @default(cuid())
-  name                  String
-  code                  String        @unique
-  address               String?
-  suburb                String?
-  state                 String?
-  postcode              String?
-  phone                 String?
-  email                 String?
-  status                ServiceStatus @default(active)
-  managerId             String?
-  manager               User?         @relation("ServiceManager", fields: [managerId], references: [id])
-  capacity              Int?
-  capacityBsc           Int?
-  capacityAsc           Int?
-  capacityVc            Int?
-  operatingDays         String?
-  notes                 String?       @db.Text
-  bscDailyRate          Float?
-  ascDailyRate          Float?
-  vcDailyRate           Float?
-  bscCasualRate         Float         @default(0)
-  ascCasualRate         Float         @default(0)
-  bscGroceryRate        Float         @default(0.80)
-  ascGroceryRate        Float         @default(1.20)
-  vcGroceryRate         Float         @default(4.50)
-  monthlyPurchaseBudget Float? // If set, overrides org-wide tier for centre purchase budget
-  xeroTrackingOptionId  String?
-  ownaServiceId         String? // OWNA's internal service ID
-  ownaLocationId        String? // OWNA's location reference
-  ownaSyncedAt          DateTime? // Last successful OWNA sync
+  id                     String        @id @default(cuid())
+  name                   String
+  code                   String        @unique
+  address                String?
+  suburb                 String?
+  state                  String?
+  postcode               String?
+  phone                  String?
+  email                  String?
+  status                 ServiceStatus @default(active)
+  managerId              String?
+  manager                User?         @relation("ServiceManager", fields: [managerId], references: [id])
+  capacity               Int?
+  capacityBsc            Int?
+  capacityAsc            Int?
+  capacityVc             Int?
+  operatingDays          String?
+  // ── ACECQA approval numbers ──
+  serviceApprovalNumber  String?
+  providerApprovalNumber String?
+  // ── Per-session-type start/end times (Zod: sessionTimesSchema) ──
+  sessionTimes           Json?
+  // ── Per-session casual booking config (Zod: casualBookingSettingsSchema) ──
+  casualBookingSettings  Json?
+  notes                  String?       @db.Text
+  bscDailyRate           Float?
+  ascDailyRate           Float?
+  vcDailyRate            Float?
+  bscCasualRate          Float         @default(0)
+  ascCasualRate          Float         @default(0)
+  bscGroceryRate         Float         @default(0.80)
+  ascGroceryRate         Float         @default(1.20)
+  vcGroceryRate          Float         @default(4.50)
+  monthlyPurchaseBudget  Float? // If set, overrides org-wide tier for centre purchase budget
+  xeroTrackingOptionId   String?
+  ownaServiceId          String? // OWNA's internal service ID
+  ownaLocationId         String? // OWNA's location reference
+  ownaSyncedAt           DateTime? // Last successful OWNA sync
 
   // ── Marketing / Growth Fields (Sprint 0) ───────────────────
   schoolPopulation       Int? // Total students at the partner school
@@ -1381,6 +1996,12 @@ model Service {
   schoolBusinessManagerEmail String?
   lastPrincipalVisit         DateTime?
   buildAlphaKidsActive       Boolean   @default(false)
+
+  /// NQS minimum ratios per session type.
+  /// Shape: { bsc: { ratio: "1:15" }, asc: { ratio: "1:15" }, vc: { ratio: "1:15" } }
+  /// Null means the federal-default `{ bsc: "1:15", asc: "1:15", vc: "1:15" }` applies
+  /// (resolved by the ratio API route — `@default` isn't supported for Json).
+  ratioSettings Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1407,6 +2028,7 @@ model Service {
   programActivities     ProgramActivity[]              @relation("ServicePrograms")
   menuWeeks             MenuWeek[]                     @relation("ServiceMenus")
   todoTemplates         TodoTemplate[]                 @relation("ServiceTemplates")
+  qrCodes               QrCode[]                       @relation("QrCodeForService")
   marketingPosts        MarketingPostService[]         @relation("ServiceMarketingPosts")
   marketingCampaigns    MarketingCampaignService[]     @relation("ServiceMarketingCampaigns")
   marketingTasks        MarketingTask[]                @relation("ServiceMarketingTasks")
@@ -1499,8 +2121,204 @@ model Service {
   // ── Sibling Enrolment Applications ────────────────
   enrolmentApplications EnrolmentApplication[] @relation("ServiceEnrolmentApplications")
 
+  // ── Service Events (excursions, incursions, etc.) ─
+  events ServiceEvent[] @relation("ServiceEvents")
+
+  // ── NQS Models ───────────────────────────────────
+  reflections     StaffReflection[]          @relation("ServiceReflections")
+  observations    LearningObservation[]      @relation("ServiceObservations")
+  medications     MedicationAdministration[] @relation("ServiceMedications")
+  riskAssessments RiskAssessment[]           @relation("ServiceRiskAssessments")
+  ratioSnapshots  RatioSnapshot[]            @relation("ServiceRatios")
+  handovers       ShiftHandover[]            @relation("ServiceHandovers")
+
+  // ── Marketing Cockpit (Sprint 2) ──────────────
+  centreAvatar             CentreAvatar?
+  vendorBriefs             VendorBrief[]             @relation("ServiceVendorBriefs")
+  whatsappCoordinatorPosts WhatsAppCoordinatorPost[] @relation("ServiceWhatsAppPosts")
+
   @@index([status])
   @@index([managerId])
+}
+
+enum ServiceEventType {
+  excursion
+  incursion
+  public_holiday
+  event
+  meeting
+  parent_engagement
+}
+
+model ServiceEvent {
+  id               String           @id @default(cuid())
+  serviceId        String
+  service          Service          @relation("ServiceEvents", fields: [serviceId], references: [id], onDelete: Cascade)
+  eventType        ServiceEventType
+  title            String
+  /// Event date (day-only — start/end time held separately).
+  date             DateTime         @db.Date
+  startTime        DateTime?
+  endTime          DateTime?
+  notes            String?          @db.Text
+  /// Optional FK to a RiskAssessment that approves this event.
+  /// Nullable until a RiskAssessment is linked; required before creating
+  /// excursion events (enforced in the API route).
+  /// Kept as a nullable string (no FK relation) for now — the RiskAssessment
+  /// model is added in a later migration, at which point the relation is
+  /// formalised. Referential integrity is still enforced at the app layer.
+  riskAssessmentId String?
+  createdById      String
+  createdBy        User             @relation("ServiceEventCreator", fields: [createdById], references: [id])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([serviceId, date])
+  @@index([eventType, date])
+}
+
+// ============================================================
+// NQS (National Quality Standard) Models
+// ============================================================
+
+/// Educator/staff reflections — weekly/monthly/critical/team. NQS QA1.3.
+/// Named `StaffReflection` to avoid clashing with legacy `EducatorReflection`
+/// (centreId-based, owned by the Cowork ingest pipeline). The public "Reflection"
+/// UX / API naming stays parent-facing; this is the internal model name.
+model StaffReflection {
+  id                   String   @id @default(cuid())
+  serviceId            String
+  authorId             String
+  type                 String // "weekly" | "monthly" | "critical" | "team"
+  title                String
+  content              String   @db.Text
+  qualityAreas         Int[]    @default([])
+  linkedObservationIds String[] @default([])
+  mood                 String? // "positive" | "neutral" | "concern"
+  /// UUID generated by the client for offline-queue dedupe.
+  clientMutationId     String?  @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  service Service @relation("ServiceReflections", fields: [serviceId], references: [id], onDelete: Cascade)
+  author  User    @relation("StaffReflections", fields: [authorId], references: [id])
+
+  @@index([serviceId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+/// Individual-child learning observations — MTOP outcomes + interests + photos. NQS QA1.1/1.2.
+model LearningObservation {
+  id               String   @id @default(cuid())
+  childId          String
+  serviceId        String
+  authorId         String
+  title            String
+  narrative        String   @db.Text
+  mtopOutcomes     String[] @default([]) // Identity | Community | Wellbeing | Learners | Communicators
+  interests        String[] @default([])
+  mediaUrls        String[] @default([])
+  visibleToParent  Boolean  @default(false)
+  /// UUID generated by the client for offline-queue dedupe.
+  clientMutationId String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  child   Child   @relation("ChildObservations", fields: [childId], references: [id], onDelete: Cascade)
+  service Service @relation("ServiceObservations", fields: [serviceId], references: [id], onDelete: Cascade)
+  author  User    @relation("LearningObservations", fields: [authorId], references: [id])
+
+  @@index([childId, createdAt])
+  @@index([serviceId, createdAt])
+}
+
+/// Medication Administration Record (MAR). NQS QA2.1. Dual sign-off for injections.
+model MedicationAdministration {
+  id               String   @id @default(cuid())
+  childId          String
+  serviceId        String
+  medicationName   String
+  dose             String
+  route            String // oral | topical | inhaled | injection | other
+  administeredAt   DateTime
+  administeredById String
+  /// Required when route = "injection" (server-side Zod).
+  witnessedById    String?
+  parentConsentUrl String?
+  notes            String?  @db.Text
+  /// UUID generated by the client for offline-queue dedupe.
+  clientMutationId String   @unique
+  createdAt        DateTime @default(now())
+
+  child          Child   @relation("ChildMedications", fields: [childId], references: [id], onDelete: Cascade)
+  service        Service @relation("ServiceMedications", fields: [serviceId], references: [id], onDelete: Cascade)
+  administeredBy User    @relation("MedicationAdministered", fields: [administeredById], references: [id])
+  witnessedBy    User?   @relation("MedicationWitnessed", fields: [witnessedById], references: [id])
+
+  @@index([childId, administeredAt])
+  @@index([serviceId, administeredAt])
+}
+
+/// Risk assessments for routine / incursion / excursion / special activities. NQS QA2.2.
+/// Required (when approved) for excursion ServiceEvents.
+model RiskAssessment {
+  id             String    @id @default(cuid())
+  serviceId      String
+  authorId       String
+  title          String
+  activityType   String // routine | incursion | excursion | special
+  date           DateTime  @db.Date
+  location       String?
+  /// Array<{ hazard, likelihood: 1..5, severity: 1..5, controls }>
+  hazards        Json
+  approvedById   String?
+  approvedAt     DateTime?
+  attachmentUrls String[]  @default([])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  service    Service @relation("ServiceRiskAssessments", fields: [serviceId], references: [id], onDelete: Cascade)
+  author     User    @relation("RiskAssessments", fields: [authorId], references: [id])
+  approvedBy User?   @relation("RiskAssessmentApprovals", fields: [approvedById], references: [id])
+
+  @@index([serviceId, date])
+}
+
+/// Hourly-or-on-change educator:child ratio snapshot. NQS QA2.2 + QA4.1.
+/// Live ratio for v1 = (rostered-now count) × (currently-in-care count) —
+/// true precision (StaffAttendance) is a follow-on spec.
+model RatioSnapshot {
+  id            String   @id @default(cuid())
+  serviceId     String
+  date          DateTime @db.Date
+  sessionType   String // bsc | asc | vc
+  capturedAt    DateTime
+  educatorCount Int
+  childCount    Int
+  ratioText     String // "1:10"
+  belowRatio    Boolean
+  educatorIds   String[] @default([])
+  notes         String?
+
+  service Service @relation("ServiceRatios", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, date, sessionType])
+}
+
+/// Short-lived shift handover notes between coordinators. Auto-expire after 48h.
+model ShiftHandover {
+  id               String   @id @default(cuid())
+  serviceId        String
+  authorId         String
+  content          String   @db.Text
+  mentionedUserIds String[] @default([])
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  service Service @relation("ServiceHandovers", fields: [serviceId], references: [id], onDelete: Cascade)
+  author  User    @relation("ShiftHandovers", fields: [authorId], references: [id])
+
+  @@index([serviceId, expiresAt])
 }
 
 model ProjectTemplate {
@@ -1639,6 +2457,7 @@ model Document {
   uploadedById String?
   uploadedBy   User?            @relation("DocumentUploader", fields: [uploadedById], references: [id])
   version      Int              @default(1)
+  allServices  Boolean          @default(false)
   tags         String[]
   folderId     String?
   folder       DocumentFolder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
@@ -1654,6 +2473,7 @@ model Document {
   @@index([centreId])
   @@index([uploadedById])
   @@index([folderId])
+  @@index([allServices])
 }
 
 model DocumentFolder {
@@ -2387,9 +3207,26 @@ model ComplianceCertificate {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
+  alerts ComplianceCertificateAlert[] @relation("CertificateAlerts")
+
   @@index([serviceId])
   @@index([userId])
   @@index([expiryDate])
+}
+
+/// Dedup tracking for compliance expiry alerts. One row per (cert, threshold).
+/// Ensures the cron doesn't send duplicate emails on re-runs or retries.
+model ComplianceCertificateAlert {
+  id            String                @id @default(cuid())
+  certificateId String
+  certificate   ComplianceCertificate @relation("CertificateAlerts", fields: [certificateId], references: [id], onDelete: Cascade)
+  threshold     Int // 30 | 14 | 7 | 0 — which cadence milestone
+  sentAt        DateTime              @default(now())
+  channels      String[] // "email" | "in_app"
+
+  @@unique([certificateId, threshold])
+  @@index([certificateId])
+  @@index([sentAt])
 }
 
 // ── Attendance & Enrolment Tracking ─────────────────────────
@@ -3189,20 +4026,37 @@ model CentreContact {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  nurtureSteps       ParentNurtureStep[] @relation("ContactNurtureSteps")
-  npsResponses       NpsSurveyResponse[] @relation("ContactNpsResponses")
-  referralsMade      Referral[]          @relation("ReferrerContact")
-  exitSurveys        ExitSurvey[]        @relation("ContactExitSurveys")
-  sequenceEnrolments SequenceEnrolment[] @relation("ContactSequenceEnrolments")
-  statements         Statement[]         @relation("ContactStatements")
-  payments           Payment[]           @relation("ContactPayments")
-  documents          ParentDocument[]    @relation("ContactDocuments")
-  supportTickets     SupportTicket[]     @relation("ParentTickets")
-  bookings           Booking[]           @relation("ContactBookings")
-  conversations           Conversation[]
-  enrolmentApplications   EnrolmentApplication[] @relation("ContactEnrolmentApplications")
-  authTokens              ParentAuthToken[]      @relation("ContactAuthTokens")
-  onboardingProgress Json? // { profile, medical, documents, pickups, installed }
+  // ── Parent profile (populated from EnrolmentSubmission.primaryParent on approval) ──
+  dob          DateTime? @db.Date
+  mobile       String?
+  crn          String?
+  address      Json? // { street, suburb, state, postcode }
+  relationship String? // "Mother" | "Father" | "Guardian" | etc.
+  occupation   String?
+  workplace    String?
+  workPhone    String?
+  parentRole   String? // "primary" | "secondary"
+
+  // Link to any enrolment submission this contact was created from (provenance)
+  sourceEnrolmentId String?
+
+  nurtureSteps          ParentNurtureStep[]    @relation("ContactNurtureSteps")
+  npsResponses          NpsSurveyResponse[]    @relation("ContactNpsResponses")
+  referralsMade         Referral[]             @relation("ReferrerContact")
+  exitSurveys           ExitSurvey[]           @relation("ContactExitSurveys")
+  sequenceEnrolments    SequenceEnrolment[]    @relation("ContactSequenceEnrolments")
+  statements            Statement[]            @relation("ContactStatements")
+  payments              Payment[]              @relation("ContactPayments")
+  documents             ParentDocument[]       @relation("ContactDocuments")
+  supportTickets        SupportTicket[]        @relation("ParentTickets")
+  bookings              Booking[]              @relation("ContactBookings")
+  conversations         Conversation[]
+  enrolmentApplications EnrolmentApplication[] @relation("ContactEnrolmentApplications")
+  authTokens            ParentAuthToken[]      @relation("ContactAuthTokens")
+  pushSubscriptions     PushSubscription[]     @relation("ContactPushSubscriptions")
+  onboardingProgress    Json? // { profile, medical, documents, pickups, installed }
+  parentPostLikes       ParentPostLike[]       @relation("ParentPostLikes")
+  parentPostComments    ParentPostComment[]    @relation("ParentPostComments")
 
   @@unique([email, serviceId])
   @@index([serviceId])
@@ -3392,11 +4246,49 @@ model RosterShift {
   role        String? // "coordinator", "educator", "assistant"
   syncedAt    DateTime    @default(now())
 
+  userId            String?
+  user              User?              @relation("UserRosterShifts", fields: [userId], references: [id], onDelete: SetNull)
+  status            String             @default("published")
+  publishedAt       DateTime?
+  createdById       String?
+  createdBy         User?              @relation("CreatedRosterShifts", fields: [createdById], references: [id], onDelete: SetNull)
+  shiftSwapRequests ShiftSwapRequest[] @relation("ShiftSwapRequests")
+
   @@unique([serviceId, date, staffName, shiftStart])
   @@index([serviceId])
   @@index([date])
   @@index([serviceId, date])
   @@index([date, staffName])
+  @@index([userId])
+  @@index([userId, date])
+  @@index([status])
+}
+
+/// Staff-initiated request to swap or cover a shift.
+/// 3-step flow: proposer → target accepts → admin/coordinator approves.
+model ShiftSwapRequest {
+  id             String      @id @default(cuid())
+  shiftId        String
+  shift          RosterShift @relation("ShiftSwapRequests", fields: [shiftId], references: [id], onDelete: Cascade)
+  proposerId     String
+  proposer       User        @relation("ProposedShiftSwaps", fields: [proposerId], references: [id])
+  targetId       String
+  target         User        @relation("TargetShiftSwaps", fields: [targetId], references: [id])
+  reason         String?
+  status         String      @default("proposed")
+  acceptedAt     DateTime?
+  approvedAt     DateTime?
+  approvedById   String?
+  approvedBy     User?       @relation("ApprovedShiftSwaps", fields: [approvedById], references: [id], onDelete: SetNull)
+  rejectedAt     DateTime?
+  rejectedReason String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([proposerId])
+  @@index([targetId])
+  @@index([status])
+  @@index([shiftId])
 }
 
 // ── Conversion Tracking ──────────────────────────────────
@@ -3563,34 +4455,38 @@ model AuditItemResponse {
 // ============================================================
 
 model ParentEnquiry {
-  id               String    @id @default(cuid())
-  serviceId        String
-  service          Service   @relation(fields: [serviceId], references: [id])
-  parentName       String
-  parentEmail      String?
-  parentPhone      String?
-  childName        String?
-  childAge         Int?
-  childrenDetails  Json? // Array of {name, age} for multiple children
-  channel          String // phone, email, whatsapp, walkin, referral, website
-  parentDriver     String? // homework, quran, enrichment, working_parent, traffic, sports
-  stage            String    @default("new_enquiry") // new_enquiry, info_sent, nurturing, form_started, enrolled, first_session, day3, week2, month1, retained, cold
-  stageChangedAt   DateTime  @default(now())
-  nextActionDue    DateTime?
-  ccsEducated      Boolean   @default(false)
-  formStarted      Boolean   @default(false)
-  formCompleted    Boolean   @default(false)
-  firstSessionDate DateTime?
-  referralId       String?
-  referral         Referral? @relation(fields: [referralId], references: [id])
-  assigneeId       String?
-  assignee         User?     @relation("EnquiryAssignee", fields: [assigneeId], references: [id])
-  notes            String?   @db.Text
-  deleted          Boolean   @default(false)
-  ownaEnquiryId    String?   @unique
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  lastEmailSentAt  DateTime?
+  id                 String                        @id @default(cuid())
+  serviceId          String
+  service            Service                       @relation(fields: [serviceId], references: [id])
+  parentName         String
+  parentEmail        String?
+  parentPhone        String?
+  childName          String?
+  childAge           Int?
+  childrenDetails    Json? // Array of {name, age} for multiple children
+  channel            String // phone, email, whatsapp, walkin, referral, website
+  parentDriver       String? // homework, quran, enrichment, working_parent, traffic, sports
+  /// QR-attribution: when an enquiry comes from a scanned activation QR
+  /// (utm_campaign query param matching a known qrShortCode).
+  sourceActivationId String?
+  sourceActivation   CampaignActivationAssignment? @relation("EnquiryFromActivation", fields: [sourceActivationId], references: [id], onDelete: SetNull)
+  stage              String                        @default("new_enquiry") // new_enquiry, info_sent, nurturing, form_started, enrolled, first_session, day3, week2, month1, retained, cold
+  stageChangedAt     DateTime                      @default(now())
+  nextActionDue      DateTime?
+  ccsEducated        Boolean                       @default(false)
+  formStarted        Boolean                       @default(false)
+  formCompleted      Boolean                       @default(false)
+  firstSessionDate   DateTime?
+  referralId         String?
+  referral           Referral?                     @relation(fields: [referralId], references: [id])
+  assigneeId         String?
+  assignee           User?                         @relation("EnquiryAssignee", fields: [assigneeId], references: [id])
+  notes              String?                       @db.Text
+  deleted            Boolean                       @default(false)
+  ownaEnquiryId      String?                       @unique
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  lastEmailSentAt    DateTime?
 
   // Waitlist fields
   waitlistPosition  Int?
@@ -3601,6 +4497,7 @@ model ParentEnquiry {
 
   touchpoints  ParentEnquiryTouchpoint[]
   nurtureSteps ParentNurtureStep[]
+  sourceCall   VapiCall?                 @relation("EnquiryFromCall")
 
   @@index([serviceId])
   @@index([stage])
@@ -3719,6 +4616,7 @@ model StaffReferral {
   status         String                @default("pending") // pending, hired, bonus_paid, expired
   bonusAmount    Float                 @default(200)
   bonusPaidAt    DateTime?
+  lastReminderAt DateTime?
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
 
@@ -4225,6 +5123,16 @@ model AiTaskDraft {
   content  String @db.Text // The AI-generated draft content (markdown)
   metadata Json? // Extra context (email recipients, template used, etc.)
 
+  /// Discriminator for where this draft came from.
+  /// e.g. "todo" | "marketing_task" | "cowork_todo" | "ticket" | "issue" |
+  /// "reflection" | "observation" | "parent_reply" | "incident" | "newsletter".
+  /// Redundant with the *Id foreign keys above for the first five, but
+  /// mandatory once we add polymorphic draft sources (reflections etc.) that
+  /// don't have an *Id column here.
+  source   String  @default("todo")
+  /// Optional free-form target ID for non-FK sources (e.g. a reflection ID).
+  targetId String?
+
   status       String    @default("ready") // "ready" | "accepted" | "edited" | "dismissed"
   reviewedAt   DateTime?
   reviewedById String?
@@ -4243,6 +5151,32 @@ model AiTaskDraft {
   @@index([issueId])
   @@index([status])
   @@index([createdAt])
+}
+
+/// Cached output for AI generations keyed by (kind, inputHash). Used by the
+/// hybrid AI provider (anthropic + groq) to avoid re-generating identical
+/// prompts within a TTL window. Pulled from on cache hit; written on miss.
+///
+/// `kind` examples: "centre_avatar.parent_avatar".
+/// `inputHash` is a sha256 of the canonicalised input payload.
+model AiGenerationCache {
+  id            String   @id @default(cuid())
+  kind          String
+  inputHash     String
+  output        Json
+  provider      String // "anthropic" | "groq"
+  modelId       String
+  costUsd       Float    @default(0)
+  inputTokens   Int      @default(0)
+  outputTokens  Int      @default(0)
+  generatedById String?
+  generatedBy   User?    @relation("AiGenerationCacheUser", fields: [generatedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  @@unique([kind, inputHash])
+  @@index([kind])
+  @@index([expiresAt])
 }
 
 // ── Phase 2 AI Models ──────────────────────────────────────
@@ -4554,52 +5488,67 @@ model EnrolmentSubmission {
 // ============================================================
 
 model Child {
-  id                 String               @id @default(cuid())
-  enrolmentId        String?
-  enrolment          EnrolmentSubmission? @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
-  serviceId          String?
-  service            Service?             @relation("ServiceChildren", fields: [serviceId], references: [id])
-  firstName          String
-  surname            String
-  dob                DateTime?
-  gender             String?
-  address            Json? // { street, suburb, state, postcode }
-  culturalBackground String[]
-  schoolName         String?
-  yearLevel          String?
-  crn                String?
-  medical            Json? // Full medical info (legacy — from enrolment import)
-  dietary            Json? // Dietary requirements (legacy — from enrolment import)
-  bookingPrefs       Json? // Session types, days, booking type
+  id                    String               @id @default(cuid())
+  enrolmentId           String?
+  enrolment             EnrolmentSubmission? @relation(fields: [enrolmentId], references: [id], onDelete: Cascade)
+  serviceId             String?
+  service               Service?             @relation("ServiceChildren", fields: [serviceId], references: [id])
+  firstName             String
+  surname               String
+  dob                   DateTime?
+  gender                String?
+  address               Json? // { street, suburb, state, postcode }
+  culturalBackground    String[]
+  schoolName            String?
+  yearLevel             String?
+  crn                   String?
+  medical               Json? // Full medical info (legacy — from enrolment import)
+  dietary               Json? // Dietary requirements (legacy — from enrolment import)
+  bookingPrefs          Json? // Session types, days, booking type
   // ── Expanded profile fields ──
-  medicalConditions       String[] // e.g. ["Asthma", "Anaphylaxis"]
-  medicationDetails       String?  // Free text: medications, dosage, administration
-  anaphylaxisActionPlan   Boolean  @default(false) // Flag: action plan document exists
-  dietaryRequirements     String[] // e.g. ["Halal", "Nut Free", "Vegetarian"]
-  additionalNeeds         String?  // Free text: other care requirements
-  photo                   String?  // URL to profile photo (Vercel Blob)
-  status             String               @default("pending") // pending, active, withdrawn
+  medicalConditions     String[] // e.g. ["Asthma", "Anaphylaxis"]
+  medicationDetails     String? // Free text: medications, dosage, administration
+  anaphylaxisActionPlan Boolean              @default(false) // Flag: action plan document exists
+  dietaryRequirements   String[] // e.g. ["Halal", "Nut Free", "Vegetarian"]
+  additionalNeeds       String? // Free text: other care requirements
+  // ── Medicare + immunisation (consumed by Services Medical tab) ──
+  medicareNumber        String?
+  medicareExpiry        DateTime?
+  medicareRef           String?
+  vaccinationStatus     String?
+  // ── CCS + room + tags (first-class filter dimensions, 4b) ──
+  ccsStatus             String? // "eligible" | "pending" | "ineligible" — documented values, free-text for forward compat
+  room                  String? // dashboard-controlled room label; decoupled from OWNA's ownaRoomName
+  tags                  String[]             @default([]) // optional filter tags; empty-array default means existing rows don't need backfill
+  photo                 String? // URL to profile photo (Vercel Blob)
+  status                String               @default("pending") // pending, active, withdrawn
   // OWNA sync fields
-  ownaChildId        String?              @unique
-  ownaRoomId         String?
-  ownaRoomName       String?
-  ownaSyncedAt       DateTime?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  ownaChildId           String?              @unique
+  ownaRoomId            String?
+  ownaRoomName          String?
+  ownaSyncedAt          DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
-  bookings          Booking[]            @relation("ChildBookings")
-  absences          Absence[]            @relation("ChildAbsences")
-  documents         ParentDocument[]     @relation("ChildDocuments")
-  childDocuments    ChildDocument[]      @relation("ChildProfileDocuments")
-  authorisedPickups AuthorisedPickup[]   @relation("ChildPickups")
-  postTags          ParentPostChildTag[] @relation("ChildPostTags")
+  bookings           Booking[]            @relation("ChildBookings")
+  absences           Absence[]            @relation("ChildAbsences")
+  documents          ParentDocument[]     @relation("ChildDocuments")
+  childDocuments     ChildDocument[]      @relation("ChildProfileDocuments")
+  authorisedPickups  AuthorisedPickup[]   @relation("ChildPickups")
+  postTags           ParentPostChildTag[] @relation("ChildPostTags")
   attendanceRecords  AttendanceRecord[]   @relation("ChildAttendance")
   statementLineItems StatementLineItem[]  @relation("ChildStatementLines")
+
+  // ── NQS relations ─────────────────────────────────
+  observations LearningObservation[]      @relation("ChildObservations")
+  medications  MedicationAdministration[] @relation("ChildMedications")
 
   @@index([enrolmentId])
   @@index([serviceId])
   @@index([status])
   @@index([ownaChildId])
+  @@index([serviceId, ccsStatus])
+  @@index([serviceId, room])
 }
 
 // ── Sequences (Parent Nurture + CRM Outreach) ───────────────
@@ -4701,27 +5650,27 @@ model ParentMagicLink {
 }
 
 model Booking {
-  id            String        @id @default(cuid())
+  id            String         @id @default(cuid())
   childId       String
-  child         Child         @relation("ChildBookings", fields: [childId], references: [id], onDelete: Cascade)
+  child         Child          @relation("ChildBookings", fields: [childId], references: [id], onDelete: Cascade)
   serviceId     String
-  service       Service       @relation("ServiceBookings_Portal", fields: [serviceId], references: [id], onDelete: Cascade)
-  date          DateTime      @db.Date
+  service       Service        @relation("ServiceBookings_Portal", fields: [serviceId], references: [id], onDelete: Cascade)
+  date          DateTime       @db.Date
   sessionType   SessionType
-  status        BookingStatus @default(requested)
-  type          BookingType   @default(casual)
+  status        BookingStatus  @default(requested)
+  type          BookingType    @default(casual)
   fee           Float?
   ccsApplied    Float? // CCS subsidy amount applied
   gapFee        Float? // Fee after CCS applied
   requestedById String? // CentreContact who requested (parent)
   requestedBy   CentreContact? @relation("ContactBookings", fields: [requestedById], references: [id])
   reviewedById  String? // User (staff) who approved/declined
-  reviewedBy    User?         @relation("BookingReviewedBy", fields: [reviewedById], references: [id])
+  reviewedBy    User?          @relation("BookingReviewedBy", fields: [reviewedById], references: [id])
   reviewedAt    DateTime?
-  declineReason String?       @db.Text
-  notes         String?       @db.Text
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  declineReason String?        @db.Text
+  notes         String?        @db.Text
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@unique([childId, serviceId, date, sessionType])
   @@index([childId])
@@ -4777,8 +5726,8 @@ model Statement {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  lineItems   StatementLineItem[]
-  payments    Payment[]
+  lineItems StatementLineItem[]
+  payments  Payment[]
 
   @@index([contactId])
   @@index([serviceId, periodStart])
@@ -4801,8 +5750,8 @@ model StatementLineItem {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  statement   Statement   @relation(fields: [statementId], references: [id], onDelete: Cascade)
-  child       Child       @relation("ChildStatementLines", fields: [childId], references: [id])
+  statement Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  child     Child     @relation("ChildStatementLines", fields: [childId], references: [id])
 
   @@index([statementId])
 }
@@ -4821,10 +5770,10 @@ model Payment {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  statement    Statement?    @relation(fields: [statementId], references: [id], onDelete: SetNull)
-  contact      CentreContact @relation("ContactPayments", fields: [contactId], references: [id])
-  service      Service       @relation("ServicePayments", fields: [serviceId], references: [id])
-  recordedBy   User?         @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
+  statement  Statement?    @relation(fields: [statementId], references: [id], onDelete: SetNull)
+  contact    CentreContact @relation("ContactPayments", fields: [contactId], references: [id])
+  service    Service       @relation("ServicePayments", fields: [serviceId], references: [id])
+  recordedBy User?         @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
 
   @@index([contactId, receivedAt])
   @@index([statementId])
@@ -4855,7 +5804,7 @@ model AuthorisedPickup {
   relationship       String
   phone              String
   photoUrl           String?
-  photoId            String?  // Description of ID they carry for verification
+  photoId            String? // Description of ID they carry for verification
   isEmergencyContact Boolean  @default(false)
   hasPassword        Boolean  @default(false)
   passwordHash       String?
@@ -4882,10 +5831,10 @@ model ChildDocument {
   child        Child             @relation("ChildProfileDocuments", fields: [childId], references: [id], onDelete: Cascade)
   documentType ChildDocumentType
   fileName     String
-  fileUrl      String            // Vercel Blob URL
+  fileUrl      String // Vercel Blob URL
   uploadedById String
   uploadedBy   User              @relation("UploadedChildDocuments", fields: [uploadedById], references: [id])
-  uploaderType String?           // "staff" | "parent"
+  uploaderType String? // "staff" | "parent"
   expiresAt    DateTime?
   isVerified   Boolean           @default(false)
   verifiedById String?
@@ -4914,7 +5863,9 @@ model ParentPost {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  tags ParentPostChildTag[]
+  tags     ParentPostChildTag[]
+  likes    ParentPostLike[]
+  comments ParentPostComment[]
 
   @@index([serviceId])
   @@index([createdAt])
@@ -4929,6 +5880,36 @@ model ParentPostChildTag {
 
   @@unique([postId, childId])
   @@index([childId])
+}
+
+model ParentPostLike {
+  id        String        @id @default(cuid())
+  postId    String
+  post      ParentPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  likerId   String
+  liker     CentreContact @relation("ParentPostLikes", fields: [likerId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@unique([postId, likerId])
+  @@index([postId])
+  @@index([likerId])
+}
+
+model ParentPostComment {
+  id             String         @id @default(cuid())
+  postId         String
+  post           ParentPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentAuthorId String?
+  parentAuthor   CentreContact? @relation("ParentPostComments", fields: [parentAuthorId], references: [id], onDelete: SetNull)
+  staffAuthorId  String?
+  staffAuthor    User?          @relation("ParentPostStaffComments", fields: [staffAuthorId], references: [id], onDelete: SetNull)
+  body           String         @db.Text
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([postId, createdAt])
+  @@index([parentAuthorId])
+  @@index([staffAuthorId])
 }
 
 // ── Parent Notifications (In-App Bell) ──────────────────
@@ -4950,35 +5931,36 @@ model ParentNotification {
 // ── In-App Messaging ────────────────────────────────────
 
 model Conversation {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
   serviceId     String
-  familyId      String    // CentreContact id
+  familyId      String // CentreContact id
   subject       String
-  status        String    @default("open") // "open" | "resolved" | "archived"
-  lastMessageAt DateTime  @default(now())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  status        String   @default("open") // "open" | "resolved" | "archived"
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  service       Service        @relation(fields: [serviceId], references: [id])
-  family        CentreContact  @relation(fields: [familyId], references: [id])
-  messages      Message[]
+  service  Service       @relation(fields: [serviceId], references: [id])
+  family   CentreContact @relation(fields: [familyId], references: [id])
+  messages Message[]
 
   @@index([serviceId, status, lastMessageAt])
   @@index([familyId, lastMessageAt])
 }
 
 model Message {
-  id              String    @id @default(cuid())
-  conversationId  String
-  body            String    @db.Text
-  senderType      String    // "staff" | "parent"
-  senderId        String    // User.id or CentreContact.id depending on senderType
-  senderName      String    // Denormalised for display
-  isRead          Boolean   @default(false)
-  readAt          DateTime?
-  createdAt       DateTime  @default(now())
+  id             String    @id @default(cuid())
+  conversationId String
+  body           String    @db.Text
+  attachmentUrls String[]  @default([])
+  senderType     String // "staff" | "parent"
+  senderId       String // User.id or CentreContact.id depending on senderType
+  senderName     String // Denormalised for display
+  isRead         Boolean   @default(false)
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
 
-  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
   @@index([senderId, senderType])
@@ -4989,14 +5971,14 @@ model Broadcast {
   serviceId      String
   subject        String
   body           String   @db.Text
-  sentById       String   // User.id
+  sentById       String // User.id
   sentByName     String
   recipientCount Int      @default(0)
   sentAt         DateTime @default(now())
   createdAt      DateTime @default(now())
 
-  service        Service  @relation(fields: [serviceId], references: [id])
-  sentBy         User     @relation("BroadcastSentBy", fields: [sentById], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+  sentBy  User    @relation("BroadcastSentBy", fields: [sentById], references: [id])
 
   @@index([serviceId, sentAt])
 }
@@ -5006,23 +5988,23 @@ model Broadcast {
 // ============================================================
 
 model EnrolmentApplication {
-  id                String    @id @default(cuid())
-  serviceId         String
-  familyId          String    // CentreContact id (existing parent)
-  status            String    @default("pending") // "pending" | "approved" | "declined" | "withdrawn"
-  type              String    @default("sibling") // "new" | "sibling"
+  id        String @id @default(cuid())
+  serviceId String
+  familyId  String // CentreContact id (existing parent)
+  status    String @default("pending") // "pending" | "approved" | "declined" | "withdrawn"
+  type      String @default("sibling") // "new" | "sibling"
 
   // Child details
-  childFirstName    String
-  childLastName     String
-  childDateOfBirth  DateTime  @db.Date
-  childGender       String?
-  childSchool       String?
-  childYear         String?
+  childFirstName   String
+  childLastName    String
+  childDateOfBirth DateTime @db.Date
+  childGender      String?
+  childSchool      String?
+  childYear        String?
 
   // Care requirements
-  sessionTypes      String[]  // ["BSC", "ASC", "VAC"]
-  startDate         DateTime? @db.Date
+  sessionTypes String[] // ["BSC", "ASC", "VAC"]
+  startDate    DateTime? @db.Date
 
   // Medical
   medicalConditions     String[]
@@ -5032,30 +6014,33 @@ model EnrolmentApplication {
   additionalNeeds       String?
 
   // Consents
-  consentPhotography    Boolean @default(false)
-  consentSunscreen      Boolean @default(false)
-  consentFirstAid       Boolean @default(false)
-  consentExcursions     Boolean @default(false)
+  consentPhotography Boolean @default(false)
+  consentSunscreen   Boolean @default(false)
+  consentFirstAid    Boolean @default(false)
+  consentExcursions  Boolean @default(false)
 
   // Copy from sibling flag
   copyAuthorisedPickups Boolean @default(true)
   copyEmergencyContacts Boolean @default(true)
 
   // Review
-  reviewedById      String?
-  reviewedAt        DateTime?
-  declineReason     String?
-  notes             String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  declineReason String?
+  notes         String?
 
   // If approved, the created child record
-  createdChildId    String?
+  createdChildId String?
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  // OWNA CSV export tracking (set when admin downloads the OWNA-import CSV)
+  ownaExportedAt DateTime?
 
-  service           Service        @relation("ServiceEnrolmentApplications", fields: [serviceId], references: [id])
-  family            CentreContact  @relation("ContactEnrolmentApplications", fields: [familyId], references: [id])
-  reviewedBy        User?          @relation("EnrolmentReviewedBy", fields: [reviewedById], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  service    Service       @relation("ServiceEnrolmentApplications", fields: [serviceId], references: [id])
+  family     CentreContact @relation("ContactEnrolmentApplications", fields: [familyId], references: [id])
+  reviewedBy User?         @relation("EnrolmentReviewedBy", fields: [reviewedById], references: [id])
 
   @@index([serviceId, status])
   @@index([familyId, status])
@@ -5082,18 +6067,38 @@ model NotificationLog {
   @@index([relatedId, relatedType])
 }
 
+/// In-app notification for a staff user. Surfaced via bell icon.
+model UserNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  type      String // see src/lib/notification-types.ts for known values
+  title     String
+  body      String
+  link      String? // deep link path, e.g. "/staff/{userId}?tab=compliance"
+  read      Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, read, createdAt])
+  @@index([userId, createdAt])
+}
+
 // ============================================================
 // Push Subscriptions — browser push notification endpoints
 // ============================================================
 
 model PushSubscription {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   userId    String? // Staff user
   familyId  String? // Parent CentreContact
-  endpoint  String   @unique
+  family    CentreContact? @relation("ContactPushSubscriptions", fields: [familyId], references: [id], onDelete: Cascade)
+  endpoint  String         @unique
   p256dh    String
   auth      String
-  createdAt DateTime @default(now())
+  userAgent String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
   @@index([userId])
   @@index([familyId])
@@ -5111,7 +6116,7 @@ model ParentAuthToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 
-  family    CentreContact @relation("ContactAuthTokens", fields: [familyId], references: [id], onDelete: Cascade)
+  family CentreContact @relation("ContactAuthTokens", fields: [familyId], references: [id], onDelete: Cascade)
 
   @@index([token])
 }
@@ -5121,11 +6126,11 @@ model ParentAuthToken {
 // ============================================================
 
 model VapiCall {
-  id                       String    @id @default(cuid())
-  vapiCallId               String?   @unique
-  callType                 String    // "new_enquiry" | "booking_change" | "billing_issue" | "escalation" | "holiday_quest" | "general_message"
-  urgency                  String    @default("routine") // "routine" | "urgent" | "critical"
-  status                   String    @default("new") // "new" | "in_progress" | "actioned" | "closed"
+  id                       String         @id @default(cuid())
+  vapiCallId               String?        @unique
+  callType                 String // "new_enquiry" | "booking_change" | "billing_issue" | "escalation" | "holiday_quest" | "general_message"
+  urgency                  String         @default("routine") // "routine" | "urgent" | "critical"
+  status                   String         @default("new") // "new" | "in_progress" | "actioned" | "closed"
   assignedTo               String?
   parentName               String?
   parentPhone              String?
@@ -5133,17 +6138,25 @@ model VapiCall {
   childName                String?
   centreName               String?
   callDetails              Json?
-  transcript               String?   @db.Text
+  transcript               String?        @db.Text
+  summary                  String?        @db.Text // Vapi post-call AI summary
+  successEvaluation        Boolean? // Vapi post-call success evaluation
   recordingUrl             String?
   callDurationSeconds      Int?
-  followUpEmailSent        Boolean   @default(false)
-  internalNotificationSent Boolean   @default(false)
-  notes                    String?   @db.Text
+  repeatCaller             Boolean        @default(false) // Same phone called within past 7 days
+  followUpEmailSent        Boolean        @default(false)
+  internalNotificationSent Boolean        @default(false)
+  slaAlertedAt             DateTime? // Set when an SLA escalation has been sent, to prevent duplicates
+  linkedEnquiryId          String?        @unique // ParentEnquiry auto-created from this call
+  linkedEnquiry            ParentEnquiry? @relation("EnquiryFromCall", fields: [linkedEnquiryId], references: [id], onDelete: SetNull)
+  linkedTodoId             String?        @unique // Todo auto-created from a booking-change call
+  linkedTodo               Todo?          @relation("TodoFromCall", fields: [linkedTodoId], references: [id], onDelete: SetNull)
+  notes                    String?        @db.Text
   actionedAt               DateTime?
   actionedBy               String?
-  calledAt                 DateTime  @default(now())
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  calledAt                 DateTime       @default(now())
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
 
   @@index([status, callType])
   @@index([centreName, calledAt])

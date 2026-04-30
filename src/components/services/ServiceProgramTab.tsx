@@ -128,6 +128,34 @@ function getTimeColor(time: string): string {
   return "bg-emerald-50 border-emerald-200";
 }
 
+// ── Session split ────────────────────────────────────────────
+// Activities at < 12:00 are Before School Care (BSC, typically 6:30 – 9:00).
+// Activities at >= 12:00 are After School Care (ASC, typically 15:00 – 18:30).
+// Vacation Care activities tend to span both halves and naturally sort into
+// whichever side their startTime puts them; coordinators will see them in
+// the section that matches their time of day.
+type Session = "bsc" | "asc";
+
+function sessionForTime(startTime: string): Session {
+  const hour = parseInt(startTime.split(":")[0], 10);
+  return hour < 12 ? "bsc" : "asc";
+}
+
+const SESSION_DEFAULTS: Record<Session, { startTime: string; endTime: string }> = {
+  bsc: { startTime: "07:30", endTime: "08:30" },
+  asc: { startTime: "15:30", endTime: "16:30" },
+};
+
+const SESSION_LABELS: Record<Session, string> = {
+  bsc: "Before School Care",
+  asc: "After School Care",
+};
+
+const SESSION_HINTS: Record<Session, string> = {
+  bsc: "Typically 6:30am – 9:00am",
+  asc: "Typically 3:00pm – 6:30pm",
+};
+
 export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   const [weekOffset, setWeekOffset] = useState(0);
   const [showModal, setShowModal] = useState(false);
@@ -161,15 +189,36 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
   const deleteMutation = useDeleteActivity(serviceId);
   const bulkMutation = useBulkUpsertProgram(serviceId);
 
-  // Group activities by day
-  const byDay = useMemo(() => {
-    const grouped: Record<string, ProgramActivity[]> = {};
-    DAYS.forEach((d) => (grouped[d] = []));
+  // Group activities by day, then split each day into BSC / ASC sessions.
+  // Sort within each day by startTime so the morning flow reads top-to-bottom.
+  const byDaySplit = useMemo(() => {
+    const grouped: Record<Session, Record<string, ProgramActivity[]>> = {
+      bsc: {},
+      asc: {},
+    };
+    DAYS.forEach((d) => {
+      grouped.bsc[d] = [];
+      grouped.asc[d] = [];
+    });
     (activities || []).forEach((a) => {
-      if (grouped[a.day]) grouped[a.day].push(a);
+      const session = sessionForTime(a.startTime);
+      if (grouped[session][a.day]) grouped[session][a.day].push(a);
+    });
+    (["bsc", "asc"] as const).forEach((s) => {
+      DAYS.forEach((d) => {
+        grouped[s][d].sort((x, y) => x.startTime.localeCompare(y.startTime));
+      });
     });
     return grouped;
   }, [activities]);
+
+  const [defaultSession, setDefaultSession] = useState<Session | null>(null);
+  const openCreate = useCallback((session: Session | null = null) => {
+    setEditingActivity(null);
+    setPrefillTemplate(null);
+    setDefaultSession(session);
+    setShowModal(true);
+  }, []);
 
   const handleCopyPrevious = async () => {
     const prevWeek = new Date(selectedWeek);
@@ -287,6 +336,15 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
             <Library className="w-3.5 h-3.5" />
             Library
           </button>
+          <a
+            href={`/services/${serviceId}/program/print?weekStart=${weekKey}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-card border border-border rounded-lg hover:bg-surface/50 transition-colors"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            Print
+          </a>
           <AiButton
             templateSlug="services/activity-suggester"
             variables={{
@@ -323,56 +381,102 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
         </div>
       )}
 
-      {/* Day Grid */}
+      {/* Day Grid — split into Before School Care + After School Care */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {DAYS.map((day) => (
-            <div key={day} className="space-y-2">
-              <Skeleton className="h-5 w-20" />
-              <Skeleton className="h-24 w-full rounded-lg" />
-              <Skeleton className="h-20 w-full rounded-lg" />
+        <div className="space-y-6">
+          {(["bsc", "asc"] as const).map((session) => (
+            <div key={session} className="space-y-3">
+              <Skeleton className="h-5 w-48" />
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                {DAYS.map((day) => (
+                  <div key={day} className="space-y-2">
+                    <Skeleton className="h-5 w-20" />
+                    <Skeleton className="h-24 w-full rounded-lg" />
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {DAYS.map((day) => (
-            <div key={day} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-foreground">
-                  <span className="hidden md:inline">{DAY_LABELS[day]}</span>
-                  <span className="md:hidden">{DAY_SHORT[day]}</span>
-                </h3>
-                <span className="text-xs text-muted">
-                  {byDay[day]?.length || 0}
-                </span>
-              </div>
-              <div className="space-y-2 min-h-[100px]">
-                {byDay[day]?.map((activity) => (
-                  <ActivityCard
-                    key={activity.id}
-                    activity={activity}
-                    onEdit={() => {
-                      setEditingActivity(activity);
-                      setShowModal(true);
-                    }}
-                    onDelete={() => setDeleteTarget({ id: activity.id, title: activity.title })}
-                  />
-                ))}
-                {byDay[day]?.length === 0 && (
+        <div className="space-y-6">
+          {(["bsc", "asc"] as const).map((session) => {
+            const sessionDays = byDaySplit[session];
+            const sessionTotal = DAYS.reduce(
+              (acc, d) => acc + sessionDays[d].length,
+              0,
+            );
+            return (
+              <section
+                key={session}
+                aria-label={SESSION_LABELS[session]}
+                className="space-y-3"
+              >
+                <div className="flex items-end justify-between gap-3 pb-1 border-b border-[color:var(--color-border)]/60">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {SESSION_LABELS[session]}
+                    </h3>
+                    <p className="text-[11px] text-muted">
+                      {SESSION_HINTS[session]} · {sessionTotal}{" "}
+                      {sessionTotal === 1 ? "activity" : "activities"}
+                    </p>
+                  </div>
                   <button
-                    onClick={() => {
-                      setEditingActivity(null);
-                      setShowModal(true);
-                    }}
-                    className="w-full py-6 border-2 border-dashed border-border rounded-lg text-xs text-muted hover:border-brand hover:text-brand transition-colors"
+                    type="button"
+                    onClick={() => openCreate(session)}
+                    className="text-[11px] font-medium text-brand hover:underline"
                   >
-                    + Add
+                    + Add to {session.toUpperCase()}
                   </button>
-                )}
-              </div>
-            </div>
-          ))}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  {DAYS.map((day) => (
+                    <div key={day} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-semibold text-foreground">
+                          <span className="hidden md:inline">
+                            {DAY_LABELS[day]}
+                          </span>
+                          <span className="md:hidden">{DAY_SHORT[day]}</span>
+                        </h4>
+                        <span className="text-[11px] text-muted">
+                          {sessionDays[day].length}
+                        </span>
+                      </div>
+                      <div className="space-y-2 min-h-[80px]">
+                        {sessionDays[day].map((activity) => (
+                          <ActivityCard
+                            key={activity.id}
+                            activity={activity}
+                            onEdit={() => {
+                              setEditingActivity(activity);
+                              setDefaultSession(null);
+                              setShowModal(true);
+                            }}
+                            onDelete={() =>
+                              setDeleteTarget({
+                                id: activity.id,
+                                title: activity.title,
+                              })
+                            }
+                          />
+                        ))}
+                        {sessionDays[day].length === 0 && (
+                          <button
+                            onClick={() => openCreate(session)}
+                            className="w-full py-5 border-2 border-dashed border-border rounded-lg text-xs text-muted hover:border-brand hover:text-brand transition-colors"
+                          >
+                            + Add
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
 
@@ -444,10 +548,12 @@ export function ServiceProgramTab({ serviceId }: { serviceId: string }) {
           weekStart={weekKey}
           activity={editingActivity}
           prefillTemplate={prefillTemplate}
+          defaultSession={defaultSession}
           onClose={() => {
             setShowModal(false);
             setEditingActivity(null);
             setPrefillTemplate(null);
+            setDefaultSession(null);
           }}
           onCreate={createMutation}
           onUpdate={updateMutation}
@@ -580,6 +686,7 @@ function ActivityModal({
   weekStart,
   activity,
   prefillTemplate,
+  defaultSession,
   onClose,
   onCreate,
   onUpdate,
@@ -588,14 +695,23 @@ function ActivityModal({
   weekStart: string;
   activity: ProgramActivity | null;
   prefillTemplate?: ActivityTemplate | null;
+  defaultSession?: Session | null;
   onClose: () => void;
   onCreate: ReturnType<typeof useCreateActivity>;
   onUpdate: ReturnType<typeof useUpdateActivity>;
 }) {
   const isEditing = !!activity;
+  // When the user clicks "+ Add" inside a BSC or ASC section, pre-fill the
+  // typical time window for that session so the form matches the column they
+  // were just looking at.
+  const sessionDefault = defaultSession ? SESSION_DEFAULTS[defaultSession] : null;
   const [day, setDay] = useState<(typeof DAYS)[number]>(activity?.day || "monday");
-  const [startTime, setStartTime] = useState(activity?.startTime || "09:00");
-  const [endTime, setEndTime] = useState(activity?.endTime || "10:00");
+  const [startTime, setStartTime] = useState(
+    activity?.startTime || sessionDefault?.startTime || "09:00",
+  );
+  const [endTime, setEndTime] = useState(
+    activity?.endTime || sessionDefault?.endTime || "10:00",
+  );
   const [title, setTitle] = useState(activity?.title || prefillTemplate?.title || "");
   const [description, setDescription] = useState(activity?.description || prefillTemplate?.description || "");
   const [staffName, setStaffName] = useState(activity?.staffName || "");
@@ -1002,6 +1118,9 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
       setNewCategory("");
       toast({ description: "Interest captured" });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const markActionedMutation = useMutation({
@@ -1017,6 +1136,9 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["interests", serviceId] });
       queryClient.invalidateQueries({ queryKey: ["interests-summary", serviceId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 
@@ -1036,6 +1158,9 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
       setEditingId(null);
       toast({ description: "Interest updated" });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const deleteInterestMutation = useMutation({
@@ -1050,6 +1175,9 @@ function InterestsPanel({ serviceId }: { serviceId: string }) {
       queryClient.invalidateQueries({ queryKey: ["interests", serviceId] });
       queryClient.invalidateQueries({ queryKey: ["interests-summary", serviceId] });
       toast({ description: "Interest removed" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

@@ -6,8 +6,12 @@ import { checkPasswordBreach } from "@/lib/password-breach-check";
 import { logAuditEvent } from "@/lib/audit-log";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 export const POST = withApiAuth(async (req, session) => {
-  const { currentPassword, newPassword } = await req.json();
+  const { currentPassword, newPassword } = (await parseJsonBody(req)) as {
+    currentPassword?: string;
+    newPassword?: string;
+  };
 
   if (!currentPassword || !newPassword) {
     return NextResponse.json(

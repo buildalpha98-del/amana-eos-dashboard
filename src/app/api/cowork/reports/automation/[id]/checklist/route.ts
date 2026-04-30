@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { parseJsonField, reportChecklistSchema } from "@/lib/schemas/json-fields";
 import { withApiAuth } from "@/lib/server-auth";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 
 const patchBodySchema = z.object({
   itemId: z.string().min(1),
@@ -16,7 +16,7 @@ const patchBodySchema = z.object({
  */
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = patchBodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

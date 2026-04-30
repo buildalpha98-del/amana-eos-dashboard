@@ -19,6 +19,13 @@ export interface ParentProfile {
   } | null;
   children: ParentChild[];
   emergencyContacts: EmergencyContact[];
+  // ── Extended profile (populated from CentreContact) ─────
+  dob: string | null; // YYYY-MM-DD
+  crn: string | null;
+  relationship: string | null;
+  occupation: string | null;
+  workplace: string | null;
+  workPhone: string | null;
 }
 
 export interface ParentChild {
@@ -68,6 +75,14 @@ export interface UpdateAccountPayload {
     phone: string;
     relationship: string;
   }[];
+  firstName?: string;
+  lastName?: string;
+  dob?: string; // YYYY-MM-DD
+  crn?: string;
+  relationship?: string;
+  occupation?: string;
+  workplace?: string;
+  workPhone?: string;
 }
 
 // ── Booking Types ───────────────────────────────────────
@@ -234,7 +249,7 @@ export function useRequestBooking() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["parent", "bookings"] });
-      toast({ description: "Booking request submitted" });
+      toast({ description: "Booking confirmed" });
     },
     onError: (err: Error) => {
       toast({
@@ -390,6 +405,7 @@ export interface ConversationMessage {
   senderType: "staff" | "parent";
   senderName: string;
   body: string;
+  attachmentUrls: string[];
   isRead: boolean;
   createdAt: string;
 }
@@ -398,6 +414,7 @@ export interface CreateConversationPayload {
   subject: string;
   message: string;
   serviceId?: string;
+  attachmentUrls?: string[];
 }
 
 // ── Messaging Hooks ─────────────────────────────────────
@@ -448,10 +465,18 @@ export function useSendReply() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ conversationId, body }: { conversationId: string; body: string }) =>
+    mutationFn: ({
+      conversationId,
+      body,
+      attachmentUrls,
+    }: {
+      conversationId: string;
+      body: string;
+      attachmentUrls?: string[];
+    }) =>
       mutateApi(`/api/parent/messages/${conversationId}/reply`, {
         method: "POST",
-        body: { body },
+        body: { body, ...(attachmentUrls ? { attachmentUrls } : {}) },
       }),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["parent", "messages", variables.conversationId] });
@@ -528,6 +553,18 @@ export interface TimelinePost {
     id: string;
     child: { id: string; firstName: string; surname: string };
   }>;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+}
+
+export interface PostComment {
+  id: string;
+  body: string;
+  createdAt: string;
+  authorName: string;
+  authorType: "parent" | "staff";
+  authorAvatar?: string;
 }
 
 interface TimelineResponse {
@@ -548,6 +585,97 @@ export function useParentTimeline() {
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: 30_000,
     retry: 2,
+  });
+}
+
+// ── Post engagement (like + comment) ─────────────────────
+
+interface LikeResponse {
+  liked: boolean;
+  likeCount: number;
+}
+
+export function useParentPostLikeToggle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, liked }: { postId: string; liked: boolean }) =>
+      mutateApi<LikeResponse>(`/api/parent/posts/${postId}/like`, {
+        method: liked ? "DELETE" : "POST",
+      }),
+    onMutate: async ({ postId, liked }) => {
+      // Optimistic update: flip likedByMe and adjust likeCount in all cached
+      // timeline pages.
+      await queryClient.cancelQueries({ queryKey: ["parent-timeline"] });
+      const previous = queryClient.getQueryData(["parent-timeline"]);
+      queryClient.setQueryData(["parent-timeline"], (old: any) => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: TimelineResponse) => ({
+            ...page,
+            items: page.items.map((item) =>
+              item.id === postId
+                ? {
+                    ...item,
+                    likedByMe: !liked,
+                    likeCount: item.likeCount + (liked ? -1 : 1),
+                  }
+                : item,
+            ),
+          })),
+        };
+      });
+      return { previous };
+    },
+    onError: (err: Error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["parent-timeline"], context.previous);
+      }
+      toast({
+        variant: "destructive",
+        description: err.message || "Could not update like.",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["parent-timeline"] });
+    },
+  });
+}
+
+interface CommentsResponse {
+  items: PostComment[];
+  nextCursor?: string;
+}
+
+export function useParentPostComments(postId: string | null) {
+  return useQuery<CommentsResponse>({
+    queryKey: ["parent", "post-comments", postId],
+    queryFn: () =>
+      fetchApi<CommentsResponse>(`/api/parent/posts/${postId}/comments?limit=50`),
+    retry: 2,
+    staleTime: 15_000,
+    enabled: !!postId,
+  });
+}
+
+export function useCreateParentPostComment(postId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) =>
+      mutateApi<PostComment>(`/api/parent/posts/${postId}/comments`, {
+        method: "POST",
+        body: { body },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parent", "post-comments", postId] });
+      queryClient.invalidateQueries({ queryKey: ["parent-timeline"] });
+    },
+    onError: (err: Error) => {
+      toast({
+        variant: "destructive",
+        description: err.message || "Couldn't post comment.",
+      });
+    },
   });
 }
 

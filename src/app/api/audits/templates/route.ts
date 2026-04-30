@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const postSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
@@ -42,7 +43,7 @@ export const GET = withApiAuth(async (req, session) => {
  * POST /api/audits/templates — create a new template (admin only)
  */
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = postSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

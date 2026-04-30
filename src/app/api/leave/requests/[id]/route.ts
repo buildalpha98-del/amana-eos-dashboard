@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
+import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { logger } from "@/lib/logger";
 const updateLeaveSchema = z.object({
   status: z
     .enum(["leave_pending", "leave_approved", "leave_rejected", "leave_cancelled"])
@@ -46,7 +49,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 // PATCH /api/leave/requests/[id] — update leave request
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateLeaveSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -139,6 +142,38 @@ const { id } = await context!.params!;
       details: JSON.parse(JSON.stringify(parsed.data)),
     },
   });
+
+  // Notify the requester on approval / denial. Observational — log failures but keep
+  // the PATCH response successful.
+  try {
+    if (parsed.data.status === "leave_approved" || parsed.data.status === "leave_rejected") {
+      const startStr = updated.startDate.toISOString().slice(0, 10);
+      const endStr = updated.endDate.toISOString().slice(0, 10);
+      const approved = parsed.data.status === "leave_approved";
+      const reviewNotes = typeof data.reviewNotes === "string" ? data.reviewNotes : "";
+      await prisma.userNotification.create({
+        data: {
+          userId: existing.userId,
+          type: approved
+            ? NOTIFICATION_TYPES.LEAVE_APPROVED
+            : NOTIFICATION_TYPES.LEAVE_DENIED,
+          title: approved ? "Leave approved" : "Leave denied",
+          body: approved
+            ? `Your leave from ${startStr} to ${endStr} was approved`
+            : reviewNotes
+              ? `Your leave from ${startStr} to ${endStr} was denied: ${reviewNotes}`
+              : `Your leave from ${startStr} to ${endStr} was denied`,
+          link: `/leave?id=${id}`,
+        },
+      });
+    }
+  } catch (err) {
+    logger.error("Failed to create leave-decision notification", {
+      err,
+      leaveRequestId: id,
+      status: parsed.data.status,
+    });
+  }
 
   return NextResponse.json(updated);
 });

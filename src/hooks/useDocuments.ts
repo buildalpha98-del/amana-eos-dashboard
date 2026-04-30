@@ -15,6 +15,7 @@ export interface DocumentData {
   mimeType: string | null;
   centreId: string | null;
   centre: { id: string; name: string; code: string } | null;
+  allServices: boolean;
   folderId: string | null;
   folder: { id: string; name: string } | null;
   uploadedById: string;
@@ -89,6 +90,7 @@ export function useCreateDocument() {
       fileSize?: number;
       mimeType?: string;
       centreId?: string | null;
+      allServices?: boolean;
       folderId?: string | null;
       tags?: string[];
     }) => {
@@ -171,6 +173,7 @@ export function useUpdateDocument() {
       category?: string | null;
       tags?: string[];
       centreId?: string | null;
+      allServices?: boolean;
     }) => {
       return mutateApi(`/api/documents/${id}`, {
         method: "PATCH",

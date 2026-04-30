@@ -16,13 +16,17 @@ import {
   Users,
   Sparkles,
   Download,
+  Grid3x3,
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import type { Role } from "@prisma/client";
+import { ADMIN_ROLES, isAdminRole } from "@/lib/role-permissions";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
+import { PolicyHeatMap } from "@/components/policies/PolicyHeatMap";
+import { PolicyInbox } from "@/components/policies/PolicyInbox";
 import {
   usePolicies,
   usePolicy,
@@ -38,8 +42,6 @@ import {
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-const ADMIN_ROLES: string[] = ["owner", "admin", "head_office"];
 
 const STATUS_TABS = [
   { key: "all", label: "All" },
@@ -62,9 +64,9 @@ export default function PoliciesPage() {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const role = (session?.user?.role as Role) || "staff";
-  const isAdmin = ADMIN_ROLES.includes(role);
+  const isAdmin = isAdminRole(role);
 
-  const [mainTab, setMainTab] = useState<"policies" | "compliance">("policies");
+  const [mainTab, setMainTab] = useState<"policies" | "compliance" | "heat-map">("policies");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [search, setSearch] = useState("");
@@ -145,18 +147,22 @@ export default function PoliciesPage() {
                 {
                   options: [
                     { icon: Shield, label: "Policies", value: "policies" },
+                    { icon: Grid3x3, label: "Heat-map", value: "heat-map" },
                     { icon: Users, label: "Compliance", value: "compliance" },
                   ],
                   value: mainTab,
-                  onChange: (v: string) => setMainTab(v as "policies" | "compliance"),
+                  onChange: (v: string) => setMainTab(v as "policies" | "compliance" | "heat-map"),
                 },
               ],
             }
           : {})}
       />
 
+      {/* Staff-facing inbox (hides itself when nothing pending) */}
+      <PolicyInbox onSelect={setSelectedId} />
+
       {/* Tab content */}
-      {mainTab === "policies" ? (
+      {mainTab === "policies" && (
         <PoliciesTab
           policies={filtered}
           isLoading={isLoading}
@@ -170,9 +176,9 @@ export default function PoliciesPage() {
           onSearchChange={setSearch}
           onSelect={setSelectedId}
         />
-      ) : (
-        <ComplianceTab />
       )}
+      {mainTab === "heat-map" && isAdmin && <PolicyHeatMap />}
+      {mainTab === "compliance" && isAdmin && <ComplianceTab />}
 
       {/* Detail panel */}
       {selectedId && (

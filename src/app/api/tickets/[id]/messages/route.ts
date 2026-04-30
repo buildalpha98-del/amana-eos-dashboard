@@ -5,6 +5,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createMessageSchema = z.object({
   body: z.string().min(1, "Message body is required"),
 });
@@ -27,7 +28,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 // POST /api/tickets/[id]/messages — send a reply
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const raw = await req.json();
+  const raw = await parseJsonBody(req);
   const parsed = createMessageSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });

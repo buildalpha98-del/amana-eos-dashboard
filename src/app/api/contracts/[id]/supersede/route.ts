@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const supersedeSchema = z.object({
   contractType: z.enum(["ct_casual", "ct_part_time", "ct_permanent", "ct_fixed_term"]),
   awardLevel: z
@@ -43,7 +44,7 @@ const { id } = await context!.params!;
     );
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = supersedeSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -109,4 +110,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(newContract, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { feature: "contracts.edit" });

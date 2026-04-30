@@ -1,13 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { parsePagination } from "@/lib/pagination";
 import { withApiAuth } from "@/lib/server-auth";
 
-export const GET = withApiAuth(async (req, session) => {
+const VALID_ROLES: Role[] = [
+  "owner",
+  "head_office",
+  "admin",
+  "marketing",
+  "coordinator",
+  "member",
+  "staff",
+];
+
+export const GET = withApiAuth(async (req) => {
   const { searchParams } = new URL(req.url);
   const pagination = parsePagination(searchParams);
 
-  const userWhere = { active: true };
+  // Optional filters (all safe on unauthenticated-shaped data — all users
+  // in this org can already see each other's names via /directory).
+  const serviceParam = searchParams.get("service")?.trim() || "";
+  const roleParam = searchParams.get("role")?.trim() || "";
+  const qParam = searchParams.get("q")?.trim() || "";
+
+  const userWhere: Prisma.UserWhereInput = { active: true };
+  if (serviceParam) userWhere.serviceId = serviceParam;
+  if (roleParam && (VALID_ROLES as string[]).includes(roleParam)) {
+    userWhere.role = roleParam as Role;
+  }
+  if (qParam) userWhere.name = { contains: qParam, mode: "insensitive" };
 
   const users = await prisma.user.findMany({
     where: userWhere,
@@ -17,6 +39,7 @@ export const GET = withApiAuth(async (req, session) => {
       email: true,
       role: true,
       avatar: true,
+      service: { select: { id: true, name: true } },
       _count: {
         select: {
           ownedRocks: {
@@ -88,6 +111,7 @@ export const GET = withApiAuth(async (req, session) => {
     email: u.email,
     role: u.role,
     avatar: u.avatar,
+    service: u.service ? { id: u.service.id, name: u.service.name } : null,
     activeRocks: u._count.ownedRocks,
     totalTodos: todoMap[u.id]?.total || 0,
     completedTodos: todoMap[u.id]?.completed || 0,
@@ -111,4 +135,4 @@ export const GET = withApiAuth(async (req, session) => {
   }
 
   return NextResponse.json(teamMembers);
-}, { roles: ["owner", "head_office", "admin"] });
+});

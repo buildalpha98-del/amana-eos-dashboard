@@ -20,6 +20,7 @@ export interface MessageItem {
   id: string;
   conversationId: string;
   body: string;
+  attachmentUrls: string[];
   senderType: "staff" | "parent";
   senderId: string;
   senderName: string;
@@ -97,6 +98,7 @@ export function useCreateConversation() {
       serviceId: string;
       subject: string;
       body: string;
+      attachmentUrls?: string[];
     }) =>
       mutateApi<ConversationDetail>("/api/messaging/conversations", {
         method: "POST",
@@ -115,7 +117,7 @@ export function useCreateConversation() {
 export function useSendMessage(conversationId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { body: string }) =>
+    mutationFn: (payload: { body: string; attachmentUrls?: string[] }) =>
       mutateApi<MessageItem>(
         `/api/messaging/conversations/${conversationId}/messages`,
         { method: "POST", body: payload },

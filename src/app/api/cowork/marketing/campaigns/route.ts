@@ -6,6 +6,7 @@ import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createCampaignSchema = z.object({
   name: z.string().min(1, "Name is required"),
   type: z.enum([
@@ -41,7 +42,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const data = createCampaignSchema.parse(body);
 
     // Resolve service IDs from codes if provided

@@ -6,6 +6,7 @@ import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { logCoworkActivity } from "@/app/api/cowork/_lib/cowork-activity-log";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createTaskSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -38,7 +39,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = (await parseJsonBody(req)) as Record<string, unknown>;
     const isBatch = Array.isArray(body.tasks);
     const tasksToCreate = isBatch
       ? batchTaskSchema.parse(body).tasks

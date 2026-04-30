@@ -8,6 +8,7 @@ import { parsePagination } from "@/lib/pagination";
 import { sendAssignmentEmail } from "@/lib/send-assignment-email";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { logger } from "@/lib/logger";
 
 // GET /api/issues — list issues with optional filters
 export const GET = withApiAuth(async (req, session) => {
@@ -132,7 +133,7 @@ const body = await parseJsonBody(req);
       priority: issue.priority,
       raisedBy: issue.raisedBy?.name || session!.user.name || "Unknown",
       url: `${baseUrl}/issues`,
-    }).catch(() => {});
+    }).catch((err) => logger.error("Failed to send Teams notification for new issue", { err, issueId: issue.id, priority: issue.priority }));
   }
 
   // Notify assigned owner via email (fire-and-forget)

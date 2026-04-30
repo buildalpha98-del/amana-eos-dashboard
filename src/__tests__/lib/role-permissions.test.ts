@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import {
   ROLE_DISPLAY_NAMES,
   roleFromDisplayName,
@@ -9,6 +9,7 @@ import {
   getAccessiblePages,
   hasFeature,
   hasMinRole,
+  parseRole,
   permissionsTable,
   allPages,
 } from "@/lib/role-permissions";
@@ -85,8 +86,15 @@ describe("rolePageAccess", () => {
     expect(allowed).toContain("/crm");
     expect(allowed).toContain("/communication");
     expect(allowed).toContain("/enquiries");
+    // Sprint 1 cockpit grants — visible in Akram's sidebar.
+    expect(allowed).toContain("/scorecard");
+    expect(allowed).toContain("/holiday-quest");
+    expect(allowed).toContain("/knowledge");
+    expect(allowed).toContain("/leave");
+    expect(allowed).toContain("/settings");
+    expect(allowed).toContain("/assistant");
+    // Still scoped out — marketing does NOT touch these.
     expect(allowed).not.toContain("/financials");
-    expect(allowed).not.toContain("/settings");
     expect(allowed).not.toContain("/team");
     expect(allowed).not.toContain("/rocks");
   });
@@ -103,9 +111,15 @@ describe("rolePageAccess", () => {
     expect(allowed).not.toContain("/team");
   });
 
-  it("member has same access as coordinator", () => {
-    // member and coordinator have the same page list
-    expect(rolePageAccess.member).toEqual(rolePageAccess.coordinator);
+  it("member access is a subset of coordinator access", () => {
+    // Coordinator access is a superset of member's — everywhere a member can
+    // go, a coordinator can too. The reverse isn't required (e.g. coordinators
+    // see /centre-avatars/[serviceId] for their own service; members don't).
+    const memberPages = new Set(rolePageAccess.member);
+    const coordPages = new Set(rolePageAccess.coordinator);
+    for (const page of memberPages) {
+      expect(coordPages.has(page)).toBe(true);
+    }
   });
 
   it("staff has very limited access", () => {
@@ -352,5 +366,42 @@ describe("roleFeatures", () => {
     for (const role of ALL_ROLES) {
       expect(roleFeatures[role].length).toBeGreaterThanOrEqual(marketingCount);
     }
+  });
+});
+
+// ── 9. parseRole (safe session.user.role narrowing) ───────
+
+describe("parseRole", () => {
+  it("returns the Role enum value for a valid role string", () => {
+    expect(parseRole("admin")).toBe(Role.admin);
+    expect(parseRole("owner")).toBe(Role.owner);
+    expect(parseRole("coordinator")).toBe(Role.coordinator);
+  });
+
+  it("returns null for undefined", () => {
+    expect(parseRole(undefined)).toBeNull();
+  });
+
+  it("returns null for null", () => {
+    expect(parseRole(null)).toBeNull();
+  });
+
+  it("returns null for empty string", () => {
+    expect(parseRole("")).toBeNull();
+  });
+
+  it("returns null for nonsense strings", () => {
+    expect(parseRole("nonsense")).toBeNull();
+    expect(parseRole("administrator")).toBeNull();
+  });
+
+  it("is case-sensitive — returns null for wrong case", () => {
+    expect(parseRole("ADMIN")).toBeNull();
+    expect(parseRole("Admin")).toBeNull();
+  });
+
+  it("returns null for non-string types", () => {
+    expect(parseRole(123 as unknown)).toBeNull();
+    expect(parseRole({} as unknown)).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const patchSchema = z.object({
   executiveSummary: z.string().optional(),
   financialNarrative: z.string().optional(),
@@ -38,7 +39,7 @@ export const PATCH = withApiAuth(async (req, session, context) => {
     return NextResponse.json({ error: "Report not found" }, { status: 404 });
   }
 
-  const raw = await req.json();
+  const raw = await parseJsonBody(req);
   const parsed = patchSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(

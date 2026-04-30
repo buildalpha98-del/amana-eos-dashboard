@@ -114,8 +114,10 @@ export function useDeleteHolidayQuestDay() {
   });
 }
 
+type HolidayQuestPromoInput = { serviceId: string; from: string; to: string };
+
 export function useGenerateHolidayQuestPromo() {
-  return useMutation<HolidayQuestPromoResult, Error, { serviceId: string; from: string; to: string }>({
+  return useMutation<HolidayQuestPromoResult, Error, HolidayQuestPromoInput>({
     mutationFn: async (data) => {
       return mutateApi<HolidayQuestPromoResult>("/api/communication/holiday-quest/promo", {
         method: "POST",

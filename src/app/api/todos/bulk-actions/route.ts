@@ -4,6 +4,7 @@ import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bulkActionSchema = z.object({
   action: z.enum(["complete", "delete", "assign"]),
   ids: z.array(z.string().min(1)).min(1).max(200),
@@ -12,7 +13,7 @@ const bulkActionSchema = z.object({
 
 export const POST = withApiAuth(async (req, session) => {
 try {
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = bulkActionSchema.safeParse(body);
 
   if (!parsed.success) {

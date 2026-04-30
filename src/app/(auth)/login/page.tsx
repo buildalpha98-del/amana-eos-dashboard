@@ -2,9 +2,37 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
+
+/**
+ * Pick the post-sign-in destination. Service-scoped roles (staff / member /
+ * coordinator) with an assigned `serviceId` land directly on their service's
+ * detail page — tablets at the centre kiosk shouldn't go via /dashboard.
+ * Org-wide roles continue to land on /dashboard.
+ *
+ * Honours an explicit `callbackUrl` in the URL query — forgot-password
+ * redirects + bookmarked links should still work.
+ */
+export function destinationForSession(
+  session: {
+    user?: { role?: string; serviceId?: string | null };
+  } | null,
+  callbackUrl: string,
+): string {
+  // Explicit callback wins, unless it's the generic /dashboard default.
+  if (callbackUrl && callbackUrl !== "/dashboard") return callbackUrl;
+
+  const role = session?.user?.role;
+  const serviceId = session?.user?.serviceId;
+  const serviceScoped =
+    (role === "staff" || role === "member" || role === "coordinator") &&
+    !!serviceId;
+
+  if (serviceScoped) return `/services/${serviceId}?tab=today`;
+  return "/dashboard";
+}
 
 function LoginForm() {
   const router = useRouter();
@@ -35,7 +63,11 @@ function LoginForm() {
       setError("Invalid email or password");
       setLoading(false);
     } else {
-      router.push(callbackUrl);
+      // Fetch the fresh session so we can route service-scoped roles directly
+      // to their centre page. `getSession()` forces a JWT decode + /api/auth/session
+      // round-trip, so the role + serviceId claims are available.
+      const session = await getSession();
+      router.push(destinationForSession(session, callbackUrl));
       router.refresh();
     }
   };

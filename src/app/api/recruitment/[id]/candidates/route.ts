@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createCandidateSchema = z.object({
   name: z.string().min(1, "name is required"),
   email: z.string().email().optional().nullable(),
@@ -26,11 +27,11 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(candidates);
-}, { roles: ["owner", "head_office", "admin"] });
+}, { roles: ["owner", "head_office", "admin", "coordinator"] });
 
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createCandidateSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -65,4 +66,4 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(candidate, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { feature: "recruitment.candidates.manage" });

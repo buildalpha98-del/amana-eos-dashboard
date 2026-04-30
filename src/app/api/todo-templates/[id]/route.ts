@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const patchSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
@@ -16,7 +17,7 @@ const patchSchema = z.object({
 // PATCH /api/todo-templates/[id] — update a template
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

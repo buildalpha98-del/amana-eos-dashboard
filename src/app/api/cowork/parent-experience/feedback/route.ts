@@ -6,6 +6,7 @@ import { z } from "zod";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
   const day = d.getDay();
@@ -114,7 +115,7 @@ export const POST = withApiHandler(async (req) => {
 
   let body: unknown;
   try {
-    body = await req.json();
+    body = await parseJsonBody(req);
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }

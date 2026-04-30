@@ -1,16 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { CreditCard, Download, FileText, AlertCircle, Building2, ChevronDown, ChevronUp } from "lucide-react";
-import { useParentStatements, useParentStatementDetail, type StatementRecord, type StatementDetailResponse } from "@/hooks/useParentPortal";
+import { Download, FileText, AlertCircle, Building2, ChevronDown, ChevronUp } from "lucide-react";
+import { useParentStatements, useParentStatementDetail, type StatementRecord } from "@/hooks/useParentPortal";
+import { SectionLabel, StatusBadge, type StatusVariant } from "@/components/parent/ui";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/utils";
 
-const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  issued: { bg: "bg-blue-100", text: "text-blue-700", label: "Issued" },
-  paid: { bg: "bg-green-100", text: "text-green-700", label: "Paid" },
-  unpaid: { bg: "bg-amber-100", text: "text-amber-700", label: "Unpaid" },
-  overdue: { bg: "bg-red-100", text: "text-red-600", label: "Overdue" },
+const STATUS_TO_VARIANT: Record<string, StatusVariant> = {
+  issued: "confirmed",
+  paid: "in-care",
+  unpaid: "requested",
+  overdue: "overdue",
 };
 
 const SESSION_LABELS: Record<string, string> = {
@@ -34,43 +35,43 @@ export default function BillingPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-heading font-bold text-[#1a1a2e]">
+        <h1 className="text-[24px] font-heading font-bold text-[color:var(--color-foreground)] leading-tight">
           Billing
         </h1>
-        <p className="text-sm text-[#7c7c8a] mt-1">
+        <p className="text-sm text-[color:var(--color-muted)] mt-1">
           View your balance and download statements.
         </p>
       </div>
 
       {/* Balance summary */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-[#e8e4df]">
+      <div className="warm-card">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs font-medium text-[#7c7c8a] uppercase tracking-wider">
+            <p className="text-[11px] font-heading font-semibold text-[color:var(--color-muted)] uppercase tracking-[0.08em]">
               Current Balance
             </p>
             <p
               className={cn(
                 "text-3xl font-heading font-bold mt-1",
                 summary.currentBalance === 0
-                  ? "text-green-600"
-                  : "text-red-600"
+                  ? "text-[color:var(--color-success)]"
+                  : "text-[color:var(--color-status-alert-fg)]",
               )}
             >
               ${summary.currentBalance.toFixed(2)}
             </p>
           </div>
           {summary.overdueCount > 0 && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-600 text-xs font-semibold">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[color:var(--color-status-alert-bg)] text-[color:var(--color-status-alert-fg)] text-xs font-semibold">
               <AlertCircle className="w-3 h-3" />
               {summary.overdueCount} overdue
             </span>
           )}
         </div>
-        <div className="mt-3 pt-3 border-t border-[#e8e4df]">
+        <div className="mt-3 pt-3 border-t border-[color:var(--color-border)]">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#7c7c8a]">Next Direct Debit</span>
-            <span className="text-sm font-medium text-[#1a1a2e]">
+            <span className="text-xs text-[color:var(--color-muted)]">Next Direct Debit</span>
+            <span className="text-sm font-medium text-[color:var(--color-foreground)]">
               {nextDebitDate}
             </span>
           </div>
@@ -79,9 +80,7 @@ export default function BillingPage() {
 
       {/* Statements */}
       <section>
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
-          Statements
-        </h2>
+        <SectionLabel label="Statements" />
 
         {statements.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-[#e8e4df]">
@@ -111,25 +110,25 @@ export default function BillingPage() {
         )}
       </section>
 
-      {/* Payment Methods (mock — Australian direct debit) */}
+      {/* Payment Methods */}
       <section>
-        <h2 className="text-sm font-heading font-semibold text-[#7c7c8a] uppercase tracking-wider mb-3">
-          Payment Method
-        </h2>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e8e4df]">
+        <SectionLabel label="Payment Method" />
+        <div className="warm-card">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#004E64]/10 flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-[#004E64]" />
+            <div className="w-10 h-10 rounded-full bg-[color:var(--color-brand-soft)] flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-[color:var(--color-brand)]" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-[#1a1a2e]">
+              <p className="text-sm font-semibold text-[color:var(--color-foreground)]">
                 Direct Debit — BSB 000-000
               </p>
-              <p className="text-xs text-[#7c7c8a]">Account ending in 1234</p>
+              <p className="text-xs text-[color:var(--color-muted)]">
+                Account ending in 1234
+              </p>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-[#e8e4df]">
-            <p className="text-xs text-[#7c7c8a]">
+          <div className="mt-3 pt-3 border-t border-[color:var(--color-border)]">
+            <p className="text-xs text-[color:var(--color-muted)]">
               To update your payment method, please contact the centre.
             </p>
           </div>
@@ -150,7 +149,10 @@ function StatementCard({
   isExpanded: boolean;
   onToggle: () => void;
 }) {
-  const status = STATUS_STYLES[statement.status] ?? STATUS_STYLES.unpaid;
+  const statusVariant: StatusVariant =
+    STATUS_TO_VARIANT[statement.status] ?? "requested";
+  const statusLabel =
+    statement.status.charAt(0).toUpperCase() + statement.status.slice(1);
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -169,7 +171,7 @@ function StatementCard({
   const periodLabel = `${formatDate(statement.periodStart)} – ${formatDate(statement.periodEnd)}`;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-[#e8e4df]">
+    <div className="warm-card !p-0 overflow-hidden">
       <button
         type="button"
         className="w-full p-4 text-left"
@@ -177,25 +179,17 @@ function StatementCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#1a1a2e]">{periodLabel}</p>
-            <p className="text-xs text-[#7c7c8a] mt-0.5">
+            <p className="text-sm font-semibold text-[color:var(--color-foreground)]">{periodLabel}</p>
+            <p className="text-xs text-[color:var(--color-muted)] mt-0.5">
               {statement.service.name}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span
-              className={cn(
-                "inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold",
-                status.bg,
-                status.text
-              )}
-            >
-              {status.label}
-            </span>
+            <StatusBadge variant={statusVariant} label={statusLabel} />
             {isExpanded ? (
-              <ChevronUp className="w-4 h-4 text-[#7c7c8a]" />
+              <ChevronUp className="w-4 h-4 text-[color:var(--color-muted)]" />
             ) : (
-              <ChevronDown className="w-4 h-4 text-[#7c7c8a]" />
+              <ChevronDown className="w-4 h-4 text-[color:var(--color-muted)]" />
             )}
           </div>
         </div>

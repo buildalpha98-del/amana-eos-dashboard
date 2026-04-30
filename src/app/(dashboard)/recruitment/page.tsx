@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Briefcase, Plus, Users, Clock, CheckCircle2, Search } from "lucide-react";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { exportToCsv } from "@/lib/csv-export";
@@ -9,16 +10,36 @@ import { ServiceFilter } from "@/components/marketing/ServiceFilter";
 import { NewVacancyModal } from "@/components/recruitment/NewVacancyModal";
 import { VacancyTable } from "@/components/recruitment/VacancyTable";
 import { VacancyDetailPanel } from "@/components/recruitment/VacancyDetailPanel";
+import { ReferralsTable } from "@/components/recruitment/ReferralsTable";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 
+type Tab = "vacancies" | "referrals";
+
 export default function RecruitmentPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlTab = searchParams.get("tab") === "referrals" ? "referrals" : "vacancies";
+  const [activeTab, setActiveTab] = useState<Tab>(urlTab);
+
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [showNewVacancy, setShowNewVacancy] = useState(false);
   const [selectedVacancyId, setSelectedVacancyId] = useState<string | null>(null);
+
+  function handleTabChange(tab: Tab) {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "referrals") {
+      params.set("tab", "referrals");
+    } else {
+      params.delete("tab");
+    }
+    const qs = params.toString();
+    router.replace(qs ? `/recruitment?${qs}` : "/recruitment", { scroll: false });
+  }
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["recruitment-vacancies", selectedServiceId, statusFilter, search],
@@ -42,7 +63,7 @@ export default function RecruitmentPage() {
     filled: vacancies.filter((v: { status: string }) => v.status === "filled").length,
   };
 
-  if (error) {
+  if (error && activeTab === "vacancies") {
     return (
       <div className="max-w-7xl mx-auto">
         <ErrorState
@@ -60,94 +81,132 @@ export default function RecruitmentPage() {
       <PageHeader
         title="Recruitment Pipeline"
         description="Track vacancies, candidates, and staff referrals"
-        primaryAction={{
-          label: "New Vacancy",
-          icon: Plus,
-          onClick: () => setShowNewVacancy(true),
-        }}
+        primaryAction={
+          activeTab === "vacancies"
+            ? {
+                label: "New Vacancy",
+                icon: Plus,
+                onClick: () => setShowNewVacancy(true),
+              }
+            : undefined
+        }
       >
-        <div className="flex flex-wrap items-center gap-3">
-          <ServiceFilter value={selectedServiceId} onChange={setSelectedServiceId} />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-border rounded-lg"
-          >
-            <option value="">All Statuses</option>
-            <option value="open">Open</option>
-            <option value="interviewing">Interviewing</option>
-            <option value="offered">Offered</option>
-            <option value="filled">Filled</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search vacancies..."
-              aria-label="Search vacancies"
-              className="pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-full sm:w-48"
+        {activeTab === "vacancies" && (
+          <div className="flex flex-wrap items-center gap-3">
+            <ServiceFilter value={selectedServiceId} onChange={setSelectedServiceId} />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-border rounded-lg"
+            >
+              <option value="">All Statuses</option>
+              <option value="open">Open</option>
+              <option value="interviewing">Interviewing</option>
+              <option value="offered">Offered</option>
+              <option value="filled">Filled</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search vacancies..."
+                aria-label="Search vacancies"
+                className="pl-9 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent w-full sm:w-48"
+              />
+            </div>
+            <ExportButton
+              onClick={() =>
+                exportToCsv(
+                  `amana-recruitment-${new Date().toISOString().slice(0, 10)}`,
+                  vacancies,
+                  [
+                    { header: "ID", accessor: (v: Record<string, unknown>) => v.id as string },
+                    { header: "Title", accessor: (v: Record<string, unknown>) => v.title as string },
+                    { header: "Status", accessor: (v: Record<string, unknown>) => v.status as string },
+                    { header: "Department", accessor: (v: Record<string, unknown>) => (v.department as string) ?? "" },
+                    { header: "Employment Type", accessor: (v: Record<string, unknown>) => (v.employmentType as string) ?? "" },
+                    { header: "Centre", accessor: (v: Record<string, unknown>) => ((v.service as Record<string, unknown>)?.name as string) ?? "" },
+                    { header: "Candidates", accessor: (v: Record<string, unknown>) => ((v._count as Record<string, unknown>)?.candidates as number) ?? 0 },
+                    { header: "Created", accessor: (v: Record<string, unknown>) => v.createdAt ? new Date(v.createdAt as string).toLocaleDateString("en-AU") : "" },
+                  ],
+                )
+              }
+              disabled={vacancies.length === 0}
             />
           </div>
-          <ExportButton
-            onClick={() =>
-              exportToCsv(
-                `amana-recruitment-${new Date().toISOString().slice(0, 10)}`,
-                vacancies,
-                [
-                  { header: "ID", accessor: (v: Record<string, unknown>) => v.id as string },
-                  { header: "Title", accessor: (v: Record<string, unknown>) => v.title as string },
-                  { header: "Status", accessor: (v: Record<string, unknown>) => v.status as string },
-                  { header: "Department", accessor: (v: Record<string, unknown>) => (v.department as string) ?? "" },
-                  { header: "Employment Type", accessor: (v: Record<string, unknown>) => (v.employmentType as string) ?? "" },
-                  { header: "Centre", accessor: (v: Record<string, unknown>) => ((v.service as Record<string, unknown>)?.name as string) ?? "" },
-                  { header: "Candidates", accessor: (v: Record<string, unknown>) => ((v._count as Record<string, unknown>)?.candidates as number) ?? 0 },
-                  { header: "Created", accessor: (v: Record<string, unknown>) => v.createdAt ? new Date(v.createdAt as string).toLocaleDateString("en-AU") : "" },
-                ],
-              )
-            }
-            disabled={vacancies.length === 0}
-          />
-        </div>
+        )}
       </PageHeader>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={Briefcase} label="Open" value={stats.open} color="blue" />
-        <StatCard icon={Users} label="Interviewing" value={stats.interviewing} color="amber" />
-        <StatCard icon={Clock} label="Offered" value={stats.offered} color="purple" />
-        <StatCard icon={CheckCircle2} label="Filled" value={stats.filled} color="emerald" />
+      {/* Tab Switcher */}
+      <div className="flex items-center gap-1 mb-6 border-b border-border">
+        <button
+          type="button"
+          onClick={() => handleTabChange("vacancies")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === "vacancies"
+              ? "border-brand text-brand"
+              : "border-transparent text-muted hover:text-foreground"
+          }`}
+        >
+          Vacancies
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTabChange("referrals")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === "referrals"
+              ? "border-brand text-brand"
+              : "border-transparent text-muted hover:text-foreground"
+          }`}
+        >
+          Staff Referrals
+        </button>
       </div>
 
-      {/* Empty State */}
-      {!isLoading && vacancies.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 bg-card rounded-xl border border-border">
-          <div className="p-4 bg-surface rounded-full mb-4">
-            <Briefcase className="h-8 w-8 text-muted" />
+      {activeTab === "vacancies" ? (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+            <StatCard icon={Briefcase} label="Open" value={stats.open} color="blue" />
+            <StatCard icon={Users} label="Interviewing" value={stats.interviewing} color="amber" />
+            <StatCard icon={Clock} label="Offered" value={stats.offered} color="purple" />
+            <StatCard icon={CheckCircle2} label="Filled" value={stats.filled} color="emerald" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-1">No vacancies found</h3>
-          <p className="text-sm text-muted mb-4">
-            {search || statusFilter || selectedServiceId
-              ? "Try adjusting your filters or search terms."
-              : "Get started by creating your first vacancy."}
-          </p>
-          <button
-            onClick={() => setShowNewVacancy(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-brand text-white text-sm font-medium hover:bg-brand-hover transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            New Vacancy
-          </button>
-        </div>
+
+          {/* Empty State */}
+          {!isLoading && vacancies.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 bg-card rounded-xl border border-border">
+              <div className="p-4 bg-surface rounded-full mb-4">
+                <Briefcase className="h-8 w-8 text-muted" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">No vacancies found</h3>
+              <p className="text-sm text-muted mb-4">
+                {search || statusFilter || selectedServiceId
+                  ? "Try adjusting your filters or search terms."
+                  : "Get started by creating your first vacancy."}
+              </p>
+              <button
+                onClick={() => setShowNewVacancy(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-md bg-brand text-white text-sm font-medium hover:bg-brand-hover transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                New Vacancy
+              </button>
+            </div>
+          ) : (
+            /* Vacancy Table */
+            <VacancyTable
+              vacancies={vacancies}
+              isLoading={isLoading}
+              onSelect={(id) => setSelectedVacancyId(id)}
+            />
+          )}
+        </>
       ) : (
-        /* Vacancy Table */
-        <VacancyTable
-          vacancies={vacancies}
-          isLoading={isLoading}
-          onSelect={(id) => setSelectedVacancyId(id)}
-        />
+        <ReferralsTable />
       )}
 
       {/* New Vacancy Modal */}

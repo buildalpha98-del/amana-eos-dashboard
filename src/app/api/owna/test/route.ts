@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOwnaClient } from "@/lib/owna";
 import { withApiAuth } from "@/lib/server-auth";
+import { ADMIN_ROLES } from "@/lib/role-permissions";
 
 export const GET = withApiAuth(async (req, session) => {
   const owna = getOwnaClient();
@@ -24,4 +25,4 @@ export const GET = withApiAuth(async (req, session) => {
       error: err instanceof Error ? err.message : "Connection failed",
     });
   }
-}, { roles: ["owner", "admin", "head_office"] });
+}, { roles: [...ADMIN_ROLES] });

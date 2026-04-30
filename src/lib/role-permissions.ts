@@ -1,4 +1,34 @@
-import type { Role } from "@prisma/client";
+import { Role } from "@prisma/client";
+
+/**
+ * The set of roles considered "admin" across page-level, feature-level, and
+ * API-route-level access checks. Owner, head_office, admin — consolidated to
+ * prevent drift across call sites. Used by `withApiAuth({ roles: [...ADMIN_ROLES] })`,
+ * in page-guard `.includes()` checks via `isAdminRole()`, and in `<RoleGate>`-like
+ * component gates.
+ */
+export const ADMIN_ROLES = ["owner", "admin", "head_office"] as const;
+
+/**
+ * Check whether a role string is an admin role (owner, head_office, or admin).
+ * Safe narrowing — accepts any string and returns whether it matches ADMIN_ROLES.
+ */
+export function isAdminRole(role: string | null | undefined): boolean {
+  if (!role) return false;
+  return (ADMIN_ROLES as readonly string[]).includes(role);
+}
+
+/**
+ * Safely narrow a session role value to the Prisma Role enum.
+ *
+ * Returns the Role enum if valid, null otherwise. Case-sensitive.
+ * Use this instead of `session.user.role as Role` to avoid unsafe casts
+ * on potentially-corrupt session data.
+ */
+export function parseRole(value: unknown): Role | null {
+  if (typeof value !== "string") return null;
+  return (Object.values(Role) as string[]).includes(value) ? (value as Role) : null;
+}
 
 // ---------------------------------------------------------------------------
 // 0. Role display names (human-readable labels for the UI)
@@ -41,10 +71,19 @@ export const allPages = [
   "/financials",
   "/performance",
   "/services",
+  "/services/[id]",
   "/projects",
   "/tickets",
   "/marketing",
+  "/marketing/vendor-briefs",
+  "/marketing/activations",
+  "/marketing/newsletter-chase",
+  "/marketing/team",
+  "/marketing/coordinator-todos",
+  "/centre-avatars",
+  "/centre-avatars/[serviceId]",
   "/communication",
+  "/communication/whatsapp-compliance",
   "/compliance",
   "/compliance/templates",
   "/activity-library",
@@ -73,6 +112,7 @@ export const allPages = [
   "/messaging",
   "/enrolments",
   "/children",
+  "/children/[id]",
   "/conversions",
   // Operations extras
   "/roll-call",
@@ -88,8 +128,11 @@ export const allPages = [
     "/tools/amana-way-one-pager",
     "/tools/employee-handbook",
   // Admin
+  "/leadership",
   "/automations",
   "/audit-log",
+  "/admin/feedback",
+  "/admin/ai-drafts",
   // Support — accessible to all roles
   "/guides",
   "/help",
@@ -98,6 +141,12 @@ export const allPages = [
   "/queue",
   // Email
   "/marketing/email/compose",
+  // Staff profile (People module)
+  "/staff/[id]",
+  // Roster self-view (People module)
+  "/roster/me",
+  // Roster — shift swap inbox
+  "/roster/swaps",
 ] as const;
 
 export type AppPage = (typeof allPages)[number];
@@ -120,7 +169,15 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/getting-started",
     "/my-portal",
     "/marketing",
+    "/marketing/vendor-briefs",
+    "/marketing/activations",
+    "/marketing/newsletter-chase",
+    "/marketing/team",
+    "/marketing/coordinator-todos",
+    "/centre-avatars",
+    "/centre-avatars/[serviceId]",
     "/communication",
+    "/communication/whatsapp-compliance",
     "/crm",
     "/enquiries",
     "/contact-centre",
@@ -128,6 +185,10 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/projects",
     "/documents",
     "/profile",
+    "/children/[id]",
+    "/staff/[id]",
+    "/roster/me",
+    "/roster/swaps",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
     "/tools/amana-way-one-pager",
@@ -136,6 +197,13 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/help",
     "/directory",
     "/queue",
+    // Granted for Marketing Coordinator cockpit (Sprint 1):
+    "/scorecard",
+    "/holiday-quest",
+    "/knowledge",
+    "/leave",
+    "/settings",
+    "/assistant",
   ],
   coordinator: [
     "/dashboard",
@@ -146,6 +214,10 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/issues",
     "/meetings",
     "/services",
+    // Read-only view of their own centre's Avatar (write actions enforced
+    // server-side per route). The list page /centre-avatars is intentionally
+    // omitted — coordinators go straight to their own service.
+    "/centre-avatars/[serviceId]",
     "/activity-library",
     "/communication",
     "/compliance",
@@ -153,6 +225,9 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/documents",
     "/onboarding",
     "/profile",
+    "/staff/[id]",
+    "/roster/me",
+    "/roster/swaps",
     "/incidents",
     "/policies",
     "/holiday-quest",
@@ -161,6 +236,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/messaging",
     "/enrolments",
     "/children",
+    "/children/[id]",
     "/roll-call",
     "/bookings",
     "/billing",
@@ -168,6 +244,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/knowledge",
     "/leave",
     "/timesheets",
+    "/contracts",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
     "/tools/amana-way-one-pager",
@@ -193,6 +270,9 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/documents",
     "/onboarding",
     "/profile",
+    "/staff/[id]",
+    "/roster/me",
+    "/roster/swaps",
     "/incidents",
     "/policies",
     "/holiday-quest",
@@ -201,6 +281,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/messaging",
     "/enrolments",
     "/children",
+    "/children/[id]",
     "/roll-call",
     "/bookings",
     "/billing",
@@ -208,6 +289,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/knowledge",
     "/leave",
     "/timesheets",
+    "/contracts",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
     "/tools/amana-way-one-pager",
@@ -229,7 +311,12 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/compliance",
     "/policies",
     "/profile",
+    "/children/[id]",
+    "/staff/[id]",
+    "/roster/me",
+    "/roster/swaps",
     "/leave",
+    "/contracts",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
     "/tools/amana-way-one-pager",
@@ -238,6 +325,13 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/help",
     "/directory",
     "/queue",
+    // Staff on-shift tools — gated to their assigned service by the Service
+    // detail page's membership check (staff without a serviceId get a 403
+    // from every /api/services/[id]/* route).
+    "/services",
+    "/services/[id]",
+    "/roll-call",
+    "/bookings",
   ],
 };
 
@@ -382,6 +476,11 @@ export const features = [
   "contracts.edit",
   "contracts.acknowledge",
 
+  // HR — Recruitment
+  "recruitment.view",
+  "recruitment.edit",
+  "recruitment.candidates.manage",
+
   // Policies
   "policies.view",
   "policies.create",
@@ -508,6 +607,7 @@ const coordinatorFeatures: readonly Feature[] = [
   "attendance.view",
   "attendance.create",
   "attendance.edit",
+  "recruitment.view", // coordinators can see vacancies in their service
 ];
 
 const staffFeatures: readonly Feature[] = [
@@ -546,12 +646,33 @@ export const roleFeatures: Record<Role, readonly Feature[]> = {
 // 3. Helper functions
 // ---------------------------------------------------------------------------
 
+/**
+ * Match a registered page path (which may contain `[id]` dynamic segments)
+ * against a concrete href. A registered path like `/children/[id]` matches
+ * `/children/abc123` (and any sub-path under it). Exact/prefix matching still
+ * applies for plain paths.
+ */
+function pathMatches(pattern: string, href: string): boolean {
+  // Fast path — literal equality or prefix match on non-dynamic patterns
+  if (href === pattern) return true;
+  if (!pattern.includes("[")) {
+    return href.startsWith(pattern + "/");
+  }
+  // Dynamic pattern: convert [x] segments into a single-segment regex
+  const re = new RegExp(
+    "^" +
+      pattern.replace(/\[[^/]+\]/g, "[^/]+").replace(/\//g, "\\/") +
+      "(?:\\/.*)?$",
+  );
+  return re.test(href);
+}
+
 /** Can the given role access a page (or a sub-path of it)? */
 export function canAccessPage(role: Role | undefined, href: string): boolean {
   if (!role) return true; // still loading; let server middleware decide
   const allowed = rolePageAccess[role];
   if (!allowed) return true;
-  return allowed.some((path) => href === path || href.startsWith(path + "/"));
+  return allowed.some((path) => pathMatches(path, href));
 }
 
 /** Convenience: return the list of accessible page paths */

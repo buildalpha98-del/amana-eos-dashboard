@@ -5,11 +5,11 @@ import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Printer, Link2, Check, ChevronDown } from "lucide-react";
 import { staffGuides, guideRoleKeys } from "@/lib/staff-guides";
-import { ROLE_DISPLAY_NAMES } from "@/lib/role-permissions";
+import { ROLE_DISPLAY_NAMES, ADMIN_ROLES } from "@/lib/role-permissions";
 import { QuickStartGuide } from "@/components/guides/QuickStartGuide";
 import type { Role } from "@prisma/client";
 
-const ADMIN_ROLES = new Set<string>(["owner", "admin", "head_office"]);
+const ADMIN_ROLE_SET = new Set<string>(ADMIN_ROLES);
 
 export function GuidesContent() {
   const { data: session } = useSession();
@@ -17,7 +17,7 @@ export function GuidesContent() {
   const router = useRouter();
 
   const userRole = (session?.user as { role?: string } | undefined)?.role ?? "staff";
-  const canSwitchRoles = ADMIN_ROLES.has(userRole);
+  const canSwitchRoles = ADMIN_ROLE_SET.has(userRole);
 
   // Determine active role from URL param (admin only) or session
   const paramRole = searchParams.get("role");

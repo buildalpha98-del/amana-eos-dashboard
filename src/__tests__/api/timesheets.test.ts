@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession, mockNoSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
+import { _clearUserActiveCache } from "@/lib/server-auth";
 
 // Mock service-scope (owner/admin get null scope = see all)
 vi.mock("@/lib/service-scope", () => ({
@@ -39,6 +41,8 @@ import {
   GET as getTimesheet,
   PATCH,
 } from "@/app/api/timesheets/[id]/route";
+import { POST as submitTimesheet } from "@/app/api/timesheets/[id]/submit/route";
+import { POST as approveTimesheet } from "@/app/api/timesheets/[id]/approve/route";
 
 describe("GET /api/timesheets", () => {
   beforeEach(() => {
@@ -98,8 +102,25 @@ describe("GET /api/timesheets", () => {
 
 describe("POST /api/timesheets", () => {
   beforeEach(() => {
+    _clearUserActiveCache();
     vi.clearAllMocks();
     prismaMock.user.findUnique.mockResolvedValue({ active: true });
+  });
+
+  it("returns 400 (not 500) on malformed JSON body", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "owner" });
+
+    // Use NextRequest directly — createRequest helper only sends JSON-stringified bodies.
+    const req = new NextRequest("http://localhost:3000/api/timesheets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{not-json",
+    });
+    const res = await POST(req);
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBeTruthy();
   });
 
   it("returns 400 with missing required fields", async () => {
@@ -203,5 +224,153 @@ describe("PATCH /api/timesheets/[id]", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.notes).toBe("Updated notes");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/timesheets/[id]/submit — notifies coordinators
+// ---------------------------------------------------------------------------
+
+describe("POST /api/timesheets/[id]/submit", () => {
+  beforeEach(() => {
+    _clearUserActiveCache();
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+  });
+
+  it("creates a TIMESHEET_SUBMITTED notification for each coordinator", async () => {
+    mockSession({
+      id: "user-1",
+      name: "Daniel",
+      role: "staff",
+      serviceId: "svc-1",
+    });
+
+    prismaMock.timesheet.findUnique.mockResolvedValue({
+      id: "ts-1",
+      serviceId: "svc-1",
+      weekEnding: new Date("2026-04-18"),
+      status: "ts_draft",
+      submittedById: null,
+      deleted: false,
+    });
+    prismaMock.timesheet.update.mockResolvedValue({
+      id: "ts-1",
+      serviceId: "svc-1",
+      weekEnding: new Date("2026-04-18"),
+      status: "submitted",
+      submittedAt: new Date(),
+      submittedById: "user-1",
+      service: { id: "svc-1", name: "Svc", code: "SVC1" },
+      _count: { entries: 3 },
+    });
+    prismaMock.activityLog.create.mockResolvedValue({});
+    prismaMock.user.findMany.mockResolvedValue([{ id: "coord-1" }]);
+    prismaMock.userNotification.create.mockResolvedValue({});
+
+    const req = createRequest("POST", "/api/timesheets/ts-1/submit");
+    const res = await submitTimesheet(req, {
+      params: Promise.resolve({ id: "ts-1" }),
+    } as any);
+
+    expect(res.status).toBe(200);
+    expect(prismaMock.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          role: "coordinator",
+          serviceId: "svc-1",
+          active: true,
+        }),
+      }),
+    );
+    expect(prismaMock.userNotification.create).toHaveBeenCalledTimes(1);
+    const args = prismaMock.userNotification.create.mock.calls[0][0];
+    expect(args.data.userId).toBe("coord-1");
+    expect(args.data.type).toBe("timesheet_submitted");
+    expect(args.data.title).toContain("Daniel");
+    expect(args.data.link).toBe("/timesheets?id=ts-1");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/timesheets/[id]/approve — notifies the submitter
+// ---------------------------------------------------------------------------
+
+describe("POST /api/timesheets/[id]/approve", () => {
+  beforeEach(() => {
+    _clearUserActiveCache();
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+  });
+
+  it("creates a TIMESHEET_APPROVED notification for the submitter", async () => {
+    mockSession({ id: "approver-1", name: "Manager", role: "owner" });
+
+    prismaMock.timesheet.findUnique.mockResolvedValue({
+      id: "ts-1",
+      serviceId: "svc-1",
+      weekEnding: new Date("2026-04-18"),
+      status: "submitted",
+      submittedById: "staff-99",
+      deleted: false,
+    });
+    prismaMock.timesheet.update.mockResolvedValue({
+      id: "ts-1",
+      serviceId: "svc-1",
+      weekEnding: new Date("2026-04-18"),
+      status: "approved",
+      approvedAt: new Date(),
+      approvedById: "approver-1",
+      service: { id: "svc-1", name: "Svc", code: "SVC1" },
+      _count: { entries: 3 },
+    });
+    prismaMock.activityLog.create.mockResolvedValue({});
+    prismaMock.userNotification.create.mockResolvedValue({});
+
+    const req = createRequest("POST", "/api/timesheets/ts-1/approve");
+    const res = await approveTimesheet(req, {
+      params: Promise.resolve({ id: "ts-1" }),
+    } as any);
+
+    expect(res.status).toBe(200);
+    expect(prismaMock.userNotification.create).toHaveBeenCalledTimes(1);
+    const args = prismaMock.userNotification.create.mock.calls[0][0];
+    expect(args.data.userId).toBe("staff-99");
+    expect(args.data.type).toBe("timesheet_approved");
+    expect(args.data.title).toBe("Timesheet approved");
+    expect(args.data.link).toBe("/timesheets?id=ts-1");
+  });
+
+  it("still approves when notification creation fails", async () => {
+    mockSession({ id: "approver-1", name: "Manager", role: "owner" });
+
+    prismaMock.timesheet.findUnique.mockResolvedValue({
+      id: "ts-1",
+      serviceId: "svc-1",
+      weekEnding: new Date("2026-04-18"),
+      status: "submitted",
+      submittedById: "staff-99",
+      deleted: false,
+    });
+    prismaMock.timesheet.update.mockResolvedValue({
+      id: "ts-1",
+      serviceId: "svc-1",
+      weekEnding: new Date("2026-04-18"),
+      status: "approved",
+      approvedAt: new Date(),
+      approvedById: "approver-1",
+      service: { id: "svc-1", name: "Svc", code: "SVC1" },
+      _count: { entries: 3 },
+    });
+    prismaMock.activityLog.create.mockResolvedValue({});
+    prismaMock.userNotification.create.mockRejectedValue(new Error("DB exploded"));
+
+    const req = createRequest("POST", "/api/timesheets/ts-1/approve");
+    const res = await approveTimesheet(req, {
+      params: Promise.resolve({ id: "ts-1" }),
+    } as any);
+
+    // Core approval must still succeed.
+    expect(res.status).toBe(200);
   });
 });

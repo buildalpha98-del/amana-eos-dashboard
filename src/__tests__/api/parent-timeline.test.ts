@@ -71,6 +71,8 @@ describe("GET /api/parent/timeline", () => {
       { serviceId: "svc-1", childRecords: [{ id: "child-1" }] },
     ]);
     prismaMock.parentPost.findMany.mockResolvedValue([]);
+    prismaMock.centreContact.findMany.mockResolvedValue([]);
+    prismaMock.parentPostLike.findMany.mockResolvedValue([]);
 
     const req = createRequest("GET", "/api/parent/timeline");
     const res = await GET(req, undefined as never);
@@ -95,6 +97,7 @@ describe("GET /api/parent/timeline", () => {
         tags: [],
         author: { id: "u-1", name: "Staff", image: null },
         createdAt: new Date().toISOString(),
+        _count: { likes: 3, comments: 1 },
       },
       {
         id: "p-2",
@@ -105,13 +108,26 @@ describe("GET /api/parent/timeline", () => {
         tags: [{ id: "t-1", child: { id: "child-1", firstName: "Sam", surname: "J" } }],
         author: { id: "u-1", name: "Staff", image: null },
         createdAt: new Date().toISOString(),
+        _count: { likes: 0, comments: 0 },
       },
     ]);
+    prismaMock.centreContact.findMany.mockResolvedValue([{ id: "cc-1", serviceId: "svc-1" }]);
+    prismaMock.parentPostLike.findMany.mockResolvedValue([{ postId: "p-1" }]);
 
     const req = createRequest("GET", "/api/parent/timeline");
     const res = await GET(req, undefined as never);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.items).toHaveLength(2);
+    expect(body.items[0]).toMatchObject({
+      likeCount: 3,
+      commentCount: 1,
+      likedByMe: true,
+    });
+    expect(body.items[1]).toMatchObject({
+      likeCount: 0,
+      commentCount: 0,
+      likedByMe: false,
+    });
   });
 });

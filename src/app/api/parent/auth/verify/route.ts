@@ -7,7 +7,11 @@ import { logger } from "@/lib/logger";
 
 export const GET = withApiHandler(async (req: NextRequest) => {
   const token = req.nextUrl.searchParams.get("token");
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  // Redirect back to whatever host the parent actually called us from — more
+  // robust than relying on NEXTAUTH_URL (which may point at prod while dev is
+  // localhost). Falls back to NEXTAUTH_URL if the request origin is missing.
+  const baseUrl =
+    req.nextUrl.origin || process.env.NEXTAUTH_URL || "http://localhost:3000";
   const loginErrorUrl = `${baseUrl}/parent/login?error=expired`;
 
   if (!token) {
@@ -105,9 +109,10 @@ export const GET = withApiHandler(async (req: NextRequest) => {
     enrolmentCount: matchingEnrolmentIds.length,
   });
 
-  // Set cookies and redirect
-  const response = NextResponse.redirect(`${baseUrl}/parent`);
-  const cookieMaxAge = 7 * 24 * 60 * 60; // 7 days
+  // Set cookies and redirect. Use ?v2=1 for new parents during the v2 rollout
+  // window so the welcome experience is always the redesigned one.
+  const response = NextResponse.redirect(`${baseUrl}/parent?v2=1`);
+  const cookieMaxAge = 30 * 24 * 60 * 60; // 30 days — matches the parent JWT expiration
 
   // httpOnly session cookie (not readable by JS — secure)
   response.cookies.set("parent-session", jwt, {

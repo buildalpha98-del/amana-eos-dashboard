@@ -36,6 +36,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { toast } from "@/hooks/useToast";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { FilterPresets } from "@/components/ui/FilterPresets";
+import { AiButton } from "@/components/ui/AiButton";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -1012,8 +1013,28 @@ function CreateIncidentModal({ onClose }: { onClose: () => void }) {
               className={inputClass}
               rows={3}
               required
-              placeholder="Describe what happened..."
+              placeholder="Describe what happened — short bullet facts are fine, AI will polish."
             />
+            <div className="mt-1.5 flex justify-end">
+              <AiButton
+                size="sm"
+                templateSlug="incidents/report-draft"
+                section="incidents"
+                metadata={{ serviceId: form.serviceId }}
+                variables={{
+                  childFirstName: form.childName || "(child)",
+                  childAge: "",
+                  timeOfIncident: form.timeOfDay
+                    ? `${form.incidentDate} ${form.timeOfDay}`
+                    : form.incidentDate,
+                  locationOfIncident: form.location || "(unspecified)",
+                  shortFacts: form.description || "(educator notes go here)",
+                }}
+                onResult={(text) => update("description", text)}
+                label="Polish with AI"
+                disabled={!form.description.trim()}
+              />
+            </div>
           </div>
 
           {/* Action Taken */}

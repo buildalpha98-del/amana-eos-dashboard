@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createPostSchema = z.object({
   title: z.string().min(1, "Title is required"),
   platform: z.enum([
@@ -77,7 +78,7 @@ export const GET = withApiAuth(async (req, session) => {
 
 // POST /api/marketing/posts — create a new post
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createPostSchema.safeParse(body);
 
   if (!parsed.success) {

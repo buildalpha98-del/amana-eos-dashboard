@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { indexDocument } from "@/lib/document-indexer";
+import { parseJsonBody } from "@/lib/api-error";
 const createDocumentSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -13,6 +14,7 @@ const createDocumentSchema = z.object({
   fileSize: z.number().optional(),
   mimeType: z.string().optional(),
   centreId: z.string().optional().nullable(),
+  allServices: z.boolean().optional().default(false),
   folderId: z.string().optional().nullable(),
   tags: z.array(z.string()).optional(),
 });
@@ -50,6 +52,7 @@ const { searchParams } = new URL(req.url);
     where.OR = [
       { centreId: staffServiceId },
       { centreId: null },
+      { allServices: true },
       ...(search
         ? [
             { title: { contains: search, mode: "insensitive" as const } },
@@ -64,8 +67,27 @@ const { searchParams } = new URL(req.url);
       return NextResponse.json({ documents: [], total: 0, page, totalPages: 0 });
     }
     if (centreId) {
-      where.centreId = centreId;
-      delete where.OR;
+      if (search) {
+        // Preserve the text search alongside the centre filter — using AND
+        // keeps the two OR groups from clobbering each other.
+        where.AND = [
+          { OR: [{ centreId }, { allServices: true }] },
+          {
+            OR: [
+              { title: { contains: search, mode: "insensitive" as const } },
+              { description: { contains: search, mode: "insensitive" as const } },
+              { tags: { hasSome: [search] } },
+            ],
+          },
+        ];
+        delete where.OR;
+      } else {
+        // Keep allServices docs visible even when filtering to a specific centre
+        where.OR = [
+          { centreId },
+          { allServices: true },
+        ];
+      }
     }
   } else if (centreId) {
     where.centreId = centreId;
@@ -95,7 +117,7 @@ const { searchParams } = new URL(req.url);
 });
 
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createDocumentSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -105,12 +127,16 @@ const body = await req.json();
     );
   }
 
+  const createData = {
+    ...parsed.data,
+    // allServices=true means org-wide visibility — clear any stale centreId.
+    centreId: parsed.data.allServices ? null : parsed.data.centreId ?? null,
+    tags: parsed.data.tags || [],
+    uploadedById: session!.user.id,
+  };
+
   const document = await prisma.document.create({
-    data: {
-      ...parsed.data,
-      tags: parsed.data.tags || [],
-      uploadedById: session!.user.id,
-    },
+    data: createData,
     include: {
       uploadedBy: { select: { id: true, name: true, email: true } },
       centre: { select: { id: true, name: true, code: true } },

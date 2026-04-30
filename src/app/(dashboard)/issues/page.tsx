@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useIssues, useBulkIssueAction } from "@/hooks/useIssues";
 import { useQuery } from "@tanstack/react-query";
-import { IssueCard } from "@/components/issues/IssueCard";
+import { IssueCard, type IssueCardOpenOpts } from "@/components/issues/IssueCard";
 import { IssueKanban } from "@/components/issues/IssueKanban";
 import { IssueDetailPanel } from "@/components/issues/IssueDetailPanel";
 import { CreateIssueModal } from "@/components/issues/CreateIssueModal";
@@ -48,9 +48,23 @@ const statusTabs = [
   { key: "closed", label: "Closed", icon: XCircle, color: "text-muted" },
 ] as const;
 
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
+
 export default function IssuesPage() {
+  const v2 = useStaffV2Flag();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detailFocus, setDetailFocus] = useState<IssueCardOpenOpts["focus"] | undefined>(undefined);
+
+  const openDetail = useCallback((id: string, opts?: IssueCardOpenOpts) => {
+    setSelectedId(id);
+    setDetailFocus(opts?.focus);
+  }, []);
+
+  const closeDetail = useCallback(() => {
+    setSelectedId(null);
+    setDetailFocus(undefined);
+  }, []);
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [ownerFilter, setOwnerFilter] = useState("");
@@ -199,7 +213,10 @@ export default function IssuesPage() {
   void boardColumns;
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="max-w-7xl mx-auto"
+    >
       {/* Header */}
       <PageHeader
         title="Issues"
@@ -412,7 +429,7 @@ export default function IssuesPage() {
         </div>
       ) : issues && issues.length > 0 ? (
         viewMode === "board" ? (
-          <IssueKanban issues={filteredIssues} onSelect={setSelectedId} />
+          <IssueKanban issues={filteredIssues} onSelect={openDetail} showClosed={showArchived} />
         ) : (
           /* List View with checkboxes */
           <div className="space-y-2">
@@ -447,7 +464,7 @@ export default function IssuesPage() {
                 <div className="flex-1 min-w-0">
                   <IssueCard
                     issue={issue}
-                    onClick={() => setSelectedId(issue.id)}
+                    onClick={(opts) => openDetail(issue.id, opts)}
                   />
                 </div>
               </div>
@@ -574,7 +591,8 @@ export default function IssuesPage() {
       <IssueDetailPanel
         open={!!selectedId}
         issueId={selectedId ?? ""}
-        onClose={() => setSelectedId(null)}
+        onClose={closeDetail}
+        focus={detailFocus}
       />
     </div>
   );

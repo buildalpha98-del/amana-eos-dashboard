@@ -20,6 +20,8 @@ import {
   Mail,
   Bell,
   User,
+  ChevronRight,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 
@@ -39,10 +41,16 @@ interface VapiCall {
   centreName?: string;
   callDetails?: Record<string, unknown>;
   transcript?: string;
+  summary?: string;
+  successEvaluation?: boolean;
   recordingUrl?: string;
   callDurationSeconds?: number;
+  repeatCaller?: boolean;
   followUpEmailSent: boolean;
   internalNotificationSent: boolean;
+  slaAlertedAt?: string;
+  linkedEnquiryId?: string;
+  linkedTodoId?: string;
   notes?: string;
   actionedAt?: string;
   actionedBy?: string;
@@ -189,12 +197,22 @@ function formatDuration(seconds?: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+// ─── Lazy-loaded analytics ─────────────────────────────────
+
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/Skeleton";
+const CallAnalytics = dynamic(
+  () => import("@/components/calls/CallAnalytics").then((m) => ({ default: m.CallAnalytics })),
+  { loading: () => <Skeleton className="h-96 w-full" /> },
+);
+
 // ─── Component ──────────────────────────────────────────────
 
 export function CallsTab() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const deepLinkId = searchParams.get("id");
+  const [view, setView] = useState<"calls" | "analytics">("calls");
 
   // Filters
   const [callTypeFilter, setCallTypeFilter] = useState("");
@@ -203,13 +221,9 @@ export function CallsTab() {
   const [centreFilter, setCentreFilter] = useState("");
   const [datePreset, setDatePreset] = useState("today");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCallId, setSelectedCallId] = useState<string | null>(deepLinkId);
+  const [selectedCall, setSelectedCall] = useState<VapiCall | null>(null);
   const [lastUpdated, setLastUpdated] = useState(Date.now());
 
-  // Auto-open deep-linked call
-  useEffect(() => {
-    if (deepLinkId) setSelectedCallId(deepLinkId);
-  }, [deepLinkId]);
 
   // Build query params
   const queryParams = useMemo(() => {
@@ -240,6 +254,14 @@ export function CallsTab() {
   }, [callsData]);
 
   const calls = callsData?.calls ?? [];
+
+  // Auto-open deep-linked call once the list loads
+  useEffect(() => {
+    if (deepLinkId && calls.length > 0 && !selectedCall) {
+      const found = calls.find((c) => c.id === deepLinkId);
+      if (found) setSelectedCall(found);
+    }
+  }, [deepLinkId, calls, selectedCall]);
 
   // Fetch stats
   const { data: stats } = useQuery<CallStats>({
@@ -291,6 +313,32 @@ export function CallsTab() {
 
   return (
     <div>
+      {/* ── View Toggle ─────────────────────────────────── */}
+      <div className="flex gap-1 bg-surface rounded-lg p-1 w-fit mb-4">
+        <button
+          onClick={() => setView("calls")}
+          className={cn(
+            "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+            view === "calls" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground",
+          )}
+        >
+          Calls
+        </button>
+        <button
+          onClick={() => setView("analytics")}
+          className={cn(
+            "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+            view === "analytics" ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground",
+          )}
+        >
+          Analytics
+        </button>
+      </div>
+
+      {view === "analytics" ? (
+        <CallAnalytics />
+      ) : (
+      <>
       {/* ── Summary Cards ─────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard label="Calls Today" value={stats?.todayTotal ?? 0} icon={Phone} color="text-[#004E64]" />
@@ -300,48 +348,52 @@ export function CallsTab() {
       </div>
 
       {/* ── Filters ───────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <FilterSelect value={callTypeFilter} onChange={setCallTypeFilter} options={CALL_TYPE_OPTIONS} />
-        <FilterSelect value={urgencyFilter} onChange={setUrgencyFilter} options={URGENCY_OPTIONS} />
-        <FilterSelect value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
-        <select
-          value={centreFilter}
-          onChange={(e) => setCentreFilter(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
-        >
-          <option value="">All Centres</option>
-          {CENTRE_NAMES.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-        <div className="flex gap-1 bg-surface rounded-lg p-0.5">
-          {DATE_PRESETS.map((p) => (
-            <button
-              key={p.value}
-              onClick={() => setDatePreset(p.value)}
-              className={cn(
-                "px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
-                datePreset === p.value ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground",
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <div className="relative ml-auto">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+      <div className="space-y-2 mb-4">
+        {/* Search — full width on mobile, top row */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             type="text"
-            placeholder="Search name, phone, child..."
+            placeholder="Search name, phone, transcript..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 pr-3 py-1.5 text-sm border border-border rounded-lg w-56 focus:outline-none focus:ring-2 focus:ring-brand"
+            className="w-full pl-9 pr-9 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
           />
           {searchTerm && (
-            <button onClick={() => setSearchTerm("")} className="absolute right-2 top-1/2 -translate-y-1/2">
-              <X className="w-3.5 h-3.5 text-muted hover:text-foreground" />
+            <button onClick={() => setSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <X className="w-4 h-4 text-muted hover:text-foreground" />
             </button>
           )}
+        </div>
+        {/* Filters — grid on mobile, flex on desktop */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+          <FilterSelect value={callTypeFilter} onChange={setCallTypeFilter} options={CALL_TYPE_OPTIONS} />
+          <FilterSelect value={urgencyFilter} onChange={setUrgencyFilter} options={URGENCY_OPTIONS} />
+          <FilterSelect value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
+          <select
+            value={centreFilter}
+            onChange={(e) => setCentreFilter(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand"
+          >
+            <option value="">All Centres</option>
+            {CENTRE_NAMES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <div className="flex gap-1 bg-surface rounded-lg p-0.5 col-span-2 sm:col-span-1 sm:ml-auto">
+            {DATE_PRESETS.map((p) => (
+              <button
+                key={p.value}
+                onClick={() => setDatePreset(p.value)}
+                className={cn(
+                  "flex-1 sm:flex-none px-2.5 py-1 rounded-md text-xs font-medium transition-colors",
+                  datePreset === p.value ? "bg-card text-foreground shadow-sm" : "text-muted hover:text-foreground",
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -352,7 +404,7 @@ export function CallsTab() {
         {callsData && <span className="ml-auto">{callsData.total} call{callsData.total !== 1 ? "s" : ""}</span>}
       </div>
 
-      {/* ── Table ─────────────────────────────────────────── */}
+      {/* ── List ──────────────────────────────────────────── */}
       {callsLoading ? (
         <div className="flex items-center justify-center py-24">
           <div className="w-8 h-8 border-4 border-border border-t-brand rounded-full animate-spin" />
@@ -364,99 +416,162 @@ export function CallsTab() {
           <p className="text-sm mt-1">Adjust your filters or wait for new VAPI calls to come in.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-xs text-muted uppercase tracking-wide">
-                <th className="px-3 py-2">Date / Time</th>
-                <th className="px-3 py-2">Type</th>
-                <th className="px-3 py-2">Urgency</th>
-                <th className="px-3 py-2">Parent</th>
-                <th className="px-3 py-2 hidden lg:table-cell">Phone</th>
-                <th className="px-3 py-2 hidden md:table-cell">Centre</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2 hidden lg:table-cell">Assigned</th>
-                <th className="px-3 py-2 w-16"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {calls.map((call) => (
-                <tr key={call.id} className="border-b border-border/50 hover:bg-surface/50 transition-colors">
-                  <td className="px-3 py-2.5 whitespace-nowrap text-xs">
-                    {formatDateTime(call.calledAt)}
-                    {call.callDurationSeconds != null && (
-                      <span className="ml-1.5 text-muted">({formatDuration(call.callDurationSeconds)})</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-medium", CALL_TYPE_COLORS[call.callType] ?? "bg-gray-100 text-gray-700")}>
+        <>
+          {/* Mobile: card list */}
+          <div className="sm:hidden space-y-2">
+            {calls.map((call) => (
+              <button
+                key={call.id}
+                onClick={() => setSelectedCall(call)}
+                className="w-full text-left bg-card border border-border rounded-xl p-3 hover:border-[#004E64]/40 active:scale-[0.99] transition"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", CALL_TYPE_COLORS[call.callType] ?? "bg-gray-100 text-gray-700")}>
                       {CALL_TYPE_LABELS[call.callType] ?? call.callType}
                     </span>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-medium", URGENCY_COLORS[call.urgency] ?? "bg-gray-100")}>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", URGENCY_COLORS[call.urgency] ?? "bg-gray-100")}>
                       {call.urgency}
                     </span>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span className="font-medium text-foreground">{call.parentName || "—"}</span>
-                    {call.childName && <span className="block text-xs text-muted">{call.childName}</span>}
-                  </td>
-                  <td className="px-3 py-2.5 hidden lg:table-cell">
-                    {call.parentPhone ? (
-                      <a href={`tel:${call.parentPhone}`} className="text-[#004E64] hover:underline">{call.parentPhone}</a>
-                    ) : "—"}
-                  </td>
-                  <td className="px-3 py-2.5 hidden md:table-cell text-xs">{call.centreName || "—"}</td>
-                  <td className="px-3 py-2.5">
-                    <select
-                      value={call.status}
-                      onChange={(e) => handleStatusChange(call.id, e.target.value)}
-                      className={cn(
-                        "px-2 py-0.5 rounded text-xs font-medium border-0 focus:ring-2 focus:ring-brand cursor-pointer",
-                        STATUS_COLORS[call.status] ?? "bg-gray-100",
-                      )}
-                    >
-                      <option value="new">New</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="actioned">Actioned</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </td>
-                  <td className="px-3 py-2.5 hidden lg:table-cell">
-                    <select
-                      value={call.assignedTo ?? ""}
-                      onChange={(e) => handleAssignChange(call.id, e.target.value)}
-                      className="px-1.5 py-0.5 rounded text-xs border-0 focus:ring-2 focus:ring-brand bg-transparent cursor-pointer"
-                    >
-                      <option value="">Unassigned</option>
-                      {TEAM_MEMBERS.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <button
-                      onClick={() => setSelectedCallId(call.id)}
-                      className="px-2.5 py-1 text-xs font-medium text-[#004E64] hover:bg-[#004E64]/5 rounded transition-colors"
-                    >
-                      View
-                    </button>
-                  </td>
+                    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", STATUS_COLORS[call.status] ?? "bg-gray-100")}>
+                      {call.status.replace("_", " ")}
+                    </span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted mt-0.5" />
+                </div>
+                <div className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  {call.parentName || "Unknown caller"}
+                  {call.childName && <span className="text-muted font-normal"> · {call.childName}</span>}
+                  {call.successEvaluation === true && (
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500" aria-label="Call captured key details" />
+                  )}
+                  {call.successEvaluation === false && (
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500" aria-label="Call did not capture key details" />
+                  )}
+                  {call.linkedEnquiryId && (
+                    <span className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700">Enquiry</span>
+                  )}
+                  {call.linkedTodoId && (
+                    <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700", !call.linkedEnquiryId && "ml-auto")}>Todo</span>
+                  )}
+                  {call.slaAlertedAt && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-700">SLA</span>
+                  )}
+                  {call.repeatCaller && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-50 text-orange-700">Repeat</span>
+                  )}
+                </div>
+                {call.summary && (
+                  <p className="text-xs text-muted mt-1 line-clamp-2">{call.summary}</p>
+                )}
+                <div className="flex items-center justify-between mt-1 text-xs text-muted">
+                  <span>{call.centreName || "—"}</span>
+                  <span>
+                    {formatDateTime(call.calledAt)}
+                    {call.callDurationSeconds != null && ` · ${formatDuration(call.callDurationSeconds)}`}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-muted uppercase tracking-wide">
+                  <th className="px-3 py-2">Date / Time</th>
+                  <th className="px-3 py-2">Type</th>
+                  <th className="px-3 py-2">Urgency</th>
+                  <th className="px-3 py-2">Parent</th>
+                  <th className="px-3 py-2 hidden lg:table-cell">Phone</th>
+                  <th className="px-3 py-2 hidden md:table-cell">Centre</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2 hidden lg:table-cell">Assigned</th>
+                  <th className="px-3 py-2 w-16"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {calls.map((call) => (
+                  <tr key={call.id} className="border-b border-border/50 hover:bg-surface/50 transition-colors">
+                    <td className="px-3 py-2.5 whitespace-nowrap text-xs">
+                      {formatDateTime(call.calledAt)}
+                      {call.callDurationSeconds != null && (
+                        <span className="ml-1.5 text-muted">({formatDuration(call.callDurationSeconds)})</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-medium", CALL_TYPE_COLORS[call.callType] ?? "bg-gray-100 text-gray-700")}>
+                        {CALL_TYPE_LABELS[call.callType] ?? call.callType}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className={cn("inline-block px-2 py-0.5 rounded-full text-xs font-medium", URGENCY_COLORS[call.urgency] ?? "bg-gray-100")}>
+                        {call.urgency}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span className="font-medium text-foreground">{call.parentName || "—"}</span>
+                      {call.childName && <span className="block text-xs text-muted">{call.childName}</span>}
+                    </td>
+                    <td className="px-3 py-2.5 hidden lg:table-cell">
+                      {call.parentPhone ? (
+                        <a href={`tel:${call.parentPhone}`} className="text-[#004E64] hover:underline">{call.parentPhone}</a>
+                      ) : "—"}
+                    </td>
+                    <td className="px-3 py-2.5 hidden md:table-cell text-xs">{call.centreName || "—"}</td>
+                    <td className="px-3 py-2.5">
+                      <select
+                        value={call.status}
+                        onChange={(e) => handleStatusChange(call.id, e.target.value)}
+                        className={cn(
+                          "px-2 py-0.5 rounded text-xs font-medium border-0 focus:ring-2 focus:ring-brand cursor-pointer",
+                          STATUS_COLORS[call.status] ?? "bg-gray-100",
+                        )}
+                      >
+                        <option value="new">New</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="actioned">Actioned</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </td>
+                    <td className="px-3 py-2.5 hidden lg:table-cell">
+                      <select
+                        value={call.assignedTo ?? ""}
+                        onChange={(e) => handleAssignChange(call.id, e.target.value)}
+                        className="px-1.5 py-0.5 rounded text-xs border-0 focus:ring-2 focus:ring-brand bg-transparent cursor-pointer"
+                      >
+                        <option value="">Unassigned</option>
+                        {TEAM_MEMBERS.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <button
+                        onClick={() => setSelectedCall(call)}
+                        className="px-2.5 py-1 text-xs font-medium text-[#004E64] hover:bg-[#004E64]/5 rounded transition-colors"
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* ── Detail Panel ──────────────────────────────────── */}
-      {selectedCallId && (
+      {selectedCall && (
         <CallDetailPanel
-          callId={selectedCallId}
-          onClose={() => setSelectedCallId(null)}
-          onUpdate={(data) => updateCall.mutate({ id: selectedCallId, data })}
+          call={selectedCall}
+          onClose={() => setSelectedCall(null)}
+          onUpdate={(data) => updateCall.mutate({ id: selectedCall.id, data })}
         />
+      )}
+      </>
       )}
     </div>
   );
@@ -492,39 +607,38 @@ function FilterSelect({ value, onChange, options }: { value: string; onChange: (
 
 // ─── Detail Panel ───────────────────────────────────────────
 
-function CallDetailPanel({ callId, onClose, onUpdate }: { callId: string; onClose: () => void; onUpdate: (data: Record<string, unknown>) => void }) {
-  const [notes, setNotes] = useState("");
-  const [transcriptOpen, setTranscriptOpen] = useState(false);
-
-  const { data: call } = useQuery({
-    queryKey: ["vapi-call", callId],
-    queryFn: async () => {
-      const res = await fetchApi<{ calls: VapiCall[] }>(`/api/calls?limit=200`);
-      return res.calls.find((c) => c.id === callId) ?? undefined;
-    },
-    retry: 2,
-    staleTime: 10_000,
-  });
+function CallDetailPanel({ call, onClose, onUpdate }: { call: VapiCall; onClose: () => void; onUpdate: (data: Record<string, unknown>) => void }) {
+  const [notes, setNotes] = useState(call.notes ?? "");
+  const hasCallerInfoInit =
+    !!(call.parentName || call.parentPhone || call.parentEmail || call.childName || call.centreName);
+  const [transcriptOpen, setTranscriptOpen] = useState(!hasCallerInfoInit);
 
   useEffect(() => {
-    if (call?.notes) setNotes(call.notes);
-  }, [call?.notes]);
-
-  if (!call) return null;
+    setNotes(call.notes ?? "");
+  }, [call.notes]);
 
   const details = (call.callDetails as Record<string, unknown>) ?? {};
+  const hasCallerInfo =
+    call.parentName || call.parentPhone || call.parentEmail || call.childName || call.centreName;
 
   return (
-    <Sheet open onOpenChange={() => onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-        <div className="px-6 py-4 border-b border-border">
+    <Sheet open onOpenChange={() => onClose()} modal={false}>
+      <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col">
+        <div className="px-5 sm:px-6 py-4 border-b border-border flex items-center justify-between gap-4 flex-shrink-0">
           <SheetTitle className="flex items-center gap-2 text-lg font-semibold">
             <Phone className="w-5 h-5 text-[#004E64]" />
             Call Details
           </SheetTitle>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="p-1.5 rounded-md hover:bg-surface text-muted hover:text-foreground transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <div className="space-y-6 mt-4">
+        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5 space-y-6">
           {/* Badges */}
           <div className="flex flex-wrap gap-2">
             <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium", CALL_TYPE_COLORS[call.callType])}>
@@ -536,25 +650,145 @@ function CallDetailPanel({ callId, onClose, onUpdate }: { callId: string; onClos
             <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium", STATUS_COLORS[call.status])}>
               {call.status.replace("_", " ")}
             </span>
+            {call.successEvaluation === true && (
+              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" /> Captured
+              </span>
+            )}
+            {call.successEvaluation === false && (
+              <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" /> Incomplete
+              </span>
+            )}
           </div>
+
+          {/* Summary */}
+          {call.summary && (
+            <section>
+              <h3 className="text-sm font-semibold text-foreground mb-2">Summary</h3>
+              <div className="bg-[#004E64]/5 border-l-4 border-[#004E64] rounded-r-lg p-3 text-sm text-foreground/90 leading-relaxed">
+                {call.summary}
+              </div>
+            </section>
+          )}
+
+          {/* Enquiry link */}
+          {call.linkedEnquiryId && (
+            <section>
+              <a
+                href={`/contact-centre?tab=enquiries&id=${call.linkedEnquiryId}`}
+                className="flex items-center justify-between gap-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900">Enquiry auto-created</p>
+                    <p className="text-xs text-emerald-700">Parent enrolled in nurture sequence</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-emerald-700" />
+              </a>
+            </section>
+          )}
+
+          {/* Todo link */}
+          {call.linkedTodoId && (
+            <section>
+              <a
+                href={`/queue?todo=${call.linkedTodoId}`}
+                className="flex items-center justify-between gap-2 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900">Todo auto-created for coordinator</p>
+                    <p className="text-xs text-blue-700">Booking change ready to action in OWNA</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-blue-700" />
+              </a>
+            </section>
+          )}
+
+          {/* SLA breach badge */}
+          {call.slaAlertedAt && call.status !== "actioned" && call.status !== "closed" && (
+            <section>
+              <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-red-900">SLA breach escalated</p>
+                  <p className="text-xs text-red-700">
+                    Team notified {formatDateTime(call.slaAlertedAt)} — action this call now.
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Repeat caller warning */}
+          {call.repeatCaller && (
+            <section>
+              <div className="flex items-center gap-2 px-4 py-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <Phone className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-orange-900">Repeat caller</p>
+                  <p className="text-xs text-orange-700">
+                    This number has called within the past 7 days — check if a previous issue was unresolved.
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Action buttons */}
+          {call.parentName && (
+            <section className="flex gap-2">
+              {!call.linkedEnquiryId && (
+                <ConvertToEnquiryButton callId={call.id} onSuccess={onClose} />
+              )}
+              {call.centreName && (
+                <a
+                  href={`/api/calls/${call.id}/welcome-pack`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-[#004E64] text-[#004E64] rounded-lg text-sm font-medium hover:bg-[#004E64]/5 transition-colors"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                  Welcome Pack PDF
+                </a>
+              )}
+            </section>
+          )}
 
           {/* Caller Details */}
           <section>
             <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
               <User className="w-4 h-4" /> Caller Details
             </h3>
-            <div className="bg-surface rounded-lg p-3 space-y-1.5 text-sm">
-              {call.parentName && <Row label="Name" value={call.parentName} />}
-              {call.parentPhone && (
-                <Row label="Phone" value={<a href={`tel:${call.parentPhone}`} className="text-[#004E64] hover:underline">{call.parentPhone}</a>} />
-              )}
-              {call.parentEmail && (
-                <Row label="Email" value={<a href={`mailto:${call.parentEmail}`} className="text-[#004E64] hover:underline">{call.parentEmail}</a>} />
-              )}
-              {call.childName && <Row label="Child" value={call.childName} />}
-              {call.centreName && <Row label="Centre" value={call.centreName} />}
-              {call.callDurationSeconds != null && <Row label="Duration" value={formatDuration(call.callDurationSeconds)} />}
-            </div>
+            {hasCallerInfo ? (
+              <div className="bg-surface rounded-lg p-3 space-y-1.5 text-sm">
+                {call.parentName && <Row label="Name" value={call.parentName} />}
+                {call.parentPhone && (
+                  <Row label="Phone" value={<a href={`tel:${call.parentPhone}`} className="text-[#004E64] hover:underline">{call.parentPhone}</a>} />
+                )}
+                {call.parentEmail && (
+                  <Row label="Email" value={<a href={`mailto:${call.parentEmail}`} className="text-[#004E64] hover:underline">{call.parentEmail}</a>} />
+                )}
+                {call.childName && <Row label="Child" value={call.childName} />}
+                {call.centreName && <Row label="Centre" value={call.centreName} />}
+                {call.callDurationSeconds != null && <Row label="Duration" value={formatDuration(call.callDurationSeconds)} />}
+              </div>
+            ) : (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900">
+                <p className="font-medium mb-1">No structured data captured</p>
+                <p className="text-amber-800">
+                  The VAPI assistant didn&apos;t emit a structured marker (e.g. <code className="bg-amber-100 px-1 rounded">ENQUIRY_CAPTURED:&#123;...&#125;</code>) for this call. Review the transcript below to extract details manually, or check the assistant&apos;s system prompt to ensure it outputs markers at the end of each pathway.
+                </p>
+                {call.callDurationSeconds != null && (
+                  <p className="mt-2 text-amber-700">Duration: {formatDuration(call.callDurationSeconds)}</p>
+                )}
+              </div>
+            )}
           </section>
 
           {/* Call Details JSON */}
@@ -678,6 +912,40 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="text-muted w-20 flex-shrink-0">{label}</span>
       <span className="text-foreground">{value}</span>
     </div>
+  );
+}
+
+function ConvertToEnquiryButton({ callId, onSuccess }: { callId: string; onSuccess: () => void }) {
+  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
+
+  const handleConvert = async () => {
+    setLoading(true);
+    try {
+      await mutateApi(`/api/calls/${callId}/convert-to-enquiry`, { method: "POST" });
+      toast({ description: "Enquiry created — parent enrolled in nurture sequence" });
+      queryClient.invalidateQueries({ queryKey: ["vapi-calls"] });
+      queryClient.invalidateQueries({ queryKey: ["vapi-call-stats"] });
+      onSuccess();
+    } catch (err: unknown) {
+      toast({
+        variant: "destructive",
+        description: err instanceof Error ? err.message : "Failed to create enquiry",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleConvert}
+      disabled={loading}
+      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#004E64] text-white rounded-lg text-sm font-medium hover:bg-[#003d4f] transition-colors disabled:opacity-50"
+    >
+      <UserPlus className="w-4 h-4" />
+      {loading ? "Creating enquiry..." : "Convert to Enquiry"}
+    </button>
   );
 }
 

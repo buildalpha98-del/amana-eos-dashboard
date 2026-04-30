@@ -7,7 +7,11 @@ import { stateFromPostcode } from "@/lib/au-postcodes";
 
 interface Props {
   data: EnrolmentFormData;
-  updateData: (d: Partial<EnrolmentFormData>) => void;
+  updateData: (
+    d:
+      | Partial<EnrolmentFormData>
+      | ((prev: EnrolmentFormData) => Partial<EnrolmentFormData>)
+  ) => void;
 }
 
 function Input({
@@ -162,8 +166,14 @@ export function ParentDetailsStep({ data, updateData }: Props) {
   const [showSecondary, setShowSecondary] = useState(true);
   const [uploading, setUploading] = useState(false);
 
+  // Use functional updater so rapid back-to-back calls (e.g. postcode handler
+  // firing updatePrimary("postcode", ...) then updatePrimary("state", ...) on
+  // the same keystroke) each see the latest state instead of the stale `data`
+  // captured in this render's closure.
   const updatePrimary = (field: keyof ParentDetails, value: string) => {
-    updateData({ primaryParent: { ...data.primaryParent, [field]: value } });
+    updateData((prev) => ({
+      primaryParent: { ...prev.primaryParent, [field]: value },
+    }));
   };
 
   const batchUpdatePrimary = (fields: Partial<ParentDetails>) => {
@@ -171,7 +181,9 @@ export function ParentDetailsStep({ data, updateData }: Props) {
   };
 
   const updateSecondary = (field: keyof ParentDetails, value: string) => {
-    updateData({ secondaryParent: { ...data.secondaryParent, [field]: value } });
+    updateData((prev) => ({
+      secondaryParent: { ...prev.secondaryParent, [field]: value },
+    }));
   };
 
   const batchUpdateSecondary = (fields: Partial<ParentDetails>) => {

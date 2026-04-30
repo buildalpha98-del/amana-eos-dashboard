@@ -1,7 +1,28 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
+
+import { ApiError, parseJsonBody } from "@/lib/api-error";
+
+/**
+ * Coordinators can complete audits, but only for the service they're
+ * assigned to. Org-wide roles (owner / head_office / admin) bypass this
+ * check; member ("Centre Director") also bypasses since they're already
+ * scoped at the user-management level.
+ */
+function ensureCoordCanTouchAudit(
+  role: string,
+  userServiceId: string | null | undefined,
+  auditServiceId: string,
+) {
+  if (role !== "coordinator") return;
+  if (!userServiceId || userServiceId !== auditServiceId) {
+    throw ApiError.forbidden(
+      "Coordinators can only work on audits for their own service.",
+    );
+  }
+}
 
 const patchSchema = z.object({
   action: z.enum(["start", "complete", "skip"]).optional(),
@@ -9,6 +30,13 @@ const patchSchema = z.object({
   areasForImprovement: z.string().optional(),
   actionPlan: z.string().optional(),
   comments: z.string().optional(),
+  // Reschedule / inline-edit fields
+  scheduledMonth: z.number().int().min(1).max(12).optional(),
+  scheduledYear: z.number().int().min(2020).max(2100).optional(),
+  dueDate: z.string().datetime().optional().nullable(),
+  templateId: z.string().optional(),
+  serviceId: z.string().optional(),
+  auditorId: z.string().nullable().optional(),
 });
 /**
  * GET /api/audits/[id] — full audit instance detail with responses
@@ -49,7 +77,7 @@ export const GET = withApiAuth(async (req, session, context) => {
  */
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
@@ -73,6 +101,13 @@ const { id } = await context!.params!;
   if (!instance) {
     return NextResponse.json({ error: "Audit not found" }, { status: 404 });
   }
+
+  // Coordinators must be on the audit's own service.
+  ensureCoordCanTouchAudit(
+    session!.user.role ?? "",
+    (session!.user as { serviceId?: string | null }).serviceId,
+    instance.serviceId,
+  );
 
   const data: Record<string, unknown> = {};
 
@@ -132,6 +167,15 @@ const { id } = await context!.params!;
   if (actionPlan !== undefined) data.actionPlan = actionPlan;
   if (comments !== undefined) data.comments = comments;
 
+  if (parsed.data.scheduledMonth !== undefined) data.scheduledMonth = parsed.data.scheduledMonth;
+  if (parsed.data.scheduledYear !== undefined) data.scheduledYear = parsed.data.scheduledYear;
+  if (parsed.data.dueDate !== undefined) {
+    data.dueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
+  }
+  if (parsed.data.templateId !== undefined) data.templateId = parsed.data.templateId;
+  if (parsed.data.serviceId !== undefined) data.serviceId = parsed.data.serviceId;
+  if (parsed.data.auditorId !== undefined) data.auditorId = parsed.data.auditorId;
+
   const updated = await prisma.auditInstance.update({
     where: { id },
     data,
@@ -153,4 +197,10 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(updated);
-}, { roles: ["owner", "admin", "member"] });
+}, {
+  // Coordinators can complete audits assigned to their service. Member
+  // ("Centre Director") + admin tier always allowed. The
+  // `ensureCoordCanTouchAudit` check inside the handler enforces the
+  // own-service constraint for coordinators.
+  roles: ["owner", "head_office", "admin", "coordinator", "member"],
+});

@@ -64,6 +64,14 @@ export const emergencyContactSchema = z.object({
 
 export type EmergencyContact = z.infer<typeof emergencyContactSchema>;
 
+export const authorisedPickupSchema = z.object({
+  name: z.string(),
+  relationship: z.string().optional(),
+  phone: z.string().optional(),
+}).passthrough();
+
+export type AuthorisedPickup = z.infer<typeof authorisedPickupSchema>;
+
 export const consentsSchema = z.object({
   firstAid: z.boolean().optional(),
   medication: z.boolean().optional(),

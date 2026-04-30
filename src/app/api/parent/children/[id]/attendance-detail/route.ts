@@ -18,11 +18,20 @@ export const GET = withParentAuth(async (req, ctx) => {
   const { searchParams } = new URL(req.url);
   const dateStr = searchParams.get("date");
 
+  if (dateStr && !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    throw ApiError.badRequest("date must be YYYY-MM-DD");
+  }
+
   // Default to today
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
-  const date = dateStr ? new Date(dateStr) : today;
-  date.setUTCHours(0, 0, 0, 0);
+  let date: Date;
+  if (dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    date = new Date(Date.UTC(y, m - 1, d));
+  } else {
+    date = today;
+  }
 
   // Verify this child belongs to the parent
   const child = await prisma.child.findUnique({

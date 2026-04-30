@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 export const GET = withApiAuth(async (req, session) => {
   const folders = await prisma.documentFolder.findMany({
     include: {
@@ -20,7 +21,7 @@ const createFolderSchema = z.object({
 });
 
 export const POST = withApiAuth(async (req, session) => {
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createFolderSchema.safeParse(body);
 
   if (!parsed.success) {

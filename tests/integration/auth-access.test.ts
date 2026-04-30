@@ -36,11 +36,16 @@ describe("Role-based route access", () => {
     }
   });
 
-  it("marketing cannot access HR routes", () => {
-    const hrRoutes = ["/timesheets", "/contracts", "/leave", "/recruitment"];
-    for (const route of hrRoutes) {
+  it("marketing cannot access HR-admin routes", () => {
+    // Marketing role legitimately has /leave (Sprint 1 — Akram requests
+    // his own leave) but is denied the HR-admin surfaces (timesheets
+    // approval, contract management, recruitment).
+    const hrAdminRoutes = ["/timesheets", "/contracts", "/recruitment"];
+    for (const route of hrAdminRoutes) {
       expect(canAccessPage("marketing", route)).toBe(false);
     }
+    // /leave is intentionally allowed for marketing — request flow.
+    expect(canAccessPage("marketing", "/leave")).toBe(true);
   });
 
   it("coordinator cannot access settings", () => {

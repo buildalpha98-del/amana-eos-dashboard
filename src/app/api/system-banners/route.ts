@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createBannerSchema = z.object({
   title: z.string().min(1, "Title is required"),
   body: z.string().min(1, "Body is required"),
@@ -59,7 +60,7 @@ const userId = session!.user.id;
 
 // POST /api/system-banners — create a new banner (owner/head_office only)
 export const POST = withApiAuth(async (req, session) => {
-const raw = await req.json();
+const raw = await parseJsonBody(req);
   const parsed = createBannerSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });

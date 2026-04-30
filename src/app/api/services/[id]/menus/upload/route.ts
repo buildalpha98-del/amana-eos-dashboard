@@ -15,7 +15,8 @@ const ALLOWED_TYPES = [
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 // POST /api/services/[id]/menus/upload — upload menu file
-export const POST = withApiAuth(async (req, session, context) => {
+export const POST = withApiAuth(
+  async (req, session, context) => {
 const { id } = await context!.params!;
 
   const formData = await req.formData();
@@ -105,4 +106,6 @@ const { id } = await context!.params!;
   });
 
   return NextResponse.json(menuWeek);
-});
+  },
+  { roles: ["owner", "head_office", "admin", "coordinator"] },
+);

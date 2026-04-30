@@ -55,7 +55,9 @@ export function TaskDetailPanel({ taskId, onClose }: TaskDetailPanelProps) {
     fetch("/api/users")
       .then((res) => res.json())
       .then((data) => setUsers(data))
-      .catch(() => {});
+      .catch((err) => {
+        if (process.env.NODE_ENV !== "production") console.warn("TaskDetailPanel: fetch users failed:", err);
+      });
   }, []);
 
   // Sync local state when data loads

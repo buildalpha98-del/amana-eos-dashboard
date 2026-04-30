@@ -3,7 +3,7 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { logger } from "@/lib/logger";
 
 const triggerSchema = z.object({
@@ -16,7 +16,7 @@ const triggerSchema = z.object({
 
 // POST /api/exit-survey/trigger — creates exit survey + sends email
 export const POST = withApiAuth(async (req) => {
-  const body = await req.json();
+  const body = await parseJsonBody(req);
 
   let data: z.infer<typeof triggerSchema>;
   try {
@@ -67,7 +67,7 @@ export const POST = withApiAuth(async (req) => {
         withdrawalDate,
         withdrawalReason: "exit_survey_triggered",
       },
-    }).catch(() => {}); // Ignore if contact doesn't exist
+    }).catch((err) => logger.error("Failed to mark contact as withdrawn for exit survey", { err, contactId: data.contactId }));
   }
 
   const surveyUrl = `${process.env.NEXTAUTH_URL || "https://amanaoshc.company"}/survey/exit/${surveyToken}`;

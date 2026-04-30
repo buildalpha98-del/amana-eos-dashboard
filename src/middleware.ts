@@ -1,17 +1,14 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-import { rolePageAccess } from "@/lib/role-permissions";
-
-function canAccess(role: string, pathname: string): boolean {
-  const allowed = rolePageAccess[role as keyof typeof rolePageAccess];
-  if (!allowed) return false;
-  return allowed.some(
-    (path) => pathname === path || pathname.startsWith(path + "/")
-  );
-}
+import { canAccessPage, parseRole } from "@/lib/role-permissions";
 
 // Public API routes that bypass auth middleware (they handle their own auth or are intentionally public)
-const PUBLIC_API_ROUTES = ["/api/services/public-list"];
+const PUBLIC_API_ROUTES = [
+  "/api/services/public-list",
+  // Parents filling out the public enrolment form at /enrol/[token] have no session.
+  // The route itself rate-limits by IP and validates magic bytes / size / extension.
+  "/api/upload/enrolment-file",
+];
 
 export default withAuth(
   function middleware(req) {
@@ -23,8 +20,11 @@ export default withAuth(
       return NextResponse.next();
     }
 
-    const role = token?.role as string | undefined;
-    if (role && !canAccess(role, pathname)) {
+    // Use the shared canAccessPage helper from role-permissions so dynamic
+    // `[id]` route patterns (e.g. /children/[id]) match concrete paths
+    // (/children/abc123) consistently with client-side sidebar filtering.
+    const role = parseRole(token?.role);
+    if (role && !canAccessPage(role, pathname)) {
       // Redirect to dashboard if user doesn't have access
       const url = req.nextUrl.clone();
       url.pathname = "/dashboard";

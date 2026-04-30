@@ -8,9 +8,14 @@ const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"] as const;
 interface ServiceFilterProps {
   value: string;
   onChange: (serviceId: string) => void;
+  /**
+   * Hide the NSW/VIC-style state pills. The centre dropdown remains visible.
+   * Useful where the state filter duplicates the dropdown's reach.
+   */
+  hideStatePills?: boolean;
 }
 
-export function ServiceFilter({ value, onChange }: ServiceFilterProps) {
+export function ServiceFilter({ value, onChange, hideStatePills = false }: ServiceFilterProps) {
   const { data: services } = useServices("active");
   const [stateFilter, setStateFilter] = useState("");
 
@@ -22,7 +27,7 @@ export function ServiceFilter({ value, onChange }: ServiceFilterProps) {
   const presentStates = [
     ...new Set((services ?? []).map((s) => s.state).filter(Boolean)),
   ].sort() as string[];
-  const showStatePills = presentStates.length > 1;
+  const showStatePills = !hideStatePills && presentStates.length > 1;
 
   function handleStateClick(st: string) {
     const next = stateFilter === st ? "" : st;

@@ -19,6 +19,8 @@ import {
   useSubmitPulse,
   usePulseSummary,
 } from "@/hooks/useCommunication";
+import { isAdminRole } from "@/lib/role-permissions";
+import { PulseAdminView } from "./PulseAdminView";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -58,9 +60,10 @@ export function WeeklyPulseTab() {
   const { data: session } = useSession();
   const userId = (session?.user as any)?.id;
   const userRole = (session?.user as any)?.role;
-  const isLeader = userRole === "owner" || userRole === "admin";
+  const isLeader = userRole === "owner" || userRole === "admin" || userRole === "head_office";
+  const isAdmin = isAdminRole(userRole);
 
-  const [view, setView] = useState<"my" | "team">("my");
+  const [view, setView] = useState<"my" | "team" | "admin">("my");
   const [weekOffset, setWeekOffset] = useState(0);
 
   const weekOf = useMemo(() => {
@@ -80,36 +83,26 @@ export function WeeklyPulseTab() {
   const myPulse: any = myPulses?.[0];
   const isSubmitted = !!myPulse?.submittedAt;
 
-  // Track which weekOf we've already loaded data for to prevent re-setting
-  // form state on every refetch (which was clearing user input mid-typing)
-  const loadedWeekRef = useRef<string | null>(null);
+  // Track the pulse id (or a sentinel for "no pulse for this week") we've
+  // already hydrated form state from. Comparing by identity (object ref) or
+  // by week is wrong: object ref changes on every refetch (clearing input
+  // mid-typing), and week-only misses the empty→has-pulse transition. The
+  // pulse's primary key is the only stable, meaningful trigger to re-hydrate.
+  const loadedPulseIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Only populate form from server data on initial load or week change
-    if (loadedWeekRef.current === weekOf) return;
+    // Sentinel: no pulse exists for this week. Compose with weekOf so changing
+    // weeks still resets even when both weeks have no pulse.
+    const currentKey: string = myPulse?.id ?? `empty:${weekOf}`;
+    if (loadedPulseIdRef.current === currentKey) return;
+    loadedPulseIdRef.current = currentKey;
 
-    if (myPulse) {
-      setWins(myPulse.wins ?? "");
-      setPriorities(myPulse.priorities ?? "");
-      setBlockers(myPulse.blockers ?? "");
-      setMood(myPulse.mood ?? 0);
-      setNotes(myPulse.notes ?? "");
-      loadedWeekRef.current = weekOf;
-    } else if (myPulses && myPulses.length === 0) {
-      // No pulse for this week — clear form
-      setWins("");
-      setPriorities("");
-      setBlockers("");
-      setMood(0);
-      setNotes("");
-      loadedWeekRef.current = weekOf;
-    }
-  }, [myPulse, myPulses, weekOf]);
-
-  // Reset loaded tracking when week changes so we re-populate from server
-  useEffect(() => {
-    loadedWeekRef.current = null;
-  }, [weekOf]);
+    setWins(myPulse?.wins ?? "");
+    setPriorities(myPulse?.priorities ?? "");
+    setBlockers(myPulse?.blockers ?? "");
+    setMood(myPulse?.mood ?? 0);
+    setNotes(myPulse?.notes ?? "");
+  }, [myPulse?.id, weekOf]);
 
   const submitPulse = useSubmitPulse();
 
@@ -482,12 +475,23 @@ export function WeeklyPulseTab() {
               Team Pulse
             </button>
           )}
+          {isAdmin && (
+            <button
+              onClick={() => setView("admin")}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
+                view === "admin" ? "bg-brand text-white shadow-sm" : "text-muted hover:text-foreground"
+              )}
+            >
+              All Services
+            </button>
+          )}
         </div>
         <WeekSelector />
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6">
-        {view === "my" ? <MyPulseView /> : <TeamPulseView />}
+        {view === "my" ? <MyPulseView /> : view === "team" ? <TeamPulseView /> : <PulseAdminView weekOf={weekOf} />}
       </div>
     </div>
   );

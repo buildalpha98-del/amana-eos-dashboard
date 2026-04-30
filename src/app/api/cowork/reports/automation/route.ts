@@ -5,7 +5,7 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
 import { resolveAssignee } from "../../_lib/resolve-assignee";
 import { resolveServiceByCode } from "../../_lib/resolve-service";
 import { withApiHandler } from "@/lib/api-handler";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 
 const reportBodySchema = z.object({
   seat: z.string().min(1, "seat is required"),
@@ -23,7 +23,7 @@ export const POST = withApiHandler(async (req: NextRequest) => {
   const authError = await authenticateCowork(req);
   if (authError) return authError;
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = reportBodySchema.safeParse(body);
   if (!parsed.success) {
     throw ApiError.badRequest("Validation failed", parsed.error.flatten().fieldErrors);

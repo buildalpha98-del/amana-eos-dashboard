@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useCreateCampaign } from "@/hooks/useMarketing";
 import type { MarketingPlatform, MarketingCampaignType } from "@prisma/client";
 import { ServiceMultiSelect } from "./ServiceMultiSelect";
+import { CampaignGateModal, type CampaignGateBlocker } from "./CampaignGateModal";
+import { fetchApi } from "@/lib/fetch-api";
 
 const CAMPAIGN_TYPES: MarketingCampaignType[] = [
   "campaign",
@@ -34,6 +37,8 @@ export function CreateCampaignModal({
   onClose: () => void;
 }) {
   const createCampaign = useCreateCampaign();
+  const { data: session } = useSession();
+  const isOwner = session?.user?.role === "owner";
 
   const [name, setName] = useState("");
   const [type, setType] = useState<MarketingCampaignType>("campaign");
@@ -48,6 +53,9 @@ export function CreateCampaignModal({
   const [location, setLocation] = useState("");
   const [deliverables, setDeliverables] = useState("");
   const [error, setError] = useState("");
+  const [gateBlockers, setGateBlockers] = useState<CampaignGateBlocker[]>([]);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateChecking, setGateChecking] = useState(false);
 
   const resetForm = () => {
     setName("");
@@ -78,15 +86,7 @@ export function CreateCampaignModal({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    if (!name.trim()) {
-      setError("Campaign name is required.");
-      return;
-    }
-
+  const submitCampaign = () => {
     createCampaign.mutate(
       {
         name: name.trim(),
@@ -111,6 +111,118 @@ export function CreateCampaignModal({
         },
       }
     );
+  };
+
+  // Reusable gate check — used by the form submit AND by the "Re-check"
+  // button on the gate modal AND by the window-focus listener when the user
+  // comes back from "Open Avatar" in another tab.
+  const runGateCheck = useCallback(
+    async (
+      ids: string[],
+    ): Promise<{ ok: boolean; blockers: CampaignGateBlocker[] }> => {
+      if (ids.length === 0) return { ok: true, blockers: [] };
+      const statuses = await Promise.all(
+        ids.map((id) =>
+          fetchApi<{
+            serviceId: string;
+            serviceName: string;
+            open: boolean;
+            lastOpenedAt: string | null;
+            lastOpenedBy: string | null;
+          }>(`/api/centre-avatars/${id}/gate-status`),
+        ),
+      );
+      const blockers: CampaignGateBlocker[] = statuses
+        .filter((s) => !s.open)
+        .map((s) => ({
+          serviceId: s.serviceId,
+          serviceName: s.serviceName,
+          lastOpenedAt: s.lastOpenedAt,
+          lastOpenedBy: s.lastOpenedBy,
+        }));
+      return { ok: blockers.length === 0, blockers };
+    },
+    [],
+  );
+
+  // When the gate modal is open and the user comes back to this tab (e.g.
+  // after clicking "Open" → opening the avatar in a new tab → returning),
+  // automatically re-run the gate check. Removes the "have to close & reopen"
+  // friction the reviewer flagged.
+  useEffect(() => {
+    if (!gateOpen) return;
+    const handler = () => {
+      void runGateCheck(serviceIds).then(({ ok, blockers }) => {
+        if (ok) {
+          setGateOpen(false);
+          setGateBlockers([]);
+          submitCampaign();
+        } else {
+          setGateBlockers(blockers);
+        }
+      });
+    };
+    window.addEventListener("focus", handler);
+    return () => window.removeEventListener("focus", handler);
+    // submitCampaign isn't memoised but only fires once per ok-transition;
+    // disabling the lint here keeps the listener stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gateOpen, serviceIds, runGateCheck]);
+
+  const handleRecheck = async () => {
+    const { ok, blockers } = await runGateCheck(serviceIds);
+    if (ok) {
+      setGateOpen(false);
+      setGateBlockers([]);
+      submitCampaign();
+    } else {
+      setGateBlockers(blockers);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!name.trim()) {
+      setError("Campaign name is required.");
+      return;
+    }
+
+    // Portfolio-wide campaigns (no service selection) bypass the Avatar gate.
+    if (serviceIds.length === 0) {
+      submitCampaign();
+      return;
+    }
+
+    setGateChecking(true);
+    try {
+      const { ok, blockers } = await runGateCheck(serviceIds);
+      setGateChecking(false);
+      if (ok) {
+        submitCampaign();
+        return;
+      }
+      setGateBlockers(blockers);
+      setGateOpen(true);
+    } catch (err) {
+      setGateChecking(false);
+      setError(
+        err instanceof Error
+          ? `Gate check failed: ${err.message}`
+          : "Could not verify Centre Avatar freshness.",
+      );
+    }
+  };
+
+  const handleGateSkip = () => {
+    setGateOpen(false);
+    setGateBlockers([]);
+    submitCampaign();
+  };
+
+  const handleGateClose = () => {
+    setGateOpen(false);
   };
 
   if (!open) return null;
@@ -352,15 +464,28 @@ export function CreateCampaignModal({
               </button>
               <button
                 type="submit"
-                disabled={createCampaign.isPending}
+                disabled={createCampaign.isPending || gateChecking}
                 className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-hover disabled:opacity-50"
               >
-                {createCampaign.isPending ? "Creating..." : "Create Campaign"}
+                {gateChecking
+                  ? "Checking Avatars..."
+                  : createCampaign.isPending
+                    ? "Creating..."
+                    : "Create Campaign"}
               </button>
             </div>
           </form>
         </div>
       </div>
+
+      <CampaignGateModal
+        open={gateOpen}
+        blockers={gateBlockers}
+        isOwner={isOwner}
+        onClose={handleGateClose}
+        onSkip={handleGateSkip}
+        onRecheck={handleRecheck}
+      />
     </>
   );
 }

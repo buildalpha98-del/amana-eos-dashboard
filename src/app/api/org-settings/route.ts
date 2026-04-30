@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 // GET /api/org-settings — fetch org settings (singleton)
 export const GET = withApiAuth(async (req, session) => {
   let settings = await prisma.orgSettings.findUnique({
@@ -35,7 +36,7 @@ const updateSchema = z.object({
 
 // PATCH /api/org-settings — update org settings (owner only)
 export const PATCH = withApiAuth(async (req, session) => {
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateSchema.safeParse(body);
 
   if (!parsed.success) {

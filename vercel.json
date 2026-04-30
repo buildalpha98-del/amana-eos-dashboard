@@ -6,6 +6,22 @@
       "schedule": "0 22 * * 1-5"
     },
     {
+      "path": "/api/cron/whatsapp-compliance-reminder",
+      "schedule": "0 22 * * 1-5"
+    },
+    {
+      "path": "/api/cron/tuesday-claude-prompter",
+      "schedule": "0 22 * * 1"
+    },
+    {
+      "path": "/api/cron/draft-activation-recap",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/newsletter-placement-chase",
+      "schedule": "0 22 * * 1"
+    },
+    {
       "path": "/api/cron/attendance-alerts",
       "schedule": "0 20 * * *"
     },
@@ -24,6 +40,10 @@
     {
       "path": "/api/cron/auto-escalation",
       "schedule": "30 22 * * *"
+    },
+    {
+      "path": "/api/cron/vapi-sla-monitor",
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/xero/sync/cron",
@@ -244,6 +264,18 @@
     {
       "path": "/api/cron/cleanup-tokens",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/ratio-capture",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/handover-cleanup",
+      "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/cron/harvest-centre-avatar-insights",
+      "schedule": "0 20 * * *"
     }
   ]
 }

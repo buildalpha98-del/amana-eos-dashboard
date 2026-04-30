@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useCreateProject } from "@/hooks/useProjects";
 import { useProjectTemplates, type ProjectTemplate } from "@/hooks/useProjectTemplates";
 import { useServices } from "@/hooks/useServices";
@@ -149,17 +149,29 @@ export function CreateProjectModal({
     });
   }, [templates]);
 
-  // Auto-select preselected template on first render
-  const [didAutoSelect, setDidAutoSelect] = useState(false);
-  if (preselectedTemplateId && !didAutoSelect && templates?.length) {
+  // Auto-fill form from the preselected template (Launch from Template flow).
+  // This MUST run in an effect — calling setState directly in render body
+  // (even with a guard) emits React 19 warnings and, when combined with the
+  // query refetching templates, was observed to cascade renders until the tab
+  // became unresponsive. See bug-10.
+  //
+  // We key off `appliedTemplateId` (not a boolean flag) so that reopening the
+  // modal with a different template correctly re-fills the form.
+  const [appliedTemplateId, setAppliedTemplateId] = useState<string | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!open) return;
+    if (!preselectedTemplateId) return;
+    if (appliedTemplateId === preselectedTemplateId) return;
+    if (!templates?.length) return;
     const tpl = templates.find((t) => t.id === preselectedTemplateId);
-    if (tpl) {
-      setTemplateId(tpl.id);
-      setName(tpl.name);
-      setDescription(tpl.description || "");
-      setDidAutoSelect(true);
-    }
-  }
+    if (!tpl) return;
+    setTemplateId(tpl.id);
+    setName(tpl.name);
+    setDescription(tpl.description || "");
+    setAppliedTemplateId(tpl.id);
+  }, [open, preselectedTemplateId, appliedTemplateId, templates]);
 
   if (!open) return null;
 
@@ -209,7 +221,7 @@ export function CreateProjectModal({
           setTemplateId("");
           setOwnerId("");
           setTargetDate("");
-          setDidAutoSelect(false);
+          setAppliedTemplateId(null);
           onClose();
         },
         onError: (err: Error) => setError(err.message),

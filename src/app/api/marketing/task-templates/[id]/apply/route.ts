@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const schema = z.object({
   campaignId: z.string().optional(),
   serviceId: z.string().optional(),
@@ -11,7 +12,7 @@ const schema = z.object({
 
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = schema.parse(await req.json());
+  const body = schema.parse(await parseJsonBody(req));
 
   const template = await prisma.marketingTaskTemplate.findUnique({
     where: { id },

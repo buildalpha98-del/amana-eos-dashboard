@@ -52,10 +52,13 @@ function makeReq(
   method: string = "GET",
   body?: Record<string, unknown>
 ) {
-  const init: RequestInit = { method, headers: { Authorization: "Bearer test-key" } };
+  const init: { method: string; headers: Record<string, string>; body?: string } = {
+    method,
+    headers: { Authorization: "Bearer test-key" },
+  };
   if (body) {
     init.body = JSON.stringify(body);
-    (init.headers as Record<string, string>)["Content-Type"] = "application/json";
+    init.headers["Content-Type"] = "application/json";
   }
   return new NextRequest(new URL(url, "http://localhost"), init);
 }

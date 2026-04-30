@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const schema = z.object({
   serviceId: z.string().min(1),
   weeksAhead: z.number().min(1).max(52).default(8),
@@ -98,7 +99,7 @@ export async function propagateEnrolledCounts(
 // ── POST /api/attendance/propagate ──────────────────────────
 
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

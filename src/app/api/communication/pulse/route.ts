@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const pulseUpsertSchema = z.object({
   weekOf: z.string().min(1, "weekOf is required"),
   wins: z.string().optional(),
@@ -49,7 +50,7 @@ const { searchParams } = new URL(req.url);
 
 // POST /api/communication/pulse — Create or update weekly pulse (upsert)
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = pulseUpsertSchema.safeParse(body);
 
   if (!parsed.success) {

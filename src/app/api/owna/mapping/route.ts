@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const updateSchema = z.object({
   serviceId: z.string().min(1),
   ownaServiceId: z.string().nullable(),
@@ -16,7 +17,7 @@ export const PUT = withApiAuth(async (req, session) => {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

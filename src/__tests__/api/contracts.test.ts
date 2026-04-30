@@ -235,6 +235,117 @@ describe("PATCH /api/contracts/[id]", () => {
   });
 });
 
+describe("POST /api/contracts — nullable optional fields", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+  });
+
+  it("accepts null for optional string fields without rejecting as 'expected string, received null'", async () => {
+    mockSession({ id: "u1", name: "Test User", role: "admin" });
+
+    // user lookup for the contract target
+    prismaMock.user.findUnique.mockImplementation(
+      async (args: { where: { id: string } }) => {
+        if (args.where.id === "target-user-id") {
+          return { id: "target-user-id", name: "Staff", active: true };
+        }
+        // Active check for session user
+        return { active: true };
+      }
+    );
+
+    const created = {
+      id: "c1",
+      userId: "target-user-id",
+      contractType: "ct_permanent",
+      payRate: 30.5,
+      hoursPerWeek: null,
+      startDate: new Date("2026-05-01"),
+      endDate: null,
+      status: "contract_draft",
+      awardLevel: null,
+      awardLevelCustom: null,
+      documentUrl: null,
+      documentId: null,
+      notes: null,
+      previousContractId: null,
+      user: { id: "target-user-id", name: "Staff", email: "staff@test.com", avatar: null },
+    };
+    prismaMock.employmentContract.create.mockResolvedValue(created);
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("POST", "/api/contracts", {
+      body: {
+        userId: "target-user-id",
+        contractType: "ct_permanent",
+        payRate: 30.5,
+        startDate: "2026-05-01",
+        awardLevelCustom: null,
+        documentUrl: null,
+        documentId: null,
+        notes: null,
+        endDate: null,
+        hoursPerWeek: null,
+        previousContractId: null,
+        awardLevel: null,
+      },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.id).toBe("c1");
+  });
+});
+
+describe("PATCH /api/contracts/[id] — nullable optional fields", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+  });
+
+  it("accepts null for previously-set optional fields", async () => {
+    mockSession({ id: "u1", name: "Test User", role: "admin" });
+
+    const existing = {
+      id: "c1",
+      userId: "other",
+      contractType: "ct_permanent",
+      payRate: 35.5,
+      status: "active",
+    };
+    prismaMock.employmentContract.findUnique.mockResolvedValue(existing);
+
+    const updated = {
+      ...existing,
+      awardLevelCustom: null,
+      documentUrl: null,
+      notes: null,
+      endDate: null,
+      user: { id: "other", name: "Staff", email: "staff@test.com", avatar: null },
+    };
+    prismaMock.employmentContract.update.mockResolvedValue(updated);
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("PATCH", "/api/contracts/c1", {
+      body: {
+        awardLevelCustom: null,
+        documentUrl: null,
+        notes: null,
+        endDate: null,
+      },
+    });
+    const res = await PATCH(req, {
+      params: Promise.resolve({ id: "c1" }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.id).toBe("c1");
+  });
+});
+
 describe("POST /api/contracts/[id]/terminate", () => {
   beforeEach(() => {
     vi.clearAllMocks();

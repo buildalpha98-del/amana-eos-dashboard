@@ -5,6 +5,7 @@ import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { getParentChildIds } from "@/app/api/parent/bookings/route";
 import { sendAbsenceConfirmationNotification } from "@/lib/notifications/bookings";
+import { logger } from "@/lib/logger";
 
 const absenceSchema = z.object({
   childId: z.string().min(1, "childId is required"),
@@ -76,7 +77,7 @@ export const POST = withParentAuth(async (req, { parent }) => {
   });
 
   // Fire and forget
-  sendAbsenceConfirmationNotification(absence.id).catch(() => {});
+  sendAbsenceConfirmationNotification(absence.id).catch((err) => logger.error("Failed to send absence confirmation notification", { err, absenceId: absence.id }));
 
   return NextResponse.json(absence, { status: 201 });
 });

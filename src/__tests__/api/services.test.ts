@@ -281,6 +281,114 @@ describe("PATCH /api/services/[id]", () => {
     const body = await res.json();
     expect(body.name).toBe("Updated Centre");
   });
+
+  // ── Approvals + session times (Commit 2) ────────────────────────
+  it("accepts serviceApprovalNumber, providerApprovalNumber, and valid sessionTimes", async () => {
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
+    const updated = {
+      id: "svc-1",
+      name: "Centre",
+      serviceApprovalNumber: "SE-00012345",
+      providerApprovalNumber: "PR-00067890",
+      sessionTimes: { bsc: { start: "06:30", end: "08:45" } },
+      manager: null,
+    };
+    prismaMock.service.update.mockResolvedValue(updated);
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("PATCH", "/api/services/svc-1", {
+      body: {
+        serviceApprovalNumber: "SE-00012345",
+        providerApprovalNumber: "PR-00067890",
+        sessionTimes: { bsc: { start: "06:30", end: "08:45" } },
+      },
+    });
+    const context = { params: Promise.resolve({ id: "svc-1" }) };
+    const res = await PATCH(req, context);
+    expect(res.status).toBe(200);
+    const updateCall = prismaMock.service.update.mock.calls[0][0];
+    expect(updateCall.data.serviceApprovalNumber).toBe("SE-00012345");
+    expect(updateCall.data.providerApprovalNumber).toBe("PR-00067890");
+    expect(updateCall.data.sessionTimes).toEqual({ bsc: { start: "06:30", end: "08:45" } });
+  });
+
+  it("rejects sessionTimes with non-HH:MM start (e.g. '6:30') with 400", async () => {
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
+
+    const req = createRequest("PATCH", "/api/services/svc-1", {
+      body: { sessionTimes: { bsc: { start: "6:30", end: "08:45" } } },
+    });
+    const context = { params: Promise.resolve({ id: "svc-1" }) };
+    const res = await PATCH(req, context);
+    expect(res.status).toBe(400);
+    expect(prismaMock.service.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects sessionTimes with non-time string with 400", async () => {
+    mockSession({ id: "user-1", name: "Owner", role: "owner" });
+    prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
+
+    const req = createRequest("PATCH", "/api/services/svc-1", {
+      body: { sessionTimes: { bsc: { start: "not-a-time", end: "08:45" } } },
+    });
+    const context = { params: Promise.resolve({ id: "svc-1" }) };
+    const res = await PATCH(req, context);
+    expect(res.status).toBe(400);
+    expect(prismaMock.service.update).not.toHaveBeenCalled();
+  });
+
+  // ── Coordinator service-scope narrowing ─────────────────────────
+  it("allows coordinator to patch approval fields on their own service (200)", async () => {
+    mockSession({
+      id: "coord-1",
+      name: "Coordinator",
+      role: "coordinator",
+      serviceId: "svc-1",
+    });
+    prismaMock.service.findUnique.mockResolvedValue({ id: "svc-1" });
+    const updated = {
+      id: "svc-1",
+      name: "Centre",
+      serviceApprovalNumber: "SE-00099999",
+      providerApprovalNumber: "PR-00088888",
+      manager: null,
+    };
+    prismaMock.service.update.mockResolvedValue(updated);
+    prismaMock.activityLog.create.mockResolvedValue({});
+
+    const req = createRequest("PATCH", "/api/services/svc-1", {
+      body: {
+        serviceApprovalNumber: "SE-00099999",
+        providerApprovalNumber: "PR-00088888",
+      },
+    });
+    const context = { params: Promise.resolve({ id: "svc-1" }) };
+    const res = await PATCH(req, context);
+    expect(res.status).toBe(200);
+    expect(prismaMock.service.update).toHaveBeenCalledTimes(1);
+    const updateCall = prismaMock.service.update.mock.calls[0][0];
+    expect(updateCall.data.serviceApprovalNumber).toBe("SE-00099999");
+    expect(updateCall.data.providerApprovalNumber).toBe("PR-00088888");
+  });
+
+  it("forbids coordinator from patching another service (403), no update called", async () => {
+    mockSession({
+      id: "coord-1",
+      name: "Coordinator",
+      role: "coordinator",
+      serviceId: "svc-other",
+    });
+
+    const req = createRequest("PATCH", "/api/services/svc-1", {
+      body: { serviceApprovalNumber: "SE-00099999" },
+    });
+    const context = { params: Promise.resolve({ id: "svc-1" }) };
+    const res = await PATCH(req, context);
+    expect(res.status).toBe(403);
+    expect(prismaMock.service.update).not.toHaveBeenCalled();
+  });
 });
 
 describe("DELETE /api/services/[id]", () => {

@@ -54,7 +54,14 @@ describe("GET /api/services/[id]/parent-posts", () => {
   it("returns posts for the correct service", async () => {
     mockSession({ id: "user-1", name: "Test", role: "admin", serviceId: SERVICE_ID });
     prismaMock.parentPost.findMany.mockResolvedValue([
-      { id: "p-1", title: "Test Post", content: "Hello", type: "observation", tags: [] },
+      {
+        id: "p-1",
+        title: "Test Post",
+        content: "Hello",
+        type: "observation",
+        tags: [],
+        _count: { likes: 3, comments: 2 },
+      },
     ]);
     const req = createRequest("GET", `/api/services/${SERVICE_ID}/parent-posts`);
     const res = await GET(req, context);
@@ -62,6 +69,8 @@ describe("GET /api/services/[id]/parent-posts", () => {
     const body = await res.json();
     expect(body.items).toHaveLength(1);
     expect(body.items[0].title).toBe("Test Post");
+    expect(body.items[0].likeCount).toBe(3);
+    expect(body.items[0].commentCount).toBe(2);
   });
 });
 
@@ -199,6 +208,41 @@ describe("POST /api/services/[id]/parent-posts", () => {
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.details?.mediaUrls).toBeDefined();
+  });
+
+  it("rejects more than 6 mediaUrls", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "admin", serviceId: SERVICE_ID });
+    const mediaUrls = Array.from(
+      { length: 7 },
+      (_, i) => `https://abc${i}.public.blob.vercel-storage.com/img-${i}.jpg`,
+    );
+    const req = createRequest("POST", `/api/services/${SERVICE_ID}/parent-posts`, {
+      body: { title: "Gallery", content: "test", isCommunity: true, mediaUrls },
+    });
+    const res = await POST(req, context);
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.details?.mediaUrls).toBeDefined();
+  });
+
+  it("accepts up to 6 mediaUrls", async () => {
+    mockSession({ id: "user-1", name: "Test", role: "admin", serviceId: SERVICE_ID });
+    prismaMock.service.findUnique.mockResolvedValue({ id: SERVICE_ID });
+    prismaMock.parentPost.create.mockResolvedValue({
+      id: "p-gallery",
+      tags: [],
+      author: null,
+    });
+    prismaMock.activityLog.create.mockResolvedValue({});
+    const mediaUrls = Array.from(
+      { length: 6 },
+      (_, i) => `https://abc${i}.public.blob.vercel-storage.com/img-${i}.jpg`,
+    );
+    const req = createRequest("POST", `/api/services/${SERVICE_ID}/parent-posts`, {
+      body: { title: "Gallery", content: "test", isCommunity: true, mediaUrls },
+    });
+    const res = await POST(req, context);
+    expect(res.status).toBe(201);
   });
 }
 );

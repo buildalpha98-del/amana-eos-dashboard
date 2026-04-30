@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Archive,
   ArrowLeft,
+  Paperclip,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -31,6 +32,13 @@ import {
   DialogDescription,
 } from "@/components/ui/Dialog";
 import { Skeleton } from "@/components/ui/Skeleton";
+import {
+  AttachmentThumbnails,
+  MessageAttachmentGrid,
+  useMessageAttachments,
+  MAX_ATTACHMENTS,
+} from "@/components/parent/ui";
+import { AiButton } from "@/components/ui/AiButton";
 
 // ── Status Tabs ────────────────────────────────────────────
 
@@ -274,6 +282,17 @@ function ConversationThread({
   const updateStatus = useUpdateConversationStatus(conversationId);
   const [replyText, setReplyText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    attachments,
+    addFiles,
+    remove: removeAttachment,
+    reset: resetAttachments,
+    uploadedUrls,
+    isUploading: isAttachmentUploading,
+    canAddMore,
+  } = useMessageAttachments({ endpoint: "/api/upload/image" });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -282,13 +301,27 @@ function ConversationThread({
   // Reset reply when switching conversations
   useEffect(() => {
     setReplyText("");
-  }, [conversationId]);
+    resetAttachments();
+  }, [conversationId, resetAttachments]);
+
+  const canSend =
+    !isAttachmentUploading &&
+    !sendMessage.isPending &&
+    (replyText.trim().length > 0 || uploadedUrls.length > 0);
 
   const handleSend = () => {
-    if (!replyText.trim()) return;
+    if (!canSend) return;
     sendMessage.mutate(
-      { body: replyText.trim() },
-      { onSuccess: () => setReplyText("") },
+      {
+        body: replyText.trim(),
+        attachmentUrls: uploadedUrls.length > 0 ? uploadedUrls : undefined,
+      },
+      {
+        onSuccess: () => {
+          setReplyText("");
+          resetAttachments();
+        },
+      },
     );
   };
 
@@ -297,6 +330,12 @@ function ConversationThread({
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) addFiles(files);
+    e.target.value = "";
   };
 
   if (isLoading) {
@@ -366,71 +405,153 @@ function ConversationThread({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {conversation.messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={cn(
-              "flex",
-              msg.senderType === "staff" ? "justify-end" : "justify-start",
-            )}
-          >
+        {conversation.messages.map((msg) => {
+          const hasText = msg.body && msg.body.trim().length > 0;
+          const hasAttachments =
+            msg.attachmentUrls && msg.attachmentUrls.length > 0;
+          if (!hasText && !hasAttachments) return null;
+          return (
             <div
+              key={msg.id}
               className={cn(
-                "max-w-[75%] rounded-2xl px-4 py-2.5",
-                msg.senderType === "staff"
-                  ? "bg-[#004E64] text-white rounded-br-md"
-                  : "bg-white border border-[#004E64]/20 text-[#1a1a2e] rounded-bl-md",
+                "flex",
+                msg.senderType === "staff" ? "justify-end" : "justify-start",
               )}
             >
-              <p
+              <div
                 className={cn(
-                  "text-[10px] font-semibold mb-0.5",
+                  "max-w-[75%] rounded-2xl px-4 py-2.5",
                   msg.senderType === "staff"
-                    ? "text-white/70"
-                    : "text-[#004E64]",
+                    ? "bg-[#004E64] text-white rounded-br-md"
+                    : "bg-white border border-[#004E64]/20 text-[#1a1a2e] rounded-bl-md",
                 )}
               >
-                {msg.senderName}
-              </p>
-              <p className="text-sm whitespace-pre-wrap break-words">
-                {msg.body}
-              </p>
-              <p
-                className={cn(
-                  "text-[10px] mt-1",
-                  msg.senderType === "staff"
-                    ? "text-white/50"
-                    : "text-[#7c7c8a]",
+                <p
+                  className={cn(
+                    "text-[10px] font-semibold mb-0.5",
+                    msg.senderType === "staff"
+                      ? "text-white/70"
+                      : "text-[#004E64]",
+                  )}
+                >
+                  {msg.senderName}
+                </p>
+                {hasText && (
+                  <p className="text-sm whitespace-pre-wrap break-words">
+                    {msg.body}
+                  </p>
                 )}
-              >
-                {new Date(msg.createdAt).toLocaleTimeString("en-AU", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-              </p>
+                {hasAttachments && (
+                  <MessageAttachmentGrid
+                    urls={msg.attachmentUrls}
+                    tone={msg.senderType === "staff" ? "sent" : "received"}
+                  />
+                )}
+                <p
+                  className={cn(
+                    "text-[10px] mt-1",
+                    msg.senderType === "staff"
+                      ? "text-white/50"
+                      : "text-[#7c7c8a]",
+                  )}
+                >
+                  {new Date(msg.createdAt).toLocaleTimeString("en-AU", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Reply box */}
-      <div className="p-3 border-t border-[#e8e4df]">
+      <div className="p-3 border-t border-[#e8e4df] space-y-2">
+        {attachments.length > 0 && (
+          <AttachmentThumbnails
+            attachments={attachments}
+            onRemove={removeAttachment}
+          />
+        )}
         <div className="flex items-end gap-2">
-          <textarea
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
-            rows={3}
-            className="flex-1 px-3 py-2.5 border border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handleFileChange}
           />
           <button
-            onClick={handleSend}
-            disabled={!replyText.trim() || sendMessage.isPending}
-            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-[#004E64] hover:bg-[#003D52] text-white transition-all disabled:opacity-50 active:scale-[0.95] min-h-[44px] min-w-[44px]"
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!canAddMore || sendMessage.isPending}
+            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full text-[#004E64] hover:bg-[#004E64]/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px] min-w-[44px]"
+            aria-label="Add image attachment"
+            title={
+              canAddMore
+                ? "Add photo"
+                : `Maximum ${MAX_ATTACHMENTS} images per message`
+            }
           >
-            {sendMessage.isPending ? (
+            <Paperclip className="w-5 h-5" />
+          </button>
+          <div className="flex-1 flex flex-col gap-1.5">
+            <textarea
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                attachments.length > 0 ? "Add a caption…" : "Type a message..."
+              }
+              rows={3}
+              className="w-full px-3 py-2.5 border border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
+            />
+            <div className="flex justify-end">
+              <AiButton
+                size="sm"
+                templateSlug="messaging/parent-reply"
+                section="messaging"
+                metadata={{
+                  conversationId,
+                  serviceId: conversation.service.id,
+                }}
+                variables={{
+                  parentMessage:
+                    [...conversation.messages]
+                      .reverse()
+                      .find((m) => m.senderType === "parent")?.body ??
+                    "(no recent parent message)",
+                  conversationHistory: conversation.messages
+                    .slice(-6)
+                    .map((m) => `${m.senderType}: ${m.body}`)
+                    .join("\n"),
+                  childContext: (() => {
+                    const fam =
+                      [
+                        conversation.family.firstName,
+                        conversation.family.lastName,
+                      ]
+                        .filter(Boolean)
+                        .join(" ") || "the family";
+                    return `Family: ${fam}. Service: ${conversation.service.name}.`;
+                  })(),
+                  tone: "warm professional",
+                }}
+                onResult={(text) => setReplyText(text)}
+                label="Draft reply"
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleSend}
+            disabled={!canSend}
+            className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-[#004E64] hover:bg-[#003D52] text-white transition-all disabled:opacity-50 active:scale-[0.95] min-h-[44px] min-w-[44px]"
+            aria-label="Send message"
+          >
+            {sendMessage.isPending || isAttachmentUploading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Send className="w-4 h-4" />
@@ -457,11 +578,22 @@ function NewMessageDialog({
   const [serviceId, setServiceId] = useState("");
   const { data: families } = useFamilies(serviceId || undefined);
   const createConversation = useCreateConversation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [familyId, setFamilyId] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [familySearch, setFamilySearch] = useState("");
+
+  const {
+    attachments,
+    addFiles,
+    remove: removeAttachment,
+    reset: resetAttachments,
+    uploadedUrls,
+    isUploading: isAttachmentUploading,
+    canAddMore,
+  } = useMessageAttachments({ endpoint: "/api/upload/image" });
 
   const filteredFamilies = useMemo(() => {
     if (!families) return [];
@@ -481,12 +613,28 @@ function NewMessageDialog({
     setSubject("");
     setBody("");
     setFamilySearch("");
+    resetAttachments();
   };
 
+  const hasBody = body.trim().length > 0 || uploadedUrls.length > 0;
+  const canSubmit =
+    !!familyId &&
+    !!serviceId &&
+    !!subject &&
+    hasBody &&
+    !createConversation.isPending &&
+    !isAttachmentUploading;
+
   const handleSend = () => {
-    if (!familyId || !serviceId || !subject || !body) return;
+    if (!canSubmit) return;
     createConversation.mutate(
-      { familyId, serviceId, subject, body },
+      {
+        familyId,
+        serviceId,
+        subject,
+        body: body.trim(),
+        attachmentUrls: uploadedUrls.length > 0 ? uploadedUrls : undefined,
+      },
       {
         onSuccess: (data) => {
           resetForm();
@@ -495,6 +643,12 @@ function NewMessageDialog({
         },
       },
     );
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) addFiles(files);
+    e.target.value = "";
   };
 
   return (
@@ -595,28 +749,56 @@ function NewMessageDialog({
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Type your message..."
+              placeholder={attachments.length > 0 ? "Add a caption (optional)…" : "Type your message..."}
               maxLength={5000}
               rows={4}
               className="w-full px-3 py-2.5 border-2 border-[#e8e4df] rounded-lg bg-[#f8f5f2]/50 text-sm text-[#1a1a2e] placeholder-[#7c7c8a]/60 focus:outline-none focus:border-[#004E64] transition-colors resize-none"
             />
           </div>
 
+          {attachments.length > 0 && (
+            <AttachmentThumbnails
+              attachments={attachments}
+              onRemove={removeAttachment}
+            />
+          )}
+
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!canAddMore || createConversation.isPending}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[#004E64] hover:bg-[#004E64]/5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[40px]"
+              aria-label="Add image attachment"
+              title={canAddMore ? "Add photo" : `Maximum ${MAX_ATTACHMENTS} images per message`}
+            >
+              <Paperclip className="w-4 h-4" />
+              Add photo
+            </button>
+            <span className="text-xs text-[#7c7c8a]">
+              {attachments.length > 0
+                ? `${attachments.length} of ${MAX_ATTACHMENTS}`
+                : ""}
+            </span>
+          </div>
+
           <button
             onClick={handleSend}
-            disabled={
-              !familyId ||
-              !serviceId ||
-              !subject ||
-              !body ||
-              createConversation.isPending
-            }
+            disabled={!canSubmit}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#004E64] hover:bg-[#003D52] text-white text-base font-semibold rounded-xl shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
           >
-            {createConversation.isPending ? (
+            {createConversation.isPending || isAttachmentUploading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Sending...
+                {isAttachmentUploading ? "Uploading..." : "Sending..."}
               </>
             ) : (
               "Send Message"

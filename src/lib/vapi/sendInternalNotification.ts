@@ -7,35 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { baseLayout } from "@/lib/email-templates/base";
 import { logger } from "@/lib/logger";
-
-/**
- * Map centre keywords → coordinator email.
- * VAPI may say "Malek Fahd Greenacre", "MFIS Greenacre", or just "Greenacre".
- * We match on the most specific substring first.
- */
-const CENTRE_COORDINATOR_MAP: { keywords: string[]; email: string }[] = [
-  { keywords: ["greenacre", "mfis greenacre", "malek fahd greenacre"], email: "coordinator.greenacre@amanaoshc.com.au" },
-  { keywords: ["hoxton park", "mfis hoxton", "malek fahd hoxton"], email: "MFIShp@amanaoshc.com.au" },
-  { keywords: ["beaumont hills", "mfis beaumont", "malek fahd beaumont"], email: "mfisbh@amanaoshc.com.au" },
-  { keywords: ["arkana", "kingsgrove"], email: "arkanacollege@amanaoshc.com.au" },
-  { keywords: ["unity grammar", "austral"], email: "unitygrammar@amanaoshc.com.au" },
-  { keywords: ["al-taqwa", "altaqwa", "truganina"], email: "altaqwacollege@amanaoshc.com.au" },
-  { keywords: ["minaret officer", "officer"], email: "minaretofficer@amanaoshc.com.au" },
-  { keywords: ["minaret springvale", "springvale"], email: "minaretspringvale@amanaoshc.com.au" },
-  { keywords: ["minaret doveton", "doveton"], email: "minaretdoveton@amanaoshc.com.au" },
-  { keywords: ["aia", "kkcc", "coburg", "australian international academy"], email: "Aiakkcc@amanaoshc.com.au" },
-];
-
-function findCoordinatorEmail(centreName: string | null): string | undefined {
-  if (!centreName) return undefined;
-  const lower = centreName.toLowerCase();
-  for (const entry of CENTRE_COORDINATOR_MAP) {
-    if (entry.keywords.some((kw) => lower.includes(kw))) {
-      return entry.email;
-    }
-  }
-  return undefined;
-}
+import { findCoordinatorEmail } from "@/lib/vapi/centre-resolver";
 
 const CALL_TYPE_LABELS: Record<string, string> = {
   new_enquiry: "New Enquiry",

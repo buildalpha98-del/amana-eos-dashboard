@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 // GET /api/marketing/campaigns/:id/activations — list activation assignments
 export const GET = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
@@ -30,7 +31,7 @@ const assignmentSchema = z.object({
 
 export const PUT = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = z.array(assignmentSchema).safeParse(body);
 
   if (!parsed.success) {

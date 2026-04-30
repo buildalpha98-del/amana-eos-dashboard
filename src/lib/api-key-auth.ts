@@ -11,6 +11,7 @@ import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logAuditEvent } from "@/lib/audit-log";
+import { logger } from "@/lib/logger";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -187,7 +188,7 @@ export async function authenticateApiKey(
   // Fire-and-forget: update lastUsedAt (non-blocking)
   prisma.apiKey
     .update({ where: { id: apiKey.id }, data: { lastUsedAt: now } })
-    .catch(() => {});
+    .catch((err) => logger.error("Failed to update apiKey.lastUsedAt", { err, apiKeyId: apiKey.id }));
 
   return {
     apiKey: {

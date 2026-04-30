@@ -2,12 +2,15 @@
 
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import { useScorecard } from "@/hooks/useScorecard";
 import type { MeasurableData } from "@/hooks/useScorecard";
 import { ScorecardGrid } from "@/components/scorecard/ScorecardGrid";
+import { ScorecardRollupView } from "@/components/scorecard/ScorecardRollupView";
 import { AddMeasurableModal } from "@/components/scorecard/AddMeasurableModal";
 import { DeleteMeasurableDialog } from "@/components/scorecard/DeleteMeasurableDialog";
 import { exportToCSV } from "@/lib/csv-export";
+import { isAdminRole } from "@/lib/role-permissions";
 import { BarChart3, Plus, Users, Building2, X, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -15,16 +18,21 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AiButton } from "@/components/ui/AiButton";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { toast } from "@/hooks/useToast";
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 export default function ScorecardPage() {
+  const v2 = useStaffV2Flag();
   const { data: scorecard, isLoading, error, refetch } = useScorecard();
   const [showAddMeasurable, setShowAddMeasurable] = useState(false);
   const [editingMeasurable, setEditingMeasurable] = useState<MeasurableData | null>(null);
   const [deletingMeasurable, setDeletingMeasurable] = useState<MeasurableData | null>(null);
   const [groupBy, setGroupBy] = useState<"person" | "service">("person");
   const [aiNarrative, setAiNarrative] = useState("");
-  const [tab, setTab] = useState<"all" | "leadership">("all");
+  const [tab, setTab] = useState<"all" | "leadership" | "rollup">("all");
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const isAdmin = isAdminRole(session?.user?.role as string | undefined);
 
   const deleteMeasurable = useMutation({
     mutationFn: async (id: string) => {
@@ -39,9 +47,13 @@ export default function ScorecardPage() {
       queryClient.invalidateQueries({ queryKey: ["scorecard"] });
       setDeletingMeasurable(null);
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const handleExport = () => {
+    if (tab === "rollup") return;
     if (!scorecard?.measurables || scorecard.measurables.length === 0) return;
 
     // Collect all unique weeks across all measurables, sorted
@@ -96,7 +108,10 @@ export default function ScorecardPage() {
   }, [scorecard, tab]);
 
   return (
-    <div className="max-w-full mx-auto">
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="max-w-full mx-auto"
+    >
       {/* Header */}
       <PageHeader
         title="Scorecard"
@@ -180,10 +195,23 @@ export default function ScorecardPage() {
         >
           Leadership Team
         </button>
+        {isAdmin && (
+          <button
+            onClick={() => setTab("rollup")}
+            className={cn(
+              "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+              tab === "rollup" ? "bg-card text-brand shadow-sm" : "text-muted hover:text-foreground"
+            )}
+          >
+            Org Rollup
+          </button>
+        )}
       </div>
 
       {/* Content */}
-      {isLoading ? (
+      {tab === "rollup" ? (
+        <ScorecardRollupView enabled={tab === "rollup"} />
+      ) : isLoading ? (
         <div className="bg-card rounded-xl border border-border overflow-hidden">
           <div className="flex items-center gap-4 px-4 py-3 border-b border-border/50 bg-surface/50">
             <Skeleton className="h-4 w-32" />

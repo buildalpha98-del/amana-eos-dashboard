@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { withParentAuth } from "@/lib/parent-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
+import { casualBookingSettingsSchema, type CasualBookingSettings } from "@/lib/service-settings";
+import { checkCasualBookingAllowed } from "@/lib/casual-booking-check";
+import { parseJsonField } from "@/lib/schemas/json-fields";
 
 const bulkBookingSchema = z.object({
   childId: z.string().min(1),
@@ -21,8 +25,11 @@ const bulkBookingSchema = z.object({
 /**
  * POST /api/parent/bookings/bulk
  *
- * Creates multiple booking requests in a single transaction.
- * Skips duplicates (already booked dates).
+ * Creates multiple booking requests in a single serializable transaction.
+ * Each booking is checked against Service.casualBookingSettings; any failure
+ * rolls back the whole batch with `{ error: "Booking N: <reason>" }`.
+ * Duplicate bookings (same child/service/date/sessionType) are skipped silently
+ * to match the prior `createMany + skipDuplicates` behaviour.
  */
 export const POST = withParentAuth(async (req, { parent }) => {
   const body = await parseJsonBody(req);
@@ -33,7 +40,7 @@ export const POST = withParentAuth(async (req, { parent }) => {
 
   const { childId, serviceId, bookings } = parsed.data;
 
-  // Verify the child belongs to the parent
+  // Verify the child belongs to the parent.
   const child = await prisma.child.findUnique({
     where: { id: childId },
     select: { enrolmentId: true },
@@ -42,24 +49,88 @@ export const POST = withParentAuth(async (req, { parent }) => {
     throw ApiError.forbidden("You do not have access to this child");
   }
 
-  // Create all bookings in a transaction, skipping duplicates
-  const data = bookings.map((b) => ({
-    childId,
-    serviceId,
-    date: new Date(b.date),
-    sessionType: b.sessionType as "bsc" | "asc" | "vc",
-    status: "requested" as const,
-    type: "casual" as const,
-  }));
-
-  const result = await prisma.booking.createMany({
-    data,
-    skipDuplicates: true,
+  const service = await prisma.service.findUnique({
+    where: { id: serviceId },
+    select: { id: true, casualBookingSettings: true },
   });
+  if (!service) {
+    throw ApiError.notFound("Service not found");
+  }
 
-  return NextResponse.json({
-    created: result.count,
-    requested: bookings.length,
-    skipped: bookings.length - result.count,
-  }, { status: 201 });
+  const settings = parseJsonField<CasualBookingSettings | null>(
+    service.casualBookingSettings,
+    casualBookingSettingsSchema.nullable(),
+    null,
+  );
+  const now = new Date();
+
+  const created = await prisma.$transaction(
+    async (tx) => {
+      const results: Array<{ index: number; id: string }> = [];
+
+      for (let i = 0; i < bookings.length; i++) {
+        const b = bookings[i];
+        const bookingDate = new Date(`${b.date}T00:00:00.000Z`);
+
+        const existing = await tx.booking.findUnique({
+          where: {
+            childId_serviceId_date_sessionType: {
+              childId,
+              serviceId,
+              date: bookingDate,
+              sessionType: b.sessionType,
+            },
+          },
+        });
+        // Skip duplicates silently (preserves prior createMany+skipDuplicates behaviour).
+        if (existing) continue;
+
+        const currentCount = await tx.booking.count({
+          where: {
+            serviceId,
+            date: bookingDate,
+            sessionType: b.sessionType,
+            type: "casual",
+            status: { in: ["requested", "confirmed"] },
+          },
+        });
+
+        const check = checkCasualBookingAllowed({
+          settings,
+          sessionType: b.sessionType,
+          bookingDate,
+          now,
+          currentCasualBookings: currentCount,
+        });
+        if (!check.ok) {
+          throw ApiError.badRequest(`Booking ${i + 1}: ${check.reason}`);
+        }
+
+        const row = await tx.booking.create({
+          data: {
+            childId,
+            serviceId,
+            date: bookingDate,
+            sessionType: b.sessionType,
+            status: "requested",
+            type: "casual",
+          },
+          select: { id: true },
+        });
+        results.push({ index: i, id: row.id });
+      }
+
+      return results;
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
+
+  return NextResponse.json(
+    {
+      created: created.length,
+      requested: bookings.length,
+      skipped: bookings.length - created.length,
+    },
+    { status: 201 },
+  );
 });

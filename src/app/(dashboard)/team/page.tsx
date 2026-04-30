@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { useTeam } from "@/hooks/useTeam";
 import { OrgChartView } from "@/components/team/OrgChartView";
 import { TeamListView } from "@/components/team/TeamListView";
+import { ActionRequiredWidget } from "@/components/team/ActionRequiredWidget";
 import {
   Users,
   LayoutGrid,
@@ -19,8 +21,11 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Download } from "lucide-react";
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 export default function TeamPage() {
+  const v2 = useStaffV2Flag();
+  const { data: session } = useSession();
   const { data: members, isLoading: teamLoading, error, refetch } = useTeam();
   const [viewMode, setViewMode] = useState<"chart" | "list">("chart");
 
@@ -38,7 +43,10 @@ export default function TeamPage() {
     members?.reduce((s, m) => s + m.openIssues, 0) || 0;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="max-w-7xl mx-auto space-y-6"
+    >
       <PageHeader
         title={viewMode === "chart" ? "Accountability Chart" : "Performance List"}
         description={viewMode === "chart"
@@ -78,6 +86,10 @@ export default function TeamPage() {
           },
         ]}
       />
+
+      {session?.user?.role && (
+        <ActionRequiredWidget userRole={session.user.role} />
+      )}
 
       {/* Stats cards — only show on list view */}
       {viewMode === "list" && (

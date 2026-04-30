@@ -5,6 +5,7 @@ import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const forecastSchema = z.object({
   date: z.string().min(1),
   sessionType: z.enum(["bsc", "asc", "vc"]),
@@ -29,7 +30,7 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = bodySchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(

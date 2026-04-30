@@ -16,6 +16,7 @@ import {
 import { ChartCard } from "./ChartCard";
 import { CHART_COLORS } from "./chart-colors";
 import { RefreshCw } from "lucide-react";
+import { toast } from "@/hooks/useToast";
 
 interface CashFlowPeriod {
   id: string;
@@ -84,6 +85,9 @@ export function CashFlowChart() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cashflow"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

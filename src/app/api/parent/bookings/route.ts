@@ -1,9 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { withParentAuth } from "@/lib/parent-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendBookingRequestNotification } from "@/lib/notifications/bookings";
+import { logger } from "@/lib/logger";
+import { casualBookingSettingsSchema, type CasualBookingSettings } from "@/lib/service-settings";
+import { checkCasualBookingAllowed } from "@/lib/casual-booking-check";
+import { parseJsonField } from "@/lib/schemas/json-fields";
 
 // ---------------------------------------------------------------------------
 // Zod schemas
@@ -86,6 +91,9 @@ export const GET = withParentAuth(async (req, { parent }) => {
 
 // ---------------------------------------------------------------------------
 // POST — Request a new casual booking
+//
+// The count-then-create pair runs inside a Serializable transaction to prevent
+// two concurrent parent submissions from both booking the last casual spot.
 // ---------------------------------------------------------------------------
 
 export const POST = withParentAuth(async (req, { parent }) => {
@@ -97,71 +105,116 @@ export const POST = withParentAuth(async (req, { parent }) => {
 
   const { childId, serviceId, date, sessionType } = parsed.data;
 
-  // Verify child belongs to parent
+  // Verify child belongs to parent (read-only check before entering the tx).
   const childIds = await getParentChildIds(parent.enrolmentIds);
   if (!childIds.has(childId)) {
     throw ApiError.forbidden("You do not have access to this child");
   }
 
-  // Verify service exists
+  // Load service settings once; the JSON field is parsed into a typed shape.
   const service = await prisma.service.findUnique({
     where: { id: serviceId },
-    select: { id: true, bscCasualRate: true, ascCasualRate: true, vcDailyRate: true },
+    select: {
+      id: true,
+      bscCasualRate: true,
+      ascCasualRate: true,
+      vcDailyRate: true,
+      casualBookingSettings: true,
+    },
   });
   if (!service) {
     throw ApiError.notFound("Service not found");
   }
 
-  // Determine fee based on session type
-  const feeMap: Record<string, number | null> = {
-    bsc: service.bscCasualRate,
-    asc: service.ascCasualRate,
-    vc: service.vcDailyRate ?? null,
-  };
-  const fee = feeMap[sessionType] ?? null;
+  const settings = parseJsonField<CasualBookingSettings | null>(
+    service.casualBookingSettings,
+    casualBookingSettingsSchema.nullable(),
+    null,
+  );
 
-  // Prevent duplicate bookings
-  const bookingDate = new Date(date + "T00:00:00.000Z");
-  const existing = await prisma.booking.findUnique({
-    where: {
-      childId_serviceId_date_sessionType: {
-        childId,
-        serviceId,
-        date: bookingDate,
+  const booking = await prisma.$transaction(
+    async (tx) => {
+      const bookingDate = new Date(`${date}T00:00:00.000Z`);
+
+      const existing = await tx.booking.findUnique({
+        where: {
+          childId_serviceId_date_sessionType: {
+            childId,
+            serviceId,
+            date: bookingDate,
+            sessionType,
+          },
+        },
+      });
+      if (existing) {
+        throw ApiError.conflict("A booking already exists for this child, date, and session");
+      }
+
+      const currentCount = await tx.booking.count({
+        where: {
+          serviceId,
+          date: bookingDate,
+          sessionType,
+          type: "casual",
+          status: { in: ["requested", "confirmed"] },
+        },
+      });
+
+      const check = checkCasualBookingAllowed({
+        settings,
         sessionType,
-      },
-    },
-  });
-  if (existing) {
-    throw ApiError.conflict("A booking already exists for this child, date, and session");
-  }
+        bookingDate,
+        now: new Date(),
+        currentCasualBookings: currentCount,
+      });
+      if (!check.ok) {
+        throw ApiError.badRequest(check.reason);
+      }
 
-  // Look up CentreContact for requestedById
-  const contact = await prisma.centreContact.findFirst({
-    where: { email: parent.email, serviceId },
-    select: { id: true },
-  });
+      const feeMap: Record<string, number | null> = {
+        bsc: service.bscCasualRate,
+        asc: service.ascCasualRate,
+        vc: service.vcDailyRate ?? null,
+      };
+      const fee = feeMap[sessionType] ?? null;
 
-  const booking = await prisma.booking.create({
-    data: {
-      childId,
-      serviceId,
-      date: bookingDate,
-      sessionType,
-      status: "requested",
-      type: "casual",
-      fee,
-      requestedById: contact?.id ?? null,
+      const contact = await tx.centreContact.findFirst({
+        where: { email: parent.email, serviceId },
+        select: { id: true },
+      });
+
+      // Auto-confirm: checkCasualBookingAllowed (above) has already verified
+      // every policy constraint (session enabled, day allowed, cut-off met,
+      // spots available). If those pass, the booking is valid — no reason to
+      // make parents wait for manual approval. Coordinator is still notified
+      // for awareness.
+      return tx.booking.create({
+        data: {
+          childId,
+          serviceId,
+          date: bookingDate,
+          sessionType,
+          status: "confirmed",
+          type: "casual",
+          fee,
+          requestedById: contact?.id ?? null,
+        },
+        include: {
+          child: { select: { id: true, firstName: true, surname: true } },
+          service: { select: { id: true, name: true } },
+        },
+      });
     },
-    include: {
-      child: { select: { id: true, firstName: true, surname: true } },
-      service: { select: { id: true, name: true } },
-    },
-  });
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  );
 
   // Fire and forget — notify coordinator
-  sendBookingRequestNotification(booking.id).catch(() => {});
+  sendBookingRequestNotification(booking.id).catch((err) =>
+    logger.error("Failed to send booking-request notification to coordinator", {
+      err,
+      bookingId: booking.id,
+    }),
+  );
 
   return NextResponse.json(booking, { status: 201 });
 });
-

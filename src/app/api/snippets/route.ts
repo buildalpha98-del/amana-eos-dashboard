@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createSchema = z.object({
   title: z.string().min(1).max(200),
   summary: z.string().min(1).max(2000),
@@ -49,7 +50,7 @@ const userId = session!.user.id;
 });
 
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(

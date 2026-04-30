@@ -109,15 +109,25 @@ export function useAttendanceSummary(params?: {
   });
 }
 
+function invalidateBudgetQueriesForService(
+  qc: ReturnType<typeof useQueryClient>,
+  serviceId?: string
+) {
+  if (!serviceId) return;
+  qc.invalidateQueries({ queryKey: ["budget-summary", serviceId] });
+  qc.invalidateQueries({ queryKey: ["equipment-items", serviceId] });
+}
+
 export function useCreateAttendance() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: AttendanceInput) => {
       return mutateApi("/api/attendance", { method: "POST", body: data });
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ["attendance"] });
       qc.invalidateQueries({ queryKey: ["attendance-summary"] });
+      invalidateBudgetQueriesForService(qc, variables.serviceId);
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -131,9 +141,10 @@ export function useBatchUpdateAttendance() {
     mutationFn: async (records: AttendanceInput[]) => {
       return mutateApi("/api/attendance", { method: "PUT", body: records });
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ["attendance"] });
       qc.invalidateQueries({ queryKey: ["attendance-summary"] });
+      invalidateBudgetQueriesForService(qc, variables[0]?.serviceId);
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });

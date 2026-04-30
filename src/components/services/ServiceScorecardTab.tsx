@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { toast } from "@/hooks/useToast";
 
 interface MeasurableData {
   id: string;
@@ -121,6 +122,9 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
         queryKey: ["service-scorecard", serviceId],
       });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   // Add entry mutation
@@ -148,6 +152,9 @@ export function ServiceScorecardTab({ serviceId }: { serviceId: string }) {
       queryClient.invalidateQueries({
         queryKey: ["service-scorecard", serviceId],
       });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

@@ -13,7 +13,11 @@ import { stateFromPostcode } from "@/lib/au-postcodes";
 
 interface Props {
   data: EnrolmentFormData;
-  updateData: (d: Partial<EnrolmentFormData>) => void;
+  updateData: (
+    d:
+      | Partial<EnrolmentFormData>
+      | ((prev: EnrolmentFormData) => Partial<EnrolmentFormData>)
+  ) => void;
   onAddChild: () => void;
   onRemoveChild: (index: number) => void;
 }
@@ -66,10 +70,16 @@ function Input({
 }
 
 export function ChildDetailsStep({ data, updateData, onAddChild, onRemoveChild }: Props) {
+  // Use functional updater so rapid back-to-back calls (e.g. postcode handler
+  // firing updateChild(i, "postcode", ...) then updateChild(i, "state", ...)
+  // on the same keystroke) each see the latest state instead of the stale
+  // `data` captured in this render's closure.
   const updateChild = (index: number, field: keyof ChildDetails, value: string | string[]) => {
-    const children = [...data.children];
-    children[index] = { ...children[index], [field]: value };
-    updateData({ children });
+    updateData((prev) => {
+      const children = [...prev.children];
+      children[index] = { ...children[index], [field]: value };
+      return { children };
+    });
   };
 
   const batchUpdateChild = (index: number, fields: Partial<ChildDetails>) => {

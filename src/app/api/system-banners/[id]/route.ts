@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const patchBannerSchema = z.object({
   title: z.string().min(1).optional(),
   body: z.string().min(1).optional(),
@@ -18,7 +19,7 @@ const patchBannerSchema = z.object({
 // PATCH /api/system-banners/[id] — update a banner (owner/head_office only)
 export const PATCH = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = patchBannerSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });

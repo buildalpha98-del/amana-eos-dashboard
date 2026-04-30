@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createSchoolCommSchema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
   type: z.enum([
@@ -49,7 +50,7 @@ export const GET = withApiAuth(async (req, session) => {
 
 // POST /api/marketing/school-comms — create a new school comm
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createSchoolCommSchema.safeParse(body);
 
   if (!parsed.success) {

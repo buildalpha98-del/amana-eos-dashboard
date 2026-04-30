@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const updateModuleSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
@@ -17,7 +18,7 @@ const updateModuleSchema = z.object({
 // PATCH /api/lms/modules/[moduleId] — update a module
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { moduleId } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateModuleSchema.safeParse(body);
 
   if (!parsed.success) {

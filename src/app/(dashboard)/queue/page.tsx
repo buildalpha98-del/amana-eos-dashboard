@@ -39,6 +39,7 @@ import { exportToCsv } from "@/lib/csv-export";
 import { cn } from "@/lib/utils";
 import { FilterPresets } from "@/components/ui/FilterPresets";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { useStaffV2Flag } from "@/lib/useStaffV2Flag";
 
 const SEATS = [
   "marketing",
@@ -227,6 +228,7 @@ function TodoCard({
 }
 
 export default function QueuePage() {
+  const v2 = useStaffV2Flag();
   const { data: session } = useSession();
   const [seatFilter, setSeatFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -246,10 +248,21 @@ export default function QueuePage() {
   const reviewReport = useReviewReport();
   const completeTodo = useCompleteTodo();
 
-  // Group reports by assignee for "All Queues" view
-  const groupedReports = useMemo(() => {
+  // Group reports by serviceCode for "All Queues" view; within each service
+  // subgroup by assignee to preserve per-owner context inside the service column.
+  const reportsByService = useMemo(() => {
     if (queueView !== "all") return null;
-    const reports = data?.reports || [];
+    return (data?.reports ?? []).reduce<Record<string, QueueReport[]>>(
+      (acc, r) => {
+        const code = r.serviceCode ?? "Unassigned";
+        (acc[code] ??= []).push(r);
+        return acc;
+      },
+      {}
+    );
+  }, [data?.reports, queueView]);
+
+  function groupByAssignee(reports: QueueReport[]) {
     const groups: Record<string, QueueReport[]> = {};
     for (const report of reports) {
       const name = report.assignedTo?.name || "Unassigned";
@@ -257,7 +270,7 @@ export default function QueuePage() {
       groups[name].push(report);
     }
     return groups;
-  }, [queueView, data?.reports]);
+  }
 
   if (error) {
     return (
@@ -277,7 +290,10 @@ export default function QueuePage() {
   const todoCount = data?.counts.todos || 0;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div
+      {...(v2 ? { "data-v2": "staff" } : {})}
+      className="max-w-5xl mx-auto space-y-6"
+    >
       {/* Header */}
       <PageHeader
         title={queueView === "all" ? "All Queues" : "My Queue"}
@@ -424,30 +440,47 @@ export default function QueuePage() {
         />
       ) : (
         <div className="space-y-8">
-          {/* Reports Section — grouped by assignee in "All Queues" view */}
-          {queueView === "all" && groupedReports ? (
-            Object.entries(groupedReports).map(([name, groupReports]) => (
-              <section key={name}>
-                <h2 className="text-sm font-semibold text-[#004E64] mb-3 flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  {name}{" "}
-                  <span className="text-muted font-normal">
-                    ({groupReports.length})
-                  </span>
-                </h2>
-                <div className="grid gap-3">
-                  {groupReports.map((report) => (
-                    <ReportCard
-                      key={report.id}
-                      report={report}
-                      onReview={() => reviewReport.mutate(report.id)}
-                      onView={() => setViewingReport(report)}
-                      isPending={reviewReport.isPending}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))
+          {/* Reports Section — grouped by service, then assignee, in "All Queues" view */}
+          {queueView === "all" && reportsByService ? (
+            Object.entries(reportsByService).map(
+              ([serviceCode, serviceReports]) => {
+                const assigneeGroups = groupByAssignee(serviceReports);
+                return (
+                  <section key={serviceCode} className="space-y-4">
+                    <h3 className="text-sm font-semibold text-foreground/80 border-b border-border pb-1">
+                      {serviceCode}{" "}
+                      <span className="text-muted text-xs font-normal">
+                        ({serviceReports.length})
+                      </span>
+                    </h3>
+                    {Object.entries(assigneeGroups).map(
+                      ([name, groupReports]) => (
+                        <div key={name}>
+                          <h4 className="text-sm font-semibold text-[#004E64] mb-3 flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            {name}{" "}
+                            <span className="text-muted font-normal">
+                              ({groupReports.length})
+                            </span>
+                          </h4>
+                          <div className="grid gap-3">
+                            {groupReports.map((report) => (
+                              <ReportCard
+                                key={report.id}
+                                report={report}
+                                onReview={() => reviewReport.mutate(report.id)}
+                                onView={() => setViewingReport(report)}
+                                isPending={reviewReport.isPending}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </section>
+                );
+              }
+            )
           ) : (
             <>
               {/* My Queue — flat list */}

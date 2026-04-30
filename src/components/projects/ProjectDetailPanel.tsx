@@ -14,6 +14,7 @@ import {
   Plus,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/hooks/useToast";
 
 interface UserOption {
   id: string;
@@ -73,6 +74,9 @@ export function ProjectDetailPanel({
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const reassignTodo = useMutation({
@@ -87,6 +91,9 @@ export function ProjectDetailPanel({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 
@@ -121,6 +128,9 @@ export function ProjectDetailPanel({
       setNewTaskTitle("");
       setNewTaskAssignee("");
       setShowAddTask(false);
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

@@ -279,6 +279,84 @@ export function useUpdateTemplate() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
       queryClient.invalidateQueries({ queryKey: ["audit-template-detail", vars.id] });
+      queryClient.invalidateQueries({ queryKey: ["audit-instances"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+export interface ApplyTemplateResult {
+  created: number;
+  skipped: number;
+  total: number;
+  serviceIds: string[];
+  unknownServiceIds?: string[];
+}
+
+export function useApplyTemplateToServices() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      templateId,
+      serviceIds,
+      year,
+      months,
+    }: {
+      templateId: string;
+      serviceIds: string[];
+      year: number;
+      months?: number[];
+    }): Promise<ApplyTemplateResult> => {
+      return mutateApi(`/api/audits/templates/${templateId}/apply`, {
+        method: "POST",
+        body: { serviceIds, year, ...(months ? { months } : {}) },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audit-instances"] });
+      queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+export function useAddTemplateItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      templateId,
+      section,
+      question,
+      guidance,
+      responseFormat,
+    }: {
+      templateId: string;
+      section?: string;
+      question: string;
+      guidance?: string;
+      responseFormat?: string;
+    }) => {
+      return mutateApi(`/api/audits/templates/${templateId}/items`, {
+        method: "POST",
+        body: {
+          items: [
+            {
+              question,
+              ...(section ? { section } : {}),
+              ...(guidance ? { guidance } : {}),
+              ...(responseFormat ? { responseFormat } : {}),
+            },
+          ],
+        },
+      });
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["audit-template-detail", vars.templateId] });
+      queryClient.invalidateQueries({ queryKey: ["audit-templates"] });
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
@@ -592,6 +670,96 @@ export function useImportCalendar() {
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
+  });
+}
+
+// ── Reschedule (drag-drop) ───────────────────────────────────────────────────
+
+export function useRescheduleAudit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      scheduledMonth,
+      scheduledYear,
+      dueDate,
+    }: {
+      id: string;
+      scheduledMonth: number;
+      scheduledYear: number;
+      dueDate?: string;
+    }) => {
+      return mutateApi(`/api/audits/${id}`, {
+        method: "PATCH",
+        body: { scheduledMonth, scheduledYear, dueDate },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audit-instances"] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Failed to reschedule audit" });
+    },
+  });
+}
+
+// ── Create audit instance (manual add) ───────────────────────────────────────
+
+export function useCreateAuditInstance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      templateId: string;
+      serviceId: string;
+      scheduledMonth: number;
+      scheduledYear: number;
+      dueDate?: string;
+      auditorId?: string;
+    }) => {
+      return mutateApi("/api/audits", {
+        method: "POST",
+        body: input,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audit-instances"] });
+      toast({ description: "Audit scheduled" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Failed to create audit" });
+    },
+  });
+}
+
+// ── Update audit (inline edit) ───────────────────────────────────────────────
+
+export function useUpdateAuditInstance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...body
+    }: {
+      id: string;
+      scheduledMonth?: number;
+      scheduledYear?: number;
+      dueDate?: string | null;
+      templateId?: string;
+      serviceId?: string;
+      auditorId?: string | null;
+    }) => {
+      return mutateApi(`/api/audits/${id}`, {
+        method: "PATCH",
+        body,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["audit-instances"] });
+      toast({ description: "Audit updated" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Failed to update audit" });
     },
   });
 }

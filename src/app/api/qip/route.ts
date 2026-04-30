@@ -5,6 +5,7 @@ import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createQipSchema = z.object({
   serviceId: z.string().min(1, "serviceId is required"),
   documentType: z.string().default("qip"),
@@ -59,7 +60,7 @@ const scope = getServiceScope(session);
  */
 export const POST = withApiAuth(async (req, session) => {
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const parsed = createQipSchema.safeParse(body);
 
     if (!parsed.success) {

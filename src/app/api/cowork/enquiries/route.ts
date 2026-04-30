@@ -7,6 +7,8 @@ import { withApiHandler } from "@/lib/api-handler";
 import { logger } from "@/lib/logger";
 import { scheduleNurtureFromStageChange } from "@/lib/nurture-scheduler";
 
+import { parseJsonBody } from "@/lib/api-error";
+import { resolveActivationFromUtm } from "@/lib/activation-attribution";
 const createEnquirySchema = z.object({
   serviceId: z.string().min(1),
   parentName: z.string().min(1),
@@ -18,6 +20,8 @@ const createEnquirySchema = z.object({
   parentDriver: z.string().optional().nullable(),
   assigneeId: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  /** Optional QR short code for activation attribution. */
+  utmCampaign: z.string().max(64).optional().nullable(),
 });
 
 /**
@@ -84,8 +88,10 @@ export const POST = withApiHandler(async (req) => {
   if (authError) return authError;
 
   try {
-    const body = await req.json();
+    const body = await parseJsonBody(req);
     const data = createEnquirySchema.parse(body);
+
+    const sourceActivationId = await resolveActivationFromUtm(data.utmCampaign ?? null);
 
     const enquiry = await prisma.parentEnquiry.create({
       data: {
@@ -99,6 +105,7 @@ export const POST = withApiHandler(async (req) => {
         parentDriver: data.parentDriver || null,
         assigneeId: data.assigneeId || null,
         notes: data.notes || null,
+        sourceActivationId,
         stageChangedAt: new Date(),
       },
       include: {

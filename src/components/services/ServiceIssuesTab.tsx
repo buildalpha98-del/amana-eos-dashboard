@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn, getWeekStart } from "@/lib/utils";
 import { AlertCircle, Plus, X, ArrowRight, CheckSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { toast } from "@/hooks/useToast";
 
 interface IssueData {
   id: string;
@@ -94,6 +95,9 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
       setShowModal(false);
       setFormData({ title: "", description: "", priority: "medium", ownerId: "" });
     },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
+    },
   });
 
   const updateStatus = useMutation({
@@ -108,6 +112,9 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["issues", { serviceId }] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 
@@ -135,6 +142,9 @@ export function ServiceIssuesTab({ serviceId }: { serviceId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["todos", { serviceId }] });
       queryClient.invalidateQueries({ queryKey: ["issues", { serviceId }] });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Something went wrong" });
     },
   });
 

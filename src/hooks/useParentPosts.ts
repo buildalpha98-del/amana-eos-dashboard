@@ -36,6 +36,16 @@ export interface ParentPost {
   createdAt: string;
   updatedAt: string;
   tags: ParentPostTag[];
+  likeCount?: number;
+  commentCount?: number;
+}
+
+export interface StaffParentPostComment {
+  id: string;
+  body: string;
+  createdAt: string;
+  authorName: string;
+  authorType: "parent" | "staff";
 }
 
 interface ParentPostsResponse {
@@ -102,6 +112,70 @@ export function useDeleteParentPost(serviceId: string) {
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", description: err.message || "Failed to delete post" });
+    },
+  });
+}
+
+// ── Comment thread (staff view) ─────────────────────────
+
+interface StaffCommentsResponse {
+  items: StaffParentPostComment[];
+  nextCursor?: string;
+}
+
+export function useStaffPostComments(
+  serviceId: string,
+  postId: string | null,
+) {
+  return useQuery<StaffCommentsResponse>({
+    queryKey: ["staff-post-comments", serviceId, postId],
+    queryFn: () =>
+      fetchApi<StaffCommentsResponse>(
+        `/api/services/${serviceId}/parent-posts/${postId}/comments?limit=50`,
+      ),
+    enabled: !!postId,
+    staleTime: 15_000,
+    retry: 2,
+  });
+}
+
+export function useStaffReplyToPost(serviceId: string, postId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) =>
+      mutateApi<StaffParentPostComment>(
+        `/api/services/${serviceId}/parent-posts/${postId}/comments`,
+        {
+          method: "POST",
+          body: { body },
+        },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff-post-comments", serviceId, postId] });
+      queryClient.invalidateQueries({ queryKey: ["parent-posts", serviceId] });
+      toast({ description: "Reply sent" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Failed to reply" });
+    },
+  });
+}
+
+export function useDeleteStaffPostComment(serviceId: string, postId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (commentId: string) =>
+      mutateApi(
+        `/api/services/${serviceId}/parent-posts/${postId}/comments/${commentId}`,
+        { method: "DELETE" },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff-post-comments", serviceId, postId] });
+      queryClient.invalidateQueries({ queryKey: ["parent-posts", serviceId] });
+      toast({ description: "Comment removed" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Failed to remove" });
     },
   });
 }

@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useUnreadNotificationCount } from "@/hooks/useNotifications";
 import { useQuickAdd } from "@/components/quick-add/QuickAddProvider";
 
 interface MobileBottomNavProps {
@@ -26,11 +26,11 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ onOpenSidebar }: MobileBottomNavProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: notificationsData } = useNotifications();
+  const { data: unreadData } = useUnreadNotificationCount({ refetchInterval: 60_000 });
   const { openTodoModal, openIssueModal } = useQuickAdd();
   const [quickActionOpen, setQuickActionOpen] = useState(false);
 
-  const unreadCount = notificationsData?.total ?? 0;
+  const unreadCount = unreadData?.count ?? 0;
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: Home },

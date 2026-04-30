@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const updateTimesheetSchema = z.object({
   notes: z.string().optional().nullable(),
   importSource: z.string().optional(),
@@ -51,7 +52,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 // PATCH /api/timesheets/[id] — update timesheet fields
 export const PATCH = withApiAuth(async (req, session, context) => {
   const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = updateTimesheetSchema.safeParse(body);
 
   if (!parsed.success) {

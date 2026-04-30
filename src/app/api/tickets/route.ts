@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getStateScope } from "@/lib/service-scope";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const createTicketSchema = z.object({
   contactId: z.string().min(1, "Contact is required"),
   subject: z.string().min(1, "Subject is required"),
@@ -57,7 +58,7 @@ const stateScope = getStateScope(session);
 
 // POST /api/tickets — create a manual ticket
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createTicketSchema.safeParse(body);
 
   if (!parsed.success) {

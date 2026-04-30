@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { withApiAuth } from "@/lib/server-auth";
 
+import { parseJsonBody } from "@/lib/api-error";
 const linkEmailSchema = z.object({
   from: z.string().min(1),
   to: z.string().min(1),
@@ -27,7 +28,7 @@ export const GET = withApiAuth(async (req, session, context) => {
 // POST /api/tickets/[id]/emails — manually link an email to a ticket
 export const POST = withApiAuth(async (req, session, context) => {
 const { id } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
 
   const parsed = linkEmailSchema.safeParse(body);
   if (!parsed.success) {

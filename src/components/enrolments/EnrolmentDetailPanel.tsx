@@ -23,11 +23,13 @@ import {
   Archive,
   Paperclip,
   ExternalLink,
+  Send,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEnrolment, useUpdateEnrolment, type EnrolmentSubmission } from "@/hooks/useEnrolments";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
+import { mutateApi } from "@/lib/fetch-api";
 
 interface Props {
   enrolmentId: string;
@@ -208,7 +210,41 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
   const updateMutation = useUpdateEnrolment();
   const [notes, setNotes] = useState("");
   const [showNotes, setShowNotes] = useState(false);
+  const [resending, setResending] = useState(false);
   const canViewPayment = session?.user?.role === "owner" || session?.user?.role === "head_office";
+
+  const handleResendInvite = async () => {
+    if (!enrolment) return;
+    const email = enrolment.primaryParent?.email;
+    const serviceId = enrolment.serviceId;
+    if (!email || !serviceId) {
+      toast({
+        variant: "destructive",
+        description: "Cannot resend — missing parent email or service.",
+      });
+      return;
+    }
+    setResending(true);
+    try {
+      const res = await mutateApi<{ sent: boolean; email?: string }>(
+        `/api/enrolments/${enrolment.id}/resend-parent-invite`,
+        { method: "POST" },
+      );
+      toast({
+        description: res.sent
+          ? `Invite email sent to ${res.email}.`
+          : "Invite could not be sent.",
+      });
+    } catch (err: unknown) {
+      toast({
+        variant: "destructive",
+        description:
+          err instanceof Error ? err.message : "Failed to resend invite.",
+      });
+    } finally {
+      setResending(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -314,14 +350,25 @@ export function EnrolmentDetailPanel({ enrolmentId, onClose }: Props) {
             Notes
           </button>
           {e.status === "processed" && (
-            <button
-              onClick={() => handleStatusChange("archived")}
-              disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
-            >
-              <Archive className="h-3.5 w-3.5" />
-              Archive
-            </button>
+            <>
+              <button
+                onClick={handleResendInvite}
+                disabled={resending}
+                title="Resend the parent portal log-in email to the primary parent"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+              >
+                <Send className="h-3.5 w-3.5" />
+                {resending ? "Sending..." : "Resend Invite"}
+              </button>
+              <button
+                onClick={() => handleStatusChange("archived")}
+                disabled={updateMutation.isPending}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-50 text-gray-500 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+              >
+                <Archive className="h-3.5 w-3.5" />
+                Archive
+              </button>
+            </>
           )}
         </div>
 

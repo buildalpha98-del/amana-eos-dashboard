@@ -12,19 +12,19 @@ const createContractSchema = z.object({
       "cs1", "cs2", "cs3", "cs4",
       "director", "coordinator", "custom",
     ])
-    .optional(),
-  awardLevelCustom: z.string().optional(),
+    .nullish(),
+  awardLevelCustom: z.string().nullish(),
   payRate: z.number().positive("Pay rate must be positive"),
-  hoursPerWeek: z.number().positive().optional(),
+  hoursPerWeek: z.number().positive().nullish(),
   startDate: z.string().min(1, "Start date is required"),
-  endDate: z.string().optional(),
+  endDate: z.string().nullish(),
   status: z
     .enum(["contract_draft", "active", "superseded", "terminated"])
     .default("contract_draft"),
-  documentUrl: z.string().url().optional(),
-  documentId: z.string().optional(),
-  notes: z.string().optional(),
-  previousContractId: z.string().optional(),
+  documentUrl: z.string().url().nullish(),
+  documentId: z.string().nullish(),
+  notes: z.string().nullish(),
+  previousContractId: z.string().nullish(),
 });
 
 // GET /api/contracts — list contracts with filters
@@ -129,4 +129,4 @@ const body = await parseJsonBody(req);
   });
 
   return NextResponse.json(contract, { status: 201 });
-}, { roles: ["owner", "head_office", "admin"] });
+}, { feature: "contracts.create" });

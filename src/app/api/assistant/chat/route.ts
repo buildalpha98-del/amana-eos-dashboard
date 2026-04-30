@@ -4,7 +4,7 @@ import { getAI } from "@/lib/ai";
 import { buildDashboardContext } from "@/lib/ai-context";
 import { ASSISTANT_TOOLS, executeToolCall } from "@/lib/ai-tools";
 import { AMANA_SYSTEM_PROMPT } from "@/lib/ai-system-prompt";
-import { ApiError } from "@/lib/api-error";
+import { ApiError, parseJsonBody } from "@/lib/api-error";
 import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
@@ -32,7 +32,7 @@ export const POST = withApiAuth(async (req) => {
     throw new ApiError(503, "AI is not configured. Set ANTHROPIC_API_KEY environment variable.");
   }
 
-  const raw = await req.json();
+  const raw = await parseJsonBody(req);
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
     throw ApiError.badRequest("Validation failed: " + JSON.stringify(parsed.error.flatten().fieldErrors));

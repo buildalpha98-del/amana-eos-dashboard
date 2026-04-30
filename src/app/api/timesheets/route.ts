@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { parseJsonBody } from "@/lib/api-error";
 import { getServiceScope, getStateScope } from "@/lib/service-scope";
 import { withApiAuth } from "@/lib/server-auth";
 
@@ -20,25 +22,24 @@ export const GET = withApiAuth(async (req, session) => {
   const weekEndingAfter = searchParams.get("weekEndingAfter");
   const weekEndingBefore = searchParams.get("weekEndingBefore");
 
-  const where: Record<string, unknown> = { deleted: false };
+  const where: Prisma.TimesheetWhereInput = { deleted: false };
 
   // Staff/member: only see their service's timesheets
   if (scope) where.serviceId = scope;
   else if (serviceId) where.serviceId = serviceId;
-  if (status) where.status = status;
+  if (status) where.status = status as Prisma.TimesheetWhereInput["status"];
   // State Manager: only see timesheets for services in their assigned state
   if (stateScope) where.service = { state: stateScope };
 
   if (weekEndingAfter || weekEndingBefore) {
-    where.weekEnding = {};
-    if (weekEndingAfter)
-      (where.weekEnding as Record<string, unknown>).gte = new Date(weekEndingAfter);
-    if (weekEndingBefore)
-      (where.weekEnding as Record<string, unknown>).lte = new Date(weekEndingBefore);
+    const range: Prisma.DateTimeFilter = {};
+    if (weekEndingAfter) range.gte = new Date(weekEndingAfter);
+    if (weekEndingBefore) range.lte = new Date(weekEndingBefore);
+    where.weekEnding = range;
   }
 
   const timesheets = await prisma.timesheet.findMany({
-    where: where as any,
+    where,
     include: {
       service: { select: { id: true, name: true, code: true } },
       _count: { select: { entries: true } },
@@ -52,7 +53,7 @@ export const GET = withApiAuth(async (req, session) => {
 // POST /api/timesheets — create empty timesheet
 export const POST = withApiAuth(async (req, session) => {
   const scope = getServiceScope(session);
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = createTimesheetSchema.safeParse(body);
 
   if (!parsed.success) {

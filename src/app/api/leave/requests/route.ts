@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
 import { parseJsonBody } from "@/lib/api-error";
+import { NOTIFICATION_TYPES } from "@/lib/notification-types";
+import { logger } from "@/lib/logger";
 const createLeaveSchema = z.object({
   leaveType: z.enum([
     "annual",
@@ -121,6 +123,41 @@ const body = await parseJsonBody(req);
       },
     },
   });
+
+  // Notify coordinators at the submitter's service. Observational — log failures but do
+  // not fail the request: the leave record has already been created.
+  try {
+    const coordinators = session!.user.serviceId
+      ? await prisma.user.findMany({
+          where: { role: "coordinator", serviceId: session!.user.serviceId, active: true },
+          select: { id: true },
+        })
+      : [];
+
+    if (coordinators.length > 0) {
+      const submitterName = session!.user.name || "A team member";
+      const startStr = start.toISOString().slice(0, 10);
+      const endStr = end.toISOString().slice(0, 10);
+      await Promise.all(
+        coordinators.map((c) =>
+          prisma.userNotification.create({
+            data: {
+              userId: c.id,
+              type: NOTIFICATION_TYPES.LEAVE_SUBMITTED,
+              title: `${submitterName} submitted a leave request`,
+              body: `${leaveType} from ${startStr} to ${endStr}`,
+              link: `/leave?id=${leaveRequest.id}`,
+            },
+          }),
+        ),
+      );
+    }
+  } catch (err) {
+    logger.error("Failed to create leave-submitted notifications", {
+      err,
+      leaveRequestId: leaveRequest.id,
+    });
+  }
 
   return NextResponse.json(leaveRequest, { status: 201 });
 });

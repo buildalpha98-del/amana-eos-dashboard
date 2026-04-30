@@ -7,6 +7,7 @@ import { withApiAuth } from "@/lib/server-auth";
 import { logger } from "@/lib/logger";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const bodySchema = z.object({
   templateSlug: z.string().min(1, "templateSlug is required"),
   variables: z.record(z.string(), z.string()).default({}),
@@ -39,7 +40,7 @@ const ai = getAI();
   }
 
   try {
-    const raw = await req.json();
+    const raw = await parseJsonBody(req);
     const parsed = bodySchema.safeParse(raw);
     if (!parsed.success) {
       return NextResponse.json(

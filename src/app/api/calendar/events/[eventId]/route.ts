@@ -7,6 +7,7 @@ import {
 import { withApiAuth } from "@/lib/server-auth";
 import { z } from "zod";
 
+import { parseJsonBody } from "@/lib/api-error";
 const patchEventSchema = z.object({
   subject: z.string().min(1).optional(),
   body: z.string().optional(),
@@ -35,7 +36,7 @@ const connected = await isCalendarConnected(session!.user.id);
   }
 
   const { eventId } = await context!.params!;
-  const body = await req.json();
+  const body = await parseJsonBody(req);
   const parsed = patchEventSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten().fieldErrors }, { status: 400 });

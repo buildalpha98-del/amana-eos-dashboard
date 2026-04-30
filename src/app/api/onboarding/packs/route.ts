@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { withApiAuth } from "@/lib/server-auth";
+import { parseJsonBody } from "@/lib/api-error";
 const createPackSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
@@ -53,7 +54,7 @@ const { searchParams } = new URL(req.url);
 
 // POST /api/onboarding/packs — create a new pack (owner/admin only)
 export const POST = withApiAuth(async (req, session) => {
-const body = await req.json();
+const body = await parseJsonBody(req);
   const parsed = createPackSchema.safeParse(body);
 
   if (!parsed.success) {

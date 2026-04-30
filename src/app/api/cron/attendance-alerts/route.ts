@@ -108,7 +108,7 @@ export const GET = withApiHandler(async (req) => {
               occupancyPct: Math.round(occupancy),
               date: yesterday.toLocaleDateString("en-AU"),
               url: `${baseUrl}/services/${service.id}`,
-            }).catch(() => {});
+            }).catch((err) => logger.error("Failed to send Teams low-occupancy notification", { err, serviceId: service.id, occupancy: Math.round(occupancy) }));
 
             // Email service manager
             if (resend && service.managerId) {

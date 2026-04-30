@@ -4,6 +4,7 @@ import { withParentAuth } from "@/lib/parent-auth";
 import { prisma } from "@/lib/prisma";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { sendEnrolmentReceivedNotification } from "@/lib/notifications/enrolment";
+import { logger } from "@/lib/logger";
 
 // ── GET /api/parent/enrolments — list sibling enrolment applications ──
 
@@ -140,7 +141,7 @@ export const POST = withParentAuth(async (req, { parent }) => {
   });
 
   // Fire and forget notification
-  sendEnrolmentReceivedNotification(application.id).catch(() => {});
+  sendEnrolmentReceivedNotification(application.id).catch((err) => logger.error("Failed to send enrolment received notification", { err, applicationId: application.id }));
 
   return NextResponse.json(
     {

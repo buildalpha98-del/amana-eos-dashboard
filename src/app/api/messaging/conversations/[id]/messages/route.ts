@@ -4,10 +4,18 @@ import { withApiAuth } from "@/lib/server-auth";
 import { ApiError, parseJsonBody } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { sendNewMessageNotification } from "@/lib/notifications/messaging";
+import { logger } from "@/lib/logger";
+import { attachmentUrlsField } from "@/lib/schemas/message-attachments";
 
-const messageSchema = z.object({
-  body: z.string().min(1, "Message body is required").max(5000),
-});
+const messageSchema = z
+  .object({
+    body: z.string().max(5000).default(""),
+    attachmentUrls: attachmentUrlsField,
+  })
+  .refine((d) => d.body.trim().length > 0 || d.attachmentUrls.length > 0, {
+    message: "Message body or attachments are required",
+    path: ["body"],
+  });
 
 // ---------------------------------------------------------------------------
 // POST — Staff sends a reply in a conversation
@@ -32,6 +40,7 @@ export const POST = withApiAuth(async (req, session, context) => {
       data: {
         conversationId: id,
         body: parsed.data.body,
+        attachmentUrls: parsed.data.attachmentUrls,
         senderType: "staff",
         senderId: session.user!.id!,
         senderName: session.user!.name ?? "Staff",
@@ -45,7 +54,7 @@ export const POST = withApiAuth(async (req, session, context) => {
   ]);
 
   // Fire and forget notification
-  sendNewMessageNotification(message.id).catch(() => {});
+  sendNewMessageNotification(message.id).catch((err) => logger.error("Failed to send new message notification", { err, messageId: message.id }));
 
   return NextResponse.json(message, { status: 201 });
 });

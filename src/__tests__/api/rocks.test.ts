@@ -3,7 +3,10 @@ import { prismaMock } from "../helpers/prisma-mock";
 import { mockSession, mockNoSession } from "../helpers/auth-mock";
 import { createRequest } from "../helpers/request";
 
-// Mock service-scope (owner/admin get null scope = see all)
+// Mock service-scope. Default = null (owner/admin see all). Individual tests
+// can override via `.mockReturnValueOnce("svc1")` to simulate the 4b-widened
+// helper for coordinator/marketing and confirm the rocks inline override
+// still collapses scope back to null.
 vi.mock("@/lib/service-scope", () => ({
   getServiceScope: vi.fn(() => null),
   getStateScope: vi.fn(() => null),
@@ -16,6 +19,7 @@ vi.mock("@/lib/teams-notify", () => ({
 
 // Import AFTER mocks are set up
 import { GET, POST } from "@/app/api/rocks/route";
+import { getServiceScope } from "@/lib/service-scope";
 
 describe("GET /api/rocks", () => {
   beforeEach(() => {
@@ -148,5 +152,80 @@ describe("POST /api/rocks", () => {
 
     // Verify activity log was created
     expect(prismaMock.activityLog.create).toHaveBeenCalledOnce();
+  });
+});
+
+// ── 4b scope-widening regression: rocks is exempt (cross-service visibility) ──
+describe("GET /api/rocks — 4b scope audit regression (exempt inline)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prismaMock.user.findUnique.mockResolvedValue({ active: true });
+  });
+
+  it("coordinator sees cross-service rocks (inline override bypasses getServiceScope)", async () => {
+    mockSession({
+      id: "coord-1",
+      name: "Coordinator",
+      role: "coordinator",
+      serviceId: "svc1",
+    });
+    // Simulate the 4b-widened helper returning svc1. The rocks route must
+    // still call `scope = null` via its inline override.
+    vi.mocked(getServiceScope).mockReturnValue("svc1");
+
+    prismaMock.rock.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/rocks");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+
+    const callArgs = prismaMock.rock.findMany.mock.calls[0][0];
+    // No OR[{ serviceId }, { ownerId }] narrowing should be applied —
+    // coordinator retains cross-service visibility for EOS rocks.
+    expect(callArgs.where.OR).toBeUndefined();
+    expect(callArgs.where.serviceId).toBeUndefined();
+  });
+
+  it("marketing sees cross-service rocks (inline override bypasses getServiceScope)", async () => {
+    mockSession({
+      id: "mkt-1",
+      name: "Marketing",
+      role: "marketing",
+      serviceId: "svc1",
+    });
+    vi.mocked(getServiceScope).mockReturnValue("svc1");
+
+    prismaMock.rock.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/rocks");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+
+    const callArgs = prismaMock.rock.findMany.mock.calls[0][0];
+    expect(callArgs.where.OR).toBeUndefined();
+    expect(callArgs.where.serviceId).toBeUndefined();
+  });
+
+  it("member is NOT exempt — narrowing still applies to OR[serviceId, ownerId]", async () => {
+    mockSession({
+      id: "mem-1",
+      name: "Member",
+      role: "member",
+      serviceId: "svc1",
+    });
+    vi.mocked(getServiceScope).mockReturnValue("svc1");
+
+    prismaMock.rock.findMany.mockResolvedValue([]);
+
+    const req = createRequest("GET", "/api/rocks");
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+
+    const callArgs = prismaMock.rock.findMany.mock.calls[0][0];
+    // Members keep the narrowing: see rocks in their service OR owned by them.
+    expect(callArgs.where.OR).toEqual([
+      { serviceId: "svc1" },
+      { ownerId: "mem-1" },
+    ]);
   });
 });

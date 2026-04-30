@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { authenticateCowork } from "@/app/api/_lib/auth";
 import { withApiHandler } from "@/lib/api-handler";
 
+import { parseJsonBody } from "@/lib/api-error";
 const VALID_TYPES = [
   "newsletter",
   "program_overview",
@@ -47,7 +48,7 @@ export const POST = withApiHandler(async (req, context) => {
     );
   }
 
-  const reqBody = await req.json();
+  const reqBody = await parseJsonBody(req);
   const parsed = postBodySchema.safeParse(reqBody);
   if (!parsed.success) {
     return NextResponse.json(

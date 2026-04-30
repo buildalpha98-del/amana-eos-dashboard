@@ -8,19 +8,22 @@ interface SheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
+  modal?: boolean;
 }
 
-function Sheet({ open, onOpenChange, children }: SheetProps) {
+function Sheet({ open, onOpenChange, children, modal = true }: SheetProps) {
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} modal={modal}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay
-          className={cn(
-            "fixed inset-0 bg-black/30 z-40",
-            "data-[state=open]:animate-in data-[state=open]:fade-in",
-            "data-[state=closed]:animate-out data-[state=closed]:fade-out"
-          )}
-        />
+        {modal && (
+          <DialogPrimitive.Overlay
+            className={cn(
+              "fixed inset-0 bg-black/30 z-40",
+              "data-[state=open]:animate-in data-[state=open]:fade-in",
+              "data-[state=closed]:animate-out data-[state=closed]:fade-out"
+            )}
+          />
+        )}
         {children}
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
