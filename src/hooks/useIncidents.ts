@@ -168,3 +168,64 @@ export function useCreateIncident() {
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// Edit + delete (2026-04-30 service-detail Incidents tab)
+//
+// Server enforces uploader-or-admin in src/app/api/incidents/[id]/route.ts —
+// these hooks just wrap the call. Both invalidate the standard incidents
+// query keys so any list (cross-service or service-scoped) re-fetches.
+// ---------------------------------------------------------------------------
+
+export interface UpdateIncidentArgs {
+  incidentId: string;
+  childName?: string | null;
+  incidentType?: string;
+  severity?: string;
+  location?: string | null;
+  timeOfDay?: string | null;
+  description?: string;
+  actionTaken?: string | null;
+  parentNotified?: boolean;
+  reportableToAuthority?: boolean;
+  followUpRequired?: boolean;
+  followUpCompleted?: boolean;
+  incidentDate?: string;
+}
+
+export function useUpdateIncident() {
+  const queryClient = useQueryClient();
+  return useMutation<IncidentRecord, Error, UpdateIncidentArgs>({
+    mutationFn: async ({ incidentId, ...body }) =>
+      mutateApi<IncidentRecord>(`/api/incidents/${incidentId}`, {
+        method: "PATCH",
+        body,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["incidents"] });
+      queryClient.invalidateQueries({ queryKey: ["incidents-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["incidents-trends"] });
+      toast({ description: "Incident updated" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Failed to update incident" });
+    },
+  });
+}
+
+export function useDeleteIncident() {
+  const queryClient = useQueryClient();
+  return useMutation<{ ok: true }, Error, { incidentId: string }>({
+    mutationFn: async ({ incidentId }) =>
+      mutateApi<{ ok: true }>(`/api/incidents/${incidentId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["incidents"] });
+      queryClient.invalidateQueries({ queryKey: ["incidents-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["incidents-trends"] });
+      toast({ description: "Incident removed" });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", description: err.message || "Failed to delete incident" });
+    },
+  });
+}
