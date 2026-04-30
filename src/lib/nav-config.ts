@@ -108,13 +108,19 @@ export const navItems: NavItem[] = [
 
   // ── Operations — day-to-day running ───────────────────────
   { href: "/services", label: "Services", icon: Building2, section: "Operations", roles: ALL_NON_MARKETING },
-  { href: "/roll-call", label: "Roll Call", icon: ClipboardList, section: "Operations", tooltip: "Daily attendance sign-in and sign-out", roles: ALL_NON_MARKETING },
+  // /roll-call top-level removed 2026-04-29 — lives inside /services/[id]?tab=daily-ops&sub=roll-call.
+  // Coordinators / staff drill into their service to access the daily roll call grid.
   { href: "/bookings", label: "Bookings", icon: CalendarCheck, section: "Operations", tooltip: "Review and action casual booking requests from parents", roles: ALL_NON_MARKETING },
   { href: "/financials", label: "Financials", icon: DollarSign, section: "Operations", roles: ALL_NON_MARKETING },
   { href: "/billing", label: "Billing", icon: Receipt, section: "Operations", tooltip: "Generate statements and record payments for families", roles: ALL_NON_MARKETING },
   { href: "/performance", label: "Performance", icon: Trophy, section: "Operations", roles: ALL_NON_MARKETING },
   { href: "/compliance", label: "Compliance", icon: ShieldCheck, section: "Operations", roles: ALL_NON_MARKETING },
-  { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists", roles: ALL_NON_MARKETING },
+  // 2026-04-29: tightened from ALL_NON_MARKETING → admin-tier + coordinator
+  // only. Audit-template management is a head office / area-coordinator
+  // configuration concern — Centre Directors (member) and on-shift staff
+  // shouldn't see it. Without this tightening the nav still showed it for
+  // member because /compliance prefix-matched /compliance/templates.
+  { href: "/compliance/templates", label: "Audit Templates", icon: ClipboardList, section: "Operations", tooltip: "Manage audit template items & upload .docx checklists", roles: ["head_office", "admin", "coordinator"] },
   { href: "/policies", label: "Policies", icon: Shield, section: "Operations", tooltip: "Policy management & compliance", roles: ALL_NON_MARKETING },
   { href: "/incidents", label: "Incidents", icon: AlertTriangle, section: "Operations", tooltip: "Safety incident tracking", roles: ALL_NON_MARKETING },
   { href: "/holiday-quest", label: "Holiday Quest", icon: Palmtree, section: "Operations", tooltip: "Vacation care day planner & promo generator" },

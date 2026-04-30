@@ -237,7 +237,8 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/enrolments",
     "/children",
     "/children/[id]",
-    "/roll-call",
+    // /roll-call removed 2026-04-29 — top-level Roll Call route doesn't exist;
+    // lives inside /services/[id]?tab=daily-ops&sub=roll-call.
     "/bookings",
     "/billing",
     "/reports",
@@ -255,41 +256,35 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/queue",
   ],
   member: [
+    // ── Personal hub ────────────────────────────────────────────
     "/dashboard",
     "/getting-started",
     "/my-portal",
+    "/queue",
+    "/profile",
+    // ── EOS — Centre Directors participate in EOS ──────────────
     "/rocks",
     "/todos",
     "/issues",
     "/meetings",
+    // ── Their centre — primary surface ─────────────────────────
     "/services",
+    // /services/[id] inherits from /services via prefix match in
+    // pathMatches(); same for the Roll Call / Bookings / Children /
+    // Billing tabs nested inside service detail.
     "/activity-library",
-    "/communication",
-    "/compliance",
-    "/compliance/templates",
-    "/documents",
     "/onboarding",
-    "/profile",
+    "/compliance",
+    "/policies",
+    "/incidents",
     "/staff/[id]",
+    "/children/[id]",
     "/roster/me",
     "/roster/swaps",
-    "/incidents",
-    "/policies",
-    "/holiday-quest",
-    "/enquiries",
-    "/contact-centre",
-    "/messaging",
-    "/enrolments",
-    "/children",
-    "/children/[id]",
-    "/roll-call",
-    "/bookings",
-    "/billing",
-    "/reports",
-    "/knowledge",
     "/leave",
-    "/timesheets",
-    "/contracts",
+    // ── Read-only org resources ────────────────────────────────
+    "/documents",
+    "/knowledge",
     "/tools/ccs-calculator",
     "/tools/the-amana-way",
     "/tools/amana-way-one-pager",
@@ -297,7 +292,20 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     "/guides",
     "/help",
     "/directory",
-    "/queue",
+    // ── INTENTIONALLY REMOVED 2026-04-29 ───────────────────────
+    // The following were in member's allowlist but caused noise / were
+    // cross-service surfaces a single-centre Director shouldn't manage:
+    //   /communication, /messaging, /contact-centre, /enquiries,
+    //   /conversions, /enrolments, /children, /roll-call, /bookings,
+    //   /billing, /reports, /timesheets, /contracts,
+    //   /compliance/templates, /holiday-quest
+    // - Children list / Roll Call / Bookings / Billing live inside
+    //   /services/[id]?tab=...; member reaches them by drilling in.
+    // - Cross-service surfaces (Reports, Timesheets, Contracts,
+    //   Communication, Enquiries) are admin/coordinator concerns.
+    // - /roll-call (top-level) was 404'ing for everyone — fully removed.
+    // - /compliance/templates is admin audit-template config.
+    // - /holiday-quest is a marketing planner.
   ],
   staff: [
     "/dashboard",
@@ -330,7 +338,7 @@ export const rolePageAccess: Record<Role, readonly AppPage[]> = {
     // from every /api/services/[id]/* route).
     "/services",
     "/services/[id]",
-    "/roll-call",
+    // /roll-call removed 2026-04-29 — lives inside /services/[id]?tab=daily-ops&sub=roll-call.
     "/bookings",
   ],
 };

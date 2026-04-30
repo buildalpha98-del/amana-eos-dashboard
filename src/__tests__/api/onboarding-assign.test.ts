@@ -58,9 +58,9 @@ describe("GET /api/onboarding/assign", () => {
   // Before the fix, every non-`staff` role saw every other staff member's
   // assignments because the route only scoped for role==="staff".
   it.each([
-    ["member", "u-member"],
-    ["coordinator", "u-coord"],
-    ["marketing", "u-marketing"],
+    ["member" as const, "u-member"],
+    ["coordinator" as const, "u-coord"],
+    ["marketing" as const, "u-marketing"],
   ])("%s can only see their own assignments (regression)", async (role, id) => {
     mockSession({ id, name: role, role, serviceId: "svc-1" });
     prismaMock.user.findUnique.mockResolvedValue({ id, active: true, role });
